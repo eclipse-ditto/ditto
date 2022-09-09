@@ -126,11 +126,16 @@ final class DistributedAcksImpl implements DistributedAcks {
         ackSupervisor.tell(RemoveSubscriberAcks.of(subscriber), ActorRef.noSender());
     }
 
+    @Override
+    public DistributedDataConfig getConfig() {
+        return config;
+    }
+
     private static CompletionStage<AcksDeclared> processAskResponse(final Object askResponse) {
-        if (askResponse instanceof AcksDeclared) {
-            return CompletableFuture.completedStage((AcksDeclared) askResponse);
-        } else if (askResponse instanceof Throwable) {
-            return CompletableFuture.failedStage((Throwable) askResponse);
+        if (askResponse instanceof AcksDeclared acksDeclared) {
+            return CompletableFuture.completedStage( acksDeclared);
+        } else if (askResponse instanceof Throwable throwable) {
+            return CompletableFuture.failedStage(throwable);
         } else {
             return CompletableFuture.failedStage(new ClassCastException("Expect SubAck, got: " + askResponse));
         }

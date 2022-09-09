@@ -20,7 +20,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.policies.model.enforcers.tree.PointerLocation;
 
 /**
  * This function is based on a JSON pointer as reference. It determines the relative location of any other JSON

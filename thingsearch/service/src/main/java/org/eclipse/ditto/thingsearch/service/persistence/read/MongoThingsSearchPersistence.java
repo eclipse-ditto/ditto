@@ -23,7 +23,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -231,7 +230,8 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
      */
     public Source<AbstractWriteModel, NotUsed> recoverLastWriteModel(final ThingId thingId) {
         final var metadata = Metadata.ofDeleted(thingId);
-        final var publisher = collection.find(Filters.eq(PersistenceConstants.FIELD_ID, thingId.toString())).limit(1);
+        final var publisher =
+                collection.find(Filters.eq(PersistenceConstants.FIELD_ID, thingId.toString())).limit(1);
         final var emptySource =
                 Source.<AbstractWriteModel>single(ThingDeleteModel.of(metadata));
         return Source.fromPublisher(publisher)
@@ -320,7 +320,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
     private static List<TimestampedThingId> toTimestampedThingIds(final List<Document> docs) {
         return docs.stream()
                 .map(MongoThingsSearchPersistence::toTimestampedThingId)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static TimestampedThingId toTimestampedThingId(final Document doc) {

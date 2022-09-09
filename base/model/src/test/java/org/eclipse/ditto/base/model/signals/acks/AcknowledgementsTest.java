@@ -40,7 +40,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

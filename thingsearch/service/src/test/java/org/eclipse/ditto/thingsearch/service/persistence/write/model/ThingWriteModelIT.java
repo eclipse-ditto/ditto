@@ -16,7 +16,6 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.model;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
-import java.util.stream.Collectors;
 
 import org.bson.BsonDocument;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
@@ -61,9 +60,9 @@ public final class ThingWriteModelIT extends AbstractThingSearchPersistenceITBas
     public void insert() {
         final var underTest = getWriteModel(1, 1);
         final var result = executeWrite(underTest);
-        assertThat(result.getInsertedCount()).isEqualTo(0);
-        assertThat(result.getMatchedCount()).isEqualTo(0);
-        assertThat(result.getModifiedCount()).isEqualTo(0);
+        assertThat(result.getInsertedCount()).isZero();
+        assertThat(result.getMatchedCount()).isZero();
+        assertThat(result.getModifiedCount()).isZero();
         assertThat(result.getUpserts()).hasSize(1);
     }
 
@@ -73,10 +72,10 @@ public final class ThingWriteModelIT extends AbstractThingSearchPersistenceITBas
         executeWrite(previousModel);
         final var underTest = getWriteModel(2, 2);
         final var result = executeWrite(underTest);
-        assertThat(result.getInsertedCount()).isEqualTo(0);
+        assertThat(result.getInsertedCount()).isZero();
         assertThat(result.getMatchedCount()).isEqualTo(1);
         assertThat(result.getModifiedCount()).isEqualTo(1);
-        assertThat(result.getUpserts()).hasSize(0);
+        assertThat(result.getUpserts()).isEmpty();
     }
 
     @Test
@@ -92,7 +91,7 @@ public final class ThingWriteModelIT extends AbstractThingSearchPersistenceITBas
 
         // THEN: The matched update succeeds; the other update is dropped
         assertThat(result.getMatchedCount()).isEqualTo(1);
-        assertThat(result.getUpserts()).hasSize(0);
+        assertThat(result.getUpserts()).isEmpty();
         final var document = Source.fromPublisher(collection.find())
                 .runWith(Sink.head(), actorSystem)
                 .toCompletableFuture()
@@ -103,7 +102,7 @@ public final class ThingWriteModelIT extends AbstractThingSearchPersistenceITBas
     private BulkWriteResult executeWrite(final ThingWriteModel... thingWriteModels) {
         final var writeModels = Arrays.stream(thingWriteModels)
                 .map(ThingWriteModel::toMongo)
-                .collect(Collectors.toList());
+                .toList();
         final var result =
                 runBlockingWithReturn(Source.fromPublisher(collection.bulkWrite(writeModels)));
         logger.info("BulkWriteResult=<{}>", result);

@@ -19,6 +19,7 @@ import static org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants.
 import static org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants.UNKNOWN_PATH;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -38,8 +39,6 @@ import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessageResponse;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.base.Charsets;
 
 import akka.actor.ActorRef;
 import akka.http.javadsl.model.HttpRequest;
@@ -324,7 +323,7 @@ public final class MessagesRouteTest extends EndpointTestBase {
         final var commandJsonObject = command.toJson();
         return Message.newBuilder(commandMessage.getHeaders())
                 .payload(commandJsonObject)
-                .rawPayload(ByteBuffer.wrap(commandJsonObject.toString().getBytes(Charsets.UTF_8)))
+                .rawPayload(ByteBuffer.wrap(commandJsonObject.toString().getBytes(Charset.defaultCharset())))
                 .build();
     }
 

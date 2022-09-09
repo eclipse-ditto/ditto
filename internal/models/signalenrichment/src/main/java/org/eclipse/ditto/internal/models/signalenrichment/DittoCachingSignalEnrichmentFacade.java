@@ -36,6 +36,7 @@ import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
@@ -218,8 +219,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
                 final var nextExpectedThingEventsParameters =
                         new CachingParameters(fieldSelector, thingEvents, invalidateCacheOnPolicyChange,
                                 cachingParameters.minAcceptableSeqNr);
-                result = handleNextExpectedThingEvents(cacheKey, JsonObject.empty(),
-                        nextExpectedThingEventsParameters)
+                result = handleNextExpectedThingEvents(cacheKey, JsonObject.empty(), nextExpectedThingEventsParameters)
                         .toCompletableFuture();
             } else {
                 // there are twin events; perform smart update
@@ -369,9 +369,14 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
     private static JsonObject getMergeJsonObject(final JsonValue jsonObject, final ThingEvent<?> thingEvent) {
         final var thingMerged = (ThingMerged) thingEvent;
         final JsonValue mergedValue = thingMerged.getValue();
-        final JsonObject mergePatch = JsonFactory.newObject(thingMerged.getResourcePath(), mergedValue);
+        final JsonObjectBuilder mergePatchBuilder = JsonFactory.newObject(thingMerged.getResourcePath(), mergedValue)
+                .toBuilder();
+        thingMerged.getMetadata()
+                .ifPresent(metadata -> mergePatchBuilder.set(
+                                Thing.JsonFields.METADATA.getPointer().append(thingMerged.getResourcePath()), metadata)
+                        .build());
 
-        return JsonFactory.mergeJsonValues(mergePatch, jsonObject).asObject();
+        return JsonFactory.mergeJsonValues(mergePatchBuilder.build(), jsonObject).asObject();
     }
 
     private static JsonObject getDeleteJsonObject(final JsonObject jsonObject, final WithResource thingEvent) {
@@ -383,7 +388,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
         } else if (resourcePath.isEmpty()) {
             result = JsonObject.empty();
         } else {
-            result = jsonObject.remove(resourcePath);
+            result = jsonObject.remove(resourcePath).remove(Thing.JsonFields.METADATA.getPointer().append(resourcePath));
         }
 
         return result;
@@ -396,10 +401,12 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
         if (resourcePath.isEmpty() && optEntity.filter(JsonValue::isObject).isPresent()) {
             optEntity.map(JsonValue::asObject).ifPresent(jsonObjectBuilder::setAll);
         } else {
-            optEntity.ifPresent(entity -> jsonObjectBuilder
-                    .set(resourcePath.toString(), entity)
+            optEntity.ifPresent(entity -> jsonObjectBuilder.set(resourcePath.toString(), entity)
             );
         }
+        thingEvent.getMetadata().ifPresent(
+                metadata -> jsonObjectBuilder.set(Thing.JsonFields.METADATA.getPointer().append(resourcePath),
+                        metadata));
 
         return jsonObjectBuilder.build();
     }

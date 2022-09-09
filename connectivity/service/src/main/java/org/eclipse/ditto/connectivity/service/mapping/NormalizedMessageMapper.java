@@ -102,9 +102,6 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
         final JsonObjectBuilder builder = JsonObject.newBuilder();
         builder.set(THING_ID, ThingId.of(topicPath.getNamespace(), topicPath.getEntityName()).toString());
 
-        // enrich with data selected by "extraFields", do this first - the actual changed data applied on top of that:
-        extraData.ifPresent(builder::setAll);
-
         if (path.isEmpty() && payloadValue.isPresent()) {
             final JsonValue value = payloadValue.get();
             if (value.isObject()) {
@@ -121,18 +118,25 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
         payload.getRevision().ifPresent(revision -> builder.set(REVISION, revision));
         builder.set(ABRIDGED_ORIGINAL_MESSAGE, abridgeMessage(adaptable));
 
-        final JsonObject jsonObject = jsonFieldSelector == null
-                ? builder.build()
-                : builder.build().get(jsonFieldSelector);
+        final var json = builder.build();
+        final var jsonWithExtra = extraData.map(extra -> JsonFactory.mergeJsonValues(json, extra))
+                .orElse(json)
+                .asObject();
+
+        final JsonObject jsonFiltered = jsonFieldSelector == null
+                ? jsonWithExtra
+                : jsonWithExtra.get(jsonFieldSelector);
 
         final JsonObject result;
         if (topicPath.isAction(TopicPath.Action.MERGED)) {
-            result = filterNullValuesAndEmptyObjects(jsonObject);
+            result = filterNullValuesAndEmptyObjects(jsonFiltered);
         } else {
-            result = jsonObject;
+            result = jsonFiltered;
         }
 
-        final DittoHeaders headers = DittoHeaders.newBuilder().contentType(ContentType.APPLICATION_JSON).build();
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .contentType(ContentType.APPLICATION_JSON)
+                .build();
         return ExternalMessageFactory.newExternalMessageBuilder(headers)
                 .withTopicPath(adaptable.getTopicPath())
                 .withText(result.toString())

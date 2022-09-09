@@ -28,7 +28,7 @@ public final class ThingsSearchConstants {
     /**
      * Name of the akka cluster role.
      */
-    public static final String CLUSTER_ROLE = "things-wildcard-search";
+    public static final String CLUSTER_ROLE = "search";
 
     private static final String PATH_DELIMITER = "/";
 

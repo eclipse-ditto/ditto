@@ -144,9 +144,8 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
 
     private void validateCredentials(final Connection connection, final DittoHeaders dittoHeaders) {
         connection.getCredentials().ifPresent(credentials -> {
-            if (credentials instanceof OAuthClientCredentials) {
-                final var oauthClientCredentials = (OAuthClientCredentials) credentials;
-                final var uri = Uri.create(oauthClientCredentials.getTokenEndpoint());
+            if (credentials instanceof OAuthClientCredentials oAuthClientCredentials) {
+                final var uri = Uri.create(oAuthClientCredentials.getTokenEndpoint());
                 if (oauth2EnforceHttps && !isSecureScheme(uri.getScheme())) {
                     final var errorMessage = "The OAuth2 token endpoint must be accessed via HTTPS " +
                             "in order not to transmit the client secret in plain text.";

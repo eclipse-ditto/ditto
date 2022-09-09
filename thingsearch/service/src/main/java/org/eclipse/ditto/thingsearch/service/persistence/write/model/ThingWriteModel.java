@@ -199,8 +199,9 @@ public final class ThingWriteModel extends AbstractWriteModel {
     }
 
     private Optional<MongoWriteModel> computeDiff(final ThingWriteModel lastWriteModel, final int maxWireVersion) {
+        final ThingWriteModel thingWriteModel;
         final WriteModel<BsonDocument> mongoWriteModel;
-        final boolean isPatchUpdate;
+        final boolean isPatchUpdate1;
 
         if (isNextWriteModelOutDated(lastWriteModel, this)) {
             // possible due to background sync
@@ -218,13 +219,15 @@ public final class ThingWriteModel extends AbstractWriteModel {
                 PATCH_SKIP_COUNT.increment();
                 return Optional.empty();
             }
-            final var filter = asPatchUpdate(lastWriteModel.getMetadata().getThingRevision()).getFilter();
+            thingWriteModel = asPatchUpdate(lastWriteModel.getMetadata().getThingRevision());
+            final var filter = thingWriteModel.getFilter();
             mongoWriteModel = new UpdateOneModel<>(filter, aggregationPipeline);
             LOGGER.debug("Using incremental update <{}>", mongoWriteModel.getClass().getSimpleName());
             LOGGER.trace("Using incremental update <{}>", mongoWriteModel);
             PATCH_UPDATE_COUNT.increment();
-            isPatchUpdate = true;
+            isPatchUpdate1 = true;
         } else {
+            thingWriteModel = this;
             mongoWriteModel = this.toMongo();
             LOGGER.debug("Using replacement because diff is bigger or nonexistent: <{}>",
                     mongoWriteModel.getClass().getSimpleName());
@@ -233,9 +236,9 @@ public final class ThingWriteModel extends AbstractWriteModel {
                         diff.map(BsonDiff::consumeAndExport));
             }
             FULL_UPDATE_COUNT.increment();
-            isPatchUpdate = false;
+            isPatchUpdate1 = false;
         }
-        return Optional.of(MongoWriteModel.of(this, mongoWriteModel, isPatchUpdate));
+        return Optional.of(MongoWriteModel.of(thingWriteModel, mongoWriteModel, isPatchUpdate1));
     }
 
     private Optional<BsonDiff> tryComputeDiff(final BsonDocument minuend, final BsonDocument subtrahend,

@@ -20,11 +20,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.matchers.reasons.FieldAssumptions;
 

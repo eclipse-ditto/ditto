@@ -10,17 +10,21 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
+/* eslint-disable new-cap */
 
 import * as Authorization from './modules/environments/authorization.js';
 import * as Environments from './modules/environments/environments.js';
 import * as Attributes from './modules/things/attributes.js';
 import * as Features from './modules/things/features.js';
+import * as FeatureMessages from './modules/things/featureMessages.js';
 import * as Fields from './modules/things/fields.js';
 import * as SearchFilter from './modules/things/searchFilter.js';
 import * as Things from './modules/things/things.js';
 import * as Connections from './modules/connections/connections.js';
+import * as Policies from './modules/policies/policies.js';
 import * as API from './modules/api.js';
 import * as Utils from './modules/utils.js';
+import {WoTDescription} from './modules/things/wotDescription.js';
 
 
 let resized = false;
@@ -30,6 +34,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   document.getElementById('thingsHTML').innerHTML = await (await fetch('modules/things/things.html')).text();
   document.getElementById('fieldsHTML').innerHTML = await (await fetch('modules/things/fields.html')).text();
   document.getElementById('featuresHTML').innerHTML = await (await fetch('modules/things/features.html')).text();
+  document.getElementById('policyHTML').innerHTML = await (await fetch('modules/policies/policies.html')).text();
   document.getElementById('connectionsHTML').innerHTML =
       await (await fetch('modules/connections/connections.html')).text();
   document.getElementById('environmentsHTML').innerHTML =
@@ -43,9 +48,25 @@ document.addEventListener('DOMContentLoaded', async function() {
   await Fields.ready();
   await SearchFilter.ready();
   Features.ready();
+  await FeatureMessages.ready();
+  Policies.ready();
   Connections.ready();
   Authorization.ready();
   Environments.ready();
+
+  const thingDescription = WoTDescription({
+    itemsId: 'tabItemsThing',
+    contentId: 'tabContentThing',
+  }, false);
+  Things.addChangeListener(thingDescription.onReferenceChanged);
+  thingDescription.ready();
+
+  const featureDescription = WoTDescription({
+    itemsId: 'tabItemsFeatures',
+    contentId: 'tabContentFeatures',
+  }, true);
+  Features.addChangeListener(featureDescription.onReferenceChanged);
+  featureDescription.ready();
 
   // make dropdowns not cutting off
   new bootstrap.Dropdown(document.querySelector('.dropdown-toggle'), {
@@ -89,6 +110,23 @@ document.addEventListener('DOMContentLoaded', async function() {
         window.dispatchEvent(new Event('resize'));
         resized = false;
       }
+    });
+  });
+
+  // Make all input field remove invalid marker on change
+  const {get, set} = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+  document.querySelectorAll('input').forEach((input) => {
+    input.addEventListener('change', (event) => {
+      event.target.classList.remove('is-invalid');
+    });
+    Object.defineProperty(input, 'value', {
+      get() {
+        return get.call(this);
+      },
+      set(newVal) {
+        input.classList.remove('is-invalid');
+        return set.call(this, newVal);
+      },
     });
   });
 });

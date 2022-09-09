@@ -18,7 +18,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
@@ -35,7 +34,8 @@ import org.junit.Test;
  */
 public final class CountIT extends AbstractReadPersistenceITBase {
 
-    private static final ThingId THING_BASE_ID = TestConstants.thingId("thingsearch", "countThing");
+    private static final ThingId THING_BASE_ID =
+            TestConstants.thingId("thingsearch", "countThing");
     private static final String KNOWN_ATTRIBUTE_KEY_1 = "attributeKey1";
     private static final String KNOWN_ATTRIBUTE_KEY_2 = "attributeKey2";
 
@@ -67,7 +67,7 @@ public final class CountIT extends AbstractReadPersistenceITBase {
                 AbstractThingSearchPersistenceITBase.qbf.newUnlimitedBuilder(
                         AbstractThingSearchPersistenceITBase.cf.any()).build(), Collections.emptyList());
 
-        assertThat(actualCount).isEqualTo(0L);
+        assertThat(actualCount).isZero();
     }
 
     @Test
@@ -99,7 +99,7 @@ public final class CountIT extends AbstractReadPersistenceITBase {
                         AbstractThingSearchPersistenceITBase.fef.filterByThingId(),
                         AbstractThingSearchPersistenceITBase.cf.eq(nonExistingThingId.toString())));
 
-        assertThat(actualCount).isEqualTo(0);
+        assertThat(actualCount).isZero();
     }
 
     @Test
@@ -111,7 +111,7 @@ public final class CountIT extends AbstractReadPersistenceITBase {
         final List<Thing> thingsToCreate = Stream.iterate(0, i -> i + 1)
                 .limit(count)
                 .map(i -> createThingV2(ThingId.of(THING_BASE_ID.getNamespace(), THING_BASE_ID.getName() + i)))
-                .collect(Collectors.toList());
+                .toList();
         thingsToCreate.forEach(this::persistThingV2);
 
         // delete one of the things

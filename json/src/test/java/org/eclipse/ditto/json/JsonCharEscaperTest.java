@@ -20,7 +20,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.util.stream.IntStream;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.eclipsesource.json.Json;

@@ -47,8 +47,9 @@ public class StartedKamonTimerTest {
         final OnStopHandler onStopHandler = mock(OnStopHandler.class);
         sut.onStop(onStopHandler);
         final List<OnStopHandler> onStopHandlers = sut.getOnStopHandlers();
-        Assertions.assertThat(onStopHandlers).hasSize(2);
-        Assertions.assertThat(onStopHandlers).contains(onStopHandler);
+        Assertions.assertThat(onStopHandlers)
+                .hasSize(2)
+                .contains(onStopHandler);
     }
 
     @Test
@@ -74,11 +75,11 @@ public class StartedKamonTimerTest {
 
     @Test
     public void getSegments() {
-        assertThat(sut.getSegments().keySet()).hasSize(0);
+        assertThat(sut.getSegments().keySet()).isEmpty();
         final StartedTimer testSegment = sut.startNewSegment("TEST");
         final Map<String, StartedTimer> segments = sut.getSegments();
         Assertions.assertThat(segments).hasSize(1);
-        assertThat(segments.get("TEST")).isEqualTo(testSegment);
+        assertThat(segments).containsEntry("TEST", testSegment);
     }
 
     @Test
@@ -89,12 +90,12 @@ public class StartedKamonTimerTest {
         final Map<String, String> parentTags = sut.getTags();
 
         assertThat(parentTags.keySet()).hasSize(2);
-        assertThat(parentTags.get("segment")).isEqualTo("overall");
-        assertThat(parentTags.get("tag1")).isEqualTo("value1");
+        assertThat(parentTags).containsEntry("segment", "overall");
+        assertThat(parentTags).containsEntry("tag1", "value1");
 
         assertThat(segmentTags.keySet()).hasSize(2);
-        assertThat(segmentTags.get("segment")).isEqualTo("TEST");
-        assertThat(segmentTags.get("tag1")).isEqualTo("value1");
+        assertThat(segmentTags).containsEntry("segment", "TEST");
+        assertThat(segmentTags).containsEntry("tag1", "value1");
     }
 
     @Test
@@ -119,7 +120,7 @@ public class StartedKamonTimerTest {
 
     @Test
     public void startTimeStampAlwaysSet() {
-        assertThat(sut.getStartNanoTime()).isGreaterThan(0);
+        assertThat(sut.getStartNanoTime()).isPositive();
     }
 
     @Test

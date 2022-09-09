@@ -1,3 +1,4 @@
+/* eslint-disable require-jsdoc */
 /*
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
@@ -19,6 +20,16 @@ import * as Utils from '../utils.js';
 import * as Fields from './fields.js';
 import * as Things from './things.js';
 
+const observers = [];
+
+export function addChangeListener(observer) {
+  observers.push(observer);
+}
+
+function notifyAll() {
+  observers.forEach((observer) => observer.call(null, dom.theFeatureId.value));
+}
+
 let featurePropertiesEditor;
 let featureDesiredPropertiesEditor;
 
@@ -27,10 +38,7 @@ const dom = {
   featureDefinition: null,
   featureCount: null,
   featuresTable: null,
-  messageFeatureSubject: null,
-  messageTimeout: null,
-  messageFeaturePayload: null,
-  messageFeatureResponse: null,
+  tableValidationFeature: null,
 };
 
 /**
@@ -39,10 +47,14 @@ const dom = {
 export function ready() {
   Utils.getAllElementsById(dom);
 
+  Utils.addValidatorToTable(dom.featuresTable, dom.tableValidationFeature);
+
+
   dom.featuresTable.onclick = (event) => {
-    dom.theFeatureId.value = event.target.textContent;
-    // $('[href="#tabCrudFeature"]').tab('show');
-    refreshFeature(Things.theThing, dom.theFeatureId.value);
+    if (event.target && event.target.nodeName === 'TD') {
+      dom.theFeatureId.value = event.target.textContent;
+      refreshFeature(Things.theThing, dom.theFeatureId.value);
+    }
   };
 
   document.getElementById('createFeature').onclick = () => {
@@ -76,7 +88,7 @@ export function ready() {
           resultType: 'pointer',
         });
         Fields.proposeNewField('features/' + dom.theFeatureId.value + '/properties' + res);
-      };
+      }
     }, 10);
   });
 
@@ -85,8 +97,6 @@ export function ready() {
     featureDesiredPropertiesEditor.renderer.updateFull();
   });
 
-  document.getElementById('messageFeature').onclick = messageFeature;
-
   Things.addChangeListener(onThingChanged);
 }
 
@@ -94,7 +104,7 @@ export function ready() {
  * Creates a new empty feature for the given thing in Ditto
  * @param {String} newFeatureId Name of the new feature.
  */
-export function createFeature(newFeatureId) {
+function createFeature(newFeatureId) {
   console.assert(newFeatureId && newFeatureId != '', 'newFeatureId expected');
   Utils.assert(Things.theThing, 'No Thing selected');
   if (Things.theThing['features']) {
@@ -121,13 +131,13 @@ function updateFeature(method) {
   const featureDesiredProperties = featureDesiredPropertiesEditor.getValue();
   if (dom.featureDefinition.value) {
     featureObject.definition = dom.featureDefinition.value.split(',');
-  };
+  }
   if (featureProperties) {
     featureObject.properties = JSON.parse(featureProperties);
-  };
+  }
   if (featureDesiredProperties) {
     featureObject.desiredProperties = JSON.parse(featureDesiredProperties);
-  };
+  }
 
   API.callDittoREST(
       method,
@@ -164,6 +174,7 @@ function refreshFeature(thing, feature) {
     featurePropertiesEditor.setValue('');
     featureDesiredPropertiesEditor.setValue('');
   }
+  notifyAll();
 }
 
 /**
@@ -180,10 +191,10 @@ function onThingChanged(thing) {
       if (key === dom.theFeatureId.value) {
         refreshFeature(thing, key);
         thingHasFeature = true;
-      };
+      }
       Utils.addTableRow(dom.featuresTable, key, key === dom.theFeatureId.value);
       count++;
-    };
+    }
   }
   dom.featureCount.textContent = count > 0 ? count : '';
   if (!thingHasFeature) {
@@ -191,30 +202,3 @@ function onThingChanged(thing) {
     refreshFeature();
   }
 }
-
-/**
- * Calls Ditto to send a message with the parameters of the fields in the UI
- */
-function messageFeature() {
-  const subject = dom.messageFeatureSubject.value;
-  const feature = dom.theFeatureId.value;
-  const timeout = dom.messageTimeout.value;
-  const payload = JSON.parse(dom.messageFeaturePayload.value);
-  if (subject && feature && payload) {
-    dom.messageFeatureResponse.value = null;
-    API.callDittoREST('POST', '/things/' + Things.theThing.thingId +
-    '/features/' + feature +
-    '/inbox/messages/' + subject +
-    '?timeout=' + timeout,
-    payload,
-    ).then((data) => {
-      if (timeout > 0) {
-        dom.messageFeatureResponse.value = JSON.stringify(data, null, 2);
-      };
-    }).catch((err) => {
-      dom.messageFeatureResponse.value = null;
-    });
-  } else {
-    Utils.showError('Feature ID or Subject or Payload is empty');
-  }
-};

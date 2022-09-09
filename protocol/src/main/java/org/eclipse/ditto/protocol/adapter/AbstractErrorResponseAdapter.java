@@ -15,20 +15,16 @@ package org.eclipse.ditto.protocol.adapter;
 import java.util.Collections;
 import java.util.Set;
 
-import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
-import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.ErrorRegistry;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
-import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.ProtocolFactory;
@@ -36,7 +32,6 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.TopicPathBuildable;
 import org.eclipse.ditto.protocol.TopicPathBuilder;
 import org.eclipse.ditto.protocol.adapter.HeadersFromTopicPath.Extractor;
-import org.eclipse.ditto.things.model.ThingConstants;
 
 /**
  * Adapter for mapping a {@link ErrorResponse} to and from an {@link org.eclipse.ditto.protocol.Adaptable}.
@@ -118,35 +113,6 @@ public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> i
     @Override
     public TopicPath toTopicPath(final T t, final TopicPath.Channel channel) {
         return getTopicPath(t, channel);
-    }
-
-    /**
-     * Implementations must provide a {@link TopicPathBuilder} for the given {@code errorResponse}.
-     *
-     * @param errorResponse the processed error response
-     * @return the {@link TopicPathBuilder} used to processed the given {@code errorResponse}
-     * @deprecated no longer used as of Ditto 2.1.0,use
-     * {@link #getTopicPath(org.eclipse.ditto.base.model.signals.commands.ErrorResponse, org.eclipse.ditto.protocol.TopicPath.Channel)} instead
-     */
-    @Deprecated
-    public TopicPathBuilder getTopicPathBuilder(final T errorResponse) {
-        final TopicPath topicPath = getTopicPath(errorResponse, TopicPath.Channel.NONE);
-        final EntityType entityType;
-        switch (topicPath.getGroup()) {
-            case THINGS:
-                entityType = ThingConstants.ENTITY_TYPE;
-                break;
-            case POLICIES:
-                entityType = PolicyConstants.ENTITY_TYPE;
-                break;
-            case CONNECTIONS:
-                entityType = ConnectivityConstants.ENTITY_TYPE;
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown group " + topicPath.getGroup());
-        }
-        return ProtocolFactory.newTopicPathBuilder(
-                NamespacedEntityId.of(entityType, topicPath.getNamespace() + ":" + topicPath.getEntityName()));
     }
 
     /**

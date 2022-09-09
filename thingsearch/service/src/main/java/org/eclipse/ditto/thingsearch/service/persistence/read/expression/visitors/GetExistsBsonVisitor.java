@@ -19,6 +19,7 @@ import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConst
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_FEATURES_PATH;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_FEATURE_ID;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_F_ARRAY;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_METADATA_PATH;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_PROPERTIES;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_THING;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.PROPERTIES;
@@ -137,6 +138,7 @@ public final class GetExistsBsonVisitor extends AbstractFieldBsonCreator impleme
 
     private Bson matchKey(final CharSequence key) {
         final JsonPointer pointer = JsonPointer.of(key);
+
         return getAuthorizationBson(pointer)
                 .map(authBson -> Filters.and(Filters.exists(toDottedPath(FIELD_THING, pointer)), authBson))
                 .orElseGet(() -> Filters.exists(toDottedPath(FIELD_THING, pointer)));
@@ -144,6 +146,7 @@ public final class GetExistsBsonVisitor extends AbstractFieldBsonCreator impleme
 
     private Bson matchWildcardFeatureKey(final CharSequence featureRelativeKey) {
         final JsonPointer pointer = JsonPointer.of(featureRelativeKey);
+
         return getFeatureWildcardAuthorizationBson(pointer)
                 .map(authBson -> Filters.elemMatch(FIELD_F_ARRAY,
                         Filters.and(Filters.exists(toDottedPath(pointer)), authBson)))
@@ -152,7 +155,7 @@ public final class GetExistsBsonVisitor extends AbstractFieldBsonCreator impleme
 
     @Override
     public Bson visitMetadata(final String key) {
-        // search on _metadata is not supported, return filter that don't match
-        return Filters.eq("nomatch");
+        return matchKey(FIELD_METADATA_PATH + key);
     }
+
 }

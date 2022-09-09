@@ -35,7 +35,7 @@ public enum ClientRole {
 
     private final String name;
 
-    private ClientRole(final String name) {
+    ClientRole(final String name) {
         this.name = name;
     }
 

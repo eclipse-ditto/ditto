@@ -69,6 +69,13 @@ public interface DistributedDataConfig {
     int getNumberOfShards();
 
     /**
+     * The number of subscribers in each subscriber pool.
+     *
+     * @return the number of subscribers.
+     */
+    int getSubscriberPoolSize();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code DistributedDataConfig}.
      */
@@ -97,7 +104,12 @@ public interface DistributedDataConfig {
         /**
          * The number of shards Ditto's ddata extension applies for Map keys.
          */
-        NUMBER_OF_SHARDS("number-of-shards", 5);
+        NUMBER_OF_SHARDS("number-of-shards", 5),
+
+        /**
+         * The number of subscribers in each subscriber pool.
+         */
+        SUBSCRIBER_POOL_SIZE("subscriber-pool-size", 1);
 
         private final String path;
         private final Object defaultValue;

@@ -55,7 +55,9 @@ import org.eclipse.ditto.connectivity.model.SourceBuilder;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.DefaultConnectivitySignalEnrichmentProvider;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -75,7 +77,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.mockito.Mockito;
 
-import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
@@ -356,6 +357,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 protocolAdapter,
                 logger
         );
+        final var config = actorSystem.settings().config();
         final var inboundDispatchingSink = InboundDispatchingSink.createSink(CONNECTION,
                 protocolAdapter.headerTranslator(),
                 ActorSelection.apply(proxyActor, ""),
@@ -363,7 +365,8 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 outboundMappingProcessorActor,
                 testKit.getRef(),
                 actorSystem,
-                ConnectivityConfig.of(actorSystem.settings().config()),
+                ConnectivityConfig.of(config),
+                DittoHeadersValidator.get(actorSystem, ScopedConfig.dittoExtension(config)),
                 null);
 
         final var inboundMappingSink = InboundMappingSink.createSink(

@@ -115,6 +115,20 @@ export function addRadioButton(target, groupName, value, checked) {
 }
 
 /**
+ * Create a list of option elements
+ * @param {HTMLElement} target target element (select)
+ * @param {array} options Array of strings to be filled as options
+ */
+export function setOptions(target, options) {
+  target.innerHTML = '';
+  options.forEach((key) => {
+    const option = document.createElement('option');
+    option.text = key;
+    target.appendChild(option);
+  });
+}
+
+/**
  * Creates a drop down item or header
  * @param {HTMLElement} target target element
  * @param {array} items array of items for the drop down
@@ -136,12 +150,18 @@ export function addDropDownEntries(target, items, isHeader) {
  * @param {HTMLElement} tabContentsNode root node for the tab contents
  * @param {String} title name of the new tab
  * @param {String} contentHTML tab content for the new tab
+ * @param {String} toolTip (optional) toolip on the tab item
+ * @return {String} id of the tabpane content node
  */
-export function addTab(tabItemsNode, tabContentsNode, title, contentHTML) {
-  const id = 'tab' + title.replace(/\s/g, '');
+export function addTab(tabItemsNode, tabContentsNode, title, contentHTML, toolTip) {
+  const id = 'tab' + Math.random().toString(36).replace('0.', '');
 
   const li = document.createElement('li');
   li.classList.add('nav-item');
+  if (toolTip) {
+    li.setAttribute('data-bs-toggle', 'tooltip');
+    li.setAttribute('title', toolTip);
+  }
   li.innerHTML = `<a class="nav-link" data-bs-toggle="tab" data-bs-target="#${id}">${title}</a>`;
   tabItemsNode.appendChild(li);
 
@@ -149,6 +169,8 @@ export function addTab(tabItemsNode, tabContentsNode, title, contentHTML) {
   template.innerHTML = contentHTML;
   template.content.firstElementChild.id = id;
   tabContentsNode.appendChild(template.content.firstElementChild);
+
+  return id;
 }
 
 /**
@@ -260,4 +282,30 @@ export function createAceEditor(domId, sessionMode, readOnly) {
   }
 
   return result;
+}
+
+/**
+ * Links the hidden input element for validation to the table
+ * @param {HTMLElement} tableElement tbody that is validated
+ * @param {HTMLElement} inputElement input element with validation
+ */
+export function addValidatorToTable(tableElement, inputElement) {
+  tableElement.addEventListener('click', () => {
+    inputElement.classList.remove('is-invalid');
+  });
+}
+
+/**
+ * Adjust selection of a table
+ * @param {HTMLElement} tbody table with the data
+ * @param {function} condition evaluate if table row should be selected or not
+ */
+export function tableAdjustSelection(tbody, condition) {
+  Array.from(tbody.rows).forEach((row) => {
+    if (condition(row)) {
+      row.classList.add('table-active');
+    } else {
+      row.classList.remove('table-active');
+    }
+  });
 }

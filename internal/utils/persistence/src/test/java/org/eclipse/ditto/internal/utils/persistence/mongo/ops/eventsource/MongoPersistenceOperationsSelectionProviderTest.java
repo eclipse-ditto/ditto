@@ -24,7 +24,6 @@ import org.bson.Document;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.things.model.ThingConstants;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**

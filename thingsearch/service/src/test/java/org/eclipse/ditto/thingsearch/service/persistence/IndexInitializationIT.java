@@ -25,4 +25,5 @@ public final class IndexInitializationIT extends AbstractThingSearchPersistenceI
         MongoIndexAssertions.assertIndices(getClient().getDefaultDatabase(),
                 PersistenceConstants.THINGS_COLLECTION_NAME, getMaterializer(), Indices.all());
     }
+
 }

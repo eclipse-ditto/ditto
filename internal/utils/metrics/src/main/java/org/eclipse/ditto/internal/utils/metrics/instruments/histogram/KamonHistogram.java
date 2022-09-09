@@ -114,8 +114,8 @@ public class KamonHistogram implements Histogram {
     private Optional<Distribution> getSnapshot(final boolean reset) {
         final kamon.metric.Histogram histogram = getKamonInternalHistogram();
 
-        if (histogram instanceof kamon.metric.Histogram.Atomic) {
-            return Optional.of(((kamon.metric.Histogram.Atomic) histogram).snapshot(reset));
+        if (histogram instanceof kamon.metric.Histogram.Atomic atomic) {
+            return Optional.of(atomic.snapshot(reset));
         }
         LOGGER.warn("Could not get snapshot of kamon internal histogram");
         return Optional.empty();
@@ -133,4 +133,5 @@ public class KamonHistogram implements Histogram {
                 ", tags=" + tags +
                 "]";
     }
+
 }

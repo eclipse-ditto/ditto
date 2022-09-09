@@ -26,7 +26,6 @@ import java.util.function.Supplier;
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
 

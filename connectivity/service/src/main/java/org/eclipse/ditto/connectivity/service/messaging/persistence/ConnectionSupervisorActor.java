@@ -70,12 +70,12 @@ public final class ConnectionSupervisorActor
      * For connectivity, this local ask timeout has to be higher as e.g. "openConnection" commands performed in a
      * "staged" way will lead to quite some response times.
      */
-    private static final Duration CONNECTIVITY_DEFAULT_LOCAL_ASK_TIMEOUT = Duration.ofSeconds(15);
+    private static final Duration CONNECTIVITY_DEFAULT_LOCAL_ASK_TIMEOUT = Duration.ofSeconds(50);
 
     private static final SupervisorStrategy SUPERVISOR_STRATEGY =
             new OneForOneStrategy(true,
                     DeciderBuilder.match(JMSRuntimeException.class, e ->
-                                    (SupervisorStrategy.Directive) SupervisorStrategy.resume())
+                                    SupervisorStrategy.resume())
                             .build()
                             .orElse(SupervisorStrategy.stoppingStrategy().decider()));
     private static final Duration OVERWRITES_CHECK_BACKOFF_DURATION = Duration.ofSeconds(30);

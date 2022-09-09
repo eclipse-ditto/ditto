@@ -64,6 +64,11 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
     }
 
     @Override
+    protected Optional<Metadata> calculateRelativeMetadata(@Nullable Thing entity, CreateThing command) {
+        return super.calculateRelativeMetadata(command.getThing(), command);
+    }
+
+    @Override
     public boolean isDefined(final CreateThing command) {
         return true;
     }
@@ -104,7 +109,8 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
         final Thing finalNewThing = newThing;
         newThing = wotThingDescriptionProvider.provideThingSkeletonForCreation(
                         command.getEntityId(),
-                        newThing.getDefinition().orElse(null), commandHeaders
+                        newThing.getDefinition().orElse(null),
+                        commandHeaders
                 )
                 .map(wotBasedThingSkeleton ->
                         JsonFactory.mergeJsonValues(finalNewThing.toJson(), wotBasedThingSkeleton.toJson())

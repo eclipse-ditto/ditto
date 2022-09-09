@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.serialization.ByteBufferDeserializer;
 import org.apache.kafka.common.serialization.ByteBufferSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -50,19 +51,16 @@ final class PropertiesFactory {
     private final KafkaConfig config;
     private final String clientId;
     private final String bootstrapServers;
-    private final boolean doubleDecodingEnabled;
 
     private PropertiesFactory(final Connection connection,
             final KafkaConfig config,
-            final String clientId,
-            final boolean doubleDecodingEnabled) {
+            final String clientId) {
 
         this.connection = checkNotNull(connection, "connection");
         this.config = checkNotNull(config, "config");
         this.clientId = checkNotNull(clientId, "clientId");
         bootstrapServers = KafkaBootstrapServerSpecificConfig.getInstance().getBootstrapServers(connection);
-        this.doubleDecodingEnabled = doubleDecodingEnabled;
-        commonSpecificConfigs = List.of(KafkaAuthenticationSpecificConfig.getInstance(doubleDecodingEnabled),
+        commonSpecificConfigs = List.of(KafkaAuthenticationSpecificConfig.getInstance(),
                 KafkaBootstrapServerSpecificConfig.getInstance());
         consumerSpecificConfigs = getConsumerSpecificConfigs(commonSpecificConfigs);
         producerSpecificConfigs = List.copyOf(commonSpecificConfigs);
@@ -87,10 +85,9 @@ final class PropertiesFactory {
      */
     static PropertiesFactory newInstance(final Connection connection,
             final KafkaConfig config,
-            final String clientId,
-            final boolean doubleDecodingEnabled) {
+            final String clientId) {
 
-        return new PropertiesFactory(connection, config, clientId, doubleDecodingEnabled);
+        return new PropertiesFactory(connection, config, clientId);
     }
 
     /**
@@ -107,6 +104,7 @@ final class PropertiesFactory {
                         .withBootstrapServers(bootstrapServers)
                         .withGroupId(connection.getId().toString())
                         .withClientId(clientId + "-consumer")
+                        .withProperties(getTrustedSelfSignedCertificates())
                         .withProperties(getConsumerSpecificConfigProperties())
                         .withProperties(getSecurityProtocolProperties())
                         .withConnectionChecker(connectionCheckerSettings);
@@ -126,8 +124,18 @@ final class PropertiesFactory {
         return ProducerSettings.apply(alpakkaConfig, new StringSerializer(), new ByteBufferSerializer())
                 .withBootstrapServers(bootstrapServers)
                 .withProperties(getClientIdProperties())
+                .withProperties(getTrustedSelfSignedCertificates())
                 .withProperties(getProducerSpecificConfigProperties())
                 .withProperties(getSecurityProtocolProperties());
+    }
+
+    private Map<String, String> getTrustedSelfSignedCertificates() {
+        if (connection.isValidateCertificates() && connection.getTrustedCertificates().isPresent()) {
+            return Map.of(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, "PEM",
+                    SslConfigs.SSL_TRUSTSTORE_CERTIFICATES_CONFIG, connection.getTrustedCertificates().orElse(""),
+                    SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
+        }
+        return Map.of();
     }
 
     private Map<String, String> getClientIdProperties() {
@@ -160,7 +168,7 @@ final class PropertiesFactory {
 
     private boolean isConnectionAuthenticated() {
         final KafkaSpecificConfig authenticationSpecificConfig =
-                KafkaAuthenticationSpecificConfig.getInstance(doubleDecodingEnabled);
+                KafkaAuthenticationSpecificConfig.getInstance();
         return authenticationSpecificConfig.isApplicable(connection);
     }
 

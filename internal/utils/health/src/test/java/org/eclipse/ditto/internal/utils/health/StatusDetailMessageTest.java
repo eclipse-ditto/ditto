@@ -19,7 +19,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 

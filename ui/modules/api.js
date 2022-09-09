@@ -222,12 +222,7 @@ let authHeaderValue;
  * @param {boolean} forDevOps if true, the credentials for the dev ops api will be used.
  */
 export function setAuthHeader(forDevOps) {
-  if (!Environments.current().bearer && !Environments.current().usernamePassword &&
-      !Environments.current().useDittoPreAuthenticatedAuth) {
-    return;
-  }
-
-  if (forDevOps && Environments.current().usernamePasswordDevOps) {
+  if (forDevOps && Environments.current().useBasicAuth) {
     authHeaderKey = 'Authorization';
     authHeaderValue = 'Basic ' + window.btoa(Environments.current().usernamePasswordDevOps);
   } else if (Environments.current().useBasicAuth) {
@@ -247,17 +242,19 @@ export function setAuthHeader(forDevOps) {
  * @param {String} method 'POST', 'GET', 'DELETE', etc.
  * @param {String} path of the Ditto call (e.g. '/things')
  * @param {Object} body payload for the api call
+ * @param {Object} additionalHeaders object with additional header fields
  * @return {Object} result as json object
  */
-export async function callDittoREST(method, path, body) {
+export async function callDittoREST(method, path, body, additionalHeaders) {
   try {
     const response = await fetch(Environments.current().api_uri + '/api/2' + path, {
       method: method,
       headers: {
         'Content-Type': 'application/json',
         [authHeaderKey]: authHeaderValue,
+        ...additionalHeaders,
       },
-      body: JSON.stringify(body),
+      ...(body) && {body: JSON.stringify(body)},
     });
     if (!response.ok) {
       response.json()
@@ -324,7 +321,7 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
       document.body.style.cursor = 'progress';
       response.json().then((data) => {
         if (data && data['?'] && data['?']['?'].status >= 400) {
-          const dittoErr = data['?']['?'];
+          const dittoErr = data['?']['?'].payload;
           Utils.showError(dittoErr.description, dittoErr.message, dittoErr.status);
         } else {
           if (params.unwrapJsonPath) {
@@ -334,7 +331,7 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
               }
               data = data[node];
             });
-          };
+          }
           successCallback(data);
         }
       }).catch((error) => {
@@ -350,9 +347,9 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
     Utils.showError(err);
     throw err;
   }
-};
+}
 
 export function env() {
   return Environments.current().api_uri.startsWith('https://things') ? 'things' : 'ditto';
-};
+}
 

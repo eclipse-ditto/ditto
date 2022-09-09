@@ -23,7 +23,6 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -63,7 +62,7 @@ public final class SignalEnrichmentCacheKeyTest {
         assertThat((CharSequence) CACHE_KEY.getId()).isEqualTo(ENTITY_ID);
 
         // assert serialization
-        assertThat(CACHE_KEY.toString()).isEqualTo(EXPECTED_SERIALIZED_ENTITY_ID);
+        assertThat(CACHE_KEY.toString()).hasToString(EXPECTED_SERIALIZED_ENTITY_ID);
     }
 
     /**

@@ -23,7 +23,6 @@ import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**

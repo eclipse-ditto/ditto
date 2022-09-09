@@ -18,8 +18,6 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.policies.model.enforcers.tree.PointerLocation;
-import org.eclipse.ditto.policies.model.enforcers.tree.ResourceNode;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Permissions;
 

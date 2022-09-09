@@ -136,33 +136,16 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
      * Returns the username part of the URI of this {@code Connection}.
      *
      * @return the username.
-     * @deprecated since 2.4.0 use {@link #getUsername(boolean)} instead.
+     *
      */
     Optional<String> getUsername();
 
     /**
-     * Returns the username part of the URI of this {@code Connection}.
-     *
-     * @param shouldUriDecode whether the username should be URI-decoded.
-     * @return the username.
-     */
-    Optional<String> getUsername(boolean shouldUriDecode);
-
-    /**
      * Returns the password part of the URI of this {@code Connection}.
      *
      * @return the password.
-     * @deprecated since 2.4.0 use {@link #getPassword(boolean)} instead.
      */
     Optional<String> getPassword();
-
-    /**
-     * Returns the password part of the URI of this {@code Connection}.
-     *
-     * @param shouldUriDecode whether the password should be URI-decoded.
-     * @return the password.
-     */
-    Optional<String> getPassword(boolean shouldUriDecode);
 
     /**
      * Returns the hostname part of the URI of this {@code Connection}.
@@ -269,19 +252,6 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
      */
     @Immutable
     final class JsonFields {
-
-        /**
-         * JSON field containing the {@code JsonSchemaVersion}.
-         *
-         * @deprecated as of 2.3.0 this field definition is not used anymore.
-         */
-        @Deprecated
-        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION = JsonFactory.newIntFieldDefinition(
-                JsonSchemaVersion.getJsonKey(),
-                FieldType.SPECIAL,
-                FieldType.HIDDEN,
-                JsonSchemaVersion.V_2
-        );
 
         /**
          * JSON field containing the Connection's lifecycle.

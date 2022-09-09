@@ -48,9 +48,11 @@ export async function ready() {
   Utils.getAllElementsById(dom);
 
   dom.filterList.addEventListener('click', (event) => {
-    dom.searchFilterEdit.value = event.target.textContent;
-    checkIfFavourite();
-    Things.searchThings(event.target.textContent);
+    if (event.target && event.target.classList.contains('dropdown-item')) {
+      dom.searchFilterEdit.value = event.target.textContent;
+      checkIfFavourite();
+      Things.searchThings(event.target.textContent);
+    }
   });
 
   dom.searchThings.onclick = () => {
@@ -61,7 +63,7 @@ export async function ready() {
     if (toggleFilterFavourite(dom.searchFilterEdit.value)) {
       dom.favIcon.classList.toggle('bi-star');
       dom.favIcon.classList.toggle('bi-star-fill');
-    };
+    }
   };
 
   dom.searchFilterEdit.onkeyup = (event) => {
@@ -76,11 +78,11 @@ export async function ready() {
   dom.searchFilterEdit.onclick = (event) => {
     if (event.target.selectionStart === event.target.selectionEnd) {
       event.target.select();
-    };
+    }
   };
 
   dom.pinnedThings.onclick = pinnedTriggered;
-};
+}
 
 /**
  * Callback to initialize searchFilters if the environment changed
@@ -88,14 +90,12 @@ export async function ready() {
 function onEnvironmentChanged() {
   if (!Environments.current()['filterList']) {
     Environments.current().filterList = [];
-  };
+  }
   if (!Environments.current()['pinnedThings']) {
     Environments.current().pinnedThings = [];
-  };
+  }
   updateFilterList();
-
-  dom.searchFilterEdit.focus();
-};
+}
 
 /**
  * Tests if the search filter is an RQL. If yes, things search is called otherwise just things get
@@ -141,7 +141,7 @@ function updateFilterList() {
   Utils.addDropDownEntries(dom.filterList, Environments.current().filterList);
   Utils.addDropDownEntries(dom.filterList, ['Example search filters'], true);
   Utils.addDropDownEntries(dom.filterList, filterExamples);
-};
+}
 
 /**
  * Adds or removes the given filter from the list of search filters
@@ -160,7 +160,7 @@ function toggleFilterFavourite(filter) {
   }
   Environments.environmentsJsonChanged('filterList');
   return true;
-};
+}
 
 /**
  * Initializes the UI for the favicon dependent on wether the search filter is in the search filters

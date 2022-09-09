@@ -31,11 +31,11 @@ import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
+import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.DefaultUserInformation;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami;
 import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
 import org.eclipse.ditto.gateway.service.util.config.GatewayConfig;
-import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonObject;
@@ -74,11 +74,11 @@ import akka.util.ByteString;
 public abstract class AbstractHttpRequestActorTest {
 
     @ClassRule
-    public static final ActorSystemResource ACTOR_SYSTEM_RESOURCE = ActorSystemResource.newInstance(
-            ConfigFactory.load("test"));
+    public static final ActorSystemResource ACTOR_SYSTEM_RESOURCE =
+            ActorSystemResource.newInstance(ConfigFactory.load("test"));
 
-    static final HeaderTranslator HEADER_TRANSLATOR = HeaderTranslator.of(DittoHeaderDefinition.values(),
-            MessageHeaderDefinition.values());
+    static final HeaderTranslator HEADER_TRANSLATOR =
+            HeaderTranslator.of(DittoHeaderDefinition.values(), MessageHeaderDefinition.values());
 
     protected static GatewayConfig gatewayConfig;
 
@@ -87,7 +87,8 @@ public abstract class AbstractHttpRequestActorTest {
 
     @BeforeClass
     public static void beforeClass() {
-        gatewayConfig = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(ConfigFactory.load("test.conf")));
+        gatewayConfig = DittoGatewayConfig.of(
+                DefaultScopedConfig.dittoScoped(ConfigFactory.load("test.conf")));
     }
 
     void testThingModifyCommand(final ThingId thingId,
@@ -99,7 +100,8 @@ public abstract class AbstractHttpRequestActorTest {
             final DittoHeaders expectedResponseHeaders) throws InterruptedException, ExecutionException {
 
         final var proxyActorProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
-        final var modifyAttribute = ModifyAttribute.of(thingId, attributePointer, JsonValue.of("bar"), dittoHeaders);
+        final var modifyAttribute =
+                ModifyAttribute.of(thingId, attributePointer, JsonValue.of("bar"), dittoHeaders);
         final var responseFuture = new CompletableFuture<HttpResponse>();
         final var underTest =
                 createHttpRequestActor(proxyActorProbe.ref(), getHttpRequest(modifyAttribute), responseFuture);
@@ -128,11 +130,12 @@ public abstract class AbstractHttpRequestActorTest {
         assertThat(httpResponse.status()).isEqualTo(expectedHttpStatusCode);
 
         if (expectedResponseHeaders != null) {
-            final var expectedHttpResponseHeaders = HEADER_TRANSLATOR.toExternalHeaders(expectedResponseHeaders)
-                    .entrySet()
-                    .stream()
-                    .map(e -> RawHeader.create(e.getKey(), e.getValue()))
-                    .collect(Collectors.toList());
+            final var expectedHttpResponseHeaders =
+                    HEADER_TRANSLATOR.toExternalHeaders(expectedResponseHeaders)
+                            .entrySet()
+                            .stream()
+                            .map(e -> RawHeader.create(e.getKey(), e.getValue()))
+                            .toList();
 
             assertThat(httpResponse.getHeaders()).isEqualTo(expectedHttpResponseHeaders);
         }
@@ -186,7 +189,8 @@ public abstract class AbstractHttpRequestActorTest {
                 .build();
         final var sendThingMessage = SendThingMessage.of(thingId, message, dittoHeaders);
 
-        final var httpRequest = HttpRequest.PUT("/api/2/things/" + thingId + "/inbox/messages/" + messageSubject);
+        final var httpRequest =
+                HttpRequest.PUT("/api/2/things/" + thingId + "/inbox/messages/" + messageSubject);
         final var responseFuture = new CompletableFuture<HttpResponse>();
 
         final var underTest = createHttpRequestActor(proxyActorProbe.ref(), httpRequest, responseFuture);
@@ -252,6 +256,7 @@ public abstract class AbstractHttpRequestActorTest {
                 AuthorizationSubject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, "any-google-user")),
                 AuthorizationSubject.newInstance(SubjectId.newInstance(SubjectIssuer.INTEGRATION,
                         "any-integration-subject")));
+
         return DittoHeaders.newBuilder()
                 .correlationId(testNameCorrelationId.getCorrelationId())
                 .authorizationContext(context)
@@ -269,6 +274,7 @@ public abstract class AbstractHttpRequestActorTest {
                 .stream()
                 .map(e -> RawHeader.create(e.getKey(), e.getValue()))
                 .collect(Collectors.toList());
+
         return HttpResponse.create().withStatus(StatusCodes.OK)
                 .withEntity(ContentTypes.APPLICATION_JSON, ByteString.fromString(userInformation.toJsonString()))
                 .withHeaders(expectedHeaders);
@@ -279,6 +285,7 @@ public abstract class AbstractHttpRequestActorTest {
         final var authContextJson = authContextString == null ?
                 JsonObject.empty() :
                 JsonObject.of(authContextString);
+
         return AuthorizationModelFactory.newAuthContext(authContextJson);
     }
 

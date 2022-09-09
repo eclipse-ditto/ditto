@@ -26,7 +26,6 @@ import java.util.Set;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;

@@ -55,10 +55,6 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-internal-utils-aggregator</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-akka</artifactId>
         </dependency>
         <dependency>
@@ -108,10 +104,6 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-models-signalenrichment</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-internal-models-acks</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

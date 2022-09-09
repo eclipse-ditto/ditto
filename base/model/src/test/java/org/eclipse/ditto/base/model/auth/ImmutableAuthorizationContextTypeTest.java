@@ -17,7 +17,6 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -44,7 +43,7 @@ public final class ImmutableAuthorizationContextTypeTest {
     public void toStringReturnsExpected() {
         final ImmutableAuthorizationContextType underTest = ImmutableAuthorizationContextType.of(KNOWN_TYPE_VALUE);
 
-        assertThat(underTest.toString()).isEqualTo(KNOWN_TYPE_VALUE);
+        assertThat(underTest.toString()).hasToString(KNOWN_TYPE_VALUE);
     }
 
     @Test

@@ -93,7 +93,8 @@ public final class PersistencePingActor extends AbstractActor {
                 persistenceIdsSourceSupplier = () -> readJournal.getJournalPidsWithTag(pingConfig.getJournalTag(),
                         pingConfig.getReadJournalBatchSize(),
                         pingConfig.getInterval(),
-                        materializer);
+                        materializer,
+                        false);
         }
         readJournal.ensureTagPidIndex().exceptionally(e -> {
             log.error(e, "Failed to create TagPidIndex");
@@ -229,7 +230,7 @@ public final class PersistencePingActor extends AbstractActor {
     }
 
     static String toCorrelationId(final EntityId persistenceId) {
-        return CORRELATION_ID_PREFIX + persistenceId.toString();
+        return CORRELATION_ID_PREFIX + persistenceId;
     }
 
     static Optional<String> toPersistenceId(final String correlationId) {

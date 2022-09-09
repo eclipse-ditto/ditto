@@ -22,14 +22,11 @@ import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.policies.model.enforcers.tree.PointerLocation;
-import org.eclipse.ditto.policies.model.enforcers.tree.PolicyTreeNode;
-import org.eclipse.ditto.policies.model.enforcers.tree.ResourceNode;
-import org.eclipse.ditto.policies.model.enforcers.tree.Visitor;
 import org.eclipse.ditto.policies.model.Permissions;
 
 /**
- * Abstract base implementation for visitors which check permissions on {@link org.eclipse.ditto.policies.model.enforcers.tree.ResourceNode}s.
+ * Abstract base implementation for visitors which check permissions on
+ * {@link org.eclipse.ditto.policies.model.enforcers.tree.ResourceNode}s.
  */
 @ParametersAreNonnullByDefault
 abstract class CheckPermissionsVisitor implements Visitor<Boolean> {

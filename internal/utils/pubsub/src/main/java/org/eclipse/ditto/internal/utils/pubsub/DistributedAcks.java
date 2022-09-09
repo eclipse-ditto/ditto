@@ -18,6 +18,7 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.internal.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.internal.utils.pubsub.api.AcksDeclared;
 
 import akka.actor.ActorContext;
@@ -92,6 +93,14 @@ public interface DistributedAcks extends Extension {
     void removeAcknowledgementLabelDeclaration(ActorRef subscriber);
 
     /**
+     * Get the config of this distributed data.
+     *
+     * @return The config.
+     * @since 3.0.0
+     */
+    DistributedDataConfig getConfig();
+
+    /**
      * Start AcksSupervisor under an ActorContext and expose a DistributedAcks interface.
      * Precondition: the cluster member has the role {@code "acks-aware"}.
      *
@@ -119,8 +128,8 @@ public interface DistributedAcks extends Extension {
      *
      * @return an empty distributed acks.
      */
-    static DistributedAcks empty() {
-        return new DistributedAcksEmptyImpl();
+    static DistributedAcks empty(final ActorSystem system) {
+        return new DistributedAcksEmptyImpl(system);
     }
 
     /**

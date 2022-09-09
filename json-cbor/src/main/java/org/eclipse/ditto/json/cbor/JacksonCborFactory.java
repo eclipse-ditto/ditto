@@ -272,8 +272,8 @@ public final class JacksonCborFactory implements CborFactory {
      */
     private static JsonNumber getIntegerOrLong(final long longValue) {
         if (longValue <= Integer.MAX_VALUE && longValue >= Integer.MIN_VALUE) {
-            return (JsonNumber) JsonValue.of((int) longValue);
+            return JsonValue.of((int) longValue);
         }
-        return (JsonNumber) JsonValue.of(longValue);
+        return JsonValue.of(longValue);
     }
 }

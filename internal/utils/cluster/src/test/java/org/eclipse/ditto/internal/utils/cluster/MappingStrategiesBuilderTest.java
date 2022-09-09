@@ -17,18 +17,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Set;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.base.model.signals.JsonParsableRegistry;
+import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
 import org.eclipse.ditto.internal.utils.akka.PingCommandResponse;
 import org.eclipse.ditto.internal.utils.akka.SimpleCommand;
 import org.eclipse.ditto.internal.utils.akka.SimpleCommandResponse;
 import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
-import org.eclipse.ditto.base.model.signals.JsonParsableRegistry;
-import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.junit.Test;
 import org.mutabilitydetector.internal.com.google.common.collect.Sets;
 
@@ -151,12 +151,12 @@ public final class MappingStrategiesBuilderTest {
         private static final JsonObject INNER_VALUE = JsonObject.newBuilder().set("text", "I am JSON value").build();
 
         private static MyJsonifiable fromJson(final JsonObject jsonObject) {
-            assertThat(INNER_VALUE).isEqualTo(jsonObject);
+            assertThat(jsonObject).isEqualTo(INNER_VALUE);
             return INSTANCE;
         }
 
         private static MyJsonifiable fromJsonWithHeaders(final JsonObject jsonObject, final DittoHeaders headers) {
-            assertThat(INNER_VALUE).isEqualTo(jsonObject);
+            assertThat(jsonObject).isEqualTo(INNER_VALUE);
             return INSTANCE;
         }
 

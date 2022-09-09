@@ -81,7 +81,7 @@ and can be enabled manually, as mentioned in the [configuration - rate limiting 
 #### [W3C WoT (Web of Things) integration](https://github.com/eclipse/ditto/issues/1034)
 
 Ditto adds and optional (and currently *experimental*) integration of the 
-[Web of Things (WoT) Thing Description 1.1 - W3C Working Draft 11 March 2022](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/) specification.
+[Web of Things (WoT) Thing Description 1.1](https://www.w3.org/TR/wot-thing-description11/) specification.
 
 Digital twins managed by Ditto can reference to WoT "Thing Models" (being accessible via an HTTP URL) in which the
 capabilities of the twin are defined.  
@@ -188,7 +188,7 @@ Looking forward, the plan for Ditto 2.5.0 is to work on:
 
 Looking even more ahead, the plan for Ditto 3.0.0 is to work on:
 * Simplifying Ditto's architecture by:
-  * removing the [concierge service](architecture-services-concierge.html)
+  * removing the "concierge service"
   * potentially (to be evaluated) even removing the [gateway service](architecture-services-gateway.html) and merging its 
     functionality (providing HTTP + WS endpoints) into the 
     [connectivity service](architecture-services-connectivity.html)

@@ -145,7 +145,7 @@ public final class BulkWriteResultAckFlowTest {
     @Test
     public void acknowledgements() {
         final List<TestProbe> probes =
-                IntStream.range(0, 5).mapToObj(i -> TestProbe.apply(actorSystem)).collect(Collectors.toList());
+                IntStream.range(0, 5).mapToObj(i -> TestProbe.apply(actorSystem)).toList();
         final List<MongoWriteModel> writeModels = generateWriteModels(probes);
         final BulkWriteResult result = BulkWriteResult.acknowledged(1, 2, 1, 2, List.of(), List.of());
         final List<BulkWriteError> updateFailure = List.of(

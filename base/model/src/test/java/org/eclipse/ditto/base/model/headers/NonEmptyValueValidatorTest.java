@@ -20,7 +20,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**

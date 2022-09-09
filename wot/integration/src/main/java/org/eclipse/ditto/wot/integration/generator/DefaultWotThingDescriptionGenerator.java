@@ -275,10 +275,10 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                             "The WoT ThingModel must be of '@type' being 'tm:ThingModel'")
                     .dittoHeaders(dittoHeaders)
                     .build();
-        } else if (atType instanceof MultipleAtType) {
+        } else if (atType instanceof MultipleAtType multipleAtType) {
             final List<SingleAtType> keptTypes = new ArrayList<>();
             final AtomicBoolean tmThingModelWasPresent = new AtomicBoolean(false);
-            ((MultipleAtType) atType).stream()
+            multipleAtType.stream()
                     .forEach(st -> {
                         if (st.equals(SingleAtType.of("tm:ThingModel"))) {
                             tmThingModelWasPresent.set(true);
@@ -299,7 +299,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
     }
 
     private void removeTmRequired(final ThingModel.Builder builder) {
-        builder.remove(ThingModel.JsonFields.TM_REQUIRED);
+        builder.remove(ThingModel.JsonFields.TM_OPTIONAL);
     }
 
     private void addBase(final ThingDescription.Builder thingDescriptionBuilder,
@@ -334,7 +334,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
         final List<BaseLink<?>> newLinks = tdBuilder.build().getLinks()
                 .map(links -> StreamSupport.stream(links.spliterator(), false))
                 .orElseGet(Stream::empty)
-                .collect(Collectors.toList());
+                .toList();
 
         final Link typeLink = Link.newBuilder()
                 .setRel("type")
@@ -524,13 +524,26 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
             final ThingDescription.Builder tdBuilder,
             final JsonPointer propertiesPointer) {
 
+        final Optional<String> dittoExtensionPrefix = thingModel.getAtContext()
+                .determinePrefixFor(DittoWotExtension.DITTO_WOT_EXTENSION);
+
         thingModel.getProperties()
                 .map(Properties::entrySet)
                 .map(Set::stream)
                 .map(properties -> properties.map(propertyEntry -> {
                     final String propertyName = propertyEntry.getKey();
                     final Property property = propertyEntry.getValue();
-                    final JsonPointer propertyHref = propertiesPointer.addLeaf(JsonKey.of(propertyName));
+
+                    final Optional<String> category = dittoExtensionPrefix.flatMap(prefix ->
+                                    property.getValue(prefix + ":" + DittoWotExtension.DITTO_WOT_EXTENSION_CATEGORY)
+                            )
+                            .filter(JsonValue::isString)
+                            .map(JsonValue::asString);
+                    final JsonPointer pointer = category.map(JsonKey::of)
+                            .map(propertiesPointer::addLeaf)
+                            .orElse(propertiesPointer);
+
+                    final JsonPointer propertyHref = pointer.addLeaf(JsonKey.of(propertyName));
                     final String writeUriVariablesParams = provideUriVariablesBag(
                             DittoHeaderDefinition.CHANNEL.getKey(),
                             DittoHeaderDefinition.TIMEOUT.getKey(),

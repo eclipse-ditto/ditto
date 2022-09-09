@@ -106,7 +106,7 @@ public final class ImmutableJsonWebTokenTest {
 
         final JsonWebToken expiredJsonWebToken = ImmutableJsonWebToken.fromAuthorization(authorizationHeader);
 
-        assertThat(expiredJsonWebToken.isExpired()).isEqualTo(true);
+        assertThat(expiredJsonWebToken.isExpired()).isTrue();
     }
 
     private static String base64(final String value) {

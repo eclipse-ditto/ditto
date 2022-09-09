@@ -38,7 +38,7 @@ public final class RqlOptionsParserTest {
     @Test
     public void parseSortWithOnePropertyAscending() throws ParserException {
         final List<Option> options = parser.parse("sort(+username)");
-        assertThat(options.size()).isEqualTo(1);
+        assertThat(options).hasSize(1);
         final SortOption sortOption = (SortOption) options.get(0);
         assertThat(sortOption.getEntries().stream()
                 .map(SortOptionEntry::getPropertyPath)
@@ -55,7 +55,7 @@ public final class RqlOptionsParserTest {
     @Test
     public void parseSortWithOnePropertyDescending() throws ParserException {
         final List<Option> options = parser.parse("sort(-attributes/username)");
-        assertThat(options.size()).isEqualTo(1);
+        assertThat(options).hasSize(1);
         final SortOption sortOption = (SortOption) options.get(0);
         assertThat(sortOption.getEntries().stream()
                 .map(SortOptionEntry::getPropertyPath)
@@ -83,10 +83,10 @@ public final class RqlOptionsParserTest {
 
         final List<Option> options = parser.parse(sb.toString());
 
-        assertThat(options.size()).isEqualTo(1);
+        assertThat(options).hasSize(1);
 
         final SortOption sortOption = (SortOption) options.get(0);
-        assertThat(sortOption.getEntries().size()).isEqualTo(expectedCount);
+        assertThat(sortOption.getEntries()).hasSize(expectedCount);
 
         for (int i = 0; i < expectedCount; i++) {
             final int idx = i;
@@ -131,7 +131,7 @@ public final class RqlOptionsParserTest {
     @Test
     public void parseOptionCombinations() throws ParserException {
         final List<Option> options = parser.parse("limit(0,1),sort(-attributes/username),cursor(ABC),size(463)");
-        assertThat(options.size()).isEqualTo(4);
+        assertThat(options).hasSize(4);
 
         final LimitOption limitOption = (LimitOption) options.get(0);
         assertThat(limitOption.getCount()).isEqualTo(1);

@@ -20,7 +20,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

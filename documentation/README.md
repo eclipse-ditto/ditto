@@ -16,10 +16,9 @@ mvn clean install -Pbuild-documentation
 
 In order to edit the documentation 
 
-#### Alternative 1: install Jekyll (UNIX)
+#### Alternative 1: install Jekyll (UNIX or Mac OS)
 
-**If you are using an ARM Mac, please follow the [installation guide](https://jekyllrb.com/docs/installation/macos/).**
-
+##### Unix
 Use that if you are on a UNIX system (or have the Ubuntu bash subsystem for Windows 10). 
 If you're behind a proxy, you can use the `http_proxy` parameter.
 
@@ -35,17 +34,22 @@ If the installation of html-proofer fails, you may need the additional build dep
 sudo apt install zlib1g-dev
 ```
 
+##### Mac OS
+Follow the steps described in the link to install [Jekyll on macOS](https://jekyllrb.com/docs/installation/macos/)
+
+###### Watch resources
 Watch all resources and start local server serving the Jekyll content at [http://localhost:4000](http://localhost:4000):
 
 ```bash
 cd src/main/resources
-jekyll serve --verbose --unpublished
+bundle install
+bundle exec jekyll serve --verbose --unpublished
 ```
 
 Validate that the HTML does not contain dead links, etc.:
 
 ```bash
-htmlproofer --assume-extension --allow-hash-href --disable-external --url-ignore "/http-api-doc.html.*/" src/main/resources/_site/
+htmlproofer --assume-extension --allow-hash-href --disable-external --enforce-https=false --ignore-urls "/http-api-doc.html.*/" src/main/resources/_site/
 ```
 
 #### Alternative 2: use Maven (UNIX)
@@ -56,8 +60,9 @@ It automatically monitors the filesystem and every local changes are generated o
 #### Alternative 3: use Maven (Windows)
 
 On a windows operating system you'll need to install Jekyll manually. If you don't have installed Jekyll on your machine you can just use the [PortableJekyll](https://github.com/madhur/PortableJekyll) project.
-Just clone the Github repository and start the setpath.cmd which setups the necessary path entries into the CMD (Don't forget to copy them into the environment path variable to have the path set for every command prompt).
+Just clone the GitHub repository and start the setpath.cmd which setups the necessary path entries into the CMD (Don't forget to copy them into the environment path variable to have the path set for every command prompt).
 
-The maven build on windows just executes the Jekyll process using the maven-exec plugin. This allows to also use maven build to build and serve the documentation on a windows machine.
+The maven build on Windows just executes the Jekyll process using the maven-exec plugin. This allows to also use maven build to build and serve the documentation on a windows machine.
 
 To serve the current documentation you only need to call `mvn exec:exec@jekyll-serve`. It automatically monitors the filesystem and every local changes are generated on-demand on the local server [http://localhost:4000](http://localhost:4000).
+

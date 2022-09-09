@@ -13,7 +13,6 @@
 package org.eclipse.ditto.placeholders;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -22,28 +21,6 @@ import java.util.stream.Collectors;
  * of asking the resolver.
  */
 public interface PlaceholderResolver<T> extends Placeholder<T> {
-
-    /**
-     * @return the source from which to resolve a placeholder with a {@code name}.
-     * @deprecated Since 2.4.0. Use {@link #getPlaceholderSources()} instead.
-     */
-    @Deprecated
-    default Optional<T> getPlaceholderSource() {
-        return getPlaceholderSources().stream().findFirst();
-    }
-
-    /**
-     * Resolves the passed in {@code name} from the {@link #getPlaceholderSource() resolver}. If this PlaceholderResolver is only
-     * used for validation, a constant value of {@code "valid"} is returned instead of asking the resolver.
-     *
-     * @param name the placeholder name to resolve from the resolver.
-     * @return the resolved value or an empty optional if it could not be resolved.
-     * @deprecated Since 2.4.0. Use {@link #resolveValues(String)} instead.
-     */
-    @Deprecated
-    default Optional<String> resolve(final String name) {
-        return getPlaceholderSource().flatMap(placeholderSource -> resolve(placeholderSource, name));
-    }
 
     /**
      * @return the sources from which to resolve a placeholder with a {@code name}.

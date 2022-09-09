@@ -34,7 +34,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class EntityRegionMapTest {
 
-    private static ActorSystem actorSystem = ActorSystem.create();
+    private static final ActorSystem actorSystem = ActorSystem.create();
 
     @AfterClass
     public static void tearDown() {

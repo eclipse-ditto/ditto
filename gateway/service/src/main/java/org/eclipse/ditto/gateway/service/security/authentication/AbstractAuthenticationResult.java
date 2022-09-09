@@ -63,8 +63,8 @@ public abstract class AbstractAuthenticationResult implements AuthenticationResu
     @Override
     public AuthorizationContext getAuthorizationContext() {
         if (null == authorizationContext) {
-            if (reasonOfFailure instanceof RuntimeException) {
-                throw (RuntimeException) reasonOfFailure;
+            if (reasonOfFailure instanceof RuntimeException runtimeException) {
+                throw runtimeException;
             }
             throw new IllegalStateException(reasonOfFailure);
         }

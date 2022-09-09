@@ -16,10 +16,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.signals.events.AttributeModified;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -44,6 +45,29 @@ public final class AttributeModifiedStrategyTest extends AbstractStrategyTest {
                 .setAttribute(ATTRIBUTE_POINTER, ATTRIBUTE_VALUE)
                 .setRevision(NEXT_REVISION)
                 .setModified(TIMESTAMP)
+                .build();
+        assertThat(thingWithEventApplied).isEqualTo(expected);
+    }
+
+    @Test
+    public void appliesEventWithMetadataCorrectly() {
+        final AttributeModifiedStrategy strategy = new AttributeModifiedStrategy();
+        final AttributeModified event = AttributeModified.of(THING_ID, ATTRIBUTE_POINTER, ATTRIBUTE_VALUE, REVISION,
+                TIMESTAMP, DittoHeaders.empty(), METADATA);
+
+        final Thing thingWithEventApplied = strategy.handle(event, THING, NEXT_REVISION);
+
+        final Metadata expectedMetadata = Metadata.newBuilder()
+                .set(Thing.JsonFields.ATTRIBUTES, JsonObject.newBuilder()
+                        .set(ATTRIBUTE_POINTER.toString(), METADATA)
+                        .build())
+                .build();
+
+        final Thing expected = THING.toBuilder()
+                .setAttribute(ATTRIBUTE_POINTER, ATTRIBUTE_VALUE)
+                .setRevision(NEXT_REVISION)
+                .setModified(TIMESTAMP)
+                .setMetadata(expectedMetadata)
                 .build();
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }

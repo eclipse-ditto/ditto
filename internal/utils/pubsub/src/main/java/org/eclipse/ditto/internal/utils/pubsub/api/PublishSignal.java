@@ -18,6 +18,13 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonParsableCommand;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.JsonParsable;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -27,13 +34,6 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.JsonParsableCommand;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.signals.JsonParsable;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
-import org.eclipse.ditto.base.model.signals.commands.Command;
 
 /**
  * Command from Publisher to Subscriber to publish a signal to local subscribers.
@@ -53,10 +53,10 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
 
     private static final String TYPE = TYPE_PREFIX + NAME;
 
-    private final Signal<?> signal;
+    private final SignalWithEntityId<?> signal;
     private final Map<String, Integer> groups;
 
-    private PublishSignal(final Signal<?> signal, final Map<String, Integer> groups) {
+    private PublishSignal(final SignalWithEntityId<?> signal, final Map<String, Integer> groups) {
         super(TYPE, signal.getDittoHeaders(), Category.MODIFY);
         this.signal = signal;
         this.groups = groups;
@@ -69,7 +69,7 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
      * @param groups relation between the groups where the signal is published to and the size of each group.
      * @return the command to do it.
      */
-    public static PublishSignal of(final Signal<?> signal, final Map<String, Integer> groups) {
+    public static PublishSignal of(final SignalWithEntityId<?> signal, final Map<String, Integer> groups) {
         return new PublishSignal(signal, groups);
     }
 
@@ -87,8 +87,8 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
             final JsonParsable.ParseInnerJson parseInnerJson) {
 
         try {
-            final Signal<?> signal =
-                    (Signal<?>) parseInnerJson.parseInnerJson(jsonObject.getValueOrThrow(JsonFields.SIGNAL));
+            final SignalWithEntityId<?> signal = (SignalWithEntityId<?>) parseInnerJson.parseInnerJson(
+                    jsonObject.getValueOrThrow(JsonFields.SIGNAL));
             final Map<String, Integer> groups = jsonObject.getValueOrThrow(JsonFields.GROUPS)
                     .stream()
                     .collect(Collectors.toMap(JsonField::getKeyName, field -> field.getValue().asInt()));
@@ -101,7 +101,7 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
     /**
      * @return the signal to be published.
      */
-    public Signal<?> getSignal() {
+    public SignalWithEntityId<?> getSignal() {
         return signal;
     }
 
@@ -155,8 +155,7 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
 
     @Override
     public boolean equals(final Object other) {
-        if (other instanceof PublishSignal) {
-            final PublishSignal that = (PublishSignal) other;
+        if (other instanceof final PublishSignal that) {
             return Objects.equals(signal, that.signal) && Objects.equals(groups, that.groups);
         } else {
             return false;

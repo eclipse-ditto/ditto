@@ -31,7 +31,7 @@ Eclipse Ditto 0.9.0 focuses on the following areas:
 * Contributions from Microsoft in order to ease operating Eclipse Ditto on Microsoft Azure
 
 {% include warning.html content="If you want to upgrade an existing Ditto 0.8.0 installation, the following database 
-        migration has to be done: **Follow the steps documented in [the migration notes](architecture-services-things-search.html#migration-from-ditto-090-m1)**." %}
+        migration has to be done: **Follow the steps documented in the migration notes**." %}
 
 
 ### Changelog

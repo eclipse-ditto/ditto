@@ -102,8 +102,9 @@ public final class ThingsSearchCursorTest {
                         .orElse(null);
 
         // THEN: correlation ID of adjusted command is identical to the command's correlation ID
-        assertThat(correlationIdOfAdjustedCommand).isEqualTo(correlationIdFromCommand);
-        assertThat(correlationIdOfAdjustedCommand).isNotEqualTo(getCorrelationId(underTest));
+        assertThat(correlationIdOfAdjustedCommand)
+                .isEqualTo(correlationIdFromCommand)
+                .isNotEqualTo(getCorrelationId(underTest));
     }
 
     @Test
@@ -148,10 +149,10 @@ public final class ThingsSearchCursorTest {
     private static ThingsSearchCursor randomCursor() {
         return new ThingsSearchCursor(
                 new HashSet<>(Arrays.asList(UUID.randomUUID().toString(), UUID.randomUUID().toString())),
-                "correlation-id-" + UUID.randomUUID().toString(),
+                "correlation-id-" + UUID.randomUUID(),
                 SortOption.of(Collections.singletonList(ThingsSearchCursor.DEFAULT_SORT_OPTION_ENTRY)),
-                "eq(attributes/x,\"" + UUID.randomUUID().toString() + "\")",
-                JsonArray.of(JsonValue.of("thingId:" + UUID.randomUUID().toString())));
+                "eq(attributes/x,\"" + UUID.randomUUID() + "\")",
+                JsonArray.of(JsonValue.of("thingId:" + UUID.randomUUID())));
     }
 
     private static QueryThings withCursor(final QueryThings queryThings, final ThingsSearchCursor cursor) {

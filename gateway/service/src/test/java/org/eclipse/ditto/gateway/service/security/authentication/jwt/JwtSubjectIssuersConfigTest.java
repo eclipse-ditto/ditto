@@ -25,7 +25,6 @@ import java.util.Set;
 import org.eclipse.ditto.gateway.service.util.config.security.DefaultOAuthConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
@@ -39,15 +38,19 @@ public final class JwtSubjectIssuersConfigTest {
 
     private static final JwtSubjectIssuerConfig JWT_SUBJECT_ISSUER_CONFIG_GOOGLE;
     private static final JwtSubjectIssuerConfig JWT_SUBJECT_ISSUER_CONFIG_GOOGLE_DE;
+    private static final JwtSubjectIssuerConfig JWT_SUBJECT_ISSUER_CONFIG_GOOGLE_COMBINED;
     private static final Set<JwtSubjectIssuerConfig> JWT_SUBJECT_ISSUER_CONFIGS;
     private static final JwtSubjectIssuersConfig JWT_SUBJECT_ISSUERS_CONFIG;
 
     static {
-        JWT_SUBJECT_ISSUER_CONFIG_GOOGLE = new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE, "accounts.google.com");
-        JWT_SUBJECT_ISSUER_CONFIG_GOOGLE_DE = new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE, "accounts.google.de");
+        JWT_SUBJECT_ISSUER_CONFIG_GOOGLE = new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE, List.of("accounts.google.com"));
+        JWT_SUBJECT_ISSUER_CONFIG_GOOGLE_DE = new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE, List.of("accounts.google.de"));
+        JWT_SUBJECT_ISSUER_CONFIG_GOOGLE_COMBINED = new JwtSubjectIssuerConfig(
+                SubjectIssuer.newInstance("google-foobar"), List.of("accounts.google.foo", "accounts.google.bar"));
         JWT_SUBJECT_ISSUER_CONFIGS = new HashSet<>();
         JWT_SUBJECT_ISSUER_CONFIGS.add(JWT_SUBJECT_ISSUER_CONFIG_GOOGLE);
         JWT_SUBJECT_ISSUER_CONFIGS.add(JWT_SUBJECT_ISSUER_CONFIG_GOOGLE_DE);
+        JWT_SUBJECT_ISSUER_CONFIGS.add(JWT_SUBJECT_ISSUER_CONFIG_GOOGLE_COMBINED);
         JWT_SUBJECT_ISSUERS_CONFIG = JwtSubjectIssuersConfig.fromJwtSubjectIssuerConfigs(JWT_SUBJECT_ISSUER_CONFIGS);
     }
 
@@ -78,7 +81,7 @@ public final class JwtSubjectIssuersConfigTest {
     }
 
     @Test
-    public void issuerWithMultipleIssuerUrisWorks() {
+    public void multipleIssuerWithSingleIssuerUriWorks() {
         final Optional<JwtSubjectIssuerConfig> configItem =
                 JWT_SUBJECT_ISSUERS_CONFIG.getConfigItem("accounts.google.com");
         assertThat(configItem).hasValue(JWT_SUBJECT_ISSUER_CONFIG_GOOGLE);
@@ -89,10 +92,21 @@ public final class JwtSubjectIssuersConfigTest {
     }
 
     @Test
+    public void singleIssuerWithMultipleIssuerUrisWorks() {
+        final Optional<JwtSubjectIssuerConfig> configItem =
+                JWT_SUBJECT_ISSUERS_CONFIG.getConfigItem("accounts.google.foo");
+        assertThat(configItem).hasValue(JWT_SUBJECT_ISSUER_CONFIG_GOOGLE_COMBINED);
+
+        final Optional<JwtSubjectIssuerConfig> configItem2 =
+                JWT_SUBJECT_ISSUERS_CONFIG.getConfigItem("https://accounts.google.bar");
+        assertThat(configItem2).hasValue(JWT_SUBJECT_ISSUER_CONFIG_GOOGLE_COMBINED);
+    }
+
+    @Test
     public void fromOAuthConfig() {
         final JwtSubjectIssuerConfig googleItem = new JwtSubjectIssuerConfig(
             SubjectIssuer.GOOGLE,
-            "https://accounts.google.com",
+            List.of("https://accounts.google.com"),
             List.of(
                 "{{ jwt:sub }}",
                 "{{ jwt:sub }}/{{ jwt:scope }}",
@@ -102,14 +116,36 @@ public final class JwtSubjectIssuersConfigTest {
             ));
         final JwtSubjectIssuerConfig additionalItem = new JwtSubjectIssuerConfig(
             SubjectIssuer.newInstance("additional"),
-            "https://additional.google.com",
+            List.of("https://additional.google.com"),
             List.of("{{ jwt:sub }}"));
         final OAuthConfig oAuthConfig = DefaultOAuthConfig.of(ConfigFactory.load("oauth-test.conf"));
 
         final JwtSubjectIssuersConfig jwtSubjectIssuersConfig = JwtSubjectIssuersConfig.fromOAuthConfig(oAuthConfig);
 
-        assertThat(jwtSubjectIssuersConfig.getConfigItem(googleItem.getIssuer())).contains(googleItem);
-        assertThat(jwtSubjectIssuersConfig.getConfigItem(additionalItem.getIssuer())).contains(additionalItem);
+        assertThat(jwtSubjectIssuersConfig.getConfigItem("https://accounts.google.com")).contains(googleItem);
+        assertThat(jwtSubjectIssuersConfig.getConfigItem("https://additional.google.com")).contains(additionalItem);
+    }
+
+    @Test
+    public void fromOAuthConfigWithMultipleIssuers() {
+        final JwtSubjectIssuerConfig someOtherItem = new JwtSubjectIssuerConfig(
+            SubjectIssuer.newInstance("some-other"),
+            List.of(
+                    "https://one.com",
+                    "two.com",
+                    "https://three.com"
+            ),
+            List.of(
+                "{{ jwt:sub }}"
+            ));
+        final OAuthConfig oAuthConfig = DefaultOAuthConfig.of(ConfigFactory.load("oauth-test.conf"));
+
+        final JwtSubjectIssuersConfig jwtSubjectIssuersConfig = JwtSubjectIssuersConfig.fromOAuthConfig(oAuthConfig);
+
+        assertThat(jwtSubjectIssuersConfig.getConfigItem("https://zero.com")).isEmpty();
+        assertThat(jwtSubjectIssuersConfig.getConfigItem("https://one.com")).contains(someOtherItem);
+        assertThat(jwtSubjectIssuersConfig.getConfigItem("https://two.com")).contains(someOtherItem);
+        assertThat(jwtSubjectIssuersConfig.getConfigItem("https://three.com")).contains(someOtherItem);
     }
 
 }

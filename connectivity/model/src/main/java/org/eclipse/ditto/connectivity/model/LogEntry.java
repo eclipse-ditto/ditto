@@ -26,7 +26,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.things.model.ThingId;
 
 /**
  * Represents connection log entry.
@@ -73,16 +72,6 @@ public interface LogEntry extends Jsonifiable.WithFieldSelectorAndPredicate<Json
      * @return entity ID if the log can be correlated to a known entity (e.g. a Thing), empty otherwise.
      */
     Optional<EntityId> getEntityId();
-
-    /**
-     * @return entity ID if the log can be correlated to a Thing, empty otherwise.
-     * @deprecated replaced by {@link #getEntityId()}
-     */
-    @Deprecated
-    default Optional<ThingId> getThingId() {
-        return getEntityId().map(ThingId::of);
-    }
-
 
     /**
      * Returns all non-hidden marked fields of this {@code LogEntry}.
@@ -155,13 +144,13 @@ public interface LogEntry extends Jsonifiable.WithFieldSelectorAndPredicate<Json
                         JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the Thing ID.
-         * @deprecated replaced by {@link #ENTITY_ID}
+         * JSON field containing the entity type.
+         * @since 3.0.0
          */
-        @Deprecated
-        public static final JsonFieldDefinition<String> THING_ID =
-                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR,
+        public static final JsonFieldDefinition<String> ENTITY_TYPE =
+                JsonFactory.newStringFieldDefinition("entityType", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
+
 
         /**
          * JSON field containing the entity ID.

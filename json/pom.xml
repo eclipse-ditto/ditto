@@ -109,6 +109,12 @@
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
+                            <exclude>org.eclipse.ditto.json.JsonFactory#newValue(int)</exclude>
+                            <exclude>org.eclipse.ditto.json.JsonFactory#newValue(long)</exclude>
+                            <exclude>org.eclipse.ditto.json.JsonFactory#newValue(double)</exclude>
+                            <exclude>org.eclipse.ditto.json.JsonValue#of(int)</exclude>
+                            <exclude>org.eclipse.ditto.json.JsonValue#of(long)</exclude>
+                            <exclude>org.eclipse.ditto.json.JsonValue#of(double)</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

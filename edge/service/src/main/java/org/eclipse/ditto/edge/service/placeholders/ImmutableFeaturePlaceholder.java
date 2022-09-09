@@ -17,7 +17,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -87,7 +86,7 @@ final class ImmutableFeaturePlaceholder implements FeaturePlaceholder {
             if (value.isObject()) {
                 final Thing thing = ThingsModelFactory.newThing(value.asObject());
                 featureIds = thing.getFeatures()
-                        .map(features -> features.stream().map(Feature::getId).collect(Collectors.toList()))
+                        .map(features -> features.stream().map(Feature::getId).toList())
                         .orElseGet(List::of);
             } else {
                 LOGGER.info("Signal had empty path but non-object value. Can't resolve placeholder <feature:id>.");
@@ -107,7 +106,7 @@ final class ImmutableFeaturePlaceholder implements FeaturePlaceholder {
                 featureIds = ThingsModelFactory.newFeatures(value.asObject())
                         .stream()
                         .map(Feature::getId)
-                        .collect(Collectors.toList());
+                        .toList();
             } else {
                 featureIds = List.of();
             }

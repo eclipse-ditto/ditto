@@ -86,7 +86,7 @@ public final class PropertiesFactoryTest {
 
     @Before
     public void setUp() {
-        underTest = PropertiesFactory.newInstance(connection, kafkaConfig, UUID.randomUUID().toString(), true);
+        underTest = PropertiesFactory.newInstance(connection, kafkaConfig, UUID.randomUUID().toString());
     }
 
     @Test
