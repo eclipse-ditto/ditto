@@ -15,23 +15,20 @@ package org.eclipse.ditto.connectivity.service.mapping;
 import static java.util.Collections.singletonList;
 import static org.eclipse.ditto.json.JsonFactory.newObject;
 
-import java.io.UnsupportedEncodingException;
-import java.util.*;
-
-import com.eclipsesource.json.Json;
-import org.eclipse.ditto.base.model.common.DittoConstants;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
-import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
-import org.eclipse.ditto.connectivity.model.MappingContext;
 import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.json.*;
-import org.eclipse.ditto.messages.model.MessageHeaders;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
@@ -44,12 +41,12 @@ import org.eclipse.ditto.protocol.ProtocolFactory;
     "org.eclipse.ditto.connectivity.service.mapping.CloudEventsMapper"})
 public final class CloudEventsMapper extends AbstractMessageMapper {
 
-
   static final String CE_ID = "ce-id";
   static final String CE_TYPE = "ce-type";
   static final String CE_SOURCE = "ce-source";
   static final String CE_SPECVERSION = "ce-specversion";
-  static final String CONTENT_TYPE = "application/cloudevents+json";
+  static final String STRUCTURED_CONTENT_TYPE = "application/cloudevents+json";
+  static final String BINARY_CONTENT_TYPE = "application/vnd.eclipse.ditto+json";
   static final String SPECVERSION = "specversion";
   static final String ID = "id";
   static final String SOURCE = "source";
@@ -57,37 +54,39 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
   static final String OUTBOUNDTYPE = "org.eclipse.ditto.outbound";
   static final String OUTBOUNDSPECVERSION = "1.0";
   static final String OUTBOUNDSOURCE = "org.eclipse.ditto";
-
+  static final String DATA = "data";
+  static final String DATA_BASE64 = "data_base64";
 
   @Override
   public List<Adaptable> map(final ExternalMessage message) {
-    MessageMappingFailedException mappingFailedException = MessageMappingFailedException.newBuilder(
-            message.findContentType().orElse("")).description("This is not a CloudEvent")
-        .dittoHeaders(DittoHeaders.of(message.getHeaders())).build();
-    if (message.findContentType().orElse("").equals(CONTENT_TYPE)) {
-      final String payload = extractPayloadAsString(message);
-      try {
-        if (isBinaryCloudEvent(message)) {
-          final JsonifiableAdaptable binaryAdaptable = DittoJsonException.wrapJsonRuntimeException(
-              () -> ProtocolFactory.jsonifiableAdaptableFromJson(newObject(payload)));
-          DittoHeaders headers = binaryAdaptable.getDittoHeaders();
-          return singletonList(
-              ProtocolFactory.newAdaptableBuilder(binaryAdaptable).withHeaders(headers).build());
-        }
-        if (isStructuredCloudEvent(payload)) {
-          final JsonifiableAdaptable adaptable = extractData(payload);
-          final DittoHeaders headers = adaptable.getDittoHeaders();
-          return singletonList(
-              ProtocolFactory.newAdaptableBuilder(adaptable).withHeaders(headers).build());
-        } else {
-          throw mappingFailedException;
-        }
-      } catch (MessageMappingFailedException e) {
-        throw mappingFailedException;
+    final String payload = extractPayloadAsString(message);
+    final String contentType = message.findContentType().orElse("");
+    if (contentType.equals(BINARY_CONTENT_TYPE)) {
+      if (isBinaryCloudEvent(message)) {
+        final JsonifiableAdaptable binaryAdaptable = DittoJsonException.wrapJsonRuntimeException(
+            () -> ProtocolFactory.jsonifiableAdaptableFromJson(newObject(payload)));
+        DittoHeaders headers = binaryAdaptable.getDittoHeaders();
+        return singletonList(
+            ProtocolFactory.newAdaptableBuilder(binaryAdaptable).withHeaders(headers).build());
+      } else {
+        throw MessageMappingFailedException.newBuilder(
+                message.findContentType().orElse("")).description("This is not a CloudEvent")
+            .dittoHeaders(DittoHeaders.of(message.getHeaders())).build();
       }
+    } else if (contentType.equals(STRUCTURED_CONTENT_TYPE)) {
+      if (isStructuredCloudEvent(payload)) {
+        final JsonifiableAdaptable adaptable = extractData(payload);
+        final DittoHeaders headers = adaptable.getDittoHeaders();
+        return singletonList(
+            ProtocolFactory.newAdaptableBuilder(adaptable).withHeaders(headers).build());
+      } else {
+        throw MessageMappingFailedException.newBuilder(
+                message.findContentType().orElse("")).description("This is not a CloudEvent")
+            .dittoHeaders(DittoHeaders.of(message.getHeaders())).build();
+      }
+    } else {
+      return Collections.emptyList();
     }
-    return Collections.emptyList();
-
   }
 
   @Override
@@ -98,7 +97,7 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
   @Override
   public List<ExternalMessage> map(final Adaptable adaptable) {
     return List.of(ExternalMessageFactory.newExternalMessageBuilder(
-            Map.of(ExternalMessage.CONTENT_TYPE_HEADER, CONTENT_TYPE))
+            Map.of(ExternalMessage.CONTENT_TYPE_HEADER, STRUCTURED_CONTENT_TYPE))
         .withTopicPath(adaptable.getTopicPath())
         .withText(getExternalCloudEventSpecifications(adaptable))
         .asResponse(isResponse(adaptable)).asError(isError(adaptable)).build());
@@ -112,7 +111,7 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
         jsonObject.getValue(SOURCE).isPresent();
   }
 
-  public boolean isBinaryCloudEvent(final ExternalMessage message) {
+  boolean isBinaryCloudEvent(final ExternalMessage message) {
     final Map<String, String> headers = message.getHeaders();
     return message.getHeaders().containsKey(CE_ID) &&
         headers.containsKey(CE_SOURCE) &&
@@ -122,21 +121,22 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
 
   private JsonifiableAdaptable extractData(final String message) {
     final JsonObject payloadJson = newObject(message);
-    final Optional<JsonValue> base64Opt = payloadJson.getValue("data_base64");
+    final Optional<JsonValue> base64Opt = payloadJson.getValue(DATA_BASE64);
+    final Optional<JsonValue> dataOpt = payloadJson.getValue(DATA);
     if (base64Opt.isPresent()) {
       final String base64Data = base64Opt.get().asString();
       final String decodedData = base64decoding(base64Data);
       return DittoJsonException.wrapJsonRuntimeException(
           () -> ProtocolFactory.jsonifiableAdaptableFromJson(newObject(decodedData)));
     }
-    final Optional<JsonValue> dataOpt = payloadJson.getValue("data");
-    if (dataOpt.isPresent()) {
-      final String data = dataOpt.get().toString();
+    else if (dataOpt.isPresent()) {
+      final String structuredData = dataOpt.get().toString();
       return DittoJsonException.wrapJsonRuntimeException(
-          () -> ProtocolFactory.jsonifiableAdaptableFromJson(newObject(data)));
-    } else {
+          () -> ProtocolFactory.jsonifiableAdaptableFromJson(newObject(structuredData)));
+    }
+    else {
       throw MessageMappingFailedException.newBuilder(
-          CONTENT_TYPE).description("This is not a CloudEvent").build();
+          STRUCTURED_CONTENT_TYPE).description("This is not a CloudEvent").build();
     }
   }
 
@@ -145,11 +145,11 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
     return new String(messageByte);
   }
 
-  private static String getExternalCloudEventSpecifications(final Adaptable adaptable) {
+  private String getExternalCloudEventSpecifications(final Adaptable adaptable) {
     final String outboundID = UUID.randomUUID().toString();
     JsonObject dataObject = JsonFactory.newObject(getJsonString(adaptable));
     final JsonObject externalMessageObject = JsonObject.newBuilder()
-        .set("data", dataObject)
+        .set(DATA, dataObject)
         .set(SPECVERSION, OUTBOUNDSPECVERSION)
         .set(ID, outboundID)
         .set(SOURCE, OUTBOUNDSOURCE)
@@ -162,5 +162,4 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
     final var jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
     return jsonifiableAdaptable.toJsonString();
   }
-
 }

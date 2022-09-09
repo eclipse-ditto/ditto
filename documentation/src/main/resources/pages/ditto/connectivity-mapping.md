@@ -355,7 +355,7 @@ Example configuration:
 
 This mapper maps incoming [CloudEvent](https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md) to Ditto Protocol. It provides support for both Binary CloudEvents as well as Structured CloudEvents.
 
-**Note**: The mapper only supports incoming messages with `content-type:application/cloudevents+json`. Messages that do not conform to this are ignored.
+**Note**: The mapper supports incoming Structured CloudEvents  messages with `content-type:application/cloudevents+json` and Binary CloudEvents message with `content-type:application/vnd.eclipse.ditto+json`
 
 #### CloudEvents examples
 
@@ -368,7 +368,7 @@ For example, a Binary CloudEvent for Ditto would look like this:
       ce-id:some-id
       ce-type:some-type
       ce-source:generic-producer
-      content-type:application/cloudevents+json
+      content-type:application/vnd.eclipse.ditto+json
 ```
 
 ```json
