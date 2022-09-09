@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
@@ -145,7 +146,7 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
     return new String(messageByte);
   }
 
-  private String getExternalCloudEventSpecifications(final Adaptable adaptable) {
+  private static String getExternalCloudEventSpecifications(final Adaptable adaptable) {
     final String outboundID = UUID.randomUUID().toString();
     JsonObject dataObject = JsonFactory.newObject(getJsonString(adaptable));
     final JsonObject externalMessageObject = JsonObject.newBuilder()
