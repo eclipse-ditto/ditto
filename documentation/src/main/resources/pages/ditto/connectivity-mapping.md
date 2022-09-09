@@ -357,7 +357,7 @@ This mapper maps incoming [CloudEvent](https://github.com/cloudevents/spec/blob/
 
 **Note**: The mapper only supports incoming messages with `content-type:application/cloudevents+json`. Messages that do not conform to this are ignored.
 
-#### Specifications
+#### CloudEvents examples
 
 Incoming messages need to have the mandatory CloudEvents fields.
 For example, a Binary CloudEvent for Ditto would look like this:
