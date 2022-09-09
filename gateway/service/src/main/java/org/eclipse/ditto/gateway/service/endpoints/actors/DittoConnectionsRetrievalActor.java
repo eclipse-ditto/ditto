@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.actors;
 
-import java.time.Duration;
-
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveAllConnectionIds;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnections;
 
@@ -23,7 +21,7 @@ import akka.actor.Props;
 /**
  * Actor for retrieving multiple connections.
  */
-public class DittoConnectionsRetrievalActor extends AbstractConnectionsRetrievalActor {
+final class DittoConnectionsRetrievalActor extends AbstractConnectionsRetrievalActor {
 
     @SuppressWarnings("unused")
     private DittoConnectionsRetrievalActor(final ActorRef edgeCommandForwarder, final ActorRef sender) {
@@ -43,7 +41,7 @@ public class DittoConnectionsRetrievalActor extends AbstractConnectionsRetrieval
 
     @Override
     protected void retrieveConnections(final RetrieveConnections retrieveConnections) {
-        this.edgeCommandForwarder.tell(RetrieveAllConnectionIds.of(retrieveConnections.getDittoHeaders()), getSelf());
+        retrieveAllConnectionsIds(retrieveConnections);
     }
 
 }

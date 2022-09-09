@@ -90,14 +90,14 @@ public abstract class AbstractConnectionsRetrievalActor extends AbstractActor {
 
     protected abstract void retrieveConnections(final RetrieveConnections retrieveConnections);
 
-    protected void retrieveAllConnectionsIds(final RetrieveConnections retrieveConnections, final ActorRef sender) {
-        this.edgeCommandForwarder.tell(RetrieveAllConnectionIds.of(retrieveConnections.getDittoHeaders()), sender);
+    protected void retrieveAllConnectionsIds(final RetrieveConnections retrieveConnections) {
+        this.edgeCommandForwarder.tell(RetrieveAllConnectionIds.of(retrieveConnections.getDittoHeaders()), getSelf());
     }
 
-    protected void retrieveConnectionsById(RetrieveAllConnectionIdsResponse msg) {
-        final var connectionIds = msg.getAllConnectionIds();
+    protected void retrieveConnectionsById(final RetrieveAllConnectionIdsResponse allConnectionIdsResponse) {
+        final var connectionIds = allConnectionIdsResponse.getAllConnectionIds();
         if (initialCommand.getIdsOnly()) {
-            RetrieveConnectionsResponse response = RetrieveConnectionsResponse
+            final RetrieveConnectionsResponse response = RetrieveConnectionsResponse
                     .of(JsonArray.of(connectionIds), initialCommand.getDittoHeaders());
             sender.tell(response, getSelf());
             stop();
@@ -117,12 +117,12 @@ public abstract class AbstractConnectionsRetrievalActor extends AbstractActor {
                             stop();
                         })
                         .exceptionally(t -> {
-                            ConnectivityInternalErrorException exception =
+                            final ConnectivityInternalErrorException exception =
                                     ConnectivityInternalErrorException.newBuilder()
                                             .dittoHeaders(initialCommand.getDittoHeaders())
                                             .cause(t)
                                             .build();
-                            ConnectivityErrorResponse response =
+                            final ConnectivityErrorResponse response =
                                     ConnectivityErrorResponse.of(exception, initialCommand.getDittoHeaders());
                             sender.tell(response, getSelf());
                             stop();
@@ -140,7 +140,7 @@ public abstract class AbstractConnectionsRetrievalActor extends AbstractActor {
                 .build();
     }
 
-    private void handleRetrieveConnections(RetrieveConnections retrieveConnections) {
+    private void handleRetrieveConnections(final RetrieveConnections retrieveConnections) {
         getContext().become(responseAwaitingBehavior());
         this.initialCommand = retrieveConnections;
         retrieveConnections(retrieveConnections);
@@ -260,7 +260,7 @@ public abstract class AbstractConnectionsRetrievalActor extends AbstractActor {
         stop();
     }
 
-    void stop() {
+    protected void stop() {
         getContext().stop(getSelf());
     }
 }
