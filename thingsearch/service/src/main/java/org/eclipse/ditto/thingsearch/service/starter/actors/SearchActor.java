@@ -524,11 +524,15 @@ public final class SearchActor extends AbstractActor {
     }
 
     private void serviceUnbind(final Control serviceUnbind) {
-        log.info("{}: unsubscribing from pubsub", serviceUnbind);
+        log.info("{}: unsubscribing from pubsub for {}", serviceUnbind, ACTOR_NAME);
         final var unsubscribe =
                 DistPubSubAccess.unsubscribeViaGroup(ThingSearchCommand.TYPE_PREFIX, ACTOR_NAME, getSelf());
         final var unsubscribeTask =
-                Patterns.ask(pubSubMediator, unsubscribe, SHUTDOWN_ASK_TIMEOUT).thenApply(ack -> Done.getInstance());
+                Patterns.ask(pubSubMediator, unsubscribe, SHUTDOWN_ASK_TIMEOUT)
+                        .thenApply(ack -> {
+                            log.info("{}: unsubscribing from pubsub completed successful for {}", ack, ACTOR_NAME);
+                            return Done.getInstance();
+                        });
         Patterns.pipe(unsubscribeTask, getContext().getDispatcher()).to(getSender());
     }
 
