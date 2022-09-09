@@ -395,7 +395,7 @@ For example, a Binary CloudEvent for Ditto would look like this:
 }
 ```
 
-A Structured CloudEvent for ditto would look like this:
+A Structured CloudEvent for Ditto would look like this:
 
 ```
 
