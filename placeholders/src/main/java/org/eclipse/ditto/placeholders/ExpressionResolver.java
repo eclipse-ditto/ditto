@@ -15,12 +15,13 @@ package org.eclipse.ditto.placeholders;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.ditto.base.model.common.Placeholders;
 
@@ -116,8 +117,7 @@ public interface ExpressionResolver {
             final Function<String, PipelineElement> substitutionFunction) {
 
         final Matcher matcher = Placeholders.pattern().matcher(input);
-        Collection<StringBuffer> resultBuilder = new ArrayList<>();
-        resultBuilder.add(new StringBuffer());
+        final List<PipelineElement> elements = new ArrayList<>();
 
         while (matcher.find()) {
             final String placeholderExpression = Placeholders.groupNames()
@@ -127,37 +127,32 @@ public interface ExpressionResolver {
                     .findAny()
                     .orElse("");
 
-            final Collection<StringBuffer> finalResultBuilder = resultBuilder;
-
-            final PipelineElement element = substitutionFunction.apply(placeholderExpression);
-
-            if (element.getType() == PipelineElement.Type.DELETED) {
-                return element;
+            final StringBuffer replacementBuffer = new StringBuffer();
+            matcher.appendReplacement(replacementBuffer, "");
+            if (replacementBuffer.length() > 0) {
+                elements.add(PipelineElement.resolved(replacementBuffer.toString()));
             }
 
-            final AtomicInteger counter = new AtomicInteger();
-            final AtomicReference<StringBuffer> appendingBuffer = new AtomicReference<>(new StringBuffer());
-
-            resultBuilder = finalResultBuilder.stream()
-                    .flatMap(string -> {
-                        if (counter.get() == 0) {
-                            counter.getAndIncrement();
-                            matcher.appendReplacement(appendingBuffer.get(), "");
-                        }
-                        return element.toStream()
-                                .map(streamElement ->
-                                        new StringBuffer(string)
-                                                .append(appendingBuffer.get())
-                                                .append(streamElement)
-                                );
-                    })
-                    .collect(Collectors.toList());
+            elements.add(substitutionFunction.apply(placeholderExpression));
         }
-        return PipelineElement.resolved(resultBuilder.stream()
-                .map(matcher::appendTail)
-                .map(StringBuffer::toString)
-                .collect(Collectors.toList()));
 
+        final StringBuffer tailBuffer = new StringBuffer();
+        matcher.appendTail(tailBuffer);
+        if (tailBuffer.length() > 0) {
+            elements.add(PipelineElement.resolved(tailBuffer.toString()));
+        }
+
+        if (elements.isEmpty()) {
+            return PipelineElement.resolved("");
+        } else if (elements.stream().allMatch(PipelineElementDeleted.class::isInstance)) {
+            return PipelineElement.deleted();
+        } else {
+            return PipelineElement.resolved(elements.stream()
+                    .filter(e -> !(e instanceof PipelineElementDeleted))
+                    .reduce(Collections.singletonList(""), (results, nextElement) -> results.stream()
+                                    .flatMap(result -> nextElement.toStream().map(next -> result + next))
+                                    .collect(Collectors.toList()),
+                            (x, y) -> Stream.concat(x.stream(), y.stream()).collect(Collectors.toList())));
+        }
     }
-
 }

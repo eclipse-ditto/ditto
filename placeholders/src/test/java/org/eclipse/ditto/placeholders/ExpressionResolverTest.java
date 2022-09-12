@@ -91,12 +91,23 @@ public class ExpressionResolverTest {
     public void testLoneDelete() {
         assertThat(expressionResolver.resolve("{{ fn:delete() }}"))
                 .isEqualTo(PipelineElement.deleted());
+        assertThat(expressionResolver.resolve("{{ fn:delete() }}{{ fn:delete() }}"))
+                .isEqualTo(PipelineElement.deleted());
+        assertThat(expressionResolver.resolve("{{ fn:delete() }}{{ fn:delete() }}{{ fn:delete() }}"))
+                .isEqualTo(PipelineElement.deleted());
+        assertThat(expressionResolver.resolve("{{ fn:default(fn:delete()) }}"))
+                .isEqualTo(PipelineElement.deleted());
     }
 
     @Test
     public void testLoneDefault() {
         assertThat(expressionResolver.resolve("{{ fn:default(header:header-name) }}"))
                 .contains("header-val");
+    }
+    @Test
+    public void testEmptyTemplate() {
+        assertThat(expressionResolver.resolve("")).isEqualTo(PipelineElement.resolved(""));
+        assertThat(expressionResolver.resolve(" ")).isEqualTo(PipelineElement.resolved(" "));
     }
 
     @Test
