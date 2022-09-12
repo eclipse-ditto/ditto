@@ -118,6 +118,18 @@ public class ExpressionResolverTest {
     }
 
     @Test
+    public void testDeleteIfResolved() {
+        assertThat(expressionResolver.resolve("/{{ fn:delete() }}/{{ header:header-name }}/{{ fn:delete() }}/"))
+                .isEqualTo(PipelineElement.resolved("//header-val//"));
+        assertThat(expressionResolver.resolve("/{{ header:header-name | fn:delete() }}/{{ header:header-name }}/"))
+                .isEqualTo(PipelineElement.resolved("//header-val/"));
+        assertThat(expressionResolver.resolve("/{{ header:header-name }}/{{ header:header-name | fn:delete() }}/"))
+                .isEqualTo(PipelineElement.resolved("/header-val//"));
+        assertThat(expressionResolver.resolve("/{{ fn:delete() | fn:default(header:header-name) }}/{{ header:header-name | fn:delete() }}/"))
+                .isEqualTo(PipelineElement.resolved("///"));
+    }
+
+    @Test
     public void testPartialResolution() {
         assertThat(expressionResolver.resolvePartiallyAsPipelineElement("{{header:header-name}}-{{unknown:placeholder|fn:unknown}}",
                 Collections.singleton("header")))
