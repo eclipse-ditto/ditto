@@ -60,6 +60,7 @@ import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.ResponseEntity;
 import akka.http.javadsl.model.StatusCodes;
 import akka.util.ByteString;
+import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Unit test for {@link HttpRequestActor}.
@@ -626,6 +627,34 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
         softly.assertThat(httpResponse.status())
                 .as("request eventually succeeds")
                 .isEqualTo(StatusCodes.NO_CONTENT);
+    }
+
+    @Test
+    public void actorShutsDownAfterServiceRequestDoneMessageWasReceived() {
+
+        final var thingId = ThingId.generateRandom();
+        final var attributeName = "foo";
+        final var attributePointer = JsonPointer.of(attributeName);
+        final long timeout = 2L;
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .timeout(Duration.ofSeconds(timeout))
+                .build();
+
+        final var proxyActorProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
+        final var modifyAttribute =
+                ModifyAttribute.of(thingId, attributePointer, JsonValue.of("bar"), dittoHeaders);
+        final var responseFuture = new CompletableFuture<HttpResponse>();
+        final var underTest =
+                createHttpRequestActor(proxyActorProbe.ref(), getHttpRequest(modifyAttribute), responseFuture);
+
+        final var supervisor = ACTOR_SYSTEM_RESOURCE.newTestProbe();
+        supervisor.watch(underTest);
+
+        underTest.tell(modifyAttribute, ActorRef.noSender());
+        proxyActorProbe.expectMsgClass(ModifyAttribute.class);
+
+        underTest.tell(AbstractHttpRequestActor.Control.SERVICE_REQUESTS_DONE, ActorRef.noSender());
+        supervisor.expectTerminated(underTest, FiniteDuration.apply(timeout + 1L, TimeUnit.SECONDS));
     }
 
 }

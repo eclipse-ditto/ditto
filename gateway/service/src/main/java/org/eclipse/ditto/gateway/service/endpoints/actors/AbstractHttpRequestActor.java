@@ -73,8 +73,10 @@ import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 
+import akka.Done;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.CoordinatedShutdown;
 import akka.actor.ReceiveTimeout;
 import akka.actor.Status;
 import akka.http.javadsl.model.ContentTypes;
@@ -90,6 +92,7 @@ import akka.http.scaladsl.model.ContentType$;
 import akka.http.scaladsl.model.EntityStreamSizeException;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
+import akka.pattern.Patterns;
 import akka.util.ByteString;
 import scala.Option;
 import scala.util.Either;
@@ -100,6 +103,12 @@ import scala.util.Either;
  * into an HTTP response and stops itself. Its behavior can be modified by overriding the protected instance methods.
  */
 public abstract class AbstractHttpRequestActor extends AbstractActor {
+
+    /**
+     * Ask-timeout in shutdown tasks. Its duration should be long enough for solution commands to succeed but
+     * ultimately does not matter because each shutdown phase has its own timeout.
+     */
+    private static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
 
     /**
      * Signals the completion of a stream request.
@@ -181,6 +190,17 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     @Override
+    public void preStart() {
+        final var coordinatedShutdown = CoordinatedShutdown.get(getContext().getSystem());
+
+        final var serviceRequestsDoneTask = "service-requests-done-http-request-actor" ;
+        coordinatedShutdown.addTask(CoordinatedShutdown.PhaseServiceRequestsDone(), serviceRequestsDoneTask,
+                () -> Patterns.ask(getSelf(), Control.SERVICE_REQUESTS_DONE, SHUTDOWN_ASK_TIMEOUT)
+                        .thenApply(reply -> Done.done())
+        );
+    }
+
+    @Override
     public AbstractActor.Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(Status.Failure.class, failure -> {
@@ -211,6 +231,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                                     .build());
                         })
                 .match(Command.class, this::handleCommand)
+                .matchEquals(Control.SERVICE_REQUESTS_DONE, this::serviceRequestsDone)
                 .matchAny(m -> {
                     logger.warning("Got unknown message, expected a 'Command': {}", m);
                     completeWithResult(createHttpResponse(HttpStatus.INTERNAL_SERVER_ERROR));
@@ -398,6 +419,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                             "Got <Status.Failure> when a command response was expected: <{}>!", cause.getMessage());
                     completeWithResult(createHttpResponse(HttpStatus.INTERNAL_SERVER_ERROR));
                 })
+                .matchEquals(Control.SERVICE_REQUESTS_DONE, this::serviceRequestsDone)
                 .matchAny(m -> {
                     logger.error("Got unknown message when a command response was expected: <{}>!", m);
                     completeWithResult(createHttpResponse(HttpStatus.INTERNAL_SERVER_ERROR));
@@ -488,19 +510,18 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
         logger.setCorrelationId(WithDittoHeaders.getCorrelationId(receivedCommand).orElse(null));
         logger.info("Got <{}> after <{}> before an appropriate response arrived.",
-                ReceiveTimeout.class.getSimpleName(),
-                receiveTimeout);
+                ReceiveTimeout.class.getSimpleName(), receiveTimeout);
+        actorContext.cancelReceiveTimeout();
 
         if (null != timeoutExceptionSupplier) {
             final var timeoutException = timeoutExceptionSupplier.get();
             handleDittoRuntimeException(timeoutException);
         } else {
-
             // This case is a programming error that should not happen at all.
             logger.error("Actor does not have a timeout exception supplier." +
                     " Thus, no DittoRuntimeException could be handled.");
+            stop();
         }
-        getContext().cancelReceiveTimeout();
     }
 
     private void handleDittoRuntimeException(final DittoRuntimeException exception) {
@@ -581,6 +602,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
     private void stop() {
         logger.clearMDC();
+        // complete coordinated shutdown phase - ServiceRequestsDone
+        getSelf().tell(Done.getInstance(), getSelf());
         // destroy ourselves:
         getContext().stop(getSelf());
     }
@@ -742,13 +765,11 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         }
     }
 
-    private static final class HttpAcknowledgementConfig implements AcknowledgementConfig {
+    private void serviceRequestsDone(final Control serviceRequestsDone) {
+        logger.info("{}: waiting to complete the request", serviceRequestsDone);
+    }
 
-        private final HttpConfig httpConfig;
-
-        private HttpAcknowledgementConfig(final HttpConfig httpConfig) {
-            this.httpConfig = httpConfig;
-        }
+    private record HttpAcknowledgementConfig(HttpConfig httpConfig) implements AcknowledgementConfig {
 
         private static AcknowledgementConfig of(final HttpConfig httpConfig) {
             return new HttpAcknowledgementConfig(httpConfig);
@@ -774,6 +795,10 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             return 0;
         }
 
+    }
+
+    enum Control {
+        SERVICE_REQUESTS_DONE
     }
 
 }

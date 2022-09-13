@@ -33,7 +33,6 @@ import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 
@@ -56,8 +55,7 @@ public final class GatewayProxyActor extends AbstractActor {
     private final ActorRef statisticsActor;
 
     @SuppressWarnings("unused")
-    private GatewayProxyActor(final ActorRef pubSubMediator,
-            final ActorSelection devOpsCommandsActor,
+    private GatewayProxyActor(final ActorRef pubSubMediator, final ActorSelection devOpsCommandsActor,
             final ActorRef edgeCommandForwarder) {
         this.pubSubMediator = pubSubMediator;
         this.devOpsCommandsActor = devOpsCommandsActor;
@@ -73,10 +71,8 @@ public final class GatewayProxyActor extends AbstractActor {
      * @param edgeCommandForwarder the Actor ref to the {@code EdgeCommandForwarderActor}.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef pubSubMediator,
-            final ActorSelection devOpsCommandsActor,
+    public static Props props(final ActorRef pubSubMediator, final ActorSelection devOpsCommandsActor,
             final ActorRef edgeCommandForwarder) {
-
         return Props.create(GatewayProxyActor.class, pubSubMediator, devOpsCommandsActor, edgeCommandForwarder);
     }
 
@@ -139,10 +135,6 @@ public final class GatewayProxyActor extends AbstractActor {
                     getSender().tell(cause, getSelf());
                 })
                 .match(DittoRuntimeException.class, cre -> getSender().tell(cre, getSelf()))
-                .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck ->
-                        log.debug("Successfully subscribed to distributed pub/sub on topic '{}'",
-                                subscribeAck.subscribe().topic())
-                )
                 .matchAny(m -> log.warning("Got unknown message, expected a 'Command': {}", m));
 
         return receiveBuilder.build();
