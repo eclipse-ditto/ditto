@@ -68,7 +68,7 @@ The following message mappers are included in the Ditto codebase:
 | [RawMessage](#rawmessage-mapper) | For outgoing message commands and responses, this mapper extracts the payload for publishing directly into the channel. For incoming messages, this mapper wraps them in a configured message command or response envelope. | ✓ | ✓ |
 | [ImplicitThingCreation](#implicitthingcreation-mapper) | This mapper handles messages for which a Thing should be created automatically based on a defined template. | ✓ |  |
 | [UpdateTwinWithLiveResponse](#updatetwinwithliveresponse-mapper) | This mapper creates a [merge Thing command](protocol-specification-things-merge.html) when an indiviudal [retrieve command](protocol-specification-things-retrieve.html) for an single Thing was received via the [live channel](protocol-twinlive.html#live) patching exactly the retrieved "live" data into the twin. | ✓ |  |
-| [CloudEvents Mapper](#cloudevents-mapper) | The mapper maps incoming CloudEvent to Ditto Protocol. Supports both Binary and Structured CloudEvent. | ✓ | |
+| [CloudEvents Mapper](#cloudevents-mapper) | The mapper maps incoming CloudEvent to Ditto Protocol. Supports both Binary and Structured CloudEvent. | ✓ | ✓ |
 
 ### Ditto mapper
 

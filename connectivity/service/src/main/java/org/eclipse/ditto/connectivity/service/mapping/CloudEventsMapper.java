@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.mapping;
 import static java.util.Collections.singletonList;
 import static org.eclipse.ditto.json.JsonFactory.newObject;
 
+import java.time.Instant;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
@@ -47,26 +48,35 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
   static final String CE_SOURCE = "ce-source";
   static final String CE_SPECVERSION = "ce-specversion";
   static final String STRUCTURED_CONTENT_TYPE = "application/cloudevents+json";
-  static final String BINARY_CONTENT_TYPE = "application/vnd.eclipse.ditto+json";
+  static final String DITTO_PROTOCOL_CONTENT_TYPE = "application/vnd.eclipse.ditto+json";
   static final String SPECVERSION = "specversion";
   static final String ID = "id";
   static final String SOURCE = "source";
   static final String TYPE = "type";
   static final String OUTBOUNDTYPE = "org.eclipse.ditto.outbound";
   static final String OUTBOUNDSPECVERSION = "1.0";
-  static final String OUTBOUNDSOURCE = "org.eclipse.ditto";
+  static final String OUTBOUNDSOURCE = "https://github.com/eclipse/ditto";
   static final String DATA = "data";
+
+  static final String OUTBOUND_DATA_CONTENT_TYPE = "datacontenttype";
+
+  static final String OUTBOUND_TIME = "time";
+
+  static final String OUTBOUND_SUBJECT = "subject";
   static final String DATA_BASE64 = "data_base64";
 
   @Override
   public List<Adaptable> map(final ExternalMessage message) {
     final String payload = extractPayloadAsString(message);
     final String contentType = message.findContentType().orElse("");
-    if (contentType.equals(BINARY_CONTENT_TYPE)) {
+    if (contentType.equals(DITTO_PROTOCOL_CONTENT_TYPE)) {
       if (isBinaryCloudEvent(message)) {
         final JsonifiableAdaptable binaryAdaptable = DittoJsonException.wrapJsonRuntimeException(
             () -> ProtocolFactory.jsonifiableAdaptableFromJson(newObject(payload)));
-        DittoHeaders headers = binaryAdaptable.getDittoHeaders();
+        final DittoHeaders headers = binaryAdaptable.getDittoHeaders()
+            .toBuilder()
+            .correlationId(message.getHeaders().get(CE_ID))
+            .build();
         return singletonList(
             ProtocolFactory.newAdaptableBuilder(binaryAdaptable).withHeaders(headers).build());
       } else {
@@ -77,7 +87,10 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
     } else if (contentType.equals(STRUCTURED_CONTENT_TYPE)) {
       if (isStructuredCloudEvent(payload)) {
         final JsonifiableAdaptable adaptable = extractData(payload);
-        final DittoHeaders headers = adaptable.getDittoHeaders();
+        final DittoHeaders headers = adaptable.getDittoHeaders()
+            .toBuilder()
+            .correlationId(getInboundId(payload))
+            .build();
         return singletonList(
             ProtocolFactory.newAdaptableBuilder(adaptable).withHeaders(headers).build());
       } else {
@@ -141,22 +154,36 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
     }
   }
 
+
   private String base64decoding(final String base64Message) {
     byte[] messageByte = Base64.getDecoder().decode(base64Message);
     return new String(messageByte);
   }
 
   private static String getExternalCloudEventSpecifications(final Adaptable adaptable) {
-    final String outboundID = UUID.randomUUID().toString();
+    final String outboundID = adaptable.getDittoHeaders().getCorrelationId()
+        .orElseGet(() -> UUID.randomUUID().toString());
     JsonObject dataObject = JsonFactory.newObject(getJsonString(adaptable));
+    final String topicPathWithoutEntityId = adaptable.getTopicPath().getPath().split("/", 3)[2];
+    final String type = OUTBOUNDTYPE + ":" + topicPathWithoutEntityId;
+    final String time = adaptable.getPayload().getTimestamp().orElse(Instant.now()).toString();
+    final String subject = adaptable.getTopicPath().getNamespace() + ":" + adaptable.getTopicPath().getEntityName();
     final JsonObject externalMessageObject = JsonObject.newBuilder()
         .set(DATA, dataObject)
         .set(SPECVERSION, OUTBOUNDSPECVERSION)
         .set(ID, outboundID)
         .set(SOURCE, OUTBOUNDSOURCE)
-        .set(TYPE, OUTBOUNDTYPE)
+        .set(TYPE, type)
+        .set(OUTBOUND_DATA_CONTENT_TYPE, DITTO_PROTOCOL_CONTENT_TYPE)
+        .set(OUTBOUND_TIME, time)
+        .set(OUTBOUND_SUBJECT, subject)
         .build();
     return externalMessageObject.toString();
+  }
+
+  private static String getInboundId(final String message){
+    JsonObject inboundMessageObject = JsonFactory.newObject(message);
+    return inboundMessageObject.getValue("id").orElse(JsonValue.of("")).asString();
   }
 
   private static String getJsonString(final Adaptable adaptable) {

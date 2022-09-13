@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
@@ -79,8 +80,9 @@ public class CloudEventsMapperTest {
     ExternalMessage textMessage = textMessageBuilder(testPayload);
     Adaptable expectedAdaptable = DittoJsonException.wrapJsonRuntimeException(
         () -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(data)));
+    final DittoHeaders headers = DittoHeaders.of(Map.of("correlation-id", "3212e"));
     List<Adaptable> expectedMap = singletonList(
-        ProtocolFactory.newAdaptableBuilder(expectedAdaptable).build());
+        ProtocolFactory.newAdaptableBuilder(expectedAdaptable).withHeaders(headers).build());
     assertEquals(expectedMap, underTest.map(textMessage));
   }
 
@@ -92,8 +94,9 @@ public class CloudEventsMapperTest {
     String decodedString = new String(decodedBytes);
     Adaptable expectedAdaptable = DittoJsonException.wrapJsonRuntimeException(
         () -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(decodedString)));
+    final DittoHeaders headers = DittoHeaders.of(Map.of("correlation-id", "3212e"));
     List<Adaptable> expectedMap = singletonList(
-        ProtocolFactory.newAdaptableBuilder(expectedAdaptable).build());
+        ProtocolFactory.newAdaptableBuilder(expectedAdaptable).withHeaders(headers).build());
     assertEquals(expectedMap, underTest.map(message));
   }
 
@@ -105,8 +108,9 @@ public class CloudEventsMapperTest {
     Adaptable expectedAdaptable = DittoJsonException.wrapJsonRuntimeException(
         () -> ProtocolFactory.jsonifiableAdaptableFromJson(
             JsonFactory.newObject(data.getBytes(StandardCharsets.UTF_8))));
+    final DittoHeaders headers = DittoHeaders.of(Map.of("correlation-id", "3212e"));
     List<Adaptable> expectedMap = singletonList(
-        ProtocolFactory.newAdaptableBuilder(expectedAdaptable).build());
+        ProtocolFactory.newAdaptableBuilder(expectedAdaptable).withHeaders(headers).build());
     assertEquals(expectedMap, underTest.map(byteMessage));
   }
 
@@ -129,8 +133,9 @@ public class CloudEventsMapperTest {
     ExternalMessage binaryCEMessage = binaryCloudEventBuilder(data);
     Adaptable expectedAdaptable = DittoJsonException.wrapJsonRuntimeException(
         () -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(data)));
+    final DittoHeaders headers = DittoHeaders.of(Map.of("correlation-id", "test-id"));
     List<Adaptable> expectedMap = singletonList(
-        ProtocolFactory.newAdaptableBuilder(expectedAdaptable).build());
+        ProtocolFactory.newAdaptableBuilder(expectedAdaptable).withHeaders(headers).build());
     assertEquals(underTest.map(binaryCEMessage), expectedMap);
   }
 
