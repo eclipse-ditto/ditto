@@ -266,9 +266,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
     @Override
     protected CompletionStage<TargetActorWithMessage> getTargetActorForSendingEnforcedMessageTo(final Object message,
-            final boolean shouldSendResponse,
-            final ActorRef sender) {
-
+            final boolean shouldSendResponse, final ActorRef sender) {
         if (message instanceof CommandResponse<?> commandResponse &&
                 CommandResponse.isLiveCommandResponse(commandResponse)) {
 
@@ -295,7 +293,6 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     @Override
     protected CompletionStage<Object> modifyTargetActorCommandResponse(final Signal<?> enforcedSignal,
             final Object persistenceCommandResponse) {
-
         return Source.single(new CommandResponsePair<Signal<?>, Object>(enforcedSignal, persistenceCommandResponse))
                 .flatMapConcat(pair -> {
                     if (pair.command() instanceof RetrieveThing retrieveThing &&
@@ -354,7 +351,6 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
     @Override
     protected ExponentialBackOffConfig getExponentialBackOffConfig() {
-
         return DittoThingsConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
                 .getThingConfig()
                 .getSupervisorConfig()
@@ -370,18 +366,17 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     }
 
     @Override
-    protected Receive activeBehaviour(
-            final Runnable matchProcessNextTwinMessageBehavior,
+    protected Receive activeBehaviour(final Runnable matchProcessNextTwinMessageBehavior,
             final FI.UnitApply<Object> matchAnyBehavior) {
-
         return ReceiveBuilder.create()
-                .matchEquals(Control.SHUTDOWN_TIMEOUT, this::shutdownLiveChannel)
+                .matchEquals(Control.SHUTDOWN_TIMEOUT, this::shutdownActor)
                 .build()
                 .orElse(super.activeBehaviour(matchProcessNextTwinMessageBehavior, matchAnyBehavior));
     }
 
-    private void shutdownLiveChannel(final Control shutdown) {
-        log.warning("Shutdown timeout <{}> reached; aborting <{}> ops", shutdownTimeout, getOpCounter());
+    private void shutdownActor(final Control shutdown) {
+        log.warning("Shutdown timeout <{}> reached; aborting <{}> ops and stopping myself", shutdownTimeout,
+                getOpCounter());
         getContext().stop(getSelf());
     }
 
@@ -390,4 +385,5 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     private enum Control {
         SHUTDOWN_TIMEOUT
     }
+
 }

@@ -204,8 +204,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         return true;
     }
 
-    protected Receive activeBehaviour(
-            final Runnable matchProcessNextTwinMessageBehavior,
+    protected Receive activeBehaviour(final Runnable matchProcessNextTwinMessageBehavior,
             final FI.UnitApply<Object> matchAnyBehavior) {
 
         return ReceiveBuilder.create()
@@ -250,7 +249,6 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      */
     protected CompletionStage<Object> modifyTargetActorCommandResponse(final Signal<?> enforcedSignal,
             final Object persistenceCommandResponse) {
-
         return CompletableFuture.completedStage(persistenceCommandResponse);
     }
 
@@ -361,7 +359,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     }
 
     /**
-     * Increment the op counter when receiving a non-sudo signal.
+     * Decrement the op counter when receiving a non-sudo signal.
      *
      * @param signal the signal.
      */
@@ -370,7 +368,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     }
 
     /**
-     * Decrement the op counter after completing processing a non-sudo signal.
+     * Increment the op counter after completing processing a non-sudo signal.
      *
      * @param signal the signal.
      */
@@ -472,7 +470,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         getContext().become(
                 shutdownBehaviour.createReceive().build().orElse(
                         activeBehaviour(
-                                () -> {}, // ingore
+                                () -> {}, // ignore
                                 this::enforceAndForwardToTargetActor
                         )
                 )
@@ -838,6 +836,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         if (withDittoHeaders instanceof Command<?> command) {
             expiringTimer.tag(ENFORCEMENT_TIMER_TAG_CATEGORY, command.getCategory().name().toLowerCase());
         }
+
         return expiringTimer.start();
     }
 
@@ -977,4 +976,5 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
 
     private record EnforcedSignalAndTargetActorResponse(@Nullable Signal<?> enforcedSignal,
                                                         @Nullable Object response) {}
+
 }

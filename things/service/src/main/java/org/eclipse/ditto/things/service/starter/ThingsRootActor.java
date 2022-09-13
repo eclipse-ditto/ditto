@@ -94,6 +94,7 @@ public final class ThingsRootActor extends DittoRootActor {
                 blockedNamespaces,
                 policyEnforcerProvider
         );
+
         final ActorRef thingsShardRegion =
                 ShardRegionCreator.start(actorSystem, ThingsMessagingConstants.SHARD_REGION, thingSupervisorActorProps,
                         clusterConfig.getNumberOfShards(), CLUSTER_ROLE);
@@ -105,6 +106,7 @@ public final class ThingsRootActor extends DittoRootActor {
         final ThingsAggregatorConfig thingsAggregatorConfig = DefaultThingsAggregatorConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
+
         final Props props = ThingsAggregatorActor.props(thingsShardRegion, thingsAggregatorConfig);
         final ActorRef thingsAggregatorActor = getContext().actorOf(props, ThingsAggregatorActor.ACTOR_NAME);
 
@@ -149,10 +151,8 @@ public final class ThingsRootActor extends DittoRootActor {
      * @param propsFactory factory of Props of thing-persistence-actor.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ThingsConfig thingsConfig,
-            final ActorRef pubSubMediator,
+    public static Props props(final ThingsConfig thingsConfig, final ActorRef pubSubMediator,
             final ThingPersistenceActorPropsFactory propsFactory) {
-
         return Props.create(ThingsRootActor.class, thingsConfig, pubSubMediator, propsFactory);
     }
 
@@ -175,16 +175,15 @@ public final class ThingsRootActor extends DittoRootActor {
             final ThingPersistenceActorPropsFactory propsFactory,
             final BlockedNamespaces blockedNamespaces,
             final PolicyEnforcerProvider policyEnforcerProvider) {
-
         return ThingSupervisorActor.props(pubSubMediator, distributedPubThingEventsForTwin,
                 liveSignalPub, propsFactory, blockedNamespaces, policyEnforcerProvider);
     }
 
     private static MongoReadJournal newMongoReadJournal(final MongoDbConfig mongoDbConfig,
             final ActorSystem actorSystem) {
-
         final var config = actorSystem.settings().config();
         final var mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
+
         return MongoReadJournal.newInstance(config, mongoClient, actorSystem);
     }
 
