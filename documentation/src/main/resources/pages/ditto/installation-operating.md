@@ -897,9 +897,8 @@ the same commands.
 ```
 
 `COMMAND-TYPE` can be:
-- `common.commands:shutdown` to shutdown or restart a background sync stream,
 - `common.commands:retrieveConfig` to retrieve the current configuration,
-- `common.commands:modifyConfig` to modify the current configuration, or
+- `common.commands:modifyConfig` to modify the current configuration, shutdown or restart a background sync stream,
 - `status.commands:retrieveHealth` to query the current progress and event log.
 
 For each command type, please refer to the corresponding segment of "Managing background cleanup" for the exact format.
