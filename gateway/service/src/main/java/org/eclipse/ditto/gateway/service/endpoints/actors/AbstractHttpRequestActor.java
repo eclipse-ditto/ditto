@@ -76,6 +76,7 @@ import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import akka.Done;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.Cancellable;
 import akka.actor.CoordinatedShutdown;
 import akka.actor.ReceiveTimeout;
 import akka.actor.Status;
@@ -105,7 +106,7 @@ import scala.util.Either;
 public abstract class AbstractHttpRequestActor extends AbstractActor {
 
     /**
-     * Ask-timeout in shutdown tasks. Its duration should be long enough for solution commands to succeed but
+     * Ask-timeout in shutdown tasks. Its duration should be long enough for http requests to succeed but
      * ultimately does not matter because each shutdown phase has its own timeout.
      */
     private static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
@@ -127,6 +128,10 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private Command<?> receivedCommand;
     private final DittoDiagnosticLoggingAdapter logger;
     private Supplier<DittoRuntimeException> timeoutExceptionSupplier;
+
+    private Cancellable cancellableShutdownTask;
+    private boolean inCoordinatedShutdown;
+    private ActorRef coordinatedShutdownSender;
 
     protected AbstractHttpRequestActor(final ActorRef proxyActor,
             final HeaderTranslator headerTranslator,
@@ -157,6 +162,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         responseLocationUri = null;
         receivedCommand = null;
         timeoutExceptionSupplier = null;
+        inCoordinatedShutdown = false;
         logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
         setReceiveTimeout(httpConfig.getRequestTimeout());
     }
@@ -193,11 +199,17 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     public void preStart() {
         final var coordinatedShutdown = CoordinatedShutdown.get(getContext().getSystem());
 
-        final var serviceRequestsDoneTask = "service-requests-done-http-request-actor" ;
-        coordinatedShutdown.addTask(CoordinatedShutdown.PhaseServiceRequestsDone(), serviceRequestsDoneTask,
+        final var serviceRequestsDoneTask = "service-requests-done-http-request-actor";
+        cancellableShutdownTask = coordinatedShutdown.addCancellableTask(CoordinatedShutdown.PhaseServiceRequestsDone(),
+                serviceRequestsDoneTask,
                 () -> Patterns.ask(getSelf(), Control.SERVICE_REQUESTS_DONE, SHUTDOWN_ASK_TIMEOUT)
                         .thenApply(reply -> Done.done())
         );
+    }
+
+    @Override
+    public void postStop() {
+        cancellableShutdownTask.cancel();
     }
 
     @Override
@@ -602,15 +614,18 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
     private void stop() {
         logger.clearMDC();
-        // complete coordinated shutdown phase - ServiceRequestsDone
-        getSelf().tell(Done.getInstance(), getSelf());
-        // destroy ourselves:
+        if (inCoordinatedShutdown) {
+            // complete coordinated shutdown phase - ServiceRequestsDone
+            coordinatedShutdownSender.tell(Done.getInstance(), ActorRef.noSender());
+        }
+
+        // destroy ourselves
         getContext().stop(getSelf());
+        inCoordinatedShutdown = false;
     }
 
     private static HttpResponse addEntityAccordingToContentType(final HttpResponse response, final String entityPlain,
             final ContentType contentType) {
-
         final ByteString byteString;
 
         if (contentType.isBinary()) {
@@ -767,6 +782,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
     private void serviceRequestsDone(final Control serviceRequestsDone) {
         logger.info("{}: waiting to complete the request", serviceRequestsDone);
+        inCoordinatedShutdown = true;
+        coordinatedShutdownSender = getSender();
     }
 
     private record HttpAcknowledgementConfig(HttpConfig httpConfig) implements AcknowledgementConfig {

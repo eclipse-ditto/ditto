@@ -109,7 +109,7 @@ public final class GatewayRootActor extends DittoRootActor {
         final var dittoExtensionConfig = ScopedConfig.dittoExtension(config);
         final var edgeCommandForwarder = startChildActor(EdgeCommandForwarderActor.ACTOR_NAME,
                 EdgeCommandForwarderActor.props(pubSubMediator, shardRegions));
-        final var proxyActor = startProxyActor(actorSystem, pubSubMediator, edgeCommandForwarder);
+        final var proxyActor = startProxyActor(actorSystem, pubSubMediator, edgeCommandForwarder, httpConfig);
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
 
@@ -286,12 +286,12 @@ public final class GatewayRootActor extends DittoRootActor {
     }
 
     private ActorRef startProxyActor(final ActorRefFactory actorSystem, final ActorRef pubSubMediator,
-            final ActorRef edgeCommandForwarder) {
+            final ActorRef edgeCommandForwarder, final HttpConfig httpConfig) {
         final var devOpsCommandsActor =
                 actorSystem.actorSelection(DevOpsRoute.DEVOPS_COMMANDS_ACTOR_SELECTION);
 
         return startChildActor(GatewayProxyActor.ACTOR_NAME,
-                GatewayProxyActor.props(pubSubMediator, devOpsCommandsActor, edgeCommandForwarder));
+                GatewayProxyActor.props(pubSubMediator, devOpsCommandsActor, edgeCommandForwarder, httpConfig));
 
     }
 

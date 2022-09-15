@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.gateway.service.proxy.actors;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -20,12 +21,10 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.gateway.service.util.config.endpoints.GatewayHttpConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -41,10 +40,14 @@ import org.eclipse.ditto.thingsearch.model.SearchResult;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
 
+import akka.Done;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.Cancellable;
+import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
+import akka.pattern.Patterns;
 
 /**
  * Actor which is started for each {@link QueryThings} command in the gateway handling the response from
@@ -57,6 +60,12 @@ import akka.actor.ReceiveTimeout;
  */
 final class QueryThingsPerRequestActor extends AbstractActor {
 
+    /**
+     * Ask-timeout in shutdown tasks. Its duration should be long enough for http requests to succeed but
+     * ultimately does not matter because each shutdown phase has its own timeout.
+     */
+    private static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
+
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final QueryThings queryThings;
@@ -66,22 +75,24 @@ final class QueryThingsPerRequestActor extends AbstractActor {
 
     @Nullable private QueryThingsResponse queryThingsResponse;
     @Nullable private List<ThingId> queryThingsResponseThingIds;
+    private Cancellable cancellableShutdownTask;
+    private boolean inCoordinatedShutdown;
+    @Nullable private ActorRef coordinatedShutdownSender;
 
     @SuppressWarnings("unused")
     private QueryThingsPerRequestActor(final QueryThings queryThings,
             final ActorRef commandForwarderActor,
             final ActorRef originatingSender,
-            final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator,
+            final HttpConfig httpConfig) {
 
         this.queryThings = queryThings;
         this.commandForwarderActor = commandForwarderActor;
         this.originatingSender = originatingSender;
         this.pubSubMediator = pubSubMediator;
         queryThingsResponse = null;
-
-        final HttpConfig httpConfig = GatewayHttpConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        );
+        inCoordinatedShutdown = false;
+        coordinatedShutdownSender = null;
 
         getContext().setReceiveTimeout(httpConfig.getRequestTimeout());
     }
@@ -94,10 +105,28 @@ final class QueryThingsPerRequestActor extends AbstractActor {
     static Props props(final QueryThings queryThings,
             final ActorRef commandForwarderActor,
             final ActorRef originatingSender,
-            final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator,
+            final HttpConfig httpConfig) {
 
         return Props.create(QueryThingsPerRequestActor.class, queryThings, commandForwarderActor, originatingSender,
-                pubSubMediator);
+                pubSubMediator, httpConfig);
+    }
+
+    @Override
+    public void preStart() {
+        final var coordinatedShutdown = CoordinatedShutdown.get(getContext().getSystem());
+
+        final var serviceRequestsDoneTask = "service-requests-done-query-things-actor" ;
+        cancellableShutdownTask = coordinatedShutdown.addCancellableTask(CoordinatedShutdown.PhaseServiceRequestsDone(),
+                serviceRequestsDoneTask,
+                () -> Patterns.ask(getSelf(), Control.SERVICE_REQUESTS_DONE, SHUTDOWN_ASK_TIMEOUT)
+                        .thenApply(reply -> Done.done())
+        );
+    }
+
+    @Override
+    public void postStop() {
+        cancellableShutdownTask.cancel();
     }
 
     @Override
@@ -159,6 +188,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
 
                     stopMyself();
                 })
+                .matchEquals(Control.SERVICE_REQUESTS_DONE, this::serviceRequestsDone)
                 .matchAny(any -> {
                     // all other messages (e.g. DittoRuntimeExceptions) are directly returned to the sender:
                     originatingSender.tell(any, getSender());
@@ -232,8 +262,24 @@ final class QueryThingsPerRequestActor extends AbstractActor {
     }
 
     private void stopMyself() {
+        if (inCoordinatedShutdown && coordinatedShutdownSender != null) {
+            // complete coordinated shutdown phase - ServiceRequestsDone
+            coordinatedShutdownSender.tell(Done.getInstance(), ActorRef.noSender());
+        }
+
         getContext().cancelReceiveTimeout();
         getContext().stop(getSelf());
+        inCoordinatedShutdown = false;
+    }
+
+    private void serviceRequestsDone(final Control serviceRequestsDone) {
+        log.info("{}: waiting to complete the request", serviceRequestsDone);
+        inCoordinatedShutdown = true;
+        coordinatedShutdownSender = getSender();
+    }
+
+    enum Control {
+        SERVICE_REQUESTS_DONE
     }
 
 }

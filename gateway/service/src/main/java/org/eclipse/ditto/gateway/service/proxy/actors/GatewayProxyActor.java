@@ -19,6 +19,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
@@ -49,6 +50,7 @@ public final class GatewayProxyActor extends AbstractActor {
     private final ActorSelection devOpsCommandsActor;
     private final ActorRef edgeCommandForwarder;
     private final ActorRef pubSubMediator;
+    private final HttpConfig httpConfig;
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
@@ -56,10 +58,11 @@ public final class GatewayProxyActor extends AbstractActor {
 
     @SuppressWarnings("unused")
     private GatewayProxyActor(final ActorRef pubSubMediator, final ActorSelection devOpsCommandsActor,
-            final ActorRef edgeCommandForwarder) {
+            final ActorRef edgeCommandForwarder, final HttpConfig httpConfig) {
         this.pubSubMediator = pubSubMediator;
         this.devOpsCommandsActor = devOpsCommandsActor;
         this.edgeCommandForwarder = edgeCommandForwarder;
+        this.httpConfig = httpConfig;
         statisticsActor = getContext().actorOf(StatisticsActor.props(pubSubMediator), StatisticsActor.ACTOR_NAME);
     }
 
@@ -72,8 +75,9 @@ public final class GatewayProxyActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final ActorSelection devOpsCommandsActor,
-            final ActorRef edgeCommandForwarder) {
-        return Props.create(GatewayProxyActor.class, pubSubMediator, devOpsCommandsActor, edgeCommandForwarder);
+            final ActorRef edgeCommandForwarder, final HttpConfig httpConfig) {
+        return Props.create(GatewayProxyActor.class, pubSubMediator, devOpsCommandsActor, edgeCommandForwarder,
+                httpConfig);
     }
 
     static boolean isLiveCommandOrEvent(final Signal<?> signal) {
@@ -117,7 +121,8 @@ public final class GatewayProxyActor extends AbstractActor {
                 })
                 .match(QueryThings.class, qt -> {
                     final ActorRef responseActor = getContext().actorOf(
-                            QueryThingsPerRequestActor.props(qt, edgeCommandForwarder, getSender(), pubSubMediator)
+                            QueryThingsPerRequestActor.props(qt, edgeCommandForwarder, getSender(), pubSubMediator,
+                                    httpConfig)
                     );
                     edgeCommandForwarder.tell(qt, responseActor);
                 })

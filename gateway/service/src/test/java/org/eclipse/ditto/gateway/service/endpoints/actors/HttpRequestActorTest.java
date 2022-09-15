@@ -52,6 +52,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingRespon
 import org.junit.Rule;
 import org.junit.Test;
 
+import akka.Done;
 import akka.actor.ActorRef;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpEntities;
@@ -59,8 +60,8 @@ import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.ResponseEntity;
 import akka.http.javadsl.model.StatusCodes;
+import akka.testkit.javadsl.TestKit;
 import akka.util.ByteString;
-import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Unit test for {@link HttpRequestActor}.
@@ -456,7 +457,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                         .correlationId(correlationId)
                         .channel("live")
                         .responseRequired(true)
-                        .timeout(Duration.ofSeconds(5L))
+                        .timeout(Duration.ofSeconds(4L))
                         .build());
         final var proxyActorTestProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
         final var httpResponseFuture = new CompletableFuture<HttpResponse>();
@@ -520,7 +521,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                         .correlationId(correlationId)
                         .channel("live")
                         .responseRequired(true)
-                        .timeout(Duration.ofSeconds(5L))
+                        .timeout(Duration.ofSeconds(4L))
                         .build());
         final var proxyActorTestProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
         final var httpResponseFuture = new CompletableFuture<HttpResponse>();
@@ -631,30 +632,30 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
 
     @Test
     public void actorShutsDownAfterServiceRequestDoneMessageWasReceived() {
+        new TestKit(ACTOR_SYSTEM_RESOURCE.getActorSystem()) {{
+                final var thingId = ThingId.generateRandom();
+                final var attributeName = "foo";
+                final var attributePointer = JsonPointer.of(attributeName);
+                final long timeoutInSec = 2L;
+                final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                        .timeout(Duration.ofSeconds(timeoutInSec))
+                        .build();
 
-        final var thingId = ThingId.generateRandom();
-        final var attributeName = "foo";
-        final var attributePointer = JsonPointer.of(attributeName);
-        final long timeout = 2L;
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .timeout(Duration.ofSeconds(timeout))
-                .build();
+                final var proxyActorProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
+                final var modifyAttribute =
+                        ModifyAttribute.of(thingId, attributePointer, JsonValue.of("bar"), dittoHeaders);
+                final var responseFuture = new CompletableFuture<HttpResponse>();
+                final var underTest =
+                        createHttpRequestActor(proxyActorProbe.ref(), getHttpRequest(modifyAttribute), responseFuture);
+                watch(underTest);
 
-        final var proxyActorProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
-        final var modifyAttribute =
-                ModifyAttribute.of(thingId, attributePointer, JsonValue.of("bar"), dittoHeaders);
-        final var responseFuture = new CompletableFuture<HttpResponse>();
-        final var underTest =
-                createHttpRequestActor(proxyActorProbe.ref(), getHttpRequest(modifyAttribute), responseFuture);
+                underTest.tell(modifyAttribute, ActorRef.noSender());
+                proxyActorProbe.expectMsgClass(ModifyAttribute.class);
 
-        final var supervisor = ACTOR_SYSTEM_RESOURCE.newTestProbe();
-        supervisor.watch(underTest);
-
-        underTest.tell(modifyAttribute, ActorRef.noSender());
-        proxyActorProbe.expectMsgClass(ModifyAttribute.class);
-
-        underTest.tell(AbstractHttpRequestActor.Control.SERVICE_REQUESTS_DONE, ActorRef.noSender());
-        supervisor.expectTerminated(underTest, FiniteDuration.apply(timeout + 1L, TimeUnit.SECONDS));
+                underTest.tell(AbstractHttpRequestActor.Control.SERVICE_REQUESTS_DONE, getRef());
+                expectMsgClass(Done.class);
+                expectTerminated(underTest);
+            }};
     }
 
 }
