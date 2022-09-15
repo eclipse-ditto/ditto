@@ -86,7 +86,8 @@ abstract class AbstractSubscriber<T extends SignalWithEntityId<?>> extends Abstr
         final T message = messageClass.cast(command.getSignal());
         final Collection<String> topics = topicExtractor.getTopics(message);
         final Set<ActorRef> localSubscribers =
-                publisherIndex.assignGroupsToSubscribers(message, topics, command.getGroups())
+                publisherIndex.assignGroupsToSubscribers(message, topics, command.getGroups(),
+                                command.getGroupIndexKey())
                         .stream()
                         .map(Pair::first)
                         .collect(Collectors.toSet());

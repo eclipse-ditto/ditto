@@ -155,7 +155,7 @@ public final class PubSubFactoryTest {
             assertThat(subAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello");
 
             // WHEN: a message is published on the subscribed topic
-            pub.publish(signal("hello"), publisher.ref());
+            pub.publish(signal("hello"), "", publisher.ref());
 
             // THEN: the subscriber receives it from the original sender's address
             subscriber.expectMsg(signal("hello"));
@@ -170,8 +170,8 @@ public final class PubSubFactoryTest {
             assertThat(unsubAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello", "world");
 
             // THEN: the subscriber does not receive published messages any more
-            pub.publish(signal("hello"), publisher.ref());
-            pub.publish(signal("hello-world"), publisher.ref());
+            pub.publish(signal("hello"), "", publisher.ref());
+            pub.publish(signal("hello-world"), "", publisher.ref());
             subscriber.expectNoMessage();
 
             // WHEN: actor subscribes to the topic again
@@ -179,7 +179,7 @@ public final class PubSubFactoryTest {
                     .toCompletableFuture()
                     .join();
             // THEN: it receives published message again
-            pub.publish(signal("hello"), publisher.ref());
+            pub.publish(signal("hello"), "", publisher.ref());
             subscriber.expectMsg(signal("hello"));
         }};
     }
@@ -206,7 +206,7 @@ public final class PubSubFactoryTest {
 
             // WHEN: many messages are published
             final int messages = 100;
-            IntStream.range(0, messages).forEach(i -> pub.publish(signal("hello" + i), publisher.ref()));
+            IntStream.range(0, messages).forEach(i -> pub.publish(signal("hello" + i), "", publisher.ref()));
 
             // THEN: subscribers with relevant topics get the messages in the order they were published.
             IntStream.range(0, messages).forEach(i -> {
@@ -231,7 +231,7 @@ public final class PubSubFactoryTest {
 
             // GIVEN: a pub-sub channel is set up
             sub.subscribeWithFilterAndGroup(singleton("hello"), subscriber.ref(), null, null, false).toCompletableFuture().join();
-            pub.publish(signal("hello"), publisher.ref());
+            pub.publish(signal("hello"), "", publisher.ref());
             subscriber.expectMsg(signal("hello"));
 
             // WHEN: subscriber terminates
@@ -261,7 +261,7 @@ public final class PubSubFactoryTest {
 
             // GIVEN: a pub-sub channel is set up
             sub.subscribeWithFilterAndGroup(singleton("hello"), subscriber.ref(), null, null, false).toCompletableFuture().join();
-            pub.publish(signal("hello"), publisher.ref());
+            pub.publish(signal("hello"), "", publisher.ref());
             subscriber.expectMsg(signal("hello"));
 
             // WHEN: remote actor system is removed from cluster
@@ -301,7 +301,7 @@ public final class PubSubFactoryTest {
             assertThat(subAck.getRequest()).isInstanceOf(Subscribe.class);
             assertThat(subAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello");
 
-            pub.publish(signal("hello"), publisher.ref());
+            pub.publish(signal("hello"), "", publisher.ref());
             subscriber.expectMsg(Duration.create(5, TimeUnit.SECONDS), signal("hello"));
         }};
     }
@@ -390,7 +390,7 @@ public final class PubSubFactoryTest {
                                     ))
                             .build()
             );
-            pub.publishWithAcks(signal(publisherTopic), ackExtractor, ActorRef.noSender());
+            pub.publishWithAcks(signal(publisherTopic), "", ackExtractor, ActorRef.noSender());
 
             // THEN: the publisher receives a weak acknowledgement for the ack request with a declared label
             final Acknowledgements weakAcks = publisher.expectMsgClass(Acknowledgements.class);
@@ -436,7 +436,7 @@ public final class PubSubFactoryTest {
                     .build();
             thingIdMap.put(publisherTopic, thingId);
             dittoHeadersMap.put(publisherTopic, dittoHeaders);
-            pub.publishWithAcks(signal(publisherTopic), ackExtractor, ActorRef.noSender());
+            pub.publishWithAcks(signal(publisherTopic), "", ackExtractor, ActorRef.noSender());
 
             // THEN: the publisher receives a weak acknowledgement for the ack request with a declared label
             final Acknowledgements weakAcks = publisher.expectMsgClass(Acknowledgements.class);
@@ -580,12 +580,12 @@ public final class PubSubFactoryTest {
             await(sub3.subscribeWithFilterAndGroup(List.of(topic), subscriber6.ref(), null, "group", false));
 
             // WHEN: signals are published with different entity IDs differing by 1 in the last byte
-            pub1.publish(signal(topic, 0), publisher.ref());
-            pub1.publish(signal(topic, 1), publisher.ref());
-            pub2.publish(signal(topic, 2), publisher.ref());
-            pub2.publish(signal(topic, 3), publisher.ref());
-            pub2.publish(signal(topic, 4), publisher.ref());
-            pub1.publish(signal(topic, 5), publisher.ref());
+            pub1.publish(signal(topic, 0), "0", publisher.ref());
+            pub1.publish(signal(topic, 1), "1", publisher.ref());
+            pub2.publish(signal(topic, 2), "2", publisher.ref());
+            pub2.publish(signal(topic, 3), "3", publisher.ref());
+            pub2.publish(signal(topic, 4), "4", publisher.ref());
+            pub1.publish(signal(topic, 5), "5", publisher.ref());
 
             // THEN: exactly 1 subscriber gets each message.
             final Acknowledgement received1 = subscriber1.expectMsgClass(Acknowledgement.class);
@@ -635,8 +635,8 @@ public final class PubSubFactoryTest {
             ).build();
             thingIdMap.put(topic, thingId);
             dittoHeadersMap.put(topic, dittoHeaders);
-            pub.publish(signal(topic, 0), publisher.ref());
-            pub.publish(signal(topic, 1), publisher.ref());
+            pub.publish(signal(topic, 0), "0", publisher.ref());
+            pub.publish(signal(topic, 1), "1", publisher.ref());
 
             // THEN: exactly 1 subscriber in the group gets each message.
             final Acknowledgement received1 = subscriber1.expectMsgClass(Acknowledgement.class);

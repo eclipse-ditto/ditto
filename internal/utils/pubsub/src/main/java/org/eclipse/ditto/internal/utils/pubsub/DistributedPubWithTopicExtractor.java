@@ -15,10 +15,10 @@ package org.eclipse.ditto.internal.utils.pubsub;
 import java.util.Set;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.internal.utils.pubsub.actors.Publisher;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 
 import akka.actor.ActorRef;
 
@@ -50,15 +50,16 @@ final class DistributedPubWithTopicExtractor<T extends SignalWithEntityId<?>> im
     }
 
     @Override
-    public Object wrapForPublication(final T message) {
-        return Publisher.publish(topicExtractor.getTopics(message), message);
+    public Object wrapForPublication(final T message, final CharSequence groupIndexKey) {
+        return Publisher.publish(topicExtractor.getTopics(message), message, groupIndexKey);
     }
 
     @Override
-    public <S extends T> Object wrapForPublicationWithAcks(final S message, final AckExtractor<S> ackExtractor) {
+    public <S extends T> Object wrapForPublicationWithAcks(final S message, final CharSequence groupIndexKey,
+            final AckExtractor<S> ackExtractor) {
         final Set<AcknowledgementRequest> ackRequests = ackExtractor.getAckRequests(message);
         if (ackRequests.isEmpty()) {
-            return wrapForPublication(message);
+            return wrapForPublication(message, groupIndexKey);
         } else {
             return Publisher.publishWithAck(topicExtractor.getTopics(message), message, ackRequests,
                     ackExtractor.getEntityId(message), ackExtractor.getDittoHeaders(message));

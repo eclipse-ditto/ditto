@@ -204,7 +204,7 @@ public final class ThingPersistenceActor
 
     @Override
     protected void publishEvent(@Nullable final Thing previousEntity, final ThingEvent<?> event) {
-        distributedPub.publishWithAcks(event, ACK_EXTRACTOR, getSelf());
+        distributedPub.publishWithAcks(event, entityId, ACK_EXTRACTOR, getSelf());
         if (searchShardRegionProxy != null) {
             searchShardRegionProxy.tell(event, getSelf());
         }

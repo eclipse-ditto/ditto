@@ -88,7 +88,7 @@ public final class Subscriber<T extends SignalWithEntityId<?>> extends AbstractS
             final int poolSize) {
 
         if (poolSize > 1) {
-            final int index = PubSubFactory.hashForPubSub(signal.getSignal().getEntityId()) % poolSize;
+            final int index = PubSubFactory.hashForPubSub(signal.getGroupIndexKey()) % poolSize;
             if (index > 0) {
                 return ActorSelection.apply(parentSubscriber, String.valueOf(index));
             }
