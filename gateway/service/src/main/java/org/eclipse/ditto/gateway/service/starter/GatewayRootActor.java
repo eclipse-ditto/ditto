@@ -99,7 +99,6 @@ public final class GatewayRootActor extends DittoRootActor {
         final ActorSystem actorSystem = context().system();
         final Config config = actorSystem.settings().config();
         final var clusterConfig = gatewayConfig.getClusterConfig();
-        final int numberOfShards = clusterConfig.getNumberOfShards();
         final AuthenticationConfig authenticationConfig = gatewayConfig.getAuthenticationConfig();
         final CacheConfig publicKeysConfig = gatewayConfig.getCachesConfig().getPublicKeysConfig();
         final HealthCheckConfig healthCheckConfig = gatewayConfig.getHealthCheckConfig();
@@ -109,7 +108,8 @@ public final class GatewayRootActor extends DittoRootActor {
         final var dittoExtensionConfig = ScopedConfig.dittoExtension(config);
         final var edgeCommandForwarder = startChildActor(EdgeCommandForwarderActor.ACTOR_NAME,
                 EdgeCommandForwarderActor.props(pubSubMediator, shardRegions));
-        final var proxyActor = startProxyActor(actorSystem, pubSubMediator, edgeCommandForwarder, httpConfig);
+        final var proxyActor = startGatewayProxyActor(actorSystem, pubSubMediator, edgeCommandForwarder,
+                httpConfig);
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
 
@@ -221,12 +221,14 @@ public final class GatewayRootActor extends DittoRootActor {
         final var statusAndHealthProvider =
                 DittoStatusAndHealthProviderFactory.of(actorSystem, clusterStateSupplier, healthCheckConfig);
 
-        final var dittoHeadersValidator = DittoHeadersValidator.get(actorSystem, dittoExtensionConfig);
+        final var dittoHeadersValidator =
+                DittoHeadersValidator.get(actorSystem, dittoExtensionConfig);
 
         final var httpConfig = gatewayConfig.getHttpConfig();
 
         final var streamingConfig = gatewayConfig.getStreamingConfig();
-        final var signalEnrichmentProvider = GatewaySignalEnrichmentProvider.get(actorSystem, dittoExtensionConfig);
+        final var signalEnrichmentProvider =
+                GatewaySignalEnrichmentProvider.get(actorSystem, dittoExtensionConfig);
 
         final var commandConfig = gatewayConfig.getCommandConfig();
 
@@ -238,7 +240,8 @@ public final class GatewayRootActor extends DittoRootActor {
                 .headerTranslator(headerTranslator)
                 .build();
 
-        final var customApiRoutesProvider = CustomApiRoutesProvider.get(actorSystem, dittoExtensionConfig);
+        final var customApiRoutesProvider =
+                CustomApiRoutesProvider.get(actorSystem, dittoExtensionConfig);
 
         return RootRoute.getBuilder(httpConfig)
                 .statsRoute(new StatsRoute(routeBaseProperties, devopsAuthenticationDirective))
@@ -285,14 +288,13 @@ public final class GatewayRootActor extends DittoRootActor {
                 DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, null));
     }
 
-    private ActorRef startProxyActor(final ActorRefFactory actorSystem, final ActorRef pubSubMediator,
+    private ActorRef startGatewayProxyActor(final ActorRefFactory actorSystem, final ActorRef pubSubMediator,
             final ActorRef edgeCommandForwarder, final HttpConfig httpConfig) {
         final var devOpsCommandsActor =
                 actorSystem.actorSelection(DevOpsRoute.DEVOPS_COMMANDS_ACTOR_SELECTION);
 
         return startChildActor(GatewayProxyActor.ACTOR_NAME,
                 GatewayProxyActor.props(pubSubMediator, devOpsCommandsActor, edgeCommandForwarder, httpConfig));
-
     }
 
     private static DevopsAuthenticationDirectiveFactory getDevopsAuthenticationDirectiveFactory(
