@@ -142,7 +142,7 @@ public abstract class HonoConnectionFactory implements DittoExtensionPoint {
 
     protected abstract Set<URI> getBootstrapServerUris();
 
-    protected abstract String getGroupId(Connection connection);
+    protected abstract String getGroupId(String suffix);
 
     protected abstract UserPasswordCredentials getCredentials();
 
@@ -156,8 +156,9 @@ public abstract class HonoConnectionFactory implements DittoExtensionPoint {
     }
 
     private Map<String, String> makeupSpecificConfig(final Connection connection) {
-        var groupId = Optional.ofNullable(
-                connection.getSpecificConfig().get("groupId")).orElse(getGroupId(connection));
+        var groupId = getGroupId(Optional
+                .ofNullable(connection.getSpecificConfig().get("groupId"))
+                .orElse(connection.getId().toString()));
         return Map.of(
                 "saslMechanism", String.valueOf(getSaslMechanism()),
                 "bootstrapServers", getAsCommaSeparatedListString(getBootstrapServerUris()),

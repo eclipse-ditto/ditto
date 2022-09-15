@@ -16,7 +16,6 @@ import java.net.URI;
 import java.text.MessageFormat;
 import java.util.Set;
 
-import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.HonoAddressAlias;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.DefaultHonoConfig;
@@ -68,8 +67,8 @@ public final class DefaultHonoConnectionFactory extends HonoConnectionFactory {
     }
 
     @Override
-    protected String getGroupId(final Connection connection) {
-        return connection.getId().toString();
+    protected String getGroupId(final String suffix) {
+        return suffix;
     }
 
     @Override
