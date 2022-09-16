@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.connect;
 
-import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -20,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.connectivity.model.mqtt.ReceiveMaximum;
+import org.eclipse.ditto.connectivity.model.mqtt.SessionExpiryInterval;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.KeepAliveInterval;
 
 import com.hivemq.client.mqtt.mqtt3.message.connect.Mqtt3Connect;
@@ -33,12 +33,12 @@ public final class GenericMqttConnect {
 
     private final boolean cleanSession;
     private final KeepAliveInterval keepAliveInterval;
-    private final Duration sessionExpiryInterval;
+    private final SessionExpiryInterval sessionExpiryInterval;
     private final ReceiveMaximum receiveMaximum;
 
     private GenericMqttConnect(final boolean cleanSession,
             final KeepAliveInterval keepAliveInterval,
-            final Duration sessionExpiryInterval,
+            final SessionExpiryInterval sessionExpiryInterval,
             final ReceiveMaximum receiveMaximum) {
 
         this.cleanSession = cleanSession;
@@ -68,7 +68,7 @@ public final class GenericMqttConnect {
      */
     public static GenericMqttConnect newInstance(final boolean cleanSession,
             final KeepAliveInterval keepAliveInterval,
-            final Duration sessionExpiryInterval,
+            final SessionExpiryInterval sessionExpiryInterval,
             final ReceiveMaximum receiveMaximum) {
 
         return new GenericMqttConnect(cleanSession,

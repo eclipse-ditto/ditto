@@ -18,6 +18,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.connectivity.model.mqtt.ReceiveMaximum;
+import org.eclipse.ditto.connectivity.model.mqtt.SessionExpiryInterval;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
@@ -62,10 +63,10 @@ public interface MqttConfig {
     /**
      * Duration how long messages should be buffered by the broker after disconnect.
      *
-     * @return the duration.
+     * @return the session expiry interval.
      * @since 3.0.0
      */
-    Duration getSessionExpiryInterval();
+    SessionExpiryInterval getSessionExpiryInterval();
 
     /**
      * Indicates whether a separate client should be used for publishing. This could be useful when
@@ -151,7 +152,7 @@ public interface MqttConfig {
         SESSION_EXPIRY_INTERVAL("session-expiry-interval", Duration.ofSeconds(60)),
 
         /**
-         * Indicates whether a separate client should be used for publiBshing. This could be useful when
+         * Indicates whether a separate client should be used for publishing. This could be useful when
          * {@link #shouldReconnectForRedelivery()} returns true to avoid that the publisher has downtimes.
          */
         SEPARATE_PUBLISHER_CLIENT("separate-publisher-client", false),

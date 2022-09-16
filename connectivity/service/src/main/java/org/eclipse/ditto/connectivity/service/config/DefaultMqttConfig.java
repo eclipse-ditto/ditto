@@ -20,7 +20,9 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.connectivity.model.mqtt.IllegalReceiveMaximumValueException;
+import org.eclipse.ditto.connectivity.model.mqtt.IllegalSessionExpiryIntervalSecondsException;
 import org.eclipse.ditto.connectivity.model.mqtt.ReceiveMaximum;
+import org.eclipse.ditto.connectivity.model.mqtt.SessionExpiryInterval;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
@@ -42,7 +44,7 @@ final class DefaultMqttConfig implements MqttConfig {
     private final boolean cleanSession;
     private final boolean reconnectForRedelivery;
     private final Duration reconnectForRedeliveryDelay;
-    private final Duration sessionExpiryInterval;
+    private final SessionExpiryInterval sessionExpiryInterval;
     private final boolean useSeparateClientForPublisher;
     private final Duration reconnectMinTimeoutForMqttBrokerInitiatedDisconnect;
     private final BackOffConfig reconnectBackOffConfig;
@@ -55,8 +57,7 @@ final class DefaultMqttConfig implements MqttConfig {
         reconnectForRedelivery = config.getBoolean(MqttConfigValue.RECONNECT_FOR_REDELIVERY.getConfigPath());
         reconnectForRedeliveryDelay =
                 config.getNonNegativeDurationOrThrow(MqttConfigValue.RECONNECT_FOR_REDELIVERY_DELAY);
-        sessionExpiryInterval =
-                config.getNonNegativeDurationOrThrow(MqttConfigValue.SESSION_EXPIRY_INTERVAL);
+        sessionExpiryInterval = getSessionExpiryIntervalOrThrow(config);
         useSeparateClientForPublisher = config.getBoolean(MqttConfigValue.SEPARATE_PUBLISHER_CLIENT.getConfigPath());
         maxQueueSize = config.getInt(MqttConfigValue.MAX_QUEUE_SIZE.getConfigPath());
         reconnectMinTimeoutForMqttBrokerInitiatedDisconnect = config.getNonNegativeDurationOrThrow(
@@ -66,6 +67,16 @@ final class DefaultMqttConfig implements MqttConfig {
                 : ConfigFactory.parseString("backoff" + "={}"));
         consumerThrottlingConfig = ThrottlingConfig.of(config);
         clientReceiveMaximum = getClientReceiveMaximumOrThrow(config);
+    }
+
+    private static SessionExpiryInterval getSessionExpiryIntervalOrThrow(final ScopedConfig config) {
+        try {
+            return SessionExpiryInterval.of(
+                    config.getDuration(MqttConfigValue.SESSION_EXPIRY_INTERVAL.getConfigPath())
+            );
+        } catch (final IllegalSessionExpiryIntervalSecondsException e) {
+            throw new DittoConfigError(e);
+        }
     }
 
     private static ReceiveMaximum getClientReceiveMaximumOrThrow(final ScopedConfig config) {
@@ -108,7 +119,7 @@ final class DefaultMqttConfig implements MqttConfig {
     }
 
     @Override
-    public Duration getSessionExpiryInterval() {
+    public SessionExpiryInterval getSessionExpiryInterval() {
         return sessionExpiryInterval;
     }
 

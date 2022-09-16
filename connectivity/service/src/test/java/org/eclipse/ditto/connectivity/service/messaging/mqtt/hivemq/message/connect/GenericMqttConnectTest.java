@@ -20,7 +20,9 @@ import java.time.Duration;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.connectivity.model.mqtt.IllegalReceiveMaximumValueException;
+import org.eclipse.ditto.connectivity.model.mqtt.IllegalSessionExpiryIntervalSecondsException;
 import org.eclipse.ditto.connectivity.model.mqtt.ReceiveMaximum;
+import org.eclipse.ditto.connectivity.model.mqtt.SessionExpiryInterval;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.IllegalKeepAliveIntervalSecondsException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.KeepAliveInterval;
 import org.junit.Test;
@@ -50,17 +52,32 @@ public final class GenericMqttConnectTest {
     @Test
     public void newInstanceWithNullKeepAliveIntervalThrowsException() {
         Assertions.assertThatNullPointerException()
-                .isThrownBy(() -> GenericMqttConnect.newInstance(true, null,
-                        Duration.ZERO, ReceiveMaximum.defaultReceiveMaximum()))
+                .isThrownBy(() -> GenericMqttConnect.newInstance(true,
+                        null,
+                        SessionExpiryInterval.defaultSessionExpiryInterval(),
+                        ReceiveMaximum.defaultReceiveMaximum()))
                 .withMessage("The keepAliveInterval must not be null!")
+                .withNoCause();
+    }
+
+    @Test
+    public void newInstanceWithNullSessionExpiryIntervalThrowsException() {
+        Assertions.assertThatNullPointerException()
+                .isThrownBy(() -> GenericMqttConnect.newInstance(true,
+                        KeepAliveInterval.defaultKeepAlive(),
+                        null,
+                        ReceiveMaximum.defaultReceiveMaximum()))
+                .withMessage("The sessionExpiryInterval must not be null!")
                 .withNoCause();
     }
 
     @Test
     public void newInstanceWithNullReceiveMaximumThrowsException() {
         Assertions.assertThatNullPointerException()
-                .isThrownBy(() -> GenericMqttConnect.newInstance(true, KeepAliveInterval.defaultKeepAlive(),
-                        Duration.ZERO, null))
+                .isThrownBy(() -> GenericMqttConnect.newInstance(true,
+                        KeepAliveInterval.defaultKeepAlive(),
+                        SessionExpiryInterval.defaultSessionExpiryInterval(),
+                        null))
                 .withMessage("The receiveMaximum must not be null!")
                 .withNoCause();
     }
@@ -69,9 +86,10 @@ public final class GenericMqttConnectTest {
     public void getAsMqtt3ConnectReturnsExpected() throws IllegalKeepAliveIntervalSecondsException {
         final var cleanSession = true;
         final var keepAliveInterval = KeepAliveInterval.of(Duration.ofSeconds(13L));
-        final var underTest =
-                GenericMqttConnect.newInstance(cleanSession, keepAliveInterval,
-                        Duration.ZERO, ReceiveMaximum.defaultReceiveMaximum());
+        final var underTest = GenericMqttConnect.newInstance(cleanSession,
+                keepAliveInterval,
+                SessionExpiryInterval.defaultSessionExpiryInterval(),
+                ReceiveMaximum.defaultReceiveMaximum());
 
         assertThat(underTest.getAsMqtt3Connect())
                 .isEqualTo(Mqtt3Connect.builder()
@@ -82,18 +100,21 @@ public final class GenericMqttConnectTest {
 
     @Test
     public void getAsMqtt5ConnectReturnsExpected()
-            throws IllegalKeepAliveIntervalSecondsException, IllegalReceiveMaximumValueException {
+            throws IllegalKeepAliveIntervalSecondsException, IllegalSessionExpiryIntervalSecondsException,
+            IllegalReceiveMaximumValueException {
 
         final var cleanSession = false;
         final var keepAliveInterval = KeepAliveInterval.of(Duration.ofSeconds(42L));
+        final var sessionExpiryInterval = SessionExpiryInterval.of(Duration.ofSeconds(23L));
         final var receiveMaximum = ReceiveMaximum.of(35_000);
-        final var underTest = GenericMqttConnect.newInstance(cleanSession, keepAliveInterval, Duration.ZERO,
-                receiveMaximum);
+        final var underTest =
+                GenericMqttConnect.newInstance(cleanSession, keepAliveInterval, sessionExpiryInterval, receiveMaximum);
 
         assertThat(underTest.getAsMqtt5Connect())
                 .isEqualTo(Mqtt5Connect.builder()
                         .cleanStart(cleanSession)
                         .keepAlive(keepAliveInterval.getSeconds())
+                        .sessionExpiryInterval(sessionExpiryInterval.getSeconds())
                         .restrictions().receiveMaximum(receiveMaximum.getValue()).applyRestrictions()
                         .build());
     }
