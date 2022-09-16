@@ -19,7 +19,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
-import org.eclipse.ditto.connectivity.service.config.ReceiveMaximum;
+import org.eclipse.ditto.connectivity.model.mqtt.ReceiveMaximum;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.KeepAliveInterval;
 
 import com.hivemq.client.mqtt.mqtt3.message.connect.Mqtt3Connect;

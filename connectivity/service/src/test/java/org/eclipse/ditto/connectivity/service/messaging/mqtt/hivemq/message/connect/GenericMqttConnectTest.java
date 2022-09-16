@@ -19,8 +19,8 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.connectivity.service.config.IllegalReceiveMaximumValueException;
-import org.eclipse.ditto.connectivity.service.config.ReceiveMaximum;
+import org.eclipse.ditto.connectivity.model.mqtt.IllegalReceiveMaximumValueException;
+import org.eclipse.ditto.connectivity.model.mqtt.ReceiveMaximum;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.IllegalKeepAliveIntervalSecondsException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.KeepAliveInterval;
 import org.junit.Test;

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.service.config;
+package org.eclipse.ditto.connectivity.model.mqtt;
 
 import java.util.Objects;
 
@@ -105,7 +105,7 @@ public final class ReceiveMaximum implements Comparable<ReceiveMaximum> {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final var that = (ReceiveMaximum) o;
+        final ReceiveMaximum that = (ReceiveMaximum) o;
         return value == that.value;
     }
 
