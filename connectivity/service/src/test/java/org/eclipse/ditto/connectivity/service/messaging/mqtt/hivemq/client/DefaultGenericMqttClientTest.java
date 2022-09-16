@@ -107,6 +107,8 @@ public final class DefaultGenericMqttClientTest {
 
         Mockito.when(subscribingClient.connect(Mockito.any())).thenReturn(CompletableFuture.completedFuture(null));
         Mockito.when(publishingClient.connect(Mockito.any())).thenReturn(CompletableFuture.completedFuture(null));
+        final var sessionExpiryInterval = SessionExpiryInterval.defaultSessionExpiryInterval();
+        Mockito.when(mqttConfig.getSessionExpiryInterval()).thenReturn(sessionExpiryInterval);
         final var receiveMaximum = ReceiveMaximum.of(22_000);
         Mockito.when(mqttConfig.getClientReceiveMaximum()).thenReturn(receiveMaximum);
         final var cleanSession = true;
@@ -117,7 +119,7 @@ public final class DefaultGenericMqttClientTest {
                 DefaultGenericMqttClient.newInstance(subscribingClient, publishingClient, hiveMqttClientProperties);
         final var genericMqttConnect = GenericMqttConnect.newInstance(cleanSession,
                 keepAliveInterval,
-                SessionExpiryInterval.defaultSessionExpiryInterval(),
+                sessionExpiryInterval,
                 receiveMaximum);
 
         underTest.connect();
