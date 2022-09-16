@@ -20,7 +20,7 @@ import * as Utils from '../utils.js';
 let environments = {
   local_ditto: {
     api_uri: 'http://localhost:8080',
-    solutionId: null,
+    ditto_version: '3',
     bearer: null,
     defaultUsernamePassword: 'ditto:ditto',
     defaultUsernamePasswordDevOps: 'devops:foobar',
@@ -30,7 +30,7 @@ let environments = {
   },
   local_ditto_ide: {
     api_uri: 'http://localhost:8080',
-    solutionId: null,
+    ditto_version: '3',
     bearer: null,
     defaultUsernamePassword: null,
     defaultUsernamePasswordDevOps: null,
@@ -40,7 +40,7 @@ let environments = {
   },
   ditto_sandbox: {
     api_uri: 'https://ditto.eclipseprojects.io',
-    solutionId: null,
+    ditto_version: '3',
     bearer: null,
     defaultUsernamePassword: 'ditto:ditto',
     defaultUsernamePasswordDevOps: null,
@@ -137,6 +137,7 @@ export function ready() {
     Utils.assert(!environments[dom.inputEnvironmentName.value], 'Name already used', dom.inputEnvironmentName);
     environments[dom.inputEnvironmentName.value] = {
       api_uri: dom.inputApiUri.value ? dom.inputApiUri.value : '',
+      ditto_version: '3',
     };
     environmentsJsonChanged();
   };
