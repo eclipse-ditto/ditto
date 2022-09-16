@@ -67,29 +67,30 @@ final class ThingsMetadataSource {
      * Start a stream of metadata from Things persistence.
      *
      * @param lowerBound the lower bound thing ID - may come from the bookmark.
+     * @param namespaceFilter list of namespaces used to limit the streamed things
      * @return source of metadata streamed from Things via a resume-source.
      */
-    Source<Metadata, NotUsed> createSource(final ThingId lowerBound) {
-        return requestStream(lowerBound)
+    Source<Metadata, NotUsed> createSource(final ThingId lowerBound, final List<String> namespaceFilter) {
+        return requestStream(lowerBound, namespaceFilter)
                 .flatMapConcat(ThingsMetadataSource::getStreamedSnapshots)
                 .map(ThingsMetadataSource::toMetadata)
                 .filter(Optional::isPresent)
                 .map(Optional::get);
     }
 
-    private Object getStartStreamCommand(final ThingId lowerBound) {
+    private Object getStartStreamCommand(final ThingId lowerBound, final List<String> namespacesFilter) {
         final SudoStreamSnapshots commandWithoutLowerBound =
                 SudoStreamSnapshots.of(burst, idleTimeout.toMillis(), SNAPSHOT_FIELDS, DittoHeaders.empty(),
                         ThingConstants.ENTITY_TYPE);
         final SudoStreamSnapshots command =
                 lowerBound.equals(EMPTY_THING_ID) ? commandWithoutLowerBound :
                         commandWithoutLowerBound.withLowerBound(lowerBound);
-
-        return DistPubSubAccess.send(ThingsMessagingConstants.THINGS_SNAPSHOT_STREAMING_ACTOR_PATH, command);
+        final SudoStreamSnapshots commandWithNamespaceFilter = command.withNamespacesFilter(namespacesFilter);
+        return DistPubSubAccess.send(ThingsMessagingConstants.THINGS_SNAPSHOT_STREAMING_ACTOR_PATH, commandWithNamespaceFilter);
     }
 
-    private Source<SourceRef<?>, NotUsed> requestStream(final ThingId lowerBound) {
-        final Object startStreamCommand = getStartStreamCommand(lowerBound);
+    private Source<SourceRef<?>, NotUsed> requestStream(final ThingId lowerBound, final List<String> namespaceFilter) {
+        final Object startStreamCommand = getStartStreamCommand(lowerBound, namespaceFilter);
 
         return Source.completionStage(Patterns.ask(pubSubMediator, startStreamCommand, idleTimeout))
                 .flatMapConcat(response -> {
