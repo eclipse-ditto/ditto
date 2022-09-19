@@ -192,7 +192,7 @@ public final class ImmutablePolicyBuilderTest {
         final Resources endUserResources = Resources.newInstance(endUserResource);
 
         final PolicyEntry policyEntry =
-                PoliciesModelFactory.newPolicyEntry(endUserLabel, endUserSubjects, endUserResources, false);
+                PoliciesModelFactory.newPolicyEntry(endUserLabel, endUserSubjects, endUserResources, ImportableType.NEVER);
 
         final Policy existingPolicy = ImmutablePolicyBuilder.of(POLICY_ID)
                 .setSubjectFor(endUser, SubjectIssuer.GOOGLE, TestConstants.Policy.SUBJECT_ID, TestConstants.Policy.SUBJECT_TYPE)

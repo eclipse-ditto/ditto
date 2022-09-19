@@ -18,8 +18,8 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.Test;
@@ -49,32 +49,28 @@ public final class ImmutablePolicyImportsTest {
     public void testToAndFromJson() {
         final Collection<PolicyImport> policyImportList = new ArrayList<>();
 
-        policyImportList.add(PolicyImport.newInstance(PolicyId.of("com.example", "firstPolicy"), EffectedImports.newInstance(null, null)));
+        policyImportList.add(PolicyImport.newInstance(PolicyId.of("com.example", "firstPolicy"), EffectedImports.newInstance(null)));
         policyImportList.add(PolicyImport.newInstance(PolicyId.of("com.example", "secondPolicy"),
-                        EffectedImports.newInstance(Arrays.asList(Label.of("includedLabel1")), null)));
-        policyImportList.add(PolicyImport.newInstance(PolicyId.of("com.example", "thirdPolicy"),
-                        EffectedImports.newInstance(null, Arrays.asList(Label.of("excludedLabel1")))));
+                        EffectedImports.newInstance(Collections.singletonList(Label.of("includedLabel1")))));
         policyImportList.add(PolicyImport.newInstance(PolicyId.of("com.example", "fourthPolicy"),
-                        EffectedImports.newInstance(Arrays.asList(Label.of("includedLabel1"), Label.of("includedLabel2")),
-                                Arrays.asList(Label.of("excludedLabel2")))));
+                        EffectedImports.newInstance(Collections.singletonList(Label.of("includedLabel1")))));
 
         final ImmutablePolicyImports policyImports = ImmutablePolicyImports.of(policyImportList);
 
         final JsonObject policyImportsJson = policyImports.toJson();
-        final PolicyImports PolicyImportsFromJson = ImmutablePolicyImports.fromJson(policyImportsJson);
+        final PolicyImports policyImportsFromJson = ImmutablePolicyImports.fromJson(policyImportsJson);
 
-        assertThat(policyImports).isEqualTo(PolicyImportsFromJson);
+        assertThat(policyImports).isEqualTo(policyImportsFromJson);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void importPoliciesWithSameIdsShouldFail() {
         final Collection<PolicyImport> policyImportList = new ArrayList<>();
         policyImportList.add(PolicyImport.newInstance(PolicyId.of("com.example", "firstPolicy"),
-                        EffectedImports.newInstance(null, null)));
+                        EffectedImports.newInstance(null)));
         policyImportList.add(PolicyImport.newInstance(PolicyId.of("com.example", "firstPolicy"),
-                        EffectedImports.newInstance(Arrays.asList(Label.of("includedLabel1")), null)));
+                        EffectedImports.newInstance(Collections.singletonList(Label.of("includedLabel1")))));
 
         ImmutablePolicyImports.of(policyImportList);
     }
-
 }

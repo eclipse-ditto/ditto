@@ -92,8 +92,8 @@ public abstract class AbstractPolicyBuilderLabelScoped implements PolicyBuilder.
     }
 
     @Override
-    public PolicyBuilder setImportableFor(final CharSequence label, final boolean importable) {
-        delegate.setImportableFor(label, importable);
+    public PolicyBuilder setImportableFor(final CharSequence label, final ImportableType importableType) {
+        delegate.setImportableFor(label, importableType);
         return this;
     }
 

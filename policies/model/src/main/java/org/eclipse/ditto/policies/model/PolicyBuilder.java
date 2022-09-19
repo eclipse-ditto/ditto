@@ -441,13 +441,13 @@ public interface PolicyBuilder {
         /**
          * Set the importable flag on this builder.
          *
-         * @param importable the importable flag.
+         * @param importableType the importable type.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
          * @since 3.x.0 TODO ditto#298
          */
-        default LabelScoped setImportable(final boolean importable) {
-            setImportableFor(getLabel(), importable);
+        default LabelScoped setImportable(final ImportableType importableType) {
+            setImportableFor(getLabel(), importableType);
             return this;
         }
 
@@ -917,13 +917,13 @@ public interface PolicyBuilder {
      * Sets the importable flag for the entry specified by {@code label} to this builder.
      *
      * @param label the label identifying the PolicyEntry to modify.
-     * @param importable the importable flag.
+     * @param importableType whether/how the entry is importable by others.
      * @return this builder to allow method chaining.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code label} is empty.
      * @since 3.x.0 TODO ditto#298
      */
-    PolicyBuilder setImportableFor(CharSequence label, boolean importable);
+    PolicyBuilder setImportableFor(CharSequence label, ImportableType importableType);
 
     /**
      * Returns a new immutable {@link Policy} which contains all the entries which were set to this builder beforehand.

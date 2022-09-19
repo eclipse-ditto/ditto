@@ -70,7 +70,7 @@ public final class ImmutablePolicyTest {
                                         Permissions.newInstance(TestConstants.Policy.PERMISSION_READ,
                                                 TestConstants.Policy.PERMISSION_WRITE),
                                         Permissions.none()))),
-                true);
+                ImportableType.EXPLICIT);
     }
 
     private static PolicyEntry createPolicyEntry1() {
@@ -78,7 +78,7 @@ public final class ImmutablePolicyTest {
                 Subjects.newInstance(Subject.newInstance(END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1)),
                 Resources.newInstance(Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, END_USER_RESOURCE_1,
                         END_USER_EFFECTED_PERMISSIONS_1)),
-                false);
+                ImportableType.NEVER);
     }
 
     @Test

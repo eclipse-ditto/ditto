@@ -35,8 +35,7 @@ public final class ImmutableEffectedImportsTest {
     @Before
     public void setUp() {
         underTest = ImmutableEffectedImports.of(
-            Arrays.asList(Label.of("IncludedEntry1"), Label.of("IncludedEntry2")),
-                Arrays.asList(Label.of("ExcludedEntry1"), Label.of("ExcludedEntry2")));
+            Arrays.asList(Label.of("IncludedEntry1"), Label.of("IncludedEntry2")));
     }
 
     @Test
@@ -62,20 +61,12 @@ public final class ImmutableEffectedImportsTest {
     }
 
     @Test
-    public void testGetIncludedEntries() {
-        assertThat(underTest.getIncludedImportedLabels()).isEqualTo(ImportedLabels.newInstance("IncludedEntry2",
+    public void testGetImportedEntries() {
+        assertThat(underTest.getImportedLabels()).isEqualTo(ImportedLabels.newInstance("IncludedEntry2",
                 "IncludedEntry1"));
 
-        assertThat(underTest.getIncludedImportedLabels()).isNotEqualTo(ImportedLabels.newInstance("ExcludedEntry1",
+        assertThat(underTest.getImportedLabels()).isNotEqualTo(ImportedLabels.newInstance("ExcludedEntry1",
                 "ExcludedEntry3"));
     }
 
-    @Test
-    public void testGetExcludedEntries() {
-        assertThat(underTest.getExcludedImportedLabels())
-                .isEqualTo(ImportedLabels.newInstance("ExcludedEntry2", "ExcludedEntry1"));
-
-        assertThat(underTest.getExcludedImportedLabels())
-                .isNotEqualTo(ImportedLabels.newInstance("IncludedEntry1", "IncludedEntry3"));
-    }
 }

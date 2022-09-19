@@ -62,8 +62,7 @@ final class ImmutablePolicyImport implements PolicyImport {
      * Creates a new {@code PolicyImport} object based on the given {@code importedPolicyId} and {@code effectedImports}.
      *
      * @param importedPolicyId the {@code PolicyId} where entries will be imported from.
-     * @param effectedImports lists every {@code PolicyEntry} label from the imported {@code Policy} that will be either
-     * included or excluded - if {@code null}, all policy entries will be imported.
+     * @param effectedImports lists every {@code PolicyEntry} label from the imported {@code Policy} that will be included - if {@code null}, all policy entries will be imported.
      * @return a new {@code PolicyImport} object.
      * @throws NullPointerException if {@code importedPolicyId} is {@code null}.
      */

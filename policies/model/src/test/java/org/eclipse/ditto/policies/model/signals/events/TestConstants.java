@@ -86,23 +86,6 @@ final class TestConstants {
     public static final JsonParseOptions JSON_PARSE_OPTIONS =
             JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build();
 
-    /**
-     * A known JSON field selector.
-     */
-    public static final JsonFieldSelector JSON_FIELD_SELECTOR_ATTRIBUTES =
-            JsonFactory.newFieldSelector("attributes(location,maker)", JSON_PARSE_OPTIONS);
-
-    /**
-     * A known JSON field selector.
-     */
-    public static final JsonFieldSelector JSON_FIELD_SELECTOR_ATTRIBUTES_WITH_THING_ID =
-            JsonFactory.newFieldSelector("thingId,attributes(location,maker)", JSON_PARSE_OPTIONS);
-
-    /**
-     * A known JSON field selector.
-     */
-    public static final JsonFieldSelector JSON_FIELD_SELECTOR_FEATURE_PROPERTIES =
-            JsonFactory.newFieldSelector("properties/target_year_1", JSON_PARSE_OPTIONS);
 
     private TestConstants() {
         throw new AssertionError();
@@ -195,7 +178,7 @@ final class TestConstants {
          * A known {@code PolicyImport} for a {@code Policy}.
          */
         public static final PolicyImport
-                POLICY_IMPORT = PolicyImport.newInstance(IMPORTED_POLICY_ID, EffectedImports.newInstance(null, null));
+                POLICY_IMPORT = PolicyImport.newInstance(IMPORTED_POLICY_ID, EffectedImports.newInstance(null));
 
         /**
          * A known {@code PolicyImports} for a {@code Policy}.

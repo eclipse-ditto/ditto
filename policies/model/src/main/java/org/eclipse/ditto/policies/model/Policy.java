@@ -353,13 +353,13 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
      * Sets the importable flag for the specified label.
      *
      * @param label the label identifying the PolicyEntry to modify.
-     * @param importable the Importable flag.
+     * @param importableType the importable type.
      * @return a copy of this Policy with the changed state.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code label} is empty.
      * @since 3.x.0 TODO ditto#298
      */
-    Policy setImportableFor(CharSequence label, boolean importable);
+    Policy setImportableFor(CharSequence label, ImportableType importableType);
 
     /**
      * Indicates whether this Policy is empty.

@@ -26,24 +26,21 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 
 /**
- * Holds {@link ImportedLabels} for {@link ImportedEffect}s (included/excluded).
+ * Holds imported {@link ImportedLabels} for {@link EffectedImports}s.
  *
  * @since 3.x.0 TODO ditto#298
  */
 public interface EffectedImports extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     * Returns a new {@code EffectedImports} containing the given {@code includedLabels} and {@code
-     * excludedLabels}.
+     * Returns a new {@code EffectedImports} containing the given {@code importedLabels}.
      *
-     * @param includedLabels the ImportedLabels which should be included, may be {@code null}.
-     * @param excludedLabels the ImportedLabels which should be excluded, may be {@code null}.
+     * @param importedLabels the labels of policy entries which should be imported, may be {@code null}.
      * @return the new {@code EffectedImports}.
      */
-    static EffectedImports newInstance(@Nullable final Iterable<Label> includedLabels,
-            @Nullable final Iterable<Label> excludedLabels) {
+    static EffectedImports newInstance(@Nullable final Iterable<Label> importedLabels){
 
-        return PoliciesModelFactory.newEffectedImportedLabels(includedLabels, excludedLabels);
+        return PoliciesModelFactory.newEffectedImportedLabels(importedLabels);
     }
 
     /**
@@ -57,32 +54,13 @@ public interface EffectedImports extends Jsonifiable.WithFieldSelectorAndPredica
     }
 
     /**
-     * Returns the {@link ImportedLabels} which are valid for the passed {@code effect}.
+     * Returns the {@link ImportedLabels}.
      *
-     * @param effect the ImportedEffect for which to return the ImportedLabels.
-     * @return the ImportedLabels which are valid for the passed effect.
+     * @return the ImportedLabels.
      * @throws NullPointerException if {@code effect} is {@code null}.
      * @throws IllegalArgumentException if {@code effect} is unknown.
      */
-    ImportedLabels getImportedLabels(ImportedEffect effect);
-
-    /**
-     * Returns the included {@link ImportedLabels}.
-     *
-     * @return the included ImportedLabels.
-     */
-    default ImportedLabels getIncludedImportedLabels() {
-        return getImportedLabels(ImportedEffect.INCLUDED);
-    }
-
-    /**
-     * Returns the excluded {@link ImportedLabels}.
-     *
-     * @return the excluded ImportedLabels.
-     */
-    default ImportedLabels getExcludedImportedLabels() {
-        return getImportedLabels(ImportedEffect.EXCLUDED);
-    }
+    ImportedLabels getImportedLabels();
 
     /**
      * Returns all non hidden marked fields of this EffectedImports.
@@ -106,23 +84,10 @@ public interface EffectedImports extends Jsonifiable.WithFieldSelectorAndPredica
     final class JsonFields {
 
         /**
-         * JSON field containing the {@link JsonSchemaVersion}.
+         * JSON field containing the labels of imported policy entries.
          */
-        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
-                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing the EffectedImports' {@code included} ImportedLabels.
-         */
-        public static final JsonFieldDefinition<JsonArray> INCLUDED =
-                JsonFactory.newJsonArrayFieldDefinition("included", FieldType.REGULAR, JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing the EffectedImports' {@code excluded} ImportedLabels.
-         */
-        public static final JsonFieldDefinition<JsonArray> EXCLUDED =
-                JsonFactory.newJsonArrayFieldDefinition("excluded", FieldType.REGULAR, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonArray> ENTRIES =
+                JsonFactory.newJsonArrayFieldDefinition("entries", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

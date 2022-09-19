@@ -14,13 +14,12 @@ package org.eclipse.ditto.policies.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-
-import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.junit.Test;
@@ -41,27 +40,31 @@ public final class PolicyImporterTest {
     private static final PolicyId IMPORTED_POLICY_ID = PolicyId.of("com.example", "myImportedPolicy");
     private static final PolicyId POLICY_ID = PolicyId.of("com.example", "myPolicy");
 
-    private static final PolicyEntry KNOWN_POLICY_ENTRY_1 = ImmutablePolicyEntry.of(END_USER_LABEL,
+    private static final PolicyEntry KNOWN_POLICY_ENTRY_OWN = ImmutablePolicyEntry.of(END_USER_LABEL,
             Subjects.newInstance(Subject.newInstance(END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1)),
             Resources.newInstance(Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, END_USER_RESOURCE_1,
                     END_USER_EFFECTED_PERMISSIONS_1)),
-            false);
+            ImportableType.NEVER);
 
     private static final Label SUPPORT_LABEL = Label.of("SupportGroup");
-    private static final Label SUPPORT_LABEL_IMPORTED = PoliciesModelFactory.newImportedLabel(IMPORTED_POLICY_ID,"SupportGroup");
-    private static final PolicyEntry KNOWN_POLICY_ENTRY_2 = ImmutablePolicyEntry.of(SUPPORT_LABEL,
-            Subjects.newInstance(Subject.newInstance(SubjectIssuer.GOOGLE, "someGroup")),
-            Resources.newInstance(
-                    Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, JsonPointer.empty(),
-                            EffectedPermissions.newInstance(
-                                    Permissions.newInstance(TestConstants.Policy.PERMISSION_READ,
-                                            TestConstants.Policy.PERMISSION_WRITE),
-                                    Permissions.none()))),
-            true);
-    private static final PolicyEntry KNOWN_POLICY_ENTRY_2_IMPORTED = ImmutablePolicyEntry.of(SUPPORT_LABEL_IMPORTED,
-            KNOWN_POLICY_ENTRY_2.getSubjects(),
-            KNOWN_POLICY_ENTRY_2.getResources(),
-            true);
+    private static final PolicyEntry KNOWN_POLICY_ENTRY_EXPLICIT = newPolicyEntry(ImportableType.EXPLICIT);
+    private static final PolicyEntry KNOWN_POLICY_ENTRY_IMPLICIT = newPolicyEntry(ImportableType.IMPLICIT);
+    private static final PolicyEntry KNOWN_POLICY_ENTRY_NEVER = newPolicyEntry(ImportableType.NEVER);
+
+    private static final PolicyEntry KNOWN_IMPORTED_POLICY_ENTRY_EXPLICIT = toImportedPolicyEntry(KNOWN_POLICY_ENTRY_EXPLICIT);
+    private static final PolicyEntry KNOWN_IMPORTED_POLICY_ENTRY_IMPLICIT = toImportedPolicyEntry(KNOWN_POLICY_ENTRY_IMPLICIT);
+
+    private static PolicyEntry newPolicyEntry(final ImportableType importableType) {
+        return ImmutablePolicyEntry.of(Label.of(importableType.getName() + SUPPORT_LABEL),
+                Subjects.newInstance(Subject.newInstance(SubjectIssuer.GOOGLE, importableType.getName() + "Group")),
+                Resources.newInstance(Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, JsonPointer.of("attributes"), EffectedPermissions.newInstance(Permissions.newInstance(TestConstants.Policy.PERMISSION_READ, TestConstants.Policy.PERMISSION_WRITE), Permissions.none()))), importableType);
+    }
+    private static PolicyEntry toImportedPolicyEntry(final PolicyEntry entry) {
+        return ImmutablePolicyEntry.of(PoliciesModelFactory.newImportedLabel(IMPORTED_POLICY_ID, entry.getLabel()),
+                entry.getSubjects(),
+                entry.getResources(),
+                entry.getImportableType());
+    }
 
     @Test
     public void importAllPolicyEntries() {
@@ -74,26 +77,26 @@ public final class PolicyImporterTest {
             return Optional.empty();
         };
 
-        final Policy policy = createPolicy(null, null);
+        final Policy policy = createTargetPolicy(Label.of(ImportableType.EXPLICIT.getName() + "SupportGroup"));
         final Set<PolicyEntry> entries = PolicyImporter.mergeImportedPolicyEntries(policy, policyLoader);
 
-        assertThat(entries).containsExactlyInAnyOrder(KNOWN_POLICY_ENTRY_1, KNOWN_POLICY_ENTRY_2_IMPORTED);
+        assertThat(entries).containsExactlyInAnyOrder(KNOWN_POLICY_ENTRY_OWN, KNOWN_IMPORTED_POLICY_ENTRY_EXPLICIT, KNOWN_IMPORTED_POLICY_ENTRY_IMPLICIT);
     }
 
     private static Policy createImportedPolicy() {
-        final List<PolicyEntry> policyEntries = Collections.singletonList(KNOWN_POLICY_ENTRY_2);
+        final List<PolicyEntry> policyEntries = Arrays.asList(KNOWN_POLICY_ENTRY_EXPLICIT, KNOWN_POLICY_ENTRY_IMPLICIT, KNOWN_POLICY_ENTRY_NEVER);
         return ImmutablePolicy.of(
                 IMPORTED_POLICY_ID, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null,
                 null, null, policyEntries);
     }
 
-    private static Policy createPolicy(@Nullable final Iterable<Label> includedEntries,
-            @Nullable final Iterable<Label> excludedEntries) {
-        final List<PolicyEntry> policyEntries = Collections.singletonList(KNOWN_POLICY_ENTRY_1);
+    private static Policy createTargetPolicy(final Label... importedLabels) {
+        final List<Label> labels = Arrays.asList(importedLabels);
+        final List<PolicyEntry> policyEntries = Collections.singletonList(KNOWN_POLICY_ENTRY_OWN);
         return ImmutablePolicy.of(
                 POLICY_ID, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null, null,
                 PolicyImports.newInstance(
                         PoliciesModelFactory.newPolicyImport(IMPORTED_POLICY_ID,
-                                EffectedImports.newInstance(includedEntries, excludedEntries))), policyEntries);
+                                EffectedImports.newInstance(labels))), policyEntries);
     }
 }

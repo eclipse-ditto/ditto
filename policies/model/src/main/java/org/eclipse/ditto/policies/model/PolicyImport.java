@@ -59,7 +59,7 @@ public interface PolicyImport extends Jsonifiable.WithFieldSelectorAndPredicate<
     PolicyId getImportedPolicyId();
 
     /**
-     * Returns the optional {@link EffectedImports} (containing included and excluded ones) for this PolicyImport.
+     * Returns the optional {@link EffectedImports} for this PolicyImport.
      *
      * @return the effected imported entries.
      */

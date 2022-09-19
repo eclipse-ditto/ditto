@@ -163,7 +163,7 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
     protected PolicyEntry potentiallyAdjustPolicyEntry(final PolicyEntry policyEntry) {
         final var adjustedSubjects = potentiallyAdjustSubjects(policyEntry.getSubjects());
         return PolicyEntry.newInstance(policyEntry.getLabel(), adjustedSubjects, policyEntry.getResources(),
-                policyEntry.isImportable());
+                policyEntry.getImportableType());
     }
 
     /**

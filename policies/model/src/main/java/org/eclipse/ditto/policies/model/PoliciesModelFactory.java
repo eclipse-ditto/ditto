@@ -518,14 +518,14 @@ public final class PoliciesModelFactory {
      * @param label the Label of the PolicyEntry to create.
      * @param subjects the Subjects contained in the PolicyEntry to create.
      * @param resources the Resources of the PolicyEntry to create.
-     * @param importable make the PolicyEntry importable.
+     * @param importable whether and how the entry is importahle by others.
      * @return the new Policy entry.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code label} is empty.
      * @since 3.x.0 TODO ditto#298
      */
     public static PolicyEntry newPolicyEntry(final CharSequence label, final Iterable<Subject> subjects,
-            final Iterable<Resource> resources, final boolean importable) {
+            final Iterable<Resource> resources, final ImportableType importable) {
         return ImmutablePolicyEntry.of(Label.of(label), newSubjects(subjects), newResources(resources), importable);
     }
 
@@ -706,18 +706,15 @@ public final class PoliciesModelFactory {
     }
 
     /**
-     * Returns a new {@link EffectedImports} containing the optionally passed included and excluded policy entry labels.
+     * Returns a new {@link EffectedImports} containing the optionally passed policy entry labels.
      *
-     * @param includedImportedLabels the ImportedLabels which should be added as "included".
-     * @param excludedImportedLabels the ImportedLabels which should be added as "excluded".
+     * @param importedLabels the labels of the policy entries which should be imported.
      * @return the new {@code EffectedImports}.
      * @since 3.x.0 TODO ditto#298
      */
-    public static EffectedImports newEffectedImportedLabels(@Nullable final Iterable<Label> includedImportedLabels,
-            @Nullable final Iterable<Label> excludedImportedLabels) {
+    public static EffectedImports newEffectedImportedLabels(@Nullable final Iterable<Label> importedLabels) {
 
-        return ImmutableEffectedImports.of(getOrEmptyCollection(includedImportedLabels),
-                getOrEmptyCollection(excludedImportedLabels));
+        return ImmutableEffectedImports.of(getOrEmptyCollection(importedLabels));
     }
 
     /**
@@ -772,8 +769,7 @@ public final class PoliciesModelFactory {
      * Returns a new {@link PolicyImport} with the specified {@code importedPolicyId} and {@code effectedImports}.
      *
      * @param importedPolicyId the {@link PolicyId} of the imported policy.
-     * @param effectedImports lists every {@code PolicyEntry} label from the imported {@code Policy} that will be either
-     * included or excluded - if {@code null}, all policy entries will be imported.
+     * @param effectedImports lists every {@code PolicyEntry} label from the imported {@code Policy} that will be included - if {@code null}, all policy entries will be imported.
      * @return the new {@link PolicyImport}.
      * @throws NullPointerException if {@code importedPolicyId} is {@code null}.
      * @since 3.x.0 TODO ditto#298
@@ -804,7 +800,7 @@ public final class PoliciesModelFactory {
      * @since 3.x.0 TODO ditto#298
      */
     public static EffectedImports emptyEffectedImportedEntries() {
-        return ImmutableEffectedImports.of(Collections.emptyList(), Collections.emptyList());
+        return ImmutableEffectedImports.of(Collections.emptyList());
     }
 
     /**

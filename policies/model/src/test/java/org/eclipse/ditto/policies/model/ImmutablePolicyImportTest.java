@@ -50,8 +50,7 @@ public final class ImmutablePolicyImportTest {
     public void testToAndFromJson() {
         final PolicyImport policyImport = ImmutablePolicyImport.of(IMPORTED_POLICY_ID,
                 EffectedImports.newInstance(
-                        Arrays.asList(Label.of("IncludedPolicyImport1"), Label.of("IncludedPolicyImport2")),
-                        Arrays.asList(Label.of("ExcludedPolicyImport1"), Label.of("ExcludedPolicyImport2"))
+                        Arrays.asList(Label.of("IncludedPolicyImport1"), Label.of("IncludedPolicyImport2"))
                 )
         );
 

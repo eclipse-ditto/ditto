@@ -36,7 +36,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     private final Map<Label, Map<SubjectId, Subject>> subjects;
     private final Map<Label, Map<ResourceKey, Permissions>> grantedPermissions;
     private final Map<Label, Map<ResourceKey, Permissions>> revokedPermissions;
-    private final Map<Label, Boolean> importableFlags;
+    private final Map<Label, ImportableType> importableTypes;
     @Nullable private PolicyId id;
     @Nullable private PolicyLifecycle lifecycle;
     @Nullable private PolicyRevision revision;
@@ -49,7 +49,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         subjects = new LinkedHashMap<>();
         grantedPermissions = new LinkedHashMap<>();
         revokedPermissions = new LinkedHashMap<>();
-        importableFlags = new LinkedHashMap<>();
+        importableTypes = new LinkedHashMap<>();
         id = null;
         lifecycle = null;
         revision = null;
@@ -186,7 +186,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         revokedPermissions.put(label, new LinkedHashMap<>());
 
         setResourcesFor(entry.getLabel(), entry.getResources());
-        setImportableFor(label, entry.isImportable());
+        setImportableFor(label, entry.getImportableType());
     }
 
     private void putAllSubjects(final PolicyEntry policyEntry) {
@@ -282,9 +282,9 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     }
 
     @Override
-    public ImmutablePolicyBuilder setImportableFor(final CharSequence label, final boolean importable) {
-        checkNotNull(importable, "the importable flag");
-        importableFlags.put(Label.of(label), importable);
+    public ImmutablePolicyBuilder setImportableFor(final CharSequence label, final ImportableType importableType) {
+        checkNotNull(importableType, "importableType");
+        importableTypes.put(Label.of(label), importableType);
         return this;
     }
 
@@ -363,7 +363,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
 
         final Collection<PolicyEntry> policyEntries = allLabels.stream()
                 .map(lbl -> PoliciesModelFactory.newPolicyEntry(lbl, getFinalSubjects(lbl), getFinalResources(lbl),
-                        getFinalImportable(lbl)))
+                        getFinalImportableType(lbl)))
                 .collect(Collectors.toList());
 
         return ImmutablePolicy.of(id, lifecycle, revision, modified, created, metadata, imports, policyEntries);
@@ -383,8 +383,8 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     }
 
     @Nonnull
-    private Boolean getFinalImportable(final CharSequence label) {
-        return importableFlags.getOrDefault(Label.of(label), false);
+    private ImportableType getFinalImportableType(final CharSequence label) {
+        return importableTypes.getOrDefault(Label.of(label), ImportableType.IMPLICIT);
     }
 
     @Nonnull

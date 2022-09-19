@@ -28,7 +28,6 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
@@ -38,32 +37,26 @@ import org.eclipse.ditto.json.JsonValue;
 @Immutable
 final class ImmutableEffectedImports implements EffectedImports {
 
-    private final ImportedLabels includedImportedLabels;
-    private final ImportedLabels excludedImportedLabels;
+    private final ImportedLabels importedLabels;
 
-    private ImmutableEffectedImports(final ImportedLabels included, final ImportedLabels excluded) {
-        includedImportedLabels = included;
-        excludedImportedLabels = excluded;
+    private ImmutableEffectedImports(final ImportedLabels importedLabels) {
+        this.importedLabels = importedLabels;
     }
 
     /**
-     * Returns a new {@code EffectedImports} object of the given {@code includedImportedLabels} and {@code
+     * Returns a new {@code EffectedImports} object of the given {@code importedLabels} and {@code
      * excludedImportedLabels}.
      *
-     * @param includedImportedLabels the ImportedLabels which should be added as "included".
-     * @param excludedImportedLabels the ImportedLabels which should be added as "excluded".
+     * @param labels the labels of the policy entries which should be added from the imported policy.
      * @return a new {@code EffectedImports} object.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static EffectedImports of(final Iterable<Label> includedImportedLabels,
-            final Iterable<Label> excludedImportedLabels) {
+    public static EffectedImports of(final Iterable<Label> labels) {
 
-        final ImportedLabels included =
-                toImportedEntries(toSet(checkNotNull(includedImportedLabels, "includedImportedLabels")));
-        final ImportedLabels excluded =
-                toImportedEntries(toSet(checkNotNull(excludedImportedLabels, "excludedImportedLabels")));
+        final ImportedLabels importedLabels =
+                toImportedEntries(toSet(checkNotNull(labels, "importedLabels")));
 
-        return new ImmutableEffectedImports(included, excluded);
+        return new ImmutableEffectedImports(importedLabels);
     }
 
     private static Collection<Label> toSet(final Iterable<Label> iterable) {
@@ -94,18 +87,13 @@ final class ImmutableEffectedImports implements EffectedImports {
      */
     public static EffectedImports fromJson(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "JSON object");
-
-        final Set<Label> included =
-                wrapJsonRuntimeException(() -> getImportedEntriesFor(jsonObject, JsonFields.INCLUDED));
-        final Set<Label> excluded =
-                wrapJsonRuntimeException(() -> getImportedEntriesFor(jsonObject, JsonFields.EXCLUDED));
-        return of(included, excluded);
+        final Set<Label> importedLabels = wrapJsonRuntimeException(() -> getImportedEntries(jsonObject));
+        return of(importedLabels);
     }
 
-    private static Set<Label> getImportedEntriesFor(final JsonObject jsonObject,
-            final JsonFieldDefinition<JsonArray> effect) {
+    private static Set<Label> getImportedEntries(final JsonObject jsonObject) {
 
-        return jsonObject.getValue(effect)
+        return jsonObject.getValue(JsonFields.ENTRIES)
                 .orElse(JsonArray.empty())
                 .stream()
                 .filter(JsonValue::isString)
@@ -115,23 +103,15 @@ final class ImmutableEffectedImports implements EffectedImports {
     }
 
     @Override
-    public ImportedLabels getImportedLabels(final ImportedEffect effect) {
-        switch (checkNotNull(effect, "imported entry effect")) {
-            case INCLUDED:
-                return PoliciesModelFactory.newImportedEntries(includedImportedLabels);
-            case EXCLUDED:
-                return PoliciesModelFactory.newImportedEntries(excludedImportedLabels);
-            default:
-                throw new IllegalArgumentException("Imported effect <" + effect + "> is unknown!");
-        }
+    public ImportedLabels getImportedLabels() {
+        return PoliciesModelFactory.newImportedEntries(importedLabels);
     }
 
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         return JsonFactory.newObjectBuilder()
-                .set(JsonFields.INCLUDED, includedImportedLabels.toJson(), predicate)
-                .set(JsonFields.EXCLUDED, excludedImportedLabels.toJson(), predicate)
+                .set(JsonFields.ENTRIES, importedLabels.toJson(), predicate)
                 .build();
     }
 
@@ -144,20 +124,18 @@ final class ImmutableEffectedImports implements EffectedImports {
             return false;
         }
         final ImmutableEffectedImports that = (ImmutableEffectedImports) o;
-        return Objects.equals(includedImportedLabels, that.includedImportedLabels) && Objects
-                .equals(excludedImportedLabels, that.excludedImportedLabels);
+        return Objects.equals(importedLabels, that.importedLabels);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(includedImportedLabels, excludedImportedLabels);
+        return Objects.hash(importedLabels);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "includedImportedLabels=" + includedImportedLabels +
-                ", excludedImportedLabels=" + excludedImportedLabels +
+                "importedLabels=" + importedLabels +
                 "]";
     }
 

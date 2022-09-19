@@ -12,15 +12,14 @@
  */
 package org.eclipse.ditto.policies.model;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 /**
  * Policy model functionality used in order to perform the importing/merging of imported {@link PolicyEntry}s into the
@@ -53,59 +52,39 @@ public final class PolicyImporter {
                 .map(stream -> stream.map(policyImport -> {
                     final PolicyId importedPolicyId = policyImport.getImportedPolicyId();
                     final Optional<Policy> loadedPolicyOpt = policyLoader.apply(importedPolicyId);
-
                     return loadedPolicyOpt.map(loadedPolicy -> {
-                        final ImportedLabels included = policyImport.getEffectedImports()
-                                .map(EffectedImports::getIncludedImportedLabels)
+                        final ImportedLabels importedLabels = policyImport.getEffectedImports()
+                                .map(EffectedImports::getImportedLabels)
                                 .orElse(ImportedLabels.none());
-                        final ImportedLabels excluded = policyImport.getEffectedImports()
-                                .map(EffectedImports::getExcludedImportedLabels)
-                                .orElse(ImportedLabels.none());
-
-                        if (included.isEmpty() && excluded.isEmpty()) {
-                            // import them all:
-                            return rewriteImportedLabels(importedPolicyId, loadedPolicy.getEntriesSet());
-                        } else if (included.isEmpty()) {
-                            // only apply excludes:
-                            final Set<CharSequence> excludedEntryLabels = new HashSet<>(excluded);
-                            return rewriteImportedLabels(importedPolicyId,
-                                    loadedPolicy.removeEntries(excludedEntryLabels));
-                        } else {
-                            // calculate those we want to import:
-                            final Set<Label> allExistingLabels = new LinkedHashSet<>(loadedPolicy.getLabels());
-
-                            allExistingLabels.retainAll(included);
-                            allExistingLabels.removeAll(excluded);
-
-                            return rewriteImportedLabels(importedPolicyId,
-                                    loadedPolicy.stream()
-                                            .filter(policyEntry -> allExistingLabels.contains(policyEntry.getLabel())))
-                                    .collect(Collectors.toCollection(LinkedHashSet::new));
-                        }
+                        return rewriteImportedLabels(importedPolicyId, loadedPolicy, importedLabels);
                     }).orElse(Collections.emptySet());
                 })).ifPresent(stream -> stream.forEach(policyEntriesSet::addAll));
         return policyEntriesSet;
     }
 
-    private static Set<PolicyEntry> rewriteImportedLabels(final PolicyId importedPolicyId,
-            final Iterable<PolicyEntry> importedEntries) {
+    private static Set<PolicyEntry> rewriteImportedLabels(final PolicyId importedPolicyId, final Policy importedPolicy,
+            final Collection<Label> importedLabels) {
 
-        return rewriteImportedLabels(importedPolicyId, StreamSupport.stream(importedEntries.spliterator(), false))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-    }
-
-    private static Stream<PolicyEntry> rewriteImportedLabels(final PolicyId importedPolicyId,
-            final Stream<PolicyEntry> importedEntriesStream) {
-
-        return importedEntriesStream
-            .filter(PolicyEntry::isImportable)
-            .map(entry ->
-                PoliciesModelFactory.newPolicyEntry(
+        return importedPolicy.getEntriesSet().stream()
+                .flatMap(importedEntry -> importEntry(importedLabels, importedEntry))
+                .map(entry -> PoliciesModelFactory.newPolicyEntry(
                         PoliciesModelFactory.newImportedLabel(importedPolicyId, entry.getLabel()),
                         entry.getSubjects(),
                         entry.getResources(),
-                        entry.isImportable()
-                )
-        );
+                        entry.getImportableType()
+                ))
+                .collect(Collectors.toSet());
+    }
+
+    private static Stream<PolicyEntry> importEntry(final Collection<Label> importedLabels, final PolicyEntry importedEntry) {
+        switch (importedEntry.getImportableType()) {
+            case IMPLICIT:
+                return Stream.of(importedEntry);
+            case EXPLICIT:
+                return importedLabels.contains(importedEntry.getLabel()) ? Stream.of(importedEntry) : Stream.empty();
+            case NEVER:
+            default:
+                return Stream.empty();
+        }
     }
 }
