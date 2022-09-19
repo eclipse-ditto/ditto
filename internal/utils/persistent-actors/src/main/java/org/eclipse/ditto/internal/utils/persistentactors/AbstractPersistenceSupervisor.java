@@ -676,7 +676,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                         .whenComplete((result, error) -> handleOptionalTransformationException(signal, error, sender))
                         .thenCompose(transformed -> enforceSignalAndForwardToTargetActor((S) transformed, sender)
                                 .whenComplete((response, throwable) ->
-                                    handleSignalEnforcementResponse(response, throwable, transformed, sender)
+                                        handleSignalEnforcementResponse(response, throwable, transformed, sender)
                                 ))
                         .handle((response, throwable) -> new ProcessNextTwinMessage(signal));
                 incrementOpCounter(signal); // decremented by ProcessNextTwinMessage
@@ -714,16 +714,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             final ActorRef sender) {
 
         if (null != throwable) {
-            final DittoRuntimeException dre =
-                    DittoRuntimeException.asDittoRuntimeException(throwable, t -> {
-                        log.withCorrelationId(signal)
-                                .warning("Encountered Throwable when interacting with enforcer " +
-                                        "or target actor, telling sender: {}", throwable);
-                        return DittoInternalErrorException.newBuilder()
-                                .dittoHeaders(signal.getDittoHeaders())
-                                .cause(t)
-                                .build();
-                    });
+            final DittoRuntimeException dre = getEnforcementExceptionAsRuntimeException(throwable, signal);
             log.withCorrelationId(dre)
                     .info("Received DittoRuntimeException during enforcement or " +
                             "forwarding to target actor, telling sender: {}", dre);
@@ -738,6 +729,26 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                             "target actor - this should not happen.");
             replyUnavailableException(signal, sender);
         }
+    }
+
+    private DittoRuntimeException getEnforcementExceptionAsRuntimeException(final Throwable throwable,
+            final WithDittoHeaders signal) {
+
+        final DittoRuntimeException dre;
+        if (throwable instanceof DittoRuntimeException dittoRuntimeException) {
+            dre = dittoRuntimeException;
+        } else {
+            dre = DittoRuntimeException.asDittoRuntimeException(throwable, t -> {
+                log.withCorrelationId(signal)
+                        .warning("Encountered Throwable when interacting with enforcer " +
+                                "or target actor, telling sender: {}", throwable);
+                return DittoInternalErrorException.newBuilder()
+                        .dittoHeaders(signal.getDittoHeaders())
+                        .cause(t)
+                        .build();
+            });
+        }
+        return dre;
     }
 
     /**

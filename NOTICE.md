@@ -8,6 +8,12 @@ This content is produced and maintained by the Eclipse Ditto project.
 * Eclipse and the Eclipse logo are registered trademarks of The Eclipse Foundation.
 * Java and all Java-based trademarks are trademarks of Oracle Corporation in the United States, other countries, or both.
 
+# Copyright
+
+All content is the property of the respective authors or their employers.
+For more information regarding authorship of content, please consult the
+listed source code repository logs.
+
 # Declared Project Licenses
 
 This program and the accompanying materials are made available under the terms
@@ -18,21 +24,6 @@ SPDX-License-Identifier: EPL-2.0
 # Source Code
 
 * https://github.com/eclipse/ditto
-
-# Copyright holders
-
-* Copyright 2020-2021 Bosch.IO GmbH
-* Copyright 2019-2021 Aloxy NV
-* Copyright 2020-2021 Red Hat Inc
-* Copyright 2019-2020 Othermo GmbH
-* Copyright 2020 DevBoost GmbH
-* Copyright 2017-2019 Bosch Software Innovations GmbH
-* Copyright 2019 Microsoft Corp.
-* Copyright 2019 Kiwigrid GmbH
-
-All content is the property of the respective authors or their employers.
-For more information regarding authorship of content, please consult the
-listed source code repository logs.
 
 # Third-party Content
 

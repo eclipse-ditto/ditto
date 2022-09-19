@@ -135,16 +135,30 @@ public final class ThingEnforcerActor
         } else {
             return providePolicyIdForEnforcement(signal)
                     .thenCompose(policyId -> providePolicyEnforcer(policyId)
-                            .thenApply(policyEnforcer -> {
-                                if (policyId != null &&
-                                        policyEnforcer.isEmpty() &&
+                            .thenCompose(policyEnforcer -> {
+                                if (policyId != null && policyEnforcer.isEmpty() &&
                                         signal instanceof ThingCommand<?> thingCommand) {
-                                    throw errorForExistingThingWithDeletedPolicy(thingCommand, policyId);
+                                    return getDreForMissingPolicyEnforcer(thingCommand, policyId)
+                                            .thenCompose(CompletableFuture::failedStage);
                                 } else {
-                                    return policyEnforcer;
+                                    return CompletableFuture.completedStage(policyEnforcer);
                                 }
                             }));
         }
+    }
+
+    private CompletionStage<DittoRuntimeException> getDreForMissingPolicyEnforcer(final ThingCommand<?> thingCommand,
+            final PolicyId policyId) {
+
+        return doesThingExist().thenApply(thingExists -> {
+            if (thingExists) {
+                return errorForExistingThingWithDeletedPolicy(thingCommand, policyId);
+            } else {
+                return ThingNotAccessibleException.newBuilder(entityId)
+                        .dittoHeaders(thingCommand.getDittoHeaders())
+                        .build();
+            }
+        });
     }
 
     /**
@@ -403,6 +417,24 @@ public final class ThingEnforcerActor
                                 .build()
                 ), DEFAULT_LOCAL_ASK_TIMEOUT
         ).thenApply(response -> extractPolicyIdFromSudoRetrieveThingResponse(response).orElse(null));
+    }
+
+    private CompletionStage<Boolean> doesThingExist() {
+        return Patterns.ask(getContext().getParent(), SudoRetrieveThing.of(entityId,
+                        JsonFieldSelector.newInstance("policyId"),
+                        DittoHeaders.newBuilder()
+                                .correlationId("sudoRetrieveThingFromThingEnforcerActor-" + UUID.randomUUID())
+                                .build()
+                ), DEFAULT_LOCAL_ASK_TIMEOUT
+        ).thenApply(response -> {
+            if (response instanceof SudoRetrieveThingResponse) {
+                return true;
+            } else if (response instanceof ThingNotAccessibleException) {
+                return false;
+            } else {
+                throw new IllegalStateException("expected SudoRetrieveThingResponse, got: " + response);
+            }
+        });
     }
 
     /**

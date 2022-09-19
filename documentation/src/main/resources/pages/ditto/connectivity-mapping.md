@@ -68,6 +68,7 @@ The following message mappers are included in the Ditto codebase:
 | [RawMessage](#rawmessage-mapper) | For outgoing message commands and responses, this mapper extracts the payload for publishing directly into the channel. For incoming messages, this mapper wraps them in a configured message command or response envelope. | ✓ | ✓ |
 | [ImplicitThingCreation](#implicitthingcreation-mapper) | This mapper handles messages for which a Thing should be created automatically based on a defined template. | ✓ |  |
 | [UpdateTwinWithLiveResponse](#updatetwinwithliveresponse-mapper) | This mapper creates a [merge Thing command](protocol-specification-things-merge.html) when an indiviudal [retrieve command](protocol-specification-things-retrieve.html) for an single Thing was received via the [live channel](protocol-twinlive.html#live) patching exactly the retrieved "live" data into the twin. | ✓ |  |
+| [CloudEvents Mapper](#cloudevents-mapper) | The mapper maps incoming CloudEvent to Ditto Protocol. Supports both Binary and Structured CloudEvent. | ✓ | ✓ |
 
 ### Ditto mapper
 
@@ -350,6 +351,87 @@ Example configuration:
   }
 }
 ```
+### CloudEvents Mapper
+
+This mapper maps incoming [CloudEvent](https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md) to Ditto Protocol. It provides support for both Binary CloudEvents as well as Structured CloudEvents.
+
+**Note**: The mapper supports incoming Structured CloudEvents  messages with `content-type:application/cloudevents+json` and Binary CloudEvents message with `content-type:application/vnd.eclipse.ditto+json`
+
+#### CloudEvents examples
+
+Incoming messages need to have the mandatory CloudEvents fields.
+For example, a Binary CloudEvent for Ditto would look like this:
+
+```
+  headers:
+      ce-specversion:1.0
+      ce-id:some-id
+      ce-type:some-type
+      ce-source:generic-producer
+      content-type:application/vnd.eclipse.ditto+json
+```
+
+```json
+{
+  "topic": "my.sensors/sensor01/things/twin/commands/modify",
+  "path": "/",
+  "value": {
+    "thingId": "my.sensors:sensor01",
+    "policyId": "my.test:policy",
+    "attributes": {
+      "manufacturer": "Well known sensors producer",
+      "serial number": "100",
+      "location": "Ground floor"
+    },
+    "features": {
+      "measurements": {
+        "properties": {
+          "temperature": 100,
+          "humidity": 0
+        }
+      }
+    }
+  }
+}
+```
+
+A Structured CloudEvent for Ditto would look like this:
+
+```
+
+headers:
+  content-type:application/cloudevents+json
+```
+
+```json
+{
+  "specversion": "1.0",
+  "id": "3212e",
+  "source": "http:somesite.com",
+  "type": "com.site.com",
+  "data": {
+    "topic": "my.sensors/sensor01/things/twin/commands/modify",
+    "path": "/",
+    "value": {
+      "thingId": "my.sensors:sensor01",
+      "policyId": "my.test:policy",
+      "attributes": {
+        "manufacturer": "Well known sensors producer",
+        "serial number": "100",
+        "location": "Ground floor"
+      },
+      "features": {
+        "measurements": {
+          "properties": {
+            "temperature": 100,
+            "humidity": 0
+          }
+        }
+      }
+    }
+  }
+}
+```
 
 ## Example connection with multiple mappers
 
@@ -610,7 +692,7 @@ function mapToDittoProtocolMsg(
   // ### Insert/adapt your mapping logic here.
   // Use helper function Ditto.buildDittoProtocolMsg to build Ditto protocol message
   // based on incoming payload.
-  // See https://www.eclipse.org/ditto/connectivity-mapping.html#helper-functions for details.
+  // See https://websites.eclipseprojects.io/ditto/connectivity-mapping.html#helper-functions for details.
   // ### example code assuming the Ditto protocol content type for incoming messages.
   if (contentType === 'application/vnd.eclipse.ditto+json') {
     // Message is sent as Ditto protocol text payload and can be used directly
