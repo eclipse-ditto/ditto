@@ -39,30 +39,12 @@ public final class SessionExpiryInterval {
     }
 
     /**
-     * Returns an instance of {@code SessionExpiryInterval} with zero seconds.
-     *
-     * @return the zero session expiry interval.
-     */
-    public static SessionExpiryInterval zero() {
-        return new SessionExpiryInterval(0L);
-    }
-
-    /**
      * Returns an instance of the default {@code SessionExpiryInterval}.
      *
      * @return the default session expiry interval.
      */
     public static SessionExpiryInterval defaultSessionExpiryInterval() {
-        return zero();
-    }
-
-    /**
-     * Returns an instance of {@code SessionExpiryInterval} to be used if the session does not expire.
-     *
-     * @return the SessionExpiryInterval.
-     */
-    public static SessionExpiryInterval noSessionExpiry() {
-        return new SessionExpiryInterval(MAX_INTERVAL_SECONDS);
+        return new SessionExpiryInterval(0L);
     }
 
     /**

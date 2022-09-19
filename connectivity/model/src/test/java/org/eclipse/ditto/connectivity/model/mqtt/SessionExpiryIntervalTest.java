@@ -42,24 +42,10 @@ public final class SessionExpiryIntervalTest {
     }
 
     @Test
-    public void getInstanceWithZeroReturnsExpected() {
-        final SessionExpiryInterval underTest = SessionExpiryInterval.zero();
-
-        assertThat(underTest.getSeconds()).isZero();
-    }
-
-    @Test
     public void getInstanceWithDefaultSessionExpiryIntervalReturnsExpected() {
         final SessionExpiryInterval underTest = SessionExpiryInterval.defaultSessionExpiryInterval();
 
-        assertThat(underTest).isEqualTo(SessionExpiryInterval.zero());
-    }
-
-    @Test
-    public void getNoSessionExpiryInstanceReturnsExpected() {
-        final SessionExpiryInterval underTest = SessionExpiryInterval.noSessionExpiry();
-
-        assertThat(underTest.getSeconds()).isEqualTo(SessionExpiryInterval.MAX_INTERVAL_SECONDS);
+        assertThat(underTest).isEqualTo(SessionExpiryInterval.defaultSessionExpiryInterval());
     }
 
     @Test
