@@ -26,7 +26,7 @@ final class PolicyModifiedStrategy extends AbstractPolicyEventStrategy<PolicyMod
             final PolicyBuilder policyBuilder) {
         return policyBuilder
                 .removeAll(policy.getEntriesSet())
-                .setImports(pm.getPolicy().getImports().orElse(null))
+                .setPolicyImports(pm.getPolicy().getImports().orElse(null))
                 .setAll(pm.getPolicy().getEntriesSet());
     }
 }

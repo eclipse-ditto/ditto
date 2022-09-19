@@ -64,7 +64,7 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
         final Policy adjustedPolicy = PoliciesModelFactory.newPolicyBuilder(commandPolicy.getEntityId().orElseThrow(),
                 adjustedEntries
         )
-                .setImports(commandPolicy.getImports().orElse(null))
+                .setPolicyImports(commandPolicy.getImports().orElse(null))
                 .build();
 
         final ModifyPolicy adjustedCommand = ModifyPolicy.of(command.getEntityId(), adjustedPolicy, adjustedHeaders);

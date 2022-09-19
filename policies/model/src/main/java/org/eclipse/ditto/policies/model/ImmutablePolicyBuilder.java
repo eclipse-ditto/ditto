@@ -117,7 +117,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
                 .setLifecycle(existingPolicy.getLifecycle().orElse(null))
                 .setRevision(existingPolicy.getRevision().orElse(null))
                 .setModified(existingPolicy.getModified().orElse(null))
-                .setImports(existingPolicy.getImports().orElse(null));
+                .setPolicyImports(existingPolicy.getImports().orElse(null));
 
         existingPolicy.getEntityId().ifPresent(result::setId);
         existingPolicy.forEach(result::set);
@@ -155,7 +155,18 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     }
 
     @Override
-    public ImmutablePolicyBuilder setImports(@Nullable final PolicyImports imports) {
+    public ImmutablePolicyBuilder setPolicyImport(final PolicyImport policyImport) {
+        checkNotNull(policyImport, "policyImport");
+        if (this.imports == null) {
+            this.imports = PoliciesModelFactory.newPolicyImports(policyImport);
+        } else {
+            this.imports = this.imports.setPolicyImport(policyImport);
+        }
+        return this;
+    }
+
+    @Override
+    public ImmutablePolicyBuilder setPolicyImports(@Nullable final PolicyImports imports) {
         this.imports = imports;
         return this;
     }

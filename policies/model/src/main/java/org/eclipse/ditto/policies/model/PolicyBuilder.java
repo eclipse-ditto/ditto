@@ -539,13 +539,23 @@ public interface PolicyBuilder {
     PolicyBuilder setMetadata(@Nullable Metadata metadata);
 
     /**
+     * Sets the PolicyImport to this builder.
+     *
+     * @param policyImport the PolicyImport to be set.
+     * @return this builder to allow method chaining.
+     * @since 3.x.0 TODO ditto#298
+     */
+    PolicyBuilder setPolicyImport(PolicyImport policyImport);
+
+
+    /**
      * Sets the PolicyImports to this builder.
      *
      * @param imports the PolicyImports to be set.
      * @return this builder to allow method chaining.
      * @since 3.x.0 TODO ditto#298
      */
-    PolicyBuilder setImports(@Nullable PolicyImports imports);
+    PolicyBuilder setPolicyImports(@Nullable PolicyImports imports);
 
     /**
      * Sets the given entry to this builder. A previous entry with the same {@link Label} as the one of the

@@ -24,7 +24,7 @@ final class PolicyImportDeletedStrategy extends AbstractPolicyEventStrategy<Poli
     @Override
     protected PolicyBuilder applyEvent(final PolicyImportDeleted pid, final Policy policy,
             final PolicyBuilder policyBuilder) {
-        return policyBuilder.setImports(policy.getImports()
+        return policyBuilder.setPolicyImports(policy.getImports()
                 .map(policyImports -> policyImports.removePolicyImport(pid.getImportedPolicyId()))
                 .orElse(null));
     }

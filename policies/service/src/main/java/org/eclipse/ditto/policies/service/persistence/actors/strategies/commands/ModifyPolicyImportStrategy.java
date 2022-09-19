@@ -90,7 +90,7 @@ final class ModifyPolicyImportStrategy extends AbstractPolicyCommandStrategy<Mod
                 adjustedHeaders);
 
         final PolicyImports newPolicyImports = nonNullPolicy.getImports().map(imports -> imports.setPolicyImport(policyImport)).orElse(PolicyImports.newInstance(policyImport));
-        final Policy newPolicy = nonNullPolicy.toBuilder().setImports(newPolicyImports).build();
+        final Policy newPolicy = nonNullPolicy.toBuilder().setPolicyImports(newPolicyImports).build();
 
         final Optional<Result<PolicyEvent<?>>> alreadyExpiredSubject =
                 checkForAlreadyExpiredSubject(newPolicy, adjustedHeaders, command);

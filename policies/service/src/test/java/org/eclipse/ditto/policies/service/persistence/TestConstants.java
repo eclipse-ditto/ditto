@@ -107,14 +107,14 @@ public final class TestConstants {
         /**
          * A known {@code PolicyImport} for a {@code Policy}.
          */
-        public static final PolicyImport POLICY_IMPORT = PolicyImport.newInstance(POLICY_IMPORT_ID, EffectedImports.newInstance(null, null));
+        public static final PolicyImport POLICY_IMPORT = PolicyImport.newInstance(POLICY_IMPORT_ID, EffectedImports.newInstance(null));
 
 
         /**
          * A known {@code PolicyImport} for a {@code Policy}.
          */
         public static final PolicyImport POLICY_IMPORT_WITH_ENTRIES = PolicyImport.newInstance(POLICY_IMPORT_ID,
-                EffectedImports.newInstance(List.of(Label.of("IncludedLabel")), null));
+                EffectedImports.newInstance(List.of(Label.of("IncludedLabel"))));
 
         /**
          * A known identifier for a {@code Policy}.
@@ -124,7 +124,7 @@ public final class TestConstants {
         /**
          * A known {@code PolicyImport} for a {@code Policy}.
          */
-        public static final PolicyImport ADDITIONAL_POLICY_IMPORT = PolicyImport.newInstance(ADDITIONAL_POLICY_IMPORT_ID, EffectedImports.newInstance(null, null));
+        public static final PolicyImport ADDITIONAL_POLICY_IMPORT = PolicyImport.newInstance(ADDITIONAL_POLICY_IMPORT_ID, EffectedImports.newInstance(null));
 
         /**
          * A known {@code PolicyImports} for a {@code Policy}.
@@ -135,7 +135,7 @@ public final class TestConstants {
          * A known {@code PolicyImport} for a {@code Policy}.
          */
         public static final PolicyImport ADDITIONAL_POLICY_IMPORT_WITH_ENTRIES = PolicyImport.newInstance(ADDITIONAL_POLICY_IMPORT_ID,
-                EffectedImports.newInstance(List.of(Label.of("OtherIncludedLabel")), null));
+                EffectedImports.newInstance(List.of(Label.of("OtherIncludedLabel"))));
 
         /**
          * A known {@code PolicyImports} for a {@code Policy}.
@@ -159,7 +159,7 @@ public final class TestConstants {
                     .setSubject(SUPPORT_SUBJECT)
                     .setRevokedPermissions(FEATURES_RESOURCE_KEY, PERMISSION_READ, PERMISSION_WRITE)
                     .setModified(Instant.now())
-                    .setImports(POLICY_IMPORTS_WITH_ENTRIES)
+                    .setPolicyImports(POLICY_IMPORTS_WITH_ENTRIES)
                     .build();
         }
 
@@ -196,11 +196,11 @@ public final class TestConstants {
                         .setGrantedPermissionsFor(LABEL, RESOURCE_TYPE_POLICY, "/", PERMISSION_READ, PERMISSION_WRITE)
                         .setGrantedPermissionsFor(LABEL, RESOURCE_TYPE_THING, "/", PERMISSION_READ, PERMISSION_WRITE)
                         .setRevokedPermissionsFor(LABEL, RESOURCE_TYPE_THING, RESOURCE_PATH, PERMISSION_WRITE)
-                        .setImports(POLICY_IMPORTS_WITH_ENTRIES)
+                        .setPolicyImports(POLICY_IMPORTS_WITH_ENTRIES)
                         .build();
 
         public static PolicyImport policyImportWithId(final String importedPolicyId) {
-            return PolicyImport.newInstance(PolicyId.of("com.example", importedPolicyId), EffectedImports.newInstance(null, null));
+            return PolicyImport.newInstance(PolicyId.of("com.example", importedPolicyId), EffectedImports.newInstance(null));
         }
 
         private Policy() {
