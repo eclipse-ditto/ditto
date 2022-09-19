@@ -119,13 +119,13 @@ function messageFeature() {
       '?timeout=' + dom.inputMessageTimeout.value,
   payload,
   ).then((data) => {
-    if (timeout > 0) {
+    if (dom.inputMessageTimeout.value > 0) {
       aceResponse.setValue(JSON.stringify(data, null, 2), -1);
-    };
+    }
   }).catch((err) => {
     aceResponse.setValue('');
   });
-};
+}
 
 function onEnvironmentChanged(modifiedField) {
   Environments.current()['messageTemplates'] = Environments.current()['messageTemplates'] || {};
@@ -136,7 +136,7 @@ function onEnvironmentChanged(modifiedField) {
   if (modifiedField === 'messageTemplates') {
     refillTemplates();
   }
-};
+}
 
 function clearAllFields() {
   dom.favIconMessage.classList.replace('bi-star-fill', 'bi-star');
@@ -162,5 +162,5 @@ function refillTemplates() {
 function onFeatureChanged(featureId) {
   clearAllFields();
   refillTemplates();
-};
+}
 
