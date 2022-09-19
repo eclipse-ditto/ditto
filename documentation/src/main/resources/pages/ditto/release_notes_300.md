@@ -43,6 +43,8 @@ The following non-functional enhancements are also included:
 We want to especially highlight the following bugfixes also included:
 
 * **Passwords** stored in the URI of **connections** to **no longer need to be double encoded**
+* Using the `Normalized` connection payload mapper together with enriched `extra` fields lead to wrongly merged things
+* Adding custom Java based `MessageMappers` to Ditto via classpath was no longer possible
 
 
 ### Changes
@@ -249,6 +251,19 @@ Also fixing the reported issue:
 {% include note.html content="Be aware of the
   [migration note](#migration-connection-uri-password-encoding) before updating to Ditto 3.0." %}
 
+#### [When merging a feature, the normalized payload does not contain full feature](https://github.com/eclipse/ditto/issues/1446)
+
+When using the [Normalized mapper](connectivity-mapping.html#normalized-mapper) in Ditto connections together with
+[extra field enrichment](basic-enrichment.html), the outcome "merged" thing JSON structure could miss some information
+from the enriched "extra" data.  
+This has been fixed.
+
+#### [Fix that adding custom Java MessageMappers to Ditto via classpath is no longer possible](https://github.com/eclipse/ditto/issues/1463)
+
+Writing own, Java based, `MessageMappers` and adding them to the classpath 
+[as documented](connectivity-mapping.html#custom-java-based-implementation) did no longer work.  
+This has been fixed and the documentation for doing exactly that has been updated.
+
 
 ## Migration notes
 
@@ -332,6 +347,9 @@ line
 {%endraw%}
 
 , the reindexing has completed successfully.
+
+The reindexing of all things or only specific namespaces can also be 
+[explicitly triggered](installation-operating.html#force-search-index-update-of-all-things).
 
 #### Clean up
 

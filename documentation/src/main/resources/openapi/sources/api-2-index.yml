@@ -180,6 +180,8 @@ components:
       $ref: "./parameters/attributesFieldsQueryParam.yml"
     ChannelParam:
       $ref: "./parameters/channelParam.yml"
+    ChannelParamPutDescription:
+      $ref: "./parameters/channelParamPutDescription.yml"
     ConditionParam:
       $ref: "./parameters/conditionParam.yml"
     LiveChannelConditionParam:
@@ -214,6 +216,8 @@ components:
       $ref: "./parameters/namespaceParameter.yml"
     NamespacesFilter:
       $ref: "./parameters/namespacesFilter.yml"
+    PolicyFieldsQueryParam:
+      $ref: "./parameters/policyFieldsQueryParam.yml"
     PolicyIdPathParam:
       $ref: "./parameters/policyIdPathParam.yml"
     PropertiesFieldsQueryParam:
@@ -266,6 +270,8 @@ components:
       type: integer
     NewThing:
       $ref: "./schemas/things/newThing.yml"
+    PatchThing:
+      $ref: "./schemas/things/patchThing.yml"
     Thing:
       $ref: "./schemas/things/thing.yml"
     NewPolicy:
