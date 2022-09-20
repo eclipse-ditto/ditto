@@ -256,9 +256,10 @@ The syntax of such function expressions are specified similar to a UNIX `pipe`, 
 {%raw%}{{ thing:name | fn:substring-before('-') | fn:default('fallback') | fn:upper() }}{%endraw%}
 ```
 
-The first expression in such a pipeline **must always** be a placeholder to start with, in the example above `thing:name`.  
-Followed are functions separated by the pipe (`|`) symbol - each function in the pipeline receives the value of the
-previous expression (which may also be `empty`). 
+Normally, the first expression in such a pipeline would be a placeholder to start with, in the example above `thing:name`.  
+Functions could follow it separated by the pipe (`|`) symbol - each function in the pipeline receives the value of the
+previous expression (which may also be `empty`).  
+A function in the beginning of a pipeline would get `empty` as its input. 
 
 The function either contains no parameters or contains parameters which are either string constants or could also 
 be placeholders again.
