@@ -448,7 +448,7 @@ public final class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             verify(messageProducer, timeout(2000)).send(messageCaptor.capture(), any(CompletionListener.class));
             final Message message = messageCaptor.getValue();
             final Map<String, String> receivedHeaders =
-                    JMSPropertyMapper.getPropertiesAndApplicationProperties(message);
+                    JMSPropertyMapper.getHeadersFromProperties(message);
 
             assertThat(message.getJMSTimestamp()).isEqualTo(-1L);
             assertThat(message.getJMSType()).isEqualTo("subjective");

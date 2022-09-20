@@ -56,6 +56,7 @@ final class JMSPropertyMapper {
     private static final class AMQP {
 
         private static final String APPLICATION_PROPERTY_PREFIX = "amqp.application.property:";
+        private static final String MESSAGE_ANNOTATION_PREFIX = "amqp.message.annotation:";
 
         // 13 defined properties in total
         private static final String MESSAGE_ID = "message-id";
@@ -123,15 +124,17 @@ final class JMSPropertyMapper {
     }
 
     /**
-     * Extract headers from properties and application properties of an AMQP JMS message to be mapped.
+     * Extract headers from properties, application properties and message annotations of an AMQP JMS message to be
+     * mapped.
      *
      * @param message the message.
      * @return the headers to be mapped.
      */
-    static Map<String, String> getPropertiesAndApplicationProperties(final Message message) {
+    static Map<String, String> getHeadersFromProperties(final Message message) {
         final Map<String, String> headers = new HashMap<>();
         readDefinedAmqpPropertiesFromMessage(message, headers);
         readAmqpApplicationPropertiesFromMessage(message, headers);
+        readAmqpMessageAnnotationsFromMessage(message, headers);
         return Collections.unmodifiableMap(headers);
     }
 
@@ -333,6 +336,24 @@ final class JMSPropertyMapper {
                     headers.put(headerName, value.toString());
                 }
             }
+        });
+    }
+
+    private static void readAmqpMessageAnnotationsFromMessage(final Message message,
+            final Map<String, String> theHeaders) {
+
+        wrapFacadeBiConsumer(message, theHeaders, (facade, headers) -> {
+            wrap(msg -> {
+                facade.filterTracingAnnotations((key, value) -> {
+                    if (value != null) {
+                        final var headerName = isDefinedAmqpProperty(key)
+                                ? AMQP.MESSAGE_ANNOTATION_PREFIX + key
+                                : key;
+                        headers.put(headerName, value.toString());
+                    }
+                });
+                return null;
+            }).apply(message);
         });
     }
 
