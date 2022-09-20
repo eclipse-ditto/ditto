@@ -34,7 +34,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAr
 
 import akka.actor.ActorSystem;
 
-@PayloadMapper(alias = "test")
+@PayloadMapper(getAlias = "test")
 @AllParametersAndReturnValuesAreNonnullByDefault
 public final class MockMapper implements MessageMapper {
 

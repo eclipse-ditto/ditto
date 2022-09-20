@@ -32,7 +32,7 @@ import org.eclipse.ditto.protocol.Adaptable;
 /**
  * Implementation of {@link org.eclipse.ditto.connectivity.service.mapping.MessageMapper} that always duplicates the incoming message.
  */
-@PayloadMapper(alias = DuplicatingMessageMapper.ALIAS)
+@PayloadMapper(getAlias = DuplicatingMessageMapper.ALIAS)
 public final class DuplicatingMessageMapper extends AbstractMessageMapper {
 
     static final String ALIAS = "duplicating";

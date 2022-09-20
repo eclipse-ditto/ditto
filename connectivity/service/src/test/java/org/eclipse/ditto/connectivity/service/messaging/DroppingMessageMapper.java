@@ -28,7 +28,7 @@ import org.eclipse.ditto.protocol.Adaptable;
 /**
  * Implementation of {@link org.eclipse.ditto.connectivity.service.mapping.MessageMapper} that always drops.
  */
-@PayloadMapper(alias = DroppingMessageMapper.ALIAS)
+@PayloadMapper(getAlias = DroppingMessageMapper.ALIAS)
 public class DroppingMessageMapper extends AbstractMessageMapper {
 
     static final String ALIAS = "dropping";

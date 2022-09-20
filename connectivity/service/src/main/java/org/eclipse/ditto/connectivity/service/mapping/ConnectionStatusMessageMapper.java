@@ -53,13 +53,11 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeaturePrope
  * the mapping configuration. The thingId must be set in the mapping configuration. It can either be a fixed Thing ID
  * or it can be resolved from the message headers by using a placeholder e.g. {@code {{ header:device_id }}}.
  */
-@PayloadMapper(
-        alias = "ConnectionStatus",
-        requiresMandatoryConfiguration = true // "thingId" is mandatory configuration
-)
-public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
+public class ConnectionStatusMessageMapper extends AbstractMessageMapper implements PayloadMapper {
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ConnectionStatusMessageMapper.class);
+
+    private static final String PAYLOAD_MAPPER_ALIAS = "ConnectionStatus";
 
     static final String HEADER_HONO_TTD = "ttd";
     static final String HEADER_HONO_CREATION_TIME = "creation-time";
@@ -84,13 +82,26 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
     private String mappingOptionThingId;
 
     @Override
+    public String getAlias() {
+        return PAYLOAD_MAPPER_ALIAS;
+    }
+
+    /**
+     * "thingId" is mandatory.
+     */
+    @Override
+    public boolean isConfigurationMandatory() {
+        return true;
+    }
+
+    @Override
     public void doConfigure(final MappingConfig mappingConfig,
             final MessageMapperConfiguration messageMapperConfiguration) {
         mappingOptionThingId = messageMapperConfiguration.findProperty(MAPPING_OPTIONS_PROPERTIES_THING_ID)
                 .orElseThrow(
                         () -> MessageMapperConfigurationInvalidException.newBuilder(MAPPING_OPTIONS_PROPERTIES_THING_ID)
                                 .build());
-        // Check if ThingId is valid when its not a placeholder
+        // Check if ThingId is valid when it's not a placeholder
         if (!Placeholders.containsAnyPlaceholder(mappingOptionThingId)) {
             try {
                 ThingId.of(mappingOptionThingId);

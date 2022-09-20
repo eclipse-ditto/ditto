@@ -30,7 +30,7 @@ import org.eclipse.ditto.protocol.Adaptable;
 /**
  * Implementation of {@link org.eclipse.ditto.connectivity.service.mapping.MessageMapper} that always throws an exception.
  */
-@PayloadMapper(alias = ALIAS)
+@PayloadMapper(getAlias = ALIAS)
 public final class FaultyMessageMapper extends AbstractMessageMapper {
 
     static final String ALIAS = "faulty";

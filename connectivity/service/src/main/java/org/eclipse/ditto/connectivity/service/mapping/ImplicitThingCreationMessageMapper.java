@@ -51,6 +51,7 @@ import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.things.model.Thing;
@@ -69,11 +70,9 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
  *
  * @since 1.3.0
  */
-@PayloadMapper(
-        alias = "ImplicitThingCreation",
-        requiresMandatoryConfiguration = true // "thing" is mandatory configuration
-)
-public final class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
+public final class ImplicitThingCreationMessageMapper extends AbstractMessageMapper implements PayloadMapper {
+
+    private static final String PAYLOAD_MAPPER_ALIAS = "ImplicitThingCreation";
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ImplicitThingCreationMessageMapper.class);
 
@@ -112,6 +111,19 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
     public ImplicitThingCreationMessageMapper(
             final BiFunction<Map<String, String>, AuthorizationContext, Optional<ExpressionResolver>> resolverFactory) {
         this.resolverFactory = resolverFactory;
+    }
+
+    @Override
+    public String getAlias() {
+        return PAYLOAD_MAPPER_ALIAS;
+    }
+
+    /**
+     * "thing" is mandatory.
+     */
+    @Override
+    public boolean isConfigurationMandatory() {
+        return true;
     }
 
     @Override

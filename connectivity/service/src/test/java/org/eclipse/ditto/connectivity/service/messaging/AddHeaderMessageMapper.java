@@ -38,7 +38,7 @@ import akka.actor.ActorSystem;
  * {@link org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper} and adds some headers to verify the
  * custom mapping was applied.
  */
-@PayloadMapper(alias = AddHeaderMessageMapper.ALIAS)
+@PayloadMapper(getAlias = AddHeaderMessageMapper.ALIAS)
 public final class AddHeaderMessageMapper implements MessageMapper {
 
     static final String ALIAS = "header";
