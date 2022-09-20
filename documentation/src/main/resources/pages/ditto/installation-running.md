@@ -16,6 +16,10 @@ Resource requirements:
 In order to start Ditto, you'll need:
 * a [MongoDB](https://github.com/mongodb/mongo) service or container with version __4.2__ as backing datastore of Ditto.
   (if you want to use a managed MongoDB service have a look in the [section](#managed-mongodb-service) below)
+   * Supported MongoDB versions:
+     * 4.2
+     * 4.4
+     * 5.0
 * the built Docker images of Ditto
     * either by building them as described in [Building Ditto](installation-building.html),
     * or by using the pre-built [Ditto images on Docker Hub](https://hub.docker.com/u/eclipse/).

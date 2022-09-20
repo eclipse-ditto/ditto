@@ -12,7 +12,7 @@ version: '2.4'
 
 services:
   mongodb:
-    image: docker.io/mongo:4.2
+    image: docker.io/mongo:4.4
     mem_limit: 256m
     restart: always
     networks:
