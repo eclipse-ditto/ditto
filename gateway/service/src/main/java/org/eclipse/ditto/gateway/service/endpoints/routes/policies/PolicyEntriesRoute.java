@@ -14,6 +14,7 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.policies;
 
 import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
+import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -182,9 +183,12 @@ final class PolicyEntriesRoute extends AbstractRoute {
         final Resources resources =
                 PoliciesModelFactory.newResources(jsonObject.getValueOrThrow(PolicyEntry.JsonFields.RESOURCES));
 
-        final ImportableType importable = jsonObject.getValue(PolicyEntry.JsonFields.IMPORTABLE_TYPE)
-                .flatMap(ImportableType::forName).orElse(ImportableType.IMPLICIT);
-        return PoliciesModelFactory.newPolicyEntry(Label.of(labelString), subjects, resources, importable);
+        final Optional<ImportableType> importableOpt = jsonObject.getValue(PolicyEntry.JsonFields.IMPORTABLE_TYPE)
+                .flatMap(ImportableType::forName);
+        return importableOpt
+                .map(importableType -> PoliciesModelFactory.newPolicyEntry(Label.of(labelString), subjects, resources,
+                        importableType))
+                .orElseGet(() -> PoliciesModelFactory.newPolicyEntry(Label.of(labelString), subjects, resources));
     }
 
     /*

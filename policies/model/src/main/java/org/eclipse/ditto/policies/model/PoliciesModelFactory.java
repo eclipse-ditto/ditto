@@ -518,7 +518,7 @@ public final class PoliciesModelFactory {
      * @param label the Label of the PolicyEntry to create.
      * @param subjects the Subjects contained in the PolicyEntry to create.
      * @param resources the Resources of the PolicyEntry to create.
-     * @param importable whether and how the entry is importahle by others.
+     * @param importable whether and how the entry is importable by others.
      * @return the new Policy entry.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code label} is empty.

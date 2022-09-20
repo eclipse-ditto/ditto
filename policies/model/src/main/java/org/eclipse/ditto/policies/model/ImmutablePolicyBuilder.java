@@ -19,9 +19,9 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -373,14 +373,16 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         final Collection<Label> allLabels = getAllLabels();
 
         final Collection<PolicyEntry> policyEntries = allLabels.stream()
-                .map(lbl -> PoliciesModelFactory.newPolicyEntry(lbl, getFinalSubjects(lbl), getFinalResources(lbl),
-                        getFinalImportableType(lbl)))
+                .map(lbl -> getImportableType(lbl).map(
+                                importableType -> PoliciesModelFactory.newPolicyEntry(lbl, getSubjectsForLabel(lbl),
+                                        getResourcesForLabel(lbl), importableType))
+                        .orElseGet(() -> PoliciesModelFactory.newPolicyEntry(lbl, getSubjectsForLabel(lbl),
+                                getResourcesForLabel(lbl))))
                 .collect(Collectors.toList());
 
         return ImmutablePolicy.of(id, lifecycle, revision, modified, created, metadata, imports, policyEntries);
     }
 
-    @Nonnull
     private Collection<Label> getAllLabels() {
         final Collection<Label> result = new LinkedHashSet<>(subjects.keySet());
         result.addAll(grantedPermissions.keySet());
@@ -388,18 +390,15 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         return result;
     }
 
-    @Nonnull
-    private Subjects getFinalSubjects(final CharSequence label) {
+    private Subjects getSubjectsForLabel(final CharSequence label) {
         return PoliciesModelFactory.newSubjects(retrieveExistingSubjects(label).values());
     }
 
-    @Nonnull
-    private ImportableType getFinalImportableType(final CharSequence label) {
-        return importableTypes.getOrDefault(Label.of(label), ImportableType.IMPLICIT);
+    private Optional<ImportableType> getImportableType(final CharSequence label) {
+        return Optional.ofNullable(importableTypes.get(Label.of(label)));
     }
 
-    @Nonnull
-    private Resources getFinalResources(final CharSequence label) {
+    private Resources getResourcesForLabel(final CharSequence label) {
         final Map<ResourceKey, Permissions> grantedMap = retrieveGrantedPermissions(label);
         final Map<ResourceKey, Permissions> revokedMap = retrieveRevokedPermissions(label);
 

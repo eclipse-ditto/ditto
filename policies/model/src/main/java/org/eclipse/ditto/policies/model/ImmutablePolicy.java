@@ -307,7 +307,7 @@ final class ImmutablePolicy implements Policy {
         final PolicyEntry modifiedEntry;
 
         if (!entriesCopy.containsKey(lbl)) {
-            modifiedEntry = newPolicyEntry(lbl, subjects, emptyResources(), ImportableType.NEVER); // TODO DG never?
+            modifiedEntry = newPolicyEntry(lbl, subjects, emptyResources());
         } else {
             final PolicyEntry policyEntry = entriesCopy.get(lbl);
             modifiedEntry = newPolicyEntry(lbl, subjects, policyEntry.getResources(), policyEntry.getImportableType());
@@ -371,7 +371,7 @@ final class ImmutablePolicy implements Policy {
         final PolicyEntry policyEntry = entriesCopy.get(lbl);
         final PolicyEntry modifiedEntry;
         if (null == policyEntry) {
-            modifiedEntry = newPolicyEntry(lbl, PoliciesModelFactory.emptySubjects(), resources, ImportableType.NEVER); // TODO DG never?
+            modifiedEntry = newPolicyEntry(lbl, PoliciesModelFactory.emptySubjects(), resources);
         } else {
             modifiedEntry = newPolicyEntry(lbl, policyEntry.getSubjects(), resources,
                     policyEntry.getImportableType());
@@ -390,7 +390,7 @@ final class ImmutablePolicy implements Policy {
         final PolicyEntry modifiedEntry;
 
         if (!entriesCopy.containsKey(lbl)) {
-            modifiedEntry = newPolicyEntry(label, PoliciesModelFactory.emptySubjects(), newResources(resource), ImportableType.NEVER); // TODO DG never?
+            modifiedEntry = newPolicyEntry(label, PoliciesModelFactory.emptySubjects(), newResources(resource));
         } else {
             final PolicyEntry policyEntry = entriesCopy.get(lbl);
             final Resources modifiedResources = policyEntry.getResources().setResource(resource);

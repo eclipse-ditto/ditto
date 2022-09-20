@@ -15,6 +15,7 @@ package org.eclipse.ditto.policies.model;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.concurrent.Immutable;
@@ -75,6 +76,7 @@ final class ImmutablePolicyEntry implements PolicyEntry {
             final ImportableType importableType) {
         checkNotNull(subjects, "subjects");
         checkNotNull(resources, "resources");
+        checkNotNull(importableType, "importableType");
         return new ImmutablePolicyEntry(label, subjects, resources, importableType);
     }
 
@@ -102,9 +104,12 @@ final class ImmutablePolicyEntry implements PolicyEntry {
             final Subjects subjectsFromJson = PoliciesModelFactory.newSubjects(subjectsJsonObject);
             final JsonObject resourcesJsonObject = jsonObject.getValueOrThrow(JsonFields.RESOURCES);
             final Resources resourcesFromJson = PoliciesModelFactory.newResources(resourcesJsonObject);
-            final ImportableType importableType = jsonObject.getValue(JsonFields.IMPORTABLE_TYPE).flatMap(ImportableType::forName).orElse(ImportableType.IMPLICIT);
+            final Optional<ImportableType> importableTypeOpt =
+                    jsonObject.getValue(JsonFields.IMPORTABLE_TYPE).flatMap(ImportableType::forName);
 
-            return of(lbl, subjectsFromJson, resourcesFromJson, importableType);
+            return importableTypeOpt
+                    .map(importableType -> of(lbl, subjectsFromJson, resourcesFromJson, importableType))
+                    .orElseGet(() -> of(lbl, subjectsFromJson, resourcesFromJson));
         } catch (final JsonMissingFieldException e) {
             throw new DittoJsonException(e);
         }
