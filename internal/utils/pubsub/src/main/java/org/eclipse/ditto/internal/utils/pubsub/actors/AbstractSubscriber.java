@@ -20,7 +20,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -45,7 +45,7 @@ import akka.japi.pf.ReceiveBuilder;
  *
  * @param <T> type of messages.
  */
-abstract class AbstractSubscriber<T extends SignalWithEntityId<?>> extends AbstractActorWithTimers {
+abstract class AbstractSubscriber<T extends Signal<?>> extends AbstractActorWithTimers {
 
     final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 

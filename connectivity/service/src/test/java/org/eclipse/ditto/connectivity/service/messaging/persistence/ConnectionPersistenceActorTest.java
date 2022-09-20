@@ -72,6 +72,7 @@ import org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFact
 import org.eclipse.ditto.connectivity.service.messaging.MockCommandValidator;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.WithMockServers;
+import org.eclipse.ditto.connectivity.service.util.ConnectionPubSub;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
 import org.eclipse.ditto.internal.utils.akka.controlflow.WithSender;
@@ -293,6 +294,10 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     @Test
     public void manageConnectionWith2Clients() throws Exception {
         startSecondActorSystemAndJoinCluster();
+        ConnectionPubSub.get(actorSystemResource1.getActorSystem())
+                .subscribe(connectionId, mockClientActorProbe.ref(), false)
+                .toCompletableFuture()
+                .join();
         mockClientActorProbe.setAutoPilot(new TestActor.AutoPilot() {
             @Override
             public TestActor.AutoPilot run(final ActorRef sender, final Object msg) {
@@ -326,7 +331,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         mockClientActorProbe.fishForMessage(
                 FiniteDuration.apply(30, TimeUnit.SECONDS),
                 "WithSender",
-                PartialFunction.fromFunction(msg -> isMessageSenderInstanceOf(msg, CreateSubscription.class))
+                PartialFunction.fromFunction(msg -> msg instanceof CreateSubscription)
         );
 
         // close connection: at least 1 client actor gets the command; the other may or may not be started.
@@ -1037,6 +1042,16 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
     @Test
     public void forwardSearchCommands() {
+        final var mockClientActorProbe1 = TestProbe.apply(actorSystemResource1.getActorSystem());
+        final var mockClientActorProbe2 = TestProbe.apply(actorSystemResource1.getActorSystem());
+        ConnectionPubSub.get(actorSystemResource1.getActorSystem())
+                .subscribe(connectionId, mockClientActorProbe1.ref(), false)
+                .toCompletableFuture()
+                .join();
+        ConnectionPubSub.get(actorSystemResource1.getActorSystem())
+                .subscribe(connectionId, mockClientActorProbe2.ref(), false)
+                .toCompletableFuture()
+                .join();
         mockClientActorProbe.setAutoPilot(new TestActor.AutoPilot() {
             @Override
             public TestActor.AutoPilot run(final ActorRef sender, final Object msg) {
@@ -1059,27 +1074,26 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         underTest.tell(createConnection(closedConnectionWith2Clients), testProbe.ref());
         testProbe.expectMsgClass(CreateConnectionResponse.class);
         underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), testProbe.ref());
-
         // wait until gossip protocol completes
         gossipProbe.expectMsgClass(ActorRef.class);
         gossipProbe.expectMsgClass(ActorRef.class);
 
         // WHEN: 2 CreateSubscription commands are received
-        // THEN: The 2 commands land in different client actors
         underTest.tell(CreateSubscription.of(DittoHeaders.empty()), testProbe.ref());
         underTest.tell(CreateSubscription.of(DittoHeaders.empty()), testProbe.ref());
-        final var createSubscription1 = (WithSender<?>) mockClientActorProbe.fishForMessage(
-                FiniteDuration.apply(5, TimeUnit.SECONDS),
-                "WithSender",
-                PartialFunction.fromFunction(msg -> isMessageSenderInstanceOf(msg, CreateSubscription.class))
-        );
-        final var createSubscription2 = (WithSender<?>) mockClientActorProbe.fishForMessage(
-                FiniteDuration.apply(5, TimeUnit.SECONDS),
-                "WithSender",
-                PartialFunction.fromFunction(msg -> isMessageSenderInstanceOf(msg, CreateSubscription.class))
-        );
 
-        assertThat(createSubscription1.getSender()).isNotEqualTo(createSubscription2.getSender());
+        // THEN: The 2 commands land in different client actors
+        final var createSubscription1 = (CreateSubscription) mockClientActorProbe1.fishForMessage(
+                FiniteDuration.apply(5, TimeUnit.SECONDS),
+                "CreateSubscription",
+                PartialFunction.fromFunction(msg -> msg instanceof CreateSubscription)
+        );
+        final var createSubscription2 = (CreateSubscription) mockClientActorProbe2.fishForMessage(
+                FiniteDuration.apply(5, TimeUnit.SECONDS),
+                "CreateSubscription",
+                PartialFunction.fromFunction(msg -> msg instanceof CreateSubscription)
+        );
+        assertThat(createSubscription1.getPrefix()).isNotEqualTo(createSubscription2.getPrefix());
     }
 
     private static <T> WithSender<T> expectMockClientActorMessage(final Class<T> searchedClass) {

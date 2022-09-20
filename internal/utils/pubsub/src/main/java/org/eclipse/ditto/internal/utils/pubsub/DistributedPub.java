@@ -15,7 +15,6 @@ package org.eclipse.ditto.internal.utils.pubsub;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
 
@@ -89,8 +88,7 @@ public interface DistributedPub<T> {
      * @param topicExtractor the previous topic extractor.
      * @return a new interface of this object.
      */
-    default <S extends SignalWithEntityId<?>> DistributedPub<S> withTopicExtractor(
-            final PubSubTopicExtractor<S> topicExtractor) {
+    default <S extends Signal<?>> DistributedPub<S> withTopicExtractor(final PubSubTopicExtractor<S> topicExtractor) {
         return DistributedPubWithTopicExtractor.of(this, topicExtractor);
     }
 

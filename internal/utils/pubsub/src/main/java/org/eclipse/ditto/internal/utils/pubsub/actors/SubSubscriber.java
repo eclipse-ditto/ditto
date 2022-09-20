@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.pubsub.actors;
 
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
@@ -24,7 +24,7 @@ import akka.actor.Props;
  *
  * @param <T> type of messages.
  */
-final class SubSubscriber<T extends SignalWithEntityId<?>> extends AbstractSubscriber<T> {
+final class SubSubscriber<T extends Signal<?>> extends AbstractSubscriber<T> {
 
     private SubSubscriber(final Class<T> messageClass, final PubSubTopicExtractor<T> topicExtractor,
             final AckExtractor<T> ackExtractor, final DistributedAcks distributedAcks) {

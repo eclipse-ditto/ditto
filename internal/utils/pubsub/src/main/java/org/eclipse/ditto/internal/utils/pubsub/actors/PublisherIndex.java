@@ -26,7 +26,6 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.internal.utils.pubsub.PubSubFactory;
 import org.eclipse.ditto.internal.utils.pubsub.api.PublishSignal;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.SubscriptionsReader;

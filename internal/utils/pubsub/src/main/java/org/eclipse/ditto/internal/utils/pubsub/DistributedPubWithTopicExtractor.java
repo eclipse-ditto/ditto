@@ -15,7 +15,7 @@ package org.eclipse.ditto.internal.utils.pubsub;
 import java.util.Set;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.pubsub.actors.Publisher;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
@@ -28,7 +28,7 @@ import akka.actor.ActorRef;
  *
  * @param <T> type of messages.
  */
-final class DistributedPubWithTopicExtractor<T extends SignalWithEntityId<?>> implements DistributedPub<T> {
+final class DistributedPubWithTopicExtractor<T extends Signal<?>> implements DistributedPub<T> {
 
     private final DistributedPub<?> delegate;
     private final PubSubTopicExtractor<T> topicExtractor;
@@ -39,7 +39,7 @@ final class DistributedPubWithTopicExtractor<T extends SignalWithEntityId<?>> im
         this.topicExtractor = topicExtractor;
     }
 
-    static <T extends SignalWithEntityId<?>> DistributedPubWithTopicExtractor<T> of(final DistributedPub<?> delegate,
+    static <T extends Signal<?>> DistributedPubWithTopicExtractor<T> of(final DistributedPub<?> delegate,
             final PubSubTopicExtractor<T> topicExtractor) {
         return new DistributedPubWithTopicExtractor<>(delegate, topicExtractor);
     }

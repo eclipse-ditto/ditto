@@ -40,6 +40,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
@@ -78,7 +79,6 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
-import org.eclipse.ditto.connectivity.service.messaging.ClientActorRefs;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpValidator;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushValidator;
 import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaValidator;
@@ -101,6 +101,7 @@ import org.eclipse.ditto.connectivity.service.messaging.validation.CompoundConne
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.connectivity.service.messaging.validation.CustomConnectivityCommandInterceptorProvider;
 import org.eclipse.ditto.connectivity.service.messaging.validation.DittoConnectivityCommandValidator;
+import org.eclipse.ditto.connectivity.service.util.ConnectionPubSub;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
 import org.eclipse.ditto.internal.utils.akka.logging.CommonMdcEntryKey;
@@ -128,7 +129,6 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
-import akka.actor.Terminated;
 import akka.cluster.Cluster;
 import akka.cluster.routing.ClusterRouterPool;
 import akka.cluster.routing.ClusterRouterPoolSettings;
@@ -182,14 +182,13 @@ public final class ConnectionPersistenceActor
     private final Duration loggingEnabledDuration;
     private final ConnectivityConfig connectivityConfig;
     private final Config connectivityConfigOverwrites;
-    private final ClientActorRefs clientActorRefs = ClientActorRefs.empty();
     private final ConnectionPriorityProvider connectionPriorityProvider;
     private final ConnectivityCommandInterceptor commandValidator;
+    private final ConnectionPubSub connectionPubSub;
     private int subscriptionCounter = 0;
     private Instant connectionClosedAt = Instant.now();
     @Nullable private Instant loggingEnabledUntil;
     @Nullable private ActorRef clientActorRouter;
-    @Nullable private ActorRef clientActorRefsAggregationActor;
     @Nullable private Integer priority;
     @Nullable private Instant recoveredAt;
 
@@ -220,6 +219,7 @@ public final class ConnectionPersistenceActor
 
         loggingEnabledDuration = monitoringConfig.logger().logDuration();
         checkLoggingActiveInterval = monitoringConfig.logger().loggingActiveCheckInterval();
+        connectionPubSub = ConnectionPubSub.get(actorSystem);
         // Make duration fuzzy to avoid all connections getting updated at once.
         final Duration fuzzyPriorityUpdateInterval =
                 makeFuzzy(connectivityConfig.getConnectionConfig().getPriorityUpdateInterval());
@@ -488,12 +488,12 @@ public final class ConnectionPersistenceActor
             //  build in adding the "always-alive" tag here by persisting an "empty" event which is just tagged to be
             //  "always alive".  Stop persisting the empty event once every open connection has a tagged event, when
             // the persistence ping actor will have a non-empty journal tag configured.
-            final EmptyEvent
-                    emptyEvent = new EmptyEvent(EmptyEvent.EFFECT_ALWAYS_ALIVE, getRevisionNumber() + 1,
-                    DittoHeaders.newBuilder()
-                            .correlationId(ping.getCorrelationId().orElse(null))
-                            .journalTags(journalTags())
-                            .build());
+            final DittoHeaders eventHeaders = ((DittoHeadersBuilder<?, ?>) DittoHeaders.newBuilder())
+                    .correlationId(ping.getCorrelationId().orElse(null))
+                    .journalTags(journalTags())
+                    .build();
+            final EmptyEvent emptyEvent =
+                    new EmptyEvent(EmptyEvent.EFFECT_ALWAYS_ALIVE, getRevisionNumber() + 1, eventHeaders);
             getSelf().tell(new PersistEmptyEvent(emptyEvent), ActorRef.noSender());
         }
 
@@ -579,31 +579,24 @@ public final class ConnectionPersistenceActor
             return;
         }
         switch (command.nextAction()) {
-            case TEST_CONNECTION:
-                testConnection(command.next());
-                break;
-            case APPLY_EVENT:
-                command.getEvent()
-                        .ifPresentOrElse(event -> {
-                                    entity = getEventStrategy().handle(event, entity, getRevisionNumber());
-                                    interpretStagedCommand(command.next());
-                                },
-                                () -> log.error(
-                                        "Failed to handle staged command because required event wasn't present: <{}>",
-                                        command));
-                break;
-            case PERSIST_AND_APPLY_EVENT:
-                command.getEvent().ifPresentOrElse(
-                        event -> persistAndApplyEvent(event,
-                                (unusedEvent, connection) -> interpretStagedCommand(command.next())),
-                        () -> log.error("Failed to handle staged command because required event wasn't present: <{}>",
-                                command));
-                break;
-            case SEND_RESPONSE:
+            case TEST_CONNECTION -> testConnection(command.next());
+            case APPLY_EVENT -> command.getEvent().ifPresentOrElse(event -> {
+                        entity = getEventStrategy().handle(event, entity, getRevisionNumber());
+                        interpretStagedCommand(command.next());
+                    },
+                    () -> log.error(
+                            "Failed to handle staged command because required event wasn't present: <{}>",
+                            command));
+            case PERSIST_AND_APPLY_EVENT -> command.getEvent().ifPresentOrElse(
+                    event -> persistAndApplyEvent(event,
+                            (unusedEvent, connection) -> interpretStagedCommand(command.next())),
+                    () -> log.error("Failed to handle staged command because required event wasn't present: <{}>",
+                            command));
+            case SEND_RESPONSE -> {
                 command.getSender().tell(command.getResponse(), getSelf());
                 interpretStagedCommand(command.next());
-                break;
-            case PASSIVATE:
+            }
+            case PASSIVATE -> {
                 // This actor will stop. Subsequent actions are ignored.
                 log.debug("Passivating");
                 try {
@@ -613,57 +606,48 @@ public final class ConnectionPersistenceActor
                     throw new IllegalStateException(e);
                 }
                 passivate();
-                break;
-            case OPEN_CONNECTION:
-                openConnection(command.next(), false);
-                break;
-            case OPEN_CONNECTION_IGNORE_ERRORS:
-                openConnection(command.next(), true);
-                break;
-            case CLOSE_CONNECTION:
-                closeConnection(command.next());
-                break;
-            case STOP_CLIENT_ACTORS:
+            }
+            case OPEN_CONNECTION -> openConnection(command.next(), false);
+            case OPEN_CONNECTION_IGNORE_ERRORS -> openConnection(command.next(), true);
+            case CLOSE_CONNECTION -> closeConnection(command.next());
+            case STOP_CLIENT_ACTORS -> {
                 stopClientActors();
                 interpretStagedCommand(command.next());
-                break;
-            case BECOME_CREATED:
+            }
+            case BECOME_CREATED -> {
                 becomeCreatedHandler();
                 interpretStagedCommand(command.next());
-                break;
-            case BECOME_DELETED:
+            }
+            case BECOME_DELETED -> {
                 becomeDeletedHandler();
                 interpretStagedCommand(command.next());
-                break;
-            case UPDATE_SUBSCRIPTIONS:
-                prepareForSignalForwarding(command.next());
-                break;
-            case BROADCAST_TO_CLIENT_ACTORS_IF_STARTED:
+            }
+            case UPDATE_SUBSCRIPTIONS -> prepareForSignalForwarding(command.next());
+            case BROADCAST_TO_CLIENT_ACTORS_IF_STARTED -> {
                 broadcastToClientActorsIfStarted(command.getCommand(), getSelf());
                 interpretStagedCommand(command.next());
-                break;
-            case RETRIEVE_CONNECTION_LOGS:
+            }
+            case RETRIEVE_CONNECTION_LOGS -> {
                 retrieveConnectionLogs((RetrieveConnectionLogs) command.getCommand(), command.getSender());
                 interpretStagedCommand(command.next());
-                break;
-            case RETRIEVE_CONNECTION_STATUS:
+            }
+            case RETRIEVE_CONNECTION_STATUS -> {
                 retrieveConnectionStatus((RetrieveConnectionStatus) command.getCommand(), command.getSender());
                 interpretStagedCommand(command.next());
-                break;
-            case RETRIEVE_CONNECTION_METRICS:
+            }
+            case RETRIEVE_CONNECTION_METRICS -> {
                 retrieveConnectionMetrics((RetrieveConnectionMetrics) command.getCommand(), command.getSender());
                 interpretStagedCommand(command.next());
-                break;
-            case ENABLE_LOGGING:
+            }
+            case ENABLE_LOGGING -> {
                 loggingEnabled();
                 interpretStagedCommand(command.next());
-                break;
-            case DISABLE_LOGGING:
+            }
+            case DISABLE_LOGGING -> {
                 loggingDisabled();
                 interpretStagedCommand(command.next());
-                break;
-            default:
-                log.error("Failed to handle staged command: <{}>", command);
+            }
+            default -> log.error("Failed to handle staged command: <{}>", command);
         }
     }
 
@@ -676,11 +660,6 @@ public final class ConnectionPersistenceActor
                 .matchEquals(Control.CHECK_LOGGING_ACTIVE, this::checkLoggingEnabled)
                 .matchEquals(Control.TRIGGER_UPDATE_PRIORITY, this::triggerUpdatePriority)
                 .match(UpdatePriority.class, this::updatePriority)
-
-                // maintain client actor refs
-                .match(ClientActorRefs.class, this::syncClientActorRefs)
-                .match(ActorRef.class, this::addClientActor)
-                .match(Terminated.class, this::removeClientActor)
                 .build()
                 .orElse(super.matchAnyAfterInitialization());
     }
@@ -723,24 +702,14 @@ public final class ConnectionPersistenceActor
         log.debug("Forwarding <{}> to client actors.", command);
         // compute the next prefix according to subscriptionCounter and the currently configured client actor count
         // ignore any "prefix" field from the command
-        augmentWithPrefixAndForward(command, entity.getClientCount(), clientActorRouter);
+        augmentWithPrefixAndForward(command, entity.getClientCount());
     }
 
-    private void augmentWithPrefixAndForward(final CreateSubscription createSubscription,
-            final int clientCount,
-            final ActorRef clientActorRouter) {
-
+    private void augmentWithPrefixAndForward(final CreateSubscription createSubscription, final int clientCount) {
         subscriptionCounter = (subscriptionCounter + 1) % Math.max(1, clientCount);
         final var prefix = getPrefix(getSubscriptionPrefixLength(clientCount), subscriptionCounter);
-        final var receiver = clientActorRefs.get(subscriptionCounter);
         final var commandWithPrefix = createSubscription.setPrefix(prefix);
-        if (clientCount == 1) {
-            clientActorRouter.tell(consistentHashableEnvelope(commandWithPrefix, prefix), ActorRef.noSender());
-        } else if (receiver.isPresent()) {
-            receiver.get().tell(commandWithPrefix, ActorRef.noSender());
-        } else {
-            logDroppedSignal(createSubscription, createSubscription.getType(), "Client actor not ready.");
-        }
+        connectionPubSub.publishSignal(commandWithPrefix, entityId, prefix, ActorRef.noSender());
     }
 
     private static String getPrefix(final int prefixLength, final int subscriptionCounter) {
@@ -1093,14 +1062,7 @@ public final class ConnectionPersistenceActor
                     new ClusterRouterPool(pool, clusterRouterPoolSettings).props(props);
 
             // start client actor without name so it does not conflict with its previous incarnation
-            final var routerPool = getContext().actorOf(clusterRouterPoolProps);
-            clientActorRouter = routerPool;
-            if (clientCount > 1) {
-                clientActorRefsAggregationActor = getContext().actorOf(
-                        ClientActorRefsAggregationActor.props(clientCount, getSelf(), routerPool,
-                                connectivityConfig.getClientConfig().getClientActorRefsNotificationDelay(),
-                                clientActorAskTimeout));
-            }
+            clientActorRouter = getContext().actorOf(clusterRouterPoolProps);
             updateLoggingIfEnabled();
         } else if (clientActorRouter != null) {
             log.debug("ClientActor already started.");
@@ -1118,37 +1080,12 @@ public final class ConnectionPersistenceActor
     }
 
     private void stopClientActors() {
-        clientActorRefs.clear();
-        if (clientActorRefsAggregationActor != null) {
-            stopChildActor(clientActorRefsAggregationActor);
-            clientActorRefsAggregationActor = null;
-        }
         if (clientActorRouter != null) {
             connectionClosedAt = Instant.now();
             log.debug("Stopping the client actor.");
             stopChildActor(clientActorRouter);
             clientActorRouter = null;
         }
-    }
-
-    private void addClientActor(final ActorRef newClientActor) {
-        getContext().watch(newClientActor);
-        clientActorRefs.add(newClientActor);
-        final List<ActorRef> otherClientActors = clientActorRefs.getOtherActors(newClientActor);
-        otherClientActors.forEach(otherClientActor -> {
-            otherClientActor.tell(newClientActor, ActorRef.noSender());
-            newClientActor.tell(otherClientActor, ActorRef.noSender());
-        });
-    }
-
-    private void syncClientActorRefs(final ClientActorRefs clientActorRefs) {
-        if (clientActorRouter != null) {
-            clientActorRouter.tell(new Broadcast(clientActorRefs), ActorRef.noSender());
-        }
-    }
-
-    private void removeClientActor(final Terminated terminated) {
-        clientActorRefs.remove(terminated.getActor());
     }
 
     private void stopChildActor(final ActorRef actor) {

@@ -16,7 +16,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.PubSubFactory;
 import org.eclipse.ditto.internal.utils.pubsub.api.LocalAcksChanged;
@@ -42,7 +42,7 @@ import akka.japi.pf.ReceiveBuilder;
  *
  * @param <T> type of messages.
  */
-public final class Subscriber<T extends SignalWithEntityId<?>> extends AbstractSubscriber<T> {
+public final class Subscriber<T extends Signal<?>> extends AbstractSubscriber<T> {
 
     /**
      * Prefix of this actor's name.
