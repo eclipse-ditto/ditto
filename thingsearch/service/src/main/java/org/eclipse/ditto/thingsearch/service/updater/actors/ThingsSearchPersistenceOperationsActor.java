@@ -57,4 +57,9 @@ public final class ThingsSearchPersistenceOperationsActor extends AbstractPersis
                         persistenceOperationsConfig));
     }
 
+    @Override
+    public String getActorName() {
+        return ACTOR_NAME;
+    }
+
 }

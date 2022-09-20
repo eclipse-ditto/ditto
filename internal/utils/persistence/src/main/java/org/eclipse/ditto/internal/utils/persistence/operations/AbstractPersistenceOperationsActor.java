@@ -21,26 +21,30 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.entity.type.EntityType;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.base.api.common.Shutdown;
 import org.eclipse.ditto.base.api.common.ShutdownReason;
 import org.eclipse.ditto.base.api.common.ShutdownReasonFactory;
 import org.eclipse.ditto.base.api.common.purge.PurgeEntities;
 import org.eclipse.ditto.base.api.common.purge.PurgeEntitiesResponse;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespaceResponse;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 
+import akka.Done;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.CoordinatedShutdown;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.Patterns;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
 
@@ -57,14 +61,22 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
      */
     protected final ThreadSafeDittoLoggingAdapter logger;
 
+    /**
+     * Ask-timeout in shutdown tasks. Its duration should be long enough but ultimately does not
+     * matter because each shutdown phase has its own timeout.
+     */
+    private static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
+
     private final ActorRef pubSubMediator;
     private final EntityType entityType;
     @Nullable private final NamespacePersistenceOperations namespaceOps;
     @Nullable private final EntityPersistenceOperations entitiesOps;
     private final Materializer materializer;
     private final Collection<Closeable> toCloseWhenStopped;
-
     private final Duration delayAfterPersistenceActorShutdown;
+
+    private int ongoingRequests = 0;
+    @Nullable private ActorRef shutdownReceiver = null;
 
     private AbstractPersistenceOperationsActor(final ActorRef pubSubMediator,
             final EntityType entityType,
@@ -122,6 +134,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
         final List<Closeable> closeables = new ArrayList<>(1 + optionalToCloseWhenStopped.length);
         closeables.add(toCloseWhenStopped);
         Collections.addAll(closeables, optionalToCloseWhenStopped);
+
         return closeables;
     }
 
@@ -152,10 +165,25 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
                 Collections.emptyList());
     }
 
+    protected abstract String getActorName();
+
     @Override
     public void preStart() {
         subscribeForNamespaceCommands();
         subscribeForEntitiesCommands();
+
+        final var self = getSelf();
+        final var coordinatedShutdown = CoordinatedShutdown.get(getContext().getSystem());
+        final var serviceUnbindTask = "service-unbind-" + getActorName() ;
+        coordinatedShutdown.addTask(CoordinatedShutdown.PhaseServiceUnbind(), serviceUnbindTask,
+                () -> Patterns.ask(getSelf(), Control.SERVICE_UNBIND, SHUTDOWN_ASK_TIMEOUT)
+                        .thenApply(reply -> Done.done())
+        );
+        final var serviceRequestsDoneTask = "service-requests-done-" + getActorName();
+        coordinatedShutdown.addTask(CoordinatedShutdown.PhaseServiceRequestsDone(), serviceRequestsDoneTask,
+                () -> Patterns.ask(self, Control.SERVICE_REQUESTS_DONE, SHUTDOWN_ASK_TIMEOUT)
+                        .thenApply(reply -> Done.done())
+        );
     }
 
     @Override
@@ -201,8 +229,11 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
         return ReceiveBuilder.create()
                 .match(PurgeNamespace.class, this::purgeNamespace)
                 .match(PurgeEntities.class, this::purgeEntities)
+                .matchEquals(Control.OP_COMPLETE, this::opComplete)
+                .matchEquals(Control.SERVICE_UNBIND, this::serviceUnbind)
+                .matchEquals(Control.SERVICE_REQUESTS_DONE, this::serviceRequestsDone)
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::handleSubscribeAck)
-                .matchAny(message -> logger.warning("unhandled: <{}>", message))
+                .matchAny(message -> logger.warning("Unhandled message: <{}>", message))
                 .build();
     }
 
@@ -213,6 +244,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
             return;
         }
 
+        incrementOpCounter();
         l.info("Running <{}>.", purgeNamespace);
         final String namespace = purgeNamespace.getNamespace();
         final ActorRef sender = getSender();
@@ -222,6 +254,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
                 .thenAccept(errors -> {
                     final PurgeNamespaceResponse response;
                     if (errors.isEmpty()) {
+                        l.info("Successfully purged namespace <{}>.", namespace);
                         response = PurgeNamespaceResponse.successful(namespace, entityType,
                                 purgeNamespace.getDittoHeaders());
                     } else {
@@ -230,12 +263,13 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
                                 purgeNamespace.getDittoHeaders());
                     }
                     sender.tell(response, getSelf());
-                    l.info("Successfully purged namespace <{}>.", namespace);
+                    getSelf().tell(Control.OP_COMPLETE, ActorRef.noSender());
                 })
                 .exceptionally(error -> {
                     // Reply nothing - Error should not occur (DB errors were converted to stream elements and handled)
                     l.error(error, "Unexpected error when purging namespace <{}>!",
-                                    purgeNamespace.getNamespace());
+                            purgeNamespace.getNamespace());
+                    getSelf().tell(Control.OP_COMPLETE, ActorRef.noSender());
                     return null;
                 });
     }
@@ -251,6 +285,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
             return;
         }
 
+        incrementOpCounter();
         shutDownPersistenceActorsOfEntitiesToPurge(purgeEntities);
         schedulePurgingEntitiesIn(delayAfterPersistenceActorShutdown, purgeEntities);
     }
@@ -285,6 +320,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
                 .thenAccept(errors -> {
                     final PurgeEntitiesResponse response;
                     if (errors.isEmpty()) {
+                        l.info("Successfully purged entities of type <{}>: <{}>", purgeEntityType, entityIds);
                         response = PurgeEntitiesResponse.successful(purgeEntityType, purgeEntities.getDittoHeaders());
                     } else {
                         errors.forEach(error -> l.error(error, "Error purging entities of type <{}>: <{}>",
@@ -292,17 +328,73 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
                         response = PurgeEntitiesResponse.failed(purgeEntityType, purgeEntities.getDittoHeaders());
                     }
                     initiator.tell(response, getSelf());
-                    l.info("Successfully purged entities of type <{}>: <{}>", purgeEntityType, entityIds);
+                    getSelf().tell(Control.OP_COMPLETE, ActorRef.noSender());
                 })
                 .exceptionally(error -> {
                     // Reply nothing - Error should not occur (DB errors were converted to stream elements and handled)
                     l.error(error, "Unexpected error when purging entities <{}>!", purgeEntities.getEntityIds());
+                    getSelf().tell(Control.OP_COMPLETE, ActorRef.noSender());
                     return null;
                 });
     }
 
+    private void serviceUnbind(final Control serviceUnbind) {
+        logger.info("{}: unsubscribing from pubsub for {} actor", serviceUnbind, getActorName());
+
+        final ActorRef self = getSelf();
+        final CompletableFuture<Done> unsubscribeTask = CompletableFuture.allOf(
+                        Patterns.ask(pubSubMediator,
+                                        DistPubSubAccess.unsubscribeViaGroup(PurgeEntities.getTopic(entityType),
+                                                getSubscribeGroup(), self),
+                                        SHUTDOWN_ASK_TIMEOUT)
+                                .toCompletableFuture(),
+                        Patterns.ask(pubSubMediator,
+                                        DistPubSubAccess.unsubscribeViaGroup(PurgeNamespace.TYPE, getSubscribeGroup(),
+                                                self), SHUTDOWN_ASK_TIMEOUT)
+                                .toCompletableFuture())
+                .thenApply(ack -> {
+                    logger.info("{} unsubscribed successfully from pubsub for {} actor", getActorName());
+                    return Done.getInstance();
+                });
+
+        Patterns.pipe(unsubscribeTask, getContext().getDispatcher()).to(getSender());
+    }
+
+
+    private void incrementOpCounter() {
+        ++ongoingRequests;
+    }
+
+    private void decrementOpCounter() {
+        --ongoingRequests;
+    }
+
+    private void opComplete(final Control opComplete) {
+        decrementOpCounter();
+        if (shutdownReceiver != null && ongoingRequests == 0) {
+            logger.info("{}: finished waiting for requests", Control.SERVICE_REQUESTS_DONE);
+            shutdownReceiver.tell(Done.getInstance(), getSelf());
+        }
+    }
+
+    private void serviceRequestsDone(final Control serviceRequestsDone) {
+        if (ongoingRequests == 0) {
+            logger.info("{}: no ongoing requests", serviceRequestsDone);
+            getSender().tell(Done.getInstance(), getSelf());
+        } else {
+            logger.info("{}: waiting for {} ongoing requests", serviceRequestsDone, ongoingRequests);
+            shutdownReceiver = getSender();
+        }
+    }
+
     private void handleSubscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
         logger.debug("Got subscribeAck <{}>.", subscribeAck);
+    }
+
+    public enum Control {
+        SERVICE_UNBIND,
+        OP_COMPLETE,
+        SERVICE_REQUESTS_DONE
     }
 
 }

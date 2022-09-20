@@ -23,21 +23,22 @@ import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.ditto.base.api.common.purge.PurgeEntities;
+import org.eclipse.ditto.base.api.common.purge.PurgeEntitiesResponse;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
+import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespaceResponse;
+import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
 import org.eclipse.ditto.internal.utils.test.mongo.MongoDbResource;
-import org.eclipse.ditto.base.api.common.purge.PurgeEntities;
-import org.eclipse.ditto.base.api.common.purge.PurgeEntitiesResponse;
-import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
-import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespaceResponse;
-import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
@@ -55,17 +56,20 @@ import akka.testkit.javadsl.TestKit;
  */
 public abstract class MongoEventSourceITAssertions<I extends EntityId> {
 
+    @ClassRule
+    public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
+
+    @Rule
+    public final ActorSystemResource actorSystemResource =
+            ActorSystemResource.newInstance(getEventSourcingConfiguration());
+
     private static final Duration EXPECT_MESSAGE_TIMEOUT = Duration.ofSeconds(30);
     private static final Random RANDOM = new Random();
 
     protected static MongoDbConfig mongoDbConfig;
 
-    @ClassRule
-    public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
     protected static String mongoDbUri;
     protected static PersistenceOperationsConfig persistenceOperationsConfig;
-
-    private ActorSystem actorSystem;
 
     @BeforeClass
     public static void startMongoDb() {
@@ -81,13 +85,6 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
         Config mongoDbTestConfig = ConfigFactory.parseMap(Collections.singletonMap("mongodb.uri", mongoDbUri));
         mongoDbTestConfig = mongoDbTestConfig.withFallback(ConfigFactory.parseResources("mongodb_test"));
         return mongoDbTestConfig;
-    }
-
-    @After
-    public void shutDownActorSystem() {
-        if (actorSystem != null) {
-            TestKit.shutdownActorSystem(actorSystem);
-        }
     }
 
     protected void assertPurgeNamespace() {
@@ -175,14 +172,16 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
      *
      * @return config to feed the actor system and its actors.
      */
-    private Config getEventSourcingConfiguration() {
-        // - do not log dead letters (i. e., events for which there is no subscriber)
+    protected Config getEventSourcingConfiguration() {
+        // - do not log dead letters (i.e., events for which there is no subscriber)
         // - bind to random available port
         // - do not attempt to join an Akka cluster
         // - do not shutdown jvm on exit (breaks unit tests)
         // - make Mongo URI known to the persistence plugin and to the NamespaceOps actor
         final String testConfig = "akka.log-dead-letters=0\n" +
                 "akka.persistence.journal-plugin-fallback.circuit-breaker.call-timeout=30s\n" +
+                "akka.coordinated-shutdown.terminate-actor-system=off\n" +
+                "akka.coordinated-shutdown.run-by-actor-system-terminate=off\n" +
                 "akka-contrib-mongodb-persistence-policies-journal.circuit-breaker.call-timeout=30s\n" +
                 "akka-contrib-mongodb-persistence-things-journal.circuit-breaker.call-timeout=30s\n" +
                 "akka.remote.artery.bind.port=0\n" +
@@ -196,7 +195,7 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
     }
 
     private void purgeNamespace(final Config config) {
-        actorSystem = startActorSystem(config);
+        final var actorSystem = actorSystemResource.getActorSystem();
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .correlationId(String.valueOf(UUID.randomUUID()))
                 .build();
@@ -242,7 +241,7 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
     }
 
     private void purgeEntities(final Config config, final boolean prependNamespace) {
-        actorSystem = startActorSystem(config);
+        final var actorSystem = actorSystemResource.getActorSystem();
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .correlationId(String.valueOf(UUID.randomUUID()))
                 .build();
@@ -311,11 +310,6 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
         testKit.expectMsgClass(EXPECT_MESSAGE_TIMEOUT, getCreateEntityResponseClass());
     }
 
-    private ActorSystem startActorSystem(final Config config) {
-        final String name = getClass().getSimpleName() + '-' + UUID.randomUUID().toString();
-        return ActorSystem.create(name, config);
-    }
-
     private static String prependNamespace(final String id, final String ns, final boolean prepend) {
         if (prepend) {
             return ns + ':' + id;
@@ -324,7 +318,7 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
         }
     }
 
-    private static void sleep(final Duration duration) {
+    protected static void sleep(final Duration duration) {
         try {
             TimeUnit.MILLISECONDS.sleep(duration.toMillis());
         } catch (final Exception e) {

@@ -112,9 +112,9 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
     @Override
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
-
         final Props opsActorProps = ThingPersistenceOperationsActor.props(pubSubMediator, mongoDbConfig, config,
                 persistenceOperationsConfig);
+
         return actorSystem.actorOf(opsActorProps, ThingPersistenceOperationsActor.ACTOR_NAME);
     }
 

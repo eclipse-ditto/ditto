@@ -12,15 +12,29 @@
  */
 package org.eclipse.ditto.policies.service.persistence.actors;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
+import org.eclipse.ditto.base.api.common.purge.PurgeEntities;
+import org.eclipse.ditto.base.api.common.purge.PurgeEntitiesResponse;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
+import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespaceResponse;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
+import org.eclipse.ditto.internal.utils.persistence.operations.EntityPersistenceOperations;
+import org.eclipse.ditto.internal.utils.persistence.operations.NamespacePersistenceOperations;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.policies.model.SubjectType;
@@ -31,20 +45,36 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResp
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 
+import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.cluster.pubsub.DistributedPubSubMediator;
+import akka.stream.javadsl.Source;
+import akka.testkit.TestProbe;
+import akka.testkit.javadsl.TestKit;
+import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Tests {@link org.eclipse.ditto.policies.service.persistence.actors.PolicyPersistenceOperationsActor}.
  */
 @AllValuesAreNonnullByDefault
 public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceITAssertions<PolicyId> {
+
+    private EntityPersistenceOperations entitiesOpsMock;
+    private NamespacePersistenceOperations namespaceOpsMock;
+
+    @Before
+    public void setup() {
+        entitiesOpsMock = Mockito.mock(EntityPersistenceOperations.class);
+        namespaceOpsMock = Mockito.mock(NamespacePersistenceOperations.class);
+    }
 
     @Test
     public void purgeNamespaceWithoutSuffix() {
@@ -54,6 +84,79 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
     @Test
     public void purgeEntitiesWithNamespace() {
         assertPurgeEntitiesWithNamespace();
+    }
+
+    @Test
+    public void shutdownWithoutTask() {
+        final var actorSystem = actorSystemResource.getActorSystem();
+        new TestKit(actorSystem) {{
+            final var pubSubMediator = TestProbe.apply(actorSystem);
+            final var underTest = startActorUnderTest(actorSystem, pubSubMediator.ref());
+            pubSubMediator.expectMsgClass(DistributedPubSubMediator.Subscribe.class);
+            pubSubMediator.expectMsgClass(DistributedPubSubMediator.Subscribe.class);
+
+            underTest.tell(PolicyPersistenceOperationsActor.Control.SERVICE_UNBIND, getRef());
+            final var unsub1 = pubSubMediator.expectMsgClass(DistributedPubSubMediator.Unsubscribe.class);
+            pubSubMediator.reply(new DistributedPubSubMediator.UnsubscribeAck(unsub1));
+            final var unsub2 = pubSubMediator.expectMsgClass(DistributedPubSubMediator.Unsubscribe.class);
+            pubSubMediator.reply(new DistributedPubSubMediator.UnsubscribeAck(unsub2));
+            expectMsg(Done.getInstance());
+
+            underTest.tell(PolicyPersistenceOperationsActor.Control.SERVICE_REQUESTS_DONE, getRef());
+            expectMsg(Done.getInstance());
+        }};
+    }
+
+    @Test
+    public void shutdownWithPurgeNamespaceTask() {
+        final var actorSystem = actorSystemResource.getActorSystem();
+        new TestKit(actorSystem) {{
+            doAnswer(invocation -> {
+                sleep(Duration.ofSeconds(5));
+                return Source.single(List.of());
+            }).when(namespaceOpsMock).purge(any());
+
+            final var namespace = "namespaceToPurge";
+            final var pubSubMediator = TestProbe.apply(actorSystem);
+            final var underTest = startActorUnderTest(actorSystem, pubSubMediator.ref());
+            pubSubMediator.expectMsgClass(DistributedPubSubMediator.Subscribe.class);
+            pubSubMediator.expectMsgClass(DistributedPubSubMediator.Subscribe.class);
+
+            final PurgeNamespace purgeNamespace = PurgeNamespace.of(namespace, DittoHeaders.empty());
+            underTest.tell(purgeNamespace, getRef());
+            underTest.tell(PolicyPersistenceOperationsActor.Control.SERVICE_REQUESTS_DONE, getRef());
+            expectNoMsg(FiniteDuration.apply(4, TimeUnit.SECONDS));
+
+            expectMsg(PurgeNamespaceResponse.successful(namespace, PolicyConstants.ENTITY_TYPE, DittoHeaders.empty()));
+            expectMsg(Done.getInstance());
+        }};
+    }
+
+    @Test
+    public void shutdownWithPurgeEntitiesTask() {
+        final var actorSystem = actorSystemResource.getActorSystem();
+        new TestKit(actorSystem) {{
+            doAnswer(invocation -> {
+                sleep(Duration.ofSeconds(5));
+                return Source.single(List.of());
+            }).when(entitiesOpsMock).purgeEntities(any());
+
+            final var pubSubMediator = TestProbe.apply(actorSystem);
+            final var underTest = startActorUnderTest(actorSystem, pubSubMediator.ref());
+            pubSubMediator.expectMsgClass(DistributedPubSubMediator.Subscribe.class);
+            pubSubMediator.expectMsgClass(DistributedPubSubMediator.Subscribe.class);
+
+            final PurgeEntities purgeEntities = PurgeEntities.of(PolicyConstants.ENTITY_TYPE,
+                    List.of(EntityId.of(PolicyConstants.ENTITY_TYPE, "org.eclipse.ditto:ditto1")),
+                    DittoHeaders.empty());
+            underTest.tell(purgeEntities, getRef());
+            underTest.tell(PolicyPersistenceOperationsActor.Control.SERVICE_REQUESTS_DONE, getRef());
+            expectNoMsg(FiniteDuration.apply(5, TimeUnit.SECONDS));
+
+            expectMsg(Duration.ofSeconds(6), PurgeEntitiesResponse.successful(PolicyConstants.ENTITY_TYPE,
+                    DittoHeaders.empty()));
+            expectMsg(Done.getInstance());
+        }};
     }
 
     @Override
@@ -110,9 +213,16 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
     @Override
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
-
         final Props opsActorProps = PolicyPersistenceOperationsActor.props(pubSubMediator, mongoDbConfig, config,
                 persistenceOperationsConfig);
+
+        return actorSystem.actorOf(opsActorProps, PolicyPersistenceOperationsActor.ACTOR_NAME);
+    }
+
+    private ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator) {
+        final Props opsActorProps = PolicyPersistenceOperationsActor.propsForTest(pubSubMediator, mongoDbConfig,
+                persistenceOperationsConfig, namespaceOpsMock, entitiesOpsMock);
+
         return actorSystem.actorOf(opsActorProps, PolicyPersistenceOperationsActor.ACTOR_NAME);
     }
 

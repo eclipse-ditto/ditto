@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.policies.service.persistence.actors;
 
-import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEntitiesPersistenceOperations;
@@ -22,6 +21,7 @@ import org.eclipse.ditto.internal.utils.persistence.operations.AbstractPersisten
 import org.eclipse.ditto.internal.utils.persistence.operations.EntityPersistenceOperations;
 import org.eclipse.ditto.internal.utils.persistence.operations.NamespacePersistenceOperations;
 import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
+import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
@@ -68,8 +68,9 @@ public final class PolicyPersistenceOperationsActor extends AbstractPersistenceO
 
         return Props.create(PolicyPersistenceOperationsActor.class, () -> {
             final MongoEventSourceSettings eventSourceSettings =
-                    MongoEventSourceSettings.fromConfig(config, PolicyPersistenceActor.PERSISTENCE_ID_PREFIX, true,
-                            PolicyPersistenceActor.JOURNAL_PLUGIN_ID, PolicyPersistenceActor.SNAPSHOT_PLUGIN_ID);
+                    MongoEventSourceSettings.fromConfig(config, PolicyPersistenceActor.PERSISTENCE_ID_PREFIX,
+                            true, PolicyPersistenceActor.JOURNAL_PLUGIN_ID,
+                            PolicyPersistenceActor.SNAPSHOT_PLUGIN_ID);
 
             final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
             final MongoDatabase db = mongoClient.getDefaultDatabase();
@@ -82,6 +83,25 @@ public final class PolicyPersistenceOperationsActor extends AbstractPersistenceO
             return new PolicyPersistenceOperationsActor(pubSubMediator, namespaceOps, entitiesOps, mongoClient,
                     persistenceOperationsConfig);
         });
+    }
+
+    static Props propsForTest(final ActorRef pubSubMediator,
+            final MongoDbConfig mongoDbConfig,
+            final PersistenceOperationsConfig persistenceOperationsConfig,
+            final NamespacePersistenceOperations namespaceOps,
+            final EntityPersistenceOperations entitiesOps) {
+
+        return Props.create(PolicyPersistenceOperationsActor.class, () -> {
+            final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
+
+            return new PolicyPersistenceOperationsActor(pubSubMediator, namespaceOps, entitiesOps, mongoClient,
+                    persistenceOperationsConfig);
+        });
+    }
+
+    @Override
+    public String getActorName() {
+        return ACTOR_NAME;
     }
 
 }
