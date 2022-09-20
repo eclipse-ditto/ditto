@@ -45,13 +45,9 @@ import org.mozilla.javascript.commonjs.module.provider.UrlModuleSourceProvider;
 /**
  * This mapper executes its mapping methods on the <b>current thread</b>. The caller should be aware of that.
  */
-@PayloadMapper(
-        alias = {"JavaScript",
-                // legacy full qualified name
-                "org.eclipse.ditto.connectivity.service.mapping.javascript.JavaScriptMessageMapperRhino"},
-        requiresMandatoryConfiguration = true // "incomingScript" and "outgoingScript" are mandatory configuration
-)
-final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
+final class JavaScriptMessageMapperRhino extends AbstractMessageMapper implements PayloadMapper {
+
+    private static final String PAYLOAD_MAPPER_ALIAS = "JavaScript";
 
     private static final String WEBJARS_PATH = "/META-INF/resources/webjars";
 
@@ -74,6 +70,19 @@ final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
      */
     JavaScriptMessageMapperRhino() {
         super();
+    }
+
+    @Override
+    public String getAlias() {
+        return PAYLOAD_MAPPER_ALIAS;
+    }
+
+    /**
+     * "incomingScript" and "outgoingScript" are mandatory.
+     */
+    @Override
+    public boolean isConfigurationMandatory() {
+        return true;
     }
 
     @Override

@@ -31,14 +31,14 @@ import org.eclipse.ditto.protocol.ProtocolFactory;
 
 /**
  * A message mapper implementation for the Ditto Protocol.
- * Expects messages to contain a JSON serialized Ditto Protocol message.
+ * Expect messages to contain a JSON serialized Ditto Protocol message.
  */
-@PayloadMapper(
-        alias = {"Ditto",
-                // legacy full qualified name
-                "org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper"})
-public final class DittoMessageMapper extends AbstractMessageMapper {
+public final class DittoMessageMapper extends AbstractMessageMapper implements PayloadMapper {
 
+    /**
+     * The alias of this mapper.
+     */
+    public static final String ALIAS = "Ditto";
 
     static final JsonObject DEFAULT_OPTIONS = JsonObject.newBuilder()
             .set(MessageMapperConfiguration.CONTENT_TYPE_BLOCKLIST,
@@ -53,9 +53,14 @@ public final class DittoMessageMapper extends AbstractMessageMapper {
      * The context representing this mapper
      */
     public static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContextBuilder(
-            DittoMessageMapper.class.getCanonicalName(),
-            DEFAULT_OPTIONS
-    ).build();
+                    DittoMessageMapper.class.getCanonicalName(),
+                    DEFAULT_OPTIONS)
+            .build();
+
+    @Override
+    public String getAlias() {
+        return ALIAS;
+    }
 
     @Override
     public List<Adaptable> map(final ExternalMessage message) {

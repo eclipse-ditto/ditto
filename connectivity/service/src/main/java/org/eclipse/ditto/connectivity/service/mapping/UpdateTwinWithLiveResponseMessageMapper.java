@@ -60,8 +60,9 @@ import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandRe
  * It might be configured with a {@code dittoHeadersForMerge} JsonObject containing {@link DittoHeaders} to apply for
  * the created {@code MergeThing} command, e.g. adding a condition for the merge update.
  */
-@PayloadMapper(alias = "UpdateTwinWithLiveResponse")
-public class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessageMapper {
+public class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessageMapper implements PayloadMapper {
+
+    private static final String PAYLOAD_MAPPER_ALIAS = "UpdateTwinWithLiveResponse";
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(
             UpdateTwinWithLiveResponseMessageMapper.class);
@@ -87,6 +88,11 @@ public class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessageMapp
     static final String CORRELATION_ID_SUFFIX = "-merge-into-twin";
 
     private DittoHeaders dittoHeadersForMerge = DEFAULT_DITTO_HEADERS_FOR_MERGE;
+
+    @Override
+    public String getAlias() {
+        return PAYLOAD_MAPPER_ALIAS;
+    }
 
     @Override
     public void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {

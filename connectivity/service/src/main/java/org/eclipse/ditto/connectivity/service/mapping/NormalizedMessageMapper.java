@@ -45,8 +45,9 @@ import org.eclipse.ditto.things.model.ThingId;
  * Create-,  modify- and merged-events are mapped to nested sparse JSON.
  * All other signals and incoming messages are dropped.
  */
-@PayloadMapper(alias = "Normalized")
-public final class NormalizedMessageMapper extends AbstractMessageMapper {
+public final class NormalizedMessageMapper extends AbstractMessageMapper implements PayloadMapper {
+
+    private static final String PAYLOAD_MAPPER_ALIAS = "Normalized";
 
     /**
      * Config property to project parts from the mapping result.
@@ -61,6 +62,11 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
 
     @Nullable
     private JsonFieldSelector jsonFieldSelector;
+
+    @Override
+    public String getAlias() {
+        return PAYLOAD_MAPPER_ALIAS;
+    }
 
     @Override
     public String getId() {

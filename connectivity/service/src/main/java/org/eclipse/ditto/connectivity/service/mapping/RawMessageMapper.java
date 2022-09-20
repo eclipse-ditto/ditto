@@ -64,8 +64,9 @@ import akka.http.javadsl.model.ContentTypes;
 /**
  * A message mapper implementation to convert between raw message payload and external message payload.
  */
-@PayloadMapper(alias = {"RawMessage"})
-public final class RawMessageMapper extends AbstractMessageMapper {
+public final class RawMessageMapper extends AbstractMessageMapper implements PayloadMapper {
+
+    private static final String PAYLOAD_MAPPER_ALIAS = "RawMessage";
 
     private static final JsonKey MESSAGES_JSON_KEY = JsonKey.of("messages");
     private static final String OUTGOING_CONTENT_TYPE_KEY = "outgoingContentType";
@@ -122,6 +123,11 @@ public final class RawMessageMapper extends AbstractMessageMapper {
     private Map<String, String> incomingMessageHeaders = DEFAULT_INCOMING_HEADERS;
 
     private final DittoMessageMapper dittoMessageMapper = new DittoMessageMapper();
+
+    @Override
+    public String getAlias() {
+        return PAYLOAD_MAPPER_ALIAS;
+    }
 
     @Override
     public List<Adaptable> map(final ExternalMessage externalMessage) {
