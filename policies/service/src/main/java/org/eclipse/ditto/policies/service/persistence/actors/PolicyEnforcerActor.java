@@ -16,6 +16,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -26,6 +27,7 @@ import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.enforcement.AbstractEnforcerActor;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
@@ -45,16 +47,17 @@ public final class PolicyEnforcerActor
 
     private static final String ENFORCEMENT_DISPATCHER = "enforcement-dispatcher";
 
+    private final Function<PolicyId, Optional<Policy>> importedPolicyResolver =
+            importedPolicyId -> loadPolicy(importedPolicyId)
+                    .toCompletableFuture()
+                    .join();
     private final PolicyEnforcerProvider policyEnforcerProvider = policyId -> {
         if (null == policyId) {
             return CompletableFuture.completedStage(Optional.empty());
         } else {
-            return Patterns.ask(getContext().getParent(), SudoRetrievePolicy.of(policyId,
-                            DittoHeaders.newBuilder()
-                                    .correlationId("sudoRetrievePolicyFromPolicyEnforcerActor-" + UUID.randomUUID())
-                                    .build()
-                    ), DEFAULT_LOCAL_ASK_TIMEOUT
-            ).thenApply(PolicyEnforcerActor::handleSudoRetrievePolicyResponse);
+            return loadPolicy(policyId)
+                    .thenApply(optPolicy -> optPolicy
+                            .map(policy -> PolicyEnforcer.withResolvedImports(policy, importedPolicyResolver)));
         }
     };
 
@@ -88,15 +91,26 @@ public final class PolicyEnforcerActor
     @Override
     protected CompletionStage<Optional<PolicyEnforcer>> loadPolicyEnforcer(final Signal<?> signal) {
         if (signal instanceof CreatePolicy createPolicy) {
-            return CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(createPolicy.getPolicy())));
+            return CompletableFuture.completedStage(
+                    Optional.of(PolicyEnforcer.withResolvedImports(createPolicy.getPolicy(), importedPolicyResolver))
+            );
         }
         return super.loadPolicyEnforcer(signal);
     }
 
-    private static Optional<PolicyEnforcer> handleSudoRetrievePolicyResponse(final Object response) {
+    private CompletionStage<Optional<Policy>> loadPolicy(final PolicyId policyId) {
+        return Patterns.ask(getContext().getParent(), SudoRetrievePolicy.of(policyId,
+                        DittoHeaders.newBuilder()
+                                .correlationId("sudoRetrievePolicyFromPolicyEnforcerActor-" + UUID.randomUUID())
+                                .build()
+                ), DEFAULT_LOCAL_ASK_TIMEOUT
+        ).thenApply(PolicyEnforcerActor::handleSudoRetrievePolicyResponse);
+    }
+
+    private static Optional<Policy> handleSudoRetrievePolicyResponse(final Object response) {
         if (response instanceof SudoRetrievePolicyResponse sudoRetrievePolicyResponse) {
             final var policy = sudoRetrievePolicyResponse.getPolicy();
-            return Optional.of(PolicyEnforcer.of(policy));
+            return Optional.of(policy);
         } else if (response instanceof PolicyNotAccessibleException) {
             return Optional.empty();
         } else {

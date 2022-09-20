@@ -15,10 +15,13 @@ package org.eclipse.ditto.policies.model;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -438,6 +441,17 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
                 .build();
     }
 
+    default Policy withResolvedImports(final Function<PolicyId, Optional<Policy>> policyResolver) {
+        final Optional<PolicyImports> imports = getImports();
+        final Policy resolvedPolicy;
+        if (imports.isPresent()) {
+            return this.toBuilder().setAll(PolicyImporter.mergeImportedPolicyEntries(this, policyResolver)).build();
+        } else {
+            resolvedPolicy = this;
+        }
+        return resolvedPolicy;
+    }
+
     /**
      * An enumeration of the known {@link JsonField}s of a Policy.
      */
@@ -494,6 +508,7 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
 
         /**
          * JSON field containing the Policy's imports.
+         *
          * @since 3.x.0 TODO ditto#298
          */
         public static final JsonFieldDefinition<JsonObject> IMPORTS =

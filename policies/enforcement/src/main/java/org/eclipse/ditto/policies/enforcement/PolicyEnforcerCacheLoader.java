@@ -12,8 +12,10 @@
  */
 package org.eclipse.ditto.policies.enforcement;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.function.Function;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -52,16 +54,24 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<PolicyI
     }
 
     @Override
-    public CompletableFuture<Entry<PolicyEnforcer>> asyncLoad(final PolicyId policyId,
-            final Executor executor) {
-        return delegate.asyncLoad(policyId, executor).thenApply(PolicyEnforcerCacheLoader::evaluatePolicy);
+    public CompletableFuture<Entry<PolicyEnforcer>> asyncLoad(final PolicyId policyId, final Executor executor) {
+
+        final Function<PolicyId, Optional<Policy>> policyResolver =
+                policyIdToResolve -> delegate.asyncLoad(policyIdToResolve, executor)
+                        .thenApply(Entry::get)
+                        .toCompletableFuture()
+                        .join();
+
+        return delegate.asyncLoad(policyId, executor)
+                .thenApply(policyEntry -> evaluatePolicy(policyEntry, policyResolver));
     }
 
-    private static Entry<PolicyEnforcer> evaluatePolicy(final Entry<Policy> entry) {
+    private Entry<PolicyEnforcer> evaluatePolicy(final Entry<Policy> entry,
+            final Function<PolicyId, Optional<Policy>> policyResolver) {
         if (entry.exists()) {
             final var revision = entry.getRevision();
             final var policy = entry.getValueOrThrow();
-            return Entry.of(revision, PolicyEnforcer.of(policy));
+            return Entry.of(revision, PolicyEnforcer.withResolvedImports(policy, policyResolver));
         } else {
             return Entry.nonexistent();
         }

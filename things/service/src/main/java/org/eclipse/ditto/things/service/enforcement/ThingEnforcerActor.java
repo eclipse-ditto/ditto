@@ -69,6 +69,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.pattern.AskTimeoutException;
 import akka.pattern.Patterns;
@@ -88,6 +89,7 @@ public final class ThingEnforcerActor
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
     private final ActorRef policiesShardRegion;
     private final AskWithRetryConfig askWithRetryConfig;
+    private final PolicyEnforcerProvider policyEnforcerProvider;
 
     @SuppressWarnings("unused")
     private ThingEnforcerActor(final ThingId thingId,
@@ -101,8 +103,10 @@ public final class ThingEnforcerActor
 
         this.policiesShardRegion = policiesShardRegion;
         this.askWithRetryConfig = askWithRetryConfig;
+        final ActorSystem system = context().system();
         policyIdReferencePlaceholderResolver = PolicyIdReferencePlaceholderResolver.of(
-                thingsShardRegion, askWithRetryConfig, context().system());
+                thingsShardRegion, askWithRetryConfig, system);
+        this.policyEnforcerProvider = policyEnforcerProvider;
     }
 
     /**
@@ -206,7 +210,19 @@ public final class ThingEnforcerActor
             final Policy defaultPolicy = getDefaultPolicy(createThing.getDittoHeaders(), createThing.getEntityId());
             policyCs = createPolicy(defaultPolicy, createThing);
         }
-        return policyCs.thenApply(PolicyEnforcer::of);
+        return policyCs
+                .thenCompose(policy -> policyEnforcerProvider.getPolicyEnforcer(policy.getEntityId().orElse(null))
+                        .thenApply(optionalEnforcer -> optionalEnforcer.orElseThrow(
+                                () -> {
+                                    final DittoHeaders dittoHeaders = createThing.getDittoHeaders();
+                                    log.withCorrelationId(dittoHeaders)
+                                            .error("Could not get enforcer for newly created policy." +
+                                                    " This is an unexpected situation and should get analyzed.");
+                                    return DittoInternalErrorException.newBuilder()
+                                            .dittoHeaders(dittoHeaders)
+                                            .build();
+                                })
+                        ));
     }
 
     private CompletionStage<Policy> getCopiedPolicy(final String policyIdOrPlaceholder,
