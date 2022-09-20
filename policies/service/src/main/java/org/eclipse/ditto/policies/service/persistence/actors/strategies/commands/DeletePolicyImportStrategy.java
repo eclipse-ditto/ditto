@@ -26,6 +26,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImportResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
@@ -53,7 +54,7 @@ final class DeletePolicyImportStrategy extends AbstractPolicyCommandStrategy<Del
         final PolicyId importedPolicyId = command.getImportedPolicyId();
         final PolicyId policyId = context.getState();
 
-        if (nonNullPolicy.contains(importedPolicyId)) {
+        if (nonNullPolicy.getPolicyImports().stream().flatMap(PolicyImports::stream).anyMatch(policyImport -> importedPolicyId.equals(policyImport.getImportedPolicyId()))) {
             final PolicyImportDeleted policyImportDeleted =
                     PolicyImportDeleted.of(policyId, importedPolicyId, nextRevision, getEventTimestamp(), dittoHeaders,
                             metadata);
