@@ -473,7 +473,7 @@ final class ImmutablePolicy implements Policy {
     }
 
     @Override
-    public Optional<PolicyImports> getImports() {
+    public Optional<PolicyImports> getPolicyImports() {
         return Optional.ofNullable(imports);
     }
 

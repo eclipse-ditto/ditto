@@ -70,7 +70,7 @@ final class DeletePolicyImportStrategy extends AbstractPolicyCommandStrategy<Del
     public Optional<EntityTag> previousEntityTag(final DeletePolicyImport command,
             @Nullable final Policy previousEntity) {
         return Optional.ofNullable(previousEntity)
-                .flatMap(Policy::getImports)
+                .flatMap(Policy::getPolicyImports)
                 .flatMap(im -> EntityTag.fromEntity(im.getPolicyImport(command.getImportedPolicyId()).orElse(null)));
     }
 

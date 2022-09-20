@@ -89,7 +89,7 @@ final class ModifyPolicyImportStrategy extends AbstractPolicyCommandStrategy<Mod
         final ModifyPolicyImport adjustedCommand = ModifyPolicyImport.of(command.getEntityId(), policyImport,
                 adjustedHeaders);
 
-        final PolicyImports newPolicyImports = nonNullPolicy.getImports().map(imports -> imports.setPolicyImport(policyImport)).orElse(PolicyImports.newInstance(policyImport));
+        final PolicyImports newPolicyImports = nonNullPolicy.getPolicyImports().map(imports -> imports.setPolicyImport(policyImport)).orElse(PolicyImports.newInstance(policyImport));
         final Policy newPolicy = nonNullPolicy.toBuilder().setPolicyImports(newPolicyImports).build();
 
         final Optional<Result<PolicyEvent<?>>> alreadyExpiredSubject =
@@ -102,7 +102,7 @@ final class ModifyPolicyImportStrategy extends AbstractPolicyCommandStrategy<Mod
 
         final PolicyEvent<?> eventToPersist;
         final ModifyPolicyImportResponse createdOrModifiedResponse;
-        if (nonNullPolicy.getImports().map(policyImports -> policyImports.getPolicyImport(importedPolicyId).isPresent()).orElse(false)) {
+        if (nonNullPolicy.getPolicyImports().map(policyImports -> policyImports.getPolicyImport(importedPolicyId).isPresent()).orElse(false)) {
             eventToPersist =
                     PolicyImportModified.of(policyId,
                             policyImport, nextRevision, getEventTimestamp(),

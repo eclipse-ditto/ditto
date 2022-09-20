@@ -47,7 +47,7 @@ final class RetrievePolicyImportsStrategy extends AbstractPolicyQueryCommandStra
 
         final PolicyId policyId = context.getState();
         if (policy != null) {
-            final Optional<PolicyImports> imports = policy.getImports();
+            final Optional<PolicyImports> imports = policy.getPolicyImports();
             if (imports.isPresent()) {
                 final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                         RetrievePolicyImportsResponse.of(policyId, imports.get(), command.getDittoHeaders()), policy);
@@ -59,6 +59,6 @@ final class RetrievePolicyImportsStrategy extends AbstractPolicyQueryCommandStra
 
     @Override
     public Optional<EntityTag> nextEntityTag(final RetrievePolicyImports command, @Nullable final Policy newEntity) {
-        return Optional.ofNullable(newEntity).map(Policy::getImports).flatMap(EntityTag::fromEntity);
+        return Optional.ofNullable(newEntity).map(Policy::getPolicyImports).flatMap(EntityTag::fromEntity);
     }
 }

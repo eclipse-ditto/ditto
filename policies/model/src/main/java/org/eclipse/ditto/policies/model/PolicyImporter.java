@@ -47,7 +47,7 @@ public final class PolicyImporter {
             final Function<PolicyId, Optional<Policy>> policyLoader) {
         final Set<PolicyEntry> policyEntriesSet = new HashSet<>(policy.getEntriesSet());
 
-        policy.getImports()
+        policy.getPolicyImports()
                 .map(PolicyImports::stream)
                 .map(stream -> stream.map(policyImport -> {
                     final PolicyId importedPolicyId = policyImport.getImportedPolicyId();

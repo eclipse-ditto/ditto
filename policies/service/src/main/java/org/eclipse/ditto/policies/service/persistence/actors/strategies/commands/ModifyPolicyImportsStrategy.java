@@ -90,7 +90,7 @@ final class ModifyPolicyImportsStrategy extends AbstractPolicyCommandStrategy<Mo
     @Override
     public Optional<EntityTag> previousEntityTag(final ModifyPolicyImports command,
             @Nullable final Policy previousEntity) {
-        return Optional.ofNullable(previousEntity).map(Policy::getImports).flatMap(EntityTag::fromEntity);
+        return Optional.ofNullable(previousEntity).map(Policy::getPolicyImports).flatMap(EntityTag::fromEntity);
     }
 
     @Override

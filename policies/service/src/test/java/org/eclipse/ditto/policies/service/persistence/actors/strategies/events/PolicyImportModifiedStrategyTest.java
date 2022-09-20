@@ -43,7 +43,7 @@ public class PolicyImportModifiedStrategyTest extends AbstractPolicyEventStrateg
 
     @Override
     protected void additionalAssertions(final Policy policyWithEventApplied) {
-        assertThat(policyWithEventApplied.getImports().get().getPolicyImport(MODIFIED.getImportedPolicyId())).contains(
+        assertThat(policyWithEventApplied.getPolicyImports().get().getPolicyImport(MODIFIED.getImportedPolicyId())).contains(
                 MODIFIED);
     }
 }

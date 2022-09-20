@@ -99,8 +99,7 @@ final class PolicyImportsRoute extends AbstractRoute {
      *
      * @return {@code /imports/<importedPolicyId>} route.
      */
-    private Route policyImport(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final PolicyId policyId) {
+    private Route policyImport(final RequestContext ctx, final DittoHeaders dittoHeaders,  final PolicyId policyId) {
 
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), importedPolicyId ->
                 pathEndOrSingleSlash(() ->

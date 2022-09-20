@@ -384,7 +384,7 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
      * @return the PolicyImports of this Policy.
      * @since 3.x.0 TODO ditto#298
      */
-    Optional<PolicyImports> getImports();
+    Optional<PolicyImports> getPolicyImports();
 
     /**
      * Returns the entries of this Policy as set. The returned set is modifiable but disjoint from this Policy; thus

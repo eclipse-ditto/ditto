@@ -26,7 +26,7 @@ final class PolicyImportCreatedStrategy extends AbstractPolicyEventStrategy<Poli
     protected PolicyBuilder applyEvent(final PolicyImportCreated pic, final Policy policy,
             final PolicyBuilder policyBuilder) {
         return policyBuilder.setPolicyImports(
-                policy.getImports()
+                policy.getPolicyImports()
                         .map(policyImports -> policyImports.setPolicyImport(pic.getPolicyImport()))
                         .orElse(PolicyImports.newInstance(pic.getPolicyImport())));
     }

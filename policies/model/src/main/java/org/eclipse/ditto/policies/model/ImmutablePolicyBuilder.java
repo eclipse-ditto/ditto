@@ -117,7 +117,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
                 .setLifecycle(existingPolicy.getLifecycle().orElse(null))
                 .setRevision(existingPolicy.getRevision().orElse(null))
                 .setModified(existingPolicy.getModified().orElse(null))
-                .setPolicyImports(existingPolicy.getImports().orElse(null));
+                .setPolicyImports(existingPolicy.getPolicyImports().orElse(null));
 
         existingPolicy.getEntityId().ifPresent(result::setId);
         existingPolicy.forEach(result::set);
