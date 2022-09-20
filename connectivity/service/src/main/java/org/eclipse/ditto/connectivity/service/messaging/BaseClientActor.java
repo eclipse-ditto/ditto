@@ -484,6 +484,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .event(RetrieveConnectionLogs.class, (command, data) -> retrieveConnectionLogs(command))
                 .event(ResetConnectionLogs.class, this::resetConnectionLogs)
                 .event(CheckConnectionLogsActive.class, (command, data) -> checkLoggingActive(command))
+                .event(InboundSignal.class, (signal, d) -> signal.isDispatched(), this::handleDispatchedInboundSignal)
                 .event(InboundSignal.class, this::handleInboundSignal)
                 .event(PublishMappedMessage.class, this::publishMappedMessage)
                 .event(ConnectivityCommand.class, this::onUnknownEvent) // relevant connectivity commands were handled
@@ -1628,6 +1629,13 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return stay();
     }
 
+    private FSM.State<BaseClientState, BaseClientData> handleDispatchedInboundSignal(final InboundSignal inboundSignal,
+            final BaseClientData data) {
+        // another actor dispatched this inbound signal to this actor. forward to outboundDispatchingActor.
+        outboundDispatchingActor.forward(inboundSignal, getContext());
+        return stay();
+    }
+
     private FSM.State<BaseClientState, BaseClientData> handleInboundSignal(final InboundSignal inboundSignal,
             final BaseClientData data) {
         // dispatch signal to other client actors according to entity ID
@@ -1636,7 +1644,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             dispatchSearchCommand((WithSubscriptionId<?>) signal);
         } else {
             final var entityId = tryExtractEntityId(signal).orElseThrow();
-            connectionPubSub.publishSignal(signal, connectionId(), entityId, getSender());
+            connectionPubSub.publishSignal(inboundSignal.asDispatched(), connectionId(), entityId, getSender());
         }
         return stay();
     }
