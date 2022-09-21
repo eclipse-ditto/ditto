@@ -19,6 +19,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -118,7 +119,9 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
 
     @Override
     protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final PolicyId id) {
-        final Props props = PolicySupervisorActor.props(pubSubMediator, Mockito.mock(DistributedPub.class), null);
+        final Props props =
+                PolicySupervisorActor.props(pubSubMediator, Mockito.mock(DistributedPub.class), null, Mockito.mock(
+                        PolicyEnforcerProvider.class));
 
         return system.actorOf(props, id.toString());
     }

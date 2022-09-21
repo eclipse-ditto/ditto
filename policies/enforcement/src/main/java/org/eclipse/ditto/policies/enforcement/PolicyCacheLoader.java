@@ -21,7 +21,13 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.ActorAskCacheLoader;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
+import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
+import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.internal.utils.cluster.config.DefaultClusterConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
+import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -31,6 +37,7 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAcc
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Scheduler;
 
 /**
@@ -58,6 +65,22 @@ public final class PolicyCacheLoader implements AsyncCacheLoader<PolicyId, Entry
                 policiesShardRegionProxy,
                 PolicyCommandFactory::sudoRetrievePolicy,
                 PolicyCacheLoader::extractPolicy);
+    }
+
+    public static PolicyCacheLoader of(final ActorSystem actorSystem) {
+        final DefaultScopedConfig dittoScoped = DefaultScopedConfig.dittoScoped(actorSystem.settings().config());
+        final AskWithRetryConfig askWithRetryConfig = DefaultEnforcementConfig.of(dittoScoped)
+                .getAskWithRetryConfig();
+
+        final ClusterConfig clusterConfig = DefaultClusterConfig.of(dittoScoped);
+        final ShardRegionProxyActorFactory shardRegionProxyActorFactory =
+                ShardRegionProxyActorFactory.newInstance(actorSystem, clusterConfig);
+
+        final ActorRef policiesShardRegion = shardRegionProxyActorFactory.getShardRegionProxyActor(
+                PoliciesMessagingConstants.CLUSTER_ROLE,
+                PoliciesMessagingConstants.SHARD_REGION
+        );
+        return new PolicyCacheLoader(askWithRetryConfig, actorSystem.scheduler(), policiesShardRegion);
     }
 
     @Override

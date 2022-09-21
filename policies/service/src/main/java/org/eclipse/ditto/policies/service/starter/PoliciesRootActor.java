@@ -34,6 +34,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceClea
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsubpolicies.PolicyAnnouncementPubSubFactory;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.service.common.config.PoliciesConfig;
 import org.eclipse.ditto.policies.service.persistence.actors.PoliciesPersistenceStreamingActorCreator;
@@ -86,8 +87,10 @@ public final class PoliciesRootActor extends DittoRootActor {
         ClusterUtil.startSingleton(actorSystem, getContext(), PoliciesMessagingConstants.CLUSTER_ROLE,
                 BlockedNamespacesUpdater.ACTOR_NAME, blockedNamespacesUpdaterProps);
 
+        final PolicyEnforcerProvider policyEnforcerProvider = PolicyEnforcerProvider.getInstance(actorSystem);
         final var policySupervisorProps =
-                getPolicySupervisorActorProps(pubSubMediator, policyAnnouncementPub, blockedNamespaces);
+                getPolicySupervisorActorProps(pubSubMediator, policyAnnouncementPub, blockedNamespaces,
+                        policyEnforcerProvider);
 
         final var clusterConfig = policiesConfig.getClusterConfig();
         final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(clusterConfig.getNumberOfShards(),
@@ -136,9 +139,11 @@ public final class PoliciesRootActor extends DittoRootActor {
 
     private static Props getPolicySupervisorActorProps(final ActorRef pubSubMediator,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
-            final BlockedNamespaces blockedNamespaces) {
+            final BlockedNamespaces blockedNamespaces,
+            final PolicyEnforcerProvider policyEnforcerProvider) {
 
-        return PolicySupervisorActor.props(pubSubMediator, policyAnnouncementPub, blockedNamespaces);
+        return PolicySupervisorActor.props(pubSubMediator, policyAnnouncementPub, blockedNamespaces,
+                policyEnforcerProvider);
     }
 
     /**
