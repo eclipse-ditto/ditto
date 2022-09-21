@@ -28,6 +28,8 @@ import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.TopicPath;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 
 /**
@@ -36,10 +38,18 @@ import akka.actor.ActorSystem;
  */
 public abstract class AbstractMessageMapper implements MessageMapper {
 
+    protected final ActorSystem actorSystem;
+    protected final Config config;
+
     private String id;
     private Map<String, String> incomingConditions;
     private Map<String, String> outgoingConditions;
     private Collection<String> contentTypeBlocklist;
+
+    protected AbstractMessageMapper(final ActorSystem actorSystem, final Config config) {
+        this.actorSystem = actorSystem;
+        this.config = config;
+    }
 
     @Override
     public String getId() {
@@ -72,16 +82,18 @@ public abstract class AbstractMessageMapper implements MessageMapper {
         this.outgoingConditions = configuration.getOutgoingConditions();
         this.contentTypeBlocklist = configuration.getContentTypeBlocklist();
         final MappingConfig mappingConfig = connectivityConfig.getMappingConfig();
-        doConfigure(mappingConfig, configuration);
+        doConfigure(connection, mappingConfig, configuration);
     }
 
     /**
      * Applies the mapper specific configuration.
      *
+     * @param connection the connection to apply the mapping for.
      * @param mappingConfig the service configuration for the mapping.
      * @param configuration the mapper specific configuration configured in scope of a single connection.
      */
-    protected void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
+    protected void doConfigure(final Connection connection, final MappingConfig mappingConfig,
+            final MessageMapperConfiguration configuration) {
         // noop default
     }
 

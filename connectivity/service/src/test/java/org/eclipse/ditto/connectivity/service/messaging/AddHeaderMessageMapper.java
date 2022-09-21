@@ -28,8 +28,10 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
-import org.eclipse.ditto.connectivity.service.mapping.PayloadMapper;
 import org.eclipse.ditto.protocol.Adaptable;
+import org.mockito.Mockito;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -38,7 +40,6 @@ import akka.actor.ActorSystem;
  * {@link org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper} and adds some headers to verify the
  * custom mapping was applied.
  */
-@PayloadMapper(getAlias = AddHeaderMessageMapper.ALIAS)
 public final class AddHeaderMessageMapper implements MessageMapper {
 
     static final String ALIAS = "header";
@@ -53,11 +54,26 @@ public final class AddHeaderMessageMapper implements MessageMapper {
     static final Map.Entry<String, String> OUTBOUND_HEADER =
             new AbstractMap.SimpleImmutableEntry<>("outbound", "mapping");
 
-    private final MessageMapper delegate = new DittoMessageMapper();
+    private final MessageMapper delegate = new DittoMessageMapper(Mockito.mock(ActorSystem.class), Mockito.mock(Config.class));
 
     @Override
     public String getId() {
         return "header";
+    }
+
+    @Override
+    public String getAlias() {
+        return ALIAS;
+    }
+
+    @Override
+    public boolean isConfigurationMandatory() {
+        return false;
+    }
+
+    @Override
+    public MessageMapper getOrCreateInstance() {
+        return this;
     }
 
     @Override

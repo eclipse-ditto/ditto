@@ -63,6 +63,21 @@ final class WrappingMessageMapper implements MessageMapper {
     }
 
     @Override
+    public String getAlias() {
+        return delegate.getAlias();
+    }
+
+    @Override
+    public boolean isConfigurationMandatory() {
+        return delegate.isConfigurationMandatory();
+    }
+
+    @Override
+    public MessageMapper getOrCreateInstance() {
+        return delegate.getOrCreateInstance();
+    }
+
+    @Override
     public Collection<String> getContentTypeBlocklist() {
         return delegate.getContentTypeBlocklist();
     }

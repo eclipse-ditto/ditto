@@ -27,12 +27,13 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.connectivity.service.config.javascript.JavaScriptConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.connectivity.service.mapping.AbstractMessageMapper;
+import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
-import org.eclipse.ditto.connectivity.service.mapping.PayloadMapper;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
@@ -42,10 +43,14 @@ import org.mozilla.javascript.commonjs.module.RequireBuilder;
 import org.mozilla.javascript.commonjs.module.provider.SoftCachingModuleScriptProvider;
 import org.mozilla.javascript.commonjs.module.provider.UrlModuleSourceProvider;
 
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
+
 /**
  * This mapper executes its mapping methods on the <b>current thread</b>. The caller should be aware of that.
  */
-final class JavaScriptMessageMapperRhino extends AbstractMessageMapper implements PayloadMapper {
+final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
 
     private static final String PAYLOAD_MAPPER_ALIAS = "JavaScript";
 
@@ -65,11 +70,13 @@ final class JavaScriptMessageMapperRhino extends AbstractMessageMapper implement
     private MappingFunction<Adaptable, List<ExternalMessage>> outgoingMapping = DefaultOutgoingMapping.get();
 
     /**
-     * Constructs a new {@code JavaScriptMessageMapper} object.
-     * This constructor is required as the the instance is created via reflection.
+     * Constructs a new instance of JavaScriptMessageMapperRhino extension.
+     *
+     * @param actorSystem the actor system in which to load the extension.
+     * @param config the configuration for this extension.
      */
-    JavaScriptMessageMapperRhino() {
-        super();
+    JavaScriptMessageMapperRhino(final ActorSystem actorSystem, final Config config) {
+        super(actorSystem, config);
     }
 
     @Override
@@ -86,7 +93,13 @@ final class JavaScriptMessageMapperRhino extends AbstractMessageMapper implement
     }
 
     @Override
-    public void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration options) {
+    public MessageMapper getOrCreateInstance() {
+        // JavaScriptMessageMapperRhino is stateful - so return new instance:
+        return new JavaScriptMessageMapperRhino(actorSystem, config);
+    }
+
+    @Override
+    public void doConfigure(final Connection connection, final MappingConfig mappingConfig, final MessageMapperConfiguration options) {
         configuration =
                 new ImmutableJavaScriptMessageMapperConfiguration.Builder(options.getId(), options.getProperties(),
                         Collections.emptyMap(), Collections.emptyMap()).build();

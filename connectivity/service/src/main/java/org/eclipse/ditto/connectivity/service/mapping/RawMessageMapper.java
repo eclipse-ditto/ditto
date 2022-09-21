@@ -29,6 +29,7 @@ import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageBuilder;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.edge.service.placeholders.RequestPlaceholder;
@@ -59,12 +60,15 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
 import akka.http.javadsl.model.ContentTypes;
 
 /**
  * A message mapper implementation to convert between raw message payload and external message payload.
  */
-public final class RawMessageMapper extends AbstractMessageMapper implements PayloadMapper {
+public final class RawMessageMapper extends AbstractMessageMapper {
 
     private static final String PAYLOAD_MAPPER_ALIAS = "RawMessage";
 
@@ -107,6 +111,8 @@ public final class RawMessageMapper extends AbstractMessageMapper implements Pay
                     .collect(JsonCollectors.fieldsToObject()))
             .build();
 
+    private final DittoMessageMapper dittoMessageMapper;
+
     /**
      * Fallback content-type for outgoing messages.
      * Content-type is the only relevant header for the outgoing direction.
@@ -122,11 +128,36 @@ public final class RawMessageMapper extends AbstractMessageMapper implements Pay
      */
     private Map<String, String> incomingMessageHeaders = DEFAULT_INCOMING_HEADERS;
 
-    private final DittoMessageMapper dittoMessageMapper = new DittoMessageMapper();
+    /**
+     * Constructs a new instance of RawMessageMapper extension.
+     *
+     * @param actorSystem the actor system in which to load the extension.
+     * @param config the configuration for this extension.
+     */
+    RawMessageMapper(final ActorSystem actorSystem, final Config config) {
+        super(actorSystem, config);
+        dittoMessageMapper = new DittoMessageMapper(actorSystem, config);
+    }
 
     @Override
     public String getAlias() {
         return PAYLOAD_MAPPER_ALIAS;
+    }
+
+    @Override
+    public boolean isConfigurationMandatory() {
+        return false;
+    }
+
+    @Override
+    public MessageMapper getOrCreateInstance() {
+        if (fallbackOutgoingContentType.equals(DEFAULT_OUTGOING_CONTENT_TYPE) &&
+                incomingMessageHeaders.equals(DEFAULT_INCOMING_HEADERS)) {
+            // return the singleton instance if this mapper was not configured in a special way:
+            return this;
+        } else {
+            return new RawMessageMapper(actorSystem, config);
+        }
     }
 
     @Override
@@ -184,8 +215,8 @@ public final class RawMessageMapper extends AbstractMessageMapper implements Pay
     }
 
     @Override
-    protected void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
-        dittoMessageMapper.doConfigure(mappingConfig, configuration);
+    protected void doConfigure(final Connection connection, final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
+        dittoMessageMapper.doConfigure(connection, mappingConfig, configuration);
         fallbackOutgoingContentType = configuration.findProperty(OUTGOING_CONTENT_TYPE_KEY)
                 .map(ContentType::of)
                 .orElse(fallbackOutgoingContentType);

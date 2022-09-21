@@ -46,6 +46,9 @@ import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThingRespons
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -58,10 +61,14 @@ public final class RawMessageMapperTest {
     private static final ProtocolAdapter ADAPTER = DittoProtocolAdapter.newInstance();
 
     private MessageMapper underTest;
+    private ActorSystem actorSystem;
+    private Config config;
 
     @Before
     public void setUp() {
-        underTest = new RawMessageMapper();
+        actorSystem = Mockito.mock(ActorSystem.class);
+        config = Mockito.mock(Config.class);
+        underTest = new RawMessageMapper(actorSystem, config);
     }
 
     @Test
@@ -143,7 +150,7 @@ public final class RawMessageMapperTest {
                 ThingDeleted.of(ThingId.of("thing:id"), 25L, Instant.EPOCH, DittoHeaders.empty(), null);
         final Adaptable adaptable = ADAPTER.toAdaptable(signal);
         final List<ExternalMessage> actualExternalMessages = underTest.map(adaptable);
-        final List<ExternalMessage> expectedExternalMessages = new DittoMessageMapper().map(adaptable);
+        final List<ExternalMessage> expectedExternalMessages = new DittoMessageMapper(actorSystem, config).map(adaptable);
         assertThat(actualExternalMessages).isEqualTo(expectedExternalMessages);
     }
 
@@ -157,7 +164,7 @@ public final class RawMessageMapperTest {
         final Signal<?> sendThingMessage = SendThingMessage.of(THING_ID, messageWithoutPayload, dittoHeaders);
         final Adaptable adaptable = ADAPTER.toAdaptable(sendThingMessage);
         final List<ExternalMessage> result = underTest.map(adaptable);
-        final List<ExternalMessage> expectedResult = new DittoMessageMapper().map(adaptable);
+        final List<ExternalMessage> expectedResult = new DittoMessageMapper(actorSystem, config).map(adaptable);
         assertThat(result).isEqualTo(expectedResult);
     }
 
@@ -348,7 +355,7 @@ public final class RawMessageMapperTest {
         final Signal<?> signal = ThingDeleted.of(ThingId.of("thing:id"), 25L, Instant.EPOCH, DittoHeaders.empty(),
                 null);
         final Adaptable adaptable = ADAPTER.toAdaptable(signal);
-        final ExternalMessage externalMessage = new DittoMessageMapper().map(adaptable).get(0)
+        final ExternalMessage externalMessage = new DittoMessageMapper(actorSystem, config).map(adaptable).get(0)
                 .withHeader("content-type", "application/vnd.eclipse.ditto+json");
         final List<Adaptable> mapped = underTest.map(externalMessage);
         assertThat(mapped).hasSize(1);

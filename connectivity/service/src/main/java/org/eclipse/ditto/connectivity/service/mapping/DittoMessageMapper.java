@@ -29,11 +29,15 @@ import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
+
 /**
  * A message mapper implementation for the Ditto Protocol.
  * Expect messages to contain a JSON serialized Ditto Protocol message.
  */
-public final class DittoMessageMapper extends AbstractMessageMapper implements PayloadMapper {
+public final class DittoMessageMapper extends AbstractMessageMapper {
 
     /**
      * The alias of this mapper.
@@ -57,9 +61,30 @@ public final class DittoMessageMapper extends AbstractMessageMapper implements P
                     DEFAULT_OPTIONS)
             .build();
 
+    /**
+     * Constructs a new instance of DittoMessageMapper extension.
+     *
+     * @param actorSystem the actor system in which to load the extension.
+     * @param config the configuration for this extension.
+     */
+    public DittoMessageMapper(final ActorSystem actorSystem, final Config config) {
+        super(actorSystem, config);
+    }
+
     @Override
     public String getAlias() {
         return ALIAS;
+    }
+
+    @Override
+    public boolean isConfigurationMandatory() {
+        return false;
+    }
+
+    @Override
+    public MessageMapper getOrCreateInstance() {
+        // DittoMessageMapper is stateless and can never be configured - so return the singleton instance:
+        return this;
     }
 
     @Override

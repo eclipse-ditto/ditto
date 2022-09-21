@@ -26,6 +26,7 @@ import org.eclipse.ditto.base.model.common.Placeholders;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
@@ -47,13 +48,17 @@ import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty;
 
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
+
 /**
  * This mapper extracts the headers {@code creation-time} and {@code ttd} from the message and builds a
  * {@link ModifyFeature} command from it. The default featureId is {@code ConnectionStatus} but can be changed via
  * the mapping configuration. The thingId must be set in the mapping configuration. It can either be a fixed Thing ID
  * or it can be resolved from the message headers by using a placeholder e.g. {@code {{ header:device_id }}}.
  */
-public class ConnectionStatusMessageMapper extends AbstractMessageMapper implements PayloadMapper {
+public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ConnectionStatusMessageMapper.class);
 
@@ -81,6 +86,16 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper impleme
     private String mappingOptionFeatureId;
     private String mappingOptionThingId;
 
+    /**
+     * Constructs a new instance of ConnectionStatusMessageMapper extension.
+     *
+     * @param actorSystem the actor system in which to load the extension.
+     * @param config the configuration for this extension.
+     */
+    ConnectionStatusMessageMapper(final ActorSystem actorSystem, final Config config) {
+        super(actorSystem, config);
+    }
+
     @Override
     public String getAlias() {
         return PAYLOAD_MAPPER_ALIAS;
@@ -95,7 +110,13 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper impleme
     }
 
     @Override
-    public void doConfigure(final MappingConfig mappingConfig,
+    public MessageMapper getOrCreateInstance() {
+        // ConnectionStatusMessageMapper is stateful - so always return new instance:
+        return new ConnectionStatusMessageMapper(actorSystem, config);
+    }
+
+    @Override
+    public void doConfigure(final Connection connection, final MappingConfig mappingConfig,
             final MessageMapperConfiguration messageMapperConfiguration) {
         mappingOptionThingId = messageMapperConfiguration.findProperty(MAPPING_OPTIONS_PROPERTIES_THING_ID)
                 .orElseThrow(
