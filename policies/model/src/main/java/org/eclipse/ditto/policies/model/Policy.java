@@ -14,7 +14,6 @@ package org.eclipse.ditto.policies.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -367,16 +366,14 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
     Stream<PolicyEntry> stream();
 
     /**
-     * Checks if the passed {@code otherPolicyEntries} are semantically the same as the in this policy contained policy
-     * entries.
+     * Checks if the passed {@code otherPolicy} is semantically the same as this policy.
      * I.e. that those contain the same policy entries with the same subject ids having the same resources.
      *
-     * @param otherPolicyEntries the other policy entries to check against.
-     * @return {@code true} if the other policy entries are semantically the same as the in this policy contained policy
-     * entries.
+     * @param otherPolicy the other policy to check against.
+     * @return {@code true} if the other policy is semantically the same as this policy.
      * @since 3.0.0
      */
-    boolean isSemanticallySameAs(Collection<PolicyEntry> otherPolicyEntries);
+    boolean isSemanticallySameAs(Policy otherPolicy);
 
     /**
      * Returns a JSON object representation of this policy to embed in another JSON object.
