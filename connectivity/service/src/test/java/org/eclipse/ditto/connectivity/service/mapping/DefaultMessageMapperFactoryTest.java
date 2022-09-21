@@ -85,7 +85,7 @@ public final class DefaultMessageMapperFactoryTest {
         options.put(MockMapper.OPT_IS_VALID, String.valueOf(true));
 
         // looking for a method containing 'test' and returning a MessageMapper in Mappers.class
-        final MappingContext ctx = MappingContexts.mock("test", options);
+        final MappingContext ctx = MappingContexts.mock(MockMapper.ALIAS, options);
 
         assertThat(underTest.mapperOf("test", ctx)).isPresent();
     }
@@ -119,7 +119,7 @@ public final class DefaultMessageMapperFactoryTest {
     @Test
     public void createWithAlias() {
         // looking for a mapper alias 'test' and returning a MessageMapper in Mappers.class
-        assertThat(underTest.createMessageMapperInstance("test")).isPresent();
+        assertThat(underTest.createMessageMapperInstance(MockMapper.ALIAS)).isPresent();
     }
 
     @Test
