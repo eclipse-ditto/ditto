@@ -92,7 +92,7 @@ public abstract class AbstractPolicyBuilderLabelScoped implements PolicyBuilder.
     }
 
     @Override
-    public PolicyBuilder setPolicyImports(@Nullable final PolicyImports imports) {
+    public PolicyBuilder setPolicyImports(final PolicyImports imports) {
         delegate.setPolicyImports(imports);
         return this;
     }
