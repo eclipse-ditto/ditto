@@ -37,10 +37,10 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     private final Map<Label, Map<ResourceKey, Permissions>> grantedPermissions;
     private final Map<Label, Map<ResourceKey, Permissions>> revokedPermissions;
     private final Map<Label, ImportableType> importableTypes;
+    private PolicyImports policyImports;
     @Nullable private PolicyId id;
     @Nullable private PolicyLifecycle lifecycle;
     @Nullable private PolicyRevision revision;
-    @Nullable private PolicyImports imports;
     @Nullable private Instant modified;
     @Nullable private Instant created;
     @Nullable private Metadata metadata;
@@ -50,10 +50,10 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         grantedPermissions = new LinkedHashMap<>();
         revokedPermissions = new LinkedHashMap<>();
         importableTypes = new LinkedHashMap<>();
+        policyImports = PolicyImports.emptyInstance();
         id = null;
         lifecycle = null;
         revision = null;
-        imports = null;
         modified = null;
         created = null;
         metadata = null;
@@ -117,7 +117,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
                 .setLifecycle(existingPolicy.getLifecycle().orElse(null))
                 .setRevision(existingPolicy.getRevision().orElse(null))
                 .setModified(existingPolicy.getModified().orElse(null))
-                .setPolicyImports(existingPolicy.getPolicyImports().orElse(null));
+                .setPolicyImports(existingPolicy.getPolicyImports());
 
         existingPolicy.getEntityId().ifPresent(result::setId);
         existingPolicy.forEach(result::set);
@@ -157,17 +157,14 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     @Override
     public ImmutablePolicyBuilder setPolicyImport(final PolicyImport policyImport) {
         checkNotNull(policyImport, "policyImport");
-        if (this.imports == null) {
-            this.imports = PoliciesModelFactory.newPolicyImports(policyImport);
-        } else {
-            this.imports = this.imports.setPolicyImport(policyImport);
-        }
+        this.policyImports = this.policyImports.setPolicyImport(policyImport);
         return this;
     }
 
     @Override
-    public ImmutablePolicyBuilder setPolicyImports(@Nullable final PolicyImports imports) {
-        this.imports = imports;
+    public ImmutablePolicyBuilder setPolicyImports(final PolicyImports policyImports) {
+        checkNotNull(policyImports, "policyImports");
+        this.policyImports = policyImports;
         return this;
     }
 
@@ -380,7 +377,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
                                 getResourcesForLabel(lbl))))
                 .collect(Collectors.toList());
 
-        return ImmutablePolicy.of(id, lifecycle, revision, modified, created, metadata, imports, policyEntries);
+        return ImmutablePolicy.of(id, lifecycle, revision, modified, created, metadata, policyImports, policyEntries);
     }
 
     private Collection<Label> getAllLabels() {

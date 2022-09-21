@@ -664,7 +664,7 @@ public final class PoliciesModelFactory {
         Collections.addAll(allEntries, furtherEntries);
 
         return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1),
-                null, null, null, null, allEntries);
+                null, null, null, emptyPolicyImports(), allEntries);
     }
 
     /**
@@ -676,7 +676,7 @@ public final class PoliciesModelFactory {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static Policy newPolicy(final PolicyId id, final Iterable<PolicyEntry> entries) {
-        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null, null, null, entries);
+        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null, null, emptyPolicyImports(), entries);
     }
 
     /**
@@ -801,6 +801,16 @@ public final class PoliciesModelFactory {
      */
     public static EffectedImports emptyEffectedImportedEntries() {
         return ImmutableEffectedImports.of(Collections.emptyList());
+    }
+
+    /**
+     * Returns a new {@link PolicyImports} containing no policyImports.
+     *
+     * @return the new empty {@code PolicyImports}.
+     * @since 3.x.0 TODO ditto#298
+     */
+    public static PolicyImports emptyPolicyImports() {
+        return ImmutablePolicyImports.empty();
     }
 
     /**

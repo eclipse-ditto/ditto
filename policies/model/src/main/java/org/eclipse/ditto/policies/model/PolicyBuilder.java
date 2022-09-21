@@ -555,7 +555,7 @@ public interface PolicyBuilder {
      * @return this builder to allow method chaining.
      * @since 3.x.0 TODO ditto#298
      */
-    PolicyBuilder setPolicyImports(@Nullable PolicyImports imports);
+    PolicyBuilder setPolicyImports(PolicyImports imports);
 
     /**
      * Sets the given entry to this builder. A previous entry with the same {@link Label} as the one of the

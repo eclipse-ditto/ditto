@@ -13,6 +13,7 @@
 package org.eclipse.ditto.policies.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.policies.model.PoliciesModelFactory.emptyPolicyImports;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -140,12 +141,12 @@ public final class PolicyImporterTest {
                         policyEntry(ImportableType.NEVER));
         return ImmutablePolicy.of(
                 importedPolicyId, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null,
-                null, null, policyEntries);
+                null, emptyPolicyImports(), policyEntries);
     }
 
     private static Policy createPolicy() {
         final List<PolicyEntry> policyEntries = Collections.singletonList(KNOWN_POLICY_ENTRY_OWN);
         return ImmutablePolicy.of(POLICY_ID, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null, null,
-                null, policyEntries);
+                emptyPolicyImports(), policyEntries);
     }
 }

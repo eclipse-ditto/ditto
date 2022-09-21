@@ -47,6 +47,10 @@ final class ImmutablePolicyImports implements PolicyImports {
 
     private final Map<CharSequence, PolicyImport> policyImports;
 
+    private ImmutablePolicyImports() {
+        this.policyImports = Collections.emptyMap();
+    }
+
     private ImmutablePolicyImports(final Map<CharSequence, PolicyImport> policyImports) {
         checkNotNull(policyImports, "policyImports");
         this.policyImports = Collections.unmodifiableMap(new HashMap<>(policyImports));
@@ -74,6 +78,15 @@ final class ImmutablePolicyImports implements PolicyImports {
         });
 
         return new ImmutablePolicyImports(resourcesMap);
+    }
+
+    /**
+     * Returns a new instance of {@code PolicyImports} with no policyImports.
+     *
+     * @return the new empty {@code PolicyImports}.
+     */
+    public static ImmutablePolicyImports empty() {
+        return new ImmutablePolicyImports();
     }
 
     /**

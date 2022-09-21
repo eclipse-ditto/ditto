@@ -30,6 +30,15 @@ import org.eclipse.ditto.json.JsonObject;
 public interface PolicyImports extends Iterable<PolicyImport>, Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
+     * Returns a new {@code PolicyImports} containing no policyImports.
+     *
+     * @return the new {@code PolicyImports}.
+     */
+    static PolicyImports emptyInstance() {
+        return PoliciesModelFactory.emptyPolicyImports();
+    }
+
+    /**
      * Returns a new {@code PolicyImports} containing the given policyImports.
      *
      * @param policyImports the {@link PolicyImport}s to be contained in the new PolicyImports.

@@ -13,6 +13,7 @@
 package org.eclipse.ditto.policies.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.policies.model.PoliciesModelFactory.emptyPolicyImports;
 import static org.eclipse.ditto.policies.model.PoliciesModelFactory.emptyResources;
 import static org.eclipse.ditto.policies.model.PoliciesModelFactory.newPolicyEntry;
 import static org.eclipse.ditto.policies.model.PoliciesModelFactory.newResources;
@@ -59,7 +60,7 @@ import org.eclipse.ditto.json.JsonValue;
 final class ImmutablePolicy implements Policy {
 
     @Nullable private final PolicyId policyId;
-    @Nullable private final PolicyImports imports;
+    private final PolicyImports imports;
     private final Map<Label, PolicyEntry> entries;
     @Nullable private final String namespace;
     @Nullable private final PolicyLifecycle lifecycle;
@@ -69,7 +70,7 @@ final class ImmutablePolicy implements Policy {
     @Nullable private final Metadata metadata;
 
     private ImmutablePolicy(@Nullable final PolicyId policyId,
-            @Nullable final PolicyImports theImports,
+            final PolicyImports theImports,
             final Map<Label, PolicyEntry> theEntries,
             @Nullable final PolicyLifecycle lifecycle,
             @Nullable final PolicyRevision revision,
@@ -97,7 +98,7 @@ final class ImmutablePolicy implements Policy {
      * @param modified the modified timestamp of the Policy to be created.
      * @param created the created timestamp of the Policy to be created.
      * @param metadata the metadata of the Thing to be created.
-     * @param imports the PolicyImports of the Policy to be created.
+     * @param policyImports the PolicyImports of the Policy to be created.
      * @param entries the entries of the Policy to be created.
      * @return a new initialised Policy.
      * @throws NullPointerException if {@code entries} is {@code null}.
@@ -108,15 +109,16 @@ final class ImmutablePolicy implements Policy {
             @Nullable final Instant modified,
             @Nullable final Instant created,
             @Nullable final Metadata metadata,
-            @Nullable final PolicyImports imports,
+            final PolicyImports policyImports,
             final Iterable<PolicyEntry> entries) {
 
+        checkNotNull(policyImports, "policyImports");
         checkNotNull(entries, "Policy entries");
 
         final Map<Label, PolicyEntry> entryMap = new LinkedHashMap<>();
         entries.forEach(policyEntry -> entryMap.put(policyEntry.getLabel(), policyEntry));
 
-        return new ImmutablePolicy(policyId, imports, entryMap, lifecycle, revision, modified, created, metadata);
+        return new ImmutablePolicy(policyId, policyImports, entryMap, lifecycle, revision, modified, created, metadata);
     }
 
     /**
@@ -147,7 +149,7 @@ final class ImmutablePolicy implements Policy {
 
         final PolicyImports readImports = jsonObject.getValue(JsonFields.IMPORTS)
                 .map(PoliciesModelFactory::newPolicyImports)
-                .orElse(null);
+                .orElse(emptyPolicyImports());
 
         final Instant readCreated = jsonObject.getValue(JsonFields.CREATED)
                 .map(ImmutablePolicy::tryToParseModified)
@@ -477,8 +479,8 @@ final class ImmutablePolicy implements Policy {
     }
 
     @Override
-    public Optional<PolicyImports> getPolicyImports() {
-        return Optional.ofNullable(imports);
+    public PolicyImports getPolicyImports() {
+        return imports;
     }
 
     @Override

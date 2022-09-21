@@ -13,6 +13,7 @@
 package org.eclipse.ditto.policies.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.policies.model.PoliciesModelFactory.emptyPolicyImports;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -103,7 +104,7 @@ public final class ImmutablePolicyTest {
         final PolicyEntry policyEntry2 = createPolicyEntry2();
 
         final Policy policy = ImmutablePolicy.of(POLICY_ID, null, null, null,
-                null, null, null, Arrays.asList(policyEntry1, policyEntry2));
+                null, null, emptyPolicyImports(), Arrays.asList(policyEntry1, policyEntry2));
 
         final JsonObject policyJson = policy.toJson();
         final Policy policy1 = ImmutablePolicy.fromJson(policyJson);
@@ -117,7 +118,7 @@ public final class ImmutablePolicyTest {
         final PolicyEntry policyEntry2 = createPolicyEntry2();
 
         final Policy policy = ImmutablePolicy.of(POLICY_ID, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1),
-                null, null, null, null, Arrays.asList(policyEntry1, policyEntry2));
+                null, null, null, emptyPolicyImports(), Arrays.asList(policyEntry1, policyEntry2));
 
         final JsonObject policyJson = policy.toJson(FieldType.regularOrSpecial());
         final Policy policy1 = ImmutablePolicy.fromJson(policyJson);
@@ -327,7 +328,7 @@ public final class ImmutablePolicyTest {
     @Test
     public void modifyingTheEntrySetDoesNotModifyThePolicy() {
         final Policy policy = ImmutablePolicy.of(POLICY_ID, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1),
-                null, null, null, null, Collections.singleton(createPolicyEntry1()));
+                null, null, null, emptyPolicyImports(), Collections.singleton(createPolicyEntry1()));
 
         final PolicyEntry policyEntry = createPolicyEntry2();
         final Set<PolicyEntry> entriesSet = policy.getEntriesSet();

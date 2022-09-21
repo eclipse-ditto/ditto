@@ -14,7 +14,6 @@ package org.eclipse.ditto.policies.model;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -45,11 +44,8 @@ public final class PolicyImporter {
      */
     public static Set<PolicyEntry> mergeImportedPolicyEntries(final Policy policy,
             final Function<PolicyId, Optional<Policy>> policyLoader) {
-        final Set<PolicyEntry> policyEntriesSet = new HashSet<>(policy.getEntriesSet());
-
-        policy.getPolicyImports()
-                .map(PolicyImports::stream)
-                .map(stream -> stream.map(policyImport -> {
+        return policy.getPolicyImports().stream()
+                .map(policyImport -> {
                     final PolicyId importedPolicyId = policyImport.getImportedPolicyId();
                     final Optional<Policy> loadedPolicyOpt = policyLoader.apply(importedPolicyId);
                     return loadedPolicyOpt.map(loadedPolicy -> {
@@ -58,8 +54,8 @@ public final class PolicyImporter {
                                 .orElse(ImportedLabels.none());
                         return rewriteImportedLabels(importedPolicyId, loadedPolicy, importedLabels);
                     }).orElse(Collections.emptySet());
-                })).ifPresent(stream -> stream.forEach(policyEntriesSet::addAll));
-        return policyEntriesSet;
+                })
+                .reduce(policy.getEntriesSet(), PolicyImporter::combineSets, PolicyImporter::combineSets);
     }
 
     private static Set<PolicyEntry> rewriteImportedLabels(final PolicyId importedPolicyId, final Policy importedPolicy,
@@ -86,5 +82,9 @@ public final class PolicyImporter {
             default:
                 return Stream.empty();
         }
+    }
+
+    private static Set<PolicyEntry> combineSets(final Set<PolicyEntry> set1, final Set<PolicyEntry> set2) {
+        return Stream.concat(set1.stream(), set2.stream()).collect(Collectors.toSet());
     }
 }

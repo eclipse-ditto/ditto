@@ -382,7 +382,7 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
      * @return the PolicyImports of this Policy.
      * @since 3.x.0 TODO ditto#298
      */
-    Optional<PolicyImports> getPolicyImports();
+    PolicyImports getPolicyImports();
 
     /**
      * Returns the entries of this Policy as set. The returned set is modifiable but disjoint from this Policy; thus
@@ -452,9 +452,9 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
     }
 
     default Policy withResolvedImports(final Function<PolicyId, Optional<Policy>> policyResolver) {
-        final Optional<PolicyImports> imports = getPolicyImports();
+        final PolicyImports imports = getPolicyImports();
         final Policy resolvedPolicy;
-        if (imports.isPresent()) {
+        if (!imports.isEmpty()) {
             return this.toBuilder().setAll(PolicyImporter.mergeImportedPolicyEntries(this, policyResolver)).build();
         } else {
             resolvedPolicy = this;
