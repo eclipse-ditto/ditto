@@ -83,8 +83,8 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
 
-    private String mappingOptionFeatureId;
     private String mappingOptionThingId;
+    private String mappingOptionFeatureId;
 
     /**
      * Constructs a new instance of ConnectionStatusMessageMapper extension.
@@ -94,6 +94,12 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
      */
     ConnectionStatusMessageMapper(final ActorSystem actorSystem, final Config config) {
         super(actorSystem, config);
+    }
+
+    private ConnectionStatusMessageMapper(final ConnectionStatusMessageMapper copyFromMapper) {
+        super(copyFromMapper);
+        this.mappingOptionThingId = copyFromMapper.mappingOptionThingId;
+        this.mappingOptionFeatureId = copyFromMapper.mappingOptionFeatureId;
     }
 
     @Override
@@ -110,9 +116,9 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
     }
 
     @Override
-    public MessageMapper getOrCreateInstance() {
+    public MessageMapper createNewMapperInstance() {
         // ConnectionStatusMessageMapper is stateful - so always return new instance:
-        return new ConnectionStatusMessageMapper(actorSystem, config);
+        return new ConnectionStatusMessageMapper(this);
     }
 
     @Override

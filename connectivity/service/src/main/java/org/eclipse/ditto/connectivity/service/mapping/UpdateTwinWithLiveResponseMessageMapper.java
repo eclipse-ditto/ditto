@@ -104,6 +104,11 @@ public final class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessa
         super(actorSystem, config);
     }
 
+    private UpdateTwinWithLiveResponseMessageMapper(final UpdateTwinWithLiveResponseMessageMapper copyFromMapper) {
+        super(copyFromMapper);
+        this.dittoHeadersForMerge = copyFromMapper.dittoHeadersForMerge;
+    }
+
     @Override
     public String getAlias() {
         return PAYLOAD_MAPPER_ALIAS;
@@ -115,13 +120,8 @@ public final class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessa
     }
 
     @Override
-    public MessageMapper getOrCreateInstance() {
-        if (dittoHeadersForMerge.equals(DEFAULT_DITTO_HEADERS_FOR_MERGE)) {
-            // return the singleton instance if this mapper was not configured in a special way:
-            return this;
-        } else {
-            return new UpdateTwinWithLiveResponseMessageMapper(actorSystem, config);
-        }
+    public MessageMapper createNewMapperInstance() {
+        return new UpdateTwinWithLiveResponseMessageMapper(this);
     }
 
     @Override

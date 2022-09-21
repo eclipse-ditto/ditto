@@ -78,6 +78,11 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
         super(actorSystem, config);
     }
 
+    private NormalizedMessageMapper(final NormalizedMessageMapper copyFromMapper) {
+        super(copyFromMapper);
+        this.jsonFieldSelector = copyFromMapper.jsonFieldSelector;
+    }
+
     @Override
     public String getAlias() {
         return PAYLOAD_MAPPER_ALIAS;
@@ -89,13 +94,8 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
     }
 
     @Override
-    public MessageMapper getOrCreateInstance() {
-        if (null == jsonFieldSelector) {
-            // return the singleton instance if this mapper was not configured in a special way:
-            return this;
-        } else {
-            return new NormalizedMessageMapper(actorSystem, config);
-        }
+    public MessageMapper createNewMapperInstance() {
+        return new NormalizedMessageMapper(this);
     }
 
     @Override

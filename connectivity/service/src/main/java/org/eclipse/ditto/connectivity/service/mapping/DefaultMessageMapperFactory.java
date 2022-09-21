@@ -128,7 +128,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
                 DefaultMessageMapperConfiguration.of(mapperId, configuredAndDefaultOptions,
                         configuredIncomingConditions, configuredOutgoingConditions);
         if (mapper.isEmpty()) {
-            LOGGER.info("Mapper {} with mapping engine {} not found.", mapperId, mappingContext.getMappingEngine());
+            LOGGER.info("Mapper <{}> with mapping engine <{}> not found.", mapperId, mappingContext.getMappingEngine());
         }
         return mapper.map(WrappingMessageMapper::wrap).flatMap(m -> configureInstance(m, options));
     }
@@ -184,7 +184,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
      */
     Optional<MessageMapper> createMessageMapperInstance(final String mappingEngine) {
         return Optional.ofNullable(messageMappers.get(mappingEngine))
-                .map(MessageMapper::getOrCreateInstance)
+                .map(MessageMapper::createNewMapperInstance)
                 .map(messageMapper -> messageMapperExtension.apply(connection.getId(), messageMapper));
     }
 

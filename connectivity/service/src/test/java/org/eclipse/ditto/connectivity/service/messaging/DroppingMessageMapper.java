@@ -35,7 +35,7 @@ import akka.actor.ActorSystem;
  */
 public class DroppingMessageMapper extends AbstractMessageMapper {
 
-    static final String ALIAS = "dropping";
+    static final String ALIAS = "Dropping";
 
     /**
      * The context representing this mapper
@@ -44,6 +44,10 @@ public class DroppingMessageMapper extends AbstractMessageMapper {
 
     DroppingMessageMapper(final ActorSystem actorSystem, final Config config) {
         super(actorSystem, config);
+    }
+
+    private DroppingMessageMapper(final DroppingMessageMapper copyFromMapper) {
+        super(copyFromMapper);
     }
 
     @Override
@@ -62,8 +66,8 @@ public class DroppingMessageMapper extends AbstractMessageMapper {
     }
 
     @Override
-    public MessageMapper getOrCreateInstance() {
-        return this;
+    public MessageMapper createNewMapperInstance() {
+        return new DroppingMessageMapper(this);
     }
 
     @Override

@@ -38,7 +38,7 @@ import akka.actor.ActorSystem;
 @AllParametersAndReturnValuesAreNonnullByDefault
 public final class MockMapper implements MessageMapper {
 
-    public static final String ALIAS = "test";
+    public static final String ALIAS = "MockMapper";
 
     public static final String OPT_IS_VALID = "Mock";
 
@@ -62,7 +62,7 @@ public final class MockMapper implements MessageMapper {
     }
 
     @Override
-    public MessageMapper getOrCreateInstance() {
+    public MessageMapper createNewMapperInstance() {
         return this;
     }
 

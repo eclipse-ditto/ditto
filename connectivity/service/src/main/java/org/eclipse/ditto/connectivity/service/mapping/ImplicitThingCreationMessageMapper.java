@@ -111,6 +111,14 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
                 ((headers, authorizationContext) -> Optional.of(getExpressionResolver(headers, authorizationContext)));
     }
 
+    protected ImplicitThingCreationMessageMapper(final ImplicitThingCreationMessageMapper copyFromMapper) {
+        super(copyFromMapper);
+        this.resolverFactory = copyFromMapper.resolverFactory;
+        this.thingTemplate = copyFromMapper.thingTemplate;
+        this.commandHeaders = copyFromMapper.commandHeaders;
+        this.allowPolicyLockout = copyFromMapper.allowPolicyLockout;
+    }
+
     @Override
     public String getAlias() {
         return PAYLOAD_MAPPER_ALIAS;
@@ -125,9 +133,8 @@ public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
     }
 
     @Override
-    public MessageMapper getOrCreateInstance() {
-        // ImplicitThingCreationMessageMapper is stateful - so return new instance:
-        return new ImplicitThingCreationMessageMapper(actorSystem, config);
+    public MessageMapper createNewMapperInstance() {
+        return new ImplicitThingCreationMessageMapper(this);
     }
 
     @Override

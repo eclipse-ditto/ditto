@@ -51,6 +51,15 @@ public abstract class AbstractMessageMapper implements MessageMapper {
         this.config = config;
     }
 
+    protected AbstractMessageMapper(final AbstractMessageMapper copyFromMapper) {
+        this.actorSystem = copyFromMapper.actorSystem;
+        this.config = copyFromMapper.config;
+        this.id = copyFromMapper.getId();
+        this.incomingConditions = copyFromMapper.getIncomingConditions();
+        this.outgoingConditions = copyFromMapper.getOutgoingConditions();
+        this.contentTypeBlocklist = copyFromMapper.getContentTypeBlocklist();
+    }
+
     @Override
     public String getId() {
         return id;

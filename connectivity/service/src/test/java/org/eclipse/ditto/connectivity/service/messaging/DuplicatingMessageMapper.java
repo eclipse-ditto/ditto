@@ -38,7 +38,7 @@ import akka.actor.ActorSystem;
  */
 public final class DuplicatingMessageMapper extends AbstractMessageMapper {
 
-    static final String ALIAS = "duplicating";
+    static final String ALIAS = "Duplicating";
 
     /**
      * The context representing this mapper
@@ -51,6 +51,11 @@ public final class DuplicatingMessageMapper extends AbstractMessageMapper {
     DuplicatingMessageMapper(final ActorSystem actorSystem, final Config config) {
         super(actorSystem, config);
         delegate = new DittoMessageMapper(actorSystem, config);
+    }
+
+    private DuplicatingMessageMapper(final DuplicatingMessageMapper copyFromMapper) {
+        super(copyFromMapper);
+        delegate = copyFromMapper.delegate;
     }
 
     @Override
@@ -69,8 +74,8 @@ public final class DuplicatingMessageMapper extends AbstractMessageMapper {
     }
 
     @Override
-    public MessageMapper getOrCreateInstance() {
-        return this;
+    public MessageMapper createNewMapperInstance() {
+        return new DuplicatingMessageMapper(this);
     }
 
     @Override

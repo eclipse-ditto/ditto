@@ -51,7 +51,7 @@ final class ThrowingMapper implements MessageMapper {
     }
 
     @Override
-    public MessageMapper getOrCreateInstance() {
+    public MessageMapper createNewMapperInstance() {
         return this;
     }
 

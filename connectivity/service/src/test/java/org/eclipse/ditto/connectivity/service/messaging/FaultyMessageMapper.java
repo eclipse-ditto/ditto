@@ -35,7 +35,7 @@ import akka.actor.ActorSystem;
  */
 public final class FaultyMessageMapper extends AbstractMessageMapper {
 
-    static final String ALIAS = "faulty";
+    static final String ALIAS = "Faulty";
 
     /**
      * The context representing this mapper
@@ -44,6 +44,10 @@ public final class FaultyMessageMapper extends AbstractMessageMapper {
 
     FaultyMessageMapper(final ActorSystem actorSystem, final Config config) {
         super(actorSystem, config);
+    }
+
+    private FaultyMessageMapper(final FaultyMessageMapper copyFromMapper) {
+        super(copyFromMapper);
     }
 
     @Override
@@ -62,8 +66,8 @@ public final class FaultyMessageMapper extends AbstractMessageMapper {
     }
 
     @Override
-    public MessageMapper getOrCreateInstance() {
-        return this;
+    public MessageMapper createNewMapperInstance() {
+        return new FaultyMessageMapper(this);
     }
 
     @Override
