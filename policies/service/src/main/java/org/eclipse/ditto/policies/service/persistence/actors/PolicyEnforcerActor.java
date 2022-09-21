@@ -68,7 +68,7 @@ public final class PolicyEnforcerActor extends
     @Override
     protected CompletionStage<Optional<PolicyEnforcer>> loadPolicyEnforcer(final Signal<?> signal) {
         if (signal instanceof CreatePolicy createPolicy) {
-            final PolicyCacheLoader policyCacheLoader = PolicyCacheLoader.of(getContext().system());
+            final PolicyCacheLoader policyCacheLoader = PolicyCacheLoader.getSingletonInstance(getContext().system());
             final Function<PolicyId, Optional<Policy>> importedPolicyResolver =
                     importedPolicyId -> policyCacheLoader.asyncLoad(importedPolicyId, getContext().dispatcher())
                             .toCompletableFuture()

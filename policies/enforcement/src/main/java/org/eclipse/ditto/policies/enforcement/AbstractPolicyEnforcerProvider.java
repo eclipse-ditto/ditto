@@ -32,7 +32,7 @@ abstract class AbstractPolicyEnforcerProvider implements PolicyEnforcerProvider 
     protected static AsyncCacheLoader<PolicyId, Entry<PolicyEnforcer>> policyEnforcerCacheLoader(
             final ActorSystem actorSystem) {
 
-        final PolicyCacheLoader policyCacheLoader = PolicyCacheLoader.of(actorSystem);
+        final PolicyCacheLoader policyCacheLoader = PolicyCacheLoader.getSingletonInstance(actorSystem);
         return new PolicyEnforcerCacheLoader(policyCacheLoader);
     }
 

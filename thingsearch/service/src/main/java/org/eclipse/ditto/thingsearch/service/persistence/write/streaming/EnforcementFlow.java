@@ -123,7 +123,7 @@ final class EnforcementFlow {
                 .lookup(policyCacheConfig.getDispatcherName());
 
         final AsyncCacheLoader<PolicyId, Entry<Policy>> policyCacheLoader =
-                new PolicyCacheLoader(askWithRetryConfig, scheduler, policiesShardRegion);
+                PolicyCacheLoader.getNewInstance(askWithRetryConfig, scheduler, policiesShardRegion);
         final Cache<PolicyId, Entry<Policy>> policyEnforcerCache =
                 CacheFactory.createCache(policyCacheLoader, policyCacheConfig,
                         "things-search_enforcementflow_enforcer_cache_policy", policyCacheDispatcher);
