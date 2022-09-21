@@ -79,6 +79,14 @@ final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
         super(actorSystem, config);
     }
 
+    private JavaScriptMessageMapperRhino(final JavaScriptMessageMapperRhino copyFromMapper) {
+        super(copyFromMapper);
+        this.contextFactory = copyFromMapper.contextFactory;
+        this.configuration = copyFromMapper.configuration;
+        this.incomingMapping = copyFromMapper.incomingMapping;
+        this.outgoingMapping = copyFromMapper.outgoingMapping;
+    }
+
     @Override
     public String getAlias() {
         return PAYLOAD_MAPPER_ALIAS;
@@ -93,9 +101,8 @@ final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
     }
 
     @Override
-    public MessageMapper getOrCreateInstance() {
-        // JavaScriptMessageMapperRhino is stateful - so return new instance:
-        return new JavaScriptMessageMapperRhino(actorSystem, config);
+    public MessageMapper createNewMapperInstance() {
+        return new JavaScriptMessageMapperRhino(this);
     }
 
     @Override

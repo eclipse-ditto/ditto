@@ -139,6 +139,13 @@ public final class RawMessageMapper extends AbstractMessageMapper {
         dittoMessageMapper = new DittoMessageMapper(actorSystem, config);
     }
 
+    private RawMessageMapper(final RawMessageMapper copyFromMapper) {
+        super(copyFromMapper);
+        this.dittoMessageMapper = copyFromMapper.dittoMessageMapper;
+        this.fallbackOutgoingContentType = copyFromMapper.fallbackOutgoingContentType;
+        this.incomingMessageHeaders = copyFromMapper.incomingMessageHeaders;
+    }
+
     @Override
     public String getAlias() {
         return PAYLOAD_MAPPER_ALIAS;
@@ -150,14 +157,8 @@ public final class RawMessageMapper extends AbstractMessageMapper {
     }
 
     @Override
-    public MessageMapper getOrCreateInstance() {
-        if (fallbackOutgoingContentType.equals(DEFAULT_OUTGOING_CONTENT_TYPE) &&
-                incomingMessageHeaders.equals(DEFAULT_INCOMING_HEADERS)) {
-            // return the singleton instance if this mapper was not configured in a special way:
-            return this;
-        } else {
-            return new RawMessageMapper(actorSystem, config);
-        }
+    public MessageMapper createNewMapperInstance() {
+        return new RawMessageMapper(this);
     }
 
     @Override

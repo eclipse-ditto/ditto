@@ -73,8 +73,8 @@ final class WrappingMessageMapper implements MessageMapper {
     }
 
     @Override
-    public MessageMapper getOrCreateInstance() {
-        return delegate.getOrCreateInstance();
+    public MessageMapper createNewMapperInstance() {
+        return delegate.createNewMapperInstance();
     }
 
     @Override

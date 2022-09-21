@@ -63,13 +63,11 @@ public interface MessageMapper extends DittoExtensionPoint {
     boolean isConfigurationMandatory();
 
     /**
-     * Gets or creates an instance of this mapper - based on whether it is stateless or stateful.
-     * For stateless mappers, the singleton instance {@code this} CAN be returned, for stateful mappers a new instance
-     * of the mapper MUST be returned.
+     * Creates a new instance of this mapper, e.g. using a copy constructor of the mapper implementation.
      *
-     * @return the singleton instance for stateless mappers or a newly created instance of the mapper.
+     * @return a newly created instance of the mapper.
      */
-    MessageMapper getOrCreateInstance();
+    MessageMapper createNewMapperInstance();
 
     /**
      * Returns a blocklist of content-types which shall not be handled by this message mapper.

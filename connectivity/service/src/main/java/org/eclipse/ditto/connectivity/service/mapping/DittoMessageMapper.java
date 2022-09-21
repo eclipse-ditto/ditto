@@ -71,6 +71,10 @@ public final class DittoMessageMapper extends AbstractMessageMapper {
         super(actorSystem, config);
     }
 
+    private DittoMessageMapper(final DittoMessageMapper copyFromMapper) {
+        super(copyFromMapper);
+    }
+
     @Override
     public String getAlias() {
         return ALIAS;
@@ -82,9 +86,8 @@ public final class DittoMessageMapper extends AbstractMessageMapper {
     }
 
     @Override
-    public MessageMapper getOrCreateInstance() {
-        // DittoMessageMapper is stateless and can never be configured - so return the singleton instance:
-        return this;
+    public MessageMapper createNewMapperInstance() {
+        return new DittoMessageMapper(this);
     }
 
     @Override
