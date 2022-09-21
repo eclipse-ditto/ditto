@@ -291,4 +291,13 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
     public List<ExternalMessage> map(final Adaptable adaptable) {
         return Collections.emptyList();
     }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
+                ", mappingOptionThingId=" + mappingOptionThingId +
+                ", mappingOptionFeatureId=" + mappingOptionFeatureId +
+                "]";
+    }
 }

@@ -240,4 +240,13 @@ final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
         }
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
+                ", configuration=" + configuration +
+                ", incomingMapping=" + incomingMapping +
+                ", outgoingMapping=" + outgoingMapping +
+                "]";
+    }
 }

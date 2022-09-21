@@ -229,4 +229,11 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
         return builder.build();
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
+                ", jsonFieldSelector=" + jsonFieldSelector +
+                "]";
+    }
 }
