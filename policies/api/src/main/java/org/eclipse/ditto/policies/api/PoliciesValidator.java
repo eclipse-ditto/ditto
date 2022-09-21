@@ -66,9 +66,7 @@ public final class PoliciesValidator implements Validator {
 
         final boolean containsPolicyImport;
         if (policyEntries instanceof Policy policy) {
-            containsPolicyImport = policy.getPolicyImports()
-                    .filter(imports -> !imports.isEmpty())
-                    .isPresent();
+            containsPolicyImport = !policy.getPolicyImports().isEmpty();
         } else {
             containsPolicyImport = false;
         }

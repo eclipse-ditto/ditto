@@ -163,7 +163,7 @@ final class CachingPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider
             policyEnforcerCache.asMap().forEach((cachedPolicyId, enforcerEntry) -> {
                 final boolean importsChangedPolicy = enforcerEntry.get()
                         .flatMap(PolicyEnforcer::getPolicy)
-                        .flatMap(Policy::getPolicyImports)
+                        .map(Policy::getPolicyImports)
                         .map(imports -> imports.getPolicyImport(policyId).isPresent())
                         .orElse(false);
 

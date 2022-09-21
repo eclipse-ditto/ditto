@@ -41,7 +41,7 @@ public class PolicyImportDeletedStrategyTest extends AbstractPolicyEventStrategy
 
     @Override
     protected void additionalAssertions(final Policy policyWithEventApplied) {
-        assertThat(policyWithEventApplied.getPolicyImports().get().getPolicyImport(
+        assertThat(policyWithEventApplied.getPolicyImports().getPolicyImport(
                 TestConstants.Policy.POLICY_IMPORT_ID)).isEmpty();
     }
 }

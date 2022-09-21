@@ -14,7 +14,6 @@ package org.eclipse.ditto.policies.service.persistence.actors.strategies.events;
 
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyBuilder;
-import org.eclipse.ditto.policies.model.PolicyImports;
 import org.eclipse.ditto.policies.model.signals.events.PolicyImportCreated;
 
 /**
@@ -25,9 +24,7 @@ final class PolicyImportCreatedStrategy extends AbstractPolicyEventStrategy<Poli
     @Override
     protected PolicyBuilder applyEvent(final PolicyImportCreated pic, final Policy policy,
             final PolicyBuilder policyBuilder) {
-        return policyBuilder.setPolicyImports(
-                policy.getPolicyImports()
-                        .map(policyImports -> policyImports.setPolicyImport(pic.getPolicyImport()))
-                        .orElse(PolicyImports.newInstance(pic.getPolicyImport())));
+        return policyBuilder.setPolicyImports(policy.getPolicyImports().setPolicyImport(pic.getPolicyImport()));
+
     }
 }

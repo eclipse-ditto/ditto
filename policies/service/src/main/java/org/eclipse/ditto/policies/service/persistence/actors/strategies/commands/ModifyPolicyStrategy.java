@@ -61,11 +61,10 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
         final Policy commandPolicy = command.getPolicy();
         final Set<PolicyEntry> adjustedEntries = potentiallyAdjustPolicyEntries(commandPolicy.getEntriesSet());
         final DittoHeaders adjustedHeaders = adjustedHeadersBuilder.build();
-        final Policy adjustedPolicy = PoliciesModelFactory.newPolicyBuilder(commandPolicy.getEntityId().orElseThrow(),
-                adjustedEntries
-        )
-                .setPolicyImports(commandPolicy.getPolicyImports().orElse(null))
-                .build();
+        final Policy adjustedPolicy =
+                PoliciesModelFactory.newPolicyBuilder(commandPolicy.getEntityId().orElseThrow(), adjustedEntries)
+                        .setPolicyImports(commandPolicy.getPolicyImports())
+                        .build();
 
         final ModifyPolicy adjustedCommand = ModifyPolicy.of(command.getEntityId(), adjustedPolicy, adjustedHeaders);
 

@@ -23,7 +23,6 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.PolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportsResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
@@ -47,12 +46,10 @@ final class RetrievePolicyImportsStrategy extends AbstractPolicyQueryCommandStra
 
         final PolicyId policyId = context.getState();
         if (policy != null) {
-            final Optional<PolicyImports> imports = policy.getPolicyImports();
-            if (imports.isPresent()) {
-                final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                        RetrievePolicyImportsResponse.of(policyId, imports.get(), command.getDittoHeaders()), policy);
-                return ResultFactory.newQueryResult(command, response);
-            }
+            final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                    RetrievePolicyImportsResponse.of(policyId, policy.getPolicyImports(), command.getDittoHeaders()),
+                    policy);
+            return ResultFactory.newQueryResult(command, response);
         }
         return ResultFactory.newErrorResult(policyImportsNotFound(policyId, command.getDittoHeaders()), command);
     }

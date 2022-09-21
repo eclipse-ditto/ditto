@@ -44,7 +44,7 @@ public class PolicyImportCreatedStrategyTest extends AbstractPolicyEventStrategy
     @Override
     protected void additionalAssertions(final Policy policyWithEventApplied) {
         assertThat(policyWithEventApplied.getPolicyImports()
-                .flatMap(policyImports -> policyImports.getPolicyImport(CREATED.getImportedPolicyId())))
+                .getPolicyImport(CREATED.getImportedPolicyId()))
                 .contains(CREATED);
     }
 }

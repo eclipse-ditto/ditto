@@ -37,7 +37,6 @@ import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.PolicyImports;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -338,8 +337,7 @@ public final class CachingPolicyEnforcerProviderTest {
         final var policyImports = PoliciesModelFactory.newPolicyImports(policyImportList);
 
         final var policy = mock(Policy.class);
-        final Optional<PolicyImports> optionalPolicyImports = Optional.of(policyImports);
-        when(policy.getPolicyImports()).thenReturn(optionalPolicyImports);
+        when(policy.getPolicyImports()).thenReturn(policyImports);
 
         final var policyEnforcer = mock(PolicyEnforcer.class);
         when(policyEnforcer.getPolicy()).thenReturn(Optional.of(policy));
