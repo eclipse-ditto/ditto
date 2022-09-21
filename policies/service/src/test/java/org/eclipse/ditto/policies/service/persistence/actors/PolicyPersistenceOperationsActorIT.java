@@ -12,22 +12,20 @@
  */
 package org.eclipse.ditto.policies.service.persistence.actors;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
+import org.eclipse.ditto.base.api.common.Shutdown;
 import org.eclipse.ditto.base.api.common.purge.PurgeEntities;
-import org.eclipse.ditto.base.api.common.purge.PurgeEntitiesResponse;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
-import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespaceResponse;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.internal.utils.persistence.operations.EntityPersistenceOperations;
 import org.eclipse.ditto.internal.utils.persistence.operations.NamespacePersistenceOperations;
@@ -59,7 +57,6 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
-import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Tests {@link org.eclipse.ditto.policies.service.persistence.actors.PolicyPersistenceOperationsActor}.
@@ -96,9 +93,11 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
             pubSubMediator.expectMsgClass(DistributedPubSubMediator.Subscribe.class);
 
             underTest.tell(PolicyPersistenceOperationsActor.Control.SERVICE_UNBIND, getRef());
-            final var unsub1 = pubSubMediator.expectMsgClass(DistributedPubSubMediator.Unsubscribe.class);
+            final var unsub1 =
+                    pubSubMediator.expectMsgClass(DistributedPubSubMediator.Unsubscribe.class);
             pubSubMediator.reply(new DistributedPubSubMediator.UnsubscribeAck(unsub1));
-            final var unsub2 = pubSubMediator.expectMsgClass(DistributedPubSubMediator.Unsubscribe.class);
+            final var unsub2 =
+                    pubSubMediator.expectMsgClass(DistributedPubSubMediator.Unsubscribe.class);
             pubSubMediator.reply(new DistributedPubSubMediator.UnsubscribeAck(unsub2));
             expectMsg(Done.getInstance());
 
@@ -111,10 +110,7 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
     public void shutdownWithPurgeNamespaceTask() {
         final var actorSystem = actorSystemResource.getActorSystem();
         new TestKit(actorSystem) {{
-            doAnswer(invocation -> {
-                sleep(Duration.ofSeconds(5));
-                return Source.single(List.of());
-            }).when(namespaceOpsMock).purge(any());
+            doAnswer(invocation -> Source.never()).when(namespaceOpsMock).purge(any());
 
             final var namespace = "namespaceToPurge";
             final var pubSubMediator = TestProbe.apply(actorSystem);
@@ -125,9 +121,11 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
             final PurgeNamespace purgeNamespace = PurgeNamespace.of(namespace, DittoHeaders.empty());
             underTest.tell(purgeNamespace, getRef());
             underTest.tell(PolicyPersistenceOperationsActor.Control.SERVICE_REQUESTS_DONE, getRef());
-            expectNoMsg(FiniteDuration.apply(4, TimeUnit.SECONDS));
 
-            expectMsg(PurgeNamespaceResponse.successful(namespace, PolicyConstants.ENTITY_TYPE, DittoHeaders.empty()));
+            final DistributedPubSubMediator.Publish publish =
+                    pubSubMediator.expectMsgClass(DistributedPubSubMediator.Publish.class);
+            assertThat(publish.message()).isEqualTo(purgeNamespace);
+
             expectMsg(Done.getInstance());
         }};
     }
@@ -136,10 +134,7 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
     public void shutdownWithPurgeEntitiesTask() {
         final var actorSystem = actorSystemResource.getActorSystem();
         new TestKit(actorSystem) {{
-            doAnswer(invocation -> {
-                sleep(Duration.ofSeconds(5));
-                return Source.single(List.of());
-            }).when(entitiesOpsMock).purgeEntities(any());
+            doAnswer(invocation -> Source.never()).when(entitiesOpsMock).purgeEntities(any());
 
             final var pubSubMediator = TestProbe.apply(actorSystem);
             final var underTest = startActorUnderTest(actorSystem, pubSubMediator.ref());
@@ -151,10 +146,14 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
                     DittoHeaders.empty());
             underTest.tell(purgeEntities, getRef());
             underTest.tell(PolicyPersistenceOperationsActor.Control.SERVICE_REQUESTS_DONE, getRef());
-            expectNoMsg(FiniteDuration.apply(5, TimeUnit.SECONDS));
 
-            expectMsg(Duration.ofSeconds(6), PurgeEntitiesResponse.successful(PolicyConstants.ENTITY_TYPE,
-                    DittoHeaders.empty()));
+            final DistributedPubSubMediator.Publish publish =
+                    pubSubMediator.expectMsgClass(DistributedPubSubMediator.Publish.class);
+            assertThat(publish.message()).isInstanceOf(Shutdown.class);
+            final DistributedPubSubMediator.Publish publish2 =
+                    pubSubMediator.expectMsgClass(DistributedPubSubMediator.Publish.class);
+            assertThat(publish2.message()).isEqualTo(purgeEntities);
+
             expectMsg(Done.getInstance());
         }};
     }
