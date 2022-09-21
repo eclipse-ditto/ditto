@@ -240,12 +240,14 @@ final class ImmutablePolicy implements Policy {
             } else {
                 final Map<Label, PolicyEntry> entriesCopy = copyEntries();
                 entriesCopy.put(policyEntry.getLabel(), policyEntry);
-                result = new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created, metadata);
+                result = new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created,
+                        metadata);
             }
         } else {
             final Map<Label, PolicyEntry> entriesCopy = copyEntries();
             entriesCopy.put(policyEntry.getLabel(), policyEntry);
-            result = new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created, metadata);
+            result = new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created,
+                    metadata);
         }
 
         return result;
@@ -415,7 +417,8 @@ final class ImmutablePolicy implements Policy {
             if (!Objects.equals(existingResources, newResources)) {
                 final Map<Label, PolicyEntry> entriesCopy = copyEntries();
                 entriesCopy.put(lbl, newPolicyEntry(lbl, existingEntry.getSubjects(), newResources));
-                result = new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created, metadata);
+                result = new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created,
+                        metadata);
             }
         }
 
@@ -430,7 +433,8 @@ final class ImmutablePolicy implements Policy {
         final PolicyEntry modifiedEntry;
 
         if (!entriesCopy.containsKey(lbl)) {
-            modifiedEntry = newPolicyEntry(label, PoliciesModelFactory.emptySubjects(), emptyResources(), importableType);
+            modifiedEntry =
+                    newPolicyEntry(label, PoliciesModelFactory.emptySubjects(), emptyResources(), importableType);
         } else {
             final PolicyEntry policyEntry = entriesCopy.get(lbl);
             modifiedEntry = newPolicyEntry(label, policyEntry.getSubjects(),
@@ -500,11 +504,17 @@ final class ImmutablePolicy implements Policy {
                 .collect(Collectors.toCollection(LinkedHashSet::new))
                 .iterator();
         boolean semanticallyTheSame = true;
-        while(others.hasNext() && owns.hasNext()) {
+        while (others.hasNext() && owns.hasNext()) {
             semanticallyTheSame &= others.next().isSemanticallySameAs(owns.next());
         }
         semanticallyTheSame &= !others.hasNext() && !owns.hasNext();
         return semanticallyTheSame;
+    }
+
+    @Override
+    public boolean isSemanticallySameAs(final Policy otherPolicy) {
+        return getPolicyImports().equals(otherPolicy.getPolicyImports()) &&
+                isSemanticallySameAs(otherPolicy.getEntriesSet());
     }
 
     @Override

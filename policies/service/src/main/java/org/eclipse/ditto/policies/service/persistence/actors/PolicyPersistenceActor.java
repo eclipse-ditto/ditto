@@ -190,7 +190,7 @@ public final class PolicyPersistenceActor
 
         if (null != previousEntity && null != entity) {
             if (previousEntity.hasLifecycle(PolicyLifecycle.DELETED) || entityExistsAsDeleted() ||
-                    !previousEntity.isSemanticallySameAs(entity.getEntriesSet())) {
+                    !previousEntity.isSemanticallySameAs(entity)) {
                 // however only publish the PolicyTag when the Policy semantically changed
                 // (e.g. not when only a "subject" payload changed but not the subjectId itself)
                 publishPolicyTag(event);
