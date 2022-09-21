@@ -17,8 +17,6 @@ import java.util.Map;
 
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.MappingContext;
-import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
-import org.eclipse.ditto.connectivity.service.mapping.PayloadMapper;
 
 public class MappingContexts {
 
@@ -28,16 +26,10 @@ public class MappingContexts {
         return ConnectivityModelFactory.newMappingContext(engine, opts);
     }
 
-    public static MappingContext mock(final Class<? extends MessageMapper> messageMapperClass,
-            Map<String, String> opts)
-    {
-        return mock(messageMapperClass.getAnnotation(PayloadMapper.class).alias()[0], opts);
-    }
-
     public static MappingContext mock(final boolean isValid)
     {
         final Map<String, String> opts = new HashMap<>();
         opts.put(MockMapper.OPT_IS_VALID, String.valueOf(isValid));
-        return mock(MockMapper.class, opts);
+        return mock(MockMapper.ALIAS, opts);
     }
 }

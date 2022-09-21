@@ -15,10 +15,10 @@ package org.eclipse.ditto.connectivity.service.mapping;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -68,7 +68,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
      * The factory function that creates instances of {@link MessageMapper}.
      */
     private final MessageMapperExtension messageMapperExtension;
-    private final Set<PayloadMapperFactory> payloadMapperFactories;
+    private final Map<String, MessageMapper> messageMappers;
 
     private final LoggingAdapter log;
 
@@ -83,7 +83,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         this.log = checkNotNull(log);
 
         messageMapperExtension = loadMessageMapperExtension(actorSystem);
-        payloadMapperFactories = loadPayloadMapperProvider(actorSystem).getPayloadMapperFactories();
+        messageMappers = loadPayloadMapperProvider(actorSystem).getMessageMappers();
     }
 
     private static MessageMapperExtension loadMessageMapperExtension(final ActorSystem actorSystem) {
@@ -91,9 +91,9 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         return MessageMapperExtension.get(actorSystem, extensionsConfig);
     }
 
-    private static PayloadMapperProvider loadPayloadMapperProvider(final ActorSystem actorSystem) {
+    private static MessageMapperProvider loadPayloadMapperProvider(final ActorSystem actorSystem) {
         final var extensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
-        return PayloadMapperProvider.get(actorSystem, extensionsConfig);
+        return MessageMapperProvider.get(actorSystem, extensionsConfig);
     }
 
     /**
@@ -149,10 +149,12 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
                 instantiateMappers(payloadMappingDefinition.getDefinitions().entrySet().stream());
 
         final var fallbackMappers = instantiateMappers(
-                payloadMapperFactories.stream()
-                        .filter(pmf -> !pmf.isConfigurationMandatory())
-                        .map(PayloadMapperFactory::getPayloadMapperAlias)
-                        .map(DefaultMessageMapperFactory::getEmptyMappingContextForAlias));
+                new LinkedHashSet<>(messageMappers.values())
+                        .stream()
+                        .filter(mm -> !mm.isConfigurationMandatory())
+                        .map(MessageMapper::getAlias)
+                        .map(DefaultMessageMapperFactory::getEmptyMappingContextForAlias)
+        );
 
         return DefaultMessageMapperRegistry.of(defaultMapper, mappersFromConnectionConfig, fallbackMappers);
     }
@@ -181,12 +183,9 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
      * @return the instantiated mapper if it can be instantiated from the configured factory class.
      */
     Optional<MessageMapper> createMessageMapperInstance(final String mappingEngine) {
-        return payloadMapperFactories.stream()
-                .filter(pmf -> pmf.getPayloadMapperAlias()
-                        .equals(mappingEngine))
-                .findFirst()
-                .map(PayloadMapperFactory::createPayloadMapper)
-                .map(payloadMapper -> messageMapperExtension.apply(connection.getId(), payloadMapper));
+        return Optional.ofNullable(messageMappers.get(mappingEngine))
+                .map(MessageMapper::getOrCreateInstance)
+                .map(messageMapper -> messageMapperExtension.apply(connection.getId(), messageMapper));
     }
 
     private Optional<MessageMapper> configureInstance(final MessageMapper mapper,

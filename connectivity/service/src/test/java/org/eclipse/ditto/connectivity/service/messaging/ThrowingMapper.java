@@ -41,6 +41,21 @@ final class ThrowingMapper implements MessageMapper {
     }
 
     @Override
+    public String getAlias() {
+        return "throwing";
+    }
+
+    @Override
+    public boolean isConfigurationMandatory() {
+        return false;
+    }
+
+    @Override
+    public MessageMapper getOrCreateInstance() {
+        return this;
+    }
+
+    @Override
     public Collection<String> getContentTypeBlocklist() {
         return List.of();
     }

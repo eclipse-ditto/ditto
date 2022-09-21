@@ -32,6 +32,7 @@ import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.edge.service.placeholders.RequestPlaceholder;
@@ -54,13 +55,17 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
+
 /**
  * This mapper creates a {@link MergeThing} command when a {@link ThingQueryCommandResponse} was received via the
  * {@link TopicPath.Channel#LIVE live channel} patching exactly the retrieved "live" data into the twin.
  * It might be configured with a {@code dittoHeadersForMerge} JsonObject containing {@link DittoHeaders} to apply for
  * the created {@code MergeThing} command, e.g. adding a condition for the merge update.
  */
-public class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessageMapper implements PayloadMapper {
+public final class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessageMapper {
 
     private static final String PAYLOAD_MAPPER_ALIAS = "UpdateTwinWithLiveResponse";
 
@@ -89,13 +94,38 @@ public class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessageMapp
 
     private DittoHeaders dittoHeadersForMerge = DEFAULT_DITTO_HEADERS_FOR_MERGE;
 
+    /**
+     * Constructs a new instance of UpdateTwinWithLiveResponseMessageMapper extension.
+     *
+     * @param actorSystem the actor system in which to load the extension.
+     * @param config the configuration for this extension.
+     */
+    UpdateTwinWithLiveResponseMessageMapper(final ActorSystem actorSystem, final Config config) {
+        super(actorSystem, config);
+    }
+
     @Override
     public String getAlias() {
         return PAYLOAD_MAPPER_ALIAS;
     }
 
     @Override
-    public void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
+    public boolean isConfigurationMandatory() {
+        return false;
+    }
+
+    @Override
+    public MessageMapper getOrCreateInstance() {
+        if (dittoHeadersForMerge.equals(DEFAULT_DITTO_HEADERS_FOR_MERGE)) {
+            // return the singleton instance if this mapper was not configured in a special way:
+            return this;
+        } else {
+            return new UpdateTwinWithLiveResponseMessageMapper(actorSystem, config);
+        }
+    }
+
+    @Override
+    public void doConfigure(final Connection connection, final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
         configuration.findProperty(DITTO_HEADERS_FOR_MERGE, JsonValue::isObject, JsonValue::asObject)
                 .ifPresent(
                         configuredHeaders -> dittoHeadersForMerge = DittoHeaders.newBuilder(configuredHeaders).build());

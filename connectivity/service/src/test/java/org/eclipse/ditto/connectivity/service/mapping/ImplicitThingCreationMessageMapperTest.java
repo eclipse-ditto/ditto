@@ -51,6 +51,9 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingRespons
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -123,7 +126,7 @@ public final class ImplicitThingCreationMessageMapperTest {
     public void setUp() {
         connection = TestConstants.createConnection();
         actorSystem = ActorSystem.create("Test", TestConstants.CONFIG);
-        underTest = new ImplicitThingCreationMessageMapper();
+        underTest = new ImplicitThingCreationMessageMapper(actorSystem, Mockito.mock(Config.class));
     }
 
     @After

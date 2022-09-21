@@ -93,7 +93,7 @@ public final class DefaultMessageMapperFactoryTest {
     @Test
     public void loadMapperFromClass() {
         final MappingContext ctx = MappingContexts.mock(true);
-        assertThat(underTest.mapperOf("test", ctx)).isPresent();
+        assertThat(underTest.mapperOf(MockMapper.class.getName(), ctx)).isPresent();
     }
 
     @Test
@@ -117,19 +117,13 @@ public final class DefaultMessageMapperFactoryTest {
     }
 
     @Test
-    public void createWithFactoryMethod() {
-        // looking for a method containing 'test' and returning a MessageMapper in Mappers.class
+    public void createWithAlias() {
+        // looking for a mapper alias 'test' and returning a MessageMapper in Mappers.class
         assertThat(underTest.createMessageMapperInstance("test")).isPresent();
     }
 
     @Test
-    public void createWithClassName() {
-        // MockMapper extends MessageMapper and can be loaded
-        assertThat(underTest.createMessageMapperInstance("test")).isPresent();
-    }
-
-    @Test
-    public void createWithClassNameFindsNoClass() {
+    public void createWithUnknownAliasFindsNoMapper() {
         assertThat(underTest.createMessageMapperInstance("strong-smell-wasabi")).isEmpty();
     }
 

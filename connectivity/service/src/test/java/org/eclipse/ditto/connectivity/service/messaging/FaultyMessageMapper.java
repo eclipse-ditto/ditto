@@ -12,25 +12,27 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
-import static org.eclipse.ditto.connectivity.service.messaging.FaultyMessageMapper.ALIAS;
-
 import java.util.Collections;
 import java.util.List;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.MappingContext;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.connectivity.service.mapping.AbstractMessageMapper;
+import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
-import org.eclipse.ditto.connectivity.service.mapping.PayloadMapper;
 import org.eclipse.ditto.protocol.Adaptable;
+
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
 
 /**
  * Implementation of {@link org.eclipse.ditto.connectivity.service.mapping.MessageMapper} that always throws an exception.
  */
-@PayloadMapper(getAlias = ALIAS)
 public final class FaultyMessageMapper extends AbstractMessageMapper {
 
     static final String ALIAS = "faulty";
@@ -40,9 +42,28 @@ public final class FaultyMessageMapper extends AbstractMessageMapper {
      */
     static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContext(ALIAS, Collections.emptyMap());
 
+    FaultyMessageMapper(final ActorSystem actorSystem, final Config config) {
+        super(actorSystem, config);
+    }
+
     @Override
-    public void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
+    public void doConfigure(final Connection connection, final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
         // ignore
+    }
+
+    @Override
+    public String getAlias() {
+        return ALIAS;
+    }
+
+    @Override
+    public boolean isConfigurationMandatory() {
+        return false;
+    }
+
+    @Override
+    public MessageMapper getOrCreateInstance() {
+        return this;
     }
 
     @Override

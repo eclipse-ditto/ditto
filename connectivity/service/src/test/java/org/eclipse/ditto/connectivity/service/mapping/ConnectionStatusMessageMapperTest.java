@@ -43,6 +43,9 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.Mockito;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -73,7 +76,7 @@ public class ConnectionStatusMessageMapperTest {
         connection = TestConstants.createConnection();
         connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
         actorSystem = ActorSystem.create("Test", TestConstants.CONFIG);
-        underTest = new ConnectionStatusMessageMapper();
+        underTest = new ConnectionStatusMessageMapper(actorSystem, Mockito.mock(Config.class));
 
         validConfigProps = Map.of(ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_THING_ID,
                 JsonValue.of("configNamespace:configDeviceId"));

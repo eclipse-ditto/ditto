@@ -19,6 +19,7 @@ import java.util.stream.LongStream;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.MappingContext;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
@@ -26,13 +27,15 @@ import org.eclipse.ditto.connectivity.service.mapping.AbstractMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
-import org.eclipse.ditto.connectivity.service.mapping.PayloadMapper;
 import org.eclipse.ditto.protocol.Adaptable;
+
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
 
 /**
  * Implementation of {@link org.eclipse.ditto.connectivity.service.mapping.MessageMapper} that always duplicates the incoming message.
  */
-@PayloadMapper(getAlias = DuplicatingMessageMapper.ALIAS)
 public final class DuplicatingMessageMapper extends AbstractMessageMapper {
 
     static final String ALIAS = "duplicating";
@@ -42,12 +45,32 @@ public final class DuplicatingMessageMapper extends AbstractMessageMapper {
      */
     static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContext(ALIAS, Collections.emptyMap());
 
-    private final MessageMapper delegate = new DittoMessageMapper();
+    private final MessageMapper delegate;
     private Long n;
 
+    DuplicatingMessageMapper(final ActorSystem actorSystem, final Config config) {
+        super(actorSystem, config);
+        delegate = new DittoMessageMapper(actorSystem, config);
+    }
+
     @Override
-    public void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
+    public void doConfigure(final Connection connection, final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
         n = configuration.findProperty("n").map(Long::valueOf).orElse(2L);
+    }
+
+    @Override
+    public String getAlias() {
+        return ALIAS;
+    }
+
+    @Override
+    public boolean isConfigurationMandatory() {
+        return false;
+    }
+
+    @Override
+    public MessageMapper getOrCreateInstance() {
+        return this;
     }
 
     @Override
