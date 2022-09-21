@@ -107,6 +107,8 @@ final class JMSPropertyMapper {
             try {
                 if (isDefinedAmqpProperty(headerName)) {
                     setDefinedAmqpProperty(message, headerName, headerValue);
+                } else if (isMessageAnnotation(headerName)) {
+                    setMessageAnnotation(message, headerName, headerValue);
                 } else {
                     setAmqpApplicationProperty(message, headerName, headerValue);
                 }
@@ -286,6 +288,10 @@ final class JMSPropertyMapper {
         return AMQP_PROPERTY_SETTER.containsKey(name);
     }
 
+    private static boolean isMessageAnnotation(final String name) {
+        return name.startsWith(AMQP.MESSAGE_ANNOTATION_PREFIX);
+    }
+
     private static Consumer<String> set(final Map<String, String> modifiableHeaders, final String name) {
         return value -> modifiableHeaders.put(name, value);
     }
@@ -293,6 +299,14 @@ final class JMSPropertyMapper {
     // precondition: isDefinedAmqpProperty(name)
     private static void setDefinedAmqpProperty(final Message message, final String name, final String value) {
         AMQP_PROPERTY_SETTER.get(name).accept(message, value);
+    }
+
+    // precondition: isMessageAnnotation(name)
+    private static void setMessageAnnotation(final Message message, final String name, final String value) {
+        final String applicationPropertyName = name.substring(AMQP.MESSAGE_ANNOTATION_PREFIX.length());
+
+        wrapFacadeBiConsumer(message, value, (facade, v) -> wrap((x, y) ->
+                facade.setTracingAnnotation(applicationPropertyName, value)).accept(message, value));
     }
 
     private static void setAmqpApplicationProperty(final Message message, final String name, final String value) {
