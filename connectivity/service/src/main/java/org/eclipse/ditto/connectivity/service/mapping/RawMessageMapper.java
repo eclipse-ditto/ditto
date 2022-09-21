@@ -386,4 +386,14 @@ public final class RawMessageMapper extends AbstractMessageMapper {
                 .addLeaf(MESSAGES_JSON_KEY)
                 .append(JsonPointer.of(messageHeaders.getSubject()));
     }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
+                ", dittoMessageMapper=" + dittoMessageMapper +
+                ", fallbackOutgoingContentType=" + fallbackOutgoingContentType +
+                ", incomingMessageHeaders=" + incomingMessageHeaders +
+                "]";
+    }
 }

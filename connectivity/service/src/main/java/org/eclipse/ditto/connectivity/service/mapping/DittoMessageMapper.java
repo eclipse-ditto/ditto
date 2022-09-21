@@ -134,4 +134,8 @@ public final class DittoMessageMapper extends AbstractMessageMapper {
         return DEFAULT_OPTIONS;
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" + super.toString() + "]";
+    }
 }

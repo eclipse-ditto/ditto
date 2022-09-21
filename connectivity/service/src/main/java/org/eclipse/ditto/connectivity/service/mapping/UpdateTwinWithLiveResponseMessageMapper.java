@@ -217,14 +217,14 @@ public final class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessa
 
     private Map<String, String> resolvePlaceholders(final Map<String, String> externalMessageHeaders,
             @Nullable final AuthorizationContext authorizationContext) {
-        final ExpressionResolver expressionResolver = getExpressionResolver(externalMessageHeaders,
+        final ExpressionResolver expressionResolver = createExpressionResolver(externalMessageHeaders,
                 authorizationContext);
         return dittoHeadersForMerge.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, entry ->
                         potentiallySubstitutePlaceholders(entry.getValue(), expressionResolver)));
     }
 
-    private static ExpressionResolver getExpressionResolver(final Map<String, String> headers,
+    private static ExpressionResolver createExpressionResolver(final Map<String, String> headers,
             @Nullable final AuthorizationContext authorizationContext) {
         return PlaceholderFactory.newExpressionResolver(List.of(
                 PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object()),
@@ -241,5 +241,13 @@ public final class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessa
     @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
         return Collections.emptyList();
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
+                ", dittoHeadersForMerge=" + dittoHeadersForMerge +
+                "]";
     }
 }

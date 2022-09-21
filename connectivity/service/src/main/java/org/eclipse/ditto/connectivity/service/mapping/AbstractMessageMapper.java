@@ -151,4 +151,11 @@ public abstract class AbstractMessageMapper implements MessageMapper {
         return adaptable.getTopicPath().isChannel(TopicPath.Channel.LIVE);
     }
 
+    @Override
+    public String toString() {
+        return "id=" + id +
+            ", incomingConditions=" + incomingConditions +
+            ", outgoingConditions=" + outgoingConditions +
+            ", contentTypeBlocklist=" + contentTypeBlocklist;
+    }
 }
