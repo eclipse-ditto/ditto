@@ -442,7 +442,7 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
     }
 
     default Policy withResolvedImports(final Function<PolicyId, Optional<Policy>> policyResolver) {
-        final Optional<PolicyImports> imports = getImports();
+        final Optional<PolicyImports> imports = getPolicyImports();
         final Policy resolvedPolicy;
         if (imports.isPresent()) {
             return this.toBuilder().setAll(PolicyImporter.mergeImportedPolicyEntries(this, policyResolver)).build();
