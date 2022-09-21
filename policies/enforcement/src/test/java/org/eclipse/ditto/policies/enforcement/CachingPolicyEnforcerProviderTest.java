@@ -289,7 +289,7 @@ public final class CachingPolicyEnforcerProviderTest {
             cachingActor.tell(PolicyTag.of(changedPolicyId, 1234L), ActorRef.noSender());
 
             verify(cache, timeout(3000)).invalidate(changedPolicyId);
-            verify(cache).invalidate(importingPolicyId);
+            verify(cache, timeout(3000)).invalidate(importingPolicyId);
             verify(cache, never()).invalidate(otherPolicyId);
             verify(cache, times(1)).asMap();
         }};
