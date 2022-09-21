@@ -26,6 +26,7 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
+import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.internal.utils.persistence.operations.EntityPersistenceOperations;
 import org.eclipse.ditto.internal.utils.persistence.operations.NamespacePersistenceOperations;
@@ -219,8 +220,7 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
     }
 
     private ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator) {
-        final Props opsActorProps = PolicyPersistenceOperationsActor.propsForTest(pubSubMediator, mongoDbConfig,
-                persistenceOperationsConfig, namespaceOpsMock, entitiesOpsMock);
+        final Props opsActorProps = testProps(pubSubMediator);
 
         return actorSystem.actorOf(opsActorProps, PolicyPersistenceOperationsActor.ACTOR_NAME);
     }
@@ -230,6 +230,14 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
         final Props props = PolicySupervisorActor.props(pubSubMediator, Mockito.mock(DistributedPub.class), null);
 
         return system.actorOf(props, id.toString());
+    }
+
+    private Props testProps(final ActorRef pubSubMediator) {
+        final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
+
+        return Props.create(PolicyPersistenceOperationsActor.class,
+                () -> new PolicyPersistenceOperationsActor(pubSubMediator, namespaceOpsMock, entitiesOpsMock,
+                        mongoClient, persistenceOperationsConfig));
     }
 
 }

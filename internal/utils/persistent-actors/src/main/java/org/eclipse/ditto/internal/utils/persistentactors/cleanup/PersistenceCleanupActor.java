@@ -31,6 +31,7 @@ import org.eclipse.ditto.internal.utils.health.StatusInfo;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.operations.AbstractPersistenceOperationsActor;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
@@ -40,11 +41,13 @@ import com.typesafe.config.ConfigFactory;
 import akka.Done;
 import akka.actor.AbstractFSM;
 import akka.actor.ActorRef;
+import akka.actor.CoordinatedShutdown;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.cluster.Cluster;
 import akka.japi.Pair;
 import akka.japi.pf.FSMStateFunctionBuilder;
+import akka.pattern.Patterns;
 import akka.stream.Attributes;
 import akka.stream.KillSwitches;
 import akka.stream.Materializer;
@@ -61,12 +64,18 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
     /**
      * Name of this actor.
      */
-    public static final String NAME = "persistenceCleanup";
+    public static final String ACTOR_NAME = "persistenceCleanup";
 
     /**
      * JSON field of ModifyConfig commands that
      */
     private static final String SET_LAST_PID = "last-pid";
+
+    /**
+     * Ask-timeout in shutdown tasks. Its duration should be long enough but ultimately does not
+     * matter because each shutdown phase has its own timeout.
+     */
+    private static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
 
     private static final Throwable KILL_SWITCH_EXCEPTION = new IllegalStateException();
 
@@ -123,6 +132,15 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
     @Override
     public void preStart() throws Exception {
         super.preStart();
+
+        final var coordinatedShutdown = CoordinatedShutdown.get(getContext().getSystem());
+        final var serviceRequestsDoneTask = "service-requests-done-" + ACTOR_NAME;
+        coordinatedShutdown.addTask(CoordinatedShutdown.PhaseServiceRequestsDone(), serviceRequestsDoneTask,
+                () -> Patterns.ask(getSelf(), AbstractPersistenceOperationsActor.Control.SERVICE_REQUESTS_DONE,
+                                SHUTDOWN_ASK_TIMEOUT)
+                        .thenApply(reply -> Done.done())
+        );
+
         if (config.isEnabled()) {
             startWith(State.IN_QUIET_PERIOD, "", randomizeQuietPeriod());
         } else {
@@ -136,14 +154,16 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
 
     private FSMStateFunctionBuilder<State, String> inQuietPeriod() {
         return matchEventEquals(StateTimeout(), this::startStream)
-                .eventEquals(Control.SHUTDOWN, this::shutdownInQuietPeriod);
+                .eventEquals(Control.SHUTDOWN, this::shutdownInQuietPeriod)
+                .eventEquals(Control.SERVICE_REQUESTS_DONE, this::serviceRequestsDone);
     }
 
     private FSMStateFunctionBuilder<State, String> running() {
         return matchEvent(CleanupResult.class, this::logCleanupResult)
                 .eventEquals(Control.STREAM_COMPLETE, this::streamComplete)
                 .eventEquals(Control.STREAM_FAILED, this::streamFailed)
-                .eventEquals(Control.SHUTDOWN, this::shutdownRunningStream);
+                .eventEquals(Control.SHUTDOWN, this::shutdownRunningStream)
+                .eventEquals(Control.SERVICE_REQUESTS_DONE, this::serviceRequestsDone);
     }
 
     private FSMStateFunctionBuilder<State, String> inAnyState() {
@@ -180,6 +200,7 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
 
         killSwitch = materializedValues.first();
         materializedValues.second().handle(this::streamCompletedOrFailed);
+
         return goTo(State.RUNNING);
     }
 
@@ -198,6 +219,7 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
                 deleteEventsCounter.increment(result.result.getDeletedCount());
                 break;
         }
+
         return stay().using(nextPid);
     }
 
@@ -226,11 +248,12 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
     }
 
     private FSM.State<State, String> shutdownRunningStream(final Control shutdown, final String lastPid) {
-        logger.info("Activating kill-switch by demand: <{}>", killSwitch);
+        logger.info("Activating kill-switch on demand: <{}>", killSwitch);
         if (killSwitch != null) {
             // using ABORT to preserve lastPid
             killSwitch.abort(KILL_SWITCH_EXCEPTION);
         }
+
         return stay();
     }
 
@@ -254,6 +277,7 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
                 DittoHeaders.empty()
         );
         getSender().tell(response, getSelf());
+
         return stay();
     }
 
@@ -261,6 +285,7 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
         final long divisor = 1024;
         final long multiplier = (long) (Math.random() * divisor);
         final var quietPeriod = config.getQuietPeriod();
+
         return quietPeriod.plus(quietPeriod.multipliedBy(multiplier).dividedBy(divisor));
     }
 
@@ -277,6 +302,7 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
             }
             getSelf().tell(Control.STREAM_FAILED, ActorRef.noSender());
         }
+
         return Done.getInstance();
     }
 
@@ -291,13 +317,25 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
         cleanup = Cleanup.of(this.config, mongoReadJournal, materializer, responsibilitySupplier);
         credits = Credits.of(this.config);
         getSelf().tell(Control.SHUTDOWN, ActorRef.noSender());
+
         return this.config.render();
     }
 
-    private enum Control {
+    private FSM.State<State, String> serviceRequestsDone(final Control serviceRequestsDone, final String lastPid) {
+        if (killSwitch != null) {
+            logger.info("Aborting stream because of graceful shutdown.");
+            killSwitch.abort(KILL_SWITCH_EXCEPTION);
+        }
+        getSender().tell(Done.getInstance(), getSelf());
+
+        return stay();
+    }
+
+    public enum Control {
         STREAM_COMPLETE,
         STREAM_FAILED,
-        SHUTDOWN
+        SHUTDOWN,
+        SERVICE_REQUESTS_DONE
     }
 
     /**
@@ -307,4 +345,5 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
         IN_QUIET_PERIOD,
         RUNNING
     }
+
 }

@@ -38,7 +38,7 @@ public final class PolicyPersistenceOperationsActor extends AbstractPersistenceO
 
     public static final String ACTOR_NAME = "policyOps";
 
-    private PolicyPersistenceOperationsActor(final ActorRef pubSubMediator,
+    PolicyPersistenceOperationsActor(final ActorRef pubSubMediator,
             final NamespacePersistenceOperations namespaceOps,
             final EntityPersistenceOperations entitiesOps,
             final MongoClientWrapper mongoClient,
@@ -79,20 +79,6 @@ public final class PolicyPersistenceOperationsActor extends AbstractPersistenceO
                     MongoNamespacePersistenceOperations.of(db, eventSourceSettings);
             final EntityPersistenceOperations entitiesOps =
                     MongoEntitiesPersistenceOperations.of(db, eventSourceSettings);
-
-            return new PolicyPersistenceOperationsActor(pubSubMediator, namespaceOps, entitiesOps, mongoClient,
-                    persistenceOperationsConfig);
-        });
-    }
-
-    static Props propsForTest(final ActorRef pubSubMediator,
-            final MongoDbConfig mongoDbConfig,
-            final PersistenceOperationsConfig persistenceOperationsConfig,
-            final NamespacePersistenceOperations namespaceOps,
-            final EntityPersistenceOperations entitiesOps) {
-
-        return Props.create(PolicyPersistenceOperationsActor.class, () -> {
-            final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
 
             return new PolicyPersistenceOperationsActor(pubSubMediator, namespaceOps, entitiesOps, mongoClient,
                     persistenceOperationsConfig);
