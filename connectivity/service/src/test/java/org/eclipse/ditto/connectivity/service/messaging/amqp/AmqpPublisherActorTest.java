@@ -157,7 +157,8 @@ public final class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                     .build();
             final DittoHeaders withAckRequest = dittoHeaders.toBuilder()
                     .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of(ack)))
-                    .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat())
+                    .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(),
+                            getRef().path().toSerializationFormat())
                     .build();
 
             final Props props = getPublisherActorProps();
@@ -269,7 +270,7 @@ public final class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                 final int wantedNumberOfInvocations = i + 2;
                 final long millis =
                         1_000 // initial backoff
-                                * (long) (Math.pow(2, i)) // backoff doubles with each retry
+                                * (long) Math.pow(2, i) // backoff doubles with each retry
                                 + 500; // give the producer some time to recover
                 LOGGER.info("Want {} invocations after {}ms.", wantedNumberOfInvocations, millis);
                 verify(session, after(millis)
@@ -429,6 +430,7 @@ public final class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                                             .set("application-property-with-dash", "value0")
                                             .set("amqp.application.property:to", "value1")
                                             .set("amqp.application.property:anotherApplicationProperty", "value2")
+                                            .set("amqp.message.annotation:message-annotation", "value3")
                                             .build()
                             ))
                             .build()
@@ -446,7 +448,9 @@ public final class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
             final ArgumentCaptor<JmsMessage> messageCaptor = ArgumentCaptor.forClass(JmsMessage.class);
             verify(messageProducer, timeout(2000)).send(messageCaptor.capture(), any(CompletionListener.class));
-            final Message message = messageCaptor.getValue();
+            final JmsMessage message = messageCaptor.getValue();
+            assertThat(message.getFacade().getTracingAnnotation("message-annotation")).as("Sets message annotation " +
+                    "as tracing annotation").isEqualTo("value3");
             final Map<String, String> receivedHeaders =
                     JMSPropertyMapper.getHeadersFromProperties(message);
 
@@ -462,6 +466,7 @@ public final class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             assertThat(receivedHeaders).containsEntry("amqp.application.property:to", "value1");
             assertThat(receivedHeaders).containsEntry("anotherApplicationProperty", "value2");
             // group-sequence is an AMQP prop of type "int", therefore it must not be contained in the headers here
+            assertThat(receivedHeaders).containsEntry("message-annotation", "value3");
             assertThat(receivedHeaders).doesNotContainKey("group-sequence");
         }};
 
