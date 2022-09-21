@@ -15,11 +15,14 @@ package org.eclipse.ditto.policies.enforcement;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -31,7 +34,10 @@ import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImports;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -244,6 +250,7 @@ public final class CachingPolicyEnforcerProviderTest {
                 pubSubMediatorProbe.ref()
         );
 
+        when(cache.asMap()).thenReturn(new ConcurrentHashMap<>());
         new TestKit(actorSystem) {{
             pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Subscribe.class);
             final ActorRef cachingActor = pubSubMediatorProbe.lastSender();
@@ -252,7 +259,40 @@ public final class CachingPolicyEnforcerProviderTest {
             cachingActor.tell(PolicyTag.of(policyId, 1234L), ActorRef.noSender());
 
             verify(cache, timeout(3000)).invalidate(policyId);
-            verifyNoMoreInteractions(cache);
+            verify(cache, times(1)).asMap();
+        }};
+
+    }
+
+    @Test
+    public void policyTagInvalidatesCacheOfPolicyAndPoliciesWhichImportedThePolicy() {
+        new CachingPolicyEnforcerProvider(
+                actorSystem,
+                cache,
+                blockedNamespaces,
+                pubSubMediatorProbe.ref()
+        );
+
+        final var otherPolicyId = PolicyId.generateRandom();
+        final var importingPolicyId = PolicyId.generateRandom();
+        final var changedPolicyId = PolicyId.generateRandom();
+
+        final var cacheMap = new ConcurrentHashMap<>(Map.of(
+                otherPolicyId, Entry.permanent(mockPolicyEnforcer()),
+                importingPolicyId, Entry.permanent(mockPolicyEnforcer(changedPolicyId))
+        ));
+        when(cache.asMap()).thenReturn(cacheMap);
+        new TestKit(actorSystem) {{
+            pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Subscribe.class);
+            final ActorRef cachingActor = pubSubMediatorProbe.lastSender();
+
+
+            cachingActor.tell(PolicyTag.of(changedPolicyId, 1234L), ActorRef.noSender());
+
+            verify(cache, timeout(3000)).invalidate(changedPolicyId);
+            verify(cache).invalidate(importingPolicyId);
+            verify(cache, never()).invalidate(otherPolicyId);
+            verify(cache, times(1)).asMap();
         }};
 
     }
@@ -290,6 +330,20 @@ public final class CachingPolicyEnforcerProviderTest {
             verifyNoMoreInteractions(cache);
         }};
 
+    }
+
+    private PolicyEnforcer mockPolicyEnforcer(final PolicyId... importedPolicies) {
+        final var policyImportList =
+                Arrays.stream(importedPolicies).map(PoliciesModelFactory::newPolicyImport).toList();
+        final var policyImports = PoliciesModelFactory.newPolicyImports(policyImportList);
+
+        final var policy = mock(Policy.class);
+        final Optional<PolicyImports> optionalPolicyImports = Optional.of(policyImports);
+        when(policy.getPolicyImports()).thenReturn(optionalPolicyImports);
+
+        final var policyEnforcer = mock(PolicyEnforcer.class);
+        when(policyEnforcer.getPolicy()).thenReturn(Optional.of(policy));
+        return policyEnforcer;
     }
 
 }

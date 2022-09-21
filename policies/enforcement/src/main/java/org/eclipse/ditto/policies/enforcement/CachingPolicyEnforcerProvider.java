@@ -28,6 +28,7 @@ import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.slf4j.Logger;
 
@@ -149,9 +150,27 @@ final class CachingPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider
             return ReceiveBuilder.create()
                     .match(PolicyId.class, this::doGetPolicyEnforcer)
                     .match(DistributedPubSubMediator.SubscribeAck.class, s -> log.debug("Got subscribeAck <{}>.", s))
-                    .match(PolicyTag.class, policyTag -> policyEnforcerCache.invalidate(policyTag.getEntityId()))
+                    .match(PolicyTag.class, policyTag -> invalidatePolicy(policyTag.getEntityId()))
                     .match(Replicator.Changed.class, this::handleChangedBlockedNamespaces)
                     .build();
+        }
+
+        private void invalidatePolicy(final PolicyId policyId) {
+            // Invalidate the changed policy
+            policyEnforcerCache.invalidate(policyId);
+
+            // Invalidate all policies that import the changed policy
+            policyEnforcerCache.asMap().forEach((cachedPolicyId, enforcerEntry) -> {
+                final boolean importsChangedPolicy = enforcerEntry.get()
+                        .flatMap(PolicyEnforcer::getPolicy)
+                        .flatMap(Policy::getPolicyImports)
+                        .map(imports -> imports.getPolicyImport(policyId).isPresent())
+                        .orElse(false);
+
+                if (importsChangedPolicy) {
+                    policyEnforcerCache.invalidate(cachedPolicyId);
+                }
+            });
         }
 
         private void doGetPolicyEnforcer(final PolicyId policyId) {
