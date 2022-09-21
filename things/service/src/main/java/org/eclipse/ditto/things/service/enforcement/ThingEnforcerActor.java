@@ -134,8 +134,7 @@ public final class ThingEnforcerActor
     @Override
     protected CompletionStage<Optional<PolicyEnforcer>> loadPolicyEnforcer(final Signal<?> signal) {
         if (signal instanceof CreateThing createThing && !Signal.isChannelLive(createThing)) {
-            return loadPolicyEnforcerForCreateThing(createThing)
-                    .thenApply(Optional::of);
+            return loadPolicyEnforcerForCreateThing(createThing);
         } else {
             return providePolicyIdForEnforcement(signal)
                     .thenCompose(policyId -> providePolicyEnforcer(policyId)
@@ -185,7 +184,7 @@ public final class ThingEnforcerActor
         }
     }
 
-    private CompletionStage<PolicyEnforcer> loadPolicyEnforcerForCreateThing(final CreateThing createThing) {
+    private CompletionStage<Optional<PolicyEnforcer>> loadPolicyEnforcerForCreateThing(final CreateThing createThing) {
         final Optional<String> policyIdOrPlaceholder = createThing.getPolicyIdOrPlaceholder();
         final Optional<JsonObject> initialPolicyJson = createThing.getInitialPolicy();
         final CompletionStage<Policy> policyCs;
@@ -211,18 +210,7 @@ public final class ThingEnforcerActor
             policyCs = createPolicy(defaultPolicy, createThing);
         }
         return policyCs
-                .thenCompose(policy -> policyEnforcerProvider.getPolicyEnforcer(policy.getEntityId().orElse(null))
-                        .thenApply(optionalEnforcer -> optionalEnforcer.orElseThrow(
-                                () -> {
-                                    final DittoHeaders dittoHeaders = createThing.getDittoHeaders();
-                                    log.withCorrelationId(dittoHeaders)
-                                            .error("Could not get enforcer for newly created policy." +
-                                                    " This is an unexpected situation and should get analyzed.");
-                                    return DittoInternalErrorException.newBuilder()
-                                            .dittoHeaders(dittoHeaders)
-                                            .build();
-                                })
-                        ));
+                .thenCompose(policy -> policyEnforcerProvider.getPolicyEnforcer(policy.getEntityId().orElse(null)));
     }
 
     private CompletionStage<Policy> getCopiedPolicy(final String policyIdOrPlaceholder,

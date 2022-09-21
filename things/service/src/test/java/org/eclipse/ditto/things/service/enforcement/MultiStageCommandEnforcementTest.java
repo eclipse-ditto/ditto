@@ -332,7 +332,8 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             final Thing thing = emptyThing(thingId, policyId);
             final Policy policy = defaultPolicy(policyId);
             final var retrievePolicyResponse = RetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
-
+            when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
             // WHEN: received CreateThing
             final CreateThing createThing = CreateThing.of(thing, null, DEFAULT_HEADERS);
 
@@ -355,6 +356,8 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             final PolicyId policyId = PolicyId.of(thingId);
             final Thing thing = emptyThing(thingId, null);
             final Policy policy = defaultPolicy(policyId);
+            when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
 
             // WHEN: received CreateThing
             final var createThing = CreateThing.of(thing, null, DEFAULT_HEADERS);
@@ -401,6 +404,8 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             final PolicyId policyId = PolicyId.of("policy", UUID.randomUUID().toString());
             final Thing thing = emptyThing(thingId, policyId);
             final Policy policy = defaultPolicy(policyId);
+            when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
 
             // WHEN: received CreateThing
             final var createThing = CreateThing.of(thing, policy.toJson(), DEFAULT_HEADERS);
@@ -426,6 +431,8 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             final PolicyId policyId = PolicyId.of("policy", UUID.randomUUID().toString());
             final Thing thing = emptyThing(thingId, policyId);
             final Policy policy = thingOnlyPolicy(policyId);
+            when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
 
             // WHEN: received CreateThing whose inline policy does not permit creation of itself
             final var createThing = CreateThing.of(thing, policy.toJson(), DEFAULT_HEADERS);
