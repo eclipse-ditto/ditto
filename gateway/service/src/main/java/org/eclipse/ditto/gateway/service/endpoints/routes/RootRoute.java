@@ -304,8 +304,6 @@ public final class RootRoute extends AllDirectives {
                 thingsRoute.buildThingsRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/search/things
                 thingSearchRoute.buildSearchRoute(ctx, dittoHeaders),
-                // /api/{apiVersion}/connections
-                connectionsRoute.buildConnectionsRoute(ctx, dittoHeaders), // add auth, inside check for dev ops user or jwt. Debug the auth object
                 // /api/{apiVersion}/whoami
                 whoamiRoute.buildWhoamiRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/cloudevents

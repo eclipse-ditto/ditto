@@ -180,28 +180,26 @@ public abstract class AbstractConnectionsRetrievalActor extends AbstractActor {
                 });
     }
 
-    private CompletionStage<RetrieveConnectionResponse> retrieveConnection(
-            final RetrieveConnection retrieveConnection) {
+    private CompletionStage<RetrieveConnectionResponse> retrieveConnection(final RetrieveConnection retrieveConnection) {
 
         return askConnectivity(retrieveConnection);
     }
 
-    private CompletionStage<RetrieveConnectionResponse> askConnectivity(
-            final RetrieveConnection command) {
+    private CompletionStage<RetrieveConnectionResponse> askConnectivity(final RetrieveConnection command) {
 
-        logger.withCorrelationId(command).debug("Sending command <{}> to org.eclipse.ditto.connectivity.service.", command);
+        logger.withCorrelationId(command).debug("Sending command <{}> to connectivity.service.", command);
         final var commandWithCorrelationId = ensureCommandHasCorrelationId(command);
         Duration askTimeout = initialCommand.getDittoHeaders().getTimeout().orElse(defaultTimeout);
         return Patterns.ask(edgeCommandForwarder, commandWithCorrelationId, askTimeout)
                 .thenApply(response -> {
                     logger.withCorrelationId(command)
-                            .debug("Received response <{}> from org.eclipse.ditto.connectivity.service.", response);
+                            .debug("Received response <{}> from connectivity.service.", response);
                     throwCauseIfErrorResponse(response);
                     throwCauseIfDittoRuntimeException(response);
                     final RetrieveConnectionResponse mappedResponse =
                             mapToType(response, RetrieveConnectionResponse.class, command);
                     logger.withCorrelationId(command)
-                            .info("Received response of type <{}> from org.eclipse.ditto.connectivity.service.",
+                            .info("Received response of type <{}> from connectivity.service.",
                                     mappedResponse.getType());
                     return mappedResponse;
                 });

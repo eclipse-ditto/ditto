@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.actors;
 
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveAllConnectionIds;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnections;
 
 import akka.actor.ActorRef;

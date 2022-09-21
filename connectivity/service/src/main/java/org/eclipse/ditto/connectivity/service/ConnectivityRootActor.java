@@ -106,8 +106,6 @@ public final class ConnectivityRootActor extends DittoRootActor {
                 connectivityConfig.getConnectionIdsRetrievalConfig();
         startChildActor(ConnectionIdsRetrievalActor.ACTOR_NAME, ConnectionIdsRetrievalActor.props(mongoReadJournal,
                         connectionIdsRetrievalConfig));
-                ConnectionIdsRetrievalActor.props(mongoReadJournal, connectionIdsRetrievalConfig));
-        pubSubMediator.tell(DistPubSubAccess.put(connectionIdsRetrievalActorRef), getSelf());
 
         startChildActor(ConnectionPersistenceOperationsActor.ACTOR_NAME,
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
