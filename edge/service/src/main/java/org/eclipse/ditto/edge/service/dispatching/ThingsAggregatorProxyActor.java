@@ -41,7 +41,6 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
-import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingsResponse;
@@ -52,6 +51,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingRespon
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingsResponse;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -87,6 +87,9 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
     private final ActorRef pubSubMediator;
     private final Materializer materializer;
 
+    private int ongoingRequests = 0;
+    @Nullable private ActorRef shutdownReceiver = null;
+
     @SuppressWarnings("unused")
     private ThingsAggregatorProxyActor(final ActorRef pubSubMediator) {
         this.pubSubMediator = pubSubMediator;
@@ -109,17 +112,8 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
         return ReceiveBuilder.create()
                 .match(RetrieveThings.class, rt -> handleRetrieveThings(rt, rt))
                 .match(SudoRetrieveThings.class, srt -> handleSudoRetrieveThings(srt, srt))
-                .match(DistributedPubSubMediator.Send.class, send -> {
-                    final Object msg = send.msg();
-                    if (msg instanceof RetrieveThings retrieveThings) {
-                        handleRetrieveThings(retrieveThings, send);
-                    } else if (msg instanceof SudoRetrieveThings sudoRetrieveThings) {
-                        handleSudoRetrieveThings(sudoRetrieveThings, send);
-                    } else {
-                        log.warning("Got unknown message: {}", send);
-                        unhandled(send);
-                    }
-                })
+                .matchEquals(Control.OP_COMPLETE, this::opComplete)
+                .matchEquals(Control.SERVICE_REQUESTS_DONE, this::serviceRequestsDone)
                 .matchAny(m -> {
                     log.warning("Got unknown message: {}", m);
                     unhandled(m);
@@ -150,6 +144,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
     private void askTargetActor(final Command<?> command, final List<ThingId> thingIds,
             final Object msgToAsk, final ActorRef sender) {
 
+        incrementOpCounter();
         final StartedTrace trace;
         final Object tracedMsgToAsk;
         if (msgToAsk instanceof Signal<?> signal) {
@@ -165,8 +160,8 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
             tracedMsgToAsk = msgToAsk;
         }
 
-        final DistributedPubSubMediator.Send pubSubMsg =
-                DistPubSubAccess.send(ThingsMessagingConstants.THINGS_AGGREGATOR_ACTOR_PATH, tracedMsgToAsk);
+        final DistributedPubSubMediator.Publish pubSubMsg =
+                DistPubSubAccess.publishViaGroup(command.getType(), tracedMsgToAsk);
         Patterns.ask(pubSubMediator, pubSubMsg, Duration.ofSeconds(ASK_TIMEOUT))
                 .thenAccept(response -> {
                     if (response instanceof SourceRef) {
@@ -176,7 +171,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                         sender.tell(response, getSelf());
                     } else {
                         log.error("Unexpected non-DittoRuntimeException error - responding with " +
-                                        "GatewayInternalErrorException. Cause: {} - {}",
+                                        "DittoInternalErrorException. Cause: {} - {}",
                                 response.getClass().getSimpleName(), response);
                         final DittoInternalErrorException responseEx =
                                 DittoInternalErrorException.newBuilder()
@@ -228,7 +223,9 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                     return list;
                 });
 
-        Patterns.pipe(commandResponseCompletionStage, getContext().dispatcher()).to(originatingSender);
+        Patterns.pipe(commandResponseCompletionStage, getContext().dispatcher()).to(originatingSender)
+                .future().toCompletableFuture()
+                .whenComplete((unused, throwable) -> getSelf().tell(Control.OP_COMPLETE, getSelf()));;
     }
 
     private Function<Jsonifiable<?>, PlainJson> supplyPlainJsonFromRetrieveThingResponse() {
@@ -236,10 +233,12 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
             if (jsonifiable instanceof RetrieveThingResponse response) {
                 final String json = response.getEntityPlainString().orElseGet(() ->
                         response.getEntity(response.getImplementedSchemaVersion()).toString());
+
                 return PlainJson.of(response.getEntityId(), json);
             } else if (jsonifiable instanceof WithEntity && jsonifiable instanceof WithEntityId) {
                 final String json = ((WithEntity<?>) jsonifiable).getEntityPlainString().orElseGet(() ->
                         ((WithEntity<?>) jsonifiable).getEntity(jsonifiable.getImplementedSchemaVersion()).toString());
+
                 return PlainJson.of(((WithEntityId) jsonifiable).getEntityId(), json);
             } else {
                 return PlainJson.empty();
@@ -252,6 +251,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
             if (jsonifiable instanceof SudoRetrieveThingResponse response) {
                 final String json = response.getEntityPlainString().orElseGet(() ->
                         response.getEntity(response.getImplementedSchemaVersion()).toString());
+
                 return response.getThing().getEntityId()
                         .map(thingId -> PlainJson.of(thingId, json))
                         .orElse(null);
@@ -275,6 +275,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
             final List<PlainJson> sortedList = new ArrayList<>(plainJsonThings);
             sortedList.sort(comparator);
+
             return sortedList;
         };
     }
@@ -282,6 +283,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
     private Function<List<PlainJson>, CommandResponse<?>> supplyRetrieveThingsResponse(
             final DittoHeaders dittoHeaders,
             @Nullable final String namespace) {
+
         return plainJsonThings -> RetrieveThingsResponse.of(plainJsonThings.stream()
                 .map(PlainJson::getJson)
                 .filter(Predicate.not(String::isEmpty))
@@ -290,10 +292,37 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
     private Function<List<PlainJson>, CommandResponse<?>> supplySudoRetrieveThingsResponse(
             final DittoHeaders dittoHeaders) {
+
         return plainJsonThings -> SudoRetrieveThingsResponse.of(plainJsonThings.stream()
                 .map(PlainJson::getJson)
                 .filter(Predicate.not(String::isEmpty))
                 .toList(), dittoHeaders);
+    }
+
+    private void incrementOpCounter() {
+        ++ongoingRequests;
+    }
+
+    private void decrementOpCounter() {
+        --ongoingRequests;
+    }
+
+    private void opComplete(final Control opComplete) {
+        decrementOpCounter();
+        if (shutdownReceiver != null && ongoingRequests == 0) {
+            log.info("{}: finished waiting for requests", Control.SERVICE_REQUESTS_DONE);
+            shutdownReceiver.tell(Done.getInstance(), getSelf());
+        }
+    }
+
+    private void serviceRequestsDone(final Control serviceRequestsDone) {
+        if (ongoingRequests == 0) {
+            log.info("{}: no ongoing requests", serviceRequestsDone);
+            getSender().tell(Done.getInstance(), getSelf());
+        } else {
+            log.info("{}: waiting for {} ongoing requests", serviceRequestsDone, ongoingRequests);
+            shutdownReceiver = getSender();
+        }
     }
 
     /**
@@ -357,4 +386,8 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
     }
 
+    enum Control {
+        OP_COMPLETE,
+        SERVICE_REQUESTS_DONE
+    }
 }

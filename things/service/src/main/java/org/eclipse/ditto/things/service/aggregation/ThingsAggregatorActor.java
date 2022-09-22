@@ -14,9 +14,11 @@ package org.eclipse.ditto.things.service.aggregation;
 
 import static org.eclipse.ditto.things.api.ThingsMessagingConstants.THINGS_AGGREGATOR_ACTOR_NAME;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -35,11 +37,14 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 
+import akka.Done;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.Patterns;
 import akka.stream.SourceRef;
 import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Source;
@@ -56,14 +61,23 @@ public final class ThingsAggregatorActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = THINGS_AGGREGATOR_ACTOR_NAME;
 
+    /**
+     * Ask-timeout in shutdown tasks. Its duration should be long enough but ultimately does not
+     * matter because each shutdown phase has its own timeout.
+     */
+    private static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
+
     private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
     private final ActorRef targetActor;
     private final java.time.Duration retrieveSingleThingTimeout;
     private final int maxParallelism;
+    private final ActorRef pubSubMediator;
 
     @SuppressWarnings("unused")
-    private ThingsAggregatorActor(final ActorRef targetActor, final ThingsAggregatorConfig aggregatorConfig) {
+    private ThingsAggregatorActor(final ActorRef targetActor, final ThingsAggregatorConfig aggregatorConfig,
+            final ActorRef pubSubMediator) {
         this.targetActor = targetActor;
+        this.pubSubMediator = pubSubMediator;
         retrieveSingleThingTimeout = aggregatorConfig.getSingleRetrieveThingTimeout();
         maxParallelism = aggregatorConfig.getMaxParallelism();
     }
@@ -74,16 +88,26 @@ public final class ThingsAggregatorActor extends AbstractActor {
      * @param targetActor the Actor selection to delegate "asks" for the aggregation to.
      * @return the Akka configuration Props object
      */
-    public static Props props(final ActorRef targetActor, final ThingsAggregatorConfig aggregatorConfig) {
-        return Props.create(ThingsAggregatorActor.class, targetActor, aggregatorConfig);
+    public static Props props(final ActorRef targetActor, final ThingsAggregatorConfig aggregatorConfig,
+            final ActorRef pubSubMediator) {
+        return Props.create(ThingsAggregatorActor.class, targetActor, aggregatorConfig, pubSubMediator);
     }
 
     @Override
     public void preStart() throws Exception {
         super.preStart();
+        final var self = getSelf();
         final var mediator = DistributedPubSub.get(getContext().getSystem()).mediator();
         // register on pub/sub so that others may send "RetrieveThings" messages to the aggregator:
-        mediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
+        mediator.tell(DistPubSubAccess.subscribeViaGroup(RetrieveThings.TYPE, ACTOR_NAME, self), self);
+        mediator.tell(DistPubSubAccess.subscribeViaGroup(SudoRetrieveThings.TYPE, ACTOR_NAME, self), self);
+
+        final var coordinatedShutdown = CoordinatedShutdown.get(getContext().getSystem());
+        final var serviceUnbindTask = "service-unbind-" + ACTOR_NAME;
+        coordinatedShutdown.addTask(CoordinatedShutdown.PhaseServiceUnbind(), serviceUnbindTask,
+                () -> Patterns.ask(self, Control.SERVICE_UNBIND, SHUTDOWN_ASK_TIMEOUT)
+                        .thenApply(reply -> Done.done())
+        );
     }
 
     @Override
@@ -106,6 +130,9 @@ public final class ThingsAggregatorActor extends AbstractActor {
                                     rt.getThingIds().size());
                     retrieveThings(rt, getSender());
                 })
+
+                // # handle Control.SERVICE_UNBIND
+                .matchEquals(Control.SERVICE_UNBIND, this::serviceUnbind)
 
                 // # handle unknown message
                 .matchAny(m -> {
@@ -150,6 +177,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
                                 .orElse(SudoRetrieveThing.of(thingId, dittoHeaders));
                     }
                     log.withCorrelationId(dittoHeaders).info("Retrieving thing with ID <{}>", thingId);
+
                     return retrieveThing;
                 })
                 .ask(calculateParallelism(thingIds), targetActor, Jsonifiable.class,
@@ -169,6 +197,31 @@ public final class ThingsAggregatorActor extends AbstractActor {
         } else {
             return maxParallelism;
         }
+    }
+
+    private void serviceUnbind(final Control serviceUnbind) {
+        log.info("{}: unsubscribing from pubsub for {} actor", serviceUnbind, ACTOR_NAME);
+
+        final CompletableFuture<Done> unsubscribeTask = CompletableFuture.allOf(
+                        Patterns.ask(pubSubMediator,
+                                        DistPubSubAccess.unsubscribeViaGroup(RetrieveThings.TYPE, ACTOR_NAME, getSelf()),
+                                        SHUTDOWN_ASK_TIMEOUT)
+                                .toCompletableFuture(),
+                        Patterns.ask(pubSubMediator,
+                                        DistPubSubAccess.unsubscribeViaGroup(SudoRetrieveThings.TYPE, ACTOR_NAME, getSelf()),
+                                        SHUTDOWN_ASK_TIMEOUT)
+                                .toCompletableFuture())
+                .thenApply(ack -> {
+                    log.info("{} unsubscribed successfully from pubsub for {} actor", ACTOR_NAME);
+                    return Done.getInstance();
+                });
+
+        Patterns.pipe(unsubscribeTask, getContext().getDispatcher()).to(getSender());
+    }
+
+    enum Control {
+        SERVICE_UNBIND,
+        SERVICE_REQUESTS_DONE
     }
 
 }

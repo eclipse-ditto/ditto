@@ -107,8 +107,8 @@ public final class ThingsRootActor extends DittoRootActor {
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
 
-        final Props props = ThingsAggregatorActor.props(thingsShardRegion, thingsAggregatorConfig);
-        final ActorRef thingsAggregatorActor = getContext().actorOf(props, ThingsAggregatorActor.ACTOR_NAME);
+        final Props props = ThingsAggregatorActor.props(thingsShardRegion, thingsAggregatorConfig, pubSubMediator);
+        startChildActor(ThingsAggregatorActor.ACTOR_NAME, props);
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(thingsShardRegion,
                 ThingsMessagingConstants.SHARD_REGION, log);
