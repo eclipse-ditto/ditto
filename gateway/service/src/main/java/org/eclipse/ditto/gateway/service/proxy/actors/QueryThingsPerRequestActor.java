@@ -75,7 +75,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
 
     @Nullable private QueryThingsResponse queryThingsResponse;
     @Nullable private List<ThingId> queryThingsResponseThingIds;
-    private Cancellable cancellableShutdownTask;
+    @Nullable private Cancellable cancellableShutdownTask;
     private boolean inCoordinatedShutdown;
     @Nullable private ActorRef coordinatedShutdownSender;
 
@@ -91,6 +91,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
         this.originatingSender = originatingSender;
         this.pubSubMediator = pubSubMediator;
         queryThingsResponse = null;
+        cancellableShutdownTask = null;
         inCoordinatedShutdown = false;
         coordinatedShutdownSender = null;
 
@@ -126,7 +127,9 @@ final class QueryThingsPerRequestActor extends AbstractActor {
 
     @Override
     public void postStop() {
-        cancellableShutdownTask.cancel();
+        if (cancellableShutdownTask != null) {
+            cancellableShutdownTask.cancel();
+        }
     }
 
     @Override
