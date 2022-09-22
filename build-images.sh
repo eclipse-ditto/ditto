@@ -28,7 +28,7 @@ SERVICES=(
   "policies:policies:org.eclipse.ditto.policies.service.starter.PoliciesService"
   "things:things:org.eclipse.ditto.things.service.starter.ThingsService"
   "thingsearch:things-search:org.eclipse.ditto.thingsearch.service.starter.SearchService"
-  "connectivity:connectivity:org.eclipse.ditto.connectivity.service.ConnectivityService"
+  "connectivity:connectivity:org.eclipse.ditto.connectivity.service.ConnectivityService:--add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/sun.security.util=ALL-UNNAMED"
 )
 : "${HTTP_PROXY_LOCAL:=$HTTP_PROXY}"
 : "${HTTPS_PROXY_LOCAL:=$HTTPS_PROXY}"
