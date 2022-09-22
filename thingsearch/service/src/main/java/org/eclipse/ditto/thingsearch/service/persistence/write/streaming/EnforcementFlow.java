@@ -34,6 +34,7 @@ import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.policies.enforcement.PolicyCacheLoader;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
@@ -122,10 +123,11 @@ final class EnforcementFlow {
         final var policyCacheDispatcher = actorSystem.dispatchers()
                 .lookup(policyCacheConfig.getDispatcherName());
 
-        final AsyncCacheLoader<PolicyId, Entry<Policy>> policyCacheLoader =
+        final PolicyCacheLoader policyCacheLoader =
                 PolicyCacheLoader.getNewInstance(askWithRetryConfig, scheduler, policiesShardRegion);
+        final ResolvedPolicyCacheLoader resolvedPolicyCacheLoader = new ResolvedPolicyCacheLoader(policyCacheLoader);
         final Cache<PolicyId, Entry<Policy>> policyEnforcerCache =
-                CacheFactory.createCache(policyCacheLoader, policyCacheConfig,
+                CacheFactory.createCache(resolvedPolicyCacheLoader, policyCacheConfig,
                         "things-search_enforcementflow_enforcer_cache_policy", policyCacheDispatcher);
 
         final var thingCacheConfig = updaterStreamConfig.getThingCacheConfig();
