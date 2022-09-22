@@ -50,7 +50,7 @@ caption="Source: https://github.com/eclipse/ditto-examples" %}
 
 If you have any wishes, improvements, are missing something
 or just want to get in touch with us, you can use one of
-our [feedback channels](https://eclipse.org/ditto/feedback.html).
+our [feedback channels](https://www.eclipse.org/ditto/feedback.html).
 
 
 {% include image.html file="ditto.svg" alt="Ditto" max-width=500 %}

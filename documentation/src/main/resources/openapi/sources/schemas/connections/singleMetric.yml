@@ -1,0 +1,35 @@
+# Copyright (c) 2022 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: object
+description: |-
+  Contains a single metric consisting of several time intervals and counter values for those intervals including the last message date.
+required:
+  - PT1M
+  - PT1H
+  - PT24H
+  - lastMessageAt
+properties:
+  PT1M:
+    type: integer
+    description: The counter containing how many messages were processed in the last minute
+    example: 0
+  PT1H:
+    type: integer
+    description: The counter containing how many messages were processed in the last hour
+    example: 42
+  PT24H:
+    type: integer
+    description: The counter containing how many messages were processed in the last 24 hours / last day
+    example: 46346
+  lastMessageAt:
+    type: string
+    description: The timestamp when the last message was processed
+    example: "2019-01-21T08:57:24.710Z"
