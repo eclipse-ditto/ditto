@@ -176,12 +176,14 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
         if (!previousConfig.isEnabled() && this.config.isEnabled()) {
             scheduleWakeUp();
         }
+
         return this.config.getConfig();
     }
 
     private Receive sleeping() {
         final var sleepingReceiveBuilder = ReceiveBuilder.create();
         preEnhanceSleepingBehavior(sleepingReceiveBuilder);
+
         return sleepingReceiveBuilder.match(WokeUp.class, this::wokeUp)
                 .match(Event.class, this::addCustomEventToLog)
                 .match(RetrieveHealth.class, this::retrieveHealth)
@@ -195,6 +197,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
     private Receive streaming() {
         final var streamingReceiveBuilder = ReceiveBuilder.create();
         preEnhanceStreamingBehavior(streamingReceiveBuilder);
+
         return streamingReceiveBuilder
                 .match(StreamTerminated.class, this::streamTerminated)
                 .match(Event.class, this::addCustomEventToLog)
@@ -291,6 +294,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
                         log.info(description);
                         getSelf().tell(StreamTerminated.normally(description), getSelf());
                     }
+
                     return null;
                 });
     }
@@ -321,6 +325,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
                 .set(JsonFields.ENABLED, config.isEnabled())
                 .set(JsonFields.EVENTS, renderEvents(events));
         postEnhanceStatusReport(statusReportBuilder);
+
         return statusReportBuilder.build();
     }
 

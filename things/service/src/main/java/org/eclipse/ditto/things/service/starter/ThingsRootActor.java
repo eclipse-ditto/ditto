@@ -135,7 +135,6 @@ public final class ThingsRootActor extends DittoRootActor {
         startChildActor(PersistenceCleanupActor.ACTOR_NAME, cleanupActorProps);
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
-        pubSubMediator.tell(DistPubSubAccess.put(snapshotStreamingActor), getSelf());
 
         bindHttpStatusRoute(thingsConfig.getHttpConfig(), healthCheckingActor);
 

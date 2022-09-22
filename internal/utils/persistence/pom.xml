@@ -27,6 +27,10 @@
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-things-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-akka</artifactId>
         </dependency>
         <dependency>

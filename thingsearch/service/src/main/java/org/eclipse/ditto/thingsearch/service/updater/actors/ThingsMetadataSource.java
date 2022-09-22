@@ -25,7 +25,6 @@ import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
-import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
@@ -86,7 +85,8 @@ final class ThingsMetadataSource {
                 lowerBound.equals(EMPTY_THING_ID) ? commandWithoutLowerBound :
                         commandWithoutLowerBound.withLowerBound(lowerBound);
         final SudoStreamSnapshots commandWithNamespaceFilter = command.withNamespacesFilter(namespacesFilter);
-        return DistPubSubAccess.send(ThingsMessagingConstants.THINGS_SNAPSHOT_STREAMING_ACTOR_PATH, commandWithNamespaceFilter);
+
+        return DistPubSubAccess.publishViaGroup(SudoStreamSnapshots.TYPE, commandWithNamespaceFilter);
     }
 
     private Source<SourceRef<?>, NotUsed> requestStream(final ThingId lowerBound, final List<String> namespaceFilter) {
