@@ -223,7 +223,6 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 .orElse(StatusCodes.custom(httpStatus.getCode(), "custom", "custom"));
         return HttpResponse.create().withStatus(statusCode);
     }
-
     private void handleCommand(final Command<?> command) {
         try {
             logger.setCorrelationId(command);

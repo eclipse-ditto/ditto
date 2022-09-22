@@ -1,0 +1,77 @@
+# Copyright (c) 2022 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: object
+description: |-
+  The configuration of a local SSH port forwarding used to tunnel the connection to the actual endpoint.
+required:
+  - enabled
+  - uri
+  - credentials
+properties:
+  enabled:
+    type: boolean
+    description: Whether the tunnel is enabled
+    example: true
+  uri:
+    type: string
+    description: The URI of the SSH host in the format `ssh://[host]:[port]`.
+    example: ssh://some.host:2222
+  credentials:
+    type: object
+    description: |- 
+      The credentials used to authenticate at the SSH host. Password and public key authentication are supported.
+    required:
+      - type
+      - username
+    properties:
+      type:
+        type: string
+        description: The type of credentials used to authenticate. Either `password` or `public-key`.
+        enum:
+          - password
+          - public-key
+        example: password
+      username:
+        type: string
+        description: The username used for the authentication.
+        example: user42
+      password:
+        type: string
+        description: The password used for authentication when credentials type `password` is used.
+        example: secret!
+      publicKey:
+        type: string
+        description: |-
+          Public key in PEM base64-encoded format using X.509 syntax. This field is required for credentials type
+          `public-key`.
+        example: "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----\n"
+      privateKey:
+        type: string
+        description: |-
+          Private key in PEM base64-encoded format using PKCS #8 syntax. This field is required for credentials type
+          `public-key`.
+        example: "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+  validateHost:
+    type: boolean
+    description: Whether the SSH host is validated using the provided fingerprints.
+    example: true
+  knownHosts:
+    type: array
+    description: |-
+      A list of accepted public key fingerprints. One of these fingerprints must match the fingerprint 
+      of the public key the SSH host provides.
+    example: [ "MD5:e0:3a:34:1c:68:ed:c6:bc:7c:ca:a8:67:c7:45:2b:19" ]
+    items: 
+      type: string
+      description: |-
+        The fingerprint is in the format which the command line tool `ssh-keygen` produces,
+        e.g. `MD5:e0:3a:34:1c:68:ed:c6:bc:7c:ca:a8:67:c7:45:2b:19`. The fingerprint is prefixed with the hash algorithm
+        used to calculate the fingerprint. Supported algorithms are `MD5`, `SHA1`, `SHA224`, `SHA256`, `SHA384` and `SHA512`.

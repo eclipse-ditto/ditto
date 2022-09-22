@@ -5,15 +5,10 @@ tags: [connectivity]
 permalink: connectivity-manage-connections.html
 ---
 
-In order to manage (CRUD) connections in Ditto [DevOps commands](installation-operating.html#devops-commands)
-have to be used. There is no separate HTTP API for managing the connections, as this is not a task for a developer 
-using the digital twin APIs but more for a "DevOps engineer" creating new connections to external systems.
-
-All connection related piggyback commands use the following HTTP endpoint:
-
-```
-POST /devops/piggyback/connectivity
-```
+In order to manage (CRUD) connections in Ditto, a separate [HTTP API](http-api-doc.html#/Connections)
+can be used. As this is not a task for a developer
+but more for a "DevOps engineer", creating new connections to external systems the endpoint 
+is authenticated using the ["devops"](installation-operating.html#devops-user) user.
 
 ## Authorization
 
@@ -23,7 +18,7 @@ a Thing). If you want to use a user for the basic auth (from the [HTTP API](conn
 use the prefix `nginx:`, e.g. `nginx:ditto`.
 See [Basic Authentication](basic-auth.html#authorization-context-in-devops-commands) for more information.
 
-## CRUD commands
+## CRUD endpoints
 
 The following commands are available in order to manage connections:
 
@@ -34,20 +29,18 @@ The following commands are available in order to manage connections:
 
 ### Create connection
 
-Create a new connection by sending the following DevOps command.
+Create a new connection by sending an HTTP `POST` request:
+
+`POST /api/2/connections`
 
 ```json
 {
-  "targetActorSelection": "/system/sharding/connection",
-  "headers": {
-    "aggregate": false,
-    "is-group-topic": true,
-    "ditto-sudo": true
-  },
-  "piggybackCommand": {
-    "type": "connectivity.commands:createConnection",
-    "connection": {}
-  }
+   "name": "",
+   "connectionType": "",
+   "connectionStatus": "",
+   "uri": "",
+   "sources": [],
+   "targets": []
 }
 ```
 
@@ -56,177 +49,57 @@ For protocol specific examples, consult the [AMQP-0.9.1 binding](connectivity-pr
 [AMQP-1.0 binding](connectivity-protocol-bindings-amqp10.html) or
 [MQTT-3.1.1 binding](connectivity-protocol-bindings-mqtt.html) respectively.
 
+Additionally, you can test a connection before creating it:
+
+`POST /api/2/connections&dry-run=true`
+
+Passing the `dry-run` query parameter checks the configuration and establishes a connection to the remote endpoint in order to validate the connection
+credentials. The connection is closed afterwards and will not be persisted.
+
 ### Modify connection
 
-Modify an existing connection by sending the following DevOps command.
+Modify an existing connection by sending a HTTP `PUT` request to:
+
+`PUT /api/2/connections/{connectionId}`
 
 ```json
 {
-  "targetActorSelection": "/system/sharding/connection",
-  "headers": {
-    "aggregate": false,
-    "is-group-topic": true,
-    "ditto-sudo": true
-  },
-  "piggybackCommand": {
-    "type": "connectivity.commands:modifyConnection",
-    "connection": {}
-  }
+   "connectionStatus": "",
+   "...": ""
 }
 ```
 
 The connection with the specified ID needs to be created before one can modify it.
 
-
 ### Retrieve connection
 
-The only parameter necessary for retrieving a connection is the `connectionId`.
+The only parameter necessary for retrieving a connection is the `connectionId`:
 
-```json
-{
-  "targetActorSelection": "/system/sharding/connection",
-  "headers": {
-    "aggregate": false,
-    "is-group-topic": true,
-    "ditto-sudo": true
-  },
-  "piggybackCommand": {
-    "type": "connectivity.commands:retrieveConnection",
-    "connectionId": "<connectionID>"
-  }
-}
-```
+`GET /api/2/connections/{connectionId}`
 
-### Open connection
+### Retrieve all connections
+Retrieves all created connections:
 
-The only parameter necessary for opening a connection is the `connectionId`. When opening a connection a 
-[ConnectionOpenedAnnouncement](protocol-specification-connections-announcement.html) will be published.
+`GET /api/2/connections`
 
-```json
-{
-  "targetActorSelection": "/system/sharding/connection",
-  "headers": {
-    "aggregate": false,
-    "is-group-topic": true
-  },
-  "piggybackCommand": {
-    "type": "connectivity.commands:openConnection",
-    "connectionId": "<connectionID>"
-  }
-}
-```
+Additionally, you can get the connections ids only by providing the `ids-only=true` query parameter.
 
-### Close connection
-
-The only parameter necessary for closing a connection is the `connectionId`. When gracefully closing a connection a
-[ConnectionClosedAnnouncement](protocol-specification-connections-announcement.html) will be published.
-
-```json
-{
-  "targetActorSelection": "/system/sharding/connection",
-  "headers": {
-    "aggregate": false, 
-    "is-group-topic": true
-  },
-  "piggybackCommand": {
-    "type": "connectivity.commands:closeConnection",
-    "connectionId": "<connectionID>"
-  }
-}
-```
+`GET /api/2/connections?ids-only=true`
 
 ### Delete connection
 
 The only parameter necessary for deleting a connection is the `connectionId`.
 
-```json
-{
-  "targetActorSelection": "/system/sharding/connection",
-  "headers": {
-    "aggregate": false,
-    "is-group-topic": true
-  },
-  "piggybackCommand": {
-    "type": "connectivity.commands:deleteConnection",
-    "connectionId": "<connectionID>"
-  }
-}
-```
+`DELETE /api/2/connections/{connectionId}`
 
-## Helper commands
-
-The following commands are available to help to create connections and retrieving the status of existing connections:
-
-* [test connection](#test-connection)
-* [retrieve ids of all connections](#retrieve-ids-of-all-connections)
-* [retrieve connection status](#retrieve-connection-status)
-* [retrieve connection metrics](#retrieve-connection-metrics)
-* [reset connection metrics](#reset-connection-metrics)
-* [enable connection logs](#enable-connection-logs)
-* [retrieve connection logs](#retrieve-connection-logs)
-* [reset connection logs](#reset-connection-logs)
-
-### Test connection
-
-Run a test connection command before creating a persisted connection to validate the connection configuration. This
-command checks the configuration and establishes a connection to the remote endpoint in order to validate the connection
-credentials. The test connection is closed afterwards and will not be persisted. Analog to
-the [createConnection](#create-connection)
-command, it requires a full connection configuration in the piggyback command.
-
-```json
-{
-  "targetActorSelection": "/system/sharding/connection",
-  "headers": {
-    "aggregate": false, 
-    "is-group-topic": true
-  },
-  "piggybackCommand": {
-    "type": "connectivity.commands:testConnection",
-    "connection": {
-      ...
-      //Define connection configuration
-    }
-  }
-}
-
-```
-
-### Retrieve ids of all connections
-
-This command returns the ids of all connections.
-
-```json
-{
-  "targetActorSelection": "/user/connectivityRoot/connectionIdsRetrieval",
-  "headers": {
-    "aggregate": false,
-    "is-group-topic": false
-  },
-  "piggybackCommand": {
-    "type": "connectivity.commands:retrieveAllConnectionIds"
-  }
-}
-```
+## Helper endpoints
 
 ### Retrieve connection status
 
-This command returns the connection status by showing if a connection is currently enabled/disabled and if it is
+Returns the connection status by showing if a connection is currently enabled/disabled and if it is
 successfully established. The only parameter necessary for retrieving the connection status is the `connectionId`.
 
-```json
-{
-  "targetActorSelection": "/system/sharding/connection",
-  "headers": {
-    "aggregate": false,
-    "is-group-topic": true     
-  },
-  "piggybackCommand": {
-    "type": "connectivity.commands:retrieveConnectionStatus",
-    "connectionId": "<connectionID>"
-  }
-}
-```
+`GET /api/2/connections/{connectionId}/status`
 
 ### Retrieve connection metrics
 
@@ -238,40 +111,57 @@ This command returns the connection metrics showing how many messages have been 
 
 The only parameter necessary for retrieving the connection metrics is the `connectionId`.
 
-```json
-{
-  "targetActorSelection": "/system/sharding/connection",
-  "headers": {
-    "aggregate": false, 
-    "is-group-topic": true
-  },
-  "piggybackCommand": {
-    "type": "connectivity.commands:retrieveConnectionMetrics",
-    "connectionId": "<connectionID>"
-  }
-}
+`GET /api/2/connections/{connectionId}/metrics`
+
+### Retrieve connection logs
+
+Returns the connection logs. The only parameter necessary for retrieving the connection logs is the `connectionId`.
+
+This request will return a list of success and failure log entries containing information on messages processed by the
+connection. The logs have a maximum amount of entries that they can hold. If the connection produces more log entries,
+the older entries will be dropped. So keep in mind that you might miss some log entries.
+
+The response will also provide information on how long the logging feature will still be enabled. Since the timer will
+always be reset when retrieving the logs, the timestamp will always be 24 hours from now.
+
+The default duration and the maximum amount of logs stored for one connection can be configured in Ditto's connectivity
+service configuration.
+
+`GET /api/2/connections/{connectionId}/logs`
+
+### Connection commands
+
+The only parameter necessary for sending a command to a connection is the `connectionId`.
+
+`POST /api/2/connections/{connectionId}/command`
+
+Supported commands sent as payload `text/plain`:
+
+#### Open connection
+
+When opening a connection a [ConnectionOpenedAnnouncement](protocol-specification-connections-announcement.html) will be published.
+
+```
+connectivity.commands:openConnection
 ```
 
-### Reset connection metrics
+#### Close connection
 
-This command resets the connection metrics - all metrics are set to `0` again. The only parameter necessary for
-retrieving the connection metrics is the `connectionId`.
+When gracefully closing a connection a [ConnectionClosedAnnouncement](protocol-specification-connections-announcement.html) will be published.
 
-```json
-{
-  "targetActorSelection": "/system/sharding/connection",
-  "headers": {
-    "aggregate": false,
-    "is-group-topic": true 
-  },
-  "piggybackCommand": {
-    "type": "connectivity.commands:resetConnectionMetrics",
-    "connectionId": "<connectionID>"
-  }
-}
+```
+connectivity.commands:closeConnection
 ```
 
-### Enable connection logs
+#### Reset connection metrics
+
+This command resets the connection metrics - all metrics are set to `0` again.
+
+```
+connectivity.commands:resetConnectionMetrics
+```
+
+#### Enable connection logs
 
 Enables the connection logging feature of a connection for 24 hours. As soon as connection logging is enabled, you will
 be able to [retrieve connection logs](#retrieve-connection-logs). The logs will contain a fixed amount of success and
@@ -281,67 +171,20 @@ allow you more insight in what goes well, and more importantly, what goes wrong.
 The default duration and the maximum amount of logs stored for one connection can be configured in Ditto's connectivity
 service configuration.
 
-{% include note.html content="When creating or opening an connection the logging is enabled per default. This allows 
+{% include note.html content="When creating or opening a connection the logging is enabled per default. This allows 
 to log possible errors on connection establishing." %}
 
-```json
-{
-  "targetActorSelection": "/system/sharding/connection",
-  "headers": {
-    "aggregate": false,
-    "is-group-topic": true     
-  },
-  "piggybackCommand": {
-    "type": "connectivity.commands:enableConnectionLogs",
-    "connectionId": "<connectionID>"
-  }
-}
+```
+connectivity.commands:enableConnectionLogs
 ```
 
-### Retrieve connection logs
-
-This command will return a list of success and failure log entries containing information on messages processed by the
-connection. The logs have a maximum amount of entries that they can hold. If the connection produces more log entries,
-the older entries will be dropped. So keep in mind that you might miss some of the log entries.
-
-The response will also provide information on how long the logging feature will still be enabled. Since the timer will
-always be reset when retrieving the logs, the timestamp will always be 24 hours from now.
-
-The default duration and the maximum amount of logs stored for one connection can be configured in Ditto's connectivity
-service configuration.
-
-```json
-{
-  "targetActorSelection": "/system/sharding/connection",
-  "headers": {
-    "aggregate": false,
-    "is-group-topic": true 
-  },
-  "piggybackCommand": {
-    "type": "connectivity.commands:retrieveConnectionLogs",
-    "connectionId": "<connectionID>"
-  }
-}
-```
-
-### Reset connection logs
+#### Reset connection logs
 
 Clears all currently stored connection logs.
 
-```json
-{
-  "targetActorSelection": "/system/sharding/connection",
-  "headers": {
-    "aggregate": false,
-    "is-group-topic": true 
-  },
-  "piggybackCommand": {
-    "type": "connectivity.commands:resetConnectionLogs",
-    "connectionId": "<connectionID>"
-  }
-}
 ```
-
+connectivity.commands:resetConnectionLogs
+```
 
 ## Publishing connection logs
 

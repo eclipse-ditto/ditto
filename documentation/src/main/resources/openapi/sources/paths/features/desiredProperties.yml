@@ -67,12 +67,6 @@ get:
         application/json:
           schema:
             $ref: '../../schemas/errors/advancedError.yml'
-    '402':
-      description: The request could not be completed due to exceeded data volume or exceeded transaction count.
-      content:
-        application/json:
-          schema:
-            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. The specified feature has no desired properties or
