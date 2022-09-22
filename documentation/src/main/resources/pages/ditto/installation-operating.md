@@ -375,7 +375,17 @@ The following DevOps commands are supported:
 * Dynamically retrieve service configuration
 * Piggyback commands
 
-{% include note.html content="The default credentials for the `/devops` HTTP endpoint are username: `devops`, password: `foobar`. The password can be changed by setting the environment variable `DEVOPS_PASSWORD` in the gateway service." %}
+### DevOps user
+
+Used for authenticating the following endpoints:
+
+```
+/devops
+/api/2/connections
+```
+
+
+{% include note.html content="The default devops credentials are username: `devops`, password: `foobar`. The password can be changed by setting the environment variable `DEVOPS_PASSWORD` in the gateway service." %}
 
 
 ### Dynamically adjust log levels
@@ -906,11 +916,63 @@ For each command type, please refer to the corresponding segment of "Managing ba
 
 {% include note.html content="Only a subset of the configuration has an effect when changed via `common.commands:modifyConfig` command: `enabled`, `quiet-period` and `keep.events`. Refer to [Ditto configuration](installation-operating.html#ditto-configuration) for instructions how to modify the other configuration settings." %}
 
+#### Force search index update of all things
+
+You can trigger a search index update for all things by sending a command of type `common.commands:shutdown` with the 
+`force-update` header set to `true`. The next background sync iteration  (starting after the configured quiet period)  
+will trigger an update of the search index for all things. After the iteration of forced updates is complete 
+(or interrupted), the background sync will continue its normal operation.  
+
+`POST /devops/piggyback/search?timeout=10s`
+
+```json
+{
+  "targetActorSelection": "/user/thingsWildcardSearchRoot/searchUpdaterRoot/backgroundSyncProxy",
+  "headers": {
+    "aggregate": false,
+    "is-grouped-topic": false,
+    "force-update": true
+  },
+  "piggybackCommand": {
+    "type": "common.commands:shutdown"
+  }
+}
+```
+
+There is no response. You can check the logs of the search service to follow the sync progress.  
+
+#### Force search index update for all things of one or multiple namespaces
+
+You can trigger a search index update for things of multiple namespaces by sending a `common.commands:shutdown` command 
+with the `force-update` header set to `true` and the relevant namespaces specified in the `namespaces` header. The next 
+background sync iteration (starting after the configured quiet period) will trigger an update of the search index for 
+the things in the specified namespaces. After the iteration of forced updates is complete (or interrupted), 
+the background sync will continue its normal operation.
+
+`POST /devops/piggyback/search?timeout=10s`
+
+```json
+{
+  "targetActorSelection": "/user/thingsWildcardSearchRoot/searchUpdaterRoot/backgroundSyncProxy",
+  "headers": {
+    "aggregate": false,
+    "is-grouped-topic": false,
+    "force-update": true,
+    "namespaces": ["namespace1", "namespace2"]
+  },
+  "piggybackCommand": {
+    "type": "common.commands:shutdown"
+  }
+}
+```
+
+There is no response. You can check the logs of the search service to follow the sync progress.
+
 #### Force search index update for one thing
 
 The search index should rarely become out-of-sync for a long time, and it can repair itself
 of any inconsistencies detected at query time. Nevertheless, you can trigger search index update
-for a particular thing by a DevOp-command and bring the entry up-to-date immediately.
+for a particular thing by a DevOps-command and bring the entry up-to-date immediately.
 
 `POST /devops/piggyback/search/<INSTANCE_INDEX>?timeout=0`
 

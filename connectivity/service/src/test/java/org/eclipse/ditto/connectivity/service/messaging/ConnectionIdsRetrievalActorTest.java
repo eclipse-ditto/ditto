@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -91,7 +92,7 @@ public final class ConnectionIdsRetrievalActorTest {
         new TestKit(actorSystem) {{
             when(mongoReadJournal.getLatestJournalEntries(eq(BATCH_SIZE), any(), any()))
                     .thenReturn(Source.from(JOURNAL_ENTRIES));
-            when(mongoReadJournal.getNewestSnapshotsAbove(any(), eq(BATCH_SIZE), any()))
+            when(mongoReadJournal.getNewestSnapshotsAbove(anyString(), eq(BATCH_SIZE), any()))
                     .thenReturn(Source.from(SNAPSHOT_IDS));
             final Props props =
                     ConnectionIdsRetrievalActor.props(mongoReadJournal, connectionIdsRetrievalConfig);
@@ -110,7 +111,7 @@ public final class ConnectionIdsRetrievalActorTest {
         new TestKit(actorSystem) {{
             when(mongoReadJournal.getLatestJournalEntries(eq(BATCH_SIZE), any(), any()))
                     .thenThrow(new NullPointerException("expected"));
-            when(mongoReadJournal.getNewestSnapshotsAbove(any(), eq(BATCH_SIZE), any()))
+            when(mongoReadJournal.getNewestSnapshotsAbove(anyString(), eq(BATCH_SIZE), any()))
                     .thenThrow(new NullPointerException("expected"));
             final Props props =
                     ConnectionIdsRetrievalActor.props(mongoReadJournal, connectionIdsRetrievalConfig);

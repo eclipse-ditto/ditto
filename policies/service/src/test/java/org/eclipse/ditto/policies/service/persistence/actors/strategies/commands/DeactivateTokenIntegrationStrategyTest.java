@@ -99,13 +99,13 @@ public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicy
     @Test
     public void deactivateUnresolvableSubject() {
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
-        final SubjectId subjectId = SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{fn:delete()}}");
+        final SubjectId subjectId = SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{ policy:id }}");
         final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final DeactivateTokenIntegration
                 command = DeactivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId),
                 dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
-                UnresolvedPlaceholderException.newBuilder("integration:{{fn:delete()}}").build());
+                UnresolvedPlaceholderException.newBuilder("integration:{{ policy:id }}").build());
     }
 
     @Test

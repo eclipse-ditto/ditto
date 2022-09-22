@@ -1,0 +1,40 @@
+# Copyright (c) 2022 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: object
+description: |-
+  Metrics of an outbound (e.g. a Target) resource
+required:
+  - dispatched
+  - filtered
+  - mapped
+  - dropped
+  - published
+properties:
+  dispatched:
+    allOf:
+      - $ref: 'typedMetric.yml'
+    description: Contains internally dispatched (e.g. a Ditto event) metric counts
+  filtered:
+    allOf:
+      - $ref: 'typedMetric.yml'
+    description: Contains the metric counts for messages which passed the filter (e.g. namespace or RQL filter for events)
+  mapped:
+    allOf:
+      - $ref: 'typedMetric.yml'
+    description: Contains mapped (payload mapping) messages metric counts
+  dropped:
+    allOf:
+      - $ref: 'typedMetric.yml'
+    description: Contains dropped (in the payload mapping) messages metric counts
+  published:
+    allOf:
+      - $ref: 'typedMetric.yml'
+    description: Contains published messages metric counts meaning those messages were published to the external source

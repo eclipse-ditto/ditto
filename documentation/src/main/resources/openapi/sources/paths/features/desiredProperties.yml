@@ -55,7 +55,7 @@ get:
     '400':
       description: |-
         The request could not be completed. Possible reasons:
-          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://websites.eclipseprojects.io/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
           * at least one of the defined query parameters is invalid.
       content:
         application/json:
@@ -63,12 +63,6 @@ get:
             $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
-      content:
-        application/json:
-          schema:
-            $ref: '../../schemas/errors/advancedError.yml'
-    '402':
-      description: The request could not be completed due to exceeded data volume or exceeded transaction count.
       content:
         application/json:
           schema:
@@ -129,7 +123,7 @@ put:
     '400':
       description: |-
         The request could not be completed. Possible reasons:
-          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://websites.eclipseprojects.io/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
           * the JSON body of the desired feature roperties to be created/modified is invalid
       content:
         application/json:
@@ -228,7 +222,7 @@ patch:
     '400':
       description: |-
         The request could not be completed. Possible reasons:
-          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://websites.eclipseprojects.io/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
           * the JSON body of the desired feature roperties to be created/modified is invalid
       content:
         application/json:
@@ -306,7 +300,7 @@ delete:
     '400':
       description: |-
         The request could not be completed. Possible reasons:
-          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://websites.eclipseprojects.io/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
       content:
         application/json:
           schema:

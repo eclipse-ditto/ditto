@@ -38,7 +38,7 @@ post:
     No special permission is required to issue a claim message.
 
     ### Example
-    See [Claiming](https://websites.eclipseprojects.io/ditto/protocol-specification-things-messages.html#sending-and-handling-claim-messages) concept in detail and example in GitHub.
+    See [Claiming](https://www.eclipse.org/ditto/protocol-specification-things-messages.html#sending-and-handling-claim-messages) concept in detail and example in GitHub.
     However, in that scenario, the policy should grant you READ and WRITE permission on
     the "message:/" resource in order to be able to send the message and read the response.
     Further, the things-client which handles the "claim" message, needs permission to change the policy itself
@@ -65,7 +65,7 @@ post:
     '400':
       description: |-
         The request could not be completed. Possible reasons:
-          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://websites.eclipseprojects.io/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
           * at least one of the defined path parameters is invalid
       content:
         application/json:

@@ -35,9 +35,11 @@ import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.policies.enforcement.pre.PreEnforcerProvider;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 
 import akka.actor.ActorRef;
 import akka.cluster.pubsub.DistributedPubSubMediator;
+import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 
@@ -217,14 +219,14 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
      */
     private CompletionStage<R> filterResponse(final R commandResponse) {
         if (enforcement.shouldFilterCommandResponse(commandResponse)) {
-            return loadPolicyEnforcer(commandResponse)
-                    .thenApply(optionalPolicyEnforcer -> optionalPolicyEnforcer.orElseThrow(
+            return providePolicyIdForEnforcement(commandResponse)
+                    .thenCompose(id -> providePolicyEnforcer(id).thenApply(enforcer -> Pair.apply(id, enforcer)))
+                    .thenApply(pair -> pair.second().orElseThrow(
                             () -> {
                                 log.withCorrelationId(commandResponse)
-                                        .error("Could not filter command response because policyEnforcer was missing");
-                                throw DittoInternalErrorException.newBuilder()
-                                        .dittoHeaders(commandResponse.getDittoHeaders())
-                                        .build();
+                                        .debug("Could not filter command response because policyEnforcer was missing." +
+                                                " Likely the policy was deleted during command processing.");
+                                throw PolicyNotAccessibleException.newBuilder(pair.first()).build();
                             }))
                     .thenCompose(policyEnforcer -> doFilterResponse(commandResponse, policyEnforcer));
         } else {

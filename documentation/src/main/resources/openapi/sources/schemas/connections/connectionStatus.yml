@@ -1,0 +1,54 @@
+# Copyright (c) 2022 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: object
+description: |-
+  Status of a connection and its resources
+required:
+  - connectionId
+  - connectionStatus
+  - liveStatus
+  - connectedSince
+properties:
+  connectionId:
+    type: string
+    description: The connection ID
+  connectionStatus:
+    allOf:
+      - $ref: 'connectivityStatus.yml'
+    description: The desired/target status of the connection
+  liveStatus:
+    allOf:
+      - $ref: 'connectivityStatus.yml'
+    description: The current/actual status of the connection
+  connectedSince:
+    type: string
+    description: The timestamp since when the connection is connected
+    example: "2019-01-21T08:57:24.710Z"
+  clientStatus:
+    type: array
+    items:
+      $ref: 'resourceStatus.yml'
+    description: The client states of the of the connection
+  sourceStatus:
+    type: array
+    items:
+      $ref: 'resourceStatus.yml'
+    description: The states of the sources the of the connection
+  targetStatus:
+    type: array
+    items:
+      $ref: 'resourceStatus.yml'
+    description: The states of the targets the of the connection
+  sshTunnelStatus:
+    type: array
+    items:
+      $ref: 'resourceStatus.yml'
+    description: The states of the ssh tunnel the of the connection

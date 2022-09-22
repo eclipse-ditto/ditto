@@ -16,6 +16,7 @@ import static org.eclipse.ditto.base.model.json.FieldType.REGULAR;
 import static org.eclipse.ditto.base.model.json.JsonSchemaVersion.V_2;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -59,11 +60,14 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
     private final int burst;
     private final long timeoutMillis;
     private final EntityId lowerBound;
+
+    private final List<String> namespaces;
     private final JsonArray snapshotFields;
 
     private SudoStreamSnapshots(final Integer burst,
             final Long timeoutMillis,
             final EntityId lowerBound,
+            final List<String> namespaces,
             final JsonArray snapshotFields,
             final DittoHeaders dittoHeaders) {
 
@@ -72,6 +76,7 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
         this.burst = burst;
         this.timeoutMillis = timeoutMillis;
         this.lowerBound = lowerBound;
+        this.namespaces = List.copyOf(namespaces);
         this.snapshotFields = snapshotFields;
     }
 
@@ -99,6 +104,7 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
         return new SudoStreamSnapshots(burst,
                 timeoutMillis,
                 LowerBound.emptyEntityId(entityType),
+                List.of(),
                 snapshotFields,
                 dittoHeaders);
     }
@@ -117,6 +123,8 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
         return new SudoStreamSnapshots(jsonObject.getValueOrThrow(JsonFields.JSON_BURST),
                 jsonObject.getValueOrThrow(JsonFields.JSON_TIMEOUT_MILLIS),
                 deserializeLowerBoundEntityId(jsonObject),
+                jsonObject.getValue(JsonFields.JSON_NAMESPACES)
+                        .map(a -> a.stream().map(JsonValue::asString).toList()).orElseGet(List::of),
                 jsonObject.getValue(JsonFields.JSON_SNAPSHOT_FIELDS).orElseGet(JsonArray::empty),
                 dittoHeaders);
     }
@@ -135,7 +143,17 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
      * @return a copy of this command with lower-bound set.
      */
     public SudoStreamSnapshots withLowerBound(final EntityId lowerBound) {
-        return new SudoStreamSnapshots(burst, timeoutMillis, lowerBound, snapshotFields, getDittoHeaders());
+        return new SudoStreamSnapshots(burst, timeoutMillis, lowerBound, namespaces, snapshotFields, getDittoHeaders());
+    }
+
+    /**
+     * Create a copy of this command with a namespace filter set. The namespace filter must be a list of namespaces.
+     *
+     * @param namespaces the namespaces filter.
+     * @return a copy of this command with namespace filter set.
+     */
+    public SudoStreamSnapshots withNamespacesFilter(final List<String> namespaces) {
+        return new SudoStreamSnapshots(burst, timeoutMillis, lowerBound, namespaces, snapshotFields, getDittoHeaders());
     }
 
     /**
@@ -145,6 +163,13 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
      */
     public EntityId getLowerBound() {
         return lowerBound;
+    }
+
+    /**
+     * @return a list of namespaces to filter the streamed snapshots
+     */
+    public List<String> getNamespaces() {
+        return namespaces;
     }
 
     /**
@@ -186,6 +211,7 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
         jsonObjectBuilder.set(JsonFields.JSON_SNAPSHOT_FIELDS, snapshotFields, predicate);
         jsonObjectBuilder.set(JsonFields.JSON_LOWER_BOUND_TYPE, lowerBound.getEntityType().toString(), predicate);
         jsonObjectBuilder.set(JsonFields.JSON_LOWER_BOUND, lowerBound.toString(), predicate);
+        jsonObjectBuilder.set(JsonFields.JSON_NAMESPACES, JsonArray.of(namespaces), predicate);
     }
 
     @Override
@@ -200,21 +226,21 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
 
     @Override
     public SudoStreamSnapshots setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new SudoStreamSnapshots(burst, timeoutMillis, lowerBound, snapshotFields, dittoHeaders);
+        return new SudoStreamSnapshots(burst, timeoutMillis, lowerBound, namespaces, snapshotFields, dittoHeaders);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), burst, timeoutMillis, lowerBound, snapshotFields);
+        return Objects.hash(super.hashCode(), burst, timeoutMillis, lowerBound, namespaces, snapshotFields);
     }
 
     @Override
     public boolean equals(@Nullable final Object obj) {
-        if (obj instanceof SudoStreamSnapshots) {
-            final SudoStreamSnapshots that = (SudoStreamSnapshots) obj;
+        if (obj instanceof final SudoStreamSnapshots that) {
             return burst == that.burst &&
                     timeoutMillis == that.timeoutMillis &&
                     Objects.equals(lowerBound, that.lowerBound) &&
+                    Objects.equals(namespaces, that.namespaces) &&
                     Objects.equals(snapshotFields, that.snapshotFields) &&
                     super.equals(that);
         } else {
@@ -233,6 +259,7 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
                 + ", burst=" + burst
                 + ", timeoutMillis=" + timeoutMillis
                 + ", lowerBound=" + lowerBound
+                + ", namespaces=" + namespaces
                 + ", snapshotFields=" + snapshotFields
                 + "]";
     }
@@ -261,6 +288,9 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
 
         static final JsonFieldDefinition<String> JSON_LOWER_BOUND =
                 JsonFactory.newStringFieldDefinition("payload/lowerBound", REGULAR, V_2);
+
+        static final JsonFieldDefinition<JsonArray> JSON_NAMESPACES =
+                JsonFactory.newJsonArrayFieldDefinition("payload/namespaces", REGULAR, V_2);
 
         static final JsonFieldDefinition<String> JSON_LOWER_BOUND_TYPE =
                 JsonFactory.newStringFieldDefinition("payload/lowerBoundType", REGULAR, V_2);

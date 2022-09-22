@@ -71,6 +71,16 @@ public interface AuthorizationContext
     }
 
     /**
+     * Returns a new immutable empty {@link org.eclipse.ditto.base.model.auth.AuthorizationContext}.
+     *
+     * @return the new {@code AuthorizationContext}.
+     * @since 3.0.0
+     */
+    static AuthorizationContext empty() {
+        return AuthorizationModelFactory.emptyAuthContext();
+    }
+
+    /**
      * Returns the type the authorization context was created with, specifying its "kind".
      *
      * @return the type of this authorization context.
