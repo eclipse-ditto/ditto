@@ -1,6 +1,6 @@
 ---
 title: Payload mapping in connectivity service
-keywords: mapping, transformation, payload, javascript
+keywords: mapping, transformation, payload, javascript, mapper, protobuf
 tags: [connectivity]
 permalink: connectivity-mapping.html
 ---
@@ -1161,21 +1161,66 @@ Your digital twin is updated by applying the specified script and extracting the
 Beside the JavaScript based mapping - which can be configured/changed at runtime without the need of restarting the
 connectivity service - there is also the possibility to implement a custom Java based mapper.
 
-The interface to be implemented is `org.eclipse.ditto.connectivity.service.mapping.MessageMapper` ([find the source here](https://github.com/eclipse/ditto/blob/master/connectivity/service/mapping/src/main/java/org/eclipse/ditto/connectivity/service/mapping/MessageMapper.java))
-with the following signature to implement (this is only for experts, the sources contain JavaDoc):
+The interface to be implemented is
+[`MessageMapper`](https://github.com/eclipse/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/mapping/MessageMapper.java))
+and there is an abstract class [`AbstractMessageMapper`](https://github.com/eclipse/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/mapping/AbstractMessageMapper.java)
+which eases implementation of a custom mapper.
+
+Simply extend from `AbstractMessageMapper` to provide a custom mapper:
 
 ```java
-public interface MessageMapper {
-    
-    void configure(MessageMapperConfiguration configuration);
-    
-    List<Adaptable> map(ExternalMessage message);
-    
-    List<ExternalMessage> map(Adaptable adaptable);
+public final class FooMapper extends AbstractMessageMapper {
+
+    private static final String MAPPER_ALIAS = "Foo";
+
+    public FooMapper(ActorSystem actorSystem, Config config) {
+        super(actorSystem, config);
+    }
+
+    private FooMapper(AbstractMessageMapper copyFromMapper) {
+        super(copyFromMapper);
+    }
+
+    @Override
+    public String getAlias() {
+        return MAPPER_ALIAS;
+    }
+
+    @Override
+    public boolean isConfigurationMandatory() {
+        return false;
+    }
+
+    @Override
+    public MessageMapper createNewMapperInstance() {
+        return new FooMapper(this);
+    }
+
+    @Override
+    public List<Adaptable> map(ExternalMessage externalMessage) {
+        // TODO implement mapping inbound messages consumed via "sources" to DittoProtocol adaptables
+        return null;
+    }
+
+    @Override
+    public DittoHeaders getAdditionalInboundHeaders(ExternalMessage externalMessage) {
+        return DittoHeaders.empty();
+    }
+
+    @Override
+    public List<ExternalMessage> map(Adaptable adaptable) {
+        // TODO implement mapping DittoProtocol adaptables to outbound messages published via "targets"
+        return null;
+    }
+
+    @Override
+    protected void doConfigure(Connection connection, MappingConfig mappingConfig, MessageMapperConfiguration configuration) {
+        // extract configuration if needed
+    }
 }
 ```
 
-After instantiation of the custom `MessageMapper`, the `configure` method is called with all the *options* which were 
+After instantiation of the custom `MessageMapper`, the `doConfigure` method is called with all the *options* which were 
 provided to the mapper in the [configured connection](connectivity-manage-connections.html#create-connection). 
 Use them in order to pass in configurations, thresholds, etc.
 
@@ -1190,12 +1235,26 @@ Then, simply implement both of the `map` methods:
 
 In order to use this custom Java based mapper implementation, the following steps are required:
 
-* the implementing Class must be annotated with `@PayloadMapper(alias="customMapper")` and define at least one alias
-* if the custom mapper requires mandatory options then specify `@PayloadMapper(alias="customMapper", requiresMandatoryConfiguration=true)`
-* the Class needs obviously to be on the classpath of the [connectivity](architecture-services-connectivity.html) microservice 
-  in order to be loaded
+* the alias has to be defined via the implemented `getAlias()` method - it must be unique and *should* start with an uppercase letter
+* if the custom mapper requires mandatory options then implement `isConfigurationMandatory()` to return `true`
+* the mapper class needs to be on the classpath of the [connectivity](architecture-services-connectivity.html) 
+  microservice in order to be loaded.  
+  Follow the instructions of 
+  [how to extend Ditto](installation-extending.html#providing-additional-functionality-by-adding-jars-to-the-classpath)
+  to achieve that.
+* the mapper needs to be registered via configuration in the connectivity service, 
+  [extend the configuration](installation-extending.html#adjusting-configuration-of-ditto) or add the mapper via 
+  [system properties](installation-operating.html#ditto-configuration) configuration
 * when creating a new connection you have to specify the alias of your mapper as the `mappingEngine` in the
   connection's `mappingDefinitions` and reference the ID of your mapper in a source or a target
 
-{% include tip.html content="If your mapper does not require any options (`requiresMandatoryConfiguration=false`), you can
- directly reference the alias in a source or a target without first defining it inside `mappingDefinitions`." %} 
+{% include tip.html content="If your mapper does not require any options (`isConfigurationMandatory() = true`), you can
+    directly reference the alias in a source or a target without first defining it inside `mappingDefinitions`." %} 
+
+### Example for Custom Java based mapper
+
+Please have a look at the following Ditto example project:
+* [custom-ditto-java-payload-mapper](https://github.com/eclipse/ditto-examples/tree/master/custom-ditto-java-payload-mapper)
+
+This shows how to implement, add and configure a custom, Protobuf based, Java payload mapper for Ditto to use in the
+connectivity service for mapping a custom domain specific Protbuf encoded payload.

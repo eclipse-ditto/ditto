@@ -192,7 +192,7 @@ In addition to [enable collecting in-memory connection logs](#enable-connection-
 published to a [Fluentd](https://www.fluentd.org) or [Fluent Bit](https://fluentbit.io) endpoint from where they can be 
 forwarded into a logging backend of your choice.
 
-This publishing of connection logs is not configured dynamically via a [piggyback helper command](#helper-commands), 
+This publishing of connection logs is not configured dynamically via a [piggyback helper endpoint](#helper-endpoints), 
 instead this must be enabled via [configuration](installation-operating.html#ditto-configuration) in the 
 `connectivity.conf` by setting environment variables or overwriting the configuration via system properties.
 
