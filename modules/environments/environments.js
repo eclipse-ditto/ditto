@@ -20,7 +20,7 @@ import * as Utils from '../utils.js';
 let environments = {
   local_ditto: {
     api_uri: 'http://localhost:8080',
-    solutionId: null,
+    ditto_version: '3',
     bearer: null,
     defaultUsernamePassword: 'ditto:ditto',
     defaultUsernamePasswordDevOps: 'devops:foobar',
@@ -30,7 +30,7 @@ let environments = {
   },
   local_ditto_ide: {
     api_uri: 'http://localhost:8080',
-    solutionId: null,
+    ditto_version: '3',
     bearer: null,
     defaultUsernamePassword: null,
     defaultUsernamePasswordDevOps: null,
@@ -40,7 +40,7 @@ let environments = {
   },
   ditto_sandbox: {
     api_uri: 'https://ditto.eclipseprojects.io',
-    solutionId: null,
+    ditto_version: '3',
     bearer: null,
     defaultUsernamePassword: 'ditto:ditto',
     defaultUsernamePasswordDevOps: null,
@@ -60,6 +60,7 @@ let dom = {
   buttonUpdateJson: null,
   inputEnvironmentName: null,
   inputApiUri: null,
+  inputDittoVersion: null,
   tbodyEnvironments: null,
 };
 
@@ -122,6 +123,7 @@ export function ready() {
 
   dom.buttonUpdateFields.onclick = () => {
     environments[dom.inputEnvironmentName.value].api_uri = dom.inputApiUri.value;
+    environments[dom.inputEnvironmentName.value].ditto_version = dom.inputDittoVersion.value;
     environmentsJsonChanged();
   };
 
@@ -137,6 +139,7 @@ export function ready() {
     Utils.assert(!environments[dom.inputEnvironmentName.value], 'Name already used', dom.inputEnvironmentName);
     environments[dom.inputEnvironmentName.value] = {
       api_uri: dom.inputApiUri.value ? dom.inputApiUri.value : '',
+      ditto_version: dom.ditto_version.value ? dom.inputDittoVersion.value : '3',
     };
     environmentsJsonChanged();
   };
@@ -194,10 +197,12 @@ function updateEnvEditors() {
   if (selectedEnvironment) {
     settingsEditor.setValue(JSON.stringify(selectedEnvironment, null, 2), -1);
     dom.inputApiUri.value = selectedEnvironment.api_uri;
+    dom.inputDittoVersion.value = selectedEnvironment.ditto_version ? selectedEnvironment.ditto_version : '3';
   } else {
     dom.inputEnvironmentName.value = null;
     settingsEditor.setValue('');
     dom.inputApiUri.value = null;
+    dom.inputDittoVersion.value = null;
   }
 }
 
