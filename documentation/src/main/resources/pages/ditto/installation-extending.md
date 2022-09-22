@@ -5,7 +5,7 @@ keywords: running, start, run, docker, docker-compose, extension, custom, config
 permalink: installation-extending.html
 ---
 
-## Create Extensions for  Ditto
+## Create Extensions for Ditto
 Ditto offers the possibility to execute custom behaviour by utilizing Akka extensions. The places which can be 
 extended by such custom behaviour are marked by extending the `DittoExtensionPoint` interface. Add a new 
 implementation of an interface extending `DittoExtensionPoint` for changing its behaviour.
