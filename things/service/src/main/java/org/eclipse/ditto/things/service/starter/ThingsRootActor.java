@@ -77,8 +77,8 @@ public final class ThingsRootActor extends DittoRootActor {
         final var actorSystem = getContext().system();
 
         final var clusterConfig = thingsConfig.getClusterConfig();
-        final var shardRegionExtractor =
-                ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem);
+        final int numberOfShards = clusterConfig.getNumberOfShards();
+        final var shardRegionExtractor = ShardRegionExtractor.of(numberOfShards, actorSystem);
         final var distributedAcks = DistributedAcks.lookup(actorSystem);
         final var pubSubFactory =
                 ThingEventPubSubFactory.of(getContext(), shardRegionExtractor, distributedAcks);
@@ -97,7 +97,7 @@ public final class ThingsRootActor extends DittoRootActor {
 
         final ActorRef thingsShardRegion =
                 ShardRegionCreator.start(actorSystem, ThingsMessagingConstants.SHARD_REGION, thingSupervisorActorProps,
-                        clusterConfig.getNumberOfShards(), CLUSTER_ROLE);
+                        numberOfShards, CLUSTER_ROLE);
 
         startChildActor(ThingPersistenceOperationsActor.ACTOR_NAME,
                 ThingPersistenceOperationsActor.props(pubSubMediator, thingsConfig.getMongoDbConfig(),

@@ -50,7 +50,6 @@ import akka.pattern.AskTimeoutException;
  */
 final class SupervisorLiveChannelDispatching {
 
-    private static final Duration MIN_LIVE_TIMEOUT = Duration.ofSeconds(1L);
     private static final Duration DEFAULT_LIVE_TIMEOUT = Duration.ofSeconds(60L);
 
     private static final AckExtractor<ThingCommand<?>> THING_COMMAND_ACK_EXTRACTOR =
@@ -287,16 +286,6 @@ final class SupervisorLiveChannelDispatching {
         final var props = LiveResponseAndAcknowledgementForwarder.props(thingQueryCommand, pub.getPublisher());
         // and start the actor using the provided actorRefFactory
         return actorRefFactory.actorOf(props);
-    }
-
-    private static ThingCommand<?> adjustTimeout(final ThingCommand<?> signal, final Duration adjustedTimeout) {
-
-        return signal.setDittoHeaders(
-                signal.getDittoHeaders()
-                        .toBuilder()
-                        .timeout(adjustedTimeout)
-                        .build()
-        );
     }
 
     private DistributedPubWithMessage selectLiveSignalPublisher(final Signal<?> enforcedSignal) {

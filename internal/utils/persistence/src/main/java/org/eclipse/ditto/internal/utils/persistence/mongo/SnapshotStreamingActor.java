@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.persistence.mongo;
 
-import static org.eclipse.ditto.things.api.ThingsMessagingConstants.THINGS_PERSISTENCE_STREAMING_ACTOR_NAME;
-
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
@@ -64,12 +62,15 @@ import akka.stream.javadsl.StreamRefs;
 public final class SnapshotStreamingActor extends AbstractActor {
 
     /**
+     * The name of the snapshot streaming actor.
+     */
+    public static final String ACTOR_NAME = "snapshotStreamingActor";
+
+    /**
      * Ask-timeout in shutdown tasks. Its duration should be long enough but ultimately does not
      * matter because each shutdown phase has its own timeout.
      */
     private static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
-
-    private static final String ACTOR_NAME = THINGS_PERSISTENCE_STREAMING_ACTOR_NAME;
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final Materializer materializer = Materializer.createMaterializer(this::getContext);

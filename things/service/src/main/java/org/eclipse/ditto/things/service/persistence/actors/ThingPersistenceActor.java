@@ -236,4 +236,5 @@ public final class ThingPersistenceActor
 
         return thingBuilder.build();
     }
+
 }
