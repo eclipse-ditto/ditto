@@ -449,6 +449,9 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
                 inboundAcknowledgedMonitor.exception(externalMessageHeaders,
                         "Sending negative acknowledgement: <{0}>", ackTypeName);
             }
+        } catch (final IllegalStateException e) {
+            logger.withCorrelationId(correlationId.orElse(null))
+                    .warning(e, "Failed to ack an AMQP message because of server side issues");
         } catch (final Exception e) {
             logger.withCorrelationId(correlationId.orElse(null)).error(e, "Failed to ack an AMQP message");
         }
