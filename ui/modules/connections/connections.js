@@ -11,13 +11,13 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
+import * as API from '../api.js';
+import * as Environments from '../environments/environments.js';
 /* eslint-disable prefer-const */
 /* eslint-disable max-len */
 /* eslint-disable no-invalid-this */
 /* eslint-disable require-jsdoc */
 import * as Utils from '../utils.js';
-import * as API from '../api.js';
-import * as Environments from '../environments/environments.js';
 
 let dom = {
   ulConnectionTemplates: null,
@@ -184,11 +184,13 @@ function retrieveConnectionMetrics() {
   Utils.assert(selectedConnectionId, 'Please select a connection', dom.tableValidationConnections);
   dom.tbodyConnectionMetrics.innerHTML = '';
   API.callConnectionsAPI('retrieveConnectionMetrics', (response) => {
-    if (response.connectionMetrics.outbound) {
-      Object.keys(response.connectionMetrics.outbound).forEach((type) => {
-        let entry = response.connectionMetrics.outbound[type];
-        Utils.addTableRow(dom.tbodyConnectionMetrics, type, false, false, 'success', entry.success.PT1M, entry.success.PT1H, entry.success.PT24H);
-        Utils.addTableRow(dom.tbodyConnectionMetrics, type, false, false, 'failure', entry.failure.PT1M, entry.failure.PT1H, entry.failure.PT24H);
+    if (response.connectionMetrics) {
+      Object.keys(response.connectionMetrics).forEach((direction) => {
+        Object.keys(response.connectionMetrics[direction]).forEach((type) => {
+          let entry = response.connectionMetrics[direction][type];
+          Utils.addTableRow(dom.tbodyConnectionMetrics, direction, false, false, type, 'success', entry.success.PT1M, entry.success.PT1H, entry.success.PT24H);
+          Utils.addTableRow(dom.tbodyConnectionMetrics, direction, false, false, type, 'failure', entry.failure.PT1M, entry.failure.PT1H, entry.failure.PT24H);
+        });
       });
     }
   },
