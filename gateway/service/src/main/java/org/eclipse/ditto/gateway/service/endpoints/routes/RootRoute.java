@@ -25,6 +25,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
@@ -229,7 +230,11 @@ public final class RootRoute extends AllDirectives {
                 ensureSchemaVersion(apiVersion ->  // /api/<apiVersion>
                         rawPathPrefixTest(PathMatchers.slash().concat(ConnectionsRoute.PATH_CONNECTIONS), () -> // /api/<apiVersion>/connections
                                 withDittoHeaders(rootRouteHeadersStepBuilder.withInitialDittoHeadersBuilder(
-                                                DittoHeaders.newBuilder().schemaVersion(apiVersion).correlationId(correlationId)
+                                                DittoHeaders.newBuilder()
+                                                        .schemaVersion(apiVersion)
+                                                        .correlationId(correlationId)
+                                                        .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(),
+                                                                Boolean.TRUE.toString())
                                         )
                                         .withRequestContext(ctx)
                                         .withQueryParameters(queryParameters)
