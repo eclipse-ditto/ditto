@@ -186,7 +186,7 @@ services:
       start_period: 120s
 
   swagger-ui:
-    image: docker.io/swaggerapi/swagger-ui:v4.14.0
+    image: docker.io/swaggerapi/swagger-ui:v4.14.1
     mem_limit: 32m
     restart: always
     environment:
