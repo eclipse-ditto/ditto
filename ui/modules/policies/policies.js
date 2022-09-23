@@ -7,7 +7,6 @@ import * as API from '../api.js';
 import * as Environments from '../environments/environments.js';
 import * as Things from '../things/things.js';
 
-
 let thePolicy;
 let selectedEntry;
 let selectedSubject;
@@ -220,7 +219,7 @@ function validations(entryFilled, entrySelected, subjectFilled, subjectSelected,
 }
 
 function onThingChanged(thing) {
-  dom.inputPolicyId.value = (thing && thing._policy) ? thing._policy.policyId : null;
+  dom.inputPolicyId.value = (thing && thing.policyId) ? thing.policyId : null;
   viewDirty = true;
 }
 

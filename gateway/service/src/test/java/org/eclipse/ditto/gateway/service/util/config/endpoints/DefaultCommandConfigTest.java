@@ -67,6 +67,9 @@ public final class DefaultCommandConfigTest {
         softly.assertThat(underTest.getSmartChannelBuffer())
                 .as(CommandConfig.CommandConfigValue.SMART_CHANNEL_BUFFER.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(10L));
+        softly.assertThat(underTest.connectionsRetrieveLimit())
+                .as(CommandConfig.CommandConfigValue.CONNECTIONS_RETRIEVE_LIMIT.getConfigPath())
+                .isEqualTo(100);
     }
 
     @Test
@@ -82,6 +85,9 @@ public final class DefaultCommandConfigTest {
         softly.assertThat(underTest.getSmartChannelBuffer())
                 .as(CommandConfig.CommandConfigValue.SMART_CHANNEL_BUFFER.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(66L));
+        softly.assertThat(underTest.connectionsRetrieveLimit())
+                .as(CommandConfig.CommandConfigValue.CONNECTIONS_RETRIEVE_LIMIT.getConfigPath())
+                .isEqualTo(77);
     }
 
 }

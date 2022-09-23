@@ -27,6 +27,7 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.HttpBindFlowProvider;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RootRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.endpoints.routes.cloudevents.CloudEventsRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.connections.ConnectionsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.policies.OAuthTokenIntegrationSubjectIdFactory;
@@ -261,6 +262,7 @@ public final class GatewayRootActor extends DittoRootActor {
                 .thingsRoute(new ThingsRoute(routeBaseProperties,
                         gatewayConfig.getMessageConfig(),
                         gatewayConfig.getClaimMessageConfig()))
+                .connectionsRoute(new ConnectionsRoute(routeBaseProperties, devopsAuthenticationDirective))
                 .thingSearchRoute(new ThingSearchRoute(routeBaseProperties))
                 .whoamiRoute(new WhoamiRoute(routeBaseProperties))
                 .cloudEventsRoute(new CloudEventsRoute(routeBaseProperties, gatewayConfig.getCloudEventsConfig()))

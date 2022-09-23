@@ -19,12 +19,17 @@ import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnections;
+import org.eclipse.ditto.gateway.service.endpoints.actors.ConnectionsRetrievalActorPropsFactory;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
+
+import com.typesafe.config.Config;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorKilledException;
@@ -47,14 +52,14 @@ public final class GatewayProxyActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "proxy";
 
-    private final ActorSelection devOpsCommandsActor;
-    private final ActorRef edgeCommandForwarder;
-    private final ActorRef pubSubMediator;
-    private final HttpConfig httpConfig;
-
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
+    private final ActorRef pubSubMediator;
+    private final ActorSelection devOpsCommandsActor;
+    private final ActorRef edgeCommandForwarder;
+    private final HttpConfig httpConfig;
     private final ActorRef statisticsActor;
+    private final ConnectionsRetrievalActorPropsFactory connectionsRetrievalActorPropsFactory;
 
     @SuppressWarnings("unused")
     private GatewayProxyActor(final ActorRef pubSubMediator, final ActorSelection devOpsCommandsActor,
@@ -63,7 +68,12 @@ public final class GatewayProxyActor extends AbstractActor {
         this.devOpsCommandsActor = devOpsCommandsActor;
         this.edgeCommandForwarder = edgeCommandForwarder;
         this.httpConfig = httpConfig;
-        statisticsActor = getContext().actorOf(StatisticsActor.props(pubSubMediator), StatisticsActor.ACTOR_NAME);
+        this.statisticsActor = getContext().actorOf(StatisticsActor.props(pubSubMediator), StatisticsActor.ACTOR_NAME);
+
+        final Config dittoExtensionConfig =
+                ScopedConfig.dittoExtension(getContext().getSystem().settings().config());
+        this.connectionsRetrievalActorPropsFactory =
+                ConnectionsRetrievalActorPropsFactory.get(getContext().getSystem(), dittoExtensionConfig);
     }
 
     /**
@@ -72,10 +82,12 @@ public final class GatewayProxyActor extends AbstractActor {
      * @param pubSubMediator the Pub/Sub mediator to use for subscribing for events.
      * @param devOpsCommandsActor the Actor ref to the local DevOpsCommandsActor.
      * @param edgeCommandForwarder the Actor ref to the {@code EdgeCommandForwarderActor}.
+     * @param httpConfig the http config.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final ActorSelection devOpsCommandsActor,
             final ActorRef edgeCommandForwarder, final HttpConfig httpConfig) {
+
         return Props.create(GatewayProxyActor.class, pubSubMediator, devOpsCommandsActor, edgeCommandForwarder,
                 httpConfig);
     }
@@ -126,7 +138,12 @@ public final class GatewayProxyActor extends AbstractActor {
                     );
                     edgeCommandForwarder.tell(qt, responseActor);
                 })
-
+                .match(RetrieveConnections.class, rc -> {
+                    final ActorRef connectionsRetrievalActor = getContext().actorOf(
+                            connectionsRetrievalActorPropsFactory.getActorProps(edgeCommandForwarder, getSender())
+                    );
+                    connectionsRetrievalActor.tell(rc, getSender());
+                })
                 /* send all other Commands to command forwarder */
                 .match(Command.class, this::forwardToCommandForwarder)
 
