@@ -115,7 +115,6 @@ import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.cluster.AkkaJacksonCborSerializable;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -489,10 +488,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .event(PublishMappedMessage.class, this::publishMappedMessage)
                 .event(ConnectivityCommand.class, this::onUnknownEvent) // relevant connectivity commands were handled
                 .event(Signal.class, this::handleSignal)
-                .eventEquals(HealthSignal.PING, (ping, data) -> {
-                    sender().tell(HealthSignal.PONG, self());
-                    return stay();
-                })
                 .event(FatalPubSubException.class, this::failConnectionDueToPubSubException);
     }
 
@@ -2251,11 +2246,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         private CloseConnectionAndShutdown() {
             // no-op
         }
-    }
-
-    public enum HealthSignal implements AkkaJacksonCborSerializable {
-        PING,
-        PONG
     }
 
 }
