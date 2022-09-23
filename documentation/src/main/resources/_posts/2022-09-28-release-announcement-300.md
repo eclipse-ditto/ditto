@@ -1,7 +1,7 @@
 ---
 title: "Announcing Eclipse Ditto Release 3.0.0"
 published: true
-permalink: 2022-09-16-release-announcement-300.html
+permalink: 2022-09-28-release-announcement-300.html
 layout: post
 author: thomas_jaeckle
 tags: [blog]
@@ -48,6 +48,7 @@ The main improvements and additions of Ditto 3.0.0 are:
 * Make "default namespace" for creating new entities configurable
 * Provide custom namespace when creating things via HTTP POST
 * Make it possible to provide multiple OIDC issuer urls for a single configured openid-connect "prefix"
+* Addition of a "CloudEvents" mapper for mapping CE payloads in Ditto connections
 
 The following non-functional work is also included:
 
