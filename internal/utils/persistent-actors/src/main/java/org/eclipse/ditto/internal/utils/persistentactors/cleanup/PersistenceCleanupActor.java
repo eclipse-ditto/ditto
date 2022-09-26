@@ -31,7 +31,6 @@ import org.eclipse.ditto.internal.utils.health.StatusInfo;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
-import org.eclipse.ditto.internal.utils.persistence.operations.AbstractPersistenceOperationsActor;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
@@ -123,8 +122,7 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
      * @param myRole the cluster role of this node among which the background cleanup responsibility is divided.
      * @return the Props object.
      */
-    public static Props props(final CleanupConfig config,
-            final MongoReadJournal mongoReadJournal,
+    public static Props props(final CleanupConfig config, final MongoReadJournal mongoReadJournal,
             final String myRole) {
 
         return Props.create(PersistenceCleanupActor.class, config, mongoReadJournal, myRole);
@@ -137,8 +135,7 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
         final var coordinatedShutdown = CoordinatedShutdown.get(getContext().getSystem());
         final var serviceRequestsDoneTask = "service-requests-done-" + ACTOR_NAME;
         coordinatedShutdown.addTask(CoordinatedShutdown.PhaseServiceRequestsDone(), serviceRequestsDoneTask,
-                () -> Patterns.ask(getSelf(), AbstractPersistenceOperationsActor.Control.SERVICE_REQUESTS_DONE,
-                                SHUTDOWN_ASK_TIMEOUT)
+                () -> Patterns.ask(getSelf(), Control.SERVICE_REQUESTS_DONE, SHUTDOWN_ASK_TIMEOUT)
                         .thenApply(reply -> Done.done())
         );
 
@@ -171,6 +168,7 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
         return matchEvent(RetrieveHealth.class, this::retrieveHealth)
                 .event(RetrieveConfig.class, (retrieveConfig, lastPid) -> {
                     retrieveConfigBehavior().onMessage().apply(retrieveConfig);
+
                     return stay();
                 })
                 .event(ModifyConfig.class, (modifyConfig, lastPid) -> {
@@ -180,12 +178,14 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
                             .filter(JsonValue::isString)
                             .map(JsonValue::asString);
                     final var stay = stay();
+
                     return setLastPid.map(stay::using).orElse(stay);
                 })
                 .eventEquals(Control.SERVICE_REQUESTS_DONE, this::serviceRequestsDone)
                 .anyEvent((message, lastPid) -> {
                     logger.warning("Got unhandled message <{}> when state=<{}> lastPid=<{}>",
                             message, stateName().name(), lastPid);
+
                     return stay();
                 });
     }
@@ -230,9 +230,11 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
         if (config.isEnabled()) {
             final var nextQuietPeriod = randomizeQuietPeriod();
             logger.info("Stream complete. Next stream in <{}> from start", nextQuietPeriod);
+
             return result.forMax(nextQuietPeriod);
         } else {
             logger.info("Stream complete and disabled.");
+
             return result;
         }
     }
@@ -241,10 +243,13 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
         final var result = goTo(State.IN_QUIET_PERIOD).using(lastPid);
         if (config.isEnabled()) {
             final var nextQuietPeriod = randomizeQuietPeriod();
-            logger.info("Stream failed or shutdown. Next stream in <{}> starting from <{}>", nextQuietPeriod, lastPid);
+            logger.info("Stream failed or shutdown. Next stream in <{}> starting from <{}>", nextQuietPeriod,
+                    lastPid);
+
             return result.forMax(nextQuietPeriod);
         } else {
             logger.info("Stream failed or shutdown and disabled. Last PID=<{}>", lastPid);
+
             return result;
         }
     }
@@ -262,9 +267,11 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
     private FSM.State<State, String> shutdownInQuietPeriod(final Control shutdown, final String lastPid) {
         if (config.isEnabled()) {
             logger.info("Starting stream from <{}> in <{}> on request", lastPid, config.getQuietPeriod());
+
             return goTo(State.IN_QUIET_PERIOD).forMax(config.getQuietPeriod());
         } else {
             logger.info("Stream disabled. lastPid=<{}>", lastPid);
+
             return goTo(State.IN_QUIET_PERIOD);
         }
     }
@@ -304,6 +311,7 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
             }
             getSelf().tell(Control.STREAM_FAILED, ActorRef.noSender());
         }
+        killSwitch = null;
 
         return Done.getInstance();
     }

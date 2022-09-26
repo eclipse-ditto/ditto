@@ -281,6 +281,36 @@ public final class PersistenceCleanupActorTest {
         }};
     }
 
+    @Test
+    public void shutdownWhenStreamCompleted() throws InterruptedException {
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = childActorOf(testProps());
+            final var retrieveHealth = RetrieveHealth.newInstance();
+            final var probeSource =
+                    TestSource.<Source<CleanupResult, NotUsed>>probe(actorSystem);
+            final var probeSourcePair = probeSource.preMaterialize(actorSystem);
+            final var probe = probeSourcePair.first();
+            sourceBox.set(probeSourcePair.second());
+            underTest.tell(FSM.StateTimeout$.MODULE$, ActorRef.noSender());
+            probe.expectRequest();
+
+            probe.sendNext(Source.single(new CleanupResult(
+                    CleanupResult.Type.SNAPSHOTS,
+                    new SnapshotRevision("thing:p:id", 1234, true),
+                    DeleteResult.acknowledged(4)
+            )));
+            waitForResponse(this, underTest, retrieveHealthResponse("RUNNING", "thing:p:id"), probe::expectNoMsg);
+
+            // WHEN stream completes successfully and graceful shutdown is initiated
+            probe.sendComplete();
+            waitForResponse(this, underTest, retrieveHealthResponse("IN_QUIET_PERIOD", ""), probe::expectNoMsg);
+            underTest.tell(PersistenceCleanupActor.Control.SERVICE_REQUESTS_DONE, getRef());
+
+            // THEN expect Done
+            expectMsg(Done.getInstance());
+        }};
+    }
+
     private void waitForResponse(final TestKit testKit,
             final ActorRef underTest,
             final RetrieveHealthResponse expectedResponse,
