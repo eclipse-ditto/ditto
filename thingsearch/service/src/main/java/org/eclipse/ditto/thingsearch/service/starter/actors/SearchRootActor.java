@@ -17,7 +17,6 @@ import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConst
 import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoTimestampPersistence;
@@ -64,9 +63,9 @@ public final class SearchRootActor extends DittoRootActor {
         RootChildActorStarter.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config()))
                 .execute(getContext());
 
-        final var thingsSearchPersistence = getThingsSearchPersistence(searchConfig, mongoDbClient);
+        final var thingsSearchPersistence =
+                getThingsSearchPersistence(searchConfig, mongoDbClient);
         final ActorRef searchActor = initializeSearchActor(searchConfig, thingsSearchPersistence, pubSubMediator);
-        pubSubMediator.tell(DistPubSubAccess.put(searchActor), getSelf());
 
         final TimestampPersistence backgroundSyncPersistence =
                 MongoTimestampPersistence.initializedInstance(BACKGROUND_SYNC_COLLECTION_NAME, mongoDbClient,
