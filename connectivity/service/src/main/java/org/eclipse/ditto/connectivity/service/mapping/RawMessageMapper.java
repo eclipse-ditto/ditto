@@ -361,7 +361,7 @@ public final class RawMessageMapper extends AbstractMessageMapper {
             return externalMessage.getBytePayload()
                     .or(() -> externalMessage.getTextPayload().map(text -> ByteBuffer.wrap(text.getBytes())))
                     .map(bytePayload ->
-                            JsonFactory.newValue(Base64.getEncoder().encodeToString(bytePayload.array()))
+                            JsonFactory.newValue(Base64.getEncoder().encodeToString(ByteBufferUtils.clone(bytePayload).array()))
                     );
         }
     }

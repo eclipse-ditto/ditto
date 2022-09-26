@@ -181,7 +181,7 @@ Overall example JSON of the MQTT `"specificConfig"`:
 ```json
 {
   "id": "mqtt-example-connection-123",
-  "connectionType": "mqtt",
+  "connectionType": "mqtt-5",
   "connectionStatus": "open",
   "failoverEnabled": true,
   "uri": "tcp://test.mosquitto.org:1883",

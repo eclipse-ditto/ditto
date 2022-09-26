@@ -19,6 +19,10 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
+import org.eclipse.ditto.connectivity.model.mqtt.IllegalReceiveMaximumValueException;
+import org.eclipse.ditto.connectivity.model.mqtt.IllegalSessionExpiryIntervalSecondsException;
+import org.eclipse.ditto.connectivity.model.mqtt.ReceiveMaximum;
+import org.eclipse.ditto.connectivity.model.mqtt.SessionExpiryInterval;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
@@ -40,6 +44,7 @@ final class DefaultMqttConfig implements MqttConfig {
     private final boolean cleanSession;
     private final boolean reconnectForRedelivery;
     private final Duration reconnectForRedeliveryDelay;
+    private final SessionExpiryInterval sessionExpiryInterval;
     private final boolean useSeparateClientForPublisher;
     private final Duration reconnectMinTimeoutForMqttBrokerInitiatedDisconnect;
     private final BackOffConfig reconnectBackOffConfig;
@@ -52,6 +57,7 @@ final class DefaultMqttConfig implements MqttConfig {
         reconnectForRedelivery = config.getBoolean(MqttConfigValue.RECONNECT_FOR_REDELIVERY.getConfigPath());
         reconnectForRedeliveryDelay =
                 config.getNonNegativeDurationOrThrow(MqttConfigValue.RECONNECT_FOR_REDELIVERY_DELAY);
+        sessionExpiryInterval = getSessionExpiryIntervalOrThrow(config);
         useSeparateClientForPublisher = config.getBoolean(MqttConfigValue.SEPARATE_PUBLISHER_CLIENT.getConfigPath());
         maxQueueSize = config.getInt(MqttConfigValue.MAX_QUEUE_SIZE.getConfigPath());
         reconnectMinTimeoutForMqttBrokerInitiatedDisconnect = config.getNonNegativeDurationOrThrow(
@@ -61,6 +67,16 @@ final class DefaultMqttConfig implements MqttConfig {
                 : ConfigFactory.parseString("backoff" + "={}"));
         consumerThrottlingConfig = ThrottlingConfig.of(config);
         clientReceiveMaximum = getClientReceiveMaximumOrThrow(config);
+    }
+
+    private static SessionExpiryInterval getSessionExpiryIntervalOrThrow(final ScopedConfig config) {
+        try {
+            return SessionExpiryInterval.of(
+                    config.getDuration(MqttConfigValue.SESSION_EXPIRY_INTERVAL.getConfigPath())
+            );
+        } catch (final IllegalSessionExpiryIntervalSecondsException e) {
+            throw new DittoConfigError(e);
+        }
     }
 
     private static ReceiveMaximum getClientReceiveMaximumOrThrow(final ScopedConfig config) {
@@ -100,6 +116,11 @@ final class DefaultMqttConfig implements MqttConfig {
     @Override
     public Duration getReconnectForRedeliveryDelay() {
         return reconnectForRedeliveryDelay;
+    }
+
+    @Override
+    public SessionExpiryInterval getSessionExpiryInterval() {
+        return sessionExpiryInterval;
     }
 
     @Override
@@ -145,6 +166,7 @@ final class DefaultMqttConfig implements MqttConfig {
                 Objects.equals(cleanSession, that.cleanSession) &&
                 Objects.equals(reconnectForRedelivery, that.reconnectForRedelivery) &&
                 Objects.equals(reconnectForRedeliveryDelay, that.reconnectForRedeliveryDelay) &&
+                Objects.equals(sessionExpiryInterval, that.sessionExpiryInterval) &&
                 Objects.equals(useSeparateClientForPublisher, that.useSeparateClientForPublisher) &&
                 Objects.equals(reconnectMinTimeoutForMqttBrokerInitiatedDisconnect,
                         that.reconnectMinTimeoutForMqttBrokerInitiatedDisconnect) &&
@@ -160,6 +182,7 @@ final class DefaultMqttConfig implements MqttConfig {
                 cleanSession,
                 reconnectForRedelivery,
                 reconnectForRedeliveryDelay,
+                sessionExpiryInterval,
                 useSeparateClientForPublisher,
                 reconnectMinTimeoutForMqttBrokerInitiatedDisconnect,
                 maxQueueSize,
@@ -175,6 +198,7 @@ final class DefaultMqttConfig implements MqttConfig {
                 ", cleanSession=" + cleanSession +
                 ", reconnectForRedelivery=" + reconnectForRedelivery +
                 ", reconnectForRedeliveryDelay=" + reconnectForRedeliveryDelay +
+                ", sessionExpiryInterval=" + sessionExpiryInterval +
                 ", useSeparateClientForPublisher=" + useSeparateClientForPublisher +
                 ", reconnectMinTimeoutForMqttBrokerInitiatedDisconnect=" +
                 reconnectMinTimeoutForMqttBrokerInitiatedDisconnect +
