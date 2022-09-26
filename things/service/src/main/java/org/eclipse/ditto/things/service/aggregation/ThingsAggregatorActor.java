@@ -212,7 +212,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
                                         SHUTDOWN_ASK_TIMEOUT)
                                 .toCompletableFuture())
                 .thenApply(ack -> {
-                    log.info("{} unsubscribed successfully from pubsub for {} actor", ACTOR_NAME);
+                    log.info("Unsubscribed successfully from pubsub for {} actor", ACTOR_NAME);
                     return Done.getInstance();
                 });
 

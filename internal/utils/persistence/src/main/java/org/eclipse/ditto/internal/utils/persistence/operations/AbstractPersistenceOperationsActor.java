@@ -364,7 +364,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
                                                 self), SHUTDOWN_ASK_TIMEOUT)
                                 .toCompletableFuture())
                 .thenApply(ack -> {
-                    logger.info("{} unsubscribed successfully from pubsub for {} actor", getActorName());
+                    logger.info("Unsubscribed successfully from pubsub for {} actor", getActorName());
                     return Done.getInstance();
                 });
 

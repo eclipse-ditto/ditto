@@ -257,7 +257,7 @@ public final class SnapshotStreamingActor extends AbstractActor {
                                 getSelf()), SHUTDOWN_ASK_TIMEOUT)
                 .toCompletableFuture()
                 .thenApply(ack -> {
-                    log.info("{} unsubscribed successfully from pubsub for {} actor", ACTOR_NAME);
+                    log.info("Unsubscribed successfully from pubsub for {} actor", ACTOR_NAME);
                     return Done.getInstance();
                 });
 
