@@ -36,6 +36,7 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsubthings.LiveSignalPub;
 import org.eclipse.ditto.internal.utils.pubsubthings.ThingEventPubSubFactory;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProviderExtension;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.aggregation.DefaultThingsAggregatorConfig;
@@ -87,7 +88,7 @@ public final class ThingsRootActor extends DittoRootActor {
         final LiveSignalPub liveSignalPub = LiveSignalPub.of(getContext(), distributedAcks);
 
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
-        final PolicyEnforcerProvider policyEnforcerProvider = PolicyEnforcerProvider.getInstance(actorSystem);
+        final PolicyEnforcerProvider policyEnforcerProvider = PolicyEnforcerProviderExtension.get(actorSystem).getPolicyEnforcerProvider();
         final Props thingSupervisorActorProps = getThingSupervisorActorProps(pubSubMediator,
                 distributedPubThingEventsForTwin,
                 liveSignalPub,

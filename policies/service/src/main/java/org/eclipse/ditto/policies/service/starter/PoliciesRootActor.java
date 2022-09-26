@@ -35,6 +35,7 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsubpolicies.PolicyAnnouncementPubSubFactory;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProviderExtension;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.service.common.config.PoliciesConfig;
 import org.eclipse.ditto.policies.service.persistence.actors.PoliciesPersistenceStreamingActorCreator;
@@ -87,7 +88,7 @@ public final class PoliciesRootActor extends DittoRootActor {
         ClusterUtil.startSingleton(actorSystem, getContext(), PoliciesMessagingConstants.CLUSTER_ROLE,
                 BlockedNamespacesUpdater.ACTOR_NAME, blockedNamespacesUpdaterProps);
 
-        final PolicyEnforcerProvider policyEnforcerProvider = PolicyEnforcerProvider.getInstance(actorSystem);
+        final PolicyEnforcerProvider policyEnforcerProvider = PolicyEnforcerProviderExtension.get(actorSystem).getPolicyEnforcerProvider();
         final var policySupervisorProps =
                 getPolicySupervisorActorProps(pubSubMediator, policyAnnouncementPub, blockedNamespaces,
                         policyEnforcerProvider);

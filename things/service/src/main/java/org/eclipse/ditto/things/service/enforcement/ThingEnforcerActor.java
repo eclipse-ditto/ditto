@@ -89,7 +89,6 @@ public final class ThingEnforcerActor
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
     private final ActorRef policiesShardRegion;
     private final AskWithRetryConfig askWithRetryConfig;
-    private final PolicyEnforcerProvider policyEnforcerProvider;
 
     @SuppressWarnings("unused")
     private ThingEnforcerActor(final ThingId thingId,
@@ -106,7 +105,6 @@ public final class ThingEnforcerActor
         final ActorSystem system = context().system();
         policyIdReferencePlaceholderResolver = PolicyIdReferencePlaceholderResolver.of(
                 thingsShardRegion, askWithRetryConfig, system);
-        this.policyEnforcerProvider = policyEnforcerProvider;
     }
 
     /**
@@ -210,7 +208,7 @@ public final class ThingEnforcerActor
             policyCs = createPolicy(defaultPolicy, createThing);
         }
         return policyCs
-                .thenCompose(policy -> policyEnforcerProvider.getPolicyEnforcer(policy.getEntityId().orElse(null)));
+                .thenCompose(policy -> providePolicyEnforcer(policy.getEntityId().orElse(null)));
     }
 
     private CompletionStage<Policy> getCopiedPolicy(final String policyIdOrPlaceholder,

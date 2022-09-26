@@ -25,6 +25,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProviderExtension;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
@@ -64,10 +65,13 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
      */
     @SuppressWarnings("unused")
     public PolicyImportsPreEnforcer(final ActorSystem actorSystem, final Config config) {
-        // TODO DG make PolicyEnforcerProvider an extension
-        policyEnforcerProvider = PolicyEnforcerProvider.getInstance(actorSystem);
+        policyEnforcerProvider = PolicyEnforcerProviderExtension.get(actorSystem).getPolicyEnforcerProvider();
     }
 
+    /**
+     * package-private constructor to pass a PolicyEnforcerProvider in tests.
+     * @param policyEnforcerProvider a PolicyEnforcerProvider
+     */
     PolicyImportsPreEnforcer(final PolicyEnforcerProvider policyEnforcerProvider) {
         this.policyEnforcerProvider = policyEnforcerProvider;
     }
