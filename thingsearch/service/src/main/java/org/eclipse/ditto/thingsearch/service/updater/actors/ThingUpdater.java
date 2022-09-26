@@ -17,8 +17,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -31,6 +31,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
+import org.eclipse.ditto.internal.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -39,6 +40,7 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
@@ -422,29 +424,40 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     private FSM.State<State, Data> onPolicyReferenceTag(final PolicyReferenceTag policyReferenceTag, final Data data) {
         final var thingRevision = data.metadata().getThingRevision();
-        final var policyId = data.metadata().getPolicyId().orElse(null);
-        final var policyRevision = data.metadata().getPolicyRevision().orElse(-1L);
+        @Nullable final var relevantPolicyTag = data.metadata()
+                .getAllReferencedPolicyTags()
+                .stream()
+                .filter(policyTag -> policyTag.getEntityId().equals(policyReferenceTag.getPolicyTag().getEntityId()))
+                .findAny()
+                .orElse(null);
         if (log.isDebugEnabled()) {
-            log.debug("Received new Policy-Reference-Tag for thing <{}> with revision <{}>,  policy-id <{}> and " +
-                            "policy-revision <{}>: <{}>.",
-                    thingId, thingRevision, policyId, policyRevision, policyReferenceTag.asIdentifierString());
+            log.debug("Received new Policy-Reference-Tag for thing <{}> with revision <{}>,  thing-policy-tag <{}>:" +
+                            " <{}>.",
+                    thingId, thingRevision, relevantPolicyTag, policyReferenceTag.asIdentifierString());
         } else {
-            log.info("Got policy update <{}> at revision <{}>. Previous known policy is <{}> at <{}>.",
+            log.info("Got policy update <{}> at revision <{}>. Previous known policy is <{}>.",
                     policyReferenceTag.getPolicyTag().getEntityId(), policyReferenceTag.getPolicyTag().getRevision(),
-                    policyId, policyRevision);
+                    relevantPolicyTag);
         }
 
         final var policyTag = policyReferenceTag.getPolicyTag();
-        final var policyIdOfTag = policyTag.getEntityId();
-        if (!Objects.equals(policyId, policyIdOfTag) || policyRevision < policyTag.getRevision()) {
-            final var newMetadata = Metadata.of(thingId, thingRevision, policyIdOfTag, policyTag.getRevision(), null)
+        if (relevantPolicyTag == null || relevantPolicyTag.getRevision() < policyTag.getRevision()) {
+            final boolean isThingPolicyTag = Optional.ofNullable(relevantPolicyTag)
+                    .flatMap(theRelevantPolicyTag -> data.metadata()
+                            .getThingPolicyTag()
+                            .map(AbstractEntityIdWithRevision::getEntityId)
+                            .map(policyId -> policyId.equals(theRelevantPolicyTag.getEntityId())))
+                    .orElse(false);
+            final PolicyTag thingPolicyTag = isThingPolicyTag ? policyReferenceTag.getPolicyTag() : null;
+
+            final var newMetadata = Metadata.of(thingId, thingRevision, thingPolicyTag, Set.of(), null)
                     .withUpdateReason(UpdateReason.POLICY_UPDATE)
                     .invalidateCaches(false, true);
 
             return enqueue(newMetadata, data);
         } else {
             log.debug("Dropping <{}> because my policyId=<{}> and policyRevision=<{}>",
-                    policyReferenceTag, policyId, policyRevision);
+                    policyReferenceTag, relevantPolicyTag);
             return stay();
         }
     }
@@ -561,8 +574,8 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             final Data data) {
         final long thingRevision = event.getRevision();
         if (shouldAcknowledge) {
-            return Metadata.of(thingId, thingRevision, data.metadata().getPolicyId().orElse(null),
-                    data.metadata().getPolicyRevision().orElse(null), List.of(event), consistencyLagTimer,
+            return Metadata.of(thingId, thingRevision, data.metadata().getThingPolicyTag().orElse(null),
+                    data.metadata().getAllReferencedPolicyTags(), List.of(event), consistencyLagTimer,
                     ackRecipient);
         } else {
             return exportMetadata(event, thingRevision, consistencyLagTimer, data);
@@ -571,9 +584,8 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     private Metadata exportMetadata(@Nullable final ThingEvent<?> event, final long thingRevision,
             @Nullable final StartedTimer timer, final Data data) {
-        return Metadata.of(thingId, thingRevision, data.metadata().getPolicyId().orElse(null),
-                data.metadata().getPolicyRevision().orElse(null),
-                event == null ? List.of() : List.of(event), timer, null);
+        return Metadata.of(thingId, thingRevision, data.metadata().getThingPolicyTag().orElse(null),
+                data.metadata().getAllReferencedPolicyTags(), event == null ? List.of() : List.of(event), timer, null);
     }
 
     private void refreshIdleShutdownTimer() {

@@ -12,16 +12,21 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
-import static org.assertj.core.api.Java6Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevision;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevisionResponse;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.things.model.ThingId;
@@ -60,22 +65,28 @@ public final class BackgroundSyncStreamTest {
         final Duration toleranceWindow = Duration.ofHours(1L);
 
         final Source<Metadata, NotUsed> persisted = Source.from(List.of(
-                Metadata.of(ThingId.of("x:0-only-persisted"), 1L, PolicyId.of("x:0"), 0L, null),
-                Metadata.of(ThingId.of("x:2-within-tolerance"), 3L, null, 0L, null),
-                Metadata.of(ThingId.of("x:3-revision-mismatch"), 3L, PolicyId.of("x:3"), 0L, null),
-                Metadata.of(ThingId.of("x:4-policy-id-mismatch"), 3L, PolicyId.of("x:4"), 0L, null),
-                Metadata.of(ThingId.of("x:5-policy-revision-mismatch"), 3L, PolicyId.of("x:5"), 0L, null),
-                Metadata.of(ThingId.of("x:6-all-up-to-date"), 3L, PolicyId.of("x:6"), 0L, null),
-                Metadata.of(ThingId.of("x:7-policy-deleted"), 7L, PolicyId.of("x:7"), 0L, null)
+                Metadata.of(ThingId.of("x:0-only-persisted"), 1L, PolicyTag.of(PolicyId.of("x:0"), 0L), Set.of(), null),
+                Metadata.of(ThingId.of("x:2-within-tolerance"), 3L, null, Set.of(), null),
+                Metadata.of(ThingId.of("x:3-revision-mismatch"), 3L, PolicyTag.of(PolicyId.of("x:3"), 0L), Set.of(),
+                        null),
+                Metadata.of(ThingId.of("x:4-policy-id-mismatch"), 3L, PolicyTag.of(PolicyId.of("x:4"), 0L), Set.of(),
+                        null),
+                Metadata.of(ThingId.of("x:5-policy-revision-mismatch"), 3L, PolicyTag.of(PolicyId.of("x:5"), 0L),
+                        Set.of(), null),
+                Metadata.of(ThingId.of("x:6-all-up-to-date"), 3L, PolicyTag.of(PolicyId.of("x:6"), 0L), Set.of(), null),
+                Metadata.of(ThingId.of("x:7-policy-deleted"), 7L, PolicyTag.of(PolicyId.of("x:7"), 0L), Set.of(), null)
         ));
 
         final Source<Metadata, NotUsed> indexed = Source.from(List.of(
-                Metadata.of(ThingId.of("x:1-only-indexed"), 1L, null, 0L, null),
-                Metadata.of(ThingId.of("x:2-within-tolerance"), 1L, null, 0L, Instant.now(), null),
-                Metadata.of(ThingId.of("x:3-revision-mismatch"), 2L, PolicyId.of("x:3"), 1L, null),
-                Metadata.of(ThingId.of("x:4-policy-id-mismatch"), 3L, PolicyId.of("x:mismatched"), 0L, null),
-                Metadata.of(ThingId.of("x:5-policy-revision-mismatch"), 3L, PolicyId.of("x:5"), 3L, null),
-                Metadata.of(ThingId.of("x:6-all-up-to-date"), 5L, PolicyId.of("x:6"), 6L, null)
+                Metadata.of(ThingId.of("x:1-only-indexed"), 1L, null, Set.of(), null),
+                Metadata.of(ThingId.of("x:2-within-tolerance"), 1L, null, Set.of(), Instant.now(), null),
+                Metadata.of(ThingId.of("x:3-revision-mismatch"), 2L, PolicyTag.of(PolicyId.of("x:3"), 1L), Set.of(),
+                        null),
+                Metadata.of(ThingId.of("x:4-policy-id-mismatch"), 3L, PolicyTag.of(PolicyId.of("x:mismatched"), 0L),
+                        Set.of(), null),
+                Metadata.of(ThingId.of("x:5-policy-revision-mismatch"), 3L, PolicyTag.of(PolicyId.of("x:5"), 3L),
+                        Set.of(), null),
+                Metadata.of(ThingId.of("x:6-all-up-to-date"), 5L, PolicyTag.of(PolicyId.of("x:6"), 6L), Set.of(), null)
         ));
 
         new TestKit(actorSystem) {{
@@ -90,11 +101,9 @@ public final class BackgroundSyncStreamTest {
             expectMsg(SudoRetrievePolicyRevision.of(PolicyId.of("x:0"), DittoHeaders.empty()));
             reply(SudoRetrievePolicyRevisionResponse.of(PolicyId.of("x:0"), 0L, DittoHeaders.empty()));
 
-            expectMsg(SudoRetrievePolicyRevision.of(PolicyId.of("x:5"), DittoHeaders.empty()));
-            reply(SudoRetrievePolicyRevisionResponse.of(PolicyId.of("x:5"), 6L, DittoHeaders.empty()));
+            expectAndReplySudoRetrievePolicy(this, PolicyId.of("x:5"), 6L);
 
-            expectMsg(SudoRetrievePolicyRevision.of(PolicyId.of("x:6"), DittoHeaders.empty()));
-            reply(SudoRetrievePolicyRevisionResponse.of(PolicyId.of("x:6"), 6L, DittoHeaders.empty()));
+            expectAndReplySudoRetrievePolicy(this, PolicyId.of("x:6"), 6L);
 
             expectMsg(SudoRetrievePolicyRevision.of(PolicyId.of("x:7"), DittoHeaders.empty()));
             reply(PolicyNotAccessibleException.newBuilder(PolicyId.of("x:7")).build());
@@ -107,6 +116,18 @@ public final class BackgroundSyncStreamTest {
                     "x:5-policy-revision-mismatch"
             );
         }};
+    }
+
+    private void expectAndReplySudoRetrievePolicy(final TestKit testKit, final PolicyId policyId, final Long revision) {
+        final DittoHeaders empty = DittoHeaders.empty();
+        testKit.expectMsg(SudoRetrievePolicy.of(policyId, empty));
+        testKit.reply(SudoRetrievePolicyResponse.of(policyId, policyWithoutImports(policyId, revision), empty));
+    }
+
+    private Policy policyWithoutImports(final PolicyId policyId, final Long revision) {
+        return Policy.newBuilder(policyId)
+                .setRevision(revision)
+                .build();
     }
 
 }

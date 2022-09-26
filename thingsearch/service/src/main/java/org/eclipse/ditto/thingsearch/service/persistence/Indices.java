@@ -20,6 +20,7 @@ import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConst
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY_ID;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY_REVISION;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_REFERENCED_POLICIES;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_REVISION;
 
 import java.util.List;
@@ -50,7 +51,7 @@ public final class Indices {
      */
     private static final Index WILDCARD = IndexFactory.newInstance("v_wildcard", List.of("$**"), false)
             .withWildcardProjection(Stream.of(FIELD_ID, FIELD_NAMESPACE, FIELD_GLOBAL_READ, FIELD_REVISION,
-                    FIELD_POLICY_ID, FIELD_POLICY_REVISION, FIELD_POLICY, FIELD_FEATURE_POLICY)
+                            FIELD_POLICY_ID, FIELD_POLICY_REVISION, FIELD_POLICY, FIELD_FEATURE_POLICY)
                     .reduce(new BsonDocument(),
                             (doc, field) -> doc.append(field, new BsonInt32(0)),
                             (doc1, doc2) -> {
@@ -72,6 +73,12 @@ public final class Indices {
             IndexFactory.newInstance("policyId", List.of(FIELD_POLICY_ID, FIELD_POLICY_REVISION), false);
 
     /**
+     * Index for dispatching policy events.
+     */
+    private static final Index REFERENCED_POLICIES =
+            IndexFactory.newInstance("referencedPolicies", List.of(FIELD_REFERENCED_POLICIES), false);
+
+    /**
      * Index for namespace.
      */
     private static final Index NAMESPACE =
@@ -88,7 +95,7 @@ public final class Indices {
      * @return the indices
      */
     public static List<Index> all() {
-        return List.of(NAMESPACE, GLOBAL_READ, WILDCARD, POLICY, DELETE_AT);
+        return List.of(NAMESPACE, GLOBAL_READ, WILDCARD, POLICY, REFERENCED_POLICIES, DELETE_AT);
     }
 
 }

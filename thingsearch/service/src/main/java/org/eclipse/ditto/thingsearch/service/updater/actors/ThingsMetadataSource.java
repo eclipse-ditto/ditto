@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.models.streaming.LowerBound;
@@ -23,6 +24,7 @@ import org.eclipse.ditto.internal.models.streaming.StreamedSnapshot;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamSnapshots;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
@@ -115,12 +117,13 @@ final class ThingsMetadataSource {
     private static Optional<Metadata> toMetadata(final StreamedSnapshot streamedSnapshot) {
         try {
             final JsonObject snapshot = streamedSnapshot.getSnapshot();
-            final PolicyId policyId = snapshot.getValue(Thing.JsonFields.POLICY_ID).map(PolicyId::of).orElse(null);
+            final Optional<PolicyId> optionalPolicyId = snapshot.getValue(Thing.JsonFields.POLICY_ID).map(PolicyId::of);
             final ThingId thingId = ThingId.of(streamedSnapshot.getEntityId());
             final long thingRevision = snapshot.getValueOrThrow(Thing.JsonFields.REVISION);
             final Instant modified = snapshot.getValue(Thing.JsonFields.MODIFIED).map(Instant::parse).orElse(null);
             // policy revision is not known from thing snapshot
-            return Optional.of(Metadata.of(thingId, thingRevision, policyId, 0L, modified, null));
+            final Optional<PolicyTag> policyTag = optionalPolicyId.map(policyId -> PolicyTag.of(policyId, 0L));
+            return Optional.of(Metadata.of(thingId, thingRevision, policyTag.orElse(null), Set.of(), modified, null));
         } catch (PolicyIdInvalidException e) {
             return Optional.empty();
         }

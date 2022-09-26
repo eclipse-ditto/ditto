@@ -20,11 +20,14 @@ import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConst
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY_ID;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY_REVISION;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_REFERENCED_POLICIES;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_REVISION;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_THING;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -32,10 +35,12 @@ import org.bson.BsonArray;
 import org.bson.BsonDocument;
 import org.bson.BsonInt64;
 import org.bson.BsonString;
+import org.eclipse.ditto.internal.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Thing;
@@ -55,40 +60,12 @@ public final class EnforcedThingMapper {
     }
 
     /**
-     * Map a Thing JSON into a search index entry with synthesized metadata.
-     *
-     * @param thing the Thing in JSON format.
-     * @param policy the policy of the Thing.
-     * @param policyRevision revision of the policy.
-     * @return BSON document to write into the search index.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if Thing ID or revision is missing.
-     */
-    static BsonDocument mapThing(final JsonObject thing, final Policy policy, final long policyRevision) {
-        return toWriteModel(thing, policy, policyRevision).getThingDocument();
-    }
-
-    /**
-     * Map a Thing JSON into a search index write model.
-     *
-     * @param thing the Thing in JSON format.
-     * @param policy the policy of the Thing.
-     * @param policyRevision revision of the policy.
-     * @return BSON document to write into the search index.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if Thing ID or revision is missing.
-     */
-    private static ThingWriteModel toWriteModel(final JsonObject thing,
-            final Policy policy,
-            final long policyRevision) {
-
-        return toWriteModel(thing, policy, policyRevision, null, -1);
-    }
-
-    /**
      * Map a Thing JSON into a search index write model.
      *
      * @param thing the Thing in JSON format.
      * @param policy the policy-enforcer of the Thing.
      * @param policyRevision revision of the policy for an policy enforcer.
+     * @param referencedPolicies all policies referenced by the policy.
      * @param oldMetadata the metadata that triggered the search update, possibly containing sender information.
      * @param maxArraySize only arrays smaller than this are indexed.
      * @return BSON document to write into the search index.
@@ -96,21 +73,27 @@ public final class EnforcedThingMapper {
      */
     public static ThingWriteModel toWriteModel(final JsonObject thing,
             final Policy policy,
+            final Set<PolicyTag> referencedPolicies,
             final long policyRevision,
             @Nullable final Metadata oldMetadata, final int maxArraySize) {
 
         final String extractedThing = thing.getValueOrThrow(Thing.JsonFields.ID);
         final var thingId = ThingId.of(extractedThing);
         final long thingRevision = thing.getValueOrThrow(Thing.JsonFields.REVISION);
-        final var nullablePolicyId = thing.getValue(Thing.JsonFields.POLICY_ID).map(PolicyId::of).orElse(null);
-        final var metadata = Metadata.of(thingId, thingRevision, nullablePolicyId, policyRevision,
-                Optional.ofNullable(oldMetadata).flatMap(Metadata::getModified).orElse(null),
-                Optional.ofNullable(oldMetadata).map(Metadata::getEvents).orElse(List.of()),
-                Optional.ofNullable(oldMetadata).map(Metadata::getTimers).orElse(List.of()),
-                Optional.ofNullable(oldMetadata).map(Metadata::getAckRecipients).orElse(List.of()),
-                Optional.ofNullable(oldMetadata).map(Metadata::getUpdateReasons)
-                        .orElse(List.of(UpdateReason.UNKNOWN))
-        );
+        final var optionalPolicyId = thing.getValue(Thing.JsonFields.POLICY_ID).map(PolicyId::of);
+
+        final HashSet<PolicyTag> allReferencedPolicies = new HashSet<>(referencedPolicies);
+        final PolicyTag thingPolicyTag = optionalPolicyId.map(policyId -> PolicyTag.of(policyId, policyRevision)).orElse(null);
+
+        final var metadata =
+                Metadata.of(thingId, thingRevision, thingPolicyTag, allReferencedPolicies,
+                        Optional.ofNullable(oldMetadata).flatMap(Metadata::getModified).orElse(null),
+                        Optional.ofNullable(oldMetadata).map(Metadata::getEvents).orElse(List.of()),
+                        Optional.ofNullable(oldMetadata).map(Metadata::getTimers).orElse(List.of()),
+                        Optional.ofNullable(oldMetadata).map(Metadata::getAckRecipients).orElse(List.of()),
+                        Optional.ofNullable(oldMetadata).map(Metadata::getUpdateReasons)
+                                .orElse(List.of(UpdateReason.UNKNOWN))
+                );
 
         return ThingWriteModel.of(metadata, toBsonDocument(thing, policy, metadata, maxArraySize));
     }
@@ -119,15 +102,18 @@ public final class EnforcedThingMapper {
         return toBsonDocument(thing, policy, metadata, -1);
     }
 
-    static BsonDocument toBsonDocument(final JsonObject thing, final Policy policy, final Metadata metadata, final int maxArraySize) {
+    static BsonDocument toBsonDocument(final JsonObject thing, final Policy policy, final Metadata metadata,
+            final int maxArraySize) {
 
         final var enforced = IndexLengthRestrictionEnforcerVisitor.enforce(thing, maxArraySize);
         final var thingId = metadata.getThingId();
         final var thingRevision = metadata.getThingRevision();
-        final var policyRevision = metadata.getPolicyRevision().orElse(0L);
+        final var policyRevision =
+                metadata.getThingPolicyTag().map(AbstractEntityIdWithRevision::getRevision).orElse(0L);
         final var thingBson = DittoBsonJson.getInstance().parse(enforced);
         final var evaluatedPolicy = EvaluatedPolicy.of(policy, thing);
         final var featureArray = getFeatureArray(thing, evaluatedPolicy);
+        final BsonArray referencedPolicies = getReferencedPolicies(metadata.getAllReferencedPolicyTags());
 
         return new BsonDocument().append(PersistenceConstants.FIELD_ID, new BsonString(thingId.toString()))
                 .append(FIELD_NAMESPACE, new BsonString(thingId.getNamespace()))
@@ -135,9 +121,18 @@ public final class EnforcedThingMapper {
                 .append(FIELD_REVISION, new BsonInt64(thingRevision))
                 .append(FIELD_POLICY_ID, new BsonString(metadata.getPolicyIdInPersistence()))
                 .append(FIELD_POLICY_REVISION, new BsonInt64(policyRevision))
+                .append(FIELD_REFERENCED_POLICIES, referencedPolicies)
                 .append(FIELD_THING, thingBson)
                 .append(FIELD_POLICY, evaluatedPolicy.forThing())
                 .append(FIELD_F_ARRAY, featureArray);
+    }
+
+    private static BsonArray getReferencedPolicies(final Set<PolicyTag> referencedPolicyTags) {
+        final List<BsonDocument> referencedPolicyDocuments = referencedPolicyTags.stream()
+                .map(AbstractEntityIdWithRevision::toJson)
+                .map(policyTagJson -> DittoBsonJson.getInstance().parse(policyTagJson))
+                .toList();
+        return new BsonArray(referencedPolicyDocuments);
     }
 
     private static BsonArray getFeatureArray(final JsonObject thing, final EvaluatedPolicy evaluatedPolicy) {

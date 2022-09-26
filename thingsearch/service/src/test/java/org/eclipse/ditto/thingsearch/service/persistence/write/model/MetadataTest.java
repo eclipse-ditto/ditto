@@ -12,6 +12,14 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.model;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.List;
+import java.util.Set;
+
+import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
 
 import akka.actor.ActorSelection;
@@ -34,6 +42,31 @@ public final class MetadataTest extends AbstractWithActorSystemTest {
                 .withPrefabValues(ActorSelection.class, system.actorSelection(probe1.ref().path()),
                         system.actorSelection(probe2.ref().path()))
                 .verify();
+    }
+
+    @Test
+    public void appendsThingPolicyTagToAllReferencedPolicies() {
+        final PolicyTag policyTag = PolicyTag.of(PolicyId.generateRandom(), 4711L);
+        final PolicyTag referencedPolicyTag = PolicyTag.of(PolicyId.generateRandom(), 42L);
+
+        final Set<PolicyTag> expectedReferencedPolicyTags = Set.of(policyTag, referencedPolicyTag);
+
+        assertThat(Metadata.of(ThingId.generateRandom(), 1337L, policyTag, Set.of(referencedPolicyTag), null)
+                .getAllReferencedPolicyTags())
+                .containsExactlyElementsOf(expectedReferencedPolicyTags);
+
+        assertThat(Metadata.of(ThingId.generateRandom(), 1337L, policyTag, Set.of(referencedPolicyTag), List.of(), null,
+                null).getAllReferencedPolicyTags())
+                .containsExactlyElementsOf(expectedReferencedPolicyTags);
+
+        assertThat(Metadata.of(ThingId.generateRandom(), 1337L, policyTag, Set.of(referencedPolicyTag), null, null)
+                .getAllReferencedPolicyTags())
+                .containsExactlyElementsOf(expectedReferencedPolicyTags);
+
+        assertThat(Metadata.of(ThingId.generateRandom(), 1337L, policyTag, Set.of(referencedPolicyTag), null, List.of(),
+                        List.of(), List.of(), List.of())
+                .getAllReferencedPolicyTags())
+                .containsExactlyElementsOf(expectedReferencedPolicyTags);
     }
 
 }

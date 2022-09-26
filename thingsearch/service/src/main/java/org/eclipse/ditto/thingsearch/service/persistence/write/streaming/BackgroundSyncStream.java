@@ -15,19 +15,31 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.base.model.entity.Revision;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.internal.models.streaming.LowerBound;
 import org.eclipse.ditto.internal.utils.akka.controlflow.MergeSortedAsPair;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevision;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevisionResponse;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
+import org.slf4j.Logger;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -41,6 +53,7 @@ import akka.stream.javadsl.Source;
  */
 public final class BackgroundSyncStream {
 
+    private static Logger LOGGER = DittoLoggerFactory.getThreadSafeLogger(BackgroundSyncStream.class);
     private static final ThingId EMPTY_THING_ID = ThingId.of(LowerBound.emptyEntityId(ThingConstants.ENTITY_TYPE));
     private static final PolicyId EMPTY_POLICY_ID = PolicyId.of(LowerBound.emptyEntityId(PolicyConstants.ENTITY_TYPE));
 
@@ -108,7 +121,7 @@ public final class BackgroundSyncStream {
     }
 
     private static Metadata emptyMetadata() {
-        return Metadata.of(EMPTY_THING_ID, 0L, EMPTY_POLICY_ID, 0L, null);
+        return Metadata.of(EMPTY_THING_ID, 0L, PolicyTag.of(EMPTY_POLICY_ID, 0L), Set.of(), null);
     }
 
     private Source<Metadata, NotUsed> filterForInconsistency(final Pair<Metadata, Metadata> pair) {
@@ -158,15 +171,27 @@ public final class BackgroundSyncStream {
         if (persisted.getThingRevision() > indexed.getThingRevision()) {
             return Source.single(indexed.invalidateCaches(true, false)).log("RevisionMismatch");
         } else {
-            final Optional<PolicyId> persistedPolicyId = persisted.getPolicyId();
-            final Optional<PolicyId> indexedPolicyId = indexed.getPolicyId();
+            final Optional<PolicyId> persistedPolicyId = persisted.getThingPolicyTag()
+                    .map(AbstractEntityIdWithRevision::getEntityId);
+            final Optional<PolicyId> indexedPolicyId = indexed.getThingPolicyTag()
+                    .map(AbstractEntityIdWithRevision::getEntityId);
+
             // policy IDs are equal and nonempty; retrieve and compare policy revision
             // policy IDs are empty - the entries are consistent.
             if (!persistedPolicyId.equals(indexedPolicyId)) {
                 return Source.single(indexed.invalidateCaches(false, true)).log("PolicyIdMismatch");
             } else {
-                return persistedPolicyId.map(policyId -> retrievePolicyRevisionAndEmitMismatch(policyId, indexed))
-                        .orElseGet(Source::empty);
+                final CompletionStage<Boolean> consistencyCheckCs = persistedPolicyId
+                        .map(policyId -> checkReferencedPoliciesForConsistency(policyId, indexed))
+                        .orElseGet(() -> CompletableFuture.completedStage(true));
+                return Source.completionStage(consistencyCheckCs)
+                        .flatMapConcat(policiesAreConsistent -> {
+                            if (policiesAreConsistent) {
+                                return Source.empty();
+                            } else {
+                                return Source.single(indexed.invalidateCaches(false, true)).log("PoliciesInconsistent");
+                            }
+                        });
             }
         }
     }
@@ -179,7 +204,8 @@ public final class BackgroundSyncStream {
      * @return source of index updates.
      */
     private Source<Metadata, ?> retainUnlessPolicyNonexistent(final Metadata persisted) {
-        final Optional<PolicyId> optionalPolicyId = persisted.getPolicyId();
+        final Optional<PolicyId> optionalPolicyId = persisted.getThingPolicyTag()
+                .map(AbstractEntityIdWithRevision::getEntityId);
         if (optionalPolicyId.isPresent()) {
             // policy ID exists: entry should be updated if and only if the policy exists
             final SudoRetrievePolicyRevision command =
@@ -197,32 +223,99 @@ public final class BackgroundSyncStream {
         }
     }
 
-    private Source<Metadata, NotUsed> retrievePolicyRevisionAndEmitMismatch(final PolicyId policyId,
+    private CompletionStage<Boolean> checkReferencedPoliciesForConsistency(final PolicyId thingPolicyId,
             final Metadata indexed) {
-        final SudoRetrievePolicyRevision command =
-                SudoRetrievePolicyRevision.of(policyId, DittoHeaders.empty());
-        final CompletionStage<Source<Metadata, NotUsed>> sourceCompletionStage =
-                Patterns.ask(policiesShardRegion, command, policiesAskTimeout)
-                        .handle((response, error) -> {
-                            if (error != null) {
-                                return Source.single(error)
-                                        .log("ErrorRetrievingPolicyRevision " + policyId)
-                                        .map(e -> indexed.invalidateCaches(true, true));
-                            } else if (response instanceof SudoRetrievePolicyRevisionResponse) {
-                                final long revision = ((SudoRetrievePolicyRevisionResponse) response).getRevision();
-                                return indexed.getPolicyRevision()
-                                        .filter(indexedPolicyRevision -> indexedPolicyRevision.equals(revision))
-                                        .map(indexedPolicyRevision -> Source.<Metadata>empty())
-                                        .orElseGet(() -> Source.single(indexed.invalidateCaches(false, true))
-                                                .log("PolicyRevisionMismatch"));
-                            } else {
-                                return Source.single(response)
-                                        .log("UnexpectedPolicyResponse")
-                                        .map(r -> indexed.invalidateCaches(true, true));
-                            }
-                        });
-        return Source.completionStageSource(sourceCompletionStage)
-                .mapMaterializedValue(ignored -> NotUsed.getInstance());
+
+        return retrievePolicy(thingPolicyId)
+                .thenCompose(optionalPolicy -> {
+                    if (optionalPolicy.isEmpty()) {
+                        return CompletableFuture.completedStage(false);
+                    } else {
+                        final Optional<Long> persistedThingPolicyRevision = optionalPolicy.get().getRevision()
+                                .map(Revision::toLong);
+                        final Optional<Long> indexedThingPolicyRevision =
+                                indexed.getThingPolicyTag().map(AbstractEntityIdWithRevision::getRevision);
+
+                        if (!persistedThingPolicyRevision.equals(indexedThingPolicyRevision)) {
+                            return CompletableFuture.completedStage(false);
+                        }
+
+                        final List<PolicyId> importedPolicyIds = optionalPolicy.get().getPolicyImports()
+                                .stream()
+                                .map(PolicyImport::getImportedPolicyId)
+                                .toList();
+
+                        final Set<PolicyTag> indexedReferencedPolicyTags = indexed.getAllReferencedPolicyTags();
+
+                        // -1 because we need to ignore the actual thing policy which is also included in referenced policies.
+                        if (importedPolicyIds.size() != (indexedReferencedPolicyTags.size() - 1)) {
+                            // Number of referenced policies changed. Trigger update.
+                            return CompletableFuture.completedStage(false);
+                        }
+
+                        final List<CompletableFuture<Boolean>> completionStages = importedPolicyIds.stream()
+                                .map(importedPolicyId -> {
+                                    final Optional<PolicyTag> optionalIndexedPolicyTag =
+                                            indexedReferencedPolicyTags.stream()
+                                                    .filter(tag -> tag.getEntityId().equals(importedPolicyId))
+                                                    .findAny();
+                                    if (optionalIndexedPolicyTag.isEmpty()) {
+                                        return CompletableFuture.completedFuture(false);
+                                    }
+                                    final PolicyTag indexedPolicyTag = optionalIndexedPolicyTag.get();
+                                    return isPolicyTagUpToDate(indexedPolicyTag).toCompletableFuture();
+                                })
+                                .toList();
+
+                        return CompletableFuture.allOf(completionStages.toArray(new CompletableFuture[0]))
+                                .thenApply(done -> completionStages.stream().allMatch(CompletableFuture::join));
+                    }
+                });
+    }
+
+    private CompletionStage<Boolean> isPolicyTagUpToDate(final PolicyTag policyTag) {
+        final var policyId = policyTag.getEntityId();
+        final var command = SudoRetrievePolicyRevision.of(policyId, DittoHeaders.empty());
+
+        return Patterns.ask(policiesShardRegion, command, policiesAskTimeout)
+                .handle((response, error) -> {
+                    if (error != null) {
+                        final String message = String.format(
+                                "Error in background sync stream when trying to retrieve policy revision of " +
+                                        "Policy with ID <%s>", policyId);
+                        LOGGER.error(message, error);
+                        return false;
+                    } else if (response instanceof SudoRetrievePolicyRevisionResponse retrieveResponse) {
+                        final long revision = retrieveResponse.getRevision();
+                        return policyTag.getRevision() == revision;
+                    } else {
+                        LOGGER.error("Unexpected message in background sync stream when trying to retrieve policy " +
+                                        "revision of Policy with ID <{}>. Expected <{}> but got <{}>.",
+                                policyId, SudoRetrievePolicyRevisionResponse.class, response.getClass());
+                        return false;
+                    }
+                });
+    }
+
+    private CompletionStage<Optional<Policy>> retrievePolicy(final PolicyId policyId) {
+        final var command = SudoRetrievePolicy.of(policyId, DittoHeaders.empty());
+
+        return Patterns.ask(policiesShardRegion, command, policiesAskTimeout)
+                .handle((response, error) -> {
+                    if (error != null) {
+                        final String message = String.format("Error in background sync stream when trying to " +
+                                "retrieve policy with ID <%s>", policyId);
+                        LOGGER.error(message, error);
+                        return Optional.empty();
+                    } else if (response instanceof SudoRetrievePolicyResponse retrieveResponse) {
+                        return Optional.of(retrieveResponse.getPolicy());
+                    } else {
+                        LOGGER.error("Unexpected message in background sync stream when trying to retrieve policy " +
+                                        "with ID <{}>. Expected <{}> but got <{}>.",
+                                policyId, SudoRetrievePolicyRevisionResponse.class, response.getClass());
+                        return Optional.empty();
+                    }
+                });
     }
 
     private static int compareMetadata(final Metadata metadata1, final Metadata metadata2) {

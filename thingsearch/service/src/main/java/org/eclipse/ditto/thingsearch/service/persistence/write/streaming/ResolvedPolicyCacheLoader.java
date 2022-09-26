@@ -12,10 +12,14 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.enforcement.PolicyCacheLoader;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -23,7 +27,9 @@ import org.eclipse.ditto.policies.model.PolicyRevision;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
-final class ResolvedPolicyCacheLoader implements AsyncCacheLoader<PolicyId, Entry<Policy>> {
+import akka.japi.Pair;
+
+final class ResolvedPolicyCacheLoader implements AsyncCacheLoader<PolicyId, Entry<Pair<Policy, Set<PolicyTag>>>> {
 
     private final PolicyCacheLoader policyCacheLoader;
 
@@ -32,21 +38,39 @@ final class ResolvedPolicyCacheLoader implements AsyncCacheLoader<PolicyId, Entr
     }
 
     @Override
-    public CompletableFuture<? extends Entry<Policy>> asyncLoad(final PolicyId policyId, final Executor executor) {
+    public CompletableFuture<? extends Entry<Pair<Policy, Set<PolicyTag>>>> asyncLoad(final PolicyId policyId,
+            final Executor executor) {
+
         return policyCacheLoader.asyncLoad(policyId, executor)
                 .thenApply(policyEntry -> {
                     if (policyEntry.exists()) {
                         final Policy policy = policyEntry.getValueOrThrow();
+                        final Set<PolicyTag> referencedPolicies = new HashSet<>();
                         final Policy resolvedPolicy = policy.withResolvedImports(
-                                importedPolicyId -> policyCacheLoader.asyncLoad(importedPolicyId, executor)
-                                        .toCompletableFuture()
-                                        .join()
-                                        .get());
+                                importedPolicyId -> {
+                                    final Optional<Policy> optionalReferencedPolicy =
+                                            policyCacheLoader.asyncLoad(importedPolicyId, executor)
+                                                    .toCompletableFuture()
+                                                    .join()
+                                                    .get();
+                                    if (optionalReferencedPolicy.isPresent()) {
+                                        final Policy referencedPolicy = optionalReferencedPolicy.get();
+                                        final Optional<PolicyRevision> revision = referencedPolicy.getRevision();
+                                        final Optional<PolicyId> entityId = referencedPolicy.getEntityId();
+                                        if (revision.isPresent() && entityId.isPresent()) {
+                                            referencedPolicies.add(
+                                                    PolicyTag.of(entityId.get(), revision.get().toLong())
+                                            );
+                                        }
+                                    }
+                                    return optionalReferencedPolicy;
+                                });
                         final long revision = policy.getRevision().map(PolicyRevision::toLong)
-                                .orElseThrow(() -> new IllegalStateException("Bad SudoRetrievePolicyResponse: no revision"));
-                        return Entry.of(revision, resolvedPolicy);
+                                .orElseThrow(
+                                        () -> new IllegalStateException("Bad SudoRetrievePolicyResponse: no revision"));
+                        return Entry.of(revision, new Pair<>(resolvedPolicy, referencedPolicies));
                     } else {
-                        return policyEntry;
+                        return Entry.nonexistent();
                     }
                 });
     }

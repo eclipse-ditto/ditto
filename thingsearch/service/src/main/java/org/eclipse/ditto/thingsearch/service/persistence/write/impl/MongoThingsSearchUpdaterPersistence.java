@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.impl;
 
+import static com.mongodb.client.model.Filters.elemMatch;
 import static com.mongodb.client.model.Filters.in;
+import static com.mongodb.client.model.Filters.or;
 
 import java.util.Collections;
 import java.util.List;
@@ -25,6 +27,7 @@ import org.bson.BsonInt32;
 import org.bson.BsonString;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
@@ -73,11 +76,19 @@ public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUp
 
     @Override
     public Source<PolicyReferenceTag, NotUsed> getPolicyReferenceTags(final Map<PolicyId, Long> policyRevisions) {
-        final Bson filter =
-                in(PersistenceConstants.FIELD_POLICY_ID, policyRevisions.keySet()
+        final Bson usedAsThingPolicy = in(PersistenceConstants.FIELD_POLICY_ID, policyRevisions.keySet()
+                .stream()
+                .map(String::valueOf)
+                .collect(Collectors.toSet()));
+        final Bson isReferencedPolicy = elemMatch(PersistenceConstants.FIELD_REFERENCED_POLICIES,
+                in(EntityIdWithRevision.JsonFields.ENTITY_ID.getPointer().toString(), policyRevisions.keySet()
                         .stream()
                         .map(String::valueOf)
-                        .collect(Collectors.toSet()));
+                        .collect(Collectors.toSet())));
+        final Bson filter = or(
+                usedAsThingPolicy, // This is only required for backwards compatibility.
+                isReferencedPolicy
+        );
         final Publisher<Document> publisher =
                 collection.find(filter).projection(new Document()
                         .append(PersistenceConstants.FIELD_ID, new BsonInt32(1))
