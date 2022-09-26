@@ -15,6 +15,7 @@ package org.eclipse.ditto.policies.enforcement.pre;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -28,7 +29,11 @@ import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProviderExtension;
+import org.eclipse.ditto.policies.model.ImportableType;
+import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.policies.model.ResourceKey;
@@ -50,12 +55,11 @@ import akka.actor.ActorSystem;
  */
 public class PolicyImportsPreEnforcer implements PreEnforcer {
 
-    private static final String POLICY_RESOURCE = "policy";
-    public static final String ENTRIES_PREFIX = "/entries/";
-    private final PolicyEnforcerProvider policyEnforcerProvider;
-
     private static final ThreadSafeDittoLogger LOG =
             DittoLoggerFactory.getThreadSafeLogger(PolicyImportsPreEnforcer.class);
+    private static final String POLICY_RESOURCE = "policy";
+    private static final String ENTRIES_PREFIX = "/entries/";
+    private final PolicyEnforcerProvider policyEnforcerProvider;
 
     /**
      * Constructs a new instance of PolicyImportsPreEnforcer extension.
@@ -94,16 +98,16 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
 
     private CompletionStage<Signal<?>> doApply(final Stream<PolicyImport> policyImportStream,
             final PolicyModifyCommand<?> command) {
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         if (LOG.isDebugEnabled()) {
             LOG.withCorrelationId(command)
                     .debug("Applying policy import pre-enforcement on policy <{}>.", command.getEntityId());
         }
 
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
         return policyImportStream.map(
                         policyImport -> getPolicyEnforcer(policyImport.getImportedPolicyId(), dittoHeaders).thenApply(
-                                importedPolicyEnforcer -> authorize(command, importedPolicyEnforcer.getEnforcer(),
+                                importedPolicyEnforcer -> authorize(command, importedPolicyEnforcer,
                                         policyImport)))
                 .reduce(CompletableFuture.completedStage(true), (s1, s2) -> s1.thenCombine(s2, (b1, b2) -> b1 && b2))
                 .thenApply(ignored -> command);
@@ -113,22 +117,37 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
             final DittoHeaders dittoHeaders) {
         return policyEnforcerProvider.getPolicyEnforcer(policyId)
                 .thenApply(policyEnforcerOpt -> policyEnforcerOpt.orElseThrow(
-                        () -> PolicyNotAccessibleException.newBuilder(policyId).dittoHeaders(dittoHeaders).build()));
+                        policyNotAccessible(policyId, dittoHeaders)));
     }
 
-    private static Set<ResourceKey> getResourceKeys(final PolicyImport policyImport) {
-        return policyImport.getEffectedImports().orElse(PoliciesModelFactory.emptyEffectedImportedEntries())
-                .getImportedLabels()
-                .stream()
+    private static Supplier<PolicyNotAccessibleException> policyNotAccessible(
+            final PolicyId policyId, final DittoHeaders dittoHeaders) {
+        return () -> PolicyNotAccessibleException.newBuilder(policyId).dittoHeaders(dittoHeaders).build();
+    }
+
+    private static Set<ResourceKey> getImportedResourceKeys(final Policy importedPolicy, final PolicyImport policyImport) {
+        final Stream<Label> implicitImports = importedPolicy.stream()
+                .filter(entry -> ImportableType.IMPLICIT.equals(entry.getImportableType()))
+                .map(PolicyEntry::getLabel);
+
+        final Stream<Label> explicitImports =
+                policyImport.getEffectedImports().orElse(PoliciesModelFactory.emptyEffectedImportedEntries())
+                        .getImportedLabels()
+                        .stream();
+
+        return Stream.concat(implicitImports, explicitImports)
                 .map(l -> ENTRIES_PREFIX + l)
                 .map(path -> ResourceKey.newInstance(POLICY_RESOURCE, path))
                 .collect(Collectors.toSet());
     }
 
-    private boolean authorize(final PolicyModifyCommand<?> command, final Enforcer enforcer,
+    private boolean authorize(final PolicyModifyCommand<?> command, final PolicyEnforcer policyEnforcer,
             final PolicyImport policyImport) {
-        final Set<ResourceKey> resourceKeys = getResourceKeys(policyImport);
+        final Enforcer enforcer = policyEnforcer.getEnforcer();
+        final Policy importedPolicy = policyEnforcer.getPolicy().orElseThrow(policyNotAccessible(command.getEntityId(), command.getDittoHeaders()));
+        final Set<ResourceKey> resourceKeys = getImportedResourceKeys(importedPolicy, policyImport);
         final AuthorizationContext authorizationContext = command.getDittoHeaders().getAuthorizationContext();
+        // the authorized subject must have READ access on the given entries of the imported policy
         final boolean hasAccess =
                 enforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext, Permission.READ);
         if (LOG.isDebugEnabled()) {
