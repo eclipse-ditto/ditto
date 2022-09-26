@@ -22,6 +22,8 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
@@ -38,8 +40,6 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 
@@ -54,8 +54,8 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
     public static final String ENTRIES_PREFIX = "/entries/";
     private final PolicyEnforcerProvider policyEnforcerProvider;
 
-    // TOOO DG logging
-    private static final Logger LOGGER = LoggerFactory.getLogger(PolicyImportsPreEnforcer.class);
+    private static final ThreadSafeDittoLogger LOG =
+            DittoLoggerFactory.getThreadSafeLogger(PolicyImportsPreEnforcer.class);
 
     /**
      * Constructs a new instance of PolicyImportsPreEnforcer extension.
@@ -69,7 +69,8 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
     }
 
     /**
-     * package-private constructor to pass a PolicyEnforcerProvider in tests.
+     * Package-private constructor to pass a PolicyEnforcerProvider in tests.
+     *
      * @param policyEnforcerProvider a PolicyEnforcerProvider
      */
     PolicyImportsPreEnforcer(final PolicyEnforcerProvider policyEnforcerProvider) {
@@ -94,6 +95,12 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
     private CompletionStage<Signal<?>> doApply(final Stream<PolicyImport> policyImportStream,
             final PolicyModifyCommand<?> command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+        if (LOG.isDebugEnabled()) {
+            LOG.withCorrelationId(command)
+                    .debug("Applying policy import pre-enforcement on policy <{}>.", command.getEntityId());
+        }
+
         return policyImportStream.map(
                         policyImport -> getPolicyEnforcer(policyImport.getImportedPolicyId(), dittoHeaders).thenApply(
                                 importedPolicyEnforcer -> authorize(command, importedPolicyEnforcer.getEnforcer(),
@@ -124,6 +131,11 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
         final AuthorizationContext authorizationContext = command.getDittoHeaders().getAuthorizationContext();
         final boolean hasAccess =
                 enforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext, Permission.READ);
+        if (LOG.isDebugEnabled()) {
+            LOG.withCorrelationId(command)
+                    .debug("Enforcement result for command <{}> and policy import {}: {}.", command, policyImport,
+                            hasAccess ? "authorized" : "not authorized");
+        }
         if (!hasAccess) {
             throw errorForPolicyModifyCommand(command, policyImport);
         } else {
