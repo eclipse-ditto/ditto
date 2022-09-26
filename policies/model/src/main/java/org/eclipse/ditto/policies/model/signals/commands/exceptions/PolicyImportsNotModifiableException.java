@@ -29,74 +29,70 @@ import org.eclipse.ditto.policies.model.PolicyException;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
- * Thrown if a {@link org.eclipse.ditto.policies.model.PolicyImport} was either not present or the requester had
- * insufficient permissions to access it.
- *
- * @since 3.x.0 TODO ditto#298
+ * Thrown if the {@link org.eclipse.ditto.policies.model.PolicyImports} of a {@link org.eclipse.ditto.policies.model.Policy} could not be modified because the requester had
+ * insufficient permissions.
  */
 @Immutable
-@JsonParsableException(errorCode = PolicyImportNotAccessibleException.ERROR_CODE)
-public final class PolicyImportNotAccessibleException extends DittoRuntimeException implements PolicyException {
+@JsonParsableException(errorCode = PolicyImportsNotModifiableException.ERROR_CODE)
+public final class PolicyImportsNotModifiableException extends DittoRuntimeException implements PolicyException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "import.notfound";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "imports.notmodifiable";
 
     private static final String MESSAGE_TEMPLATE =
-            "The import of the Policy with ID ''{0}'' on the Policy with ID ''{1}''" +
-                    " could not be found or requester had insufficient permissions to access it.";
+            "The Imports of the Policy with ID ''{0}'' could not be modified as the requester had insufficient permissions.";
 
     private static final String DEFAULT_DESCRIPTION =
-            "Check if the ID of the Policy and the imported Policy was correct and you have sufficient permissions.";
+            "Check if the ID of your requested Policy was correct and you have sufficient permissions.";
 
-    private static final long serialVersionUID = 3798954052492368034L;
+    private static final long serialVersionUID = -4656006844212207608L;
 
-    private PolicyImportNotAccessibleException(final DittoHeaders dittoHeaders,
+    private PolicyImportsNotModifiableException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatus.NOT_FOUND, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatus.FORBIDDEN, dittoHeaders, message, description, cause, href);
     }
 
     /**
-     * A mutable builder for a {@code PolicyImportNotAccessibleException}.
+     * A mutable builder for a {@code PolicyImportsNotModifiableException}.
      *
      * @param policyId the identifier of the Policy.
-     * @param importedPolicyId the PolicyId of the PolicyImport.
      * @return the builder.
      */
-    public static Builder newBuilder(final PolicyId policyId, final CharSequence importedPolicyId) {
-        return new Builder(importedPolicyId, policyId);
+    public static Builder newBuilder(final PolicyId policyId) {
+        return new Builder(policyId);
     }
 
     /**
-     * Constructs a new {@code PolicyImportNotAccessibleException} object with given message.
+     * Constructs a new {@code PolicyImportsNotModifiableException} object with given message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new PolicyImportNotAccessibleException.
+     * @return the new PolicyImportsNotModifiableException.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static PolicyImportNotAccessibleException fromMessage(@Nullable final String message,
+    public static PolicyImportsNotModifiableException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
-     * Constructs a new {@code PolicyImportNotAccessibleException} object with the exception message extracted from the
+     * Constructs a new {@code PolicyImportsNotModifiableException} object with the exception message extracted from the
      * given JSON object.
      *
-     * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
+     * @param jsonObject the JSON to read the {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new PolicyImportNotAccessibleException.
+     * @return the new PolicyImportsNotModifiableException.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static PolicyImportNotAccessibleException fromJson(final JsonObject jsonObject,
+    public static PolicyImportsNotModifiableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
@@ -113,29 +109,28 @@ public final class PolicyImportNotAccessibleException extends DittoRuntimeExcept
     }
 
     /**
-     * A mutable builder with a fluent API for a {@code PolicyImportNotAccessibleException}.
+     * A mutable builder with a fluent API for a {@link org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImportsNotModifiableException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<PolicyImportNotAccessibleException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<PolicyImportsNotModifiableException> {
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final CharSequence importedPolicyId, final PolicyId policyId) {
+        private Builder(final PolicyId policyId) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, importedPolicyId, String.valueOf(policyId)));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(policyId)));
         }
 
         @Override
-        protected PolicyImportNotAccessibleException doBuild(final DittoHeaders dittoHeaders,
+        protected PolicyImportsNotModifiableException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new PolicyImportNotAccessibleException(dittoHeaders, message, description, cause, href);
+            return new PolicyImportsNotModifiableException(dittoHeaders, message, description, cause, href);
         }
-
     }
 
 }
