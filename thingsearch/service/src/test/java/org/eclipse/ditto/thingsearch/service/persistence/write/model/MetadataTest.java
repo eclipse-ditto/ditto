@@ -53,20 +53,20 @@ public final class MetadataTest extends AbstractWithActorSystemTest {
 
         assertThat(Metadata.of(ThingId.generateRandom(), 1337L, policyTag, Set.of(referencedPolicyTag), null)
                 .getAllReferencedPolicyTags())
-                .containsExactlyElementsOf(expectedReferencedPolicyTags);
+                .containsExactlyInAnyOrderElementsOf(expectedReferencedPolicyTags);
 
         assertThat(Metadata.of(ThingId.generateRandom(), 1337L, policyTag, Set.of(referencedPolicyTag), List.of(), null,
                 null).getAllReferencedPolicyTags())
-                .containsExactlyElementsOf(expectedReferencedPolicyTags);
+                .containsExactlyInAnyOrderElementsOf(expectedReferencedPolicyTags);
 
         assertThat(Metadata.of(ThingId.generateRandom(), 1337L, policyTag, Set.of(referencedPolicyTag), null, null)
                 .getAllReferencedPolicyTags())
-                .containsExactlyElementsOf(expectedReferencedPolicyTags);
+                .containsExactlyInAnyOrderElementsOf(expectedReferencedPolicyTags);
 
         assertThat(Metadata.of(ThingId.generateRandom(), 1337L, policyTag, Set.of(referencedPolicyTag), null, List.of(),
                         List.of(), List.of(), List.of())
                 .getAllReferencedPolicyTags())
-                .containsExactlyElementsOf(expectedReferencedPolicyTags);
+                .containsExactlyInAnyOrderElementsOf(expectedReferencedPolicyTags);
     }
 
 }
