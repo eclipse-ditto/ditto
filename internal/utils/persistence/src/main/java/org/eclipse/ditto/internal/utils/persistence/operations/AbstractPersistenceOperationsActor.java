@@ -353,20 +353,33 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
         logger.info("{}: unsubscribing from pubsub for {} actor", serviceUnbind, getActorName());
 
         final ActorRef self = getSelf();
-        final CompletableFuture<Done> unsubscribeTask = CompletableFuture.allOf(
-                        Patterns.ask(pubSubMediator,
-                                        DistPubSubAccess.unsubscribeViaGroup(PurgeEntities.getTopic(entityType),
-                                                getSubscribeGroup(), self),
-                                        SHUTDOWN_ASK_TIMEOUT)
-                                .toCompletableFuture(),
-                        Patterns.ask(pubSubMediator,
-                                        DistPubSubAccess.unsubscribeViaGroup(PurgeNamespace.TYPE, getSubscribeGroup(),
-                                                self), SHUTDOWN_ASK_TIMEOUT)
-                                .toCompletableFuture())
-                .thenApply(ack -> {
-                    logger.info("Unsubscribed successfully from pubsub for {} actor", getActorName());
-                    return Done.getInstance();
-                });
+        final CompletableFuture<Object> unsubscribeFromPurgeNamespace;
+        final CompletableFuture<Object> unsubscribeFromPurgeEntities;
+        if (null != namespaceOps) {
+            unsubscribeFromPurgeNamespace = Patterns.ask(pubSubMediator,
+                            DistPubSubAccess.unsubscribeViaGroup(PurgeNamespace.TYPE, getSubscribeGroup(), self),
+                            SHUTDOWN_ASK_TIMEOUT)
+                    .toCompletableFuture();
+        } else {
+            unsubscribeFromPurgeNamespace = CompletableFuture.completedFuture(Done.getInstance());
+        }
+
+        if (null != entitiesOps) {
+            unsubscribeFromPurgeEntities = Patterns.ask(pubSubMediator,
+                            DistPubSubAccess.unsubscribeViaGroup(PurgeEntities.getTopic(entityType), getSubscribeGroup(),
+                                    self),
+                            SHUTDOWN_ASK_TIMEOUT)
+                    .toCompletableFuture();
+        } else {
+            unsubscribeFromPurgeEntities = CompletableFuture.completedFuture(Done.getInstance());
+        }
+
+        final CompletableFuture<Done> unsubscribeTask =
+                CompletableFuture.allOf(unsubscribeFromPurgeNamespace, unsubscribeFromPurgeEntities)
+                        .thenApply(ack -> {
+                            logger.info("Unsubscribed successfully from pubsub for {} actor", getActorName());
+                            return Done.getInstance();
+                        });
 
         Patterns.pipe(unsubscribeTask, getContext().getDispatcher()).to(getSender());
     }

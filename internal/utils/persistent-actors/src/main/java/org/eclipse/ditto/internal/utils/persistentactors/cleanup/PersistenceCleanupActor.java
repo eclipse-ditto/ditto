@@ -77,7 +77,8 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
      */
     private static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
 
-    private static final Throwable KILL_SWITCH_EXCEPTION = new IllegalStateException();
+    private static final Throwable KILL_SWITCH_EXCEPTION =
+            new IllegalStateException("Aborting stream because of graceful shutdown.");
 
     private final ThreadSafeDittoLoggingAdapter logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
     private final Materializer materializer = Materializer.createMaterializer(getContext());
@@ -181,6 +182,7 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
                     final var stay = stay();
                     return setLastPid.map(stay::using).orElse(stay);
                 })
+                .eventEquals(Control.SERVICE_REQUESTS_DONE, this::serviceRequestsDone)
                 .anyEvent((message, lastPid) -> {
                     logger.warning("Got unhandled message <{}> when state=<{}> lastPid=<{}>",
                             message, stateName().name(), lastPid);
