@@ -72,7 +72,8 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
      */
     private static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
 
-    private static final Throwable KILL_SWITCH_EXCEPTION = new IllegalStateException();
+    private static final Throwable KILL_SWITCH_EXCEPTION =
+            new IllegalStateException("Aborting persistence operations stream because of graceful shutdown.");
 
     private final ActorRef pubSubMediator;
     private final EntityType entityType;
@@ -395,7 +396,8 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
     }
 
     private void serviceRequestsDone(final Control serviceRequestsDone) {
-        logger.info("Re-schedule/Publish {} commands via PubSub.", lastCommandsAndSender.size());
+        logger.info("Re-schedule/Publish <{}> commands for <{}> via PubSub.", lastCommandsAndSender.size(),
+                getActorName());
         killSwitch.abort(KILL_SWITCH_EXCEPTION);
         lastCommandsAndSender.forEach((command, sender) -> {
             if (command instanceof PurgeNamespace purgeNamespace) {

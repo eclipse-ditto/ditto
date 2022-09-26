@@ -77,7 +77,7 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
     private static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
 
     private static final Throwable KILL_SWITCH_EXCEPTION =
-            new IllegalStateException("Aborting stream because of graceful shutdown.");
+            new IllegalStateException("Aborting persistence clean up stream because of graceful shutdown.");
 
     private final ThreadSafeDittoLoggingAdapter logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
     private final Materializer materializer = Materializer.createMaterializer(getContext());
