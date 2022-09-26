@@ -17,30 +17,57 @@ import java.util.List;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.MappingContext;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.connectivity.service.mapping.AbstractMessageMapper;
+import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
-import org.eclipse.ditto.connectivity.service.mapping.PayloadMapper;
 import org.eclipse.ditto.protocol.Adaptable;
+
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
 
 /**
  * Implementation of {@link org.eclipse.ditto.connectivity.service.mapping.MessageMapper} that always drops.
  */
-@PayloadMapper(alias = DroppingMessageMapper.ALIAS)
 public class DroppingMessageMapper extends AbstractMessageMapper {
 
-    static final String ALIAS = "dropping";
+    static final String ALIAS = "Dropping";
 
     /**
      * The context representing this mapper
      */
     static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContext(ALIAS, Collections.emptyMap());
 
+    DroppingMessageMapper(final ActorSystem actorSystem, final Config config) {
+        super(actorSystem, config);
+    }
+
+    private DroppingMessageMapper(final DroppingMessageMapper copyFromMapper) {
+        super(copyFromMapper);
+    }
+
     @Override
-    public void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
+    public void doConfigure(final Connection connection, final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
         // ignore
+    }
+
+    @Override
+    public String getAlias() {
+        return ALIAS;
+    }
+
+    @Override
+    public boolean isConfigurationMandatory() {
+        return false;
+    }
+
+    @Override
+    public MessageMapper createNewMapperInstance() {
+        return new DroppingMessageMapper(this);
     }
 
     @Override

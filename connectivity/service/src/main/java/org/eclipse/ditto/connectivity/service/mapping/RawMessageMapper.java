@@ -29,6 +29,7 @@ import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageBuilder;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.edge.service.placeholders.RequestPlaceholder;
@@ -59,13 +60,17 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
 import akka.http.javadsl.model.ContentTypes;
 
 /**
  * A message mapper implementation to convert between raw message payload and external message payload.
  */
-@PayloadMapper(alias = {"RawMessage"})
 public final class RawMessageMapper extends AbstractMessageMapper {
+
+    private static final String PAYLOAD_MAPPER_ALIAS = "RawMessage";
 
     private static final JsonKey MESSAGES_JSON_KEY = JsonKey.of("messages");
     private static final String OUTGOING_CONTENT_TYPE_KEY = "outgoingContentType";
@@ -106,6 +111,8 @@ public final class RawMessageMapper extends AbstractMessageMapper {
                     .collect(JsonCollectors.fieldsToObject()))
             .build();
 
+    private final DittoMessageMapper dittoMessageMapper;
+
     /**
      * Fallback content-type for outgoing messages.
      * Content-type is the only relevant header for the outgoing direction.
@@ -121,7 +128,38 @@ public final class RawMessageMapper extends AbstractMessageMapper {
      */
     private Map<String, String> incomingMessageHeaders = DEFAULT_INCOMING_HEADERS;
 
-    private final DittoMessageMapper dittoMessageMapper = new DittoMessageMapper();
+    /**
+     * Constructs a new instance of RawMessageMapper extension.
+     *
+     * @param actorSystem the actor system in which to load the extension.
+     * @param config the configuration for this extension.
+     */
+    RawMessageMapper(final ActorSystem actorSystem, final Config config) {
+        super(actorSystem, config);
+        dittoMessageMapper = new DittoMessageMapper(actorSystem, config);
+    }
+
+    private RawMessageMapper(final RawMessageMapper copyFromMapper) {
+        super(copyFromMapper);
+        this.dittoMessageMapper = copyFromMapper.dittoMessageMapper;
+        this.fallbackOutgoingContentType = copyFromMapper.fallbackOutgoingContentType;
+        this.incomingMessageHeaders = copyFromMapper.incomingMessageHeaders;
+    }
+
+    @Override
+    public String getAlias() {
+        return PAYLOAD_MAPPER_ALIAS;
+    }
+
+    @Override
+    public boolean isConfigurationMandatory() {
+        return false;
+    }
+
+    @Override
+    public MessageMapper createNewMapperInstance() {
+        return new RawMessageMapper(this);
+    }
 
     @Override
     public List<Adaptable> map(final ExternalMessage externalMessage) {
@@ -178,8 +216,8 @@ public final class RawMessageMapper extends AbstractMessageMapper {
     }
 
     @Override
-    protected void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
-        dittoMessageMapper.doConfigure(mappingConfig, configuration);
+    protected void doConfigure(final Connection connection, final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
+        dittoMessageMapper.doConfigure(connection, mappingConfig, configuration);
         fallbackOutgoingContentType = configuration.findProperty(OUTGOING_CONTENT_TYPE_KEY)
                 .map(ContentType::of)
                 .orElse(fallbackOutgoingContentType);
@@ -347,5 +385,15 @@ public final class RawMessageMapper extends AbstractMessageMapper {
         return jsonPointer.addLeaf(MessagePath.directionToJsonKey(messageHeaders.getDirection()))
                 .addLeaf(MESSAGES_JSON_KEY)
                 .append(JsonPointer.of(messageHeaders.getSubject()));
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
+                ", dittoMessageMapper=" + dittoMessageMapper +
+                ", fallbackOutgoingContentType=" + fallbackOutgoingContentType +
+                ", incomingMessageHeaders=" + incomingMessageHeaders +
+                "]";
     }
 }

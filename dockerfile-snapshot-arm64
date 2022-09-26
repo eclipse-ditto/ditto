@@ -23,7 +23,7 @@ ENV HTTP_PORT=8080 \
     DITTO_LOGS=/var/log/ditto \
     JVM_CMD_ARGS_ENV=${JVM_CMD_ARGS} \
     MAIN_CLASS_ENV=${MAIN_CLASS} \
-    CLASSPATH=/opt/ditto/*
+    CLASSPATH=/opt/ditto/*:/opt/ditto/extensions/*
 
 # Http port
 EXPOSE 8080

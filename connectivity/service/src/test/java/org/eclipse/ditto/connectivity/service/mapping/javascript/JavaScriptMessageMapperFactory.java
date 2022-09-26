@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -18,8 +18,13 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
+import org.eclipse.ditto.json.JsonValue;
+import org.mockito.Mockito;
+
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
 
 /**
  * Factory for creating instances of {@link JavaScriptMessageMapperRhino} and configurations of it.
@@ -53,7 +58,7 @@ public final class JavaScriptMessageMapperFactory {
      * @return the new JavaScript MessageMapper
      */
     public static MessageMapper createJavaScriptMessageMapperRhino() {
-        return new JavaScriptMessageMapperRhino();
+        return new JavaScriptMessageMapperRhino(Mockito.mock(ActorSystem.class), Mockito.mock(Config.class));
     }
 
 }

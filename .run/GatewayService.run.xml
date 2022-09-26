@@ -14,7 +14,6 @@
   <configuration default="false" name="GatewayService" type="Application" factoryName="Application" folderName="Ditto">
     <envs>
       <env name="LOG_LEVEL_APPLICATION" value="INFO" />
-      <env name="DITTO_DEVOPS_FEATURE_WOT_INTEGRATION_ENABLED" value="true" />
     </envs>
     <option name="MAIN_CLASS_NAME" value="org.eclipse.ditto.gateway.service.starter.GatewayService" />
     <module name="ditto-gateway-service" />

@@ -24,6 +24,7 @@ import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.protocol.Adaptable;
 
@@ -36,8 +37,9 @@ import akka.actor.ActorSystem;
  * </p>
  * A message mapper is considered to be dynamically instantiated at runtime, it therefore can only be configured at
  * runtime.
+ * All implementations need to have a constructor which accepts two parameters: ActorSystem and Config.
  */
-public interface MessageMapper {
+public interface MessageMapper extends DittoExtensionPoint {
 
     /**
      * Returns a unique ID of this mapper that can be used in sources and targets to reference this mapper.
@@ -45,6 +47,27 @@ public interface MessageMapper {
      * @return a unique ID of this mapper.
      */
     String getId();
+
+    /**
+     * Returns the mapper Alias of this mapper.
+     *
+     * @return the mapper Alias of this mapper.
+     */
+    String getAlias();
+
+    /**
+     * @return {@code true} if the mapper requires mandatory {@code config} options for initialization,
+     * i.e. it cannot be used directly as a mapping without providing the
+     * {@link org.eclipse.ditto.connectivity.model.MappingContext#getOptionsAsJson()}.
+     */
+    boolean isConfigurationMandatory();
+
+    /**
+     * Creates a new instance of this mapper, e.g. using a copy constructor of the mapper implementation.
+     *
+     * @return a newly created instance of the mapper.
+     */
+    MessageMapper createNewMapperInstance();
 
     /**
      * Returns a blocklist of content-types which shall not be handled by this message mapper.

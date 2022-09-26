@@ -53,6 +53,9 @@ import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandRe
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -109,7 +112,7 @@ public final class UpdateTwinWithLiveResponseMessageMapperTest {
     public void setUp() {
         connection = TestConstants.createConnection();
         actorSystem = ActorSystem.create("Test", TestConstants.CONFIG);
-        underTest = new UpdateTwinWithLiveResponseMessageMapper();
+        underTest = new UpdateTwinWithLiveResponseMessageMapper(actorSystem, Mockito.mock(Config.class));
     }
 
     @After

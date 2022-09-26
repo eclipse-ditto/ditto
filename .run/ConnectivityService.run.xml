@@ -14,9 +14,6 @@
   <configuration default="false" name="ConnectivityService" type="Application" factoryName="Application" folderName="Ditto" nameIsGenerated="true">
     <envs>
       <env name="LOG_LEVEL_APPLICATION" value="INFO" />
-      <env name="CONNECTIVITY_HTTP_PROXY_ENABLED" value="false" />
-      <env name="CONNECTIVITY_HTTP_PROXY_HOST" value="localhost" />
-      <env name="CONNECTIVITY_HTTP_PROXY_PORT" value="3128" />
     </envs>
     <option name="MAIN_CLASS_NAME" value="org.eclipse.ditto.connectivity.service.ConnectivityService" />
     <module name="ditto-connectivity-service" />

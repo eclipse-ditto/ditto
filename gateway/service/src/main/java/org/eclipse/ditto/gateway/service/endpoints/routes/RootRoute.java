@@ -24,7 +24,6 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -54,7 +53,6 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.websocket.WebSocketRou
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiRoute;
 import org.eclipse.ditto.gateway.service.endpoints.utils.DittoRejectionHandlerFactory;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
-import org.eclipse.ditto.gateway.service.security.authentication.DefaultAuthenticationResult;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.internal.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
@@ -168,6 +166,7 @@ public final class RootRoute extends AllDirectives {
                                 concat(
                                         statsRoute.buildStatsRoute(correlationId), // /stats
                                         cachingHealthRoute.buildHealthRoute(), // /health
+                                        connections(ctx, correlationId, queryParameters), // /api/2/connections
                                         api(ctx, correlationId, queryParameters), // /api
                                         ws(ctx, correlationId, queryParameters), // /ws
                                         ownStatusRoute.buildStatusRoute(), // /status
@@ -220,6 +219,34 @@ public final class RootRoute extends AllDirectives {
     }
 
     /*
+     * Describes {@code /api/2/connections} route.
+     *
+     * @return route for API resource.
+     */
+    private Route connections(final RequestContext ctx, final String correlationId,
+            final Map<String, String> queryParameters) {
+
+        return rawPathPrefix(PathMatchers.slash().concat(HTTP_PATH_API_PREFIX), () -> // /api
+                ensureSchemaVersion(apiVersion ->  // /api/<apiVersion>
+                        rawPathPrefixTest(PathMatchers.slash().concat(ConnectionsRoute.PATH_CONNECTIONS), () -> // /api/<apiVersion>/connections
+                                withDittoHeaders(rootRouteHeadersStepBuilder.withInitialDittoHeadersBuilder(
+                                                DittoHeaders.newBuilder()
+                                                        .schemaVersion(apiVersion)
+                                                        .correlationId(correlationId)
+                                                        .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(),
+                                                                Boolean.TRUE.toString())
+                                        )
+                                        .withRequestContext(ctx)
+                                        .withQueryParameters(queryParameters)
+                                        .build(CustomHeadersHandler.RequestType.API),
+                                        dittoHeaders -> connectionsRoute.buildConnectionsRoute(ctx, dittoHeaders)
+                                ).seal() // sealing here is important as we don't want to fall back to other routes if devops auth failed
+                        )
+                )
+        );
+    }
+
+    /*
      * Describes {@code /api} route.
      *
      * @return route for API resource.
@@ -239,11 +266,7 @@ public final class RootRoute extends AllDirectives {
                                                             .withRequestContext(ctx)
                                                             .withQueryParameters(queryParameters)
                                                             .build(CustomHeadersHandler.RequestType.API),
-                                                    dittoHeaders -> concat(
-                                                                // /api/<apiVersion>/connections
-                                                                connectionsRoute.buildConnectionsRoute(ctx, dittoHeaders),
-                                                                buildApiSubRoutes(ctx, dittoHeaders, auth)
-                                                    )
+                                                    dittoHeaders -> buildApiSubRoutes(ctx, dittoHeaders, auth)
                                             )
                                 ))
                 )
@@ -275,19 +298,7 @@ public final class RootRoute extends AllDirectives {
                 .schemaVersion(schemaVersion)
                 .correlationId(correlationId)
                 .build();
-        return rawPathPrefixTest(PathMatchers.slash().concat(ConnectionsRoute.PATH_CONNECTIONS), () ->
-                    inner.apply(DefaultAuthenticationResult
-                            .successful(
-                                    dittoHeaders.toBuilder()
-                                            .putHeader(
-                                                    DittoHeaderDefinition.DITTO_SUDO.getKey(), Boolean.TRUE.toString())
-                                            .build(),
-                                    AuthorizationContext.empty()
-                                    // authentication is done in ConnectionsRoute via devOpsAuthenticationDirective instead
-                            )
-                    )
-                )
-                .orElse(apiAuthenticationDirective.authenticate(dittoHeaders, inner));
+        return apiAuthenticationDirective.authenticate(dittoHeaders, inner);
     }
 
     private Route buildApiSubRoutes(final RequestContext ctx, final DittoHeaders dittoHeaders,

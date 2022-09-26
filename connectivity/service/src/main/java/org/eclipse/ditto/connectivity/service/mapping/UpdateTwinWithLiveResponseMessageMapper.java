@@ -32,6 +32,7 @@ import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.edge.service.placeholders.RequestPlaceholder;
@@ -54,14 +55,19 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
+
 /**
  * This mapper creates a {@link MergeThing} command when a {@link ThingQueryCommandResponse} was received via the
  * {@link TopicPath.Channel#LIVE live channel} patching exactly the retrieved "live" data into the twin.
  * It might be configured with a {@code dittoHeadersForMerge} JsonObject containing {@link DittoHeaders} to apply for
  * the created {@code MergeThing} command, e.g. adding a condition for the merge update.
  */
-@PayloadMapper(alias = "UpdateTwinWithLiveResponse")
-public class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessageMapper {
+public final class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessageMapper {
+
+    private static final String PAYLOAD_MAPPER_ALIAS = "UpdateTwinWithLiveResponse";
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(
             UpdateTwinWithLiveResponseMessageMapper.class);
@@ -88,8 +94,38 @@ public class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessageMapp
 
     private DittoHeaders dittoHeadersForMerge = DEFAULT_DITTO_HEADERS_FOR_MERGE;
 
+    /**
+     * Constructs a new instance of UpdateTwinWithLiveResponseMessageMapper extension.
+     *
+     * @param actorSystem the actor system in which to load the extension.
+     * @param config the configuration for this extension.
+     */
+    UpdateTwinWithLiveResponseMessageMapper(final ActorSystem actorSystem, final Config config) {
+        super(actorSystem, config);
+    }
+
+    private UpdateTwinWithLiveResponseMessageMapper(final UpdateTwinWithLiveResponseMessageMapper copyFromMapper) {
+        super(copyFromMapper);
+        this.dittoHeadersForMerge = copyFromMapper.dittoHeadersForMerge;
+    }
+
     @Override
-    public void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
+    public String getAlias() {
+        return PAYLOAD_MAPPER_ALIAS;
+    }
+
+    @Override
+    public boolean isConfigurationMandatory() {
+        return false;
+    }
+
+    @Override
+    public MessageMapper createNewMapperInstance() {
+        return new UpdateTwinWithLiveResponseMessageMapper(this);
+    }
+
+    @Override
+    public void doConfigure(final Connection connection, final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
         configuration.findProperty(DITTO_HEADERS_FOR_MERGE, JsonValue::isObject, JsonValue::asObject)
                 .ifPresent(
                         configuredHeaders -> dittoHeadersForMerge = DittoHeaders.newBuilder(configuredHeaders).build());
@@ -181,14 +217,14 @@ public class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessageMapp
 
     private Map<String, String> resolvePlaceholders(final Map<String, String> externalMessageHeaders,
             @Nullable final AuthorizationContext authorizationContext) {
-        final ExpressionResolver expressionResolver = getExpressionResolver(externalMessageHeaders,
+        final ExpressionResolver expressionResolver = createExpressionResolver(externalMessageHeaders,
                 authorizationContext);
         return dittoHeadersForMerge.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, entry ->
                         potentiallySubstitutePlaceholders(entry.getValue(), expressionResolver)));
     }
 
-    private static ExpressionResolver getExpressionResolver(final Map<String, String> headers,
+    private static ExpressionResolver createExpressionResolver(final Map<String, String> headers,
             @Nullable final AuthorizationContext authorizationContext) {
         return PlaceholderFactory.newExpressionResolver(List.of(
                 PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object()),
@@ -205,5 +241,13 @@ public class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessageMapp
     @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
         return Collections.emptyList();
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
+                ", dittoHeadersForMerge=" + dittoHeadersForMerge +
+                "]";
     }
 }
