@@ -25,7 +25,9 @@ import org.eclipse.ditto.edge.service.acknowledgements.config.DefaultAcknowledge
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultEventConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultSnapshotConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.EventConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.CleanupConfig;
 
@@ -47,6 +49,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final String blockedHostRegex;
     private final SupervisorConfig supervisorConfig;
     private final SnapshotConfig snapshotConfig;
+    private final EventConfig eventConfig;
     private final DefaultAcknowledgementConfig acknowledgementConfig;
     private final CleanupConfig cleanupConfig;
     private final Amqp10Config amqp10Config;
@@ -74,6 +77,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         blockedHostRegex = config.getString(ConnectionConfigValue.BLOCKED_HOST_REGEX.getConfigPath());
         supervisorConfig = DefaultSupervisorConfig.of(config);
         snapshotConfig = DefaultSnapshotConfig.of(config);
+        eventConfig = DefaultEventConfig.of(config);
         acknowledgementConfig = DefaultAcknowledgementConfig.of(config);
         cleanupConfig = CleanupConfig.of(config);
         amqp10Config = DefaultAmqp10Config.of(config);
@@ -151,6 +155,11 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     @Override
     public SnapshotConfig getSnapshotConfig() {
         return snapshotConfig;
+    }
+
+    @Override
+    public EventConfig getEventConfig() {
+        return eventConfig;
     }
 
     @Override
@@ -246,6 +255,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 Objects.equals(blockedHostRegex, that.blockedHostRegex) &&
                 Objects.equals(supervisorConfig, that.supervisorConfig) &&
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
+                Objects.equals(eventConfig, that.eventConfig) &&
                 Objects.equals(acknowledgementConfig, that.acknowledgementConfig) &&
                 Objects.equals(cleanupConfig, that.cleanupConfig) &&
                 Objects.equals(amqp10Config, that.amqp10Config) &&
@@ -266,7 +276,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     @Override
     public int hashCode() {
         return Objects.hash(clientActorAskTimeout, clientActorRestartsBeforeEscalation, allowedHostnames,
-                blockedHostnames, blockedSubnets, blockedHostRegex, supervisorConfig, snapshotConfig,
+                blockedHostnames, blockedSubnets, blockedHostRegex, supervisorConfig, snapshotConfig, eventConfig,
                 acknowledgementConfig, cleanupConfig, maxNumberOfTargets, maxNumberOfSources, activityCheckConfig,
                 fieldsEncryptionConfig, amqp10Config, amqp091Config, mqttConfig, kafkaConfig, httpPushConfig,
                 ackLabelDeclareInterval, priorityUpdateInterval, shutdownTimeout, allClientActorsOnOneNode);
@@ -283,6 +293,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 ", blockedHostRegex=" + blockedHostRegex +
                 ", supervisorConfig=" + supervisorConfig +
                 ", snapshotConfig=" + snapshotConfig +
+                ", eventConfig=" + eventConfig +
                 ", acknowledgementConfig=" + acknowledgementConfig +
                 ", cleanUpConfig=" + cleanupConfig +
                 ", amqp10Config=" + amqp10Config +

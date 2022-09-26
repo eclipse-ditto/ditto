@@ -20,8 +20,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.base.model.signals.events.AbstractEventsourcedEvent;
+import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
  * Abstract base class of a {@link PolicyEvent}.
@@ -55,6 +55,11 @@ public abstract class AbstractPolicyEvent<T extends AbstractPolicyEvent<T>> exte
 
         super(type, policyId, timestamp, dittoHeaders, metadata, revision, PolicyEvent.JsonFields.POLICY_ID);
         this.policyId = policyId;
+    }
+
+    @Override
+    public PolicyId getEntityId() {
+        return getPolicyEntityId();
     }
 
     @Override

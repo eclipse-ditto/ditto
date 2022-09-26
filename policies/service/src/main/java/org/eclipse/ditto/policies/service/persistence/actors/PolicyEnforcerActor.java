@@ -37,7 +37,7 @@ import akka.actor.Props;
  * {@link PolicyCommandEnforcement}.
  */
 public final class PolicyEnforcerActor extends
-        AbstractPolicyLoadingEnforcerActor<PolicyId, PolicyCommand<?>, PolicyCommandResponse<?>, PolicyCommandEnforcement> {
+        AbstractPolicyLoadingEnforcerActor<PolicyId, Signal<?>, PolicyCommandResponse<?>, PolicyCommandEnforcement> {
 
     private static final String ENFORCEMENT_DISPATCHER = "enforcement-dispatcher";
 

@@ -19,10 +19,14 @@ import static org.eclipse.ditto.protocol.TopicPath.Channel.TWIN;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.announcements.Announcement;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
+import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
+import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.TopicPath;
 
@@ -112,7 +116,11 @@ public interface ProtocolAdapter {
      * @return the default channel determined from the signal
      */
     static TopicPath.Channel determineDefaultChannel(final Signal<?> signal) {
-        if (signal instanceof PolicyCommand || signal instanceof PolicyCommandResponse) {
+        if (signal instanceof PolicyCommand || signal instanceof PolicyCommandResponse ||
+                signal instanceof PolicyEvent) {
+            return NONE;
+        } else if (signal instanceof ConnectivityCommand || signal instanceof ConnectivityCommandResponse ||
+                signal instanceof ConnectivityEvent) {
             return NONE;
         } else if (signal instanceof Announcement) {
             return NONE;

@@ -32,6 +32,7 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.events.AbstractEventsourcedEvent;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.test.Retry;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
@@ -415,7 +416,8 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     }
 
     private ActorRef createPersistenceActorFor(final PolicyId policyId) {
-        final Props props = PolicyPersistenceActor.propsForTests(policyId, pubSubMediator, actorSystem.deadLetters(),
+        final Props props = PolicyPersistenceActor.propsForTests(policyId, Mockito.mock(MongoReadJournal.class),
+                pubSubMediator, actorSystem.deadLetters(),
                 actorSystem);
         return actorSystem.actorOf(props);
     }

@@ -43,15 +43,19 @@ final class DefaultAdapterResolver implements AdapterResolver {
     DefaultAdapterResolver(final ThingCommandAdapterProvider thingsAdapters,
             final PolicyCommandAdapterProvider policiesAdapters,
             final ConnectivityCommandAdapterProvider connectivityAdapters,
-            final AcknowledgementAdapterProvider acknowledgementAdapters) {
+            final AcknowledgementAdapterProvider acknowledgementAdapters,
+            final StreamingSubscriptionCommandAdapter streamingSubscriptionCommandAdapter,
+            final StreamingSubscriptionEventAdapter streamingSubscriptionEventAdapter) {
         final List<Adapter<?>> adapters = new ArrayList<>();
         adapters.addAll(thingsAdapters.getAdapters());
         adapters.addAll(policiesAdapters.getAdapters());
         adapters.addAll(connectivityAdapters.getAdapters());
         adapters.addAll(acknowledgementAdapters.getAdapters());
+        adapters.add(streamingSubscriptionCommandAdapter);
+        adapters.add(streamingSubscriptionEventAdapter);
         resolver = computeResolver(adapters);
         resolverBySignal = new AdapterResolverBySignal(thingsAdapters, policiesAdapters, connectivityAdapters,
-                acknowledgementAdapters);
+                acknowledgementAdapters, streamingSubscriptionCommandAdapter, streamingSubscriptionEventAdapter);
     }
 
     @Override
@@ -236,6 +240,8 @@ final class DefaultAdapterResolver implements AdapterResolver {
                                 forTopicPath(TopicPath::getAction)),
                         new ForEnumOptional<>(TopicPath.SearchAction.class, TopicPath.SearchAction.values(),
                                 Adapter::getSearchActions, forTopicPath(TopicPath::getSearchAction)),
+                        new ForEnumOptional<>(TopicPath.StreamingAction.class, TopicPath.StreamingAction.values(),
+                                Adapter::getStreamingActions, forTopicPath(TopicPath::getStreamingAction)),
                         new ForEnum<>(Bool.class, Bool.values(), Bool.composeAsSet(Adapter::isForResponses),
                                 Bool.compose(DefaultAdapterResolver::isResponse)),
                         new ForEnum<>(Bool.class, Bool.values(), Bool.composeAsSet(Adapter::requiresSubject),

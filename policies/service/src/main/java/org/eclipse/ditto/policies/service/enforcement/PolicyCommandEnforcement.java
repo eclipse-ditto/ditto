@@ -18,7 +18,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandToExceptionRegistry;
 import org.eclipse.ditto.json.JsonFactory;
@@ -34,6 +37,7 @@ import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
@@ -52,7 +56,7 @@ import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryComman
  * Authorizes {@link PolicyCommand}s and filters {@link PolicyCommandResponse}s.
  */
 public final class PolicyCommandEnforcement
-        extends AbstractEnforcementReloaded<PolicyCommand<?>, PolicyCommandResponse<?>> {
+        extends AbstractEnforcementReloaded<Signal<?>, PolicyCommandResponse<?>> {
 
     /**
      * Json fields that are always shown regardless of authorization.
@@ -61,37 +65,38 @@ public final class PolicyCommandEnforcement
             JsonFactory.newFieldSelector(Policy.JsonFields.ID);
 
     @Override
-    public CompletionStage<PolicyCommand<?>> authorizeSignal(final PolicyCommand<?> command,
+    public CompletionStage<Signal<?>> authorizeSignal(final Signal<?> signal,
             final PolicyEnforcer policyEnforcer) {
 
-        if (command.getCategory() == Command.Category.QUERY && !command.getDittoHeaders().isResponseRequired()) {
+        if (signal instanceof Command<?> command &&
+                command.getCategory() == Command.Category.QUERY && !command.getDittoHeaders().isResponseRequired()) {
             // ignore query command with response-required=false
             return CompletableFuture.completedStage(null);
         }
 
         final Enforcer enforcer = policyEnforcer.getEnforcer();
-        final var policyResourceKey = PoliciesResourceType.policyResource(command.getResourcePath());
-        final var authorizationContext = command.getDittoHeaders().getAuthorizationContext();
-        final PolicyCommand<?> authorizedCommand;
-        if (command instanceof CreatePolicy createPolicy) {
+        final var policyResourceKey = PoliciesResourceType.policyResource(signal.getResourcePath());
+        final var authorizationContext = signal.getDittoHeaders().getAuthorizationContext();
+        final Signal<?> authorizedCommand;
+        if (signal instanceof CreatePolicy createPolicy) {
             authorizedCommand = authorizeCreatePolicy(enforcer, createPolicy, policyResourceKey, authorizationContext);
-        } else if (command instanceof PolicyActionCommand) {
-            authorizedCommand = authorizeActionCommand(policyEnforcer, command, policyResourceKey,
-                    authorizationContext).orElseThrow(() -> errorForPolicyCommand(command));
-        } else if (command instanceof PolicyModifyCommand) {
+        } else if (signal instanceof PolicyActionCommand) {
+            authorizedCommand = authorizeActionCommand(policyEnforcer, signal, policyResourceKey,
+                    authorizationContext).orElseThrow(() -> errorForPolicyCommand(signal));
+        } else if (signal instanceof PolicyModifyCommand) {
             if (hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext)) {
-                authorizedCommand = command;
+                authorizedCommand = signal;
             } else {
-                throw errorForPolicyCommand(command);
+                throw errorForPolicyCommand(signal);
             }
         } else {
             final String permission = Permission.READ;
             if (enforcer.hasPartialPermissions(policyResourceKey,
                     authorizationContext,
                     permission)) {
-                authorizedCommand = command;
+                authorizedCommand = signal;
             } else {
-                throw errorForPolicyCommand(command);
+                throw errorForPolicyCommand(signal);
             }
         }
 
@@ -112,8 +117,17 @@ public final class PolicyCommandEnforcement
     }
 
     @Override
-    public CompletionStage<PolicyCommand<?>> authorizeSignalWithMissingEnforcer(final PolicyCommand<?> command) {
-        throw PolicyNotAccessibleException.newBuilder(command.getEntityId())
+    public CompletionStage<Signal<?>> authorizeSignalWithMissingEnforcer(final Signal<?> command) {
+        final PolicyId policyId;
+        if (command instanceof WithEntityId withEntityId) {
+            policyId = PolicyId.of(withEntityId.getEntityId());
+        } else {
+            LOGGER.warn("Processed signal which does not have an entityId: {}", command);
+            throw DittoInternalErrorException.newBuilder()
+                    .dittoHeaders(command.getDittoHeaders())
+                    .build();
+        }
+        throw PolicyNotAccessibleException.newBuilder(policyId)
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
     }
@@ -143,7 +157,7 @@ public final class PolicyCommandEnforcement
     }
 
     @SuppressWarnings("unchecked")
-    private <T extends PolicyCommand<?>> Optional<T> authorizeActionCommand(
+    private <T extends Signal<?>> Optional<T> authorizeActionCommand(
             final PolicyEnforcer enforcer,
             final T command, final ResourceKey resourceKey, final AuthorizationContext authorizationContext) {
 
@@ -154,7 +168,7 @@ public final class PolicyCommandEnforcement
         }
     }
 
-    private <T extends PolicyCommand<?>> Optional<T> authorizeEntryLevelAction(final Enforcer enforcer,
+    private <T extends Signal<?>> Optional<T> authorizeEntryLevelAction(final Enforcer enforcer,
             final T command, final ResourceKey resourceKey, final AuthorizationContext authorizationContext) {
         return enforcer.hasUnrestrictedPermissions(resourceKey, authorizationContext, Permission.EXECUTE) ?
                 Optional.of(command) : Optional.empty();
@@ -232,19 +246,32 @@ public final class PolicyCommandEnforcement
     /**
      * Create error due to failing to execute a policy-command in the expected way.
      *
-     * @param policyCommand the command.
+     * @param policySignal the signal.
      * @return the error.
      */
-    private static DittoRuntimeException errorForPolicyCommand(final PolicyCommand<?> policyCommand) {
-        final CommandToExceptionRegistry<PolicyCommand<?>, DittoRuntimeException> registry;
-        if (policyCommand instanceof PolicyActionCommand) {
-            registry = PolicyCommandToActionsExceptionRegistry.getInstance();
-        } else if (policyCommand instanceof PolicyModifyCommand) {
-            registry = PolicyCommandToModifyExceptionRegistry.getInstance();
+    private static DittoRuntimeException errorForPolicyCommand(final Signal<?> policySignal) {
+
+        if (policySignal instanceof PolicyCommand<?> policyCommand) {
+            final CommandToExceptionRegistry<PolicyCommand<?>, DittoRuntimeException> registry;
+            if (policyCommand instanceof PolicyActionCommand) {
+                registry = PolicyCommandToActionsExceptionRegistry.getInstance();
+            } else if (policyCommand instanceof PolicyModifyCommand) {
+                registry = PolicyCommandToModifyExceptionRegistry.getInstance();
+            } else {
+                registry = PolicyCommandToAccessExceptionRegistry.getInstance();
+            }
+            return registry.exceptionFrom(policyCommand);
+        } else if (policySignal instanceof WithEntityId withEntityId) {
+            return PolicyNotAccessibleException.newBuilder(PolicyId.of(withEntityId.getEntityId()))
+                    .dittoHeaders(policySignal.getDittoHeaders())
+                    .build();
         } else {
-            registry = PolicyCommandToAccessExceptionRegistry.getInstance();
+            LOGGER.error("Received signal for which no DittoRuntimeException due to lack of access " +
+                    "could be determined: {}", policySignal);
+            return DittoInternalErrorException.newBuilder()
+                    .dittoHeaders(policySignal.getDittoHeaders())
+                    .build();
         }
-        return registry.exceptionFrom(policyCommand);
     }
 
     /**

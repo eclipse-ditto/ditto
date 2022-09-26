@@ -397,6 +397,7 @@ public final class StreamingSessionActorTest {
                 DefaultStreamingConfig.of(ConfigFactory.empty()),
                 HeaderTranslator.empty(),
                 Props.create(Actor.class, () -> new TestActor(new LinkedBlockingDeque<>())),
+                Props.create(Actor.class, () -> new TestActor(new LinkedBlockingDeque<>())),
                 mockValidator,
                 mockAuthenticationResultProvider);
     }

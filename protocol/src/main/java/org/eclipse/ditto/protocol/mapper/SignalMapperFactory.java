@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.protocol.mapper;
 
+import org.eclipse.ditto.base.model.signals.commands.streaming.StreamingSubscriptionCommand;
+import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionEvent;
 import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
@@ -20,6 +22,7 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyComm
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommand;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
+import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
@@ -80,6 +83,14 @@ public final class SignalMapperFactory {
         return new SubscriptionEventSignalMapper();
     }
 
+    public static SignalMapper<StreamingSubscriptionCommand<?>> newStreamingSubscriptionCommandSignalMapper() {
+        return new StreamingSubscriptionCommandSignalMapper<>();
+    }
+
+    public static SignalMapper<StreamingSubscriptionEvent<?>> newStreamingSubscriptionEventSignalMapper() {
+        return new StreamingSubscriptionEventSignalMapper();
+    }
+
     public static SignalMapper<RetrieveThings> newRetrieveThingsSignalMapper() {
         return new RetrieveThingsSignalMapper();
     }
@@ -110,6 +121,10 @@ public final class SignalMapperFactory {
 
     public static SignalMapper<PolicyAnnouncement<?>> newPolicyAnnouncementSignalMapper() {
         return new PolicyAnnouncementSignalMapper();
+    }
+
+    public static SignalMapper<PolicyEvent<?>> newPolicyEventSignalMapper() {
+        return new PolicyEventSignalMapper();
     }
 
     public static SignalMapper<MessageCommand<?, ?>> newMessageCommandSignalMapper() {

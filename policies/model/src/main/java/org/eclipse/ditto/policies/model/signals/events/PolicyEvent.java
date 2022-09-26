@@ -14,21 +14,23 @@ package org.eclipse.ditto.policies.model.signals.events;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.WithPolicyId;
 
 /**
  * Interface for all policy-related events.
  *
  * @param <T> the type of the implementing class.
  */
-public interface PolicyEvent<T extends PolicyEvent<T>> extends EventsourcedEvent<T>, SignalWithEntityId<T> {
+public interface PolicyEvent<T extends PolicyEvent<T>> extends EventsourcedEvent<T>, WithPolicyId,
+        SignalWithEntityId<T> {
 
     /**
      * Type Prefix of Policy events.

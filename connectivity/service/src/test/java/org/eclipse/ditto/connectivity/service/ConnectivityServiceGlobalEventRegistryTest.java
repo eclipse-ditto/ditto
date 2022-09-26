@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service;
 
+import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionComplete;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
 import org.eclipse.ditto.internal.utils.persistentactors.EmptyEvent;
 import org.eclipse.ditto.internal.utils.test.GlobalEventRegistryTestCases;
@@ -31,7 +32,8 @@ public final class ConnectivityServiceGlobalEventRegistryTest extends GlobalEven
                 SubscriptionCreated.class,
                 ThingsOutOfSync.class,
                 ThingSnapshotTaken.class,
-                EmptyEvent.class
+                EmptyEvent.class,
+                StreamingSubscriptionComplete.class
         );
     }
 

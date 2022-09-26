@@ -23,7 +23,9 @@ import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultEventConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultSnapshotConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.EventConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.CleanupConfig;
 
@@ -40,6 +42,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
     private final SupervisorConfig supervisorConfig;
     private final ActivityCheckConfig activityCheckConfig;
     private final SnapshotConfig snapshotConfig;
+    private final EventConfig eventConfig;
     private final Duration policySubjectExpiryGranularity;
     private final Duration policySubjectDeletionAnnouncementGranularity;
     private final String subjectIdResolver;
@@ -50,6 +53,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
         supervisorConfig = DefaultSupervisorConfig.of(scopedConfig);
         activityCheckConfig = DefaultActivityCheckConfig.of(scopedConfig);
         snapshotConfig = DefaultSnapshotConfig.of(scopedConfig);
+        eventConfig = DefaultEventConfig.of(scopedConfig);
         policySubjectExpiryGranularity =
                 scopedConfig.getNonNegativeDurationOrThrow(PolicyConfigValue.SUBJECT_EXPIRY_GRANULARITY);
         policySubjectDeletionAnnouncementGranularity =
@@ -90,6 +94,11 @@ public final class DefaultPolicyConfig implements PolicyConfig {
     }
 
     @Override
+    public EventConfig getEventConfig() {
+        return eventConfig;
+    }
+
+    @Override
     public Duration getSubjectExpiryGranularity() {
         return policySubjectExpiryGranularity;
     }
@@ -126,6 +135,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
         return Objects.equals(supervisorConfig, that.supervisorConfig) &&
                 Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
+                Objects.equals(eventConfig, that.eventConfig) &&
                 Objects.equals(policySubjectExpiryGranularity, that.policySubjectExpiryGranularity) &&
                 Objects.equals(policySubjectDeletionAnnouncementGranularity,
                         that.policySubjectDeletionAnnouncementGranularity) &&
@@ -136,9 +146,9 @@ public final class DefaultPolicyConfig implements PolicyConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig, policySubjectExpiryGranularity,
-                policySubjectDeletionAnnouncementGranularity, subjectIdResolver, policyAnnouncementConfig,
-                cleanupConfig);
+        return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig, eventConfig,
+                policySubjectExpiryGranularity, policySubjectDeletionAnnouncementGranularity, subjectIdResolver,
+                policyAnnouncementConfig, cleanupConfig);
     }
 
     @Override
@@ -147,6 +157,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
                 " supervisorConfig=" + supervisorConfig +
                 ", activityCheckConfig=" + activityCheckConfig +
                 ", snapshotConfig=" + snapshotConfig +
+                ", eventConfig=" + eventConfig +
                 ", policySubjectExpiryGranularity=" + policySubjectExpiryGranularity +
                 ", policySubjectDeletionAnnouncementGranularity=" + policySubjectDeletionAnnouncementGranularity +
                 ", subjectIdResolver=" + subjectIdResolver +

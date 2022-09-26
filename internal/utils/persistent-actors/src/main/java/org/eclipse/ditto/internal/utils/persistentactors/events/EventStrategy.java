@@ -14,7 +14,7 @@ package org.eclipse.ditto.internal.utils.persistentactors.events;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 
 /**
  * This interface represents a strategy for handling events in a persistent actor.
@@ -23,7 +23,7 @@ import org.eclipse.ditto.base.model.signals.events.Event;
  * @param <S> the type of the entity
  */
 @FunctionalInterface
-public interface EventStrategy<E extends Event<?>, S> {
+public interface EventStrategy<E extends EventsourcedEvent<?>, S> {
 
     /**
      * Applies an event to an entity.

@@ -18,6 +18,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.supervision.WithSupervisorConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.EventConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithSnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.WithCleanupConfig;
@@ -28,6 +29,13 @@ import org.eclipse.ditto.internal.utils.persistentactors.cleanup.WithCleanupConf
 @Immutable
 public interface PolicyConfig extends WithSupervisorConfig, WithActivityCheckConfig, WithSnapshotConfig,
         WithCleanupConfig {
+
+    /**
+     * Returns the config of the policy event journal behaviour.
+     *
+     * @return the config.
+     */
+    EventConfig getEventConfig();
 
     /**
      * Returns the configuration to which duration the {@code expiry} of a {@code Policy Subject} should be rounded up

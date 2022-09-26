@@ -83,8 +83,6 @@ public final class ConnectivityRootActor extends DittoRootActor {
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
         final var enforcerActorPropsFactory =
                 ConnectionEnforcerActorPropsFactory.get(actorSystem, dittoExtensionsConfig);
-        final var connectionSupervisorProps =
-                ConnectionSupervisorActor.props(commandForwarder, pubSubMediator, enforcerActorPropsFactory);
         // Create persistence streaming actor (with no cache) and make it known to pubSubMediator.
         final ActorRef persistenceStreamingActor =
                 startChildActor(ConnectionPersistenceStreamingActorCreator.ACTOR_NAME,
@@ -100,6 +98,10 @@ public final class ConnectivityRootActor extends DittoRootActor {
         DittoProtocolSub.get(actorSystem);
 
         final MongoReadJournal mongoReadJournal = MongoReadJournal.newInstance(actorSystem);
+
+        final var connectionSupervisorProps =
+                ConnectionSupervisorActor.props(commandForwarder, pubSubMediator, enforcerActorPropsFactory,
+                        mongoReadJournal);
         startClusterSingletonActor(
                 PersistencePingActor.props(
                         startConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),

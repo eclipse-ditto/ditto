@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 
 import org.bson.BsonDocument;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -30,7 +31,12 @@ import org.eclipse.ditto.things.model.signals.events.ThingCreated;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
+
+import akka.actor.ActorSystem;
+import akka.actor.ExtendedActorSystem;
 import akka.persistence.journal.EventSeq;
+import akka.persistence.journal.Tagged;
 import scala.jdk.javaapi.CollectionConverters;
 
 /**
@@ -41,7 +47,8 @@ public final class ThingMongoEventAdapterTest {
     private final ThingMongoEventAdapter underTest;
 
     public ThingMongoEventAdapterTest() {
-        underTest = new ThingMongoEventAdapter(null);
+        underTest = new ThingMongoEventAdapter(
+                (ExtendedActorSystem) ActorSystem.create("test", ConfigFactory.load("test")));
     }
 
     @Test
@@ -93,11 +100,13 @@ public final class ThingMongoEventAdapterTest {
                 "                    \"attributes\" : {\n" +
                 "                        \"hello\" : \"cloud\"\n" +
                 "                    }\n" +
-                "                }\n" +
+                "                },\n" +
+                "                \"__hh\": {}\n" +
                 "            }";
         final BsonDocument bsonEvent = BsonDocument.parse(journalEntry);
+        final Tagged tagged = new Tagged(bsonEvent, Set.of());
 
-        assertThat(underTest.toJournal(thingCreated)).isEqualTo(bsonEvent);
+        assertThat(underTest.toJournal(thingCreated)).isEqualTo(tagged);
     }
 
     @Test

@@ -34,6 +34,12 @@ public final class FeatureToggle {
     public static final String WOT_INTEGRATION_ENABLED = "ditto.devops.feature.wot-integration-enabled";
 
     /**
+     * System property name of the property defining whether the historical API access is enabled.
+     * @since 3.2.0
+     */
+    public static final String HISTORICAL_APIS_ENABLED = "ditto.devops.feature.historical-apis-enabled";
+
+    /**
      * Resolves the system property {@value MERGE_THINGS_ENABLED}.
      */
     private static final boolean IS_MERGE_THINGS_ENABLED = resolveProperty(MERGE_THINGS_ENABLED);
@@ -42,6 +48,11 @@ public final class FeatureToggle {
      * Resolves the system property {@value WOT_INTEGRATION_ENABLED}.
      */
     private static final boolean IS_WOT_INTEGRATION_ENABLED = resolveProperty(WOT_INTEGRATION_ENABLED);
+
+    /**
+     * Resolves the system property {@value HISTORICAL_APIS_ENABLED}.
+     */
+    private static final boolean IS_HISTORICAL_APIS_ENABLED = resolveProperty(HISTORICAL_APIS_ENABLED);
 
     private static boolean resolveProperty(final String propertyName) {
         final String propertyValue = System.getProperty(propertyName, Boolean.TRUE.toString());
@@ -100,5 +111,36 @@ public final class FeatureToggle {
      */
     public static boolean isWotIntegrationFeatureEnabled() {
         return IS_WOT_INTEGRATION_ENABLED;
+    }
+
+    /**
+     * Checks if the historical API access feature is enabled based on the system property {@value HISTORICAL_APIS_ENABLED}.
+     *
+     * @param signal the name of the signal that was supposed to be processed
+     * @param dittoHeaders headers used to build exception
+     * @return the unmodified headers parameters
+     * @throws UnsupportedSignalException if the system property
+     * {@value HISTORICAL_APIS_ENABLED} resolves to {@code false}
+     * @since 3.2.0
+     */
+    public static DittoHeaders checkHistoricalApiAccessFeatureEnabled(final String signal, final DittoHeaders dittoHeaders) {
+        if (!isHistoricalApiAccessFeatureEnabled()) {
+            throw UnsupportedSignalException
+                    .newBuilder(signal)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        return dittoHeaders;
+    }
+
+    /**
+     * Returns whether the historical API access feature is enabled based on the system property
+     * {@value HISTORICAL_APIS_ENABLED}.
+     *
+     * @return whether the historical API access feature is enabled or not.
+     * @since 3.2.0
+     */
+    public static boolean isHistoricalApiAccessFeatureEnabled() {
+        return IS_HISTORICAL_APIS_ENABLED;
     }
 }

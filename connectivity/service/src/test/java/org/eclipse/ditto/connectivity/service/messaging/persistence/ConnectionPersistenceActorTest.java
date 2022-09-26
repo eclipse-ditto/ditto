@@ -82,6 +82,7 @@ import org.eclipse.ditto.connectivity.service.util.ConnectionPubSub;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
 import org.eclipse.ditto.internal.utils.akka.controlflow.WithSender;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.test.Retry;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
@@ -91,6 +92,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
@@ -248,6 +250,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
         final var connectionActorProps = Props.create(ConnectionPersistenceActor.class,
                 () -> new ConnectionPersistenceActor(connectionId,
+                        Mockito.mock(MongoReadJournal.class),
                         commandForwarderActor,
                         pubSubMediatorProbe.ref(),
                         Trilean.TRUE,
@@ -893,14 +896,16 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     @Test
     public void exceptionDuringClientActorPropsCreation() {
 
-        final var connectionActorProps = ConnectionPersistenceActor.props(
-                TestConstants.createRandomConnectionId(), commandForwarderActor, pubSubMediatorProbe.ref(),
-                ConfigFactory.empty()
-        );
-
         final var testProbe = actorSystemResource1.newTestProbe();
         final var supervisor = actorSystemResource1.newTestProbe();
-        final var connectionActorRef = supervisor.childActorOf(connectionActorProps);
+
+        final var connectionActorProps = ConnectionPersistenceActor.props(
+                TestConstants.createRandomConnectionId(),
+                Mockito.mock(MongoReadJournal.class),
+                commandForwarderActor,
+                pubSubMediatorProbe.ref(),
+                ConfigFactory.empty());
+        final var connectionActorRef = supervisor.childActorOf(connectionActorProps, "connection");
 
         // create connection
         final CreateConnection createConnection = createConnection();
@@ -921,6 +926,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     @Test
     public void exceptionDueToCustomValidator() {
         final var connectionActorProps = ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
+                Mockito.mock(MongoReadJournal.class),
                 commandForwarderActor,
                 pubSubMediatorProbe.ref(),
                 ConfigFactory.empty());
@@ -1155,6 +1161,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var testProbe = actorSystemResource1.newTestProbe();
         final var connectionActorProps = Props.create(ConnectionPersistenceActor.class,
                 () -> new ConnectionPersistenceActor(connectionId,
+                        Mockito.mock(MongoReadJournal.class),
                         commandForwarderActor,
                         pubSubMediatorProbe.ref(),
                         Trilean.TRUE,
@@ -1217,6 +1224,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 Props.create(
                         ConnectionPersistenceActor.class,
                         () -> new ConnectionPersistenceActor(connectionId,
+                                Mockito.mock(MongoReadJournal.class),
                                 commandForwarderActor,
                                 pubSubMediatorProbe.ref(),
                                 Trilean.FALSE,
@@ -1244,6 +1252,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 Props.create(
                         ConnectionPersistenceActor.class,
                         () -> new ConnectionPersistenceActor(connectionId,
+                                Mockito.mock(MongoReadJournal.class),
                                 commandForwarderActor,
                                 pubSubMediatorProbe.ref(),
                                 Trilean.FALSE,

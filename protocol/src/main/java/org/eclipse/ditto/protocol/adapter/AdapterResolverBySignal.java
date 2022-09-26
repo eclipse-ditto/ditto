@@ -23,7 +23,9 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.streaming.StreamingSubscriptionCommand;
 import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionEvent;
 import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
@@ -33,6 +35,7 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyComm
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommand;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
+import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.UnknownChannelException;
 import org.eclipse.ditto.protocol.UnknownSignalException;
@@ -61,16 +64,22 @@ final class AdapterResolverBySignal {
     private final PolicyCommandAdapterProvider policiesAdapters;
     private final ConnectivityCommandAdapterProvider connectivityAdapters;
     private final AcknowledgementAdapterProvider acknowledgementAdapters;
+    private final StreamingSubscriptionCommandAdapter streamingSubscriptionCommandAdapter;
+    private final StreamingSubscriptionEventAdapter streamingSubscriptionEventAdapter;
 
     AdapterResolverBySignal(final ThingCommandAdapterProvider thingsAdapters,
             final PolicyCommandAdapterProvider policiesAdapters,
             final ConnectivityCommandAdapterProvider connectivityAdapters,
-            final AcknowledgementAdapterProvider acknowledgementAdapters) {
+            final AcknowledgementAdapterProvider acknowledgementAdapters,
+            final StreamingSubscriptionCommandAdapter streamingSubscriptionCommandAdapter,
+            final StreamingSubscriptionEventAdapter streamingSubscriptionEventAdapter) {
 
         this.thingsAdapters = thingsAdapters;
         this.policiesAdapters = policiesAdapters;
         this.connectivityAdapters = connectivityAdapters;
         this.acknowledgementAdapters = acknowledgementAdapters;
+        this.streamingSubscriptionCommandAdapter = streamingSubscriptionCommandAdapter;
+        this.streamingSubscriptionEventAdapter = streamingSubscriptionEventAdapter;
     }
 
     @SuppressWarnings("unchecked")
@@ -110,9 +119,18 @@ final class AdapterResolverBySignal {
             validateChannel(channel, event, LIVE, TWIN);
             return (Adapter<T>) thingsAdapters.getEventAdapter();
         }
+        if (event instanceof PolicyEvent) {
+            validateChannel(channel, event, NONE);
+            return (Adapter<T>) policiesAdapters.getEventAdapter();
+        }
+
         if (event instanceof SubscriptionEvent) {
             validateNotLive(event);
             return (Adapter<T>) thingsAdapters.getSubscriptionEventAdapter();
+        }
+        if (event instanceof StreamingSubscriptionEvent) {
+            validateNotLive(event);
+            return (Adapter<T>) streamingSubscriptionEventAdapter;
         }
 
         throw UnknownSignalException.newBuilder(event.getName())
@@ -211,6 +229,10 @@ final class AdapterResolverBySignal {
         if (command instanceof ThingSearchCommand) {
             validateNotLive(command);
             return (Adapter<T>) thingsAdapters.getSearchCommandAdapter();
+        }
+        if (command instanceof StreamingSubscriptionCommand) {
+            validateNotLive(command);
+            return (Adapter<T>) streamingSubscriptionCommandAdapter;
         }
 
         if (command instanceof PolicyModifyCommand) {

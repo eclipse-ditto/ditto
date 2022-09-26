@@ -17,6 +17,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEm
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
@@ -51,9 +52,10 @@ final class DefaultThingPersistenceActorPropsFactory implements ThingPersistence
     }
 
     @Override
-    public Props props(final ThingId thingId, final DistributedPub<ThingEvent<?>> distributedPub,
+    public Props props(final ThingId thingId, final MongoReadJournal mongoReadJournal,
+            final DistributedPub<ThingEvent<?>> distributedPub,
             @Nullable final ActorRef searchShardRegionProxy) {
         argumentNotEmpty(thingId);
-        return ThingPersistenceActor.props(thingId, distributedPub, searchShardRegionProxy);
+        return ThingPersistenceActor.props(thingId, mongoReadJournal, distributedPub, searchShardRegionProxy);
     }
 }

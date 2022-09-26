@@ -34,6 +34,7 @@ import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
 import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.persistentactors.TargetActorWithMessage;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
@@ -102,9 +103,10 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             @Nullable final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory,
             @Nullable final ActorRef thingPersistenceActorRef,
             @Nullable final BlockedNamespaces blockedNamespaces,
-            final PolicyEnforcerProvider policyEnforcerProvider) {
+            final PolicyEnforcerProvider policyEnforcerProvider,
+            final MongoReadJournal mongoReadJournal) {
 
-        super(blockedNamespaces, DEFAULT_LOCAL_ASK_TIMEOUT);
+        super(blockedNamespaces, mongoReadJournal, DEFAULT_LOCAL_ASK_TIMEOUT);
 
         this.policyEnforcerProvider = policyEnforcerProvider;
         this.pubSubMediator = pubSubMediator;
@@ -174,6 +176,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
      * @param propsFactory factory for creating Props to be used for creating
      * @param blockedNamespaces the blocked namespaces functionality to retrieve/subscribe for blocked namespaces.
      * @param policyEnforcerProvider used to load the policy enforcer.
+     * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the thing.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef pubSubMediator,
@@ -181,11 +184,12 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final LiveSignalPub liveSignalPub,
             final ThingPersistenceActorPropsFactory propsFactory,
             @Nullable final BlockedNamespaces blockedNamespaces,
-            final PolicyEnforcerProvider policyEnforcerProvider) {
+            final PolicyEnforcerProvider policyEnforcerProvider,
+            final MongoReadJournal mongoReadJournal) {
 
         return Props.create(ThingSupervisorActor.class, pubSubMediator, null,
                 distributedPubThingEventsForTwin, liveSignalPub, propsFactory, null, blockedNamespaces,
-                policyEnforcerProvider);
+                policyEnforcerProvider, mongoReadJournal);
     }
 
     /**
@@ -197,11 +201,12 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final LiveSignalPub liveSignalPub,
             final ThingPersistenceActorPropsFactory propsFactory,
             @Nullable final BlockedNamespaces blockedNamespaces,
-            final PolicyEnforcerProvider policyEnforcerProvider) {
+            final PolicyEnforcerProvider policyEnforcerProvider,
+            final MongoReadJournal mongoReadJournal) {
 
         return Props.create(ThingSupervisorActor.class, pubSubMediator, policiesShardRegion,
                 distributedPubThingEventsForTwin, liveSignalPub, propsFactory, null, blockedNamespaces,
-                policyEnforcerProvider);
+                policyEnforcerProvider, mongoReadJournal);
     }
 
     /**
@@ -213,11 +218,12 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final LiveSignalPub liveSignalPub,
             final ActorRef thingsPersistenceActor,
             @Nullable final BlockedNamespaces blockedNamespaces,
-            final PolicyEnforcerProvider policyEnforcerProvider) {
+            final PolicyEnforcerProvider policyEnforcerProvider,
+            final MongoReadJournal mongoReadJournal) {
 
         return Props.create(ThingSupervisorActor.class, pubSubMediator, policiesShardRegion,
                 distributedPubThingEventsForTwin, liveSignalPub, null, thingsPersistenceActor, blockedNamespaces,
-                policyEnforcerProvider);
+                policyEnforcerProvider, mongoReadJournal);
     }
 
     @Override
@@ -317,7 +323,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     @Override
     protected Props getPersistenceActorProps(final ThingId entityId) {
         assert thingPersistenceActorPropsFactory != null;
-        return thingPersistenceActorPropsFactory.props(entityId, distributedPubThingEventsForTwin,
+        return thingPersistenceActorPropsFactory.props(entityId, mongoReadJournal, distributedPubThingEventsForTwin,
                 searchShardRegionProxy);
     }
 

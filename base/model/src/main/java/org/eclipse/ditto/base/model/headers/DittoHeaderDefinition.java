@@ -349,7 +349,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 3.0.0
      */
-    DITTO_METADATA("ditto-metadata", JsonObject.class, false, true, HeaderValueValidators.getNoOpValidator()),
+    DITTO_METADATA("ditto-metadata", JsonObject.class, false, true, HeaderValueValidators.getJsonObjectValidator()),
 
     /**
      * Header definition for allowing the policy lockout (i.e. a subject can create a policy without having WRITE
@@ -484,7 +484,43 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
             Boolean.class,
             false,
             true,
-            HeaderValueValidators.getBooleanValidator());
+            HeaderValueValidators.getBooleanValidator()),
+
+    /**
+     * Header containing a specific historical revision to retrieve when retrieving a persisted entity
+     * (thing/policy/connection).
+     *
+     * @since 3.2.0
+     */
+    AT_HISTORICAL_REVISION("at-historical-revision",
+            Long.class,
+            true,
+            false,
+            HeaderValueValidators.getLongValidator()),
+
+    /**
+     * Header containing a specific historical timestamp to retrieve when retrieving a persisted entity
+     * (thing/policy/connection).
+     *
+     * @since 3.2.0
+     */
+    AT_HISTORICAL_TIMESTAMP("at-historical-timestamp",
+            String.class,
+            true,
+            false,
+            HeaderValueValidators.getNoOpValidator()),
+
+    /**
+     * Header containing retrieved historical headers to be returned for e.g. a historical retrieve command.
+     * Useful for audit-log information, e.g. which "originator" did a change to a thing/policy/connection.
+     *
+     * @since 3.2.0
+     */
+    HISTORICAL_HEADERS("historical-headers",
+            JsonObject.class,
+            false,
+            true,
+            HeaderValueValidators.getJsonObjectValidator());
 
     /**
      * Map to speed up lookup of header definition by key.

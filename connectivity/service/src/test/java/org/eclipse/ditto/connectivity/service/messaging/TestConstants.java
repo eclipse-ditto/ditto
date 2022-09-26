@@ -110,6 +110,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapt
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
 import org.eclipse.ditto.internal.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
@@ -924,7 +925,8 @@ public final class TestConstants {
         final var enforcerActorPropsFactory =
                 ConnectionEnforcerActorPropsFactory.get(actorSystem, dittoExtensionsConfig);
         final Props props =
-                ConnectionSupervisorActor.props(commandForwarderActor, pubSubMediator, enforcerActorPropsFactory);
+                ConnectionSupervisorActor.props(commandForwarderActor, pubSubMediator, enforcerActorPropsFactory,
+                        Mockito.mock(MongoReadJournal.class));
 
         final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId.toString());
 

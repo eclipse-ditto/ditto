@@ -23,7 +23,7 @@ import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import com.typesafe.config.Config;
 
 /**
- * This class implements the config for the handling of snapshots of policy entities.
+ * This class implements the config for the handling of snapshots of entities.
  */
 @Immutable
 public final class DefaultSnapshotConfig implements SnapshotConfig {

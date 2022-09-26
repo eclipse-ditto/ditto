@@ -38,7 +38,7 @@ import org.eclipse.ditto.policies.model.signals.events.SubjectsModified;
 import org.eclipse.ditto.policies.model.signals.events.SubjectsModifiedPartially;
 
 /**
- * Holds all {@link org.eclipse.ditto.policies.model.signals.events.PolicyEvent} strategies.
+ * Holds all {@link PolicyEvent} strategies.
  */
 public final class PolicyEventStrategies extends AbstractEventStrategies<PolicyEvent<?>, Policy> {
 

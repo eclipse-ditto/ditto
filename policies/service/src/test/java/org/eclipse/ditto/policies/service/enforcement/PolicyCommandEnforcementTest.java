@@ -42,6 +42,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonObject;
@@ -785,7 +786,7 @@ public final class PolicyCommandEnforcementTest {
 
         private MockPolicyPersistenceSupervisor(final ActorRef pubSubMediator, final ActorRef policyPersistenceActor,
                 final PolicyEnforcerProvider policyEnforcerProvider) {
-            super(policyPersistenceActor, null, null, Duration.ofSeconds(5));
+            super(policyPersistenceActor, null, null, Mockito.mock(MongoReadJournal.class), Duration.ofSeconds(5));
             this.pubSubMediator = pubSubMediator;
             this.policyEnforcerProvider = policyEnforcerProvider;
         }

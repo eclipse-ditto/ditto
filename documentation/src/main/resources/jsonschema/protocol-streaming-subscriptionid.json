@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "description": "",
+  "title": "",
+  "properties": {
+    "subscriptionId": {
+      "type": "string",
+      "description": "Identifier of the streaming subscription delivered by a previous \"created\" event."
+    }
+  },
+  "required": ["subscriptionId"]
+}

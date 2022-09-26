@@ -24,6 +24,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
@@ -127,7 +128,8 @@ abstract class AbstractThingEnforcementTest {
                 new TestSetup.DummyLiveSignalPub(pubSubMediatorProbe.ref()),
                 thingPersistenceActorProbe.ref(),
                 null,
-                policyEnforcerProvider
+                policyEnforcerProvider,
+                Mockito.mock(MongoReadJournal.class)
         ).withDispatcher("akka.actor.default-dispatcher"), system.guardian(),
                 URLEncoder.encode(THING_ID.toString(), Charset.defaultCharset()));
         // Actors using "stash()" require the above dispatcher to be configured, otherwise stash() and unstashAll() won't

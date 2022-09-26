@@ -14,6 +14,7 @@ package org.eclipse.ditto.protocol.mappingstrategies;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collection;
 import java.util.Map;
 
 import org.eclipse.ditto.base.model.json.Jsonifiable;
@@ -36,6 +37,8 @@ import org.eclipse.ditto.policies.model.Resources;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.Subjects;
+import org.eclipse.ditto.policies.model.signals.events.SubjectsDeletedPartially;
+import org.eclipse.ditto.policies.model.signals.events.SubjectsModifiedPartially;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
 import org.eclipse.ditto.protocol.MessagePath;
@@ -65,6 +68,11 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
      */
     protected static PolicyId policyIdFromTopicPath(final TopicPath topicPath) {
         checkNotNull(topicPath, "topicPath");
+        return PolicyId.of(topicPath.getNamespace(), topicPath.getEntityName());
+    }
+
+    protected static PolicyId policyIdFrom(final Adaptable adaptable) {
+        final TopicPath topicPath = adaptable.getTopicPath();
         return PolicyId.of(topicPath.getNamespace(), topicPath.getEntityName());
     }
 
@@ -246,6 +254,32 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
     protected static Subjects subjectsFrom(final Adaptable adaptable) {
         final JsonObject value = getValueFromPayload(adaptable);
         return PoliciesModelFactory.newSubjects(value);
+    }
+
+    /**
+     * Subjects that are modified indexed by their policy entry labels.
+     *
+     * @param adaptable the adaptable
+     * @return the subjects
+     */
+    protected static Map<Label, Collection<Subject>> activatedSubjectsFrom(final Adaptable adaptable) {
+        final JsonObject value = getValueFromPayload(adaptable);
+        return SubjectsModifiedPartially.modifiedSubjectsFromJson(
+                value.getValueOrThrow(SubjectsModifiedPartially.JSON_MODIFIED_SUBJECTS)
+        );
+    }
+
+    /**
+     * Subjects that are modified indexed by their policy entry labels.
+     *
+     * @param adaptable the adaptable
+     * @return the subjects
+     */
+    protected static Map<Label, Collection<SubjectId>> deletedSubjectIdsFrom(final Adaptable adaptable) {
+        final JsonObject value = getValueFromPayload(adaptable);
+        return SubjectsDeletedPartially.deletedSubjectsFromJson(
+                value.getValueOrThrow(SubjectsDeletedPartially.JSON_DELETED_SUBJECT_IDS)
+        );
     }
 
     /**

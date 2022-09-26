@@ -28,6 +28,7 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsubthings.LiveSignalPub;
@@ -226,11 +227,13 @@ public abstract class PersistenceActorTestBase {
 
     protected ActorRef createPersistenceActorWithPubSubFor(final ThingId thingId) {
 
-        return actorSystem.actorOf(getPropsOfThingPersistenceActor(thingId, getDistributedPub()));
+        return actorSystem.actorOf(getPropsOfThingPersistenceActor(thingId, Mockito.mock(MongoReadJournal.class),
+                getDistributedPub()));
     }
 
-    private Props getPropsOfThingPersistenceActor(final ThingId thingId, final DistributedPub<ThingEvent<?>> pub) {
-        return ThingPersistenceActor.props(thingId, pub, null);
+    private Props getPropsOfThingPersistenceActor(final ThingId thingId, final MongoReadJournal mongoReadJournal,
+            final DistributedPub<ThingEvent<?>> pub) {
+        return ThingPersistenceActor.props(thingId, mongoReadJournal, pub, null);
     }
 
     protected ActorRef createSupervisorActorFor(final ThingId thingId) {
@@ -258,9 +261,11 @@ public abstract class PersistenceActorTestBase {
                             }
                         },
                         liveSignalPub,
-                        (thingId1, pub, searchShardRegionProxy) -> getPropsOfThingPersistenceActor(thingId1, pub),
+                        (thingId1, mongoReadJournal, pub, searchShardRegionProxy) -> getPropsOfThingPersistenceActor(
+                                thingId1, mongoReadJournal, pub),
                         null,
-                        policyEnforcerProvider);
+                        policyEnforcerProvider,
+                        Mockito.mock(MongoReadJournal.class));
 
         return actorSystem.actorOf(props, thingId.toString());
     }

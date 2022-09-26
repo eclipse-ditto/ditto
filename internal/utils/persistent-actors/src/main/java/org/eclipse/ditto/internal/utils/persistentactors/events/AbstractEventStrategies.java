@@ -20,7 +20,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  * @param <S> the type of the entity
  */
 @Immutable
-public abstract class AbstractEventStrategies<E extends Event<?>, S> implements EventStrategy<E, S> {
+public abstract class AbstractEventStrategies<E extends EventsourcedEvent<?>, S> implements EventStrategy<E, S> {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
 

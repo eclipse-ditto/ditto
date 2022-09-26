@@ -14,8 +14,9 @@ package org.eclipse.ditto.things.service.persistence.actors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 import akka.actor.ActorRef;
@@ -31,10 +32,11 @@ public interface ThingPersistenceActorPropsFactory {
      * Create Props of thing-persistence-actor from thing ID and distributed-pub access for event publishing.
      *
      * @param thingId the thing ID.
+     * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the thing.
      * @param distributedPub the distributed-pub access.
      * @param searchShardRegionProxy the proxy of the shard region of search updaters.
      * @return Props of the thing-persistence-actor.
      */
-    Props props(ThingId thingId, DistributedPub<ThingEvent<?>> distributedPub,
-            @Nullable final ActorRef searchShardRegionProxy);
+    Props props(ThingId thingId, MongoReadJournal mongoReadJournal, DistributedPub<ThingEvent<?>> distributedPub,
+            @Nullable ActorRef searchShardRegionProxy);
 }

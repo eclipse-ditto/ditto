@@ -12,14 +12,15 @@
  */
 package org.eclipse.ditto.policies.model.signals.commands;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.WithPolicyId;
 
 /**
  * Aggregates all possible responses relating to a given {@link PolicyCommand}.
@@ -27,7 +28,7 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
  * @param <T> the type of the implementing class.
  */
 public interface PolicyCommandResponse<T extends PolicyCommandResponse<T>> extends CommandResponse<T>,
-        SignalWithEntityId<T> {
+        WithPolicyId, SignalWithEntityId<T> {
 
     /**
      * Type Prefix of Policy command responses.

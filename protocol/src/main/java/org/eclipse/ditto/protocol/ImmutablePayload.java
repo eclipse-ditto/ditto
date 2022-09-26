@@ -244,7 +244,7 @@ final class ImmutablePayload implements Payload {
         }
 
         @Override
-        public ImmutablePayloadBuilder withValue(final JsonValue value) {
+        public ImmutablePayloadBuilder withValue(@Nullable final JsonValue value) {
             this.value = value;
             return this;
         }
@@ -280,14 +280,14 @@ final class ImmutablePayload implements Payload {
         }
 
         @Override
-        public ImmutablePayloadBuilder withFields(final JsonFieldSelector fields) {
+        public ImmutablePayloadBuilder withFields(@Nullable final JsonFieldSelector fields) {
             this.fields = fields;
             return this;
         }
 
         @Override
-        public ImmutablePayloadBuilder withFields(final String fields) {
-            this.fields = JsonFieldSelector.newInstance(fields);
+        public ImmutablePayloadBuilder withFields(@Nullable final String fields) {
+            this.fields = null != fields ? JsonFieldSelector.newInstance(fields) : null;
             return this;
         }
 

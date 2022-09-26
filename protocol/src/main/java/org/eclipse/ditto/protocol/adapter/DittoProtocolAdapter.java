@@ -43,6 +43,9 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     private final PolicyCommandAdapterProvider policiesAdapters;
     private final ConnectivityCommandAdapterProvider connectivityAdapters;
     private final AcknowledgementAdapterProvider acknowledgementAdapters;
+
+    private final StreamingSubscriptionCommandAdapter streamingSubscriptionCommandAdapter;
+    private final StreamingSubscriptionEventAdapter streamingSubscriptionEventAdapter;
     private final AdapterResolver adapterResolver;
 
     private DittoProtocolAdapter(final ErrorRegistry<DittoRuntimeException> errorRegistry,
@@ -52,8 +55,10 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
         this.policiesAdapters = new DefaultPolicyCommandAdapterProvider(errorRegistry, headerTranslator);
         this.connectivityAdapters = new DefaultConnectivityCommandAdapterProvider(headerTranslator);
         this.acknowledgementAdapters = new DefaultAcknowledgementsAdapterProvider(errorRegistry, headerTranslator);
+        streamingSubscriptionCommandAdapter = StreamingSubscriptionCommandAdapter.of(headerTranslator);
+        streamingSubscriptionEventAdapter = StreamingSubscriptionEventAdapter.of(headerTranslator, errorRegistry);
         this.adapterResolver = new DefaultAdapterResolver(thingsAdapters, policiesAdapters, connectivityAdapters,
-                acknowledgementAdapters);
+                acknowledgementAdapters, streamingSubscriptionCommandAdapter, streamingSubscriptionEventAdapter);
     }
 
     private DittoProtocolAdapter(final HeaderTranslator headerTranslator,
@@ -61,12 +66,18 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
             final PolicyCommandAdapterProvider policiesAdapters,
             final ConnectivityCommandAdapterProvider connectivityAdapters,
             final AcknowledgementAdapterProvider acknowledgementAdapters,
+            final StreamingSubscriptionCommandAdapter streamingSubscriptionCommandAdapter,
+            final StreamingSubscriptionEventAdapter streamingSubscriptionEventAdapter,
             final AdapterResolver adapterResolver) {
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
         this.thingsAdapters = checkNotNull(thingsAdapters, "thingsAdapters");
         this.policiesAdapters = checkNotNull(policiesAdapters, "policiesAdapters");
         this.connectivityAdapters = checkNotNull(connectivityAdapters, "connectivityAdapters");
         this.acknowledgementAdapters = checkNotNull(acknowledgementAdapters, "acknowledgementAdapters");
+        this.streamingSubscriptionCommandAdapter = checkNotNull(streamingSubscriptionCommandAdapter,
+                "streamingSubscriptionCommandAdapter");
+        this.streamingSubscriptionEventAdapter = checkNotNull(streamingSubscriptionEventAdapter,
+                "streamingSubscriptionEventAdapter");
         this.adapterResolver = checkNotNull(adapterResolver, "adapterResolver");
     }
 
@@ -106,6 +117,8 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
      * @param policyCommandAdapterProvider command adapters for policy commands
      * @param connectivityAdapters adapters for connectivity commands.
      * @param acknowledgementAdapters adapters for acknowledgements.
+     * @param streamingSubscriptionCommandAdapter adapters for streaming subscription commands.
+     * @param streamingSubscriptionEventAdapter adapters for streaming subscription events.
      * @param adapterResolver resolves the correct adapter from a command
      * @return new instance of {@link DittoProtocolAdapter}
      */
@@ -114,9 +127,12 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
             final PolicyCommandAdapterProvider policyCommandAdapterProvider,
             final ConnectivityCommandAdapterProvider connectivityAdapters,
             final AcknowledgementAdapterProvider acknowledgementAdapters,
+            final StreamingSubscriptionCommandAdapter streamingSubscriptionCommandAdapter,
+            final StreamingSubscriptionEventAdapter streamingSubscriptionEventAdapter,
             final AdapterResolver adapterResolver) {
         return new DittoProtocolAdapter(headerTranslator, thingCommandAdapterProvider, policyCommandAdapterProvider,
-                connectivityAdapters, acknowledgementAdapters, adapterResolver
+                connectivityAdapters, acknowledgementAdapters,
+                streamingSubscriptionCommandAdapter, streamingSubscriptionEventAdapter, adapterResolver
         );
     }
 

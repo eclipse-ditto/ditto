@@ -29,6 +29,7 @@ final class DefaultCleanupConfig implements CleanupConfig {
     static final String CONFIG_PATH = "cleanup";
 
     private final boolean enabled;
+    private final Duration historyRetentionDuration;
     private final Duration quietPeriod;
     private final Duration interval;
     private final Duration timerThreshold;
@@ -38,6 +39,7 @@ final class DefaultCleanupConfig implements CleanupConfig {
     private final boolean deleteFinalDeletedSnapshot;
 
     DefaultCleanupConfig(final boolean enabled,
+            final Duration historyRetentionDuration,
             final Duration quietPeriod,
             final Duration interval,
             final Duration timerThreshold,
@@ -46,6 +48,7 @@ final class DefaultCleanupConfig implements CleanupConfig {
             final int writesPerCredit,
             final boolean deleteFinalDeletedSnapshot) {
         this.enabled = enabled;
+        this.historyRetentionDuration = historyRetentionDuration;
         this.quietPeriod = quietPeriod;
         this.interval = interval;
         this.timerThreshold = timerThreshold;
@@ -57,6 +60,7 @@ final class DefaultCleanupConfig implements CleanupConfig {
 
     DefaultCleanupConfig(final ScopedConfig conf) {
         this.enabled = conf.getBoolean(ConfigValue.ENABLED.getConfigPath());
+        this.historyRetentionDuration = conf.getNonNegativeDurationOrThrow(ConfigValue.HISTORY_RETENTION_DURATION);
         this.quietPeriod = conf.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.QUIET_PERIOD);
         this.interval = conf.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.INTERVAL);
         this.timerThreshold = conf.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.TIMER_THRESHOLD);
@@ -70,6 +74,7 @@ final class DefaultCleanupConfig implements CleanupConfig {
     public Config render() {
         final Map<String, Object> configMap = Map.of(
                 ConfigValue.ENABLED.getConfigPath(), enabled,
+                ConfigValue.HISTORY_RETENTION_DURATION.getConfigPath(), historyRetentionDuration,
                 ConfigValue.QUIET_PERIOD.getConfigPath(), quietPeriod,
                 ConfigValue.INTERVAL.getConfigPath(), interval,
                 ConfigValue.TIMER_THRESHOLD.getConfigPath(), timerThreshold,
@@ -89,6 +94,11 @@ final class DefaultCleanupConfig implements CleanupConfig {
     @Override
     public boolean isEnabled() {
         return enabled;
+    }
+
+    @Override
+    public Duration getHistoryRetentionDuration() {
+        return historyRetentionDuration;
     }
 
     @Override
@@ -128,9 +138,9 @@ final class DefaultCleanupConfig implements CleanupConfig {
 
     @Override
     public boolean equals(final Object o) {
-        if (o instanceof DefaultCleanupConfig) {
-            final DefaultCleanupConfig that = (DefaultCleanupConfig) o;
+        if (o instanceof DefaultCleanupConfig that) {
             return enabled == that.enabled &&
+                    Objects.equals(historyRetentionDuration, that.historyRetentionDuration) &&
                     Objects.equals(quietPeriod, that.quietPeriod) &&
                     Objects.equals(interval, that.interval) &&
                     Objects.equals(timerThreshold, that.timerThreshold) &&
@@ -145,21 +155,22 @@ final class DefaultCleanupConfig implements CleanupConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(enabled, quietPeriod, interval, timerThreshold, creditsPerBatch, readsPerQuery,
-                writesPerCredit, deleteFinalDeletedSnapshot);
+        return Objects.hash(enabled, historyRetentionDuration, quietPeriod, interval, timerThreshold, creditsPerBatch,
+                readsPerQuery, writesPerCredit, deleteFinalDeletedSnapshot);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() +
-                "[enabled=" + enabled +
-                ",quietPeriod=" + quietPeriod +
-                ",interval=" + interval +
-                ",timerThreshold=" + timerThreshold +
-                ",creditPerBatch=" + creditsPerBatch +
-                ",readsPerQuery=" + readsPerQuery +
-                ",writesPerCredit=" + writesPerCredit +
-                ",deleteFinalDeletedSnapshot=" + deleteFinalDeletedSnapshot +
+        return getClass().getSimpleName() + "[" +
+                "enabled=" + enabled +
+                ", minAgeFromNow=" + historyRetentionDuration +
+                ", quietPeriod=" + quietPeriod +
+                ", interval=" + interval +
+                ", timerThreshold=" + timerThreshold +
+                ", creditPerBatch=" + creditsPerBatch +
+                ", readsPerQuery=" + readsPerQuery +
+                ", writesPerCredit=" + writesPerCredit +
+                ", deleteFinalDeletedSnapshot=" + deleteFinalDeletedSnapshot +
                 "]";
     }
 

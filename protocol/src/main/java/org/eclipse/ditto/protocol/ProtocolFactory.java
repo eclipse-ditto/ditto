@@ -19,9 +19,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.common.DittoConstants;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
+import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -122,6 +124,38 @@ public final class ProtocolFactory {
             return result.things();
         } else if (entityId.getEntityType().equals(PolicyConstants.ENTITY_TYPE)) {
             return result.policies();
+        }
+        return result;
+    }
+
+    /**
+     * Returns a new {@code TopicPathBuilder} for the specified {@link EntityId}.
+     * The namespace and name part of the {@code TopicPath} will pe parsed from the entity ID and set in the builder.
+     *
+     * @param entityId the ID.
+     * @return the builder.
+     * @throws NullPointerException if {@code entityId} is {@code null}.
+     * @throws org.eclipse.ditto.things.model.ThingIdInvalidException if {@code entityId} is not in the expected
+     * format.
+     * @since 3.2.0
+     */
+    public static TopicPathBuilder newTopicPathBuilder(final EntityId entityId) {
+        checkNotNull(entityId, "entityId");
+        final TopicPathBuilder result;
+        if (entityId instanceof NamespacedEntityId) {
+            final String namespace = ((NamespacedEntityId) entityId).getNamespace();
+            final String name = ((NamespacedEntityId) entityId).getName();
+            result = ImmutableTopicPath.newBuilder(namespace, name);
+        } else {
+            result = ProtocolFactory.newTopicPathBuilderFromName(entityId.toString());
+        }
+
+        if (entityId.getEntityType().equals(ThingConstants.ENTITY_TYPE)) {
+            return result.things();
+        } else if (entityId.getEntityType().equals(PolicyConstants.ENTITY_TYPE)) {
+            return result.policies();
+        } else if (entityId.getEntityType().equals(ConnectivityConstants.ENTITY_TYPE)) {
+            return result.connections();
         }
         return result;
     }

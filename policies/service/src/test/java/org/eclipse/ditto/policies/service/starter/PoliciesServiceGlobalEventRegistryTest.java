@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.policies.service.starter;
 
+import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionComplete;
 import org.eclipse.ditto.internal.utils.persistentactors.EmptyEvent;
 import org.eclipse.ditto.internal.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.policies.model.signals.events.ResourceDeleted;
@@ -21,7 +22,8 @@ public final class PoliciesServiceGlobalEventRegistryTest extends GlobalEventReg
     public PoliciesServiceGlobalEventRegistryTest() {
         super(
                 ResourceDeleted.class,
-                EmptyEvent.class
+                EmptyEvent.class,
+                StreamingSubscriptionComplete.class
         );
     }
 

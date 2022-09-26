@@ -11,6 +11,7 @@ allowed-tags:
   - model
   - signal
   - http
+  - history
   - search
   - protocol
   - connectivity

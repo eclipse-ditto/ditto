@@ -116,6 +116,7 @@ public final class StreamingSessionActorHeaderInteractionTest {
     private final TestProbe eventResponsePublisherProbe = TestProbe.apply("eventAndResponsePublisher", actorSystem);
     private final TestProbe commandRouterProbe = TestProbe.apply("commandRouter", actorSystem);
     private final TestProbe subscriptionManagerProbe = TestProbe.apply("subscriptionManager", actorSystem);
+    private final TestProbe streamingSubscriptionManagerProbe = TestProbe.apply("streamingSubscriptionManager", actorSystem);
     private final DittoProtocolSub dittoProtocolSub = Mockito.mock(DittoProtocolSub.class);
 
     private final SourceQueueWithComplete<SessionedJsonifiable> sourceQueue;
@@ -198,7 +199,9 @@ public final class StreamingSessionActorHeaderInteractionTest {
                         null);
         final Props props = StreamingSessionActor.props(connect, dittoProtocolSub, commandRouterProbe.ref(),
                 DefaultStreamingConfig.of(ConfigFactory.empty()), HeaderTranslator.empty(),
-                Props.create(TestProbeForwarder.class, subscriptionManagerProbe), Mockito.mock(JwtValidator.class),
+                Props.create(TestProbeForwarder.class, subscriptionManagerProbe),
+                Props.create(TestProbeForwarder.class, streamingSubscriptionManagerProbe),
+                Mockito.mock(JwtValidator.class),
                 Mockito.mock(JwtAuthenticationResultProvider.class));
         final ActorRef createdActor = actorSystem.actorOf(props);
         createdActors.add(createdActor);

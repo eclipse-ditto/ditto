@@ -31,9 +31,9 @@ import akka.actor.Props;
 public final class ThingsPersistenceStreamingActorCreator {
 
     /**
-     * The name of the snapshot streaming actor.
+     * The name of the streaming actor.
      */
-    public static final String SNAPSHOT_STREAMING_ACTOR_NAME = THINGS_PERSISTENCE_STREAMING_ACTOR_NAME;
+    public static final String STREAMING_ACTOR_NAME = THINGS_PERSISTENCE_STREAMING_ACTOR_NAME;
 
     private static final Pattern PERSISTENCE_ID_PATTERN = Pattern.compile(ThingPersistenceActor.PERSISTENCE_ID_PREFIX);
 
@@ -42,16 +42,16 @@ public final class ThingsPersistenceStreamingActorCreator {
     }
 
     /**
-     * Create an actor that streams from the snapshot store.
+     * Create an actor that streams from the snapshot store and the event journal.
      *
      * @param actorCreator function to create a named actor with.
      * @return a reference of the created actor.
      */
-    public static ActorRef startSnapshotStreamingActor(final BiFunction<String, Props, ActorRef> actorCreator) {
+    public static ActorRef startPersistenceStreamingActor(final BiFunction<String, Props, ActorRef> actorCreator) {
         final var props = SnapshotStreamingActor.props(ThingsPersistenceStreamingActorCreator::pid2EntityId,
                 ThingsPersistenceStreamingActorCreator::entityId2Pid);
 
-        return actorCreator.apply(SNAPSHOT_STREAMING_ACTOR_NAME, props);
+        return actorCreator.apply(STREAMING_ACTOR_NAME, props);
     }
 
     private static ThingId pid2EntityId(final String pid) {

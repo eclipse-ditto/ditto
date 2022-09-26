@@ -13,16 +13,17 @@
 
 package org.eclipse.ditto.policies.service.persistence.serializer;
 
-import javax.annotation.Nullable;
-
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
+import org.eclipse.ditto.base.service.config.DittoServiceConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoEventAdapter;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoEventAdapter;
-import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
+import org.eclipse.ditto.policies.service.common.config.DefaultPolicyConfig;
 
 import akka.actor.ExtendedActorSystem;
 
@@ -36,8 +37,10 @@ public abstract class AbstractPolicyMongoEventAdapter extends AbstractMongoEvent
             JsonFactory.newJsonObjectFieldDefinition("policy/entries", FieldType.SPECIAL,
                     JsonSchemaVersion.V_2);
 
-    protected AbstractPolicyMongoEventAdapter(@Nullable final ExtendedActorSystem system) {
-        super(system, GlobalEventRegistry.getInstance());
+    protected AbstractPolicyMongoEventAdapter(final ExtendedActorSystem system) {
+        super(system, GlobalEventRegistry.getInstance(), DefaultPolicyConfig.of(
+                        DittoServiceConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()), "policies"))
+                .getEventConfig());
     }
 
 }

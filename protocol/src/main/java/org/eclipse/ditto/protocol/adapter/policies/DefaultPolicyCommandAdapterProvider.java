@@ -24,6 +24,7 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyComm
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommand;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
+import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.protocol.adapter.Adapter;
 import org.eclipse.ditto.protocol.adapter.provider.PolicyCommandAdapterProvider;
 
@@ -40,6 +41,7 @@ public final class DefaultPolicyCommandAdapterProvider implements PolicyCommandA
     private final PolicyModifyCommandResponseAdapter policyModifyCommandResponseAdapter;
     private final PolicyQueryCommandResponseAdapter policyQueryCommandResponseAdapter;
     private final PolicyAnnouncementAdapter policyAnnouncementAdapter;
+    private final PolicyEventAdapter policyEventAdapter;
 
     public DefaultPolicyCommandAdapterProvider(final ErrorRegistry<DittoRuntimeException> errorRegistry,
             final HeaderTranslator headerTranslator) {
@@ -49,6 +51,7 @@ public final class DefaultPolicyCommandAdapterProvider implements PolicyCommandA
         policyModifyCommandResponseAdapter = PolicyModifyCommandResponseAdapter.of(headerTranslator);
         policyQueryCommandResponseAdapter = PolicyQueryCommandResponseAdapter.of(headerTranslator);
         policyAnnouncementAdapter = PolicyAnnouncementAdapter.of(headerTranslator);
+        policyEventAdapter = PolicyEventAdapter.of(headerTranslator);
     }
 
     public Adapter<PolicyErrorResponse> getErrorResponseAdapter() {
@@ -76,6 +79,11 @@ public final class DefaultPolicyCommandAdapterProvider implements PolicyCommandA
     }
 
     @Override
+    public Adapter<PolicyEvent<?>> getEventAdapter() {
+        return policyEventAdapter;
+    }
+
+    @Override
     public List<Adapter<?>> getAdapters() {
         return Arrays.asList(
                 policyErrorResponseAdapter,
@@ -83,7 +91,8 @@ public final class DefaultPolicyCommandAdapterProvider implements PolicyCommandA
                 policyQueryCommandAdapter,
                 policyModifyCommandResponseAdapter,
                 policyQueryCommandResponseAdapter,
-                policyAnnouncementAdapter
+                policyAnnouncementAdapter,
+                policyEventAdapter
         );
     }
 }

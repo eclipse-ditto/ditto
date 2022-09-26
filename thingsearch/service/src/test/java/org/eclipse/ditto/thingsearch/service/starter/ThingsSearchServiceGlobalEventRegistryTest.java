@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.thingsearch.service.starter;
 
+import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionComplete;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionModified;
 import org.eclipse.ditto.internal.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.policies.model.signals.events.ResourceDeleted;
@@ -29,7 +30,8 @@ public final class ThingsSearchServiceGlobalEventRegistryTest extends GlobalEven
                 SubscriptionCreated.class,
                 ThingsOutOfSync.class,
                 ThingSnapshotTaken.class,
-                ConnectionModified.class
+                ConnectionModified.class,
+                StreamingSubscriptionComplete.class
         );
     }
 

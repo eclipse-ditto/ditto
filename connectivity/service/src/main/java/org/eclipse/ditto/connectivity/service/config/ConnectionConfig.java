@@ -20,15 +20,18 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.service.config.supervision.WithSupervisorConfig;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.EventConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithSnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.WithCleanupConfig;
 
 /**
  * Provides configuration settings for Connectivity service's connection behaviour.
  */
 @Immutable
-public interface ConnectionConfig extends WithSupervisorConfig, WithActivityCheckConfig, WithCleanupConfig {
+public interface ConnectionConfig extends WithSupervisorConfig, WithActivityCheckConfig, WithCleanupConfig,
+        WithSnapshotConfig {
 
     /**
      * Returns the amount of time for how long the connection actor waits for response from client actors.
@@ -74,6 +77,13 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
      * @return the config.
      */
     SnapshotConfig getSnapshotConfig();
+
+    /**
+     * Returns the config of the connection event journal behaviour.
+     *
+     * @return the config.
+     */
+    EventConfig getEventConfig();
 
     /**
      * Returns the maximum number of Targets within a connection.

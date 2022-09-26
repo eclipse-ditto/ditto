@@ -15,12 +15,12 @@ package org.eclipse.ditto.protocol.mapper;
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.protocol.CommandsTopicPathBuilder;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.TopicPathBuilder;
 import org.eclipse.ditto.protocol.UnknownCommandException;
 import org.eclipse.ditto.protocol.UnknownCommandResponseException;
-import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Base class of {@link SignalMapper}s for commands (e.g. query, modify commands).
@@ -45,7 +45,7 @@ abstract class AbstractCommandSignalMapper<T extends Signal<?>> extends Abstract
     abstract TopicPathBuilder getTopicPathBuilder(final T command);
 
     /**
-     * @return array of {@link org.eclipse.ditto.protocol.TopicPath.Action}s the implementation supports.
+     * @return array of {@link TopicPath.Action}s the implementation supports.
      */
     abstract TopicPath.Action[] getSupportedActions();
 

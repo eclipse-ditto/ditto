@@ -30,6 +30,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
@@ -48,6 +49,7 @@ final class ImmutableTopicPath implements TopicPath {
     private final Criterion criterion;
     @Nullable private final Action action;
     @Nullable private final SearchAction searchAction;
+    @Nullable private final StreamingAction streamingAction;
     @Nullable private final String subject;
 
     private ImmutableTopicPath(final Builder builder) {
@@ -58,6 +60,7 @@ final class ImmutableTopicPath implements TopicPath {
         criterion = builder.criterion;
         action = builder.action;
         searchAction = builder.searchAction;
+        streamingAction = builder.streamingAction;
         subject = builder.subject;
     }
 
@@ -140,6 +143,11 @@ final class ImmutableTopicPath implements TopicPath {
     }
 
     @Override
+    public Optional<StreamingAction> getStreamingAction() {
+        return Optional.ofNullable(streamingAction);
+    }
+
+    @Override
     public Optional<String> getSubject() {
         return Optional.ofNullable(subject);
     }
@@ -159,6 +167,7 @@ final class ImmutableTopicPath implements TopicPath {
                 .add(criterion.getName())
                 .add(getStringOrNull(action))
                 .add(getStringOrNull(searchAction))
+                .add(getStringOrNull(streamingAction))
                 .add(getStringOrNull(subject))
                 .build();
         return pathPartStream.filter(Objects::nonNull).collect(Collectors.joining(PATH_DELIMITER));
@@ -212,12 +221,14 @@ final class ImmutableTopicPath implements TopicPath {
                 criterion == that.criterion &&
                 Objects.equals(action, that.action) &&
                 Objects.equals(searchAction, that.searchAction) &&
+                Objects.equals(streamingAction, that.streamingAction) &&
                 Objects.equals(subject, that.subject);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(namespace, name, group, channel, criterion, action, searchAction, subject);
+        return Objects.hash(namespace, name, group, channel, criterion, action, searchAction, streamingAction,
+                subject);
     }
 
     @Override
@@ -230,6 +241,7 @@ final class ImmutableTopicPath implements TopicPath {
                 ", criterion=" + criterion +
                 ", action=" + action +
                 ", searchAction=" + searchAction +
+                ", streamingAction=" + streamingAction +
                 ", subject=" + subject +
                 ", path=" + getPath() +
                 "]";
@@ -241,7 +253,8 @@ final class ImmutableTopicPath implements TopicPath {
     @NotThreadSafe
     private static final class Builder
             implements TopicPathBuilder, MessagesTopicPathBuilder, EventsTopicPathBuilder, CommandsTopicPathBuilder,
-            AcknowledgementTopicPathBuilder, SearchTopicPathBuilder, AnnouncementsTopicPathBuilder {
+            AcknowledgementTopicPathBuilder, SearchTopicPathBuilder, AnnouncementsTopicPathBuilder,
+            StreamingTopicPathBuilder {
 
         private final String namespace;
         private final String name;
@@ -251,6 +264,7 @@ final class ImmutableTopicPath implements TopicPath {
         private Criterion criterion;
         @Nullable private Action action;
         @Nullable private SearchAction searchAction;
+        @Nullable private StreamingAction streamingAction;
         @Nullable private String subject;
 
         private Builder(final String namespace, final String name) {
@@ -261,6 +275,7 @@ final class ImmutableTopicPath implements TopicPath {
             criterion = null;
             action = null;
             searchAction = null;
+            streamingAction = null;
             subject = null;
         }
 
@@ -315,6 +330,12 @@ final class ImmutableTopicPath implements TopicPath {
         @Override
         public AnnouncementsTopicPathBuilder announcements() {
             criterion = Criterion.ANNOUNCEMENTS;
+            return this;
+        }
+
+        @Override
+        public StreamingTopicPathBuilder streaming() {
+            criterion = Criterion.STREAMING;
             return this;
         }
 
@@ -379,44 +400,82 @@ final class ImmutableTopicPath implements TopicPath {
         }
 
         @Override
+        public TopicPathBuildable subscribe(final String subscribingCommandName) {
+            if (subscribingCommandName.equals(SubscribeForPersistedEvents.NAME)) {
+                streamingAction = StreamingAction.SUBSCRIBE_FOR_PERSISTED_EVENTS;
+            } else {
+                throw UnknownCommandException.newBuilder(subscribingCommandName).build();
+            }
+            return this;
+        }
+
+        @Override
         public TopicPathBuildable cancel() {
-            searchAction = SearchAction.CANCEL;
+            if (criterion == Criterion.SEARCH) {
+                searchAction = SearchAction.CANCEL;
+            } else if (criterion == Criterion.STREAMING) {
+                streamingAction = StreamingAction.CANCEL;
+            }
             return this;
         }
 
         @Override
         public TopicPathBuildable request() {
-            searchAction = SearchAction.REQUEST;
+            if (criterion == Criterion.SEARCH) {
+                searchAction = SearchAction.REQUEST;
+            } else if (criterion == Criterion.STREAMING) {
+                streamingAction = StreamingAction.REQUEST;
+            }
             return this;
         }
 
         @Override
         public TopicPathBuildable complete() {
-            searchAction = SearchAction.COMPLETE;
+            if (criterion == Criterion.SEARCH) {
+                searchAction = SearchAction.COMPLETE;
+            } else if (criterion == Criterion.STREAMING) {
+                streamingAction = StreamingAction.COMPLETE;
+            }
             return this;
         }
 
         @Override
         public TopicPathBuildable failed() {
-            searchAction = SearchAction.FAILED;
+            if (criterion == Criterion.SEARCH) {
+                searchAction = SearchAction.FAILED;
+            } else if (criterion == Criterion.STREAMING) {
+                streamingAction = StreamingAction.FAILED;
+            }
             return this;
         }
 
         @Override
         public TopicPathBuildable hasNext() {
-            searchAction = SearchAction.NEXT;
+            if (criterion == Criterion.SEARCH) {
+                searchAction = SearchAction.NEXT;
+            } else if (criterion == Criterion.STREAMING) {
+                streamingAction = StreamingAction.NEXT;
+            }
             return this;
         }
 
         @Override
         public EventsTopicPathBuilder generated() {
-            searchAction = SearchAction.GENERATED;
+            if (criterion == Criterion.SEARCH) {
+                searchAction = SearchAction.GENERATED;
+            } else if (criterion == Criterion.STREAMING) {
+                streamingAction = StreamingAction.GENERATED;
+            }
             return this;
         }
 
         @Override
         public TopicPathBuildable error() {
-            searchAction = SearchAction.ERROR;
+            if (criterion == Criterion.SEARCH) {
+                searchAction = SearchAction.ERROR;
+            } else if (criterion == Criterion.STREAMING) {
+                streamingAction = StreamingAction.ERROR;
+            }
             return this;
         }
 
@@ -520,6 +579,9 @@ final class ImmutableTopicPath implements TopicPath {
                     break;
                 case SEARCH:
                     topicPathBuilder.searchAction = tryToGetSearchActionForName(tryToGetSearchActionName());
+                    break;
+                case STREAMING:
+                    topicPathBuilder.streamingAction = tryToGetStreamingActionForName(tryToGetSearchActionName());
                     break;
                 case ERRORS:
                     break;
@@ -653,6 +715,13 @@ final class ImmutableTopicPath implements TopicPath {
             return SearchAction.forName(searchActionName)
                     .orElseThrow(() -> UnknownTopicPathException.newBuilder(topicPathString)
                             .description(MessageFormat.format("Search action name <{0}> is unknown.", searchActionName))
+                            .build());
+        }
+
+        private StreamingAction tryToGetStreamingActionForName(final String streamingActionName) {
+            return StreamingAction.forName(streamingActionName)
+                    .orElseThrow(() -> UnknownTopicPathException.newBuilder(topicPathString)
+                            .description(MessageFormat.format("Streaming action name <{0}> is unknown.", streamingActionName))
                             .build());
         }
 
