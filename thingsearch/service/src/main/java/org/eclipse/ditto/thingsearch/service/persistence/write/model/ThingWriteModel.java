@@ -260,17 +260,29 @@ public final class ThingWriteModel extends AbstractWriteModel {
         final var nextMetadata = nextWriteModel.getMetadata();
         final boolean isStrictlyOlder = nextMetadata.getThingRevision() < lastMetadata.getThingRevision() ||
                 nextMetadata.getThingRevision() == lastMetadata.getThingRevision() &&
-                        nextMetadata.getThingPolicyTag()
-                                .map(AbstractEntityIdWithRevision::getRevision)
-                                .flatMap(nextPolicyRevision ->
-                                        lastMetadata.getThingPolicyTag()
-                                                .map(AbstractEntityIdWithRevision::getRevision)
-                                                .map(lastPolicyRevision -> nextPolicyRevision < lastPolicyRevision))
-                                .orElse(false);
+                        anyPolicyRevisionIsOutDated(lastMetadata, nextMetadata);
         final boolean hasSameRevisions = nextMetadata.getThingRevision() == lastMetadata.getThingRevision() &&
-                nextMetadata.getThingPolicyTag().map(AbstractEntityIdWithRevision::getRevision)
-                        .equals(lastMetadata.getThingPolicyTag().map(AbstractEntityIdWithRevision::getRevision));
+                allPolicyRevisionsStayedTheSame(lastMetadata, nextMetadata);
 
         return isStrictlyOlder || hasSameRevisions;
     }
+
+    private static boolean anyPolicyRevisionIsOutDated(final Metadata lastMetadata, final Metadata nextMetadata) {
+        return nextMetadata.getAllReferencedPolicyTags().stream()
+                .anyMatch(policyTag -> lastMetadata.getAllReferencedPolicyTags().stream()
+                        .filter(oldPolicyTag -> oldPolicyTag.getEntityId().equals(policyTag.getEntityId()))
+                        .findAny()
+                        .map(oldPolicyTag -> policyTag.getRevision() < oldPolicyTag.getRevision())
+                        .orElse(false));
+    }
+
+    private static boolean allPolicyRevisionsStayedTheSame(final Metadata lastMetadata, final Metadata nextMetadata) {
+        return nextMetadata.getAllReferencedPolicyTags().stream()
+                .allMatch(policyTag -> lastMetadata.getAllReferencedPolicyTags().stream()
+                        .filter(oldPolicyTag -> oldPolicyTag.getEntityId().equals(policyTag.getEntityId()))
+                        .findAny()
+                        .map(oldPolicyTag -> policyTag.getRevision() == oldPolicyTag.getRevision())
+                        .orElse(true));
+    }
+
 }

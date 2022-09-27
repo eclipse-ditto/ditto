@@ -12,13 +12,17 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.impl;
 
-import static com.mongodb.client.model.Filters.elemMatch;
 import static com.mongodb.client.model.Filters.in;
 import static com.mongodb.client.model.Filters.or;
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.bson.BsonDateTime;
@@ -27,7 +31,6 @@ import org.bson.BsonInt32;
 import org.bson.BsonString;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
@@ -74,40 +77,68 @@ public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUp
         return new MongoThingsSearchUpdaterPersistence(database, updaterPersistenceConfig);
     }
 
-    @Override
-    public Source<PolicyReferenceTag, NotUsed> getPolicyReferenceTags(final Map<PolicyId, Long> policyRevisions) {
-        final Bson usedAsThingPolicy = in(PersistenceConstants.FIELD_POLICY_ID, policyRevisions.keySet()
-                .stream()
-                .map(String::valueOf)
-                .collect(Collectors.toSet()));
-        final Bson isReferencedPolicy = elemMatch(PersistenceConstants.FIELD_REFERENCED_POLICIES,
-                in(EntityIdWithRevision.JsonFields.ENTITY_ID.getPointer().toString(), policyRevisions.keySet()
-                        .stream()
-                        .map(String::valueOf)
-                        .collect(Collectors.toSet())));
-        final Bson filter = or(
-                usedAsThingPolicy, // This is only required for backwards compatibility.
+    private static Bson filterForAffectedSearchIndexEntries(final Set<String> changedPolicyIds) {
+        final Bson usedAsThingPolicy = in(PersistenceConstants.FIELD_POLICY_ID, changedPolicyIds);
+        final Bson isReferencedPolicy = in(PersistenceConstants.FIELD_REFERENCED_POLICIES + "." +
+                PersistenceConstants.FIELD_REFERENCED_POLICY_ID, changedPolicyIds);
+        return or(
+                /*
+                 * the "usedAsThingPolicy" check is only required for backwards compatibility, for entries without the
+                 * referenced policies field.
+                 */
+                usedAsThingPolicy,
                 isReferencedPolicy
         );
+    }
+
+    @Override
+    public Source<PolicyReferenceTag, NotUsed> getPolicyReferenceTags(final Map<PolicyId, Long> policyRevisions) {
+        final Set<String> changedPolicyIds = policyRevisions.keySet()
+                .stream()
+                .map(String::valueOf)
+                .collect(Collectors.toSet());
+
+        final Bson filter = filterForAffectedSearchIndexEntries(changedPolicyIds);
+
         final Publisher<Document> publisher =
                 collection.find(filter).projection(new Document()
                         .append(PersistenceConstants.FIELD_ID, new BsonInt32(1))
-                        .append(PersistenceConstants.FIELD_POLICY_ID, new BsonInt32(1)));
+                        .append(PersistenceConstants.FIELD_POLICY_ID, new BsonInt32(1))
+                        .append(PersistenceConstants.FIELD_REFERENCED_POLICIES, new BsonInt32(1)));
 
         return Source.fromPublisher(publisher)
                 .mapConcat(doc -> {
                     final ThingId thingId = ThingId.of(doc.getString(PersistenceConstants.FIELD_ID));
-                    final String policyIdString = doc.getString(PersistenceConstants.FIELD_POLICY_ID);
-                    final PolicyId policyId = PolicyId.of(policyIdString);
-                    final Long revision = policyRevisions.get(policyId);
-                    if (revision == null) {
-                        return Collections.emptyList();
-                    } else {
-                        final PolicyTag policyTag = PolicyTag.of(policyId, revision);
-                        return Collections.singletonList(PolicyReferenceTag.of(thingId, policyTag));
-                    }
+                    final Collection<PolicyId> referencedPolicyIds = referencedPolicyIds(doc);
+                    return referencedPolicyIds.stream()
+                            .map(referencedPolicyId -> Optional.ofNullable(policyRevisions.get(referencedPolicyId))
+                                    .map(revision -> PolicyTag.of(referencedPolicyId, revision))
+                                    .map(policyTag -> PolicyReferenceTag.of(thingId, policyTag))
+                                    .orElse(null))
+                            .filter(Objects::nonNull)
+                            .toList();
                 });
     }
+
+    private Collection<PolicyId> referencedPolicyIds(final Document doc) {
+        final Set<PolicyId> referencedPolicyIds = new HashSet<>();
+
+        final String policyIdString = doc.getString(PersistenceConstants.FIELD_POLICY_ID);
+        final PolicyId policyId = PolicyId.of(policyIdString);
+        referencedPolicyIds.add(policyId);
+
+        Optional.ofNullable(doc.getList(PersistenceConstants.FIELD_REFERENCED_POLICIES, Document.class))
+                .orElseGet(List::of)
+                .stream()
+                .map(Bson::toBsonDocument)
+                .map(bsonDocument -> bsonDocument.getString(PersistenceConstants.FIELD_REFERENCED_POLICY_ID))
+                .map(BsonString::getValue)
+                .map(PolicyId::of)
+                .forEach(referencedPolicyIds::add);
+
+        return Set.copyOf(referencedPolicyIds);
+    }
+
 
     @Override
     public Source<List<Throwable>, NotUsed> purge(final CharSequence namespace) {

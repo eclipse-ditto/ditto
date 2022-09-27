@@ -83,7 +83,20 @@ public final class EnforcedThingMapper {
         final var optionalPolicyId = thing.getValue(Thing.JsonFields.POLICY_ID).map(PolicyId::of);
 
         final HashSet<PolicyTag> allReferencedPolicies = new HashSet<>(referencedPolicies);
-        final PolicyTag thingPolicyTag = optionalPolicyId.map(policyId -> PolicyTag.of(policyId, policyRevision)).orElse(null);
+        final List<PolicyTag> policyTagsOfDeletedButStillImportedPolicies =
+                Optional.ofNullable(oldMetadata).map(Metadata::getAllReferencedPolicyTags).orElseGet(Set::of).stream()
+                        .filter(oldReferencedPolicyTag -> policy.getPolicyImports()
+                                .getPolicyImport(oldReferencedPolicyTag.getEntityId())
+                                .isPresent())
+                        .filter(oldReferencedPolicyTag -> referencedPolicies.stream()
+                                .noneMatch(newReferencedPolicyTag -> newReferencedPolicyTag.getEntityId()
+                                        .equals(oldReferencedPolicyTag.getEntityId())))
+                        .toList();
+        allReferencedPolicies.addAll(policyTagsOfDeletedButStillImportedPolicies);
+
+        final PolicyTag thingPolicyTag = optionalPolicyId
+                .map(policyId -> PolicyTag.of(policyId, policyRevision))
+                .orElse(null);
 
         final var metadata =
                 Metadata.of(thingId, thingRevision, thingPolicyTag, allReferencedPolicies,

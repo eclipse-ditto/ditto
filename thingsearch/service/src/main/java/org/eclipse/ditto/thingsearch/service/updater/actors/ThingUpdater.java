@@ -16,10 +16,12 @@ import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -31,7 +33,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
-import org.eclipse.ditto.internal.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -424,7 +425,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     private FSM.State<State, Data> onPolicyReferenceTag(final PolicyReferenceTag policyReferenceTag, final Data data) {
         final var thingRevision = data.metadata().getThingRevision();
-        @Nullable final var relevantPolicyTag = data.metadata()
+        @Nullable final var affectedOldPolicyTag = data.metadata()
                 .getAllReferencedPolicyTags()
                 .stream()
                 .filter(policyTag -> policyTag.getEntityId().equals(policyReferenceTag.getPolicyTag().getEntityId()))
@@ -433,33 +434,65 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         if (log.isDebugEnabled()) {
             log.debug("Received new Policy-Reference-Tag for thing <{}> with revision <{}>,  thing-policy-tag <{}>:" +
                             " <{}>.",
-                    thingId, thingRevision, relevantPolicyTag, policyReferenceTag.asIdentifierString());
+                    thingId, thingRevision, affectedOldPolicyTag, policyReferenceTag.asIdentifierString());
         } else {
             log.info("Got policy update <{}> at revision <{}>. Previous known policy is <{}>.",
                     policyReferenceTag.getPolicyTag().getEntityId(), policyReferenceTag.getPolicyTag().getRevision(),
-                    relevantPolicyTag);
+                    affectedOldPolicyTag);
         }
 
         final var policyTag = policyReferenceTag.getPolicyTag();
-        if (relevantPolicyTag == null || relevantPolicyTag.getRevision() < policyTag.getRevision()) {
-            final boolean isThingPolicyTag = Optional.ofNullable(relevantPolicyTag)
-                    .flatMap(theRelevantPolicyTag -> data.metadata()
-                            .getThingPolicyTag()
-                            .map(AbstractEntityIdWithRevision::getEntityId)
-                            .map(policyId -> policyId.equals(theRelevantPolicyTag.getEntityId())))
-                    .orElse(false);
-            final PolicyTag thingPolicyTag = isThingPolicyTag ? policyReferenceTag.getPolicyTag() : null;
+        if (affectedOldPolicyTag == null || affectedOldPolicyTag.getRevision() < policyTag.getRevision()) {
+            final PolicyTag thingPolicyTag = Optional.ofNullable(affectedOldPolicyTag)
+                    .flatMap(theRelevantPolicyTag -> data.metadata().getThingPolicyTag()
+                            .map(oldThingPolicyTag -> {
+                                if (oldThingPolicyTag.getEntityId().equals(policyTag.getEntityId())) {
+                                    return policyTag;
+                                } else {
+                                    return oldThingPolicyTag;
+                                }
+                            }))
+                    .or(data.metadata()::getThingPolicyTag)
+                    .orElse(null);
 
-            final var newMetadata = Metadata.of(thingId, thingRevision, thingPolicyTag, Set.of(), null)
+            final Set<PolicyTag> allReferencedPolicyTags = buildNewAllReferencedPolicyTags(data.metadata()
+                    .getAllReferencedPolicyTags(), policyTag);
+
+            final var newMetadata = Metadata.of(thingId, thingRevision, thingPolicyTag, allReferencedPolicyTags, null)
                     .withUpdateReason(UpdateReason.POLICY_UPDATE)
                     .invalidateCaches(false, true);
 
             return enqueue(newMetadata, data);
         } else {
             log.debug("Dropping <{}> because my policyId=<{}> and policyRevision=<{}>",
-                    policyReferenceTag, relevantPolicyTag);
+                    policyReferenceTag, affectedOldPolicyTag);
             return stay();
         }
+    }
+
+    private static Set<PolicyTag> buildNewAllReferencedPolicyTags(final Set<PolicyTag> oldAllReferencedPolicyTags,
+            final PolicyTag policyTag) {
+
+        final Set<PolicyTag> referencedPolicyTags = oldAllReferencedPolicyTags.stream()
+                .map(referencedPolicyTag -> {
+                    if (referencedPolicyTag.getEntityId().equals(policyTag.getEntityId())) {
+                        return policyTag; // Update old policy tag related to same policy ID
+                    } else {
+                        return referencedPolicyTag;
+                    }
+                })
+                .collect(Collectors.toSet());
+
+        // Append policy tag in case it wasn't already present in the referenced policy tags.
+        final Set<PolicyTag> allReferencedPolicyTags;
+        if (!referencedPolicyTags.contains(policyTag)) {
+            allReferencedPolicyTags = new HashSet<>(referencedPolicyTags);
+            allReferencedPolicyTags.add(policyTag);
+        } else {
+            allReferencedPolicyTags = referencedPolicyTags;
+        }
+
+        return allReferencedPolicyTags;
     }
 
     private FSM.State<State, Data> onEventMetadata(final Metadata eventMetadata, final Data data) {

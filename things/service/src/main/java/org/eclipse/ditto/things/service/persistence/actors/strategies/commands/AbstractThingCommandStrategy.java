@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;

@@ -57,6 +57,11 @@ public final class PersistenceConstants {
     public static final String FIELD_POLICY_ID = "policyId";
 
     /**
+     * Field name for policy id in referenced policy tag.
+     */
+    public static final String FIELD_REFERENCED_POLICY_ID = "id";
+
+    /**
      * Field name for policy revision.
      */
     public static final String FIELD_POLICY_REVISION = "__policyRev";
