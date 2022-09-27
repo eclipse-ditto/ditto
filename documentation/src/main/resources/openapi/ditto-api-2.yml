@@ -4711,6 +4711,11 @@ paths:
                 }
               }
             }
+          },
+          "imports": {
+            "com.acme:importedPolicy" : {
+              "entries": [ "IMPORTED" ]
+            }
           }
         }
         ```
@@ -4789,7 +4794,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The policy with the given ID was
+            The request could not be completed. The policy with the given ID or policy referenced in a policy import was
             not found in the context of the authenticated user.
           content:
             application/json:
@@ -4880,7 +4885,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
-            The request could not be completed. The policy with the given ID was
+            The request could not be completed. The policy with the given ID or policy referenced in a policy import was
             not found in the context of the authenticated user.
           content:
             application/json:
@@ -5191,7 +5196,7 @@ paths:
         `policyId` path parameter and with the label identified by the `label`
         path parameter.
         * If you specify a new label, the respective policy entry will be created
-        * If you specify an existig label, the respective policy entry will be updated
+        * If you specify an existing label, the respective policy entry will be updated
       tags:
         - Policies
       parameters:
@@ -6191,6 +6196,403 @@ paths:
             The request could not be completed. The policy with the given ID,
             the policy entry or the Resource was not found in the context of the
             authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+  '/policies/{policyId}/imports':
+    get:
+      summary: Retrieve the imports of a specific policy
+      description: |-
+        Returns all policy imports of the policy identified by the `policyId`
+        path parameter.
+      tags:
+        - Policies
+      parameters:
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+      responses:
+        '200':
+          description: The request successfully returned completed and returned are the policy imports.
+          headers:
+            ETag:
+              description: |-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy/properties/imports'
+        '304':
+          $ref: '#/components/responses/NotModified'
+        '400':
+          description: |-
+            The request could not be completed. Possible reasons:
+
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '402':
+          description: The request could not be completed due to exceeded data volume or exceeded transaction count.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '403':
+          description: The request could not be completed due to a missing or invalid API Token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. The policy with the given ID was
+            not found in the context of the authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+    put:
+      summary: Modify the imports of a specific policy
+      description: Modify the policy imports of the policy identified by the `policyId` path parameter.
+      tags:
+        - Policies
+      parameters:
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
+      responses:
+        '204':
+          description: The policy imports were successfully updated.
+          headers:
+            ETag:
+              description: |-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+        '400':
+          description: |-
+            The request could not be completed. Possible reasons:
+
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the JSON body of the policy imports to be created/modified is invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '402':
+          description: The request could not be completed due to exceeded data volume or exceeded transaction count.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '403':
+          description: |-
+            The request could not be completed. Possible reasons:
+            * the caller has insufficient permissions.
+              You need `WRITE` permission on the `policy:/imports` resource,
+              without any revoke in a deeper path of the policy resource.
+            * the caller has insufficient permissions.
+              You need `READ` permission on the policy entries of the imported policies.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. The policy (or an imported policy) with the given ID was
+            not found in the context of the authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '413':
+          $ref: '#/components/responses/EntityTooLarge'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Policy/properties/imports'
+            example:
+              'com.acme:imported1':
+                entries:
+                  - IMPORTED_ENTRY
+              'com.acme:imported2': {}
+        description: JSON representation of the policy imports.
+        required: true
+  '/policies/{policyId}/imports/{importedPolicyId}':
+    get:
+      summary: Retrieve a specific policy import.
+      description: |-
+        Returns the policy import of the policy identified by the `policyId` path
+        parameter and imported policy identified by the `importedPolicyId` path parameter.
+      tags:
+        - Policies
+      parameters:
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - name: importedPolicyId
+          in: path
+          description: |-
+            The ID of the imported policy needs to follow the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+
+            The namespace needs to:
+            * conform to the reverse domain name notation
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+      responses:
+        '200':
+          description: The request successfully returned completed and returned is the policy import.
+          headers:
+            ETag:
+              description: |-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/paths/~1policies~1%7BpolicyId%7D~1imports~1%7BimportedPolicyId%7D/put/requestBody/content/application~1json/schema'
+        '304':
+          $ref: '#/components/responses/NotModified'
+        '400':
+          description: |-
+            The request could not be completed. Possible reasons:
+
+              * the `policyId` or the `importedPolicyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '402':
+          description: The request could not be completed due to exceeded data volume or exceeded transaction count.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '403':
+          description: The request could not be completed due to a missing or invalid API Token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. The policy with the given ID or
+            the policy import was not found in the context of the authenticated
+            user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+    put:
+      summary: Create or modify a specific policy import of a policy.
+      description: |-
+        Create or modify the policy import of a specific policy identified by the `policyId` path parameter 
+        and the imported policy identified by the `importedPolicyId` path parameter.
+
+        * If you specify a new policy import, the respective policy import will be created
+        * If you specify an existing policy import, the respective policy import will be updated
+      tags:
+        - Policies
+      parameters:
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/paths/~1policies~1%7BpolicyId%7D~1imports~1%7BimportedPolicyId%7D/get/parameters/1'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
+      responses:
+        '201':
+          description: The policy import was successfully created.
+          headers:
+            ETag:
+              description: |-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+            Location:
+              description: The location of the created policy import
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/paths/~1policies~1%7BpolicyId%7D~1imports~1%7BimportedPolicyId%7D/put/requestBody/content/application~1json/schema'
+        '204':
+          description: The policy import was successfully updated.
+          headers:
+            ETag:
+              description: |-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+        '400':
+          description: |-
+            The request could not be completed. Possible reasons:
+
+              * the `policyId` or the `importedPolicyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the JSON body of the policy import to be created/modified is invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '402':
+          description: The request could not be completed due to exceeded data volume or exceeded transaction count.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '403':
+          description: |-
+            The request could not be completed. Possible reasons:
+              * the caller has insufficient permissions.
+                You need `WRITE` permission on the `policy:/imports/{importedPolicyId}` resource,
+                without any revoke in a deeper path of the policy resource.
+              * the caller has insufficient permissions.
+                You need `READ` permission on the `policy:/entries/{label}` resource of the *imported* policy,
+                without any revoke in a deeper path of the policy resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. The policy with the given ID was
+            not found in the context of the authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '413':
+          $ref: '#/components/responses/EntityTooLarge'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Single policy import defining which policy entries of the referenced policy are imported.
+              properties:
+                entries:
+                  type: array
+                  default: []
+                  description: |-
+                    The policy entries to import from the referenced policy identified by their labels. 
+                    In case the field is omitted or an empty array is provided, 
+                    all policy entries defined as implicit ("importable": "implicit") are imported.
+                  items:
+                    type: string
+                    description: Label of a policy entry to import from the referenced policy.
+              example:
+                entries:
+                  - default
+                  - import
+            example:
+              entries:
+                - IMPORTED
+        description: JSON representation of the policy import.
+        required: true
+    delete:
+      summary: Delete a specific policy import.
+      description: |-
+        Deletes a specific policy import identified by the `policyId` path parameter 
+        and the `importedPolicyId` path parameter.
+      tags:
+        - Policies
+      parameters:
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/paths/~1policies~1%7BpolicyId%7D~1imports~1%7BimportedPolicyId%7D/get/parameters/1'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
+      responses:
+        '204':
+          description: The policy import was successfully deleted.
+        '400':
+          description: |-
+            The request could not be completed. Possible reasons:
+
+              * the `policyId` or the `importedPolicyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '402':
+          description: The request could not be completed due to exceeded data volume or exceeded transaction count.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '403':
+          description: |-
+            The request could not be completed. Possible reasons:
+             * the caller has insufficient permissions.
+               You need `WRITE` permission on the `policy:/imported/{importedPolicyId}` resource,
+               without any revoke in a deeper path of the policy resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '404':
+          description: |-
+            The request could not be completed. The policy with the given ID was
+            not found in the context of the authenticated user.
           content:
             application/json:
               schema:
@@ -7475,6 +7877,23 @@ components:
           description: Unique identifier representing the policy
         entries:
           $ref: '#/components/schemas/PolicyEntries'
+        imports:
+          type: object
+          description: Policy imports containing one policy import for each key. The key is the policy ID of the referenced policy.
+          properties:
+            policyImport1:
+              $ref: '#/paths/~1policies~1%7BpolicyId%7D~1imports~1%7BimportedPolicyId%7D/put/requestBody/content/application~1json/schema'
+            policyImportN:
+              $ref: '#/paths/~1policies~1%7BpolicyId%7D~1imports~1%7BimportedPolicyId%7D/put/requestBody/content/application~1json/schema'
+          example:
+            'com.acme:policyId1':
+              entries:
+                - label1
+                - label2
+            'com.acme:policyId2':
+              entries:
+                - import
+            'com.acme:policyId3': {}
       required:
         - policyId
         - entries
@@ -7494,6 +7913,21 @@ components:
           $ref: '#/components/schemas/Subjects'
         resources:
           $ref: '#/components/schemas/Resources'
+        importable:
+          type: string
+          description: |-
+            Controls the import behavior of this policy entry i.e. whether this policy entry is implicitly, 
+            explicitly or never imported when referenced from another policy.
+            * `implicit` (default): the policy entry is imported without being listed in the importing policy individually
+            * `explicit`: the policy entry is only imported if it is listed in the importing policy
+            * `never`: the policy entry is not imported, regardless of being listed in the importing policy
+            If the field is not specified, default value is `implicit`.
+          enum:
+            - implicit
+            - explicit
+            - never
+          default: implicit
+          example: explicit
       required:
         - subjects
         - resources
@@ -7606,7 +8040,7 @@ components:
           minimum: 0ms
           maximum: 999_999_999s
           default: 5m
-          description: 'Interval in which the announcement can be sent earlier than the configured `beforeExpiry`. The actual point in time when the announcement will be sent is `beforeExpire` plus a randomly chosen time within the `randomizationInterval`. E.g assuming `beforeExpiry` is set to 5m and `randomizationInterval` is set to 1m, the announcements will be sent between 5 and 6 minutes before the subject expires. If omitted, the default value will be applied. If set to minimum, no randomization will be applied.'
+          description: 'Interval in which the announcement can be sent earlier in effort to prevent announcement peaks. If omitted, the default value will be applied. If set to minimum, no randomization will be applied.'
       example:
         beforeExpiry: 5m
         whenDeleted: true

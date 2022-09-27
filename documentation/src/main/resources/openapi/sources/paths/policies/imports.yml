@@ -1,0 +1,158 @@
+# Copyright (c) 2022 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+get:
+  summary: Retrieve the imports of a specific policy
+  description: |-
+    Returns all policy imports of the policy identified by the `policyId`
+    path parameter.
+  tags:
+    - Policies
+  parameters:
+    - $ref: '../../parameters/policyIdPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+  responses:
+    '200':
+      description: |-
+        The request successfully returned completed and returned are the policy imports.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/policies/policyImports.yml'
+    '304':
+      $ref: '../../responses/notModified.yml'
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '402':
+      description: The request could not be completed due to exceeded data volume or exceeded transaction count.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: The request could not be completed due to a missing or invalid API Token.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The policy with the given ID was
+        not found in the context of the authenticated user.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+put:
+  summary: Modify the imports of a specific policy
+  description: |-
+    Modify the policy imports of the policy identified by the `policyId` path parameter.
+  tags:
+    - Policies
+  parameters:
+    - $ref: '../../parameters/policyIdPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '204':
+      description: The policy imports were successfully updated.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+          * the JSON body of the policy imports to be created/modified is invalid
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '402':
+      description: The request could not be completed due to exceeded data volume or exceeded transaction count.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+        * the caller has insufficient permissions.
+          You need `WRITE` permission on the `policy:/imports` resource,
+          without any revoke in a deeper path of the policy resource.
+        * the caller has insufficient permissions.
+          You need `READ` permission on the policy entries of the imported policies.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The policy (or an imported policy) with the given ID was
+        not found in the context of the authenticated user.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+    '413':
+      $ref: '../../responses/entityTooLarge.yml'
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: '../../schemas/policies/policyImports.yml'
+        example: {
+          "com.acme:imported1": {
+            "entries": [ "IMPORTED_ENTRY" ]
+          },
+          "com.acme:imported2": {}
+        }
+    description: |-
+      JSON representation of the policy imports.
+    required: true

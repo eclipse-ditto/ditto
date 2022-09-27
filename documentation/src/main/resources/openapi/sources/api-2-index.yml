@@ -122,6 +122,10 @@ paths:
     $ref: "./paths/policies/resources.yml"
   '/policies/{policyId}/entries/{label}/resources/{resourcePath}':
     $ref: "./paths/policies/resource.yml"
+  '/policies/{policyId}/imports':
+    $ref: './paths/policies/imports.yml'
+  '/policies/{policyId}/imports/{importedPolicyId}':
+    $ref: './paths/policies/import.yml'
 
   ###
   ### Who Am I
