@@ -13,7 +13,6 @@
 package org.eclipse.ditto.internal.utils.persistence.mongo;
 
 import java.util.Set;
-import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
@@ -21,11 +20,11 @@ import org.bson.BsonDocument;
 import org.bson.BsonValue;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.EventRegistry;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
-import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
@@ -43,10 +42,6 @@ import akka.persistence.journal.Tagged;
 public abstract class AbstractMongoEventAdapter<T extends Event<?>> implements EventAdapter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMongoEventAdapter.class);
-
-    private static final Predicate<JsonField> IS_REVISION = field -> field.getDefinition()
-            .filter(EventsourcedEvent.JsonFields.REVISION::equals)
-            .isPresent();
 
     @Nullable protected final ExtendedActorSystem system;
     protected final EventRegistry<T> eventRegistry;
@@ -69,11 +64,10 @@ public abstract class AbstractMongoEventAdapter<T extends Event<?>> implements E
 
     @Override
     public Object toJournal(final Object event) {
-        if (event instanceof Event) {
-            final Event<?> theEvent = (Event<?>) event;
+        if (event instanceof Event<?> theEvent) {
             final JsonSchemaVersion schemaVersion = theEvent.getImplementedSchemaVersion();
             final JsonObject jsonObject = performToJournalMigration(
-                    theEvent.toJson(schemaVersion, IS_REVISION.negate())
+                    theEvent.toJson(schemaVersion, FieldType.regularOrSpecial())
             );
             final BsonDocument bson = DittoBsonJson.getInstance().parse(jsonObject);
             final Set<String> tags = theEvent.getDittoHeaders().getJournalTags();
