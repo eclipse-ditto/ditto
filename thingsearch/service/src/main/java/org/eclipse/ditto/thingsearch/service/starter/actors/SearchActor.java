@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.thingsearch.service.starter.actors;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +32,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformers;
+import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithShutdownBehavior;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
@@ -73,7 +73,6 @@ import com.typesafe.config.Config;
 
 import akka.Done;
 import akka.NotUsed;
-import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.CoordinatedShutdown;
@@ -107,7 +106,7 @@ import akka.stream.javadsl.StreamRefs;
  * The ThingsSearchPersistence returns only Thing IDs. Thus, to provide complete Thing information to the requester,
  * things have to be retrieved from Things Service via distributed pub/sub.
  */
-public final class SearchActor extends AbstractActor {
+public final class SearchActor extends AbstractActorWithShutdownBehavior {
 
     /**
      * The name of this actor in the system.
@@ -123,12 +122,6 @@ public final class SearchActor extends AbstractActor {
     private static final String API_VERSION_TAG = "api_version";
 
     private static final Map<String, ThreadSafeDittoLogger> NAMESPACE_INSPECTION_LOGGERS = new HashMap<>();
-
-    /**
-     * Ask-timeout in shutdown tasks. Its duration should be long enough for search queries but ultimately does not
-     * matter because each shutdown phase has its own timeout.
-     */
-    private static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
 
     private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
@@ -200,16 +193,14 @@ public final class SearchActor extends AbstractActor {
     }
 
     @Override
-    public Receive createReceive() {
+    public Receive handleMessage() {
         return ReceiveBuilder.create()
                 .match(CountThings.class, this::count)
                 .match(SudoCountThings.class, this::sudoCount)
                 .match(QueryThings.class, this::query)
                 .match(SudoRetrieveNamespaceReport.class, this::namespaceReport)
                 .match(StreamThings.class, this::stream)
-                .matchEquals(Control.DECREMENT_QUERY_COUNTER, this::decrementQueryCounter)
-                .matchEquals(Control.SERVICE_UNBIND, this::serviceUnbind)
-                .matchEquals(Control.SERVICE_REQUESTS_DONE, this::serviceRequestsDone)
+                .matchEquals(Control.OP_COMPLETE, this::decrementQueryCounter)
                 .match(DistributedPubSubMediator.SubscribeAck.class, ack -> log.info("Got <{}>", ack))
                 .matchAny(any -> log.warning("Got unknown message '{}'", any))
                 .build();
@@ -505,7 +496,7 @@ public final class SearchActor extends AbstractActor {
     }
 
     private void queryComplete(final Object result, final Throwable error) {
-        getSelf().tell(Control.DECREMENT_QUERY_COUNTER, ActorRef.noSender());
+        getSelf().tell(Control.OP_COMPLETE, ActorRef.noSender());
     }
 
     private void withQueryCounting(final CompletionStage<?> queryRunner) {
@@ -523,7 +514,8 @@ public final class SearchActor extends AbstractActor {
         }
     }
 
-    private void serviceUnbind(final Control serviceUnbind) {
+    @Override
+    public void serviceUnbind(final Control serviceUnbind) {
         log.info("{}: unsubscribing from pubsub for {}", serviceUnbind, ACTOR_NAME);
         final var unsubscribe =
                 DistPubSubAccess.unsubscribeViaGroup(ThingSearchCommand.TYPE_PREFIX, ACTOR_NAME, getSelf());
@@ -536,7 +528,8 @@ public final class SearchActor extends AbstractActor {
         Patterns.pipe(unsubscribeTask, getContext().getDispatcher()).to(getSender());
     }
 
-    private void serviceRequestsDone(final Control serviceRequestsDone) {
+    @Override
+    public void serviceRequestsDone(final Control serviceRequestsDone) {
         log.info("{}: abort ongoing streams", serviceRequestsDone);
         streamKillSwitch.abort(SubscriptionAbortedException.of(DittoHeaders.empty()));
 
@@ -588,12 +581,6 @@ public final class SearchActor extends AbstractActor {
         } catch (final IllegalStateException e) {
             // it is okay if the timer was stopped.
         }
-    }
-
-    enum Control {
-        DECREMENT_QUERY_COUNTER,
-        SERVICE_UNBIND,
-        SERVICE_REQUESTS_DONE
     }
 
 }

@@ -36,6 +36,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
+import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithShutdownBehavior;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
@@ -53,7 +54,6 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingsRespo
 
 import akka.Done;
 import akka.NotUsed;
-import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
@@ -71,7 +71,7 @@ import akka.stream.javadsl.Source;
  * {@link Thing}s one after one in a stream. That ensures that the cluster messages size must not be increased when
  * streaming a larger amount of Things in the cluster.
  */
-public final class ThingsAggregatorProxyActor extends AbstractActor {
+public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownBehavior {
 
     /**
      * The name of this Actor in the ActorSystem.
@@ -108,12 +108,11 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
     }
 
     @Override
-    public Receive createReceive() {
+    public Receive handleMessage() {
         return ReceiveBuilder.create()
                 .match(RetrieveThings.class, rt -> handleRetrieveThings(rt, rt))
                 .match(SudoRetrieveThings.class, srt -> handleSudoRetrieveThings(srt, srt))
                 .matchEquals(Control.OP_COMPLETE, this::opComplete)
-                .matchEquals(Control.SERVICE_REQUESTS_DONE, this::serviceRequestsDone)
                 .matchAny(m -> {
                     log.warning("Got unknown message: {}", m);
                     unhandled(m);
@@ -315,7 +314,13 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
         }
     }
 
-    private void serviceRequestsDone(final Control serviceRequestsDone) {
+    @Override
+    protected void serviceUnbind(final Control serviceUnbind) {
+        // nothing to do
+    }
+
+    @Override
+    public void serviceRequestsDone(final Control serviceRequestsDone) {
         if (ongoingRequests == 0) {
             log.info("{}: no ongoing requests", serviceRequestsDone);
             getSender().tell(Done.getInstance(), getSelf());
@@ -386,8 +391,4 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
     }
 
-    enum Control {
-        OP_COMPLETE,
-        SERVICE_REQUESTS_DONE
-    }
 }

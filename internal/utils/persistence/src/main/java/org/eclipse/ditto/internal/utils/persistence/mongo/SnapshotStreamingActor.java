@@ -25,6 +25,7 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.internal.models.streaming.StreamedSnapshot;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamSnapshots;
+import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithShutdownBehavior;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
@@ -39,7 +40,6 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import akka.Done;
 import akka.NotUsed;
-import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
@@ -59,22 +59,20 @@ import akka.stream.javadsl.StreamRefs;
  * An actor that streams from the snapshot store of a service with Mongo persistence plugin on request.
  */
 @AllValuesAreNonnullByDefault
-public final class SnapshotStreamingActor extends AbstractActor {
+public final class SnapshotStreamingActor extends AbstractActorWithShutdownBehavior {
 
     /**
      * The name of the snapshot streaming actor.
      */
     public static final String ACTOR_NAME = "snapshotStreamingActor";
 
-    /**
-     * Ask-timeout in shutdown tasks. Its duration should be long enough but ultimately does not
-     * matter because each shutdown phase has its own timeout.
-     */
-    private static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
+    private static final Exception KILL_SWITCH_EXCEPTION =
+            new IllegalStateException("Abort streaming of snapshots because of graceful shutdown.");
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final Materializer materializer = Materializer.createMaterializer(this::getContext);
     private final SharedKillSwitch killSwitch = KillSwitches.shared(ACTOR_NAME);
+
 
     private final Function<String, EntityId> pid2EntityId;
     private final Function<EntityId, String> entityId2Pid;
@@ -172,11 +170,9 @@ public final class SnapshotStreamingActor extends AbstractActor {
     }
 
     @Override
-    public Receive createReceive() {
+    public Receive handleMessage() {
         return ReceiveBuilder.create()
                 .match(SudoStreamSnapshots.class, this::startStreaming)
-                .matchEquals(Control.SERVICE_UNBIND, this::serviceUnbind)
-                .matchEquals(Control.SERVICE_REQUESTS_DONE, this::serviceRequestsDone)
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::handleSubscribeAck)
                 .matchAny(message -> log.warning("Unexpected message: <{}>", message))
                 .build();
@@ -249,7 +245,8 @@ public final class SnapshotStreamingActor extends AbstractActor {
         getSender().tell(sourceRef, getSelf());
     }
 
-    private void serviceUnbind(final Control serviceUnbind) {
+    @Override
+    public void serviceUnbind(final Control serviceUnbind) {
         log.info("{}: unsubscribing from pubsub for {} actor", serviceUnbind, ACTOR_NAME);
 
         final CompletableFuture<Done> unsubscribeTask = Patterns.ask(pubSubMediator,
@@ -264,20 +261,16 @@ public final class SnapshotStreamingActor extends AbstractActor {
         Patterns.pipe(unsubscribeTask, getContext().getDispatcher()).to(getSender());
     }
 
-    private void serviceRequestsDone(final Control serviceRequestsDone) {
+    @Override
+    public void serviceRequestsDone(final Control serviceRequestsDone) {
         log.info("Abort streaming of snapshots because of graceful shutdown.");
-        killSwitch.abort(new IllegalStateException(""));
+        killSwitch.abort(KILL_SWITCH_EXCEPTION);
         getSender().tell(Done.getInstance(), getSelf());
     }
 
     private void handleSubscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
         log.info("Successfully subscribed to distributed pub/sub on topic <{}> for group <{}>.",
                 subscribeAck.subscribe().topic(), subscribeAck.subscribe().group());
-    }
-
-    enum Control {
-        SERVICE_UNBIND,
-        SERVICE_REQUESTS_DONE
     }
 
 }

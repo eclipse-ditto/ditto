@@ -37,12 +37,12 @@ import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespaceResponse;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithShutdownBehavior;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 
 import akka.Done;
-import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.CoordinatedShutdown;
 import akka.cluster.pubsub.DistributedPubSubMediator;
@@ -59,18 +59,12 @@ import akka.stream.javadsl.Sink;
  * Instances of the same type of this actor (running on different nodes) should register with the same group in order
  * to make sure that only one of those actors runs the command on the database.
  */
-public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
+public abstract class AbstractPersistenceOperationsActor extends AbstractActorWithShutdownBehavior {
 
     /**
      * The actor's logger.
      */
     protected final ThreadSafeDittoLoggingAdapter logger;
-
-    /**
-     * Ask-timeout in shutdown tasks. Its duration should be long enough but ultimately does not
-     * matter because each shutdown phase has its own timeout.
-     */
-    private static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
 
     private static final Throwable KILL_SWITCH_EXCEPTION =
             new IllegalStateException("Aborting persistence operations stream because of graceful shutdown.");
@@ -235,14 +229,12 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
     }
 
     @Override
-    public Receive createReceive() {
+    public Receive handleMessage() {
         return ReceiveBuilder.create()
                 .match(PurgeNamespace.class, this::purgeNamespace)
                 .match(PurgeEntities.class, this::purgeEntities)
                 .match(OpComplete.class, this::opComplete)
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::handleSubscribeAck)
-                .matchEquals(Control.SERVICE_UNBIND, this::serviceUnbind)
-                .matchEquals(Control.SERVICE_REQUESTS_DONE, this::serviceRequestsDone)
                 .matchAny(message -> logger.warning("Unhandled message: <{}>", message))
                 .build();
     }
@@ -350,7 +342,8 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
                 });
     }
 
-    private void serviceUnbind(final Control serviceUnbind) {
+    @Override
+    public void serviceUnbind(final Control serviceUnbind) {
         logger.info("{}: unsubscribing from pubsub for {} actor", serviceUnbind, getActorName());
 
         final ActorRef self = getSelf();
@@ -395,7 +388,8 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
         lastCommandsAndSender.remove(opComplete.command, opComplete.sender);
     }
 
-    private void serviceRequestsDone(final Control serviceRequestsDone) {
+    @Override
+    public void serviceRequestsDone(final Control serviceRequestsDone) {
         logger.info("Re-schedule/Publish <{}> commands for <{}> via PubSub.", lastCommandsAndSender.size(),
                 getActorName());
         killSwitch.abort(KILL_SWITCH_EXCEPTION);
@@ -414,11 +408,6 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
 
     private void handleSubscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
         logger.debug("Got subscribeAck <{}>.", subscribeAck);
-    }
-
-    public enum Control {
-        SERVICE_UNBIND,
-        SERVICE_REQUESTS_DONE
     }
 
     public record OpComplete(Command<?> command, ActorRef sender) {}

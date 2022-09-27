@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.gateway.service.proxy.actors;
 
-import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -22,6 +21,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithShutdownBehavior;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
@@ -41,7 +41,6 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
 
 import akka.Done;
-import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
 import akka.actor.CoordinatedShutdown;
@@ -58,13 +57,7 @@ import akka.pattern.Patterns;
  * respond to searches with max. 200 search results.
  * </p>
  */
-final class QueryThingsPerRequestActor extends AbstractActor {
-
-    /**
-     * Ask-timeout in shutdown tasks. Its duration should be long enough for http requests to succeed but
-     * ultimately does not matter because each shutdown phase has its own timeout.
-     */
-    private static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
+final class QueryThingsPerRequestActor extends AbstractActorWithShutdownBehavior {
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
@@ -133,7 +126,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
     }
 
     @Override
-    public Receive createReceive() {
+    public Receive handleMessage() {
         return receiveBuilder()
                 .match(ReceiveTimeout.class, receiveTimeout -> {
                     log.debug("Got ReceiveTimeout");
@@ -191,13 +184,24 @@ final class QueryThingsPerRequestActor extends AbstractActor {
 
                     stopMyself();
                 })
-                .matchEquals(Control.SERVICE_REQUESTS_DONE, this::serviceRequestsDone)
                 .matchAny(any -> {
                     // all other messages (e.g. DittoRuntimeExceptions) are directly returned to the sender:
                     originatingSender.tell(any, getSender());
                     stopMyself();
                 })
                 .build();
+    }
+
+    @Override
+    public void serviceUnbind(final Control serviceUnbind) {
+        // nothing to do
+    }
+
+    @Override
+    public void serviceRequestsDone(final Control serviceRequestsDone) {
+        log.info("{}: waiting to complete the request", serviceRequestsDone);
+        inCoordinatedShutdown = true;
+        coordinatedShutdownSender = getSender();
     }
 
     private boolean queryThingsOnlyContainsThingIdSelector() {
@@ -273,16 +277,6 @@ final class QueryThingsPerRequestActor extends AbstractActor {
         getContext().cancelReceiveTimeout();
         getContext().stop(getSelf());
         inCoordinatedShutdown = false;
-    }
-
-    private void serviceRequestsDone(final Control serviceRequestsDone) {
-        log.info("{}: waiting to complete the request", serviceRequestsDone);
-        inCoordinatedShutdown = true;
-        coordinatedShutdownSender = getSender();
-    }
-
-    enum Control {
-        SERVICE_REQUESTS_DONE
     }
 
 }

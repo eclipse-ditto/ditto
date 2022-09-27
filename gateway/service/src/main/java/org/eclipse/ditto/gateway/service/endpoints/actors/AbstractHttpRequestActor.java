@@ -65,6 +65,7 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiResponse;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
+import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithShutdownBehavior;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.JsonValueSourceRef;
@@ -103,13 +104,7 @@ import scala.util.Either;
  * it should fulfill. When it receives a command response, exception, status or timeout message, it renders the message
  * into an HTTP response and stops itself. Its behavior can be modified by overriding the protected instance methods.
  */
-public abstract class AbstractHttpRequestActor extends AbstractActor {
-
-    /**
-     * Ask-timeout in shutdown tasks. Its duration should be long enough for http requests to succeed but
-     * ultimately does not matter because each shutdown phase has its own timeout.
-     */
-    private static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
+public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdownBehavior {
 
     /**
      * Signals the completion of a stream request.
@@ -212,8 +207,15 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         cancellableShutdownTask.cancel();
     }
 
+    private static HttpResponse createHttpResponse(final HttpStatus httpStatus) {
+        final var statusCode = StatusCodes.lookup(httpStatus.getCode())
+                .orElse(StatusCodes.custom(httpStatus.getCode(), "custom", "custom"));
+
+        return HttpResponse.create().withStatus(statusCode);
+    }
+
     @Override
-    public AbstractActor.Receive createReceive() {
+    public AbstractActor.Receive handleMessage() {
         return ReceiveBuilder.create()
                 .match(Status.Failure.class, failure -> {
                     Throwable cause = failure.cause();
@@ -251,11 +253,18 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 .build();
     }
 
-    private static HttpResponse createHttpResponse(final HttpStatus httpStatus) {
-        final var statusCode = StatusCodes.lookup(httpStatus.getCode())
-                .orElse(StatusCodes.custom(httpStatus.getCode(), "custom", "custom"));
-        return HttpResponse.create().withStatus(statusCode);
+    @Override
+    public void serviceUnbind(final Control serviceUnbind) {
+        // nothing to do
     }
+
+    @Override
+    public void serviceRequestsDone(final Control serviceRequestsDone) {
+        logger.info("{}: waiting to complete the request", serviceRequestsDone);
+        inCoordinatedShutdown = true;
+        coordinatedShutdownSender = getSender();
+    }
+
     private void handleCommand(final Command<?> command) {
         try {
             logger.setCorrelationId(command);
@@ -779,12 +788,6 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         }
     }
 
-    private void serviceRequestsDone(final Control serviceRequestsDone) {
-        logger.info("{}: waiting to complete the request", serviceRequestsDone);
-        inCoordinatedShutdown = true;
-        coordinatedShutdownSender = getSender();
-    }
-
     private record HttpAcknowledgementConfig(HttpConfig httpConfig) implements AcknowledgementConfig {
 
         private static AcknowledgementConfig of(final HttpConfig httpConfig) {
@@ -811,10 +814,6 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             return 0;
         }
 
-    }
-
-    enum Control {
-        SERVICE_REQUESTS_DONE
     }
 
 }

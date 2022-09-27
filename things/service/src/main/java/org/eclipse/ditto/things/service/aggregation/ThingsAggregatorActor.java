@@ -14,7 +14,6 @@ package org.eclipse.ditto.things.service.aggregation;
 
 import static org.eclipse.ditto.things.api.ThingsMessagingConstants.THINGS_AGGREGATOR_ACTOR_NAME;
 
-import java.time.Duration;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
@@ -27,6 +26,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithShutdownBehavior;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
@@ -38,7 +38,6 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 
 import akka.Done;
-import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
@@ -54,18 +53,12 @@ import akka.util.Timeout;
 /**
  * Actor to aggregate the retrieved Things from persistence.
  */
-public final class ThingsAggregatorActor extends AbstractActor {
+public final class ThingsAggregatorActor extends AbstractActorWithShutdownBehavior {
 
     /**
      * The name of this Actor in the ActorSystem.
      */
     public static final String ACTOR_NAME = THINGS_AGGREGATOR_ACTOR_NAME;
-
-    /**
-     * Ask-timeout in shutdown tasks. Its duration should be long enough but ultimately does not
-     * matter because each shutdown phase has its own timeout.
-     */
-    private static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
 
     private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
     private final ActorRef targetActor;
@@ -111,7 +104,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
     }
 
     @Override
-    public Receive createReceive() {
+    public Receive handleMessage() {
         return ReceiveBuilder.create()
                 // # handle "RetrieveThings" command
                 .match(RetrieveThings.class, rt -> {
@@ -130,9 +123,6 @@ public final class ThingsAggregatorActor extends AbstractActor {
                                     rt.getThingIds().size());
                     retrieveThings(rt, getSender());
                 })
-
-                // # handle Control.SERVICE_UNBIND
-                .matchEquals(Control.SERVICE_UNBIND, this::serviceUnbind)
 
                 // # handle unknown message
                 .matchAny(m -> {
@@ -199,7 +189,8 @@ public final class ThingsAggregatorActor extends AbstractActor {
         }
     }
 
-    private void serviceUnbind(final Control serviceUnbind) {
+    @Override
+    public void serviceUnbind(final Control serviceUnbind) {
         log.info("{}: unsubscribing from pubsub for {} actor", serviceUnbind, ACTOR_NAME);
 
         final CompletableFuture<Done> unsubscribeTask = CompletableFuture.allOf(
@@ -219,9 +210,9 @@ public final class ThingsAggregatorActor extends AbstractActor {
         Patterns.pipe(unsubscribeTask, getContext().getDispatcher()).to(getSender());
     }
 
-    enum Control {
-        SERVICE_UNBIND,
-        SERVICE_REQUESTS_DONE
+    @Override
+    protected void serviceRequestsDone(final Control serviceRequestsDone) {
+        // nothing to do
     }
 
 }
