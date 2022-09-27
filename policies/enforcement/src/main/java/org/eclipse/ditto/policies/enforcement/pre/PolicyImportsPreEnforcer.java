@@ -38,7 +38,6 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImportNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
@@ -156,15 +155,16 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
                             hasAccess ? "authorized" : "not authorized");
         }
         if (!hasAccess) {
-            throw errorForPolicyModifyCommand(command, policyImport);
+            throw errorForPolicyModifyCommand(policyImport);
         } else {
             return true;
         }
     }
 
-    private static DittoRuntimeException errorForPolicyModifyCommand(final PolicyModifyCommand<?> policyModifyCommand,
-            final PolicyImport policyImport) {
-        return PolicyImportNotAccessibleException.newBuilder(policyModifyCommand.getEntityId(),
-                policyImport.getImportedPolicyId()).build();
+    private static DittoRuntimeException errorForPolicyModifyCommand(final PolicyImport policyImport) {
+        return PolicyNotAccessibleException.newBuilder(policyImport.getImportedPolicyId())
+                .description("Check if the ID of the imported Policy was correct and you " +
+                        "have sufficient permissions on all imported policy entries.")
+                .build();
     }
 }

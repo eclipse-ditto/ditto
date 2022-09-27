@@ -42,8 +42,7 @@ public final class PolicyNotAccessibleException extends DittoRuntimeException im
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "policy.notfound";
 
     private static final String MESSAGE_TEMPLATE =
-            "The Policy with ID ''{0}'' could not be found or requester had " +
-                    "insufficient permissions to access it.";
+            "The Policy with ID ''{0}'' could not be found or requester had insufficient permissions to access it.";
 
     private static final String DEFAULT_DESCRIPTION =
             "Check if the ID of your requested Policy was correct and you have sufficient permissions.";

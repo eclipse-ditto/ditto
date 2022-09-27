@@ -26,7 +26,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.PolicyException;
-import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
  * Thrown if a {@link org.eclipse.ditto.policies.model.PolicyImport} was either not present or the requester had
@@ -44,7 +43,7 @@ public final class PolicyImportNotAccessibleException extends DittoRuntimeExcept
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "import.notfound";
 
     private static final String MESSAGE_TEMPLATE =
-            "The import of the Policy with ID ''{0}'' on the Policy with ID ''{1}''" +
+            "The Policy import ''{0}'' of Policy ''{1}''" +
                     " could not be found or requester had insufficient permissions to access it.";
 
     private static final String DEFAULT_DESCRIPTION =
@@ -61,13 +60,14 @@ public final class PolicyImportNotAccessibleException extends DittoRuntimeExcept
     }
 
     /**
-     * A mutable builder for a {@code PolicyImportNotAccessibleException}.
+     * A mutable builder for a {@code PolicyImportNotAccessibleException} in case the requester does not have required
+     * permissions on a policy import.
      *
      * @param policyId the identifier of the Policy.
      * @param importedPolicyId the PolicyId of the PolicyImport.
      * @return the builder.
      */
-    public static Builder newBuilder(final PolicyId policyId, final CharSequence importedPolicyId) {
+    public static Builder newBuilder(final CharSequence policyId, final CharSequence importedPolicyId) {
         return new Builder(importedPolicyId, policyId);
     }
 
@@ -122,9 +122,9 @@ public final class PolicyImportNotAccessibleException extends DittoRuntimeExcept
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final CharSequence importedPolicyId, final PolicyId policyId) {
+        private Builder(final CharSequence importedPolicyId, final CharSequence policyId) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, importedPolicyId, String.valueOf(policyId)));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, importedPolicyId, policyId));
         }
 
         @Override

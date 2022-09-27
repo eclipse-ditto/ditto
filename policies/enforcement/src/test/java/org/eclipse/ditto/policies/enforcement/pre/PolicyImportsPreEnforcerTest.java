@@ -52,7 +52,6 @@ import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.policies.model.PolicyImports;
-import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImportNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
@@ -111,7 +110,8 @@ class PolicyImportsPreEnforcerTest {
             case ERROR -> {
                 assertThatExceptionOfType(CompletionException.class)
                         .isThrownBy(applyFuture::join)
-                        .withCauseInstanceOf(PolicyImportNotAccessibleException.class);
+                        .withCauseInstanceOf(PolicyNotAccessibleException.class)
+                        .withMessageContaining(IMPORTED_POLICY_ID.toString());
             }
         }
     }
