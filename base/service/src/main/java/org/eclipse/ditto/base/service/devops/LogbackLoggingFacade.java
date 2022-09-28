@@ -59,11 +59,11 @@ public final class LogbackLoggingFacade implements LoggingFacade {
 
     @Override
     @Nonnull
-    public List<LoggerConfig> getLoggerConfig() {
+    public List<LoggerConfig> getLoggerConfig(final boolean includeDisabledLoggers) {
         final Logger rootLogger = (Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
         final List<Logger> loggerList = rootLogger.getLoggerContext().getLoggerList();
 
-        return loggerConfigsFor(loggerList);
+        return loggerConfigsFor(loggerList, includeDisabledLoggers);
     }
 
     @Override
@@ -73,17 +73,24 @@ public final class LogbackLoggingFacade implements LoggingFacade {
                 .map(logger -> (Logger) LoggerFactory.getLogger(logger))
                 .toList();
 
-        return loggerConfigsFor(loggerList);
+        return loggerConfigsFor(loggerList, true);
     }
 
-    private List<LoggerConfig> loggerConfigsFor(final Iterable<Logger> loggers) {
+    private List<LoggerConfig> loggerConfigsFor(final Iterable<Logger> loggers, final boolean includeDisabledLoggers) {
         final List<LoggerConfig> loggerConfigList = new ArrayList<>();
 
         loggers.forEach(logger -> {
             final Level level = Optional.ofNullable(logger.getLevel()).orElse(Level.OFF);
             final Optional<LogLevel> logLevelOptional = LogLevel.forIdentifier(level.toString());
             logLevelOptional
-                    .filter(logLevel -> !logLevel.equals(LogLevel.OFF)) // filter out the "off" loggers
+                    .filter(logLevel -> {
+                        if (includeDisabledLoggers) {
+                            return true;
+                        } else {
+                            // filter out the "off" loggers
+                            return !logLevel.equals(LogLevel.OFF);
+                        }
+                    })
                     .ifPresent(logLevel -> loggerConfigList.add(ImmutableLoggerConfig.of(logLevel, logger.getName())));
         });
 
