@@ -111,6 +111,7 @@ public abstract class AbstractBaseClientActorTest {
             clientActor.tell(RetrieveConnectionStatus.of(getConnectionId(), DittoHeaders.empty()), getRef());
 
             expectMsgClass(ResourceStatus.class);
+            getActorSystem().stop(clientActor);
         }};
     }
 
@@ -131,6 +132,7 @@ public abstract class AbstractBaseClientActorTest {
             clientActor.tell(ResetConnectionMetrics.of(getConnectionId(), DittoHeaders.empty()), getRef());
 
             expectNoMessage();
+            getActorSystem().stop(clientActor);
         }};
     }
 
@@ -206,6 +208,7 @@ public abstract class AbstractBaseClientActorTest {
             clientActor.tell(EnableConnectionLogs.of(getConnectionId(), DittoHeaders.empty()), getRef());
 
             expectNoMessage();
+            getActorSystem().stop(clientActor);
         }};
     }
 
@@ -216,6 +219,7 @@ public abstract class AbstractBaseClientActorTest {
             clientActor.tell(ResetConnectionLogs.of(getConnectionId(), DittoHeaders.empty()), getRef());
 
             expectNoMessage();
+            getActorSystem().stop(clientActor);
         }};
     }
 

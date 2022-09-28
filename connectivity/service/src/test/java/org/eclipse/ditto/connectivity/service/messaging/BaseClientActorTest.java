@@ -117,8 +117,7 @@ public final class BaseClientActorTest {
     @AfterClass
     public static void tearDown() {
         if (null != actorSystem) {
-            TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
-                    false);
+            actorSystem.terminate();
         }
     }
 

@@ -102,8 +102,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
 
     @AfterClass
     public static void tearDown() {
-        TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
-                false);
+        actorSystem.terminate();
         stopMockServer();
     }
 

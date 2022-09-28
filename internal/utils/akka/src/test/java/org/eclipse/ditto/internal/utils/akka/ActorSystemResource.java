@@ -153,7 +153,7 @@ public final class ActorSystemResource extends ExternalResource {
 
     @Override
     protected void after() {
-        TestKit.shutdownActorSystem(actorSystem, Duration.apply(5, TimeUnit.SECONDS), false);
+        actorSystem.terminate();
         actorSystemName = null;
         super.after();
     }

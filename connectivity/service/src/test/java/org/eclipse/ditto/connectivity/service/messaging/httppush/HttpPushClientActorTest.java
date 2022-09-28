@@ -114,7 +114,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     @After
     public void stopActorSystem() {
         if (actorSystem != null) {
-            TestKit.shutdownActorSystem(actorSystem);
+            actorSystem.terminate();
         }
     }
 
