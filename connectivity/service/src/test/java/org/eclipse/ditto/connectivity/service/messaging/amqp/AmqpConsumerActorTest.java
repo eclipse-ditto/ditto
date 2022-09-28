@@ -44,6 +44,7 @@ import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
 
 import org.apache.qpid.jms.JmsAcknowledgeCallback;
+import org.apache.qpid.jms.JmsMessageConsumer;
 import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.JmsMessageSupport;
 import org.apache.qpid.jms.provider.amqp.AmqpConnection;
@@ -91,6 +92,7 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
@@ -111,13 +113,16 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
 
     private final ConcurrentMap<JmsAcknowledgeCallback, Integer> ackStates = new ConcurrentHashMap<>();
     private final BlockingQueue<Integer> jmsAcks = new LinkedBlockingQueue<>();
+    private JmsMessageConsumer jmsMessageConsumer;
+    private TestProbe jmsActor;
 
     @Override
     protected Props getConsumerActorProps(final Sink<Object, NotUsed> inboundMappingSink,
             final PayloadMapping payloadMapping) {
-        return getConsumerActorProps(mock(MessageConsumer.class), TestProbe.apply(actorSystem).testActor(),
-                CONNECTION_ID.toString(), inboundMappingSink, payloadMapping
-        );
+        jmsMessageConsumer = mock(JmsMessageConsumer.class);
+        jmsActor = TestProbe.apply(actorSystem);
+        return getConsumerActorProps(jmsMessageConsumer, jmsActor.testActor(), CONNECTION_ID.toString(),
+                inboundMappingSink, payloadMapping);
     }
 
     private Props getConsumerActorProps(final MessageConsumer messageConsumer,
@@ -502,6 +507,24 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                 return messageConsumer;
             }
         };
+    }
+
+    @Test
+    public void stopConsumingOnRequest() {
+        new TestKit(actorSystem) {{
+            final TestProbe proxyActor = TestProbe.apply(actorSystem);
+            final TestProbe clientActor = TestProbe.apply(actorSystem);
+            final Sink<Object, NotUsed> inboundMappingSink =
+                    setupInboundMappingSink(clientActor.ref(), proxyActor.ref());
+            final var payloadMapping = ConnectivityModelFactory.newPayloadMapping("ditto", "ditto");
+
+            final ActorRef underTest = actorSystem.actorOf(getConsumerActorProps(inboundMappingSink, payloadMapping));
+
+            underTest.tell(AmqpConsumerActor.Control.STOP_CONSUMER, getRef());
+            expectMsg(Done.getInstance());
+            verify(jmsMessageConsumer).stop();
+        }};
+
     }
 
 

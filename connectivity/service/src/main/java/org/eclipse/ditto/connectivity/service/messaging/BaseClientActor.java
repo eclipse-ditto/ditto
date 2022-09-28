@@ -2307,7 +2307,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         }
     }
 
-    private enum Control {
+    /**
+     * Messages to control the life cycles of the actor.
+     */
+    public enum Control {
         INIT_COMPLETE,
         CONNECT_AFTER_TUNNEL_ESTABLISHED,
         GOTO_CONNECTED_AFTER_INITIALIZATION,
