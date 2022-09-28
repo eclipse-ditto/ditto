@@ -207,8 +207,7 @@ public final class ThingEnforcerActor
             final Policy defaultPolicy = getDefaultPolicy(createThing.getDittoHeaders(), createThing.getEntityId());
             policyCs = createPolicy(defaultPolicy, createThing);
         }
-        return policyCs
-                .thenCompose(policy -> providePolicyEnforcer(policy.getEntityId().orElse(null)));
+        return policyCs.thenCompose(policy -> providePolicyEnforcer(policy.getEntityId().orElse(null)));
     }
 
     private CompletionStage<Policy> getCopiedPolicy(final String policyIdOrPlaceholder,

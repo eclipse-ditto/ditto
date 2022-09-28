@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.enforcement;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
@@ -48,24 +49,22 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<PolicyI
     @Override
     public CompletableFuture<Entry<PolicyEnforcer>> asyncLoad(final PolicyId policyId, final Executor executor) {
 
-        final Function<PolicyId, Optional<Policy>> policyResolver =
-                policyIdToResolve -> delegate.asyncLoad(policyIdToResolve, executor)
-                        .thenApply(Entry::get)
-                        .toCompletableFuture()
-                        .join();
+        final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver =
+                policyIdToResolve -> delegate.asyncLoad(policyIdToResolve, executor).thenApply(Entry::get);
 
         return delegate.asyncLoad(policyId, executor)
-                .thenApply(policyEntry -> evaluatePolicy(policyEntry, policyResolver));
+                .thenCompose(policyEntry -> evaluatePolicy(policyEntry, policyResolver));
     }
 
-    private Entry<PolicyEnforcer> evaluatePolicy(final Entry<Policy> entry,
-            final Function<PolicyId, Optional<Policy>> policyResolver) {
+    private CompletionStage<Entry<PolicyEnforcer>> evaluatePolicy(final Entry<Policy> entry,
+            final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver) {
         if (entry.exists()) {
             final var revision = entry.getRevision();
             final var policy = entry.getValueOrThrow();
-            return Entry.of(revision, PolicyEnforcer.withResolvedImports(policy, policyResolver));
+            return PolicyEnforcer.withResolvedImports(policy, policyResolver)
+                    .thenApply(enforcer -> Entry.of(revision, enforcer));
         } else {
-            return Entry.nonexistent();
+            return CompletableFuture.completedStage(Entry.nonexistent());
         }
     }
 

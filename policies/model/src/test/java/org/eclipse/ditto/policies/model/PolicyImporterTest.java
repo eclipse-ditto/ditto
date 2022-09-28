@@ -20,6 +20,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import org.eclipse.ditto.json.JsonPointer;
@@ -54,13 +56,13 @@ public final class PolicyImporterTest {
     public static final Policy IMPORTED_POLICY = createImportedPolicy(IMPORTED_POLICY_ID);
     public static final Policy IMPORTED_POLICY_2 = createImportedPolicy(IMPORTED_POLICY_ID2);
 
-    private static final Function<PolicyId, Optional<Policy>> POLICY_LOADER = (policyId) -> {
+    private static final Function<PolicyId, CompletionStage<Optional<Policy>>> POLICY_LOADER = (policyId) -> {
         if (IMPORTED_POLICY_ID.equals(policyId)) {
-            return Optional.of(IMPORTED_POLICY);
+            return CompletableFuture.completedFuture(Optional.of(IMPORTED_POLICY));
         } else if (IMPORTED_POLICY_ID2.equals(policyId)) {
-            return Optional.of(IMPORTED_POLICY_2);
+            return CompletableFuture.completedFuture(Optional.of(IMPORTED_POLICY_2));
         }
-        return Optional.empty();
+        return CompletableFuture.completedFuture(Optional.empty());
     };
 
     private static PolicyEntry policyEntry(final ImportableType importableType) {
@@ -90,7 +92,8 @@ public final class PolicyImporterTest {
                 .setPolicyImport(PoliciesModelFactory.newPolicyImport(IMPORTED_POLICY_ID, importedLabels))
                 .build();
 
-        final Set<PolicyEntry> entries = PolicyImporter.mergeImportedPolicyEntries(policy, POLICY_LOADER);
+        final Set<PolicyEntry> entries =
+                PolicyImporter.mergeImportedPolicyEntries(policy, POLICY_LOADER).toCompletableFuture().join();
         assertThat(entries).containsExactlyInAnyOrder(KNOWN_POLICY_ENTRY_OWN,
                 importedPolicyEntry(IMPORTED_POLICY_ID, policyEntry(ImportableType.EXPLICIT)),
                 importedPolicyEntry(IMPORTED_POLICY_ID, policyEntry(ImportableType.IMPLICIT))
@@ -108,7 +111,9 @@ public final class PolicyImporterTest {
                 .build();
 
         final Set<PolicyEntry> entries =
-                PolicyImporter.mergeImportedPolicyEntries(policyWithMultipleImports, POLICY_LOADER);
+                PolicyImporter.mergeImportedPolicyEntries(policyWithMultipleImports, POLICY_LOADER)
+                        .toCompletableFuture()
+                        .join();
 
         assertThat(entries).containsExactlyInAnyOrder(KNOWN_POLICY_ENTRY_OWN,
                 importedPolicyEntry(IMPORTED_POLICY_ID, policyEntry(ImportableType.EXPLICIT)),
@@ -121,9 +126,11 @@ public final class PolicyImporterTest {
     @Test
     public void policyEntriesNotModifiedWithEmptyImports() {
         final Policy policy = createPolicy();
-        final Set<PolicyEntry> entries = PolicyImporter.mergeImportedPolicyEntries(policy, POLICY_LOADER);
+        final Set<PolicyEntry> entries =
+                PolicyImporter.mergeImportedPolicyEntries(policy, POLICY_LOADER).toCompletableFuture().join();
         assertThat(entries).containsExactlyInAnyOrder(KNOWN_POLICY_ENTRY_OWN);
     }
+
     @Test
     public void policyEntriesNotModifiedIfImportedPolicyIsNotFound() {
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(createPolicy())
@@ -131,7 +138,8 @@ public final class PolicyImporterTest {
                         PoliciesModelFactory.newPolicyImport(PolicyId.of("eclipse:notfound"), (EffectedImports) null))
                 .build();
 
-        final Set<PolicyEntry> entries = PolicyImporter.mergeImportedPolicyEntries(policy, POLICY_LOADER);
+        final Set<PolicyEntry> entries =
+                PolicyImporter.mergeImportedPolicyEntries(policy, POLICY_LOADER).toCompletableFuture().join();
         assertThat(entries).containsExactlyInAnyOrder(KNOWN_POLICY_ENTRY_OWN);
     }
 

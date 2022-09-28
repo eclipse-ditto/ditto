@@ -42,35 +42,40 @@ final class ResolvedPolicyCacheLoader implements AsyncCacheLoader<PolicyId, Entr
             final Executor executor) {
 
         return policyCacheLoader.asyncLoad(policyId, executor)
-                .thenApply(policyEntry -> {
+                .thenCompose(policyEntry -> {
                     if (policyEntry.exists()) {
                         final Policy policy = policyEntry.getValueOrThrow();
                         final Set<PolicyTag> referencedPolicies = new HashSet<>();
-                        final Policy resolvedPolicy = policy.withResolvedImports(
-                                importedPolicyId -> {
-                                    final Optional<Policy> optionalReferencedPolicy =
-                                            policyCacheLoader.asyncLoad(importedPolicyId, executor)
-                                                    .toCompletableFuture()
-                                                    .join()
-                                                    .get();
-                                    if (optionalReferencedPolicy.isPresent()) {
-                                        final Policy referencedPolicy = optionalReferencedPolicy.get();
-                                        final Optional<PolicyRevision> revision = referencedPolicy.getRevision();
-                                        final Optional<PolicyId> entityId = referencedPolicy.getEntityId();
-                                        if (revision.isPresent() && entityId.isPresent()) {
-                                            referencedPolicies.add(
-                                                    PolicyTag.of(entityId.get(), revision.get().toLong())
-                                            );
-                                        }
-                                    }
-                                    return optionalReferencedPolicy;
+                        return policy.withResolvedImports(
+                                        importedPolicyId -> policyCacheLoader.asyncLoad(importedPolicyId, executor)
+                                                .thenApply(Entry::get)
+                                                .thenApply(optionalReferencedPolicy -> {
+                                                    if (optionalReferencedPolicy.isPresent()) {
+                                                        final Policy referencedPolicy =
+                                                                optionalReferencedPolicy.get();
+                                                        final Optional<PolicyRevision> revision =
+                                                                referencedPolicy.getRevision();
+                                                        final Optional<PolicyId> entityId =
+                                                                referencedPolicy.getEntityId();
+                                                        if (revision.isPresent() && entityId.isPresent()) {
+                                                            referencedPolicies.add(
+                                                                    PolicyTag.of(entityId.get(),
+                                                                            revision.get().toLong())
+                                                            );
+                                                        }
+                                                    }
+                                                    return optionalReferencedPolicy;
+                                                }))
+                                .thenApply(resolvedPolicy -> {
+                                    final long revision = policy.getRevision().map(PolicyRevision::toLong)
+                                            .orElseThrow(
+                                                    () -> new IllegalStateException(
+                                                            "Bad SudoRetrievePolicyResponse: no revision"));
+                                    return Entry.of(revision, new Pair<>(resolvedPolicy, referencedPolicies));
                                 });
-                        final long revision = policy.getRevision().map(PolicyRevision::toLong)
-                                .orElseThrow(
-                                        () -> new IllegalStateException("Bad SudoRetrievePolicyResponse: no revision"));
-                        return Entry.of(revision, new Pair<>(resolvedPolicy, referencedPolicies));
+
                     } else {
-                        return Entry.nonexistent();
+                        return CompletableFuture.completedFuture(Entry.nonexistent());
                     }
                 });
     }

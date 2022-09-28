@@ -18,6 +18,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.policies.enforcement.AbstractPolicyLoadingEnforcerActor;
 import org.eclipse.ditto.policies.enforcement.PolicyCacheLoader;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
@@ -69,14 +70,11 @@ public final class PolicyEnforcerActor extends
     protected CompletionStage<Optional<PolicyEnforcer>> loadPolicyEnforcer(final Signal<?> signal) {
         if (signal instanceof CreatePolicy createPolicy) {
             final PolicyCacheLoader policyCacheLoader = PolicyCacheLoader.getSingletonInstance(getContext().system());
-            final Function<PolicyId, Optional<Policy>> importedPolicyResolver =
+            final Function<PolicyId, CompletionStage<Optional<Policy>>> importedPolicyResolver =
                     importedPolicyId -> policyCacheLoader.asyncLoad(importedPolicyId, getContext().dispatcher())
-                            .toCompletableFuture()
-                            .join()
-                            .get();
-            return CompletableFuture.completedStage(
-                    Optional.of(PolicyEnforcer.withResolvedImports(createPolicy.getPolicy(), importedPolicyResolver))
-            );
+                            .thenApply(Entry::get);
+            return PolicyEnforcer.withResolvedImports(createPolicy.getPolicy(), importedPolicyResolver)
+                    .thenApply(Optional::of);
         }
         return super.loadPolicyEnforcer(signal);
     }

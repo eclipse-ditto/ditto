@@ -13,6 +13,7 @@
 package org.eclipse.ditto.policies.enforcement;
 
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -44,10 +45,13 @@ public final class PolicyEnforcer {
      * @param policy the policy
      * @return the pair
      */
-    public static PolicyEnforcer withResolvedImports(final Policy policy, final Function<PolicyId, Optional<Policy>> policyResolver) {
-        final Policy resolvedPolicy = policy.withResolvedImports(policyResolver);
-        final var enforcer = PolicyEnforcers.defaultEvaluator(resolvedPolicy);
-        return new PolicyEnforcer(policy, enforcer);
+    public static CompletionStage<PolicyEnforcer> withResolvedImports(final Policy policy,
+            final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver) {
+        return policy.withResolvedImports(policyResolver)
+                .thenApply(resolvedPolicy -> {
+                    final var enforcer = PolicyEnforcers.defaultEvaluator(resolvedPolicy);
+                    return new PolicyEnforcer(resolvedPolicy, enforcer);
+                });
     }
 
     /**

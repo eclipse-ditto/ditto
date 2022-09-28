@@ -18,6 +18,8 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -451,15 +453,17 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
                 .build();
     }
 
-    default Policy withResolvedImports(final Function<PolicyId, Optional<Policy>> policyResolver) {
+    default CompletionStage<Policy> withResolvedImports(
+            final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver) {
+        final CompletionStage<Policy> result;
         final PolicyImports imports = getPolicyImports();
-        final Policy resolvedPolicy;
         if (!imports.isEmpty()) {
-            return this.toBuilder().setAll(PolicyImporter.mergeImportedPolicyEntries(this, policyResolver)).build();
+            result = PolicyImporter.mergeImportedPolicyEntries(this, policyResolver)
+                    .thenApply(mergedEntries -> this.toBuilder().setAll(mergedEntries).build());
         } else {
-            resolvedPolicy = this;
+            result = CompletableFuture.completedFuture(this);
         }
-        return resolvedPolicy;
+        return result;
     }
 
     /**

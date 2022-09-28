@@ -16,6 +16,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -42,20 +44,21 @@ public final class PolicyImporter {
      * @return a combined set of existing {@link PolicyEntry}s from the passed {@code policy} merged with policy entries
      * from imported policies.
      */
-    public static Set<PolicyEntry> mergeImportedPolicyEntries(final Policy policy,
-            final Function<PolicyId, Optional<Policy>> policyLoader) {
+    public static CompletionStage<Set<PolicyEntry>> mergeImportedPolicyEntries(final Policy policy,
+            final Function<PolicyId, CompletionStage<Optional<Policy>>> policyLoader) {
         return policy.getPolicyImports().stream()
                 .map(policyImport -> {
                     final PolicyId importedPolicyId = policyImport.getImportedPolicyId();
-                    final Optional<Policy> loadedPolicyOpt = policyLoader.apply(importedPolicyId);
-                    return loadedPolicyOpt.map(loadedPolicy -> {
+                    final CompletionStage<Optional<Policy>> loadedPolicyOptCs = policyLoader.apply(importedPolicyId);
+                    return loadedPolicyOptCs.thenApply(loadedPolicyOpt -> loadedPolicyOpt.map(loadedPolicy -> {
                         final ImportedLabels importedLabels = policyImport.getEffectedImports()
                                 .map(EffectedImports::getImportedLabels)
                                 .orElse(ImportedLabels.none());
                         return rewriteImportedLabels(importedPolicyId, loadedPolicy, importedLabels);
-                    }).orElse(Collections.emptySet());
+                    }).orElse(Collections.emptySet()));
                 })
-                .reduce(policy.getEntriesSet(), PolicyImporter::combineSets, PolicyImporter::combineSets);
+                .reduce(CompletableFuture.completedFuture(policy.getEntriesSet()), PolicyImporter::combineSets,
+                        PolicyImporter::combineSets);
     }
 
     private static Set<PolicyEntry> rewriteImportedLabels(final PolicyId importedPolicyId, final Policy importedPolicy,
@@ -72,7 +75,8 @@ public final class PolicyImporter {
                 .collect(Collectors.toSet());
     }
 
-    private static Stream<PolicyEntry> importEntry(final Collection<Label> importedLabels, final PolicyEntry importedEntry) {
+    private static Stream<PolicyEntry> importEntry(final Collection<Label> importedLabels,
+            final PolicyEntry importedEntry) {
         switch (importedEntry.getImportableType()) {
             case IMPLICIT:
                 return Stream.of(importedEntry);
@@ -84,7 +88,10 @@ public final class PolicyImporter {
         }
     }
 
-    private static Set<PolicyEntry> combineSets(final Set<PolicyEntry> set1, final Set<PolicyEntry> set2) {
-        return Stream.concat(set1.stream(), set2.stream()).collect(Collectors.toSet());
+    private static CompletionStage<Set<PolicyEntry>> combineSets(final CompletionStage<Set<PolicyEntry>> set1Cs,
+            final CompletionStage<Set<PolicyEntry>> set2Cs) {
+        return set1Cs.thenCombine(set2Cs,
+                (set1, set2) -> Stream.concat(set1.stream(), set2.stream()).collect(Collectors.toSet())
+        );
     }
 }
