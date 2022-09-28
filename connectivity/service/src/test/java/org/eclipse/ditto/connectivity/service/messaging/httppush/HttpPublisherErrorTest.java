@@ -52,7 +52,6 @@ import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -139,7 +138,6 @@ public final class HttpPublisherErrorTest {
     }
 
     @Test
-    @Ignore("TODO unignore! this test fails because the embedded test server somehow on longer reachable after it was manually recreated")
     public void closingConnectionFromServerSideShouldNotDisturbEventPublishing() throws Exception {
         createActorSystem(TestConstants.CONFIG);
         new TestKit(actorSystem) {{
