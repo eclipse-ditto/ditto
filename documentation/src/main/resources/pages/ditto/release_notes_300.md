@@ -3,7 +3,7 @@ title: Release notes 3.0.0
 tags: [release_notes]
 published: true
 keywords: release notes, announcements, changelog
-summary: "Version 3.0.0 of Eclipse Ditto, released on xx.xx.2022"
+summary: "Version 3.0.0 of Eclipse Ditto, released on 28.09.2022"
 permalink: release_notes_300.html
 ---
 
@@ -27,6 +27,7 @@ Eclipse Ditto 3.0.0 focuses on the following areas:
 * Make "default namespace" for creating new entities configurable
 * Provide custom namespace when creating things via HTTP POST
 * Make it possible to provide multiple OIDC issuer urls for a single configured openid-connect "prefix"
+* Addition of a "CloudEvents" mapper for mapping CE payloads in Ditto connections
 
 The following non-functional enhancements are also included:
 
@@ -43,6 +44,8 @@ The following non-functional enhancements are also included:
 We want to especially highlight the following bugfixes also included:
 
 * **Passwords** stored in the URI of **connections** to **no longer need to be double encoded**
+* Using the `Normalized` connection payload mapper together with enriched `extra` fields lead to wrongly merged things
+* Adding custom Java based `MessageMappers` to Ditto via classpath was no longer possible
 
 
 ### Changes
@@ -226,6 +229,11 @@ Provides the option to provide a custom namespace to create a new thing in when 
 
 Configure multiple `issuer` endpoints for the same configured [openid-connect-provider](installation-operating.html#openid-connect).
 
+#### [Addition of a "CloudEvents" mapper for mapping CE payloads in Ditto connections](https://github.com/eclipse/ditto/pull/1437)
+
+Adds a [CloudEvents](connectivity-mapping.html#cloudevents-mapper) in order to e.g. consume CloudEvents via Apache Kafka
+or MQTT and additionally to also publish CEs as well via all supported connectivity types.
+
 
 ### Bugfixes
 
@@ -248,6 +256,22 @@ Also fixing the reported issue:
 
 {% include note.html content="Be aware of the
   [migration note](#migration-connection-uri-password-encoding) before updating to Ditto 3.0." %}
+
+#### [When merging a feature, the normalized payload does not contain full feature](https://github.com/eclipse/ditto/issues/1446)
+
+When using the [Normalized mapper](connectivity-mapping.html#normalized-mapper) in Ditto connections together with
+[extra field enrichment](basic-enrichment.html), the outcome "merged" thing JSON structure could miss some information
+from the enriched "extra" data.  
+This has been fixed.
+
+#### [Fix that adding custom Java MessageMappers to Ditto via classpath is no longer possible](https://github.com/eclipse/ditto/issues/1463)
+
+Writing own, Java based, `MessageMappers` and adding them to the classpath 
+[as documented](connectivity-mapping.html#custom-java-based-implementation) did no longer work.  
+This has been fixed and the documentation for doing exactly that has been updated.
+
+In addition, an example of how to provide a custom Protobuf payload mapper has been provided via 
+[custom-ditto-java-payload-mapper](https://github.com/eclipse/ditto-examples/tree/master/custom-ditto-java-payload-mapper).
 
 
 ## Migration notes
@@ -333,6 +357,9 @@ line
 
 , the reindexing has completed successfully.
 
+The reindexing of all things or only specific namespaces can also be 
+[explicitly triggered](installation-operating.html#force-search-index-update-of-all-things).
+
 #### Clean up
 
 After reindexing, the old search index can be dropped.
@@ -388,7 +415,11 @@ double encoding **must be migrated** to use single encoding instead.
 
 Looking forward, the current plans for Ditto 3.1.0 are:
 
+* [Support AMQP Message Annotations when extracting values for Headers](https://github.com/eclipse/ditto/issues/1390)
 * [Policy imports](https://github.com/eclipse/ditto/issues/298) which will allow re-use of policies by importing existing ones
-* Cloud Events mapper for connections
-  * [Inbound CloudEvents mapper](https://github.com/eclipse/ditto/issues/1393)
-  * [Outbound CloudEvents Mapper](https://github.com/eclipse/ditto/issues/1394)
+* Perform a benchmark of Ditto 3.0 and provide a "tuning" chapter in the documentation as a reference to the commonly 
+  asked questions 
+  * how many Things Ditto can manage 
+  * how many updates/second can be done
+  * whether Ditto can scale horizontally
+  * how many resources (e.g. machines) are required at which scale

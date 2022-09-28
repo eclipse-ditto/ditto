@@ -355,7 +355,7 @@ public final class ImmutablePolicyTest {
                 .setResource(resource1)
                 .build();
 
-        assertThat(policyA.isSemanticallySameAs(policyB.getEntriesSet())).isTrue();
+        assertThat(policyA.isSemanticallySameAs(policyB)).isTrue();
     }
 
     @Test
@@ -383,7 +383,7 @@ public final class ImmutablePolicyTest {
                 .setResource(resource2)
                 .build();
 
-        assertThat(policyA.isSemanticallySameAs(policyB.getEntriesSet())).isFalse();
+        assertThat(policyA.isSemanticallySameAs(policyB)).isFalse();
     }
 
     @Test
@@ -412,7 +412,7 @@ public final class ImmutablePolicyTest {
                 .setResource(resource3)
                 .build();
 
-        assertThat(policyA.isSemanticallySameAs(policyB.getEntriesSet())).isFalse();
+        assertThat(policyA.isSemanticallySameAs(policyB)).isFalse();
     }
 
     @Test
@@ -442,7 +442,7 @@ public final class ImmutablePolicyTest {
                 .setResource(resource2)
                 .build();
 
-        assertThat(policyA.isSemanticallySameAs(policyB.getEntriesSet())).isFalse();
+        assertThat(policyA.isSemanticallySameAs(policyB)).isFalse();
     }
 
 }

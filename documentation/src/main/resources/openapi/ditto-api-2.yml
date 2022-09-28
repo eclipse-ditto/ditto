@@ -221,21 +221,7 @@ paths:
         - $ref: '#/components/parameters/GetMetadataParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
-        - name: channel
-          in: query
-          description: |-
-            Defines to which channel to route the command: `twin` (digital twin) or `live` (the device).
-            * If setting the channel parameter is omitted, the `twin` channel is set by default and the command is routed to the persisted representation of a thing in Eclipse Ditto.
-            * When using the `live` channel, the command/message is sent towards the device.
-
-            The option `live` is not available when a new thing should be created, only for updating an
-            existing thing.
-          required: false
-          schema:
-            type: string
-            enum:
-              - twin
-              - live
+        - $ref: '#/components/parameters/ChannelParamPutDescription'
         - $ref: '#/components/parameters/LiveChannelConditionParam'
         - $ref: '#/components/parameters/LiveChannelTimeoutStrategyParam'
       responses:
@@ -664,23 +650,7 @@ paths:
         content:
           application/merge-patch+json:
             schema:
-              type: object
-              properties:
-                thingId:
-                  type: string
-                  description: Unique identifier representing the thing
-                policyId:
-                  type: string
-                  description: 'The ID of the policy which controls the access to this thing. policies are managed by resource `/policies/{policyId}`'
-                definition:
-                  $ref: '#/components/schemas/Definition'
-                attributes:
-                  $ref: '#/components/schemas/Attributes'
-                features:
-                  $ref: '#/components/schemas/Features'
-              required:
-                - thingId
-                - policyId
+              $ref: '#/components/schemas/PatchThing'
             example:
               attributes:
                 manufacturingYear: '2020'
@@ -4550,67 +4520,7 @@ paths:
         - Policies
       parameters:
         - $ref: '#/components/parameters/PolicyIdPathParam'
-        - name: fields
-          in: query
-          description: |-
-            Contains a comma-separated list of fields to be included in the returned
-            JSON.
-
-            #### Selectable fields
-
-            * `policyId`
-            * `entries`
-
-               Supports selecting arbitrary sub-fields by using a comma-separated list:
-                * several entry paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
-
-                  For example:
-                    * `?fields=entries/ditto` would select only the `ditto` entry value(if present)
-                    * `?fields=entries/ditto,entries/user` would select only `ditto` and
-                       `user` entry values (if present)
-
-              Supports selecting arbitrary sub-fields of objects by wrapping sub-fields inside parentheses `( )`:
-                * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901)
-                  separated with `/`) to select
-
-                * sub-selectors can be used to request only specific sub-fields by placing expressions
-                  in parentheses `( )` after a selected subfield
-
-                  For example:
-                   * `?fields=entries(ditto,user)` would select only `ditto`
-                      and `user` entry values (if present)
-                   * `?fields=entries(ditto/subjects)` would select the `subjects` value
-                      inside the `ditto` entry
-                   * `?fields=entries/ditto/subjects(issuer:google,issuer:azure)` would select the `issuer:google` and
-                      `issuer:azure` values inside the `subjects` object inside the `entries` object
-
-            * `_namespace`
-
-              Specifically selects the namespace also contained in the `policyId`
-
-            * `_revision`
-
-              Specifically selects the revision of the policy. The revision is a counter, which is incremented on each modification of a policy.
-
-            * `_created`
-
-              Specifically selects the created timestamp of the policy in ISO-8601 UTC format. The timestamp is set on creation of a policy.
-
-            * `_modified`
-
-              Specifically selects the modified timestamp of the policy in ISO-8601 UTC format. The timestamp is set on each modification of a policy.
-
-            * `_metadata`
-
-              Specifically selects the Metadata of the policy. The content is a JSON object having the policy's JSON structure with the difference that the JSON leaves of the policy are JSON objects containing the metadata.
-
-            #### Examples
-
-            * `?fields=policyId,entries,_revision`
-            * `?fields=entries(ditto,user),_namespace`
-          required: false
-          schema:
-            type: string
+        - $ref: '#/components/parameters/PolicyFieldsQueryParam'
         - $ref: '#/components/parameters/IfMatchHeaderParam'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
@@ -7249,6 +7159,22 @@ components:
         enum:
           - twin
           - live
+    ChannelParamPutDescription:
+      name: channel
+      in: query
+      description: |-
+        Defines to which channel to route the command: `twin` (digital twin) or `live` (the device).
+        * If setting the channel parameter is omitted, the `twin` channel is set by default and the command is routed to the persisted representation of a thing in Eclipse Ditto.
+        * When using the `live` channel, the command/message is sent towards the device.
+
+        The option `live` is not available when a new thing should be created, only for updating an
+        existing thing.
+      required: false
+      schema:
+        type: string
+        enum:
+          - twin
+          - live
     ConditionParam:
       name: condition
       in: query
@@ -7489,6 +7415,68 @@ components:
         * `?namespaces=com.example.namespace`
 
         * `?namespaces=com.example.namespace1,com.example.namespace2`
+      required: false
+      schema:
+        type: string
+    PolicyFieldsQueryParam:
+      name: fields
+      in: query
+      description: |-
+        Contains a comma-separated list of fields to be included in the returned
+        JSON.
+
+        #### Selectable fields
+
+        * `policyId`
+        * `entries`
+
+           Supports selecting arbitrary sub-fields by using a comma-separated list:
+            * several entry paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
+
+              For example:
+                * `?fields=entries/ditto` would select only the `ditto` entry value(if present)
+                * `?fields=entries/ditto,entries/user` would select only `ditto` and
+                   `user` entry values (if present)
+
+          Supports selecting arbitrary sub-fields of objects by wrapping sub-fields inside parentheses `( )`:
+            * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901)
+              separated with `/`) to select
+
+            * sub-selectors can be used to request only specific sub-fields by placing expressions
+              in parentheses `( )` after a selected subfield
+
+              For example:
+               * `?fields=entries(ditto,user)` would select only `ditto`
+                  and `user` entry values (if present)
+               * `?fields=entries(ditto/subjects)` would select the `subjects` value
+                  inside the `ditto` entry
+               * `?fields=entries/ditto/subjects(issuer:google,issuer:azure)` would select the `issuer:google` and
+                  `issuer:azure` values inside the `subjects` object inside the `entries` object
+
+        * `_namespace`
+
+          Specifically selects the namespace also contained in the `policyId`
+
+        * `_revision`
+
+          Specifically selects the revision of the policy. The revision is a counter, which is incremented on each modification of a policy.
+
+        * `_created`
+
+          Specifically selects the created timestamp of the policy in ISO-8601 UTC format. The timestamp is set on creation of a policy.
+
+        * `_modified`
+
+          Specifically selects the modified timestamp of the policy in ISO-8601 UTC format. The timestamp is set on each modification of a policy.
+
+        * `_metadata`
+
+          Specifically selects the Metadata of the policy. The content is a JSON object having the policy's JSON structure with the difference that the JSON leaves of the policy are JSON objects containing the metadata.
+
+        #### Examples
+
+        * `?fields=policyId,entries,_revision`
+        * `?fields=entries(ditto,user),_namespace`
       required: false
       schema:
         type: string
@@ -7907,6 +7895,24 @@ components:
           $ref: '#/components/schemas/Features'
       required:
         - policyId
+    PatchThing:
+      type: object
+      properties:
+        thingId:
+          type: string
+          description: Unique identifier representing the thing
+        policyId:
+          type: string
+          description: 'The ID of the policy which controls the access to this thing. policies are managed by resource `/policies/{policyId}`'
+        definition:
+          $ref: '#/components/schemas/Definition'
+        attributes:
+          $ref: '#/components/schemas/Attributes'
+        features:
+          $ref: '#/components/schemas/Features'
+      required:
+        - thingId
+        - policyId
     Thing:
       type: object
       properties:
@@ -8088,10 +8094,8 @@ components:
             timeout: 5s
         randomizationInterval:
           type: string
-          minimum: 0ms
-          maximum: 999_999_999s
           default: 5m
-          description: 'Interval in which the announcement can be sent earlier than the configured `beforeExpiry`. The actual point in time when the announcement will be sent is `beforeExpire` plus a randomly chosen time within the `randomizationInterval`. E.g assuming `beforeExpiry` is set to 5m and `randomizationInterval` is set to 1m, the announcements will be sent between 5 and 6 minutes before the subject expires. If omitted, the default value will be applied. If set to minimum, no randomization will be applied.'
+          description: 'Interval in which the announcement can be sent earlier in effort to prevent announcement peaks. If omitted, the default value will be applied. If set to minimum, no randomization will be applied.'
       example:
         beforeExpiry: 5m
         whenDeleted: true
