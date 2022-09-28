@@ -112,7 +112,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
     @Override
     public void postStop() throws Exception {
         super.postStop();
-        shutdown();
+        shutdown(null);
     }
 
     @Override
@@ -120,7 +120,8 @@ final class KafkaConsumerActor extends BaseConsumerActor {
         return receiveBuilder()
                 .match(ResourceStatus.class, this::handleAddressStatus)
                 .match(RetrieveAddressStatus.class, ram -> getSender().tell(getCurrentSourceStatus(), getSelf()))
-                .match(GracefulStop.class, stop -> shutdown())
+                .matchEquals(GracefulStop.START, start -> shutdown(getSender()))
+                .matchEquals(GracefulStop.DONE, done -> getContext().stop(getSelf()))
                 .match(ReportMetrics.class, reportMetrics -> reportMetrics())
                 .match(MessageRejectedException.class, this::restartStream)
                 .match(RestartableKafkaConsumerStream.class, this::setStream)
@@ -140,23 +141,38 @@ final class KafkaConsumerActor extends BaseConsumerActor {
         kafkaStream.reportMetrics();
     }
 
-    private void shutdown() {
+    private void shutdown(@Nullable final ActorRef sender) {
+        final var sendResponse = sender != null && !getContext().getSystem().deadLetters().equals(sender);
+        final var nullableSender = sendResponse ? sender : null;
         if (kafkaStream != null) {
-            try {
-                kafkaStream.stop()
-                        .toCompletableFuture()
-                        .orTimeout(MAX_SHUTDOWN_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
-                        .join();
-            } catch (final CompletionException exception) {
-                final Throwable cause = exception.getCause();
-                if (cause instanceof TimeoutException) {
-                    log.warning(
-                            "Timeout when shutting down the kafka consumer stream for Connection with ID <{}>",
-                            connectionId);
-                }
-            }
+            kafkaStream.stop()
+                    .toCompletableFuture()
+                    .orTimeout(MAX_SHUTDOWN_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+                    .handle((done, error) -> {
+                        final var isTimeout = error != null &&
+                                (error instanceof TimeoutException || error.getCause() instanceof TimeoutException);
+                        if (isTimeout) {
+                            final var timeoutTemplate =
+                                    "Timeout when shutting down the kafka consumer stream for Connection with ID <{}>";
+                            log.warning(timeoutTemplate, connectionId);
+                        } else {
+                            final var errorTemplate =
+                                    "Error when shutting down the kafka consumer stream for connection with ID <{}>";
+                            log.warning(error, errorTemplate, connectionId);
+                        }
+                        return Done.getInstance();
+                    })
+                    .thenAccept(done -> notifyConsumerStopped(nullableSender));
+        } else {
+            notifyConsumerStopped(nullableSender);
         }
-        getContext().stop(self());
+    }
+
+    private void notifyConsumerStopped(@Nullable final ActorRef sender) {
+        getSelf().tell(GracefulStop.DONE, getSelf());
+        if (sender != null) {
+            sender.tell(Done.getInstance(), getSelf());
+        }
     }
 
     private void handleStreamCompletion(@Nullable final Done done, @Nullable final Throwable throwable) {
@@ -209,19 +225,6 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                 .tell(ConnectionFailure.of(getSelf(), throwable, description), getSelf());
     }
 
-    /**
-     * Message that allows gracefully stopping the consumer actor.
-     */
-    static final class GracefulStop {
-
-        static final GracefulStop INSTANCE = new GracefulStop();
-
-        private GracefulStop() {
-            // intentionally empty
-        }
-
-    }
-
     static final class ReportMetrics {
 
         static final ReportMetrics INSTANCE = new ReportMetrics();
@@ -231,4 +234,11 @@ final class KafkaConsumerActor extends BaseConsumerActor {
         }
     }
 
+    /**
+     * Message that allows gracefully stopping the consumer actor.
+     */
+    static enum GracefulStop {
+        START,
+        DONE
+    }
 }

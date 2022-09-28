@@ -79,7 +79,7 @@ public class KafkaConsumerActorTest extends AbstractConsumerActorTest<ConsumerRe
 
     @Override
     protected void stopConsumerActor(final ActorRef underTest) {
-        underTest.tell(KafkaConsumerActor.GracefulStop.INSTANCE, ActorRef.noSender());
+        underTest.tell(KafkaConsumerActor.GracefulStop.START, ActorRef.noSender());
     }
 
     @Override

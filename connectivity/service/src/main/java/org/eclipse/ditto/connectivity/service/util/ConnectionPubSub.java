@@ -86,6 +86,19 @@ public final class ConnectionPubSub implements Extension {
                 .thenApply(SubAck::isConsistent);
     }
 
+    /**
+     * Unsubscribe as a client actor.
+     *
+     * @param connectionId connection ID of the client actor.
+     * @param clientActor the client actor.
+     * @return a future that completes or fails according to whether unsubscription is successful.
+     * otherwise.
+     */
+    public CompletionStage<Void> unsubscribe(final ConnectionId connectionId, final ActorRef clientActor) {
+        final var idString = connectionId.toString();
+        return sub.unsubscribeWithAck(List.of(idString), clientActor).thenApply(unsubAck -> null);
+    }
+
     private static <T extends DittoHeadersSettable<T>> T setConnectionId(final DittoHeadersSettable<T> signal,
             final ConnectionId connectionId) {
         return signal.setDittoHeaders(

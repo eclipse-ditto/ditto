@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -51,6 +52,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
@@ -122,6 +124,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
                 .match(Delivery.class, this::handleDelivery)
                 .match(ResourceStatus.class, this::handleAddressStatus)
                 .match(RetrieveAddressStatus.class, ram -> getSender().tell(getCurrentSourceStatus(), getSelf()))
+                .matchEquals(Control.STOP_CONSUMER, this::stopConsumerOnRequest)
                 .matchAny(m -> {
                     logger.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -193,8 +196,8 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
                                             "basic.nack for deliveryTag={0}, requeue={0}",
                                     delivery.getEnvelope().getDeliveryTag(), requeue);
                         } catch (final IOException e) {
-                            logger.error("Delivery of basic.nack for deliveryTag={} failed: {}", envelope.getDeliveryTag(),
-                                    e.getMessage());
+                            logger.error("Delivery of basic.nack for deliveryTag={} failed: {}",
+                                    envelope.getDeliveryTag(), e.getMessage());
                             inboundAcknowledgedMonitor.exception(e);
                         }
                     });
@@ -219,6 +222,15 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
         } finally {
             trace.finish();
         }
+    }
+
+    private void stopConsumerOnRequest(final Control stopConsumer) {
+        try {
+            channel.close();
+        } catch (final IOException | TimeoutException e) {
+            // do nothing about exceptions since the actor will shutdown shortly after
+        }
+        getSender().tell(Done.getInstance(), getSelf());
     }
 
     private static boolean shouldBeInterpretedAsBytes(@Nullable final String contentType) {
@@ -256,4 +268,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
         return new HashMap<>();
     }
 
+    enum Control {
+        STOP_CONSUMER
+    }
 }

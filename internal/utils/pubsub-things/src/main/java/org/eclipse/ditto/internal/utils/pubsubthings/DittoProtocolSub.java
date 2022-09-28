@@ -13,7 +13,9 @@
 package org.eclipse.ditto.internal.utils.pubsubthings;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
@@ -114,6 +116,22 @@ public interface DittoProtocolSub extends Extension {
      * @param subscriber the subscriber.
      */
     void removeAcknowledgementLabelDeclaration(ActorRef subscriber);
+
+    /**
+     * Remove subscriber from all distributed data and wait for acknowledgements.
+     *
+     * @param subscriber the subscriber to be removed.
+     * @param topics the topics of the subscriber to be removed.
+     * @return future that completes or fails according to the acknowledgements.
+     */
+    default CompletionStage<Void> removeSubscriber(ActorRef subscriber, Collection<String> topics) {
+        removeAcknowledgementLabelDeclaration(subscriber);
+        final var unsubLive = updateLiveSubscriptions(List.of(), topics, subscriber);
+        final var unsubTwin = removeTwinSubscriber(subscriber, topics);
+        final var unsubPolicy = removePolicyAnnouncementSubscriber(subscriber, topics);
+        final BiFunction<Object, Object, Void> voidFunction = (x, y) -> null;
+        return unsubLive.thenCombine(unsubTwin, voidFunction).thenCombine(unsubPolicy, voidFunction);
+    }
 
     /**
      * Get the {@code DittoProtocolSub} for an actor system.

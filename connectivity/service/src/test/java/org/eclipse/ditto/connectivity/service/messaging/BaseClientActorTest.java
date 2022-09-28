@@ -80,6 +80,7 @@ import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.CoordinatedShutdown;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
@@ -624,7 +625,7 @@ public final class BaseClientActorTest {
             expectMsg(CONNECTED_STATUS);
             thenExpectConnectionOpenedAnnouncement(publisherActor, randomConnectionId);
 
-            getSystem().terminate();
+            CoordinatedShutdown.get(getSystem()).run();
             thenExpectConnectionClosedAnnouncement(publisherActor, randomConnectionId);
         }};
 
@@ -808,6 +809,13 @@ public final class BaseClientActorTest {
                     .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, testConnectionCommand.getEntityId())
                     .info("doTestConnection");
             return delegate.doTestConnection(testConnectionCommand);
+        }
+
+        @Override
+        protected CompletionStage<Void> stopConsuming() {
+            logger.info("stopConsuming");
+            delegate.stopConsuming();
+            return CompletableFuture.completedStage(null);
         }
 
         @Override

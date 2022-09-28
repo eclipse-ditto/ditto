@@ -127,6 +127,12 @@ public final class HttpPushClientActor extends BaseClientActor {
     }
 
     @Override
+    protected CompletionStage<Void> stopConsuming() {
+        // nothing to do: HTTP connections do not consume.
+        return CompletableFuture.completedStage(null);
+    }
+
+    @Override
     protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
         // nothing to do here; publisher and consumers (no consumers for HTTP) started already.
     }

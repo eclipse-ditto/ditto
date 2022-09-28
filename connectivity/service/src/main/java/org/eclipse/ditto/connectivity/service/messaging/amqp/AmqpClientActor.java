@@ -26,6 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -300,6 +301,16 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     @Override
+    protected CompletionStage<Void> stopConsuming() {
+        final var timeout = Duration.ofMinutes(2L);
+        final CompletableFuture<?>[] futures = streamConsumerActors()
+                .map(consumer -> Patterns.ask(consumer, AmqpConsumerActor.Control.STOP_CONSUMER, timeout))
+                .map(CompletionStage::toCompletableFuture)
+                .toArray(CompletableFuture[]::new);
+        return CompletableFuture.allOf(futures);
+    }
+
+    @Override
     protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
         getConnectConnectionHandler(connection).tell(jmsConnect(origin, connection), getSelf());
@@ -437,12 +448,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     private void stopCommandConsumers() {
-        consumerByNamePrefix.forEach((namePrefix, child) -> {
-            final String actorName = child.path().name();
-            if (actorName.startsWith(AmqpConsumerActor.ACTOR_NAME_PREFIX)) {
-                stopChildActor(child);
-            }
-        });
+        streamConsumerActors().forEach(this::stopChildActor);
         consumerByNamePrefix.clear();
     }
 
@@ -609,6 +615,12 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     private JmsConnect jmsConnect(@Nullable final ActorRef sender, final Connection connection) {
         return new JmsConnect(sender, getClientId(connection.getId()));
+    }
+
+    private Stream<ActorRef> streamConsumerActors() {
+        return consumerByNamePrefix.values()
+                .stream()
+                .filter(child -> child.path().name().startsWith(AmqpConsumerActor.ACTOR_NAME_PREFIX));
     }
 
     /**

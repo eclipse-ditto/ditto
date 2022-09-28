@@ -206,6 +206,17 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     @Override
+    protected CompletionStage<Void> stopConsuming() {
+        final var timeout = Duration.ofMinutes(2L);
+        final CompletableFuture<?>[] futures = consumerByAddressWithIndex.values()
+                .stream()
+                .map(child -> Patterns.ask(child, RabbitMQConsumerActor.Control.STOP_CONSUMER, timeout))
+                .map(CompletionStage::toCompletableFuture)
+                .toArray(CompletableFuture[]::new);
+        return CompletableFuture.allOf(futures);
+    }
+
+    @Override
     protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
         final boolean consuming = isConsuming();
         final ActorRef self = getSelf();
