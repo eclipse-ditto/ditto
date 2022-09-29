@@ -19,7 +19,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.TracingTags;
@@ -35,13 +37,21 @@ import scala.jdk.javaapi.CollectionConverters;
 /**
  * Kamon based implementation of {@code PreparedTrace}.
  */
-class PreparedKamonTrace implements PreparedTrace {
+@NotThreadSafe
+final class PreparedKamonTrace implements PreparedTrace {
 
     private final SpanBuilder spanBuilder;
 
-    PreparedKamonTrace(final Context context, final String operationName) {
-        final Span parent = context.get(Span.Key());
-        spanBuilder = Kamon.spanBuilder(operationName).asChildOf(parent);
+    /**
+     * Constructs a {@code PreparedKamonTrace} object.
+     *
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    PreparedKamonTrace(final Context context, final CharSequence operationName) {
+        ConditionChecker.checkNotNull(context, "context");
+        ConditionChecker.checkNotNull(operationName, "operationName");
+
+        spanBuilder = Kamon.spanBuilder(operationName.toString()).asChildOf(context.get(Span.Key()));
     }
 
     @Override
@@ -59,14 +69,21 @@ class PreparedKamonTrace implements PreparedTrace {
     @Nullable
     @Override
     public String getTag(final String key) {
-        return spanBuilder.tags().get(Lookups.plain(key));
+        ConditionChecker.checkNotNull(key, "key");
+        final var tags = spanBuilder.tags();
+        return tags.get(Lookups.plain(key));
     }
 
     @Override
     public Map<String, String> getTags() {
-        return CollectionConverters.asJava(spanBuilder.tags().all())
+        final var tagSet = spanBuilder.tags();
+        return CollectionConverters.asJava(tagSet.all())
                 .stream()
-                .collect(Collectors.toMap(Tag::key, t -> Tag.unwrapValue(t).toString()));
+                .collect(Collectors.toMap(Tag::key, PreparedKamonTrace::getTagValueAsString));
+    }
+
+    private static String getTagValueAsString(final Tag tag) {
+        return String.valueOf(Tag.unwrapValue(tag));
     }
 
     @Override
@@ -81,22 +98,35 @@ class PreparedKamonTrace implements PreparedTrace {
 
     @Override
     public <T> T run(final DittoHeaders dittoHeaders, final Function<DittoHeaders, T> function) {
-        return Kamon.runWithSpan(spanBuilder.start(), () -> {
-            final DittoHeaders dittoHeadersWithContext = DittoTracing.propagateContext(Kamon.currentContext(),
-                    dittoHeaders);
-            dittoHeaders.getCorrelationId().ifPresent(cid -> Kamon.currentSpan().tag(TracingTags.CONNECTION_ID, cid));
-            return function.apply(dittoHeadersWithContext);
-        });
+        ConditionChecker.checkNotNull(dittoHeaders, "dittoHeaders");
+        final var span = spanBuilder.start();
+        return Kamon.runWithSpan(
+                span,
+                () -> {
+                    tagSpanWithCorrelationId(span, dittoHeaders);
+                    return function.apply(propagateTraceContextToDittoHeaders(dittoHeaders));
+                }
+        );
+    }
+
+    private static void tagSpanWithCorrelationId(final Span currentSpan, final DittoHeaders dittoHeaders) {
+        dittoHeaders.getCorrelationId()
+                .ifPresent(correlationId -> currentSpan.tag(TracingTags.CORRELATION_ID, correlationId));
+    }
+
+    private static DittoHeaders propagateTraceContextToDittoHeaders(final DittoHeaders dittoHeaders) {
+        return DittoTracing.propagateContext(Kamon.currentContext(), dittoHeaders);
     }
 
     @Override
     public void run(final DittoHeaders dittoHeaders, final Consumer<DittoHeaders> consumer) {
-        Kamon.runWithSpan(spanBuilder.start(), () -> {
-            final DittoHeaders dittoHeadersWithContext = DittoTracing.propagateContext(Kamon.currentContext(),
-                    dittoHeaders);
-            dittoHeaders.getCorrelationId().ifPresent(cid -> Kamon.currentSpan().tag(TracingTags.CONNECTION_ID, cid));
-            consumer.accept(dittoHeadersWithContext);
-            return null;
-        });
+        run(
+                dittoHeaders,
+                sameDittoHeaders -> {
+                    consumer.accept(sameDittoHeaders);
+                    return null;
+                }
+        );
     }
+
 }
