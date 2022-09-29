@@ -17,7 +17,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -249,7 +248,6 @@ public final class CachingPolicyEnforcerProviderTest {
                 pubSubMediatorProbe.ref()
         );
 
-        when(cache.asMap()).thenReturn(new ConcurrentHashMap<>());
         new TestKit(actorSystem) {{
             pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Subscribe.class);
             final ActorRef cachingActor = pubSubMediatorProbe.lastSender();
@@ -258,14 +256,13 @@ public final class CachingPolicyEnforcerProviderTest {
             cachingActor.tell(PolicyTag.of(policyId, 1234L), ActorRef.noSender());
 
             verify(cache, timeout(3000)).invalidate(policyId);
-            verify(cache, times(1)).asMap();
         }};
 
     }
 
     @Test
     public void policyTagInvalidatesCacheOfPolicyAndPoliciesWhichImportedThePolicy() {
-        new CachingPolicyEnforcerProvider(
+        final CachingPolicyEnforcerProvider cachingPolicyEnforcerProvider = new CachingPolicyEnforcerProvider(
                 actorSystem,
                 cache,
                 blockedNamespaces,
@@ -276,22 +273,23 @@ public final class CachingPolicyEnforcerProviderTest {
         final var importingPolicyId = PolicyId.generateRandom();
         final var changedPolicyId = PolicyId.generateRandom();
 
-        final var cacheMap = new ConcurrentHashMap<>(Map.of(
-                otherPolicyId, Entry.permanent(mockPolicyEnforcer()),
-                importingPolicyId, Entry.permanent(mockPolicyEnforcer(changedPolicyId))
-        ));
-        when(cache.asMap()).thenReturn(cacheMap);
         new TestKit(actorSystem) {{
             pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Subscribe.class);
             final ActorRef cachingActor = pubSubMediatorProbe.lastSender();
-
+            //When
+            final Policy importingPolicy = Policy.newBuilder(importingPolicyId)
+                    .setPolicyImport(PoliciesModelFactory.newPolicyImport(changedPolicyId))
+                    .build();
+            final Policy otherPolicy = Policy.newBuilder(otherPolicyId)
+                    .build();
+            insertIntoCache(importingPolicy, cachingPolicyEnforcerProvider);
+            insertIntoCache(otherPolicy, cachingPolicyEnforcerProvider);
 
             cachingActor.tell(PolicyTag.of(changedPolicyId, 1234L), ActorRef.noSender());
 
             verify(cache, timeout(3000)).invalidate(changedPolicyId);
             verify(cache, timeout(3000)).invalidate(importingPolicyId);
             verify(cache, never()).invalidate(otherPolicyId);
-            verify(cache, times(1)).asMap();
         }};
 
     }
@@ -342,6 +340,20 @@ public final class CachingPolicyEnforcerProviderTest {
         final var policyEnforcer = mock(PolicyEnforcer.class);
         when(policyEnforcer.getPolicy()).thenReturn(Optional.of(policy));
         return policyEnforcer;
+    }
+
+    private void insertIntoCache(final Policy policy,
+            final CachingPolicyEnforcerProvider cachingPolicyEnforcerProvider) {
+        final PolicyEnforcer enforcer = PolicyEnforcer.of(policy);
+        final PolicyId policyId = policy.getEntityId().orElseThrow();
+
+        final var enforcerResponseFromCache =
+                CompletableFuture.completedFuture(Optional.of(Entry.of(1L, enforcer)));
+        when(cache.get(policyId)).thenReturn(enforcerResponseFromCache);
+
+
+        final var policyEnforcer = cachingPolicyEnforcerProvider.getPolicyEnforcer(policyId).toCompletableFuture();
+        assertThat(policyEnforcer.join()).contains(enforcer);
     }
 
 }

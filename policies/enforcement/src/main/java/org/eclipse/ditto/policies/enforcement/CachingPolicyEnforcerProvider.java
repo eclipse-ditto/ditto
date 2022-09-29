@@ -13,9 +13,15 @@
 package org.eclipse.ditto.policies.enforcement;
 
 import java.time.Duration;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -30,6 +36,7 @@ import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImport;
 import org.slf4j.Logger;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
@@ -121,11 +128,13 @@ final class CachingPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider
 
         private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
         private final Cache<PolicyId, Entry<PolicyEnforcer>> policyEnforcerCache;
+        private final Map<PolicyId, Set<PolicyId>> policyIdToImportingMap;
 
         CachingPolicyEnforcerProviderActor(final Cache<PolicyId, Entry<PolicyEnforcer>> policyEnforcerCache,
                 @Nullable final BlockedNamespaces blockedNamespaces,
                 final ActorRef pubSubMediator) {
 
+            policyIdToImportingMap = new ConcurrentHashMap<>();
             this.policyEnforcerCache = policyEnforcerCache;
 
             if (blockedNamespaces != null) {
@@ -160,23 +169,33 @@ final class CachingPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider
             policyEnforcerCache.invalidate(policyId);
 
             // Invalidate all policies that import the changed policy
-            policyEnforcerCache.asMap().forEach((cachedPolicyId, enforcerEntry) -> {
-                final boolean importsChangedPolicy = enforcerEntry.get()
-                        .flatMap(PolicyEnforcer::getPolicy)
-                        .map(Policy::getPolicyImports)
-                        .map(imports -> imports.getPolicyImport(policyId).isPresent())
-                        .orElse(false);
-
-                if (importsChangedPolicy) {
-                    policyEnforcerCache.invalidate(cachedPolicyId);
-                }
-            });
+            Optional.ofNullable(policyIdToImportingMap.get(policyId))
+                    .map(Collection::stream)
+                    .orElseGet(Stream::empty)
+                    .forEach(policyEnforcerCache::invalidate);
         }
 
         private void doGetPolicyEnforcer(final PolicyId policyId) {
             final ActorRef sender = getSender();
             final CompletableFuture<Optional<PolicyEnforcer>> policyEnforcerCS =
-                    policyEnforcerCache.get(policyId).thenApply(optionalEntry -> optionalEntry.flatMap(Entry::get));
+                    policyEnforcerCache.get(policyId).thenApply(optionalEntry -> {
+                        final Optional<PolicyEnforcer> policyEnforcer = optionalEntry.flatMap(Entry::get);
+                        policyEnforcer.flatMap(PolicyEnforcer::getPolicy)
+                                .map(Policy::getPolicyImports)
+                                .filter(imports -> !imports.isEmpty())
+                                .ifPresent(imports -> imports.stream()
+                                        .map(PolicyImport::getImportedPolicyId)
+                                        .forEach(
+                                                importedPolicyId -> policyIdToImportingMap.compute(importedPolicyId,
+                                                        (importedPolicyId1, importingPolicyIds) -> {
+                                                            final Set<PolicyId> newImportingPolicyIds =
+                                                                    importingPolicyIds == null ?
+                                                                            new HashSet<>() : importingPolicyIds;
+                                                            newImportingPolicyIds.add(policyId);
+                                                            return newImportingPolicyIds;
+                                                        })));
+                        return policyEnforcer;
+                    });
             Patterns.pipe(policyEnforcerCS, getContext().dispatcher()).to(sender);
         }
 
