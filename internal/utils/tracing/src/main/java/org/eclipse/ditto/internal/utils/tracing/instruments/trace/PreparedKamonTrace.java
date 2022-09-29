@@ -50,6 +50,7 @@ final class PreparedKamonTrace implements PreparedTrace {
     PreparedKamonTrace(final Context context, final CharSequence operationName) {
         ConditionChecker.checkNotNull(context, "context");
         ConditionChecker.checkNotNull(operationName, "operationName");
+
         spanBuilder = Kamon.spanBuilder(operationName.toString()).asChildOf(context.get(Span.Key()));
     }
 
