@@ -27,7 +27,7 @@
 
     <properties>
         <scala.version>2.13</scala.version> <!-- for scala libraries the scala version is used in their artifactId -->
-        <scala.full.version>2.13.8</scala.full.version>
+        <scala.full.version>2.13.9</scala.full.version>
 
         <javac.source>17</javac.source>
         <javac.target>17</javac.target>
