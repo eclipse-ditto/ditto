@@ -73,7 +73,7 @@ public final class LogbackLoggingFacade implements LoggingFacade {
                 .map(logger -> (Logger) LoggerFactory.getLogger(logger))
                 .toList();
 
-        return loggerConfigsFor(loggerList, true);
+        return loggerConfigsFor(loggerList, false);
     }
 
     private List<LoggerConfig> loggerConfigsFor(final Iterable<Logger> loggers, final boolean includeDisabledLoggers) {
