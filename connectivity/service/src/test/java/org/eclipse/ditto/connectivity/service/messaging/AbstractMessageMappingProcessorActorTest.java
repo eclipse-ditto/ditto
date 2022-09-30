@@ -216,7 +216,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                     ActorRef.noSender());
 
             if (expectSuccess) {
-                final ModifyAttribute modifyAttribute = expectMsgClass(ModifyAttribute.class);
+                final ModifyAttribute modifyAttribute = fishForMsg(this, ModifyAttribute.class);
                 assertThat(modifyAttribute.getType()).isEqualTo(ModifyAttribute.TYPE);
                 assertThat(modifyAttribute.getDittoHeaders().getCorrelationId()).contains(
                         modifyCommand.getDittoHeaders().getCorrelationId().orElse(null));
@@ -288,7 +288,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                     new ExternalMessageWithSender(externalMessage, collectorProbe.ref()),
                     ActorRef.noSender());
 
-            final T received = expectMsgClass(expectedMessageClass);
+            final T received = fishForMsg(this, expectedMessageClass);
             verifyReceivedMessage.accept(received);
         }};
     }
@@ -322,7 +322,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                     new ExternalMessageWithSender(externalMessage, collectorProbe.ref()),
                     ActorRef.noSender());
 
-            final T received = expectMsgClass(expectedMessageClass);
+            final T received = fishForMsg(this, expectedMessageClass);
             verifyReceivedMessage.accept(received);
         }};
     }
@@ -446,6 +446,10 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                         .correlationId(testNameCorrelationId.getCorrelationId())
                         .contentType(ContentType.APPLICATION_JSON)
                         .build());
+    }
+
+    static <T> T fishForMsg(final TestKit testKit, final Class<T> clazz) {
+        return clazz.cast(testKit.fishForMessage(Duration.ofSeconds(3L), clazz.getSimpleName(), clazz::isInstance));
     }
 
     static ThreadSafeDittoLoggingAdapter mockLoggingAdapter() {

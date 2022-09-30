@@ -155,6 +155,13 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
     boolean areAllClientActorsOnOneNode();
 
     /**
+     * Get the timeout waiting for responses and acknowledgements during coordinated shutdown.
+     *
+     * @return The timeout.
+     */
+    Duration getShutdownTimeout();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code ConnectionConfig}.
      */
@@ -213,7 +220,13 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
         /**
          * How often the priority of a connection is getting updated.
          */
-        PRIORITY_UPDATE_INTERVAL("priority-update-interval", Duration.ofHours(24L));
+        PRIORITY_UPDATE_INTERVAL("priority-update-interval", Duration.ofHours(24L)),
+
+        /**
+         * Timeout waiting for responses and acknowledgements during coordinated shutdown.
+         */
+        SHUTDOWN_TIMEOUT("shutdown-timeout", Duration.ofSeconds(3));
+
 
         private final String path;
         private final Object defaultValue;

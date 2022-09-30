@@ -208,6 +208,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private ActorRef outboundDispatchingActor;
     private ActorRef subscriptionManager;
     private ActorRef tunnelActor;
+    private int ackregatorCount = 0;
+    private boolean shuttingDown = false;
 
     protected BaseClientActor(final Connection connection,
             final ActorRef commandForwarderActor,
@@ -364,8 +366,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final var id = getSelf().path().toString();
         cancelOnStopTasks.add(coordinatedShutdown.addCancellableTask(CoordinatedShutdown.PhaseServiceUnbind(),
                 "service-unbind-" + id, askSelfShutdownTask(Control.SERVICE_UNBIND)));
-        cancelOnStopTasks.add(coordinatedShutdown.addCancellableTask(CoordinatedShutdown.PhaseServiceRequestsDone(),
-                "service-requests-done" + id, askSelfShutdownTask(Control.SERVICE_REQUESTS_DONE)));
+        coordinatedShutdown.addActorTerminationTask(CoordinatedShutdown.PhaseServiceRequestsDone(),
+                "service-requests-done" + id, getSelf(), Optional.of(Control.SERVICE_REQUESTS_DONE));
     }
 
     private boolean shouldAnyTargetSendConnectionAnnouncements() {
@@ -515,7 +517,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .event(PublishMappedMessage.class, this::publishMappedMessage)
                 .event(ConnectivityCommand.class, this::onUnknownEvent) // relevant connectivity commands were handled
                 .event(Signal.class, this::handleSignal)
-                .event(FatalPubSubException.class, this::failConnectionDueToPubSubException);
+                .event(FatalPubSubException.class, this::failConnectionDueToPubSubException)
+                .eventEquals(Control.ACKREGATOR_STARTED, this::ackregatorStarted)
+                .eventEquals(Control.ACKREGATOR_STOPPED, this::ackregatorStopped)
+                .eventEquals(Control.SERVICE_REQUESTS_DONE, this::serviceRequestsDone)
+                .eventEquals(Control.SHUTDOWN_TIMEOUT, this::shutdownTimeout);
     }
 
     /**
@@ -2074,6 +2080,44 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return () -> Patterns.ask(getSelf(), question, shutdownTimeout).thenApply(answer -> Done.done());
     }
 
+    private FSM.State<BaseClientState, BaseClientData> ackregatorStarted(final Control event,
+            final BaseClientData data) {
+        ++ackregatorCount;
+        return stay();
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> ackregatorStopped(final Control event,
+            final BaseClientData data) {
+        --ackregatorCount;
+        if (shuttingDown && ackregatorCount == 0) {
+            logger.info("{}: finished waiting for ackregators", Control.SERVICE_REQUESTS_DONE);
+            return stop();
+        } else {
+            return stay();
+        }
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> serviceRequestsDone(final Control event,
+            final BaseClientData data) {
+
+        shuttingDown = true;
+        logger.info("{}: ackregatorCount={}", Control.SERVICE_REQUESTS_DONE, ackregatorCount);
+        if (ackregatorCount == 0) {
+            return stop();
+        } else {
+            final var shutdownTimeout = connectivityConfig.getConnectionConfig().getShutdownTimeout();
+            startSingleTimer(Control.SHUTDOWN_TIMEOUT.name(), Control.SHUTDOWN_TIMEOUT, shutdownTimeout);
+            return stay();
+        }
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> shutdownTimeout(final Control event,
+            final BaseClientData data) {
+        final var shutdownTimeout = connectivityConfig.getConnectionConfig().getShutdownTimeout();
+        logger.warning("Shutdown timeout <{}> reached; aborting <{}> ackregators", shutdownTimeout, ackregatorCount);
+        return stop();
+    }
+
     private static Optional<StreamingType> toStreamingTypes(final Topic topic) {
         return switch (topic) {
             case POLICY_ANNOUNCEMENTS -> Optional.of(StreamingType.POLICY_ANNOUNCEMENTS);
@@ -2316,7 +2360,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         GOTO_CONNECTED_AFTER_INITIALIZATION,
         RESUBSCRIBE,
         SERVICE_UNBIND,
-        SERVICE_REQUESTS_DONE
+        SERVICE_REQUESTS_DONE,
+        ACKREGATOR_STARTED,
+        ACKREGATOR_STOPPED,
+        SHUTDOWN_TIMEOUT
     }
 
 }

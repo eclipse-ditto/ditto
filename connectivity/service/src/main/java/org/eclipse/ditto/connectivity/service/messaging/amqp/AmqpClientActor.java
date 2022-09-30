@@ -227,8 +227,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     @Override
     public void postStop() {
-        ensureJmsConnectionClosed();
         super.postStop();
+        ensureJmsConnectionClosed();
     }
 
     @Override

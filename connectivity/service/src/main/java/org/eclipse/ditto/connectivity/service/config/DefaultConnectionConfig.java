@@ -60,6 +60,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final Duration ackLabelDeclareInterval;
     private final Duration priorityUpdateInterval;
     private final boolean allClientActorsOnOneNode;
+    private final Duration shutdownTimeout;
 
     private DefaultConnectionConfig(final ConfigWithFallback config) {
         clientActorAskTimeout =
@@ -88,6 +89,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 config.getBoolean(ConnectionConfigValue.ALL_CLIENT_ACTORS_ON_ONE_NODE.getConfigPath());
         priorityUpdateInterval =
                 config.getNonNegativeAndNonZeroDurationOrThrow(ConnectionConfigValue.PRIORITY_UPDATE_INTERVAL);
+        shutdownTimeout = config.getDuration(ConnectionConfigValue.SHUTDOWN_TIMEOUT.getConfigPath());
     }
 
     /**
@@ -205,6 +207,11 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     }
 
     @Override
+    public Duration getShutdownTimeout() {
+        return shutdownTimeout;
+    }
+
+    @Override
     public ActivityCheckConfig getActivityCheckConfig() {
         return activityCheckConfig;
     }
@@ -243,6 +250,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 Objects.equals(maxNumberOfSources, that.maxNumberOfSources) &&
                 Objects.equals(ackLabelDeclareInterval, that.ackLabelDeclareInterval) &&
                 Objects.equals(priorityUpdateInterval, that.priorityUpdateInterval) &&
+                Objects.equals(shutdownTimeout, that.shutdownTimeout) &&
                 allClientActorsOnOneNode == that.allClientActorsOnOneNode;
     }
 
@@ -252,7 +260,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 blockedHostnames, blockedSubnets, blockedHostRegex, supervisorConfig, snapshotConfig,
                 acknowledgementConfig, cleanupConfig, maxNumberOfTargets, maxNumberOfSources, activityCheckConfig,
                 amqp10Config, amqp091Config, mqttConfig, kafkaConfig, httpPushConfig, ackLabelDeclareInterval,
-                priorityUpdateInterval, allClientActorsOnOneNode);
+                priorityUpdateInterval, allClientActorsOnOneNode, shutdownTimeout);
     }
 
     @Override
@@ -279,6 +287,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 ", ackLabelDeclareInterval=" + ackLabelDeclareInterval +
                 ", priorityUpdateInterval=" + priorityUpdateInterval +
                 ", allClientActorsOnOneNode=" + allClientActorsOnOneNode +
+                ", shutdownTimeout=" + shutdownTimeout +
                 "]";
     }
 }
