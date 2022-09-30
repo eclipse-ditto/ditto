@@ -153,6 +153,25 @@ public final class ImmutablePolicyEntryTest {
     }
 
     @Test
+    public void ensureTwoPolicyEntriesAreSemanticallyDifferentIfImportableTypeDiffers() {
+        final SubjectId subjectId = SubjectId.newInstance("the:subject");
+        final Resource resource = Resource.newInstance("thing", "/",
+                EffectedPermissions.newInstance(Collections.singleton("READ"), null));
+
+        final PolicyEntry entry1 = PolicyEntry.newInstance("foo",
+                Collections.singleton(Subject.newInstance(subjectId, SubjectType.UNKNOWN)),
+                Collections.singleton(resource),
+                ImportableType.IMPLICIT
+        );
+        final PolicyEntry entry2 = PolicyEntry.newInstance("foo",
+                Collections.singleton(Subject.newInstance(subjectId, SubjectType.UNKNOWN)), // only difference is the subjectType!
+                Collections.singleton(resource),
+                ImportableType.NEVER
+        );
+        assertThat(entry1.isSemanticallySameAs(entry2)).isFalse();
+    }
+
+    @Test
     public void ensureTwoPolicyEntriesAreSemanticallyDifferentIfOnlyResourcesDiffer() {
         final SubjectId subjectId = SubjectId.newInstance("the:subject");
         final Resource resource1 = Resource.newInstance("thing", "/",

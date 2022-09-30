@@ -138,7 +138,8 @@ final class ImmutablePolicyEntry implements PolicyEntry {
     @Override
     public boolean isSemanticallySameAs(final PolicyEntry otherPolicyEntry) {
         return subjects.isSemanticallySameAs(otherPolicyEntry.getSubjects()) &&
-                resources.equals(otherPolicyEntry.getResources());
+                resources.equals(otherPolicyEntry.getResources()) &&
+                importableType.equals(otherPolicyEntry.getImportableType());
     }
 
     @Override
