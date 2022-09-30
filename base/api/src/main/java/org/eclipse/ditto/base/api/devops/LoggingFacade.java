@@ -32,7 +32,7 @@ public interface LoggingFacade {
      *
      * @return the LoggerConfig for all known loggers.
      */
-    List<LoggerConfig> getLoggerConfig();
+    List<LoggerConfig> getLoggerConfig(boolean includeDisabledLoggers);
 
     /**
      * Returns the {@code LoggerConfig}s for the specified {@code loggerNames}.
