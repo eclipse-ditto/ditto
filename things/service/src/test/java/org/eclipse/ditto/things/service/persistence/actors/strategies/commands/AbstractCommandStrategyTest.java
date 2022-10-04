@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2017-2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -30,6 +30,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.AbstractCommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
@@ -41,6 +42,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
@@ -56,6 +58,9 @@ public abstract class AbstractCommandStrategyTest {
 
     protected static DittoDiagnosticLoggingAdapter logger;
 
+    @ClassRule
+    public static final ActorSystemResource ACTOR_SYSTEM_RESOURCE = ActorSystemResource.newInstance();
+
     @BeforeClass
     public static void initTestConstants() {
         logger = Mockito.mock(DittoDiagnosticLoggingAdapter.class);
@@ -65,7 +70,7 @@ public abstract class AbstractCommandStrategyTest {
     }
 
     protected static CommandStrategy.Context<ThingId> getDefaultContext() {
-        return DefaultContext.getInstance(THING_ID, logger);
+        return DefaultContext.getInstance(THING_ID, logger, ACTOR_SYSTEM_RESOURCE.getActorSystem());
     }
 
     protected static <C extends Command<?>, T extends ThingModifiedEvent<?>> T assertModificationResult(

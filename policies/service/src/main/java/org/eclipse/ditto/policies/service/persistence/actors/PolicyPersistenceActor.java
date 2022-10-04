@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2017-2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -144,7 +144,7 @@ public final class PolicyPersistenceActor
 
     @Override
     protected CommandStrategy.Context<PolicyId> getStrategyContext() {
-        return DefaultContext.getInstance(entityId, log);
+        return DefaultContext.getInstance(entityId, log, getContext().getSystem());
     }
 
     @Override

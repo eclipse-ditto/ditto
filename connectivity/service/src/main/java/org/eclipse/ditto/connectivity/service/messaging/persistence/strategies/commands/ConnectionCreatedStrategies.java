@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019-2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -59,6 +59,7 @@ public final class ConnectionCreatedStrategies
         strategies.addStrategy(new RetrieveConnectionLogsStrategy());
         strategies.addStrategy(new ResetConnectionLogsStrategy());
         strategies.addStrategy(new RetrieveConnectionStrategy());
+        strategies.addStrategy(new RetrieveHonoConnectionStrategy());
         strategies.addStrategy(new RetrieveConnectionStatusStrategy());
         strategies.addStrategy(new RetrieveConnectionMetricsStrategy());
         strategies.addStrategy(new LoggingExpiredStrategy());

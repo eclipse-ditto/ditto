@@ -23,6 +23,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
@@ -35,6 +36,7 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConflictE
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingPreconditionFailedException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -43,6 +45,9 @@ import org.mockito.Mockito;
  */
 @SuppressWarnings({"rawtypes", "java:S3740"})
 public final class ThingConflictStrategyTest {
+
+    @ClassRule
+    public static final ActorSystemResource ACTOR_SYSTEM_RESOURCE = ActorSystemResource.newInstance();
 
     @Test
     public void assertImmutability() {
@@ -55,7 +60,7 @@ public final class ThingConflictStrategyTest {
         final ThingId thingId = ThingId.of("thing:id");
         final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).setRevision(25L).build();
         final CommandStrategy.Context<ThingId> context = DefaultContext.getInstance(thingId,
-                mockLoggingAdapter());
+                mockLoggingAdapter(), ACTOR_SYSTEM_RESOURCE.getActorSystem());
         final CreateThing command = CreateThing.of(thing, null, DittoHeaders.empty());
         final Result<ThingEvent<?>> result = underTest.apply(context, thing, 26L, command);
         result.accept(new ExpectErrorVisitor(ThingConflictException.class));
@@ -67,7 +72,7 @@ public final class ThingConflictStrategyTest {
         final ThingId thingId = ThingId.of("thing:id");
         final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).setRevision(25L).build();
         final CommandStrategy.Context<ThingId> context = DefaultContext.getInstance(thingId,
-                mockLoggingAdapter());
+                mockLoggingAdapter(), ACTOR_SYSTEM_RESOURCE.getActorSystem());
         final CreateThing command = CreateThing.of(thing, null, DittoHeaders.newBuilder()
                 .ifNoneMatch(EntityTagMatchers.fromStrings("*"))
                 .build());

@@ -141,7 +141,7 @@ public final class ThingPersistenceActor
 
     @Override
     protected CommandStrategy.Context<ThingId> getStrategyContext() {
-        return DefaultContext.getInstance(entityId, log);
+        return DefaultContext.getInstance(entityId, log, getContext().getSystem());
     }
 
     @Override

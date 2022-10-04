@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020-2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -23,6 +23,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
@@ -36,6 +37,7 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyPrecon
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.service.common.config.DefaultPolicyConfig;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -46,6 +48,9 @@ import com.typesafe.config.ConfigFactory;
  */
 @SuppressWarnings({"rawtypes", "java:S3740"})
 public final class PolicyConflictStrategyTest {
+
+    @ClassRule
+    public static final ActorSystemResource ACTOR_SYSTEM_RESOURCE = ActorSystemResource.newInstance();
 
     @Test
     public void assertImmutability() {
@@ -59,7 +64,7 @@ public final class PolicyConflictStrategyTest {
         final PolicyId policyId = PolicyId.of("policy:id");
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId).setRevision(25L).build();
         final CommandStrategy.Context<PolicyId> context = DefaultContext.getInstance(policyId,
-                mockLoggingAdapter());
+                mockLoggingAdapter(), ACTOR_SYSTEM_RESOURCE.getActorSystem());
         final CreatePolicy command = CreatePolicy.of(policy, DittoHeaders.empty());
         final Result<PolicyEvent<?>> result = underTest.apply(context, policy, 26L, command);
         result.accept(new ExpectErrorVisitor(PolicyConflictException.class));
@@ -72,7 +77,7 @@ public final class PolicyConflictStrategyTest {
         final PolicyId policyId = PolicyId.of("policy:id");
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId).setRevision(25L).build();
         final CommandStrategy.Context<PolicyId> context = DefaultContext.getInstance(policyId,
-                mockLoggingAdapter());
+                mockLoggingAdapter(), ACTOR_SYSTEM_RESOURCE.getActorSystem());
         final CreatePolicy command = CreatePolicy.of(policy, DittoHeaders.newBuilder()
                 .ifNoneMatch(EntityTagMatchers.fromStrings("*"))
                 .build());

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020-2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -31,20 +31,22 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
-import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.service.persistence.TestConstants;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
-import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
-import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
+import org.eclipse.ditto.policies.service.persistence.TestConstants;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
@@ -57,6 +59,9 @@ public abstract class AbstractPolicyCommandStrategyTest {
 
     protected static DittoDiagnosticLoggingAdapter logger;
 
+    @ClassRule
+    public static final ActorSystemResource ACTOR_SYSTEM_RESOURCE = ActorSystemResource.newInstance();
+
     @BeforeClass
     public static void initTestConstants() {
         logger = Mockito.mock(DittoDiagnosticLoggingAdapter.class);
@@ -66,7 +71,7 @@ public abstract class AbstractPolicyCommandStrategyTest {
     }
 
     protected static CommandStrategy.Context<PolicyId> getDefaultContext() {
-        return DefaultContext.getInstance(TestConstants.Policy.POLICY_ID, logger);
+        return DefaultContext.getInstance(TestConstants.Policy.POLICY_ID, logger, ACTOR_SYSTEM_RESOURCE.getActorSystem());
     }
 
     protected static DittoHeaders buildActivateTokenIntegrationHeaders() {

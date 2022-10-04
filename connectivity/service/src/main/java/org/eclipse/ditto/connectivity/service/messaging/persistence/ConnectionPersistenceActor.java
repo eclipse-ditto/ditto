@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2017-2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -313,7 +313,8 @@ public final class ConnectionPersistenceActor
     @Override
     protected CommandStrategy.Context<ConnectionState> getStrategyContext() {
         return DefaultContext.getInstance(
-                ConnectionState.of(entityId, connectionLoggerRegistry, connectionLogger, commandValidator), log);
+                ConnectionState.of(entityId, connectionLoggerRegistry, connectionLogger, commandValidator),
+                log, getContext().getSystem());
     }
 
     @Override
