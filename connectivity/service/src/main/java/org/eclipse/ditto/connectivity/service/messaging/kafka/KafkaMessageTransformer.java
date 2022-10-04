@@ -39,7 +39,7 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMon
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 
 import akka.kafka.ConsumerMessage;
 
@@ -108,7 +108,10 @@ final class KafkaMessageTransformer {
         final String correlationId = messageHeaders
                 .getOrDefault(DittoHeaderDefinition.CORRELATION_ID.getKey(), UUID.randomUUID().toString());
 
-        final StartedTrace trace = DittoTracing.trace(DittoTracing.extractTraceContext(messageHeaders), "kafka_consume")
+        final var trace = DittoTracing.trace(
+                        DittoTracing.extractTraceContext(messageHeaders),
+                        TraceOperationName.of("kafka_consume")
+                )
                 .correlationId(correlationId)
                 .connectionId(connectionId)
                 .start();

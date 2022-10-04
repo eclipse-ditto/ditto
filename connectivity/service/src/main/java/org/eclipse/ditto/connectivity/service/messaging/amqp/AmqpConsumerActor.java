@@ -66,6 +66,7 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProv
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.Traces;
 
@@ -352,7 +353,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
             }
             headers = extractHeadersMapFromJmsMessage(message);
             correlationId = headers.get(DittoHeaderDefinition.CORRELATION_ID.getKey());
-            trace = DittoTracing.trace(DittoTracing.extractTraceContext(headers), "amqp_consume")
+            trace = DittoTracing.trace(DittoTracing.extractTraceContext(headers), TraceOperationName.of("amqp_consume"))
                     .correlationId(correlationId)
                     .connectionId(connectionId)
                     .start();

@@ -49,7 +49,7 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 
 import com.typesafe.config.Config;
 
@@ -695,7 +695,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     protected CompletionStage<Object> enforceSignalAndForwardToTargetActor(final S signal, final ActorRef sender) {
 
         if (null != enforcerChild) {
-            final StartedTrace trace = DittoTracing.trace(signal, signal.getType())
+            final var trace = DittoTracing.trace(signal, TraceOperationName.of(signal.getType()))
                     .correlationId(signal.getDittoHeaders().getCorrelationId().orElse(null))
                     .start();
             final S tracedSignal = DittoTracing.propagateContext(trace.getContext(), signal);

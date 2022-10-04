@@ -41,7 +41,7 @@ import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.PreparedTrace;
+import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.Traces;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
@@ -144,9 +144,11 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
             }
             headers = extractHeadersFromMessage(properties, envelope);
 
-            final PreparedTrace preparedTrace =
-                    DittoTracing.trace(DittoTracing.extractTraceContext(headers), "rabbitmq_consume")
-                            .connectionId(connectionId);
+            final var preparedTrace = DittoTracing.trace(
+                            DittoTracing.extractTraceContext(headers),
+                            TraceOperationName.of("rabbitmq_consume")
+                    )
+                    .connectionId(connectionId);
             headers = trace.propagateContext(headers);
             if (null != correlationId) {
                 trace = preparedTrace.correlationId(correlationId).start();

@@ -40,6 +40,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
@@ -78,7 +79,8 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "aggregatorProxy";
 
-    private static final String TRACE_AGGREGATOR_RETRIEVE_THINGS = "aggregatorproxy_retrievethings";
+    private static final TraceOperationName TRACE_AGGREGATOR_RETRIEVE_THINGS =
+            TraceOperationName.of("aggregatorproxy_retrievethings");
 
     private static final int ASK_TIMEOUT = 60;
 

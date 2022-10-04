@@ -77,6 +77,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
@@ -470,7 +471,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             final ExternalMessage mappedMessage = applyHeaderMapping(resolver, outbound, headerMapping);
             final Context context = DittoTracing.extractTraceContext(mappedMessage.getHeaders());
             final StartedTrace trace = DittoTracing
-                    .trace(context, connection.getConnectionType() + "_publish")
+                    .trace(context, TraceOperationName.of(connection.getConnectionType() + "_publish"))
                     .connectionId(connection.getId())
                     .connectionType(connection.getConnectionType())
                     .start();

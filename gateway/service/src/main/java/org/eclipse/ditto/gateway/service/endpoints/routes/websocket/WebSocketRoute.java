@@ -74,6 +74,7 @@ import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 import org.eclipse.ditto.internal.utils.tracing.TracingTags;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.json.JsonArray;
@@ -481,7 +482,10 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                                     adapter,
                                     headerTranslator,
                                     logger);
-                            final StartedTrace trace = DittoTracing.trace(signal, "gw_streaming_in_signal")
+                            final var trace = DittoTracing.trace(
+                                            signal,
+                                            TraceOperationName.of("gw_streaming_in_signal")
+                                    )
                                     .tag(TracingTags.SIGNAL_TYPE, signal.getType())
                                     .start();
                             final Signal<?> tracedSignal = DittoTracing.propagateContext(trace.getContext(), signal);
@@ -527,7 +531,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     }
 
     private static DittoRuntimeException traceSignalBuildingFailure(final DittoRuntimeException failure) {
-        final var trace = startTrace(failure, "gw.streaming.in.error");
+        final var trace = startTrace(failure, TraceOperationName.of("gw.streaming.in.error"));
         trace.fail(failure);
         try {
             return DittoTracing.propagateContext(trace.getContext(), failure);
@@ -536,7 +540,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         }
     }
 
-    private static StartedTrace startTrace(final WithDittoHeaders withDittoHeaders, final String name) {
+    private static StartedTrace startTrace(final WithDittoHeaders withDittoHeaders, final TraceOperationName name) {
         final var trace = DittoTracing.trace(withDittoHeaders, name);
         return trace.start();
     }

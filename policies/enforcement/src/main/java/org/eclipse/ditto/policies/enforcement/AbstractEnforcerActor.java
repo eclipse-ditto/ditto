@@ -32,6 +32,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.policies.enforcement.pre.PreEnforcerProvider;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -131,7 +132,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
     private void doEnforceSignal(final S signal, final ActorRef sender) {
 
         final StartedTrace trace = DittoTracing
-                .trace(signal, "enforce")
+                .trace(signal, TraceOperationName.of("enforce"))
                 .start();
         final S tracedSignal = DittoTracing.propagateContext(trace.getContext(), signal);
         final ActorRef self = getSelf();

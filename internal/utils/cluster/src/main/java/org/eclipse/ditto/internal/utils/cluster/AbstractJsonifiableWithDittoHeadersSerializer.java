@@ -40,6 +40,7 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -149,7 +150,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
             final DittoHeaders dittoHeaders = getDittoHeadersOrEmpty(object);
 
             final Context context = DittoTracing.extractTraceContext(dittoHeaders);
-            final StartedTrace trace = DittoTracing.trace(context, "serialize")
+            final StartedTrace trace = DittoTracing.trace(context, TraceOperationName.of("serialize"))
                     .startAt(beforeSerializeInstant);
             dittoHeaders.getCorrelationId().ifPresent(trace::correlationId);
             final DittoHeaders dittoHeadersWithTraceContext =
@@ -299,7 +300,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
                 .orElseGet(DittoHeaders::newBuilder);
 
         final DittoHeaders dittoHeaders = dittoHeadersBuilder.build();
-        final StartedTrace trace = DittoTracing.trace(dittoHeaders, "deserialize")
+        final StartedTrace trace = DittoTracing.trace(dittoHeaders, TraceOperationName.of("deserialize"))
                 .startAt(beforeDeserializeInstant);
         try {
             final DittoHeaders dittoHeadersWithTraceContext =

@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
@@ -45,7 +46,7 @@ import scala.jdk.javaapi.CollectionConverters;
 
 /**
  * Contains static method factories in order to build Ditto tracing instruments and to extract and propagate tracing a
- * contexts. Tracing is disabled by default and must be {@link #initialize}d to actually generate traces and
+ * context. Tracing is disabled by default and must be {@link #initialize}d to actually generate traces and
  * propagate tracing contexts.
  */
 public final class DittoTracing {
@@ -85,25 +86,26 @@ public final class DittoTracing {
     /**
      * Creates a new trace for an operation with the given name.
      *
-     * @param context the trace context
-     * @param name the name of the operation
-     * @return the new prepared trace
+     * @param context the trace context.
+     * @param operationName the name of the operation.
+     * @return the new prepared trace.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public static PreparedTrace trace(final Context context, final String name) {
-        return doTrace(() -> Traces.newTrace(context, name));
+    public static PreparedTrace trace(final Context context, final TraceOperationName operationName) {
+        return doTrace(() -> Traces.newTrace(context, operationName));
     }
 
     /**
      * Creates a new trace for an operation with the given name.
      *
-     * @param withDittoHeaders a WithDittoHeaders instance containing trace information
-     * @param name the name of the operation
-     * @return the new prepared trace
+     * @param withDittoHeaders a WithDittoHeaders instance containing trace information.
+     * @param operationName the name of the operation.
+     * @return the new prepared trace.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public static PreparedTrace trace(final WithDittoHeaders withDittoHeaders, final String name) {
+    public static PreparedTrace trace(final WithDittoHeaders withDittoHeaders, final TraceOperationName operationName) {
         return doTrace(() -> {
-            final Context extractedTraceContext = extractTraceContext(withDittoHeaders);
-            final PreparedTrace preparedTrace = Traces.newTrace(extractedTraceContext, name);
+            final var preparedTrace = Traces.newTrace(extractTraceContext(withDittoHeaders), operationName);
             withDittoHeaders.getDittoHeaders().getCorrelationId().ifPresent(preparedTrace::correlationId);
             return preparedTrace;
         });
@@ -112,14 +114,14 @@ public final class DittoTracing {
     /**
      * Creates a new trace for an operation with the given name.
      *
-     * @param dittoHeaders a DittoHeaders instance containing trace information
-     * @param name the name of the operation
-     * @return the new prepared trace
+     * @param dittoHeaders a DittoHeaders instance containing trace information.
+     * @param operationName the name of the operation.
+     * @return the new prepared trace.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public static PreparedTrace trace(final DittoHeaders dittoHeaders, final String name) {
+    public static PreparedTrace trace(final DittoHeaders dittoHeaders, final TraceOperationName operationName) {
         return doTrace(() -> {
-            final Context extractedTraceContext = extractTraceContext(dittoHeaders);
-            final PreparedTrace preparedTrace = Traces.newTrace(extractedTraceContext, name);
+            final var preparedTrace = Traces.newTrace(extractTraceContext(dittoHeaders), operationName);
             dittoHeaders.getCorrelationId().ifPresent(preparedTrace::correlationId);
             return preparedTrace;
         });
@@ -160,7 +162,6 @@ public final class DittoTracing {
         });
     }
 
-
     /**
      * Extracts a trace context from a WithDittoHeaders.
      *
@@ -170,7 +171,6 @@ public final class DittoTracing {
     public static Context extractTraceContext(final WithDittoHeaders withDittoHeaders) {
         return extractTraceContext(withDittoHeaders.getDittoHeaders());
     }
-
 
     /**
      * Extracts a trace context from a map.
@@ -308,7 +308,8 @@ public final class DittoTracing {
      * @return the passed in trace context
      */
     public static Context wrapTimer(final Context context, final StartedTimer startedTimer) {
-        final StartedTrace trace = trace(context, startedTimer.getName()).startAt(startedTimer.getStartInstant());
+        final var trace = trace(context, TraceOperationName.of(startedTimer.getName()))
+                .startAt(startedTimer.getStartInstant());
         startedTimer.onStop(stoppedTimer -> trace.tags(stoppedTimer.getTags())
                 .finishAfter(stoppedTimer.getDuration()));
         return trace.getContext();

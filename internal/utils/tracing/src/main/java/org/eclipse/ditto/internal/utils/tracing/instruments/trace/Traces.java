@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
 
+import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
+
 import kamon.context.Context;
 
 /**
@@ -20,18 +22,19 @@ import kamon.context.Context;
 public final class Traces {
 
     private Traces() {
-        // No-Op because this is a factory class.
+        throw new AssertionError();
     }
 
     /**
      * Builds a {@link PreparedTrace} with the given name.
      *
-     * @param context the trace context
-     * @param name the name of the operation
-     * @return the new prepared trace
+     * @param context the trace context.
+     * @param operationName the name of the operation.
+     * @return the new prepared trace.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public static PreparedTrace newTrace(final Context context, final String name) {
-        return new PreparedKamonTrace(context, name);
+    public static PreparedTrace newTrace(final Context context, final TraceOperationName operationName) {
+        return new PreparedKamonTrace(context, operationName);
     }
 
     /**

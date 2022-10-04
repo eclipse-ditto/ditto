@@ -43,6 +43,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 import org.eclipse.ditto.internal.utils.tracing.TracingTags;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.json.JsonField;
@@ -469,7 +470,7 @@ public abstract class AbstractPersistenceActor<
         log.debug("Handling by strategy: <{}>", command);
 
         final StartedTrace trace = DittoTracing
-                .trace(command, "apply_command_strategy")
+                .trace(command, TraceOperationName.of("apply_command_strategy"))
                 .start();
         final T tracedCommand = DittoTracing.propagateContext(trace.getContext(), command);
 
@@ -536,7 +537,7 @@ public abstract class AbstractPersistenceActor<
         final DittoDiagnosticLoggingAdapter l = log.withCorrelationId(event);
         l.debug("Persisting Event <{}>.", event.getType());
 
-        final StartedTrace persistTrace = DittoTracing.trace(event, "persist_event")
+        final StartedTrace persistTrace = DittoTracing.trace(event, TraceOperationName.of("persist_event"))
                 .tag(TracingTags.SIGNAL_TYPE, event.getType())
                 .start();
         final E tracedEvent = DittoTracing.propagateContext(persistTrace.getContext(), event);
