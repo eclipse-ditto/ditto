@@ -13,6 +13,7 @@
 package org.eclipse.ditto.policies.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.policies.model.PoliciesModelFactory.emptyPolicyImports;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -104,7 +105,7 @@ public final class ImmutablePolicyTest {
         final PolicyEntry policyEntry2 = createPolicyEntry2();
 
         final Policy policy = ImmutablePolicy.of(POLICY_ID, null, null, null,
-                null, null, emptyPolicyImports(), Arrays.asList(policyEntry1, policyEntry2));
+                null, null, POLICY_IMPORTS, Arrays.asList(policyEntry1, policyEntry2));
 
         final JsonObject policyJson = policy.toJson();
         final Policy policy1 = ImmutablePolicy.fromJson(policyJson);
@@ -452,4 +453,14 @@ public final class ImmutablePolicyTest {
         assertThat(policyA.isSemanticallySameAs(policyB.getEntriesSet())).isFalse();
     }
 
+    @Test
+    public void policyWithImportReferencingSelfThrowsException() {
+
+        final PolicyImports policyImports = PolicyImports.newInstance(PolicyImport.newInstance(POLICY_ID,
+                PoliciesModelFactory.emptyEffectedImportedEntries()));
+
+        final List<PolicyEntry> emptyList = Collections.emptyList();
+        assertThatExceptionOfType(PolicyImportInvalidException.class).isThrownBy(
+                () -> ImmutablePolicy.of(POLICY_ID, null, null, null, null, null, policyImports, emptyList));
+    }
 }

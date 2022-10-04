@@ -21,12 +21,15 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.policies.api.PoliciesValidator;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
@@ -60,6 +63,15 @@ final class ModifyResourceStrategy extends AbstractPolicyCommandStrategy<ModifyR
 
         final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(label);
         if (optionalEntry.isPresent()) {
+
+            final JsonPointer resourcePointer = Policy.JsonFields.ENTRIES.getPointer()
+                    .append(JsonPointer.of(label))
+                    .append(PolicyEntry.JsonFields.RESOURCES.getPointer())
+                    .append(JsonPointer.of(resource.getResourceKey()));
+            PolicyCommandSizeValidator.getInstance()
+                    .ensureValidSize(nonNullPolicy, JsonField.newInstance(resourcePointer, resource.toJson()),
+                            () -> dittoHeaders);
+
             final PoliciesValidator validator =
                     PoliciesValidator.newInstance(nonNullPolicy.setResourceFor(label, resource));
 

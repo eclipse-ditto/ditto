@@ -79,7 +79,7 @@ final class ImmutablePolicy implements Policy {
             @Nullable final Metadata metadata) {
 
         this.policyId = policyId;
-        imports = theImports;
+        imports = checkPolicyImportsForSelfReference(policyId, theImports);
         entries = Collections.unmodifiableMap(new LinkedHashMap<>(theEntries));
         namespace = policyId == null ? null : policyId.getNamespace();
         this.lifecycle = lifecycle;
@@ -127,7 +127,7 @@ final class ImmutablePolicy implements Policy {
      * @param jsonObject a JSON object which provides the data for the Policy to be created.
      * @return a new Policy which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws PolicyEntryInvalidException if an Policy entry does not contain any known permission which evaluates to
+     * @throws PolicyEntryInvalidException if a Policy entry does not contain any known permission which evaluates to
      * {@code true} or {@code false}.
      * @throws PolicyIdInvalidException if the parsed policy ID did not comply to
      * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#ID_REGEX}.
@@ -564,6 +564,14 @@ final class ImmutablePolicy implements Policy {
             jsonObjectBuilder.set(JsonFields.METADATA, metadata.toJson(schemaVersion, thePredicate), predicate);
         }
         return jsonObjectBuilder.build();
+    }
+
+    private static PolicyImports checkPolicyImportsForSelfReference(@Nullable final PolicyId policyId,
+            final PolicyImports policyImports) {
+        if (policyImports.stream().anyMatch(policyImport -> policyImport.getImportedPolicyId().equals(policyId))) {
+            throw PolicyImportInvalidException.newBuilder().build();
+        }
+        return policyImports;
     }
 
     private Map<Label, PolicyEntry> copyEntries() {

@@ -12,23 +12,22 @@
  */
 package org.eclipse.ditto.policies.service.persistence.actors.strategies.commands;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.Optional;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.policies.api.PoliciesValidator;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImports;
-import org.eclipse.ditto.policies.model.PolicyTooLargeException;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportsResponse;
@@ -47,44 +46,29 @@ final class ModifyPolicyImportsStrategy extends AbstractPolicyCommandStrategy<Mo
 
     @Override
     protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
-            @Nullable final Policy entity,
+            @Nullable final Policy policy,
             final long nextRevision,
             final ModifyPolicyImports command,
             @Nullable final Metadata metadata) {
 
+        final Policy nonNullPolicy = checkNotNull(policy, "policy");
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final PolicyImports policyImports = command.getPolicyImports();
-        final JsonObject policyImportsJson = policyImports.toJson();
 
-        try {
-            PolicyCommandSizeValidator.getInstance().ensureValidSize(
-                    policyImportsJson::getUpperBoundForStringSize,
-                    () -> policyImportsJson.toString().length(),
-                    command::getDittoHeaders);
-        } catch (final PolicyTooLargeException e) {
-            return ResultFactory.newErrorResult(e, command);
-        }
+        PolicyCommandSizeValidator.getInstance()
+                .ensureValidSize(nonNullPolicy,
+                        JsonField.newInstance(Policy.JsonFields.IMPORTS.getPointer(), policyImports.toJson()),
+                        command::getDittoHeaders);
 
-        final DittoHeadersBuilder<?, ?> adjustedHeadersBuilder = command.getDittoHeaders().toBuilder();
-        final DittoHeaders adjustedHeaders = adjustedHeadersBuilder.build();
-        final ModifyPolicyImports adjustedCommand = ModifyPolicyImports.of(command.getEntityId(),
-                policyImports,
-                adjustedHeaders);
+        final PolicyId policyId = context.getState();
+        final PolicyImportsModified policyImportsModified =
+                PolicyImportsModified.of(policyId, policyImports, nextRevision, getEventTimestamp(), dittoHeaders,
+                        metadata);
+        final WithDittoHeaders response =
+                appendETagHeaderIfProvided(command, ModifyPolicyImportsResponse.modified(policyId, dittoHeaders),
+                        policy);
 
-        final PoliciesValidator validator = PoliciesValidator.newInstance(entity);
-
-        if (validator.isValid()) {
-            final PolicyId policyId = context.getState();
-            final PolicyImportsModified policyImportsModified = PolicyImportsModified.of(policyId, policyImports,
-                    nextRevision, getEventTimestamp(), adjustedHeaders, metadata);
-            final WithDittoHeaders response = appendETagHeaderIfProvided(adjustedCommand,
-                    ModifyPolicyImportsResponse.modified(policyId, adjustedHeaders), entity);
-
-            return ResultFactory.newMutationResult(adjustedCommand, policyImportsModified, response);
-        } else {
-            return ResultFactory.newErrorResult(
-                    policyInvalid(context.getState(), validator.getReason().orElse(null), adjustedHeaders),
-                    command);
-        }
+        return ResultFactory.newMutationResult(command, policyImportsModified, response);
     }
 
     @Override

@@ -14,34 +14,30 @@ package org.eclipse.ditto.policies.service.persistence.actors.strategies.command
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.PolicyTooLargeException;
-import org.eclipse.ditto.policies.model.Resource;
-import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Resources;
-import org.eclipse.ditto.policies.api.PoliciesValidator;
-import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResources;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResourcesResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.model.signals.events.ResourcesModified;
+import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResources} command.
@@ -62,53 +58,35 @@ final class ModifyResourcesStrategy extends AbstractPolicyCommandStrategy<Modify
         final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyId policyId = context.getState();
         final Label label = command.getLabel();
-        final Resources resources = command.getResources();
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-
-        final List<ResourceKey> rks = resources.stream()
-                .map(Resource::getResourceKey)
-                .collect(Collectors.toList());
-        Policy tmpPolicy = nonNullPolicy;
-        for (final ResourceKey rk : rks) {
-            tmpPolicy = tmpPolicy.removeResourceFor(label, rk);
-        }
-        final JsonObject tmpPolicyJsonObject = tmpPolicy.toJson();
-        final JsonObject resourceJsonObject = resources.toJson();
-
-        try {
-            PolicyCommandSizeValidator.getInstance().ensureValidSize(
-                    () -> {
-                        final long policyLength = tmpPolicyJsonObject.getUpperBoundForStringSize();
-                        final long resourcesLength = resourceJsonObject.getUpperBoundForStringSize() + 5L;
-                        return policyLength + resourcesLength;
-                    },
-                    () -> {
-                        final long policyLength = tmpPolicyJsonObject.toString().length();
-                        final long resourcesLength = resourceJsonObject.toString().length() + 5L;
-                        return policyLength + resourcesLength;
-                    },
-                    command::getDittoHeaders);
-        } catch (final PolicyTooLargeException e) {
-            return ResultFactory.newErrorResult(e, command);
-        }
+        final Resources newResources = command.getResources();
+        final DittoHeaders commandHeaders = command.getDittoHeaders();
 
         if (nonNullPolicy.getEntryFor(label).isPresent()) {
+
+            final JsonPointer resourcesPointer = Policy.JsonFields.ENTRIES.getPointer()
+                    .append(JsonPointer.of(label))
+                    .append(PolicyEntry.JsonFields.RESOURCES.getPointer());
+            PolicyCommandSizeValidator.getInstance()
+                    .ensureValidSize(nonNullPolicy, JsonField.newInstance(resourcesPointer, newResources.toJson()),
+                            () -> commandHeaders);
+
             final PoliciesValidator validator =
-                    PoliciesValidator.newInstance(nonNullPolicy.setResourcesFor(label, resources));
+                    PoliciesValidator.newInstance(nonNullPolicy.setResourcesFor(label, newResources));
 
             if (validator.isValid()) {
                 final ResourcesModified event =
-                        ResourcesModified.of(policyId, label, resources, nextRevision, getEventTimestamp(),
-                                dittoHeaders, metadata);
+                        ResourcesModified.of(policyId, label, newResources, nextRevision, getEventTimestamp(),
+                                commandHeaders, metadata);
                 final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                        ModifyResourcesResponse.of(policyId, label, dittoHeaders), policy);
+                        ModifyResourcesResponse.of(policyId, label, commandHeaders), policy);
                 return ResultFactory.newMutationResult(command, event, response);
             } else {
                 return ResultFactory.newErrorResult(
-                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders), command);
+                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), commandHeaders),
+                        command);
             }
         } else {
-            return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, dittoHeaders), command);
+            return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, commandHeaders), command);
         }
     }
 

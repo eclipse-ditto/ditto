@@ -112,7 +112,7 @@ public interface PolicyImports extends Iterable<PolicyImport>, Jsonifiable.WithF
     PolicyImports removePolicyImport(CharSequence importedPolicyId);
 
     /**
-     * Returns the size of this PolicyImports, i. e. the number of contained values.
+     * Returns the size of this PolicyImports, i.e. the number of contained values.
      *
      * @return the size.
      */

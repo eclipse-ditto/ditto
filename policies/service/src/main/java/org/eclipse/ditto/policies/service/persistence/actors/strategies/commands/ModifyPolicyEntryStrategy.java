@@ -19,27 +19,27 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.PolicyTooLargeException;
-import org.eclipse.ditto.policies.api.PoliciesValidator;
-import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntry;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryCreated;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryModified;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
+import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntry} command.
@@ -57,43 +57,25 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
             final long nextRevision,
             final ModifyPolicyEntry command,
             @Nullable final Metadata metadata) {
-
+        
         final Policy nonNullPolicy = checkNotNull(policy, "policy");
+        final DittoHeaders commandHeaders = command.getDittoHeaders();
         final PolicyEntry policyEntry = command.getPolicyEntry();
         final Label label = policyEntry.getLabel();
-
-        final JsonObject policyJsonObject = nonNullPolicy.removeEntry(label).toJson();
         final JsonObject policyEntryJsonObject = policyEntry.toJson();
-        final long labelLength = label.toString().length();
 
-        try {
-            PolicyCommandSizeValidator.getInstance().ensureValidSize(
-                    () -> {
-                        final long policyLength = policyJsonObject.getUpperBoundForStringSize();
-                        final long entryLengthWithoutLabel = policyEntryJsonObject.getUpperBoundForStringSize();
-                        final long entryLength = entryLengthWithoutLabel + labelLength + 5L;
-                        return policyLength + entryLength;
-                    },
-                    () -> {
-                        final long policyLength = policyJsonObject.toString().length();
-                        final long entryLengthWithoutLabel = policyEntryJsonObject.toString().length();
-                        final long entryLength = entryLengthWithoutLabel + labelLength + 5L;
-                        return policyLength + entryLength;
-                    },
-                    command::getDittoHeaders);
-        } catch (final PolicyTooLargeException e) {
-            return ResultFactory.newErrorResult(e, command);
-        }
+        final JsonPointer entryPointer = Policy.JsonFields.ENTRIES.getPointer().append(JsonPointer.of(label));
+        PolicyCommandSizeValidator.getInstance()
+                .ensureValidSize(nonNullPolicy, JsonField.newInstance(entryPointer, policyEntryJsonObject),
+                        command::getDittoHeaders);
 
-        final DittoHeadersBuilder<?, ?> adjustedHeadersBuilder = command.getDittoHeaders().toBuilder();
         final PolicyEntry adjustedPolicyEntry = potentiallyAdjustPolicyEntry(policyEntry);
-        final DittoHeaders adjustedHeaders = adjustedHeadersBuilder.build();
         final ModifyPolicyEntry adjustedCommand = ModifyPolicyEntry.of(command.getEntityId(), adjustedPolicyEntry,
-                adjustedHeaders);
+                commandHeaders);
         final Policy newPolicy = nonNullPolicy.setEntry(adjustedPolicyEntry);
 
         final Optional<Result<PolicyEvent<?>>> alreadyExpiredSubject =
-                checkForAlreadyExpiredSubject(newPolicy, adjustedHeaders, command);
+                checkForAlreadyExpiredSubject(newPolicy, commandHeaders, command);
         if (alreadyExpiredSubject.isPresent()) {
             return alreadyExpiredSubject.get();
         }
@@ -107,14 +89,14 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
             if (nonNullPolicy.contains(label)) {
                 eventToPersist =
                         PolicyEntryModified.of(policyId, adjustedPolicyEntry, nextRevision, getEventTimestamp(),
-                                adjustedHeaders, metadata);
-                createdOrModifiedResponse = ModifyPolicyEntryResponse.modified(policyId, label, adjustedHeaders);
+                                commandHeaders, metadata);
+                createdOrModifiedResponse = ModifyPolicyEntryResponse.modified(policyId, label, commandHeaders);
             } else {
                 eventToPersist =
                         PolicyEntryCreated.of(policyId, adjustedPolicyEntry, nextRevision, getEventTimestamp(),
-                                adjustedHeaders, metadata);
+                                commandHeaders, metadata);
                 createdOrModifiedResponse = ModifyPolicyEntryResponse.created(policyId, adjustedPolicyEntry,
-                        adjustedHeaders);
+                        commandHeaders);
             }
             final WithDittoHeaders response =
                     appendETagHeaderIfProvided(adjustedCommand, createdOrModifiedResponse, nonNullPolicy);
@@ -122,7 +104,7 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
             return ResultFactory.newMutationResult(adjustedCommand, eventToPersist, response);
         } else {
             return ResultFactory.newErrorResult(
-                    policyEntryInvalid(policyId, label, validator.getReason().orElse(null), adjustedHeaders),
+                    policyEntryInvalid(policyId, label, validator.getReason().orElse(null), commandHeaders),
                     command);
         }
     }

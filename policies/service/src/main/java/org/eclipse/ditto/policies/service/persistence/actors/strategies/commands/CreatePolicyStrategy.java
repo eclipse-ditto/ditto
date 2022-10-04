@@ -20,7 +20,6 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
@@ -56,14 +55,13 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
 
         // Policy not yet created - do so ..
         final Policy newPolicy = command.getPolicy();
-        final DittoHeadersBuilder<? ,?> adjustedHeadersBuilder = command.getDittoHeaders().toBuilder();
+        final DittoHeaders commandHeaders = command.getDittoHeaders();
         final Set<PolicyEntry> adjustedEntries = potentiallyAdjustPolicyEntries(command.getPolicy().getEntriesSet());
-        final DittoHeaders adjustedHeaders = adjustedHeadersBuilder.build();
         final PolicyBuilder newPolicyBuilder = newPolicy.toBuilder().setId(newPolicy.getEntityId().orElseThrow())
                 .setAll(adjustedEntries);
 
         final Policy adjustedPolicy = newPolicyBuilder.build();
-        final CreatePolicy adjustedCommand = CreatePolicy.of(adjustedPolicy, adjustedHeaders);
+        final CreatePolicy adjustedCommand = CreatePolicy.of(adjustedPolicy, commandHeaders);
 
         if (newPolicy.getLifecycle().isEmpty()) {
             newPolicyBuilder.setLifecycle(PolicyLifecycle.ACTIVE);
@@ -71,7 +69,7 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
         final Policy newPolicyWithLifecycle = newPolicyBuilder.build();
 
         final Optional<Result<PolicyEvent<?>>> alreadyExpiredSubject =
-                checkForAlreadyExpiredSubject(newPolicyWithLifecycle, adjustedHeaders, command);
+                checkForAlreadyExpiredSubject(newPolicyWithLifecycle, commandHeaders, command);
         if (alreadyExpiredSubject.isPresent()) {
             return alreadyExpiredSubject.get();
         }
@@ -86,16 +84,16 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
                     .setMetadata(metadata)
                     .build();
             final PolicyCreated policyCreated =
-                    PolicyCreated.of(newPolicyWithImplicits, nextRevision, timestamp, adjustedHeaders, metadata);
+                    PolicyCreated.of(newPolicyWithImplicits, nextRevision, timestamp, commandHeaders, metadata);
             final WithDittoHeaders response = appendETagHeaderIfProvided(adjustedCommand,
-                    CreatePolicyResponse.of(context.getState(), newPolicyWithImplicits, adjustedHeaders),
+                    CreatePolicyResponse.of(context.getState(), newPolicyWithImplicits, commandHeaders),
                     newPolicyWithImplicits);
             context.getLog().withCorrelationId(adjustedCommand)
                     .debug("Created new Policy with ID <{}>.", context.getState());
             return ResultFactory.newMutationResult(adjustedCommand, policyCreated, response, true, false);
         } else {
             return ResultFactory.newErrorResult(
-                    policyInvalid(context.getState(), validator.getReason().orElse(null), adjustedHeaders),
+                    policyInvalid(context.getState(), validator.getReason().orElse(null), commandHeaders),
                     command);
         }
     }

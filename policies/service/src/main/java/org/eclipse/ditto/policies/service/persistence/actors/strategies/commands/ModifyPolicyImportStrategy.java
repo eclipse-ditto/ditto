@@ -21,17 +21,15 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
-import org.eclipse.ditto.policies.model.PolicyImports;
-import org.eclipse.ditto.policies.model.PolicyTooLargeException;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportResponse;
@@ -59,74 +57,39 @@ final class ModifyPolicyImportStrategy extends AbstractPolicyCommandStrategy<Mod
 
         final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyImport policyImport = command.getPolicyImport();
-        final PolicyId importedPolicyId = policyImport.getImportedPolicyId();
 
-        final JsonObject policyJsonObject = nonNullPolicy.removeEntry(importedPolicyId).toJson();
-        final JsonObject policyImportJsonObject = policyImport.toJson();
-        final long importedPolicyIdLength = importedPolicyId.toString().length();
-
-        try {
-            PolicyCommandSizeValidator.getInstance().ensureValidSize(
-                    () -> {
-                        final long policyLength = policyJsonObject.getUpperBoundForStringSize();
-                        final long entryLengthWithoutLabel = policyImportJsonObject.getUpperBoundForStringSize();
-                        final long entryLength = entryLengthWithoutLabel + importedPolicyIdLength + 5L;
-                        return policyLength + entryLength;
-                    },
-                    () -> {
-                        final long policyLength = policyJsonObject.toString().length();
-                        final long entryLengthWithoutLabel = policyImportJsonObject.toString().length();
-                        final long entryLength = entryLengthWithoutLabel + importedPolicyIdLength + 5L;
-                        return policyLength + entryLength;
-                    },
-                    command::getDittoHeaders);
-        } catch (final PolicyTooLargeException e) {
-            return ResultFactory.newErrorResult(e, command);
-        }
-
-        final DittoHeadersBuilder<?, ?> adjustedHeadersBuilder = command.getDittoHeaders().toBuilder();
-        final DittoHeaders adjustedHeaders = adjustedHeadersBuilder.build();
-        final ModifyPolicyImport adjustedCommand = ModifyPolicyImport.of(command.getEntityId(), policyImport,
-                adjustedHeaders);
-
-        final PolicyImports newPolicyImports = nonNullPolicy.getPolicyImports().setPolicyImport(policyImport);
-        final Policy newPolicy = nonNullPolicy.toBuilder().setPolicyImports(newPolicyImports).build();
-
-        final Optional<Result<PolicyEvent<?>>> alreadyExpiredSubject =
-                checkForAlreadyExpiredSubject(newPolicy, adjustedHeaders, command);
-        if (alreadyExpiredSubject.isPresent()) {
-            return alreadyExpiredSubject.get();
-        }
+        final JsonPointer importPointer = Policy.JsonFields.IMPORTS.getPointer()
+                .append(JsonPointer.of(policyImport.getImportedPolicyId()));
+        PolicyCommandSizeValidator.getInstance()
+                .ensureValidSize(nonNullPolicy, JsonField.newInstance(importPointer, policyImport.toJson()),
+                        command::getDittoHeaders);
 
         final PolicyId policyId = context.getState();
-
+        final PolicyId importedPolicyId = policyImport.getImportedPolicyId();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final PolicyEvent<?> eventToPersist;
         final ModifyPolicyImportResponse createdOrModifiedResponse;
         if (nonNullPolicy.getPolicyImports().getPolicyImport(importedPolicyId).isPresent()) {
             eventToPersist =
-                    PolicyImportModified.of(policyId,
-                            policyImport, nextRevision, getEventTimestamp(),
-                            adjustedHeaders, metadata);
-            createdOrModifiedResponse = ModifyPolicyImportResponse.modified(policyId, importedPolicyId, adjustedHeaders);
+                    PolicyImportModified.of(policyId, policyImport, nextRevision, getEventTimestamp(), dittoHeaders,
+                            metadata);
+            createdOrModifiedResponse = ModifyPolicyImportResponse.modified(policyId, importedPolicyId, dittoHeaders);
         } else {
             eventToPersist =
-                    PolicyImportCreated.of(policyId, policyImport, nextRevision, getEventTimestamp(),
-                            adjustedHeaders, metadata);
-            createdOrModifiedResponse = ModifyPolicyImportResponse.created(policyId, policyImport,
-                    adjustedHeaders);
+                    PolicyImportCreated.of(policyId, policyImport, nextRevision, getEventTimestamp(), dittoHeaders,
+                            metadata);
+            createdOrModifiedResponse = ModifyPolicyImportResponse.created(policyId, policyImport, dittoHeaders);
         }
-        final WithDittoHeaders response =
-                appendETagHeaderIfProvided(adjustedCommand, createdOrModifiedResponse, nonNullPolicy);
-
-        return ResultFactory.newMutationResult(adjustedCommand, eventToPersist, response);
-
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command, createdOrModifiedResponse, nonNullPolicy);
+        return ResultFactory.newMutationResult(command, eventToPersist, response);
     }
 
     @Override
     public Optional<EntityTag> previousEntityTag(final ModifyPolicyImport command,
             @Nullable final Policy previousEntity) {
         return Optional.ofNullable(previousEntity)
-                .flatMap(p -> EntityTag.fromEntity(p.getEntryFor(command.getPolicyImport().getImportedPolicyId()).orElse(null)));
+                .flatMap(p -> EntityTag.fromEntity(
+                        p.getEntryFor(command.getPolicyImport().getImportedPolicyId()).orElse(null)));
     }
 
     @Override
