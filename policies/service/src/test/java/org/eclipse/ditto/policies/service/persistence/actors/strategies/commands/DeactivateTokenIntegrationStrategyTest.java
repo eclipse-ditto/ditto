@@ -92,7 +92,7 @@ public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicy
         final DeactivateTokenIntegration
                 command = DeactivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId),
                 dittoHeaders);
-        assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
+        assertExceptionIsThrown(underTest, TestConstants.Policy.POLICY, command,
                 SubjectIdInvalidException.newBuilder(LABEL).build());
     }
 
@@ -104,7 +104,7 @@ public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicy
         final DeactivateTokenIntegration
                 command = DeactivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId),
                 dittoHeaders);
-        assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
+        assertExceptionIsThrown(underTest, TestConstants.Policy.POLICY, command,
                 UnresolvedPlaceholderException.newBuilder("integration:{{fn:delete()}}").build());
     }
 
@@ -116,7 +116,7 @@ public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicy
         final DeactivateTokenIntegration
                 command = DeactivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId),
                 dittoHeaders);
-        assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
+        assertExceptionIsThrown(underTest, TestConstants.Policy.POLICY, command,
                 UnresolvedPlaceholderException.newBuilder("{{request:subjectId}}").build());
     }
 

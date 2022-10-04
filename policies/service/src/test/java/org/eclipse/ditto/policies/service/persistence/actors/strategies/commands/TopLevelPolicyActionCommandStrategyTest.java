@@ -155,7 +155,7 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
                         dittoHeaders),
                 List.of(LABEL)
         );
-        assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
+        assertExceptionIsThrown(underTest, TestConstants.Policy.POLICY, command,
                 SubjectIdInvalidException.newBuilder(LABEL).build());
     }
 
@@ -170,7 +170,7 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
                         dittoHeaders),
                 List.of(LABEL)
         );
-        assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
+        assertExceptionIsThrown(underTest, TestConstants.Policy.POLICY, command,
                 UnresolvedPlaceholderException.newBuilder("integration:{{fn:delete()}}").build());
     }
 
@@ -185,7 +185,7 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
                         dittoHeaders),
                 List.of(LABEL)
         );
-        assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
+        assertExceptionIsThrown(underTest, TestConstants.Policy.POLICY, command,
                 UnresolvedPlaceholderException.newBuilder("{{request:subjectId}}").build());
     }
 
@@ -367,7 +367,7 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
                         dittoHeaders),
                 List.of(LABEL)
         );
-        assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
+        assertExceptionIsThrown(underTest, TestConstants.Policy.POLICY, command,
                 SubjectIdInvalidException.newBuilder(LABEL).build());
     }
 
@@ -381,7 +381,7 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
                         dittoHeaders),
                 List.of(LABEL)
         );
-        assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
+        assertExceptionIsThrown(underTest, TestConstants.Policy.POLICY, command,
                 UnresolvedPlaceholderException.newBuilder("integration:{{fn:delete()}}").build());
     }
 
@@ -395,7 +395,7 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
                         dittoHeaders),
                 List.of(LABEL)
         );
-        assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
+        assertExceptionIsThrown(underTest, TestConstants.Policy.POLICY, command,
                 UnresolvedPlaceholderException.newBuilder("{{request:subjectId}}").build());
     }
 

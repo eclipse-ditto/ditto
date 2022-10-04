@@ -13,6 +13,7 @@
 package org.eclipse.ditto.policies.service.persistence.actors.strategies.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
@@ -142,6 +143,18 @@ public abstract class AbstractPolicyCommandStrategyTest {
         final Dummy<?> mock = Dummy.mock();
         applyStrategy(underTest, getDefaultContext(), policy, command).accept(cast(mock));
         verify(mock).onError(eq(expectedException), eq(command));
+    }
+
+    protected static <C extends Command<?>> void assertExceptionIsThrown(
+            final CommandStrategy<C, Policy, PolicyId, ?> underTest,
+            @Nullable final Policy policy,
+            final C command,
+            final DittoRuntimeException expectedException) {
+
+        final Dummy<?> mock = Dummy.mock();
+        assertThatException()
+                .isThrownBy(() -> applyStrategy(underTest, getDefaultContext(), policy, command).accept(cast(mock)))
+                .isEqualTo(expectedException);
     }
 
     private static <T extends PolicyEvent<?>> T assertModificationResult(final Result<?> result,

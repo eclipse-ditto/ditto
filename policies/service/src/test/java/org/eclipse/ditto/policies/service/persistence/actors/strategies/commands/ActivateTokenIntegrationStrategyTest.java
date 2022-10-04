@@ -121,7 +121,7 @@ public final class ActivateTokenIntegrationStrategyTest extends AbstractPolicyCo
                 command =
                 ActivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId), expiry,
                         dittoHeaders);
-        assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
+        assertExceptionIsThrown(underTest, TestConstants.Policy.POLICY, command,
                 SubjectIdInvalidException.newBuilder(LABEL).build());
     }
 
@@ -135,8 +135,8 @@ public final class ActivateTokenIntegrationStrategyTest extends AbstractPolicyCo
                 command =
                 ActivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId), expiry,
                         dittoHeaders);
-        assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
-                UnresolvedPlaceholderException.newBuilder("integration:{{fn:delete()}}").build());
+
+        assertExceptionIsThrown(underTest, TestConstants.Policy.POLICY, command, UnresolvedPlaceholderException.newBuilder("integration:{{fn:delete()}}").build());
     }
 
     @Test
@@ -149,7 +149,7 @@ public final class ActivateTokenIntegrationStrategyTest extends AbstractPolicyCo
                 command =
                 ActivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId), expiry,
                         dittoHeaders);
-        assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
+        assertExceptionIsThrown(underTest, TestConstants.Policy.POLICY, command,
                 UnresolvedPlaceholderException.newBuilder("{{request:subjectId}}").build());
     }
 
