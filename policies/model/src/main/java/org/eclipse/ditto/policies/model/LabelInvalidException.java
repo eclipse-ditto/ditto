@@ -48,15 +48,6 @@ public final class LabelInvalidException extends DittoRuntimeException implement
 
     private static final long serialVersionUID = -7013725864335663680L;
 
-    /**
-     * Constructs a new {@code LabelInvalidException} object.
-     *
-     * @param label the invalid Label.
-     */
-    public LabelInvalidException(final CharSequence label) {
-        this(DittoHeaders.empty(), MessageFormat.format(MESSAGE_TEMPLATE, label), DEFAULT_DESCRIPTION, null, null);
-    }
-
     private LabelInvalidException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
@@ -73,22 +64,6 @@ public final class LabelInvalidException extends DittoRuntimeException implement
      */
     public static Builder newBuilder(@Nullable final CharSequence label) {
         return new Builder(label);
-    }
-
-    /**
-     * Constructs a new {@code LabelInvalidException} object with the given exception message.
-     *
-     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
-     * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new LabelInvalidException.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     */
-    public static LabelInvalidException fromMessage(@Nullable final String message,
-            final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .message(message)
-                .dittoHeaders(dittoHeaders)
-                .build();
     }
 
     /**
