@@ -103,13 +103,14 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         this.distributedPubThingEventsForTwin = distributedPubThingEventsForTwin;
         this.thingPersistenceActorPropsFactory = thingPersistenceActorPropsFactory;
         persistenceActorChild = thingPersistenceActorRef;
+        final var system = getContext().getSystem();
         final DefaultScopedConfig dittoScoped =
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config());
+                DefaultScopedConfig.dittoScoped(system.settings().config());
         enforcementConfig = DefaultEnforcementConfig.of(dittoScoped);
         final DittoThingsConfig thingsConfig = DittoThingsConfig.of(dittoScoped);
 
         materializer = Materializer.createMaterializer(getContext());
-        responseReceiverCache = ResponseReceiverCache.lookup(getContext().getSystem());
+        responseReceiverCache = ResponseReceiverCache.lookup(system);
 
         final ActorSelection thingPersistenceActorSelection;
         if (null != persistenceActorChild) {
@@ -122,7 +123,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         }
 
         final ShardRegionProxyActorFactory shardRegionProxyActorFactory =
-                ShardRegionProxyActorFactory.newInstance(getContext().getSystem(), thingsConfig.getClusterConfig());
+                ShardRegionProxyActorFactory.newInstance(system, thingsConfig.getClusterConfig());
 
         if (null != policiesShardRegion) {
             this.policiesShardRegion = policiesShardRegion;
@@ -138,13 +139,13 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         );
 
         try {
-            inlinePolicyEnrichment = new SupervisorInlinePolicyEnrichment(getContext().getSystem(), log, getEntityId(),
+            inlinePolicyEnrichment = new SupervisorInlinePolicyEnrichment(system, log, getEntityId(),
                     thingPersistenceActorSelection, this.policiesShardRegion, enforcementConfig);
         } catch (final Exception e) {
             throw new IllegalStateException("Entity Id could not be retrieved", e);
         }
         liveChannelDispatching = new SupervisorLiveChannelDispatching(log, enforcementConfig, responseReceiverCache,
-                liveSignalPub, getContext());
+                liveSignalPub, getContext(), thingsShardRegion, system);
         smartChannelDispatching = new SupervisorSmartChannelDispatching(log, thingPersistenceActorSelection,
                 liveChannelDispatching);
     }

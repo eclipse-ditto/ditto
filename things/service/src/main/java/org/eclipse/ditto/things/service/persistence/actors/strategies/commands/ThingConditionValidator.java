@@ -20,7 +20,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
@@ -31,7 +31,7 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingCondition
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 
 @Immutable
-final class ThingConditionValidator {
+public final class ThingConditionValidator {
 
     private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
 
@@ -42,19 +42,19 @@ final class ThingConditionValidator {
     /**
      * Validates if the given condition matches the actual thing state.
      *
-     * @param command the command used for checking if validation should be applied.
+     * @param signal the signal used for checking if validation should be applied.
      * @param condition the condition which should be verified against the thing.
      * @param entity the actual thing entity.
-     * @return either void or the ThingConditionFailedException in case the condition couldN't be validated.
+     * @return either void or the ThingConditionFailedException in case the condition couldn't be validated.
      */
-    public static Optional<ThingConditionFailedException> validate(final Command<?> command,
+    public static Optional<ThingConditionFailedException> validate(final Signal<?> signal,
             final String condition, @Nullable final Thing entity) {
 
-        checkNotNull(command, "Command");
+        checkNotNull(signal, "Command");
 
         final Optional<ThingConditionFailedException> result;
-        if (!(command instanceof CreateThing) && entity != null) {
-            result = validateConditionForEntity(condition, entity, command.getDittoHeaders());
+        if (!(signal instanceof CreateThing) && entity != null) {
+            result = validateConditionForEntity(condition, entity, signal.getDittoHeaders());
         } else {
             result = Optional.empty();
         }
