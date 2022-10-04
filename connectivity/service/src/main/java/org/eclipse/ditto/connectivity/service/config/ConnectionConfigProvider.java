@@ -13,7 +13,6 @@
 
 package org.eclipse.ditto.connectivity.service.config;
 
-import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -69,8 +68,8 @@ public interface ConnectionConfigProvider {
      * Uses the given {@code event} to create a config which should overwrite the default connectivity config.
      *
      * @param event the event used to create a config which should overwrite the default connectivity config.
-     * @return Potentially empty config which holds the overwrites for the default connectivity config.
+     * In case of Hub params changed, a null value is passed, which will invoke unconditional connection restart
      */
-    Optional<Config> handleEvent(Event<?> event);
+    void handleEvent(Event<?> event);
 
 }

@@ -25,8 +25,9 @@ import akka.japi.pf.ReceiveBuilder;
  */
 public interface ConnectivityConfigModifiedBehavior extends Actor {
 
-    /**
+     /**
      * Injectable behavior to handle an {@code Event} that transports config changes.
+      * This involves modified Hub parameters (credentials) for 'Hono'-connections as well.
      *
      * @return behavior to handle an {@code Event} that transports config changes.
      */
@@ -37,13 +38,12 @@ public interface ConnectivityConfigModifiedBehavior extends Actor {
     }
 
     /**
-     * Handles the received event by converting it to a {@link Config} and passing it to
-     * {@link #onConnectivityConfigModified(Config)}.
+     * Handles the received event by converting it to a {@link Config}.
      *
      * @param event the received event
      */
     default void handleEvent(final Event<?> event) {
-        getConnectivityConfigProvider().handleEvent(event).ifPresent(this::onConnectivityConfigModified);
+        getConnectivityConfigProvider().handleEvent(event);
     }
 
     /**
@@ -53,11 +53,4 @@ public interface ConnectivityConfigModifiedBehavior extends Actor {
         return ConnectionConfigProviderFactory.getInstance(context().system());
     }
 
-    /**
-     * This method is called when a config modification is received. Implementations must handle the modified config
-     * appropriately i.e. check if any relevant config has changed and re-initialize state if necessary.
-     *
-     * @param connectivityConfigOverwrites the modified config
-     */
-    void onConnectivityConfigModified(Config connectivityConfigOverwrites);
 }

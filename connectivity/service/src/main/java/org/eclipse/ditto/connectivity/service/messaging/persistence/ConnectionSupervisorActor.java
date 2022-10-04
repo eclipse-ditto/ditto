@@ -16,6 +16,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
@@ -119,7 +120,7 @@ public final class ConnectionSupervisorActor
 
     @Override
     protected ConnectionId getEntityId() throws Exception {
-        return ConnectionId.of(URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name()));
+        return ConnectionId.of(URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8));
     }
 
     @Override
@@ -141,6 +142,8 @@ public final class ConnectionSupervisorActor
                 .match(Config.class, this::onConnectivityConfigModified)
                 .match(CheckForOverwritesConfig.class,
                         checkForOverwrites -> initConfigOverwrites(getEntityId(), checkForOverwrites.dittoHeaders))
+                .match(RestartConnection.class, restartConnection -> Optional.ofNullable(restartConnection
+                        .getModifiedConfig()).ifPresentOrElse(this::onConnectivityConfigModified, this::restartChild))
                 .matchEquals(Control.REGISTRATION_FOR_CONFIG_CHANGES_SUCCESSFUL, c -> {
                     log.debug("Successfully registered for connectivity config changes.");
                     isRegisteredForConnectivityConfigChanges = true;
@@ -161,7 +164,8 @@ public final class ConnectionSupervisorActor
     protected void handleMessagesDuringStartup(final Object message) {
         if (message instanceof WithDittoHeaders withDittoHeaders) {
             initConfigOverwrites(entityId, withDittoHeaders.getDittoHeaders());
-        } else if (message != Control.REGISTRATION_FOR_CONFIG_CHANGES_SUCCESSFUL) {
+        } else if (message != Control.REGISTRATION_FOR_CONFIG_CHANGES_SUCCESSFUL
+                && message != Control.REGISTRATION_FOR_HUB_PARAMS_CHANGES_SUCCESSFUL) {
             initConfigOverwrites(entityId, null);
         }
         super.handleMessagesDuringStartup(message);
@@ -202,8 +206,11 @@ public final class ConnectionSupervisorActor
         return SUPERVISOR_STRATEGY;
     }
 
-    @Override
-    public void onConnectivityConfigModified(final Config modifiedConfig) {
+    /*
+     * This method is called when a config modification is received. Implementations must handle the modified config
+     * appropriately i.e. check if any relevant config has changed and re-initialize state if necessary.
+     */
+    private void onConnectivityConfigModified(Config modifiedConfig) {
         if (Objects.equals(connectivityConfigOverwrites, modifiedConfig)) {
             log.debug("Received modified config is unchanged, not restarting persistence actor.");
         } else {
@@ -268,7 +275,8 @@ public final class ConnectionSupervisorActor
     }
 
     private enum Control {
-        REGISTRATION_FOR_CONFIG_CHANGES_SUCCESSFUL
+        REGISTRATION_FOR_CONFIG_CHANGES_SUCCESSFUL,
+        REGISTRATION_FOR_HUB_PARAMS_CHANGES_SUCCESSFUL
     }
 
     private static class CheckForOverwritesConfig {
@@ -278,5 +286,28 @@ public final class ConnectionSupervisorActor
         private CheckForOverwritesConfig(@Nullable final DittoHeaders dittoHeaders) {
             this.dittoHeaders = dittoHeaders;
         }
+    }
+
+    /**
+     * Command to restart the connection. Used in case the config or hub params ('hono'-connections only) are modified.
+     */
+    public static class RestartConnection {
+
+        @Nullable
+        private final Config modifiedConfig;
+
+        private RestartConnection(@Nullable final Config modifiedConfig) {
+            this.modifiedConfig = modifiedConfig;
+        }
+
+        public static RestartConnection of(@Nullable Config modifiedConfig) {
+            return new RestartConnection(modifiedConfig);
+        }
+
+        @Nullable
+        public Config getModifiedConfig() {
+            return modifiedConfig;
+        }
+
     }
 }
