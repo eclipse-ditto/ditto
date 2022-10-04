@@ -24,6 +24,13 @@
     --bs-table-hover-color: white;
 }
 
+td {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 300px;
+}
+
 thead {
     position: sticky;
     top: 0;

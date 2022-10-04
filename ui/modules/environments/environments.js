@@ -17,38 +17,8 @@
 import * as Authorization from '../environments/authorization.js';
 import * as Utils from '../utils.js';
 
-let environments = {
-  local_ditto: {
-    api_uri: 'http://localhost:8080',
-    ditto_version: '3',
-    bearer: null,
-    defaultUsernamePassword: 'ditto:ditto',
-    defaultUsernamePasswordDevOps: 'devops:foobar',
-    useBasicAuth: true,
-    useDittoPreAuthenticatedAuth: false,
-    defaultDittoPreAuthenticatedUsername: null,
-  },
-  local_ditto_ide: {
-    api_uri: 'http://localhost:8080',
-    ditto_version: '3',
-    bearer: null,
-    defaultUsernamePassword: null,
-    defaultUsernamePasswordDevOps: null,
-    useBasicAuth: false,
-    useDittoPreAuthenticatedAuth: true,
-    defaultDittoPreAuthenticatedUsername: 'pre:ditto',
-  },
-  ditto_sandbox: {
-    api_uri: 'https://ditto.eclipseprojects.io',
-    ditto_version: '3',
-    bearer: null,
-    defaultUsernamePassword: 'ditto:ditto',
-    defaultUsernamePasswordDevOps: null,
-    useBasicAuth: true,
-    useDittoPreAuthenticatedAuth: false,
-    defaultDittoPreAuthenticatedUsername: null,
-  },
-};
+let urlSearchParams;
+let environments;
 
 let settingsEditor;
 
@@ -66,6 +36,31 @@ let dom = {
 
 let observers = [];
 
+function Environment(env) {
+  Object.assign(this, env);
+  Object.defineProperties(this, {
+    bearer: {
+      enumerable: false,
+      writable: true,
+    },
+    usernamePassword: {
+      value: this.defaultUsernamePassword,
+      enumerable: false,
+      writable: true,
+    },
+    usernamePasswordDevOps: {
+      value: this.defaultUsernamePasswordDevOps,
+      enumerable: false,
+      writable: true,
+    },
+    dittoPreAuthenticatedUsername: {
+      value: this.defaultDittoPreAuthenticatedUsername,
+      enumerable: false,
+      writable: true,
+    },
+  });
+}
+
 export function current() {
   return environments[dom.environmentSelector.value];
 }
@@ -81,37 +76,11 @@ function notifyAll(modifiedField) {
   observers.forEach(observer => observer.call(null, modifiedField));
 }
 
-export function ready() {
+export async function ready() {
   Utils.getAllElementsById(dom);
 
-  const restoredEnv = localStorage.getItem('ditto-ui-env');
-  if (restoredEnv) {
-    environments = JSON.parse(restoredEnv);
-  }
-
-  Object.keys(environments).forEach((env) => {
-    Object.defineProperties(environments[env], {
-      bearer: {
-        enumerable: false,
-        writable: true,
-      },
-      usernamePassword: {
-        value: environments[env].defaultUsernamePassword,
-        enumerable: false,
-        writable: true,
-      },
-      usernamePasswordDevOps: {
-        value: environments[env].defaultUsernamePasswordDevOps,
-        enumerable: false,
-        writable: true,
-      },
-      dittoPreAuthenticatedUsername: {
-        value: environments[env].defaultDittoPreAuthenticatedUsername,
-        enumerable: false,
-        writable: true,
-      },
-    });
-  });
+  urlSearchParams = new URLSearchParams(window.location.search);
+  environments = await loadEnvironmentTemplates();
 
   settingsEditor = ace.edit('settingsEditor');
   settingsEditor.session.setMode('ace/mode/json');
@@ -137,10 +106,10 @@ export function ready() {
   dom.buttonCreateEnvironment.onclick = () => {
     Utils.assert(dom.inputEnvironmentName.value, 'Please provide an environment name', dom.inputEnvironmentName);
     Utils.assert(!environments[dom.inputEnvironmentName.value], 'Name already used', dom.inputEnvironmentName);
-    environments[dom.inputEnvironmentName.value] = {
+    environments[dom.inputEnvironmentName.value] = new Environment({
       api_uri: dom.inputApiUri.value ? dom.inputApiUri.value : '',
-      ditto_version: dom.ditto_version.value ? dom.inputDittoVersion.value : '3',
-    };
+      ditto_version: dom.inputDittoVersion.value ? dom.inputDittoVersion.value : '3',
+    });
     environmentsJsonChanged();
   };
 
@@ -175,6 +144,9 @@ export function environmentsJsonChanged(modifiedField) {
 
   function updateEnvSelector() {
     let activeEnvironment = dom.environmentSelector.value;
+    if (!activeEnvironment) {
+      activeEnvironment = urlSearchParams.get('primaryEnvironmentName');
+    }
     if (!activeEnvironment || !environments[activeEnvironment]) {
       activeEnvironment = Object.keys(environments)[0];
     }
@@ -205,4 +177,75 @@ function updateEnvEditors() {
     dom.inputDittoVersion.value = null;
   }
 }
+
+async function loadEnvironmentTemplates() {
+  let fromTemplates = await (await fetch('templates/environmentTemplates.json')).json();
+  let fromURL;
+  let fromLocalStorage;
+
+  let environmentsURL = urlSearchParams.get('environmentsURL');
+  if (environmentsURL) {
+    try {
+      let response = await fetch(environmentsURL);
+      if (!response.ok) {
+        throw new Error(`URL ${environmentsURL} can not be loaded`);
+      }
+      fromURL = await response.json();
+      validateEnvironments(fromURL);
+    } catch (err) {
+      fromURL = null;
+      Utils.showError(
+          err.message,
+          'Error loading environments from URL');
+    }
+  }
+
+  const restoredEnv = localStorage.getItem('ditto-ui-env');
+  if (restoredEnv) {
+    fromLocalStorage = JSON.parse(restoredEnv);
+  }
+
+  let result;
+
+  if (fromURL) {
+    if (fromLocalStorage) {
+      result = merge(fromURL, fromLocalStorage);
+    } else {
+      result = fromURL;
+    }
+  } else if (fromLocalStorage) {
+    result = fromLocalStorage;
+  } else {
+    result = fromTemplates;
+  }
+
+  Object.keys(result).forEach((env) => {
+    result[env] = new Environment(result[env]);
+  });
+
+  return result;
+
+  function validateEnvironments(envs) {
+    Object.keys(envs).forEach((key) => {
+      if (!envs[key].hasOwnProperty('api_uri')) {
+        throw new SyntaxError('Environments json invalid');
+      }
+    });
+  };
+
+  function merge(remote, local) {
+    let merged = {};
+    Object.keys(remote).forEach((env) => {
+      merged[env] = {
+        ...local[env],
+        ...remote[env],
+      };
+    });
+    return {
+      ...local,
+      ...merged,
+    };
+  }
+}
+
 
