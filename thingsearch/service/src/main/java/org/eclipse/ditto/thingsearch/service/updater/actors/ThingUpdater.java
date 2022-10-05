@@ -464,8 +464,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
             return enqueue(newMetadata, data);
         } else {
-            log.debug("Dropping <{}> because my policyId=<{}> and policyRevision=<{}>",
-                    policyReferenceTag, affectedOldPolicyTag);
+            log.debug("Dropping <{}> because <{}> did not change.", policyReferenceTag, affectedOldPolicyTag);
             return stay();
         }
     }
