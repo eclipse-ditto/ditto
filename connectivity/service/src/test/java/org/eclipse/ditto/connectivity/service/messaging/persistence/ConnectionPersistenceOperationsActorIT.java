@@ -128,7 +128,8 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(system.settings().config());
         final var enforcerActorPropsFactory = ConnectionEnforcerActorPropsFactory.get(system, dittoExtensionsConfig);
         final Props props =
-                ConnectionSupervisorActor.props(proxyActorProbe.ref(), pubSubMediator, enforcerActorPropsFactory);
+                ConnectionSupervisorActor.props(proxyActorProbe.ref(), pubSubMediator, enforcerActorPropsFactory,
+                        system.deadLetters());
 
         return system.actorOf(props, String.valueOf(id));
     }

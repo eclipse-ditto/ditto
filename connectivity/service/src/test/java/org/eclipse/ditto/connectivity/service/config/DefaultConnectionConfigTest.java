@@ -150,10 +150,6 @@ public final class DefaultConnectionConfigTest {
                 .as(ConnectionConfig.ConnectionConfigValue.ACK_LABEL_DECLARE_INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(99L));
 
-        softly.assertThat(underTest.areAllClientActorsOnOneNode())
-                .as(ConnectionConfig.ConnectionConfigValue.ALL_CLIENT_ACTORS_ON_ONE_NODE.getConfigPath())
-                .isEqualTo(true);
-
         softly.assertThat(underTest.getShutdownTimeout())
                 .as(ConnectionConfig.ConnectionConfigValue.SHUTDOWN_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofMinutes(7));

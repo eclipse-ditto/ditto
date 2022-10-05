@@ -96,11 +96,6 @@ public class ErrorHandlingActorTest extends WithMockServers {
     }
 
     @Test
-    public void tryCloseConnectionExpectErrorResponse() {
-        tryModifyConnectionExpectErrorResponse("close");
-    }
-
-    @Test
     public void tryDeleteConnectionExpectErrorResponse() {
         setUp(true, true);
         new TestKit(actorSystem) {{

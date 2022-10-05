@@ -21,6 +21,7 @@ import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
 import org.eclipse.ditto.connectivity.service.config.ConnectionIdsRetrievalConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.enforcement.ConnectionEnforcerActorPropsFactory;
+import org.eclipse.ditto.connectivity.service.messaging.ClientSupervisor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectionIdsRetrievalActor;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceOperationsActor;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceStreamingActorCreator;
@@ -82,8 +83,6 @@ public final class ConnectivityRootActor extends DittoRootActor {
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
         final var enforcerActorPropsFactory =
                 ConnectionEnforcerActorPropsFactory.get(actorSystem, dittoExtensionsConfig);
-        final var connectionSupervisorProps =
-                ConnectionSupervisorActor.props(commandForwarder, pubSubMediator, enforcerActorPropsFactory);
         // Create persistence streaming actor (with no cache) and make it known to pubSubMediator.
         final ActorRef persistenceStreamingActor =
                 startChildActor(ConnectionPersistenceStreamingActorCreator.ACTOR_NAME,
@@ -97,6 +96,11 @@ public final class ConnectivityRootActor extends DittoRootActor {
         DittoProtocolSub.get(actorSystem);
 
         final MongoReadJournal mongoReadJournal = MongoReadJournal.newInstance(actorSystem);
+
+        final var clientShardRegion = startClientShardRegion(actorSystem, connectivityConfig);
+        final var connectionSupervisorProps =
+                ConnectionSupervisorActor.props(commandForwarder, pubSubMediator, enforcerActorPropsFactory,
+                        clientShardRegion);
         startClusterSingletonActor(
                 PersistencePingActor.props(
                         startConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),
@@ -105,7 +109,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
         final ConnectionIdsRetrievalConfig connectionIdsRetrievalConfig =
                 connectivityConfig.getConnectionIdsRetrievalConfig();
         startChildActor(ConnectionIdsRetrievalActor.ACTOR_NAME, ConnectionIdsRetrievalActor.props(mongoReadJournal,
-                        connectionIdsRetrievalConfig));
+                connectionIdsRetrievalConfig));
 
         startChildActor(ConnectionPersistenceOperationsActor.ACTOR_NAME,
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
@@ -184,4 +188,14 @@ public final class ConnectivityRootActor extends DittoRootActor {
                         ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem));
     }
 
+    private static ActorRef startClientShardRegion(final ActorSystem actorSystem, final ConnectivityConfig config) {
+        final var numberOfShards = config.getClusterConfig().getNumberOfShards();
+        final var refreshInterval = config.getClientConfig().getSubscriptionRefreshDelay();
+        final var props = ClientSupervisor.props(numberOfShards, refreshInterval);
+        final ClusterShardingSettings shardingSettings = ClusterShardingSettings.create(actorSystem)
+                .withRole(ConnectivityMessagingConstants.CLUSTER_ROLE);
+        return ClusterSharding.get(actorSystem)
+                .start(ConnectivityMessagingConstants.SHARD_REGION, props, shardingSettings,
+                        ShardRegionExtractor.of(numberOfShards, actorSystem));
+    }
 }
