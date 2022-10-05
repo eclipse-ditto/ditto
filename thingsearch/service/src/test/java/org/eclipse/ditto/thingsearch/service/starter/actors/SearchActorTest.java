@@ -203,6 +203,7 @@ public final class SearchActorTest {
                 Source.actorRef(completionStrategy, failureMatcher, 16, OverflowStrategy.dropHead())
                         .preMaterialize(SystemMaterializer.get(actorSystemResource.getActorSystem()).materializer());
         stubberConsumer.accept(Mockito.doAnswer(inv -> mat.second()).when(persistence));
+
         return mat.first();
     }
 

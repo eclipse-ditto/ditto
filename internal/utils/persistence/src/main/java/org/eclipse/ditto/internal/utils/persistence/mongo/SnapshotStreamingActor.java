@@ -73,7 +73,6 @@ public final class SnapshotStreamingActor extends AbstractActorWithShutdownBehav
     private final Materializer materializer = Materializer.createMaterializer(this::getContext);
     private final SharedKillSwitch killSwitch = KillSwitches.shared(ACTOR_NAME);
 
-
     private final Function<String, EntityId> pid2EntityId;
     private final Function<EntityId, String> entityId2Pid;
     private final DittoMongoClient mongoClient;
@@ -178,6 +177,34 @@ public final class SnapshotStreamingActor extends AbstractActorWithShutdownBehav
                 .build();
     }
 
+    @Override
+    public void serviceUnbind(final Control serviceUnbind) {
+        log.info("{}: unsubscribing from pubsub for {} actor", serviceUnbind, ACTOR_NAME);
+
+        final CompletableFuture<Done> unsubscribeTask = Patterns.ask(pubSubMediator,
+                        DistPubSubAccess.unsubscribeViaGroup(SudoStreamSnapshots.TYPE, ACTOR_NAME,
+                                getSelf()), SHUTDOWN_ASK_TIMEOUT)
+                .toCompletableFuture()
+                .thenApply(ack -> {
+                    log.info("Unsubscribed successfully from pubsub for {} actor", ACTOR_NAME);
+                    return Done.getInstance();
+                });
+
+        Patterns.pipe(unsubscribeTask, getContext().getDispatcher()).to(getSender());
+    }
+
+    @Override
+    public void serviceRequestsDone(final Control serviceRequestsDone) {
+        log.info("Abort streaming of snapshots because of graceful shutdown.");
+        killSwitch.abort(KILL_SWITCH_EXCEPTION);
+        getSender().tell(Done.getInstance(), getSelf());
+    }
+
+    private void handleSubscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
+        log.info("Successfully subscribed to distributed pub/sub on topic <{}> for group <{}>.",
+                subscribeAck.subscribe().topic(), subscribeAck.subscribe().group());
+    }
+
     private Source<StreamedSnapshot, NotUsed> createSource(final SudoStreamSnapshots command) {
         log.info("Starting stream for <{}>", command);
         final int batchSize = command.getBurst();
@@ -243,34 +270,6 @@ public final class SnapshotStreamingActor extends AbstractActorWithShutdownBehav
                 .idleTimeout(timeout)
                 .runWith(StreamRefs.sourceRef(), materializer);
         getSender().tell(sourceRef, getSelf());
-    }
-
-    @Override
-    public void serviceUnbind(final Control serviceUnbind) {
-        log.info("{}: unsubscribing from pubsub for {} actor", serviceUnbind, ACTOR_NAME);
-
-        final CompletableFuture<Done> unsubscribeTask = Patterns.ask(pubSubMediator,
-                        DistPubSubAccess.unsubscribeViaGroup(SudoStreamSnapshots.TYPE, ACTOR_NAME,
-                                getSelf()), SHUTDOWN_ASK_TIMEOUT)
-                .toCompletableFuture()
-                .thenApply(ack -> {
-                    log.info("Unsubscribed successfully from pubsub for {} actor", ACTOR_NAME);
-                    return Done.getInstance();
-                });
-
-        Patterns.pipe(unsubscribeTask, getContext().getDispatcher()).to(getSender());
-    }
-
-    @Override
-    public void serviceRequestsDone(final Control serviceRequestsDone) {
-        log.info("Abort streaming of snapshots because of graceful shutdown.");
-        killSwitch.abort(KILL_SWITCH_EXCEPTION);
-        getSender().tell(Done.getInstance(), getSelf());
-    }
-
-    private void handleSubscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
-        log.info("Successfully subscribed to distributed pub/sub on topic <{}> for group <{}>.",
-                subscribeAck.subscribe().topic(), subscribeAck.subscribe().group());
     }
 
 }

@@ -134,6 +134,32 @@ public final class ThingsAggregatorActor extends AbstractActorWithShutdownBehavi
                 .build();
     }
 
+    @Override
+    public void serviceUnbind(final Control serviceUnbind) {
+        log.info("{}: unsubscribing from pubsub for {} actor", serviceUnbind, ACTOR_NAME);
+
+        final CompletableFuture<Done> unsubscribeTask = CompletableFuture.allOf(
+                        Patterns.ask(pubSubMediator,
+                                        DistPubSubAccess.unsubscribeViaGroup(RetrieveThings.TYPE, ACTOR_NAME, getSelf()),
+                                        SHUTDOWN_ASK_TIMEOUT)
+                                .toCompletableFuture(),
+                        Patterns.ask(pubSubMediator,
+                                        DistPubSubAccess.unsubscribeViaGroup(SudoRetrieveThings.TYPE, ACTOR_NAME, getSelf()),
+                                        SHUTDOWN_ASK_TIMEOUT)
+                                .toCompletableFuture())
+                .thenApply(ack -> {
+                    log.info("Unsubscribed successfully from pubsub for {} actor", ACTOR_NAME);
+                    return Done.getInstance();
+                });
+
+        Patterns.pipe(unsubscribeTask, getContext().getDispatcher()).to(getSender());
+    }
+
+    @Override
+    public void serviceRequestsDone(final Control serviceRequestsDone) {
+        // nothing to do
+    }
+
     private void retrieveThings(final RetrieveThings retrieveThings, final ActorRef resultReceiver) {
         final JsonFieldSelector selectedFields = retrieveThings.getSelectedFields().orElse(null);
         retrieveThingsAndSendResult(retrieveThings.getEntityIds(), selectedFields, retrieveThings, resultReceiver);
@@ -187,32 +213,6 @@ public final class ThingsAggregatorActor extends AbstractActorWithShutdownBehavi
         } else {
             return maxParallelism;
         }
-    }
-
-    @Override
-    public void serviceUnbind(final Control serviceUnbind) {
-        log.info("{}: unsubscribing from pubsub for {} actor", serviceUnbind, ACTOR_NAME);
-
-        final CompletableFuture<Done> unsubscribeTask = CompletableFuture.allOf(
-                        Patterns.ask(pubSubMediator,
-                                        DistPubSubAccess.unsubscribeViaGroup(RetrieveThings.TYPE, ACTOR_NAME, getSelf()),
-                                        SHUTDOWN_ASK_TIMEOUT)
-                                .toCompletableFuture(),
-                        Patterns.ask(pubSubMediator,
-                                        DistPubSubAccess.unsubscribeViaGroup(SudoRetrieveThings.TYPE, ACTOR_NAME, getSelf()),
-                                        SHUTDOWN_ASK_TIMEOUT)
-                                .toCompletableFuture())
-                .thenApply(ack -> {
-                    log.info("Unsubscribed successfully from pubsub for {} actor", ACTOR_NAME);
-                    return Done.getInstance();
-                });
-
-        Patterns.pipe(unsubscribeTask, getContext().getDispatcher()).to(getSender());
-    }
-
-    @Override
-    protected void serviceRequestsDone(final Control serviceRequestsDone) {
-        // nothing to do
     }
 
 }

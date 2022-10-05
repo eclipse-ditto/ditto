@@ -36,7 +36,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
-import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithShutdownBehavior;
+import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithShutdownBehaviorAndRequestCounting;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
@@ -52,7 +52,6 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingRespon
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingsResponse;
 
-import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -71,7 +70,7 @@ import akka.stream.javadsl.Source;
  * {@link Thing}s one after one in a stream. That ensures that the cluster messages size must not be increased when
  * streaming a larger amount of Things in the cluster.
  */
-public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownBehavior {
+public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownBehaviorAndRequestCounting {
 
     /**
      * The name of this Actor in the ActorSystem.
@@ -86,9 +85,6 @@ public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownB
 
     private final ActorRef pubSubMediator;
     private final Materializer materializer;
-
-    private int ongoingRequests = 0;
-    @Nullable private ActorRef shutdownReceiver = null;
 
     @SuppressWarnings("unused")
     private ThingsAggregatorProxyActor(final ActorRef pubSubMediator) {
@@ -112,12 +108,16 @@ public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownB
         return ReceiveBuilder.create()
                 .match(RetrieveThings.class, rt -> handleRetrieveThings(rt, rt))
                 .match(SudoRetrieveThings.class, srt -> handleSudoRetrieveThings(srt, srt))
-                .matchEquals(Control.OP_COMPLETE, this::opComplete)
                 .matchAny(m -> {
                     log.warning("Got unknown message: {}", m);
                     unhandled(m);
                 })
                 .build();
+    }
+
+    @Override
+    public void serviceUnbind(final Control serviceUnbind) {
+        // nothing to do
     }
 
     private void handleRetrieveThings(final RetrieveThings rt, final Object msgToAsk) {
@@ -143,7 +143,6 @@ public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownB
     private void askTargetActor(final Command<?> command, final List<ThingId> thingIds,
             final Object msgToAsk, final ActorRef sender) {
 
-        incrementOpCounter();
         final StartedTrace trace;
         final Object tracedMsgToAsk;
         if (msgToAsk instanceof Signal<?> signal) {
@@ -161,25 +160,28 @@ public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownB
 
         final DistributedPubSubMediator.Publish pubSubMsg =
                 DistPubSubAccess.publishViaGroup(command.getType(), tracedMsgToAsk);
-        Patterns.ask(pubSubMediator, pubSubMsg, Duration.ofSeconds(ASK_TIMEOUT))
-                .thenAccept(response -> {
-                    if (response instanceof SourceRef) {
-                        handleSourceRef((SourceRef<?>) response, thingIds, command, sender, trace);
-                    } else if (response instanceof DittoRuntimeException dre) {
-                        trace.fail(dre).finish();
-                        sender.tell(response, getSelf());
-                    } else {
-                        log.error("Unexpected non-DittoRuntimeException error - responding with " +
-                                        "DittoInternalErrorException. Cause: {} - {}",
-                                response.getClass().getSimpleName(), response);
-                        final DittoInternalErrorException responseEx =
-                                DittoInternalErrorException.newBuilder()
-                                        .dittoHeaders(command.getDittoHeaders())
-                                        .build();
-                        trace.fail(responseEx).finish();
-                        sender.tell(responseEx, getSelf());
-                    }
-                });
+
+        withRequestCounting(
+                Patterns.ask(pubSubMediator, pubSubMsg, Duration.ofSeconds(ASK_TIMEOUT))
+                        .thenAccept(response -> {
+                            if (response instanceof SourceRef) {
+                                handleSourceRef((SourceRef<?>) response, thingIds, command, sender, trace);
+                            } else if (response instanceof DittoRuntimeException dre) {
+                                trace.fail(dre).finish();
+                                sender.tell(response, getSelf());
+                            } else {
+                                log.error("Unexpected non-DittoRuntimeException error - responding with " +
+                                                "DittoInternalErrorException. Cause: {} - {}",
+                                        response.getClass().getSimpleName(), response);
+                                final DittoInternalErrorException responseEx =
+                                        DittoInternalErrorException.newBuilder()
+                                                .dittoHeaders(command.getDittoHeaders())
+                                                .build();
+                                trace.fail(responseEx).finish();
+                                sender.tell(responseEx, getSelf());
+                            }
+                        })
+        );
     }
 
     private void handleSourceRef(final SourceRef<?> sourceRef, final List<ThingId> thingIds,
@@ -222,9 +224,10 @@ public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownB
                     return list;
                 });
 
-        Patterns.pipe(commandResponseCompletionStage, getContext().dispatcher()).to(originatingSender)
-                .future().toCompletableFuture()
-                .whenComplete((unused, throwable) -> getSelf().tell(Control.OP_COMPLETE, getSelf()));;
+        withRequestCounting(
+                Patterns.pipe(commandResponseCompletionStage, getContext().dispatcher()).to(originatingSender)
+                        .future().toCompletableFuture()
+        );
     }
 
     private Function<Jsonifiable<?>, PlainJson> supplyPlainJsonFromRetrieveThingResponse() {
@@ -266,6 +269,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownB
                 if (!pj1.isEmpty() && !pj2.isEmpty()) {
                     final ThingId thingId1 = ThingId.of(pj1.getId());
                     final ThingId thingId2 = ThingId.of(pj2.getId());
+
                     return Integer.compare(thingIds.indexOf(thingId1), thingIds.indexOf(thingId2));
                 } else {
                     return 0;
@@ -296,38 +300,6 @@ public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownB
                 .map(PlainJson::getJson)
                 .filter(Predicate.not(String::isEmpty))
                 .toList(), dittoHeaders);
-    }
-
-    private void incrementOpCounter() {
-        ++ongoingRequests;
-    }
-
-    private void decrementOpCounter() {
-        --ongoingRequests;
-    }
-
-    private void opComplete(final Control opComplete) {
-        decrementOpCounter();
-        if (shutdownReceiver != null && ongoingRequests == 0) {
-            log.info("{}: finished waiting for requests", Control.SERVICE_REQUESTS_DONE);
-            shutdownReceiver.tell(Done.getInstance(), getSelf());
-        }
-    }
-
-    @Override
-    protected void serviceUnbind(final Control serviceUnbind) {
-        // nothing to do
-    }
-
-    @Override
-    public void serviceRequestsDone(final Control serviceRequestsDone) {
-        if (ongoingRequests == 0) {
-            log.info("{}: no ongoing requests", serviceRequestsDone);
-            getSender().tell(Done.getInstance(), getSelf());
-        } else {
-            log.info("{}: waiting for {} ongoing requests", serviceRequestsDone, ongoingRequests);
-            shutdownReceiver = getSender();
-        }
     }
 
     /**

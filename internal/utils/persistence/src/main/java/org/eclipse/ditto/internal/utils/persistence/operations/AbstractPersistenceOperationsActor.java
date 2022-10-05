@@ -239,6 +239,63 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActorWi
                 .build();
     }
 
+    @Override
+    public void serviceUnbind(final Control serviceUnbind) {
+        logger.info("{}: unsubscribing from pubsub for {} actor", serviceUnbind, getActorName());
+
+        final ActorRef self = getSelf();
+        final CompletableFuture<Object> unsubscribeFromPurgeNamespace;
+        final CompletableFuture<Object> unsubscribeFromPurgeEntities;
+        if (null != namespaceOps) {
+            unsubscribeFromPurgeNamespace = Patterns.ask(pubSubMediator,
+                            DistPubSubAccess.unsubscribeViaGroup(PurgeNamespace.TYPE, getSubscribeGroup(), self),
+                            SHUTDOWN_ASK_TIMEOUT)
+                    .toCompletableFuture();
+        } else {
+            unsubscribeFromPurgeNamespace = CompletableFuture.completedFuture(Done.getInstance());
+        }
+
+        if (null != entitiesOps) {
+            unsubscribeFromPurgeEntities = Patterns.ask(pubSubMediator,
+                            DistPubSubAccess.unsubscribeViaGroup(PurgeEntities.getTopic(entityType), getSubscribeGroup(),
+                                    self),
+                            SHUTDOWN_ASK_TIMEOUT)
+                    .toCompletableFuture();
+        } else {
+            unsubscribeFromPurgeEntities = CompletableFuture.completedFuture(Done.getInstance());
+        }
+
+        final CompletableFuture<Done> unsubscribeTask =
+                CompletableFuture.allOf(unsubscribeFromPurgeNamespace, unsubscribeFromPurgeEntities)
+                        .thenApply(ack -> {
+                            logger.info("Unsubscribed successfully from pubsub for {} actor", getActorName());
+
+                            return Done.getInstance();
+                        });
+
+        Patterns.pipe(unsubscribeTask, getContext().getDispatcher()).to(getSender());
+    }
+
+    @Override
+    public void serviceRequestsDone(final Control serviceRequestsDone) {
+        logger.info("Re-schedule/Publish <{}> commands for <{}> via PubSub.", lastCommandsAndSender.size(),
+                getActorName());
+
+        killSwitch.abort(KILL_SWITCH_EXCEPTION);
+        lastCommandsAndSender.forEach((command, sender) -> {
+            if (command instanceof PurgeNamespace purgeNamespace) {
+                pubSubMediator.tell(DistPubSubAccess.publishViaGroup(purgeNamespace.getType(), purgeNamespace), sender);
+            } else if (command instanceof PurgeEntities purgeEntities) {
+                final String topic = PurgeEntities.getTopic(entityType);
+                final PurgeEntities purgeEntitiesCommand = PurgeEntities.of(entityType, purgeEntities.getEntityIds(),
+                        purgeEntities.getDittoHeaders());
+                pubSubMediator.tell(DistPubSubAccess.publishViaGroup(topic, purgeEntitiesCommand), sender);
+            }
+        });
+
+        getSender().tell(Done.getInstance(), getSelf());
+    }
+
     private void purgeNamespace(final PurgeNamespace purgeNamespace) {
         final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(purgeNamespace);
         if (null == namespaceOps) {
@@ -273,6 +330,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActorWi
                     l.error(error, "Unexpected error when purging namespace <{}>!",
                             purgeNamespace.getNamespace());
                     getSelf().tell(new OpComplete(purgeNamespace, sender), ActorRef.noSender());
+
                     return null;
                 });
     }
@@ -338,44 +396,9 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActorWi
                     // Reply nothing - Error should not occur (DB errors were converted to stream elements and handled)
                     l.error(error, "Unexpected error when purging entities <{}>!", purgeEntities.getEntityIds());
                     getSelf().tell(new OpComplete(purgeEntities, initiator), ActorRef.noSender());
+
                     return null;
                 });
-    }
-
-    @Override
-    public void serviceUnbind(final Control serviceUnbind) {
-        logger.info("{}: unsubscribing from pubsub for {} actor", serviceUnbind, getActorName());
-
-        final ActorRef self = getSelf();
-        final CompletableFuture<Object> unsubscribeFromPurgeNamespace;
-        final CompletableFuture<Object> unsubscribeFromPurgeEntities;
-        if (null != namespaceOps) {
-            unsubscribeFromPurgeNamespace = Patterns.ask(pubSubMediator,
-                            DistPubSubAccess.unsubscribeViaGroup(PurgeNamespace.TYPE, getSubscribeGroup(), self),
-                            SHUTDOWN_ASK_TIMEOUT)
-                    .toCompletableFuture();
-        } else {
-            unsubscribeFromPurgeNamespace = CompletableFuture.completedFuture(Done.getInstance());
-        }
-
-        if (null != entitiesOps) {
-            unsubscribeFromPurgeEntities = Patterns.ask(pubSubMediator,
-                            DistPubSubAccess.unsubscribeViaGroup(PurgeEntities.getTopic(entityType), getSubscribeGroup(),
-                                    self),
-                            SHUTDOWN_ASK_TIMEOUT)
-                    .toCompletableFuture();
-        } else {
-            unsubscribeFromPurgeEntities = CompletableFuture.completedFuture(Done.getInstance());
-        }
-
-        final CompletableFuture<Done> unsubscribeTask =
-                CompletableFuture.allOf(unsubscribeFromPurgeNamespace, unsubscribeFromPurgeEntities)
-                        .thenApply(ack -> {
-                            logger.info("Unsubscribed successfully from pubsub for {} actor", getActorName());
-                            return Done.getInstance();
-                        });
-
-        Patterns.pipe(unsubscribeTask, getContext().getDispatcher()).to(getSender());
     }
 
     private void rememberCommandAndSender(final Command<?> command, final ActorRef sender) {
@@ -386,24 +409,6 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActorWi
         logger.debug("Operation complete remove lastCommand {} and sender {} from map.", opComplete.command,
                 opComplete.sender);
         lastCommandsAndSender.remove(opComplete.command, opComplete.sender);
-    }
-
-    @Override
-    public void serviceRequestsDone(final Control serviceRequestsDone) {
-        logger.info("Re-schedule/Publish <{}> commands for <{}> via PubSub.", lastCommandsAndSender.size(),
-                getActorName());
-        killSwitch.abort(KILL_SWITCH_EXCEPTION);
-        lastCommandsAndSender.forEach((command, sender) -> {
-            if (command instanceof PurgeNamespace purgeNamespace) {
-                pubSubMediator.tell(DistPubSubAccess.publishViaGroup(purgeNamespace.getType(), purgeNamespace), sender);
-            } else if (command instanceof PurgeEntities purgeEntities) {
-                final String topic = PurgeEntities.getTopic(entityType);
-                final PurgeEntities purgeEntitiesCommand = PurgeEntities.of(entityType, purgeEntities.getEntityIds(),
-                        purgeEntities.getDittoHeaders());
-                pubSubMediator.tell(DistPubSubAccess.publishViaGroup(topic, purgeEntitiesCommand), sender);
-            }
-        });
-        getSender().tell(Done.getInstance(), getSelf());
     }
 
     private void handleSubscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {

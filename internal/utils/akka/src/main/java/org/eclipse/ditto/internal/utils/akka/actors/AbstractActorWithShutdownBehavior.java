@@ -26,12 +26,10 @@ import scala.PartialFunction;
 public abstract class AbstractActorWithShutdownBehavior extends AbstractActor {
 
     /**
-     * Ask-timeout in shutdown tasks. Its duration should be long enough but ultimately does not
-     * matter because each shutdown phase has its own timeout.
+     * Ask-timeout in shutdown tasks. Its duration should be long enough but ultimately does not matter because each
+     * shutdown phase has its own timeout.
      */
     public static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
-
-    protected AbstractActorWithShutdownBehavior() {}
 
     /**
      * @return Actor's usual message handler. It will always be invoked in the actor's thread.
@@ -39,21 +37,17 @@ public abstract class AbstractActorWithShutdownBehavior extends AbstractActor {
     protected abstract Receive handleMessage();
 
     /**
-     * Handles the service unbind .
+     * Handles necessary steps during the {@code CoordinatedShutdown.PhaseServiceUnbind()}.
      */
-    protected abstract void serviceUnbind(final Control serviceUnbind);
+    protected abstract void serviceUnbind(Control serviceUnbind);
 
     /**
-     * Handles waiting for ongoing requests.
+     * Handles necessary steps during the {@code CoordinatedShutdown.PhaseServiceRequestsDone()}.
      */
-    protected abstract void serviceRequestsDone(final Control serviceRequestsDone);
+    protected abstract void serviceRequestsDone(Control serviceRequestsDone);
 
     /**
      * Switches the actor's message handler.
-     * <p>
-     * <em>DO NOT call {@code getContext().become()} directly; otherwise the actor loses the ability to lock
-     * itself.</em>
-     * </p>
      *
      * @param receive the new message handler.
      */
@@ -61,7 +55,7 @@ public abstract class AbstractActorWithShutdownBehavior extends AbstractActor {
         getContext().become(shutdownBehavior(receive));
     }
 
-    private Receive shutdownBehavior(final Receive receive) {
+    protected Receive shutdownBehavior(final Receive receive) {
         checkNotNull(receive, "actor's message handler");
         return ReceiveBuilder.create()
                 .matchEquals(Control.SERVICE_UNBIND, this::serviceUnbind)
@@ -77,31 +71,15 @@ public abstract class AbstractActorWithShutdownBehavior extends AbstractActor {
                 .build();
     }
 
-    /**
-     * Switches the actor's message handler.
-     * <p>
-     * <em>DO NOT call {@code getContext().become()} directly; otherwise the actor loses the ability to lock
-     * itself.</em>
-     * </p>
-     *
-     * @param receive the new message handler.
-     * @param discardOld whether the old handler should be discarded.
-     */
-    protected void become(final Receive receive, final boolean discardOld) {
-        getContext().become(shutdownBehavior(receive), discardOld);
-    }
-
     @Override
-    public final Receive createReceive() {
+    public Receive createReceive() {
         return shutdownBehavior(handleMessage());
     }
 
     public enum Control {
         SERVICE_UNBIND,
 
-        SERVICE_REQUESTS_DONE,
-
-        OP_COMPLETE
+        SERVICE_REQUESTS_DONE
     }
 
 }
