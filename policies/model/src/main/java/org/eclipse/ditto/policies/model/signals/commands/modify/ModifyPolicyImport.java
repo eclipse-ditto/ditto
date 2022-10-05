@@ -39,6 +39,7 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyImportsValidator;
 
 /**
  * This command modifies a {@link PolicyImport}.
@@ -73,7 +74,7 @@ public final class ModifyPolicyImport extends AbstractCommand<ModifyPolicyImport
             final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.policyId = policyId;
-        this.policyImport = policyImport;
+        this.policyImport = PolicyImportsValidator.validatePolicyImport(policyId, policyImport);
 
         PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> policyImport.toJsonString().length(), () ->
                 dittoHeaders);

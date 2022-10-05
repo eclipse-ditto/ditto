@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
+import org.eclipse.ditto.policies.model.PolicyImportInvalidException;
 import org.eclipse.ditto.policies.model.PolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
@@ -72,13 +73,17 @@ public final class ModifyPolicyImportsTest {
                         TestConstants.EMPTY_DITTO_HEADERS));
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyImports() {
         ModifyPolicyImports.of(TestConstants.Policy.POLICY_ID, null,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
+    @Test(expected = PolicyImportInvalidException.class)
+    public void tryToCreateInstanceWithSelfReference() {
+        ModifyPolicyImports.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.getPolicyImports(TestConstants.Policy.POLICY_ID),
+                TestConstants.EMPTY_DITTO_HEADERS);
+    }
 
     @Test
     public void toJsonReturnsExpected() {

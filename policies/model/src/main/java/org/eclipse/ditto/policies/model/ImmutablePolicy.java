@@ -52,6 +52,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyImportsValidator;
 
 /**
  * Immutable implementation of {@link Policy}.
@@ -79,7 +80,7 @@ final class ImmutablePolicy implements Policy {
             @Nullable final Metadata metadata) {
 
         this.policyId = policyId;
-        imports = checkPolicyImportsForSelfReference(policyId, theImports);
+        imports = PolicyImportsValidator.validatePolicyImports(policyId, theImports);
         entries = Collections.unmodifiableMap(new LinkedHashMap<>(theEntries));
         namespace = policyId == null ? null : policyId.getNamespace();
         this.lifecycle = lifecycle;
@@ -564,14 +565,6 @@ final class ImmutablePolicy implements Policy {
             jsonObjectBuilder.set(JsonFields.METADATA, metadata.toJson(schemaVersion, thePredicate), predicate);
         }
         return jsonObjectBuilder.build();
-    }
-
-    private static PolicyImports checkPolicyImportsForSelfReference(@Nullable final PolicyId policyId,
-            final PolicyImports policyImports) {
-        if (policyImports.stream().anyMatch(policyImport -> policyImport.getImportedPolicyId().equals(policyId))) {
-            throw PolicyImportInvalidException.newBuilder().build();
-        }
-        return policyImports;
     }
 
     private Map<Label, PolicyEntry> copyEntries() {

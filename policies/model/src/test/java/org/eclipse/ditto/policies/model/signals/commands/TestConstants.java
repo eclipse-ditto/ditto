@@ -333,7 +333,22 @@ public final class TestConstants {
         /**
          * A known {@code PolicyImports} for a {@code Policy}.
          */
+
         public static final PolicyImports POLICY_IMPORTS = PolicyImports.newInstance(POLICY_IMPORT);
+
+        /**
+         * A {@code PolicyImports} instance with the given imported policy.
+         */
+        public static PolicyImports getPolicyImports(final PolicyId importedPolicyId) {
+            return PolicyImports.newInstance(getPolicyImport(importedPolicyId));
+        };
+
+        /**
+         * A {@code PolicyImport} instance with the given imported policy.
+         */
+        public static PolicyImport getPolicyImport(final PolicyId importedPolicyId) {
+            return PolicyImport.newInstance(importedPolicyId, EffectedImports.newInstance(null));
+        };
 
         private Policy() {
             throw new AssertionError();
