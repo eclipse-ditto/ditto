@@ -93,6 +93,7 @@ public final class RetrieveHonoConnectionResponse extends AbstractCommandRespons
      * @param dittoHeaders the headers of the request.
      * @return a new RetrieveHonoConnectionResponse response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if the connection type is not 'Hono'.
      */
     public static RetrieveHonoConnectionResponse of(final JsonObject connection, final DittoHeaders dittoHeaders) {
         return new RetrieveHonoConnectionResponse(connection, HTTP_STATUS, dittoHeaders);
@@ -105,7 +106,7 @@ public final class RetrieveHonoConnectionResponse extends AbstractCommandRespons
      * @param dittoHeaders the headers of the response.
      * @return the response.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
-     * @throws IllegalArgumentException if {@code jsonString} is empty.
+     * @throws IllegalArgumentException if {@code jsonString} is empty or if the connection type is not 'Hono'.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if connectionId is missing in the passed in {@code jsonString}
@@ -121,6 +122,7 @@ public final class RetrieveHonoConnectionResponse extends AbstractCommandRespons
      * @param dittoHeaders the headers of the response.
      * @return the response.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws IllegalArgumentException if the connection type is not 'Hono'.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if connectionId is missing in the passed in {@code jsonString}
