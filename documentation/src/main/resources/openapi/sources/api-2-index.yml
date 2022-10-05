@@ -40,6 +40,8 @@ tags:
     description: Talk with your things
   - name: CloudEvents
     description: Process CloudEvents in Ditto
+  - name: Connections
+    description: Manage Connections
 
 security:
   - Google:
@@ -143,6 +145,23 @@ paths:
   '/cloudevents':
     $ref: "./paths/cloudevents/cloudevents.yml"
 
+  ###
+  ### Connections
+  ###
+  '/connections':
+    $ref: './paths/connections/connections.yml'
+  '/connections/{connectionId}':
+    $ref: './paths/connections/connectionId.yml'
+  '/connections/{connectionId}/command':
+    $ref: './paths/connections/command.yml'
+  '/connections/{connectionId}/status':
+    $ref: './paths/connections/status.yml'
+  '/connections/{connectionId}/metrics':
+    $ref: './paths/connections/metrics.yml'
+  '/connections/{connectionId}/logs':
+    $ref: './paths/connections/logs.yml'
+
+
 components:
 
   requestBodies:
@@ -180,6 +199,8 @@ components:
       $ref: "./parameters/attributesFieldsQueryParam.yml"
     ChannelParam:
       $ref: "./parameters/channelParam.yml"
+    ChannelParamPutDescription:
+      $ref: "./parameters/channelParamPutDescription.yml"
     ConditionParam:
       $ref: "./parameters/conditionParam.yml"
     LiveChannelConditionParam:
@@ -214,6 +235,8 @@ components:
       $ref: "./parameters/namespaceParameter.yml"
     NamespacesFilter:
       $ref: "./parameters/namespacesFilter.yml"
+    PolicyFieldsQueryParam:
+      $ref: "./parameters/policyFieldsQueryParam.yml"
     PolicyIdPathParam:
       $ref: "./parameters/policyIdPathParam.yml"
     PropertiesFieldsQueryParam:
@@ -242,6 +265,8 @@ components:
       $ref: "./parameters/thingIdPathParam.yml"
     TimeoutParam:
       $ref: "./parameters/timeoutParam.yml"
+    connectionIdPathParam:
+      $ref: './parameters/connectionIdPathParam.yml'
 
   schemas:
     Error:
@@ -266,6 +291,8 @@ components:
       type: integer
     NewThing:
       $ref: "./schemas/things/newThing.yml"
+    PatchThing:
+      $ref: "./schemas/things/patchThing.yml"
     Thing:
       $ref: "./schemas/things/thing.yml"
     NewPolicy:
@@ -290,6 +317,58 @@ components:
       $ref: "./schemas/policies/subjectAnnouncement.yml"
     Features:
       $ref: "./schemas/features/features.yml"
+    Connection:
+      $ref: './schemas/connections/connection.yml'
+    NewConnection:
+      $ref: './schemas/connections/newConnection.yml'
+    Sources:
+      $ref: './schemas/connections/sources.yml'
+    Source:
+      $ref: './schemas/connections/source.yml'
+    Targets:
+      $ref: './schemas/connections/targets.yml'
+    Target:
+      $ref: './schemas/connections/target.yml'
+    ConnectionType:
+      $ref: './schemas/connections/connectionType.yml'
+    ConnectivityStatus:
+      $ref: './schemas/connections/connectivityStatus.yml'
+    PayloadMappingDefinitions:
+      $ref: './schemas/connections/payloadMappingDefinitions.yml'
+    PayloadMappingDefinition:
+      $ref: './schemas/connections/payloadMappingDefinition.yml'
+    MappingContext:
+      $ref: './schemas/connections/mappingContext.yml'
+    ConnectionStatus:
+      $ref: './schemas/connections/connectionStatus.yml'
+    ResourceStatus:
+      $ref: './schemas/connections/resourceStatus.yml'
+    ConnectionMetrics:
+      $ref: './schemas/connections/connectionMetrics.yml'
+    OverallConnectionMetrics:
+      $ref: './schemas/connections/overallConnectionMetrics.yml'
+    SourceMetrics:
+      $ref: './schemas/connections/sourceMetrics.yml'
+    TargetMetrics:
+      $ref: './schemas/connections/targetMetrics.yml'
+    InboundMetrics:
+      $ref: './schemas/connections/inboundMetrics.yml'
+    OutboundMetrics:
+      $ref: './schemas/connections/outboundMetrics.yml'
+    TypedMetric:
+      $ref: './schemas/connections/typedMetric.yml'
+    SingleMetric:
+      $ref: './schemas/connections/singleMetric.yml'
+    ConnectionLogs:
+      $ref: './schemas/connections/connectionLogs.yml'
+    LogEntry:
+      $ref: './schemas/connections/logEntry.yml'
+    LogCategory:
+      $ref: './schemas/connections/logCategory.yml'
+    LogType:
+      $ref: './schemas/connections/logType.yml'
+    LogLevel:
+      $ref: './schemas/connections/logLevel.yml'
     WhoAmI:
       $ref: "./schemas/whoami/whoami.yml"
     WhoAmISubject:
@@ -304,3 +383,5 @@ components:
       $ref: './security/bearerAuth.yml'
     Google:
       $ref: './security/google.yml'
+    DevOpsBasic:
+      $ref: './security/devOpsBasic.yml'

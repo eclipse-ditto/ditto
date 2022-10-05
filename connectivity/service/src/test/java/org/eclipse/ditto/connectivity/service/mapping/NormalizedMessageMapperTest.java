@@ -43,8 +43,10 @@ import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThing;
@@ -60,6 +62,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -86,7 +89,7 @@ public final class NormalizedMessageMapperTest {
         connectivityConfig =
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(config));
         connection = TestConstants.createConnection();
-        underTest = new NormalizedMessageMapper();
+        underTest = new NormalizedMessageMapper(actorSystem, Mockito.mock(Config.class));
         actorSystem = ActorSystem.create("Test", config);
     }
 
@@ -254,6 +257,64 @@ public final class NormalizedMessageMapperTest {
                         "    }\n" +
                         "  }\n" +
                         "}"));
+    }
+
+    @Test
+    public void thingMergedWithExtraFields() {
+        final var thingId = ThingId.of("the.namespace:the-thing-id");
+        final var thing = ThingsModelFactory.newThingBuilder()
+                .setId(thingId)
+                .setPolicyId(PolicyId.of("the.namespace:the-policy-id"))
+                .setDefinition(ThingsModelFactory.newDefinition("digitaltwin:DigitaltwinExample:1.0.0"))
+                .setAttributes(Attributes.newBuilder()
+                        .set("location", "Kitchen")
+                        .build())
+                .setFeature(Feature.newBuilder()
+                        .properties(FeatureProperties.newBuilder()
+                                .set("cur_speed", 90)
+                                .set("max_speed", 100)
+                                .build())
+                        .withId("transmission")
+                        .build())
+                .build();
+
+        final var updatedPath = JsonPointer.of("/features/transmission");
+        final var updatedValue = JsonObject.newBuilder()
+                .set("properties", JsonObject.newBuilder()
+                        .set("cur_speed", 80)
+                        .build())
+                .build();
+        final var thingMerged = ThingMerged.of(thingId, updatedPath, updatedValue, 1L, Instant.ofEpochSecond(1L),
+                DittoHeaders.empty(), null);
+
+        final Adaptable adaptable = ADAPTER.toAdaptable(thingMerged);
+        final Adaptable adaptableWithExtra = ProtocolFactory.setExtra(adaptable, thing.toJson(
+                JsonFactory.newFieldSelector("features",
+                        JsonParseOptions.newBuilder().withoutUrlDecoding().build())));
+
+        final var mappedJson = mapToJson(adaptableWithExtra);
+
+        assertThat(mappedJson).isEqualTo(JsonObject.newBuilder()
+                .set("thingId", "the.namespace:the-thing-id")
+                .set("features", JsonObject.newBuilder()
+                        .set("transmission", JsonObject.newBuilder()
+                                .set("properties", JsonObject.newBuilder()
+                                        .set("cur_speed", 80)
+                                        .set("max_speed", 100)
+                                        .build())
+                                .build())
+                        .build())
+                .set("_modified", "1970-01-01T00:00:01Z")
+                .set("_revision", 1)
+                .set("_context", JsonObject.newBuilder()
+                        .set("topic", "the.namespace/the-thing-id/things/twin/events/merged")
+                        .set("path", "/features/transmission")
+                        .set("headers", JsonObject.newBuilder()
+                                .set("response-required", "false")
+                                .set("content-type", "application/merge-patch+json")
+                                .build())
+                        .build())
+                .build());
     }
 
     @Test

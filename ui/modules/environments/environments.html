@@ -51,19 +51,25 @@
                         title="URI including protocol, host and port (e.g. http://localhost:8080)">API URI</label>
                     <input type="text" class="form-control form-control-sm" id="inputApiUri"></input>
                 </div>
+                <div class="input-group input-group-sm mt-1">
+                    <label class="input-group-text">Ditto Version</label>
+                    <input type="number" class="form-control form-control-sm" id="inputDittoVersion"></input>
+                </div>
             </div>
             <div class="tab-pane container no-margin" id="tabEnvJson">
-                <div class="input-group input-group-sm mb-1">
-                    <div class="form-control-sm" style="flex-grow: 1;"></div>
-                    <button class="btn btn-outline-secondary btn-sm button_round_both" id="buttonUpdateJson"
-                        data-bs-toggle="tooltip" title="Save selected environment json">
-                        <i class="bi bi-save"></i>
-                        Save
-                    </button>
-                </div>
-                <div class="ace_container" style="height: 100%;">
-                    <div>
-                        <div class="script_editor" id="settingsEditor"></div>
+                <div class="resizable_flex_column">
+                    <div class="input-group input-group-sm mb-1">
+                        <div class="form-control-sm" style="flex-grow: 1;"></div>
+                        <button class="btn btn-outline-secondary btn-sm button_round_both" id="buttonUpdateJson"
+                            data-bs-toggle="tooltip" title="Save selected environment json">
+                            <i class="bi bi-save"></i>
+                            Save
+                        </button>
+                    </div>
+                    <div class="ace_container" style="flex-grow: 1;">
+                        <div>
+                            <div class="script_editor" id="settingsEditor"></div>
+                        </div>
                     </div>
                 </div>
             </div>

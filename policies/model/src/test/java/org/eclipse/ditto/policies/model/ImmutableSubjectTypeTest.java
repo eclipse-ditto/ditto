@@ -16,7 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -43,7 +42,7 @@ public final class ImmutableSubjectTypeTest {
         final String expected = "Foo";
         final SubjectType underTest = ImmutableSubjectType.of(expected);
 
-        assertThat(underTest.toString()).isEqualTo(expected);
+        assertThat(underTest.toString()).hasToString(expected);
     }
 
 }

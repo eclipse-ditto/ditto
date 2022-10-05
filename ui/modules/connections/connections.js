@@ -11,13 +11,13 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
+import * as API from '../api.js';
+import * as Environments from '../environments/environments.js';
 /* eslint-disable prefer-const */
 /* eslint-disable max-len */
 /* eslint-disable no-invalid-this */
 /* eslint-disable require-jsdoc */
 import * as Utils from '../utils.js';
-import * as API from '../api.js';
-import * as Environments from '../environments/environments.js';
 
 let dom = {
   ulConnectionTemplates: null,
@@ -121,11 +121,11 @@ export function ready() {
   });
 
   dom.buttonCreateConnection.onclick = () => {
-    Utils.assert(theConnection, 'Please enter a connection configuration (select   a template as a basis)', dom.editorValidationConnection);
-    if (API.env() === 'things') {
-      delete theConnection.id;
-    } else {
+    Utils.assert(theConnection, 'Please enter a connection configuration (select a template as a basis)', dom.editorValidationConnection);
+    if (API.env() === 'ditto_2') {
       selectedConnectionId = theConnection.id;
+    } else {
+      delete theConnection.id;
     }
     API.callConnectionsAPI('createConnection', loadConnections, null, theConnection);
   };
@@ -184,11 +184,13 @@ function retrieveConnectionMetrics() {
   Utils.assert(selectedConnectionId, 'Please select a connection', dom.tableValidationConnections);
   dom.tbodyConnectionMetrics.innerHTML = '';
   API.callConnectionsAPI('retrieveConnectionMetrics', (response) => {
-    if (response.connectionMetrics.outbound) {
-      Object.keys(response.connectionMetrics.outbound).forEach((type) => {
-        let entry = response.connectionMetrics.outbound[type];
-        Utils.addTableRow(dom.tbodyConnectionMetrics, type, false, false, 'success', entry.success.PT1M, entry.success.PT1H, entry.success.PT24H);
-        Utils.addTableRow(dom.tbodyConnectionMetrics, type, false, false, 'failure', entry.failure.PT1M, entry.failure.PT1H, entry.failure.PT24H);
+    if (response.connectionMetrics) {
+      Object.keys(response.connectionMetrics).forEach((direction) => {
+        Object.keys(response.connectionMetrics[direction]).forEach((type) => {
+          let entry = response.connectionMetrics[direction][type];
+          Utils.addTableRow(dom.tbodyConnectionMetrics, direction, false, false, type, 'success', entry.success.PT1M, entry.success.PT1H, entry.success.PT24H);
+          Utils.addTableRow(dom.tbodyConnectionMetrics, direction, false, false, type, 'failure', entry.failure.PT1M, entry.failure.PT1H, entry.failure.PT24H);
+        });
       });
     }
   },
@@ -238,7 +240,7 @@ function setConnection(connection, isNewConnection) {
     if (theConnection.mappingDefinitions && theConnection.mappingDefinitions.javascript) {
       incomingEditor.setValue(theConnection.mappingDefinitions.javascript.options.incomingScript, -1);
       outgoingEditor.setValue(theConnection.mappingDefinitions.javascript.options.outgoingScript, -1);
-    };
+    }
   } else {
     dom.inputConnectionId.value = null;
     connectionEditor.setValue('');
@@ -257,16 +259,16 @@ function loadConnections() {
   let connectionSelected = false;
   API.callConnectionsAPI('listConnections', (connections) => {
     connections.forEach((connection) => {
-      const id = API.env() === 'things' ? connection.id : connection;
+      const id = API.env() === 'ditto_2' ? connection : connection.id;
       const row = dom.tbodyConnections.insertRow();
       row.id = id;
-      if (API.env() === 'things') {
-        row.insertCell(0).innerHTML = connection.name;
-      } else {
+      if (API.env() === 'ditto_2') {
         API.callConnectionsAPI('retrieveConnection', (dittoConnection) => {
-          row.insertCell(0).innerHTML = dittoConnection.name;
-        },
-        id);
+         row.insertCell(0).innerHTML = dittoConnection.name;
+       },
+       id);
+      } else {
+        row.insertCell(0).innerHTML = connection.name;
       }
       API.callConnectionsAPI('retrieveStatus', (status) => {
         row.insertCell(-1).innerHTML = status.liveStatus;

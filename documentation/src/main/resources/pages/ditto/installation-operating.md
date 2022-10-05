@@ -54,7 +54,8 @@ to supply additional configuration one has to add the variable in the correspond
 ```yml
 ...
 # Alternative approach for configuration of the service
-command: java -Dditto.gateway.authentication.devops.password=foobar -jar starter.jar
+environment:
+  - JAVA_TOOL_OPTIONS=-Dditto.gateway.authentication.devops.password=foobar
 ```
 
 The executable for the microservice is called `starter.jar`. The configuration variables have to be set before
@@ -87,12 +88,17 @@ proxy_set_header              x-ditto-pre-authenticated "nginx:${remote_user}";
 
 ### OpenID Connect
 
-The authentication provider must be added to the ditto-gateway configuration.
-`auth-subjects`, an optional field, takes a list of placeholders that will be
-evaluated against incoming JWTs.
-For each entry in `auth-subjects` and authorization subject will be generated.
+The authentication provider must be added to the ditto-gateway configuration with unique configuration key 
+(e.g. `myprovier` in the example below).
+
+Either `issuer` as single supported JWT `"iss"` claim or `issuers` (as a list of supported JWT `"iss"` claims) has to be 
+configured. If `issuers` is configured, this list has priority and the value configured in `issuer` will be ignored.
+
+The configured `auth-subjects`, an optional field, takes a list of placeholders that will be
+evaluated against incoming JWTs.  
+For each entry in `auth-subjects` an authorization subject will be generated.
 If the entry contains unresolvable placeholders, it will be ignored in full.
-When `auth-subjects` is not provided, the “sub” claim (`{%raw%}{{ jwt:sub }}{%endraw%}`) is used by default.
+When `auth-subjects` is not provided, the `"sub"` claim (`{%raw%}{{ jwt:sub }}{%endraw%}`) is used by default.
 
 Please read [more details on the OpenId Connect configuration placeholder](basic-placeholders.html#scope-openid-connect-configuration)
 to find out what is possible when defining the `auth-subjects`.
@@ -104,6 +110,10 @@ ditto.gateway.authentication {
       openid-connect-issuers = {
         myprovider = {
           issuer = "localhost:9000"
+          #issuers = [
+          #  "localhost:9000/one"
+          #  "localhost:9000/two"
+          #]
           auth-subjects = [
             "{%raw%}{{ jwt:sub }}{%endraw%}",
             "{%raw%}{{ jwt:sub }}/{{ jwt:scp }}{%endraw%}",
@@ -204,7 +214,7 @@ When enforcing, the logic is:
 * If one was found, ensure there is no matching entry in the `revoke` list
 * If that is the case, accept the request, otherwise deny it
 
-An entry matches, when all of the following conditions are met:
+An entry matches, when all the following conditions are met:
 
 * The resource types list is empty, or contains the requested resource type
 * The namespace wildcard list is empty, or contains a wildcard that matches the requested namespace
@@ -229,6 +239,17 @@ of characters, and `?` will match exactly one character.
 
 The auth subject wildcard list requires only a single entry of the requests auth subjects to match, like `oauth:user-id`
 or `pre-authenticated:service`. `*` will match any number of characters, and `?` will match exactly one character.
+
+Example for configuring it via system properties.  
+This would only allow the subjects authenticated as either `"pre:admin"` or `"integration:some-connection"` to create 
+entities (things/policies) and no-one other:
+
+```shell
+-Dditto.entity-creation.grant.0.auth-subjects.0=pre:admin
+-Dditto.entity-creation.grant.0.auth-subjects.1=integration:some-connection
+```
+
+These system properties would have to be configured for the "things" and "policies" services.
 
 ## Logging
 
@@ -355,7 +376,17 @@ The following DevOps commands are supported:
 * Dynamically retrieve service configuration
 * Piggyback commands
 
-{% include note.html content="The default credentials for the `/devops` HTTP endpoint are username: `devops`, password: `foobar`. The password can be changed by setting the environment variable `DEVOPS_PASSWORD` in the gateway service." %}
+### DevOps user
+
+Used for authenticating the following endpoints:
+
+```
+/devops
+/api/2/connections
+```
+
+
+{% include note.html content="The default devops credentials are username: `devops`, password: `foobar`. The password can be changed by setting the environment variable `DEVOPS_PASSWORD` in the gateway service." %}
 
 
 ### Dynamically adjust log levels
@@ -886,11 +917,63 @@ For each command type, please refer to the corresponding segment of "Managing ba
 
 {% include note.html content="Only a subset of the configuration has an effect when changed via `common.commands:modifyConfig` command: `enabled`, `quiet-period` and `keep.events`. Refer to [Ditto configuration](installation-operating.html#ditto-configuration) for instructions how to modify the other configuration settings." %}
 
+#### Force search index update of all things
+
+You can trigger a search index update for all things by sending a command of type `common.commands:shutdown` with the 
+`force-update` header set to `true`. The next background sync iteration  (starting after the configured quiet period)  
+will trigger an update of the search index for all things. After the iteration of forced updates is complete 
+(or interrupted), the background sync will continue its normal operation.  
+
+`POST /devops/piggyback/search?timeout=10s`
+
+```json
+{
+  "targetActorSelection": "/user/thingsWildcardSearchRoot/searchUpdaterRoot/backgroundSyncProxy",
+  "headers": {
+    "aggregate": false,
+    "is-grouped-topic": false,
+    "force-update": true
+  },
+  "piggybackCommand": {
+    "type": "common.commands:shutdown"
+  }
+}
+```
+
+There is no response. You can check the logs of the search service to follow the sync progress.  
+
+#### Force search index update for all things of one or multiple namespaces
+
+You can trigger a search index update for things of multiple namespaces by sending a `common.commands:shutdown` command 
+with the `force-update` header set to `true` and the relevant namespaces specified in the `namespaces` header. The next 
+background sync iteration (starting after the configured quiet period) will trigger an update of the search index for 
+the things in the specified namespaces. After the iteration of forced updates is complete (or interrupted), 
+the background sync will continue its normal operation.
+
+`POST /devops/piggyback/search?timeout=10s`
+
+```json
+{
+  "targetActorSelection": "/user/thingsWildcardSearchRoot/searchUpdaterRoot/backgroundSyncProxy",
+  "headers": {
+    "aggregate": false,
+    "is-grouped-topic": false,
+    "force-update": true,
+    "namespaces": ["namespace1", "namespace2"]
+  },
+  "piggybackCommand": {
+    "type": "common.commands:shutdown"
+  }
+}
+```
+
+There is no response. You can check the logs of the search service to follow the sync progress.
+
 #### Force search index update for one thing
 
 The search index should rarely become out-of-sync for a long time, and it can repair itself
 of any inconsistencies detected at query time. Nevertheless, you can trigger search index update
-for a particular thing by a DevOp-command and bring the entry up-to-date immediately.
+for a particular thing by a DevOps-command and bring the entry up-to-date immediately.
 
 `POST /devops/piggyback/search/<INSTANCE_INDEX>?timeout=0`
 

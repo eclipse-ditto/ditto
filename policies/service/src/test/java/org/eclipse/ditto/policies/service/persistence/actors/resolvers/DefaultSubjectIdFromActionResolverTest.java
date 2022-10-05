@@ -15,7 +15,9 @@ package org.eclipse.ditto.policies.service.persistence.actors.resolvers;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.policies.model.Label;
@@ -31,21 +33,20 @@ import org.junit.Test;
 public final class DefaultSubjectIdFromActionResolverTest {
 
     private static final Label LABEL = Label.of("label");
-    private static final PolicyEntry ENTRY = PoliciesModelFactory.newPolicyEntry(LABEL, "{\n" +
-            "  \"subjects\": {\n" +
-            "    \"abc:def\": {\n" +
-            "      \"type\": \"def\"\n" +
-            "    }\n" +
-            "  },\n" +
-            "  \"resources\": {\n" +
-            "    \"policy:/\": {\n" +
-            "      \"grant\": [\"READ\"],\n" +
-            "      \"revoke\": [\"WRITE\"]\n" +
-            "    }\n" +
-            "  }\n" +
-            "}");
-
-    private static final DefaultSubjectIdFromActionResolver sut = new DefaultSubjectIdFromActionResolver();
+    private static final PolicyEntry ENTRY = PoliciesModelFactory.newPolicyEntry(LABEL, """
+            {
+              "subjects": {
+                "abc:def": {
+                  "type": "def"
+                }
+              },
+              "resources": {
+                "policy:/": {
+                  "grant": ["READ"],
+                  "revoke": ["WRITE"]
+                }
+              }
+            }""");
 
     @Test
     public void resolveSubjectWithoutPlaceholder() {
@@ -62,23 +63,37 @@ public final class DefaultSubjectIdFromActionResolverTest {
     }
 
     @Test
-    public void doNotResolveSubjectWithSupportedAndUnresolvedPlaceholder() {
-        final SubjectId subjectId = SubjectId.newInstance("integration:{{fn:delete()}}");
+    public void resolveSubjectWithDeletedPlaceholder() {
+        final SubjectId subjectId = SubjectId.newInstance("integration:{{ policy-entry:label | fn:delete() }}subject");
+        assertThat(DefaultSubjectIdFromActionResolver.resolveSubjectId(ENTRY, Collections.singleton(subjectId)))
+                .isEqualTo(Collections.singleton(SubjectId.newInstance("integration:subject")));
+    }
+
+    @Test
+    public void doNotResolveIfSubjectIsEmpty() {
+        final Collection<SubjectId> subjectIds = List.of(SubjectId.newInstance("integration:{{fn:delete()}}"));
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> DefaultSubjectIdFromActionResolver.resolveSubjectId(ENTRY, subjectIds));
+    }
+
+    @Test
+    public void doNotResolveSubjectWithSupportedAndUnresolvedPlaceholderFix() {
+        final Collection<SubjectId> subjectIds = List.of( SubjectId.newInstance("{{fn:delete()}}"));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class)
-                .isThrownBy(() -> DefaultSubjectIdFromActionResolver.resolveSubjectId(ENTRY, Collections.singleton(subjectId)));
+                .isThrownBy(() -> DefaultSubjectIdFromActionResolver.resolveSubjectId(ENTRY, subjectIds));
     }
 
     @Test
     public void throwErrorOnUnsupportedPlaceholder() {
-        final SubjectId subjectId = SubjectId.newInstance("integration:{{connection:id}}");
+        final Collection<SubjectId> subjectIds = List.of( SubjectId.newInstance("integration:{{connection:id}}"));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class)
-                .isThrownBy(() -> DefaultSubjectIdFromActionResolver.resolveSubjectId(ENTRY, Collections.singleton(subjectId)));
+                .isThrownBy(() -> DefaultSubjectIdFromActionResolver.resolveSubjectId(ENTRY, subjectIds));
     }
 
     @Test
     public void throwSubjectIdInvalidException() {
-        final SubjectId subjectId = SubjectId.newInstance("{{policy-entry:label}}");
+        final Collection<SubjectId> subjectIds = List.of(SubjectId.newInstance("{{policy-entry:label}}"));
         assertThatExceptionOfType(SubjectIdInvalidException.class)
-                .isThrownBy(() -> DefaultSubjectIdFromActionResolver.resolveSubjectId(ENTRY, Collections.singleton(subjectId)));
+                .isThrownBy(() -> DefaultSubjectIdFromActionResolver.resolveSubjectId(ENTRY, subjectIds));
     }
 }

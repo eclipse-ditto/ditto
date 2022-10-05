@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -141,7 +140,7 @@ public final class SudoRetrieveThings extends AbstractCommand<SudoRetrieveThings
                 .filter(JsonValue::isString)
                 .map(JsonValue::asString)
                 .map(ThingId::of)
-                .collect(Collectors.toList());
+                .toList();
 
         final JsonFieldSelector extractedFieldSelector = jsonObject.getValue(ThingSudoCommand.JsonFields.SELECTED_FIELDS)
                 .map(str -> JsonFactory.newFieldSelector(str, JsonFactory.newParseOptionsBuilder()

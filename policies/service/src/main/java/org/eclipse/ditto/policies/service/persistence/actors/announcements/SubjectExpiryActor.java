@@ -492,7 +492,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         final Duration useTimeout = timeout.compareTo(persistenceTimeout) > 0 ? persistenceTimeout : timeout;
         final Props props = PolicyAnnouncementAcknowledgementAggregatorActor.props(announcement, useTimeout,
                 this::onAggregatedResponseOrError);
-        return getContext().actorOf(props, PolicyAnnouncementAcknowledgementAggregatorActor.ACTOR_NAME);
+        return getContext().actorOf(props);
     }
 
     private boolean handleSignalWithoutAckregator(final Signal<?> signalWithoutAckregator) {

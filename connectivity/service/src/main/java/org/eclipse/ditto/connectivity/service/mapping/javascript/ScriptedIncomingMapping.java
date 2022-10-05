@@ -18,14 +18,14 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
 import org.mozilla.javascript.NativeArray;
@@ -72,15 +72,15 @@ public class ScriptedIncomingMapping implements MappingFunction<ExternalMessage,
                 if (result == null) {
                     // return empty list if result is null
                     return Collections.emptyList();
-                } else if (result instanceof NativeArray) {
+                } else if (result instanceof NativeArray nativeArray) {
                     // array handling
-                    final NativeArray jsArray = (NativeArray) result;
                     final List<Adaptable> list = new ArrayList<>();
-                    for (Object idxObj : jsArray.getIds()) {
+                    for (Object idxObj : nativeArray.getIds()) {
                         int index = (Integer) idxObj;
-                        final Object element = jsArray.get(index, null);
+                        final Object element = nativeArray.get(index, null);
                         list.add(getAdaptableFromObject(cx, element));
                     }
+
                     return list;
                 }
 

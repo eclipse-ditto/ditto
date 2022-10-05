@@ -20,7 +20,6 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.api.MappedInboundExternalMessage;
@@ -31,6 +30,7 @@ import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
@@ -38,6 +38,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import com.typesafe.config.Config;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -122,7 +124,8 @@ public final class InboundMappingProcessorActorTest {
 
     private static InboundMappingProcessor createThrowingProcessor() {
         final MessageMapperRegistry registry = Mockito.mock(MessageMapperRegistry.class);
-        Mockito.doAnswer(inv -> new DittoMessageMapper()).when(registry).getDefaultMapper();
+        Mockito.doAnswer(inv -> new DittoMessageMapper(Mockito.mock(ActorSystem.class), Mockito.mock(Config.class)))
+                .when(registry).getDefaultMapper();
         Mockito.doAnswer(inv -> List.of(new ThrowingMapper())).when(registry).getMappers(Mockito.any());
         final ThreadSafeDittoLoggingAdapter logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
         Mockito.doAnswer(inv -> logger).when(logger).withCorrelationId(Mockito.<CharSequence>any());
@@ -133,7 +136,7 @@ public final class InboundMappingProcessorActorTest {
                 registry,
                 logger,
                 Mockito.mock(ProtocolAdapter.class),
-                Mockito.mock(DittoHeadersSizeChecker.class));
+                Mockito.mock(DittoHeadersValidator.class));
     }
 
 }

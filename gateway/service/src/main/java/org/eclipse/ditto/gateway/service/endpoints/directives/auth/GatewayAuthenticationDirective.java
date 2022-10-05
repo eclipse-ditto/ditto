@@ -109,10 +109,15 @@ public final class GatewayAuthenticationDirective {
     private Route handleFailedAuthentication(final Throwable reasonOfFailure, final Uri requestUri,
             final DittoHeaders dittoHeaders) {
 
-        if (reasonOfFailure instanceof DittoRuntimeException) {
-            LOGGER.debug("Authentication for URI <{}> failed. Rethrow DittoRuntimeException.", requestUri,
-                    reasonOfFailure);
-            throw (DittoRuntimeException) reasonOfFailure;
+        if (reasonOfFailure instanceof DittoRuntimeException dittoRuntimeException) {
+            LOGGER.withCorrelationId(dittoHeaders)
+                    .debug("Authentication for URI <{}> failed. Rethrow DittoRuntimeException.", requestUri,
+                            reasonOfFailure);
+            throw dittoRuntimeException;
+        } else {
+            LOGGER.withCorrelationId(dittoHeaders)
+                    .warn("Unexpected authentication failure for URI <{}>: <{}: {}>", requestUri,
+                            reasonOfFailure.getClass().getSimpleName(), reasonOfFailure.getMessage(), reasonOfFailure);
         }
 
         LOGGER.debug("Unexpected error during authentication for URI <{}>! Applying unauthorizedDirective",

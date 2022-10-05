@@ -29,58 +29,24 @@ import org.eclipse.ditto.json.JsonParseException;
 
 /**
  * This class helps to deserialize JSON to a sub-class of {@link CommandResponse}. Hereby this class extracts the
- * values which are common for all command responses. All remaining required values have to be extracted in
- * {@link CommandResponseJsonDeserializer.FactoryMethodFunction#create(org.eclipse.ditto.base.model.common.HttpStatus)}.
- * There the actual command response object is created, too.
+ * values which are common for all command responses.
  */
 public final class CommandResponseJsonDeserializer<T extends CommandResponse<?>> {
 
-    @Nullable private final JsonObject jsonObject;
     private final String expectedCommandResponseType;
     private final DeserializationFunction<T> deserializationFunction;
 
     private CommandResponseJsonDeserializer(final CharSequence type,
-            @Nullable final JsonObject jsonObject,
             final DeserializationFunction<T> deserializationFunction) {
 
-        this.jsonObject = jsonObject;
         expectedCommandResponseType = ConditionChecker.checkArgument(checkNotNull(type, "type").toString(),
                 arg -> !arg.trim().isEmpty(),
                 () -> "The type must not be empty or blank.");
         this.deserializationFunction = deserializationFunction;
     }
 
-    /**
-     * Constructs a new {@code CommandResponseJsonDeserializer} object.
-     *
-     * @param type the type of the command response.
-     * @param jsonObject the JSON object to deserialize.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if {@code type} is empty or blank.
-     * @deprecated as of 2.3.0 please use {@link #newInstance(CharSequence, DeserializationFunction)} instead.
-     */
-    @Deprecated
-    public CommandResponseJsonDeserializer(final String type, final JsonObject jsonObject) {
-        this(type, checkJsonObjectNotNull(jsonObject), null);
-    }
-
     private static JsonObject checkJsonObjectNotNull(@Nullable final JsonObject jsonObject) {
         return checkNotNull(jsonObject, "jsonObject");
-    }
-
-    /**
-     * Constructs a new {@code CommandResponseJsonDeserializer} object.
-     *
-     * @param type the type of the target command response of deserialization.
-     * @param jsonString the JSON string to be deserialized.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if {@code type} is empty or blank or if {@code jsonString} is empty.
-     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonString} does not contain a valid JSON object.
-     * @deprecated as of 2.3.0 please use {@link #newInstance(CharSequence, DeserializationFunction)} instead.
-     */
-    @Deprecated
-    public CommandResponseJsonDeserializer(final String type, final String jsonString) {
-        this(type, JsonObject.of(jsonString));
     }
 
     /**
@@ -99,31 +65,8 @@ public final class CommandResponseJsonDeserializer<T extends CommandResponse<?>>
     public static <T extends CommandResponse<?>> CommandResponseJsonDeserializer<T> newInstance(final CharSequence type,
             final DeserializationFunction<T> deserializationFunction) {
 
-        return new CommandResponseJsonDeserializer(type,
-                null,
+        return new CommandResponseJsonDeserializer<>(type,
                 checkNotNull(deserializationFunction, "deserializationFunction"));
-    }
-
-    /**
-     * Partly deserializes the JSON which was given to this object's constructor. The factory method function which is
-     * given to this method is responsible for creating the actual {@code CommandResponseType}. This method receives
-     * the partly deserialized values which can be completed by implementors if further values are required.
-     *
-     * @param factoryMethodFunction creates the actual {@code CommandResponseType} object.
-     * @return the command response.
-     * @throws NullPointerException if {@code factoryMethodFunction} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonParseException if the JSON is invalid or if the command response type
-     * differs from the expected one.
-     * @deprecated as of 2.3.0 please use {@link #deserialize(JsonObject, DittoHeaders)} instead.
-     */
-    @Deprecated
-    public T deserialize(final FactoryMethodFunction<T> factoryMethodFunction) {
-        final CommandResponseJsonDeserializer<T> deserializer =
-                new CommandResponseJsonDeserializer<>(expectedCommandResponseType,
-                        checkJsonObjectNotNull(jsonObject),
-                        context -> factoryMethodFunction.create(context.getDeserializedHttpStatus()));
-
-        return deserializer.deserialize(jsonObject, DittoHeaders.empty());
     }
 
     /**
@@ -175,28 +118,6 @@ public final class CommandResponseJsonDeserializer<T extends CommandResponse<?>>
                 .message(MessageFormat.format(pattern, expectedCommandResponseType, cause.getMessage()))
                 .cause(cause)
                 .build();
-    }
-
-    /**
-     * Represents a function that accepts three arguments to produce a {@code CommandResponse}. The arguments were
-     * extracted from a given JSON beforehand.
-     *
-     * @param <T> the type of the result of the function.
-     * @deprecated as of 2.3.0 please use {@link DeserializationFunction} instead.
-     */
-    @Deprecated
-    @FunctionalInterface
-    public interface FactoryMethodFunction<T extends CommandResponse<?>> {
-
-        /**
-         * Creates a {@code CommandResponse} with the help of the given arguments.
-         *
-         * @param httpStatus the HTTP status of the response.
-         * @return the command response.
-         * @since 2.0.0
-         */
-        T create(HttpStatus httpStatus);
-
     }
 
     /**

@@ -176,7 +176,7 @@ or subscriptions for live messages, the following placeholders are available in 
 Note that in RQL expressions placeholders must not be surrounded by curly braces.
 
 ### Scope: Websocket Signal Enrichment
-When [declaring extra fields](basic-enrichment.md) which should be enriched to a published signal for a Websocket connection, the following placeholders are available in general:
+When [declaring extra fields](basic-enrichment.html) which should be enriched to a published signal for a Websocket connection, the following placeholders are available in general:
 * [entity placeholder](#entity-placeholder)
 * [thing placeholder](#thing-placeholder)
 * [policy placeholder](#policy-placeholder)
@@ -188,7 +188,7 @@ When [declaring extra fields](basic-enrichment.md) which should be enriched to a
 * [time placeholder](#time-placeholder)
 
 ### Scope: SSE Signal Enrichment
-When [declaring extra fields](basic-enrichment.md) which should be enriched to a published signal for a Websocket connection, the following placeholders are available in general:
+When [declaring extra fields](basic-enrichment.html) which should be enriched to a published signal for a Websocket connection, the following placeholders are available in general:
 * [entity placeholder](#entity-placeholder)
 * [thing placeholder](#thing-placeholder)
 * [policy placeholder](#policy-placeholder)
@@ -256,9 +256,10 @@ The syntax of such function expressions are specified similar to a UNIX `pipe`, 
 {%raw%}{{ thing:name | fn:substring-before('-') | fn:default('fallback') | fn:upper() }}{%endraw%}
 ```
 
-The first expression in such a pipeline **must always** be a placeholder to start with, in the example above `thing:name`.  
-Followed are functions separated by the pipe (`|`) symbol - each function in the pipeline receives the value of the
-previous expression (which may also be `empty`). 
+Normally, the first expression in such a pipeline would be a placeholder to start with, in the example above `thing:name`.  
+Functions could follow it separated by the pipe (`|`) symbol - each function in the pipeline receives the value of the
+previous expression (which may also be `empty`).  
+A function in the beginning of a pipeline would get `empty` as its input. 
 
 The function either contains no parameters or contains parameters which are either string constants or could also 
 be placeholders again.
@@ -275,7 +276,7 @@ The following functions are provided by Ditto out of the box:
 | `fn:substring-after`  | `(String givenString)`                                           | Parses the result of the previous expression and passes along only the characters _after_ the first occurrence of `givenString`.<br/>If `givenString` is not contained, this function will resolve to `empty`.                                                                     | `fn:substring-after(':')`<br/>`fn:substring-after(":")`                          |
 | `fn:lower`            | `()`                                                             | Makes the String result of the previous expression lowercase in total.                                                                                                                                                                                                             | `fn:lower()`                                                                     |
 | `fn:upper`            | `()`                                                             | Makes the String result of the previous expression uppercase in total.                                                                                                                                                                                                             | `fn:upper()`                                                                     |
-| `fn:delete`           | `()`                                                             | Deletes the result of the previous pipeline expression unconditionally.                                                                                                                                                                                                            | `fn:delete()`                                                                    |
+| `fn:delete`           | `()`                                                             | Deletes the result of the previous pipeline expression unconditionally. Any following expressions are ignored.                                                                                                                                                                     | `fn:delete()`                                                                    |
 | `fn:replace`          | `(String from, String to)`                                       | Replaces a string with another using Java's `String::replace` method.                                                                                                                                                                                                              | `fn:replace('foo', 'bar')`                                                       |
 | `fn:split`            | `(String separator)`                                             | Splits the previous pipeline using the passed `separator` resulting an "array" pipeline output containing several elements.<br/>May only be used in combination with the [JWT placeholder](#scope-openid-connect-configuration) as input placeholder.                              | `fn:split(' ')`<br/>`fn:split(',')`                                              |
 

@@ -72,7 +72,63 @@ const config = {
       unwrapJsonPath: null,
     },
   },
-  ditto: {
+  ditto_3: {
+    listConnections: {
+      path: '/api/2/connections',
+      method: 'GET',
+      body: null,
+      unwrapJsonPath: null,
+    },
+    retrieveConnection: {
+      path: '/api/2/connections/{{connectionId}}',
+      method: 'GET',
+      body: null,
+      unwrapJsonPath: null,
+    },
+    createConnection: {
+      path: '/api/2/connections',
+      method: 'POST',
+      body: null,
+      unwrapJsonPath: null,
+    },
+    modifyConnection: {
+      path: '/api/2/connections/{{connectionId}}',
+      method: 'PUT',
+      body: null,
+      unwrapJsonPath: null,
+    },
+    deleteConnection: {
+      path: '/api/2/connections/{{connectionId}}',
+      method: 'DELETE',
+      body: null,
+      unwrapJsonPath: null,
+    },
+    retrieveStatus: {
+      path: '/api/2/connections/{{connectionId}}/status',
+      method: 'GET',
+      body: null,
+      unwrapJsonPath: null,
+    },
+    retrieveConnectionLogs: {
+      path: '/api/2/connections/{{connectionId}}/logs',
+      method: 'GET',
+      body: null,
+      unwrapJsonPath: null,
+    },
+    retrieveConnectionMetrics: {
+      path: '/api/2/connections/{{connectionId}}/metrics',
+      method: 'GET',
+      body: null,
+      unwrapJsonPath: null,
+    },
+    connectionCommand: {
+      path: '/api/2/connections/{{connectionId}}/command',
+      method: 'POST',
+      body: null,
+      unwrapJsonPath: null,
+    },
+  },
+  ditto_2: {
     listConnections: {
       path: '/devops/piggyback/connectivity',
       method: 'POST',
@@ -210,7 +266,6 @@ const config = {
       },
       unwrapJsonPath: null,
     },
-
   },
 };
 
@@ -222,12 +277,7 @@ let authHeaderValue;
  * @param {boolean} forDevOps if true, the credentials for the dev ops api will be used.
  */
 export function setAuthHeader(forDevOps) {
-  if (!Environments.current().bearer && !Environments.current().usernamePassword &&
-      !Environments.current().useDittoPreAuthenticatedAuth) {
-    return;
-  }
-
-  if (forDevOps && Environments.current().usernamePasswordDevOps) {
+  if (forDevOps && Environments.current().useBasicAuth) {
     authHeaderKey = 'Authorization';
     authHeaderValue = 'Basic ' + window.btoa(Environments.current().usernamePasswordDevOps);
   } else if (Environments.current().useBasicAuth) {
@@ -247,17 +297,19 @@ export function setAuthHeader(forDevOps) {
  * @param {String} method 'POST', 'GET', 'DELETE', etc.
  * @param {String} path of the Ditto call (e.g. '/things')
  * @param {Object} body payload for the api call
+ * @param {Object} additionalHeaders object with additional header fields
  * @return {Object} result as json object
  */
-export async function callDittoREST(method, path, body) {
+export async function callDittoREST(method, path, body, additionalHeaders) {
   try {
     const response = await fetch(Environments.current().api_uri + '/api/2' + path, {
       method: method,
       headers: {
         'Content-Type': 'application/json',
         [authHeaderKey]: authHeaderValue,
+        ...additionalHeaders,
       },
-      body: JSON.stringify(body),
+      ...(body) && {body: JSON.stringify(body)},
     });
     if (!response.ok) {
       response.json()
@@ -267,7 +319,7 @@ export async function callDittoREST(method, path, body) {
           .catch((err) => {
             Utils.showError('No error details from Ditto', response.statusText, response.status);
           });
-      throw new Error('An error occured: ' + response.status);
+      throw new Error('An error occurred: ' + response.status);
     }
     if (response.status !== 204) {
       return response.json();
@@ -353,6 +405,12 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
 }
 
 export function env() {
-  return Environments.current().api_uri.startsWith('https://things') ? 'things' : 'ditto';
+  if (Environments.current().api_uri.startsWith('https://things')) {
+    return 'things';
+  } else if (Environments.current().ditto_version === '2') {
+    return 'ditto_2';
+  } else {
+    return 'ditto_3';
+  }
 }
 

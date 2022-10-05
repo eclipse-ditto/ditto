@@ -20,7 +20,10 @@ import java.util.Optional;
 
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttSubscribingClient;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttSubscribeException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscribe;
+
+import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 
 import akka.NotUsed;
 import akka.japi.Pair;
@@ -120,10 +123,25 @@ public final class MqttSubscriber {
     private SubscribeResult consumeIncomingPublishesForSubscribedTopics(
             final org.eclipse.ditto.connectivity.model.Source connectionSource
     ) {
+        final List<MqttTopicFilter> topicFilters =
+                connectionSource.getAddresses().stream().map(MqttTopicFilter::of).toList();
         return SubscribeSuccess.newInstance(connectionSource,
-                Source.fromPublisher(subscribingClient.consumeSubscribedPublishesWithManualAcknowledgement()));
+                Source.fromPublisher(subscribingClient.consumeSubscribedPublishesWithManualAcknowledgement()
+                        .filter(publish -> messageHasRightTopicPath(publish, topicFilters))));
     }
 
+    /**
+     * Filters out messages which don't match any of the given topic filters. This is done because the HiveMQ API makes
+     * it hard to consume only messages which match specific topics in the first place.
+     *
+     * @param genericMqttPublish a consumed MQTT message.
+     * @param topicFilters the topic filters applied to consumed messages.
+     * @return whether the message matches any of the given topic filters.
+     */
+    private boolean messageHasRightTopicPath(final GenericMqttPublish genericMqttPublish,
+            final List<MqttTopicFilter> topicFilters) {
+        return topicFilters.stream().anyMatch(filter -> filter.matches(genericMqttPublish.getTopic()));
+    }
 
     private static SubscribeResult getSubscribeFailureResult(
             final org.eclipse.ditto.connectivity.model.Source connectionSource,

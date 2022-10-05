@@ -6,9 +6,9 @@ These versions of Eclipse Ditto are currently being supported with security upda
 
 | Version | Supported          |
 |---------| ------------------ |
+| 3.0.x   | :white_check_mark: |
 | 2.4.x   | :white_check_mark: |
-| 2.3.x   | :white_check_mark: |
-| < 2.3.0 | :x:                |
+| < 2.4.0 | :x:                |
 
 ## Reporting a Vulnerability
 

@@ -25,6 +25,7 @@ import org.eclipse.ditto.base.api.devops.signals.commands.ChangeLogLevel;
 import org.eclipse.ditto.base.api.devops.signals.commands.DevOpsCommand;
 import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackCommand;
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveLoggerConfig;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -71,6 +72,11 @@ public final class DevOpsRoute extends AbstractRoute {
      */
     private static final String PATH_PARAMETER = "path";
 
+    /**
+     * Path parameter for retrieving disabled loggers.
+     */
+    private static final String INCLUDE_DISABLED_LOGGERS_PARAMETER = "includeDisabledLoggers";
+
     private final HttpConfig httpConfig;
     private final DevopsAuthenticationDirective devOpsAuthenticationDirective;
 
@@ -86,7 +92,8 @@ public final class DevOpsRoute extends AbstractRoute {
 
         super(routeBaseProperties);
         httpConfig = routeBaseProperties.getHttpConfig();
-        this.devOpsAuthenticationDirective = devOpsAuthenticationDirective;
+        this.devOpsAuthenticationDirective =
+                ConditionChecker.checkNotNull(devOpsAuthenticationDirective, "devOpsAuthenticationDirective");
     }
 
     /**
@@ -97,23 +104,23 @@ public final class DevOpsRoute extends AbstractRoute {
         checkNotNull(ctx, "ctx");
         checkNotNull(queryParameters, "queryParameters");
 
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_DEVOPS), () -> {// /devops
-            return devOpsAuthenticationDirective.authenticateDevOps(DevOpsOAuth2AuthenticationDirective.REALM_DEVOPS,
-                    concat(
-                            rawPathPrefix(PathMatchers.slash().concat(PATH_LOGGING),
-                                    () -> // /devops/logging
-                                            logging(ctx, createHeaders(queryParameters))
-                            ),
-                            rawPathPrefix(PathMatchers.slash().concat(PATH_PIGGYBACK),
-                                    () -> // /devops/piggyback
-                                            piggyback(ctx, createHeaders(queryParameters))
-                            ),
-                            rawPathPrefix(PathMatchers.slash().concat(PATH_CONFIG),
-                                    () -> // /devops/config
-                                            config(ctx, createHeaders(queryParameters)))
-                    )
-            );
-        });
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_DEVOPS), () ->  // /devops
+                devOpsAuthenticationDirective.authenticateDevOps(DevOpsOAuth2AuthenticationDirective.REALM_DEVOPS,
+                        concat(
+                                rawPathPrefix(PathMatchers.slash().concat(PATH_LOGGING),
+                                        () -> // /devops/logging
+                                                logging(ctx, createHeaders(queryParameters))
+                                ),
+                                rawPathPrefix(PathMatchers.slash().concat(PATH_PIGGYBACK),
+                                        () -> // /devops/piggyback
+                                                piggyback(ctx, createHeaders(queryParameters))
+                                ),
+                                rawPathPrefix(PathMatchers.slash().concat(PATH_CONFIG),
+                                        () -> // /devops/config
+                                                config(ctx, createHeaders(queryParameters)))
+                        )
+                )
+        );
     }
 
     /*
@@ -187,12 +194,12 @@ public final class DevOpsRoute extends AbstractRoute {
             final DittoHeaders dittoHeaders) {
 
         return concat(
-                get(() ->
+                get(() -> parameterOptional(INCLUDE_DISABLED_LOGGERS_PARAMETER, idl ->
                         handlePerRequest(ctx,
-                                RetrieveLoggerConfig.ofAllKnownLoggers(serviceName, instance, dittoHeaders),
+                                RetrieveLoggerConfig.ofAllKnownLoggers(serviceName, instance, idl.map(Boolean::valueOf).orElse(false), dittoHeaders),
                                 transformResponse(serviceName, instance)
                         )
-                ),
+                )),
                 put(() ->
                         extractDataBytes(payloadSource ->
                                 handlePerRequest(ctx, dittoHeaders, payloadSource,

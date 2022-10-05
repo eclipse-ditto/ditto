@@ -36,6 +36,8 @@ import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
 
+import com.hivemq.client.internal.mqtt.datatypes.MqttTopicFilterImpl;
+
 import akka.NotUsed;
 import akka.actor.Props;
 import akka.japi.function.Predicate;
@@ -182,10 +184,25 @@ public final class MqttConsumerActor extends BaseConsumerActor {
         final var mqttPublishTransformer = MqttPublishToExternalMessageTransformer.newInstance(sourceAddress, source);
 
         return mqttPublishSource.viaMat(KillSwitches.single(), Keep.right())
+                .filter(this::messageHasRightTopicPath)
                 .map(mqttPublishTransformer::transform)
                 .divertTo(getTransformationFailureSink(), TransformationResult::isFailure)
                 .to(getTransformationSuccessSink())
                 .run(getContext().getSystem());
+    }
+
+    /**
+     * Filters out messages which don't match the sources topics. This is done because the HiveMQ API makes it hard
+     * to consume only messages which match specific topics in the first place.
+     *
+     * @param genericMqttPublish a consumed MQTT message.
+     * @return whether the message matches the topics of this source.
+     */
+    private boolean messageHasRightTopicPath(final GenericMqttPublish genericMqttPublish) {
+        return super.source.getAddresses()
+                .stream()
+                .map(MqttTopicFilterImpl::of)
+                .anyMatch(topicFilter -> topicFilter.matches(genericMqttPublish.getTopic()));
     }
 
     private <T extends TransformationResult<GenericMqttPublish, ExternalMessage>> Sink<T, ?> getTransformationFailureSink() {

@@ -46,7 +46,7 @@ public interface DittoMongoClient extends MongoClient {
     MongoCollection<Document> getCollection(CharSequence collectionName);
 
     /**
-     * Returns the the settings that this client uses additionally to the
+     * Returns the settings that this client uses additionally to the
      * {@link MongoClientSettings}.
      *
      * @return the Ditto specific settings of this client.

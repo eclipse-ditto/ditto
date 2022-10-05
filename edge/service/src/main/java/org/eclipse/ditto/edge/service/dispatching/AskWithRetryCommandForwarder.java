@@ -184,8 +184,8 @@ public final class AskWithRetryCommandForwarder implements Extension {
     private DittoRuntimeException reportErrorOrResponse(final Command<?> command,
             @Nullable final Object response) {
 
-        if (response instanceof Throwable) {
-            return reportError(command, (Throwable) response);
+        if (response instanceof Throwable throwable) {
+            return reportError(command, throwable);
         } else if (response != null) {
             return reportUnknownResponse(command, response);
         } else {

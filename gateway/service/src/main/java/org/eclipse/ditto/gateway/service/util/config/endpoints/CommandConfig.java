@@ -47,6 +47,14 @@ public interface CommandConfig {
     Duration getSmartChannelBuffer();
 
     /**
+     * Return the limit of how many connections can be retrieved.
+     * If not limited the response may become few MB in size.
+     *
+     * @return the limit for connections to be retrieved
+     */
+    int connectionsRetrieveLimit();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code CommandConfig}.
      */
@@ -66,7 +74,13 @@ public interface CommandConfig {
          * The timeout buffer for smart channel commands. They need extra time to account for the roundtrip to
          * thing persistence.
          */
-        SMART_CHANNEL_BUFFER("smart-channel-buffer", "10s");
+        SMART_CHANNEL_BUFFER("smart-channel-buffer", "10s"),
+
+        /**
+         * The limit of how many connections can be retrieved.
+         * If not limited the response may become few MB in size.
+         */
+        CONNECTIONS_RETRIEVE_LIMIT("connections-retrieve-limit", 100);
 
         private final String path;
         private final Object defaultValue;

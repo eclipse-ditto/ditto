@@ -84,13 +84,13 @@ final class DefaultAuthenticationFailureAggregator implements AuthenticationFail
                 .map(DefaultAuthenticationFailureAggregator::toDittoRuntimeException)
                 .filter(Objects::nonNull)
                 .filter(reasonOfFailure -> reasonOfFailure.getDescription().isPresent())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Nullable
     private static DittoRuntimeException toDittoRuntimeException(final Throwable throwable) {
-        if (throwable instanceof DittoRuntimeException) {
-            return (DittoRuntimeException) throwable;
+        if (throwable instanceof DittoRuntimeException dittoRuntimeException) {
+            return dittoRuntimeException;
         } else if (null == throwable) {
             return null;
         } else {

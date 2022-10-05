@@ -43,8 +43,8 @@ public class CreateBsonPredicateVisitor implements PredicateVisitor<Function<Str
     private final List<PlaceholderResolver<?>> additionalPlaceholderResolvers;
 
     private CreateBsonPredicateVisitor(final Collection<PlaceholderResolver<?>> additionalPlaceholderResolvers) {
-        this.additionalPlaceholderResolvers = Collections.unmodifiableList(
-                new ArrayList<>(additionalPlaceholderResolvers));
+        this.additionalPlaceholderResolvers =
+                Collections.unmodifiableList(new ArrayList<>(additionalPlaceholderResolvers));
     }
 
     /**
@@ -173,6 +173,7 @@ public class CreateBsonPredicateVisitor implements PredicateVisitor<Function<Str
                     .findFirst()
                     .orElse(null);
         }
+
         return value;
     }
 }

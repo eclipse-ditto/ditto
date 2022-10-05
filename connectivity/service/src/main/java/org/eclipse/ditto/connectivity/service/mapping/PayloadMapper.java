@@ -12,36 +12,22 @@
  */
 package org.eclipse.ditto.connectivity.service.mapping;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
-import org.atteo.classindex.IndexAnnotated;
-
 /**
- * Classes annotated with {@link PayloadMapper} are indexed and loaded on startup to be referenced by its alias in
- * payload mapping definitions of a {@link org.eclipse.ditto.connectivity.model.Connection}.
- * If the mapper requires no {@link org.eclipse.ditto.connectivity.model.MappingContext} for initialization it can also
- * be directly used in the list of mappings of a {@link org.eclipse.ditto.connectivity.model.Source} or a
+ * Classes implementing {@link PayloadMapper} are loaded on startup to be referenced by its alias in payload mapping
+ * definitions of a {@link org.eclipse.ditto.connectivity.model.Connection}. If the mapper requires no
+ * {@link org.eclipse.ditto.connectivity.model.MappingContext} for initialization it can also be directly used in the
+ * list of mappings of a {@link org.eclipse.ditto.connectivity.model.Source} or a
  * {@link org.eclipse.ditto.connectivity.model.Target} using one of the defined aliases.
  */
-@Target(ElementType.TYPE)
-@IndexAnnotated
-@Retention(RetentionPolicy.RUNTIME)
-public @interface PayloadMapper {
+public interface PayloadMapper {
 
     /**
-     * @return the aliases which can be used to reference this {@link PayloadMapper}.
+     * @return the alias to reference this {@link PayloadMapper}.
      */
-    String[] alias();
+    String getAlias();
 
-    /**
-     * @return {@code true} if the mapper requires mandatory {@code config} options for initialization,
-     * i.e. it cannot be used directly as a mapping without providing the
-     * {@link org.eclipse.ditto.connectivity.model.MappingContext#getOptionsAsJson()}.
-     */
-    boolean requiresMandatoryConfiguration() default false;
+    default int getPriority() {
+        return 0;
+    }
 
-    int priority() default 0;
 }

@@ -60,8 +60,6 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final Duration ackLabelDeclareInterval;
     private final Duration priorityUpdateInterval;
     private final boolean allClientActorsOnOneNode;
-    private final boolean doubleDecodingEnabled;
-    private final boolean doubleDecodingMigrationEnabled;
 
     private DefaultConnectionConfig(final ConfigWithFallback config) {
         clientActorAskTimeout =
@@ -90,10 +88,6 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 config.getBoolean(ConnectionConfigValue.ALL_CLIENT_ACTORS_ON_ONE_NODE.getConfigPath());
         priorityUpdateInterval =
                 config.getNonNegativeAndNonZeroDurationOrThrow(ConnectionConfigValue.PRIORITY_UPDATE_INTERVAL);
-        doubleDecodingEnabled = config.getBoolean(ConnectionConfigValue.DOUBLE_DECODING_ENABLED.getConfigPath());
-        doubleDecodingMigrationEnabled =
-                config.getBoolean(ConnectionConfigValue.DOUBLE_DECODING_MIGRATION_ENABLED.getConfigPath());
-
     }
 
     /**
@@ -221,16 +215,6 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     }
 
     @Override
-    public boolean doubleDecodingEnabled() {
-        return doubleDecodingEnabled;
-    }
-
-    @Override
-    public boolean doubleDecodingMigrationEnabled() {
-        return doubleDecodingMigrationEnabled;
-    }
-
-    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -259,9 +243,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 Objects.equals(maxNumberOfSources, that.maxNumberOfSources) &&
                 Objects.equals(ackLabelDeclareInterval, that.ackLabelDeclareInterval) &&
                 Objects.equals(priorityUpdateInterval, that.priorityUpdateInterval) &&
-                allClientActorsOnOneNode == that.allClientActorsOnOneNode &&
-                doubleDecodingEnabled == that.doubleDecodingEnabled &&
-                doubleDecodingMigrationEnabled == that.doubleDecodingMigrationEnabled;
+                allClientActorsOnOneNode == that.allClientActorsOnOneNode;
     }
 
     @Override
@@ -270,8 +252,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 blockedHostnames, blockedSubnets, blockedHostRegex, supervisorConfig, snapshotConfig,
                 acknowledgementConfig, cleanupConfig, maxNumberOfTargets, maxNumberOfSources, activityCheckConfig,
                 amqp10Config, amqp091Config, mqttConfig, kafkaConfig, httpPushConfig, ackLabelDeclareInterval,
-                priorityUpdateInterval, allClientActorsOnOneNode, doubleDecodingEnabled,
-                doubleDecodingMigrationEnabled);
+                priorityUpdateInterval, allClientActorsOnOneNode);
     }
 
     @Override
@@ -298,8 +279,6 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 ", ackLabelDeclareInterval=" + ackLabelDeclareInterval +
                 ", priorityUpdateInterval=" + priorityUpdateInterval +
                 ", allClientActorsOnOneNode=" + allClientActorsOnOneNode +
-                ", doubleDecodingEnabled=" + doubleDecodingEnabled +
-                ", doubleDecodingMigrationEnabled=" + doubleDecodingMigrationEnabled +
                 "]";
     }
 }

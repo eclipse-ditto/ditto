@@ -18,11 +18,10 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.connectivity.model.signals.commands.TestConstants;
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.connectivity.model.signals.commands.TestConstants;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
-import org.junit.Ignore;
+import org.eclipse.ditto.json.JsonFactory;
 import org.junit.Test;
 
 /**

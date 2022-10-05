@@ -99,7 +99,7 @@ public final class HeadersFromTopicPathTest {
                 HeadersFromTopicPath.Extractor::entityIdExtractor);
 
         // Assert
-        assertThat(dittoHeaders.get(DittoHeaderDefinition.ENTITY_ID.getKey())).isEqualTo(expectedDittoEntityId);
+        assertThat(dittoHeaders).containsKey(DittoHeaderDefinition.ENTITY_ID.getKey());
     }
 
     @Test

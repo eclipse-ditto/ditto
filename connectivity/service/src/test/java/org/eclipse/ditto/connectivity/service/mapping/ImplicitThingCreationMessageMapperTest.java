@@ -51,6 +51,9 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingRespons
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -123,7 +126,7 @@ public final class ImplicitThingCreationMessageMapperTest {
     public void setUp() {
         connection = TestConstants.createConnection();
         actorSystem = ActorSystem.create("Test", TestConstants.CONFIG);
-        underTest = new ImplicitThingCreationMessageMapper();
+        underTest = new ImplicitThingCreationMessageMapper(actorSystem, Mockito.mock(Config.class));
     }
 
     @After
@@ -152,8 +155,8 @@ public final class ImplicitThingCreationMessageMapperTest {
         assertThat(createThing.getThing().getEntityId()).isEqualTo(expectedThing.getEntityId());
         assertThat(createThing.getThing().getPolicyId()).isEmpty();
         assertThat(createThing.getThing().getAttributes()).isEqualTo(expectedThing.getAttributes());
-        assertThat(createThing.getDittoHeaders().get("other-test-header")).isEqualTo(GATEWAY_ID);
-        assertThat(createThing.getDittoHeaders().get("test-header")).isEqualTo("this-is-a-test-header");
+        assertThat(createThing.getDittoHeaders()).containsEntry("other-test-header", GATEWAY_ID);
+        assertThat(createThing.getDittoHeaders()).containsEntry("test-header", "this-is-a-test-header");
         assertThat(createThing.getDittoHeaders().isAllowPolicyLockout()).isTrue();
         assertThat(createThing.getDittoHeaders().getIfNoneMatch()).contains(EntityTagMatchers.fromStrings("*"));
         assertThat(createThing.getPolicyIdOrPlaceholder()).contains(GATEWAY_ID);

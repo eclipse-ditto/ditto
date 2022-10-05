@@ -110,11 +110,13 @@ import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelActor;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cluster.AkkaJacksonCborSerializable;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
@@ -196,6 +198,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     protected final ConnectivityCounterRegistry connectionCounterRegistry;
     protected final ConnectionLoggerRegistry connectionLoggerRegistry;
     protected final ChildActorNanny childActorNanny;
+    private final DittoHeadersValidator dittoHeadersValidator;
     private final boolean dryRun;
 
     private Sink<Object, NotUsed> inboundMappingSink;
@@ -230,6 +233,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         commandForwarderActorSelection = getLocalActorOfSamePath(commandForwarderActor);
         childActorNanny = ChildActorNanny.newInstance(getContext(), logger);
+        dittoHeadersValidator = DittoHeadersValidator.get(system, ScopedConfig.dittoExtension(config));
 
         final UserIndicatedErrors userIndicatedErrors = UserIndicatedErrors.of(config);
         connectivityStatusResolver = ConnectivityStatusResolver.of(userIndicatedErrors);
@@ -811,7 +815,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         }
 
         if (message instanceof Throwable throwable) {
-            logger.error(throwable, "received Exception {} in state {} - status: {} - sender: {}",
+            logger.warning(throwable, "received Exception {} in state {} - status: {} - sender: {}",
                     message,
                     stateName(),
                     state.getConnectionStatus() + ": " + state.getConnectionStatusDetails().orElse(""),
@@ -1766,6 +1770,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 getSelf(),
                 getContext(),
                 connectivityConfig,
+                dittoHeadersValidator,
                 getResponseValidationFailureConsumer());
     }
 
@@ -1797,7 +1802,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             inboundMappingProcessors = IntStream.range(0, processorPoolSize)
                     .mapToObj(i -> InboundMappingProcessor.of(connection, connectivityConfig, actorSystem,
                             protocolAdapter, logger))
-                    .collect(Collectors.toList());
+                    .toList();
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {0}", dre.getMessage());
             logger.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",

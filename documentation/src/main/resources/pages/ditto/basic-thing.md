@@ -39,8 +39,8 @@ authenticated subjects may READ and WRITE the Thing or even parts of it (hierarc
 A Thing may contain a definition. The definition can also be used to find Things. The definition is used to link a thing
 to a corresponding model defining the capabilities/features of it.  
 The definition can for example point to a:  
-* [Eclipse Vorto](https://www.eclipse.org/vorto/) "information model" using the syntax `<namespace>:<name>:<version>`
-* or a valid HTTP(s) URL (e.g. in order to define that the Thing is described by a [WoT (Web of Things) Thing Model](basic-wot-integration.html#thing-model-describing-a-ditto-thing))
+* a valid HTTP(s) URL (e.g. in order to define that the Thing is described by a [WoT (Web of Things) Thing Model](basic-wot-integration.html#thing-model-describing-a-ditto-thing))
+* or some other model reference using the syntax `<namespace>:<name>:<version>`, e.g. an [Eclipse Vorto](https://www.eclipse.org/vorto/) "information model" 
 
 
 ### Attributes

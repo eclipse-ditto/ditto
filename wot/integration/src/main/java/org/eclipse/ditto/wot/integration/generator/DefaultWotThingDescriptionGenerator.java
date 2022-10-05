@@ -331,10 +331,10 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
     private void addThingDescriptionLinks(final ThingDescription.Builder tdBuilder, final URL tmUrl,
             boolean addCollectionLinkPointingToThingId, final ThingId thingId) {
 
-        final List<BaseLink<?>> newLinks = tdBuilder.build().getLinks()
+        final List<BaseLink<?>> newLinks = new ArrayList<>(tdBuilder.build().getLinks()
                 .map(links -> StreamSupport.stream(links.spliterator(), false))
                 .orElseGet(Stream::empty)
-                .collect(Collectors.toList());
+                .toList());
 
         final Link typeLink = Link.newBuilder()
                 .setRel("type")

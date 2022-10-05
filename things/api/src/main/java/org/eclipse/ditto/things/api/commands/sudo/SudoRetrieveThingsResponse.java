@@ -223,7 +223,7 @@ public final class SudoRetrieveThingsResponse extends AbstractCommandResponse<Su
      * @return the Things.
      */
     public List<Thing> getThings() {
-        return getThingStream(lazyLoadThingsJsonArray()).collect(Collectors.toList());
+        return getThingStream(lazyLoadThingsJsonArray()).toList();
     }
 
     private static Stream<Thing> getThingStream(final JsonArray thingsArray) {

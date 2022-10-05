@@ -15,17 +15,19 @@ package org.eclipse.ditto.internal.utils.persistence.mongo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 
 import java.util.List;
 
 import org.bson.Document;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.models.streaming.StreamedSnapshot;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamSnapshots;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.SnapshotFilter;
+import org.eclipse.ditto.json.JsonObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -91,13 +93,26 @@ public final class SnapshotStreamingActorTest {
 
     @Test
     public void streamNonemptySnapshotCollection() {
+        streamNonemptySnapshotCollection(SudoStreamSnapshots.of(100, 10_000L, List.of(), DittoHeaders.empty(), THING_TYPE), SnapshotFilter.of("",""));
+    }
+
+    @Test
+    public void streamNonemptyFilteredSnapshotCollection() {
+        streamNonemptySnapshotCollection(SudoStreamSnapshots.of(100, 10_000L, List.of(), DittoHeaders.empty(), THING_TYPE).withNamespacesFilter(List.of("eclipse", "ditto")),
+                SnapshotFilter.of("","^thing:(eclipse|ditto):.*"));
+    }
+    @Test
+    public void streamNonemptySnapshotCollectionFromLowerBound() {
+        streamNonemptySnapshotCollection(SudoStreamSnapshots.of(100, 10_000L, List.of(), DittoHeaders.empty(), THING_TYPE).withLowerBound(EntityId.of(THING_TYPE, "snap:1")),
+                SnapshotFilter.of("thing:snap:1", ""));
+    }
+
+    private void streamNonemptySnapshotCollection(final SudoStreamSnapshots sudoStreamSnapshots, final SnapshotFilter expectedFilter) {
         new TestKit(actorSystem) {{
             final ActorRef underTest = createSnapshotStreamingActor();
 
             // WHEN
-            final SudoStreamSnapshots sudoStreamSnapshots =
-                    SudoStreamSnapshots.of(100, 10_000L, List.of(), DittoHeaders.empty(), THING_TYPE);
-            setSnapshotStore(Source.from(List.of(
+            setSnapshotStore(expectedFilter, Source.from(List.of(
                     new Document().append("_id", "thing:snap:1")
                             .append("_revision", 1)
                             .append("_modified", "2001-01-01"),
@@ -131,7 +146,13 @@ public final class SnapshotStreamingActorTest {
     }
 
     private void setSnapshotStore(final Source<Document, NotUsed> mockSource) {
-        Mockito.when(mockReadJournal.getNewestSnapshotsAbove(any(), anyInt(), any(), any())).thenReturn(mockSource);
+        Mockito.when(mockReadJournal.getNewestSnapshotsAbove(any(SnapshotFilter.class), anyInt(), any(), any()))
+                .thenReturn(mockSource);
+    }
+
+    private void setSnapshotStore(final SnapshotFilter expectedFilter, final Source<Document, NotUsed> mockSource) {
+        Mockito.when(mockReadJournal.getNewestSnapshotsAbove(eq(expectedFilter), anyInt(), any(), any()))
+                .thenReturn(mockSource);
     }
 
     private ActorRef createSnapshotStreamingActor() {

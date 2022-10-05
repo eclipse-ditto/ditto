@@ -100,7 +100,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
 
     private static final JsonValue DEFAULT_DUMMY_ENTITY_JSON = JsonValue.of("dummy");
 
-    private static final Function<Object, Optional<Object>> DUMMY_THING_MODIFY_RESPONSE_PROVIDER =
+    private static final Function<Jsonifiable<?>, Optional<Object>> DUMMY_THING_MODIFY_RESPONSE_PROVIDER =
             DummyThingModifyCommandResponse::echo;
 
     protected static HttpConfig httpConfig;
@@ -160,13 +160,16 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         httpHeaderTranslator = adapterProvider.getHttpHeaderTranslator();
 
         routeBaseProperties = RouteBaseProperties.newBuilder()
-                .proxyActor(createDummyResponseActor())
+                .proxyActor(createDummyResponseActor(getResponseProvider()))
                 .actorSystem(system())
                 .httpConfig(httpConfig)
                 .commandConfig(commandConfig)
                 .headerTranslator(httpHeaderTranslator)
                 .build();
         dittoHeaders = DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build();
+    }
+    protected Function<Jsonifiable<?>, Optional<Object>> getResponseProvider(){
+        return DUMMY_THING_MODIFY_RESPONSE_PROVIDER;
     }
 
     @Override
@@ -197,7 +200,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
      *
      * @return the actor
      */
-    protected ActorRef createDummyResponseActor(final Function<Object, Optional<Object>> responseProvider) {
+    protected ActorRef createDummyResponseActor(final Function<Jsonifiable<?>, Optional<Object>> responseProvider) {
         return system().actorOf(DummyResponseAnswer.props(responseProvider));
     }
 
@@ -248,7 +251,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
             this.responseProvider = requireNonNull(responseProvider);
         }
 
-        private static Props props(final Function<Object, Optional<Object>> responseProvider) {
+        private static Props props(final Function<Jsonifiable<?>, Optional<Object>> responseProvider) {
             return Props.create(DummyResponseAnswer.class, responseProvider);
         }
 
@@ -261,7 +264,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         }
     }
 
-    private static final class DummyThingModifyCommandResponse
+    protected static final class DummyThingModifyCommandResponse
             extends AbstractCommandResponse<DummyThingModifyCommandResponse>
             implements ThingCommandResponse<DummyThingModifyCommandResponse>, WithOptionalEntity {
 
@@ -278,7 +281,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
             }
         }
 
-        private static Optional<Object> echo(final Object m) {
+         public static Optional<Object> echo(@Nullable final Object m) {
             final DittoHeaders dittoHeaders;
             if (m instanceof WithDittoHeaders) {
                 dittoHeaders = ((WithDittoHeaders) m).getDittoHeaders();

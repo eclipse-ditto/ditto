@@ -1,0 +1,33 @@
+# Copyright (c) 2022 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: object
+deprecated: true
+description: |-
+  MappingContext to apply in this connection containing JavaScript scripts mapping from external messages to
+  internal Ditto Protocol messages. Usage of MappingContext is deprecated, use PayloadMappingDefinitions instead.
+required:
+  - incomingScript
+  - outgoingScript
+  - loadBytebufferJS
+  - loadLongJS
+properties:
+  incomingScript:
+    type: string
+    description: The mapping script for incoming messages
+  outgoingScript:
+    type: string
+    description: The mapping script for outgoing messages
+  loadBytebufferJS:
+    type: boolean
+    description: Whether or not ByteBufferJS library should be included
+  loadLongJS:
+    type: boolean
+    description: Whether or not LongJS library should be included

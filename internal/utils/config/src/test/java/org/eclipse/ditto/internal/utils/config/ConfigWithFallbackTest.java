@@ -114,7 +114,7 @@ public final class ConfigWithFallbackTest {
         assertThat(underTest.root()).satisfies(configObject -> assertThat(configObject).hasSize(3));
         assertThat(underTest.getString("foo")).isEqualTo("bar");
         assertThat(underTest.getInt("bar")).isEqualTo(1);
-        assertThat(underTest.getBoolean("baz")).isEqualTo(true);
+        assertThat(underTest.getBoolean("baz")).isTrue();
     }
 
     @Test
@@ -136,7 +136,7 @@ public final class ConfigWithFallbackTest {
         });
         assertThat(underTest.getString("foo")).isEqualTo("bar");
         assertThat(underTest.getInt("bar")).isEqualTo(1);
-        assertThat(underTest.getBoolean("baz")).isEqualTo(true);
+        assertThat(underTest.getBoolean("baz")).isTrue();
     }
 
     @Test
@@ -159,7 +159,7 @@ public final class ConfigWithFallbackTest {
         });
         assertThat(underTest.getString("foo")).isEqualTo("bar");
         assertThat(underTest.getInt("bar")).isEqualTo(2);
-        assertThat(underTest.getBoolean("baz")).isEqualTo(true);
+        assertThat(underTest.getBoolean("baz")).isTrue();
     }
 
     @Test

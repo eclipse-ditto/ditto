@@ -20,17 +20,15 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.CommandHeaderInvalidException;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.gateway.api.GatewayDuplicateHeaderException;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants;
@@ -38,6 +36,7 @@ import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthent
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.routes.cloudevents.CloudEventsRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.connections.ConnectionsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.policies.OAuthTokenIntegrationSubjectIdFactory;
@@ -99,6 +98,8 @@ public final class RootRouteTest extends EndpointTestBase {
             JsonSchemaVersion.V_2.toInt() + "/" + ThingsRoute.PATH_THINGS;
     private static final String THING_SEARCH_2_PATH = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
             JsonSchemaVersion.V_2.toInt() + "/" + ThingSearchRoute.PATH_SEARCH + "/" + ThingSearchRoute.PATH_THINGS;
+    private static final String CONNECTIONS_2_PATH = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
+            JsonSchemaVersion.V_2.toInt() + "/" + ConnectionsRoute.PATH_CONNECTIONS;
     private static final String WHOAMI_PATH = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
             JsonSchemaVersion.V_2.toInt() + "/" + WhoamiRoute.PATH_WHOAMI;
     private static final String UNKNOWN_SEARCH_PATH =
@@ -110,16 +111,10 @@ public final class RootRouteTest extends EndpointTestBase {
 
     private static final String HTTPS = "https";
 
-    private final Executor messageDispatcher;
-
     private TestRoute rootTestRoute;
 
     @Mock
     private HttpClientFacade httpClientFacade;
-
-    public RootRouteTest() {
-        messageDispatcher = Executors.newFixedThreadPool(8);
-    }
 
     @Before
     public void setUp() {
@@ -147,6 +142,7 @@ public final class RootRouteTest extends EndpointTestBase {
                 .statusRoute(new StatusRoute(clusterStatusSupplier,
                         createHealthCheckingActorMock(),
                         routeBaseProperties.getActorSystem()))
+                .connectionsRoute(new ConnectionsRoute(routeBaseProperties, devOpsAuthenticationDirective))
                 .overallStatusRoute(new OverallStatusRoute(clusterStatusSupplier,
                         statusAndHealthProvider,
                         devopsAuthenticationDirectiveFactory.status()))
@@ -174,7 +170,8 @@ public final class RootRouteTest extends EndpointTestBase {
                         authenticationDirectiveFactory.buildHttpAuthentication(jwtAuthenticationFactory))
                 .wsAuthenticationDirective(
                         authenticationDirectiveFactory.buildWsAuthentication(jwtAuthenticationFactory))
-                .dittoHeadersSizeChecker(DittoHeadersSizeChecker.of(4096, 20))
+                .dittoHeadersValidator(
+                        DittoHeadersValidator.get(routeBaseProperties.getActorSystem(), dittoExtensionConfig))
                 .customApiRoutesProvider(
                         CustomApiRoutesProvider.get(routeBaseProperties.getActorSystem(), dittoExtensionConfig),
                         routeBaseProperties)
@@ -212,6 +209,29 @@ public final class RootRouteTest extends EndpointTestBase {
                 rootTestRoute.run(withHttps(withDevopsCredentials(HttpRequest.GET(OVERALL_STATUS_PATH))));
 
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+    @Test
+    public void getConnectionsWithDevopsAuth() {
+        final TestRouteResult result =
+                rootTestRoute.run(withHttps(withDevopsCredentials(HttpRequest.GET(CONNECTIONS_2_PATH))));
+
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+
+    @Test
+    public void getConnectionsWithPreAuthenticated() {
+        final TestRouteResult result =
+                rootTestRoute.run(withHttps(withPreAuthenticatedAuthentication(HttpRequest.GET(CONNECTIONS_2_PATH))));
+
+        result.assertStatusCode(StatusCodes.UNAUTHORIZED);
+    }
+
+    @Test
+    public void getConnectionsUnAuthenticated() {
+        final TestRouteResult result =
+                rootTestRoute.run(withHttps(HttpRequest.GET(CONNECTIONS_2_PATH)));
+
+        result.assertStatusCode(StatusCodes.UNAUTHORIZED);
     }
 
     @Test
@@ -440,7 +460,7 @@ public final class RootRouteTest extends EndpointTestBase {
 
     @Test
     public void getExceptionDueToTooManyAuthSubjects() {
-        final String hugeSubjects = IntStream.range(0, 41)
+        final String hugeSubjects = IntStream.range(0, 101)
                 .mapToObj(i -> "i:foo" + i)
                 .collect(Collectors.joining(","));
         final HttpRequest request =

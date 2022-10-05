@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Contributors to the Eclipse Foundation
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -15,8 +15,6 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants.CLUSTER_ROLE;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
@@ -59,7 +57,6 @@ import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.Connecti
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CheckConnectionLogsActive;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.EnableConnectionLogs;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.ModifyConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnectionResponse;
@@ -83,7 +80,6 @@ import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.connectivity.service.messaging.ClientActorRefs;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpValidator;
-import org.eclipse.ditto.connectivity.service.messaging.hono.HonoValidator;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushValidator;
 import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaValidator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
@@ -197,10 +193,6 @@ public final class ConnectionPersistenceActor
     @Nullable private Integer priority;
     @Nullable private Instant recoveredAt;
 
-    private final UpdatedConnectionTester updatedConnectionTester;
-
-    private final boolean automaticConnectionDecodingMigrationEnabled;
-
     ConnectionPersistenceActor(final ConnectionId connectionId,
             final ActorRef commandForwarderActor,
             final ActorRef pubSubMediator,
@@ -211,7 +203,6 @@ public final class ConnectionPersistenceActor
         final ActorSystem actorSystem = context().system();
         cluster = Cluster.get(actorSystem);
         final Config dittoExtensionConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
-        this.updatedConnectionTester = UpdatedConnectionTester.get(actorSystem, dittoExtensionConfig);
         this.commandForwarderActor = commandForwarderActor;
         propsFactory = ClientActorPropsFactory.get(actorSystem, dittoExtensionConfig);
         this.pubSubMediator = pubSubMediator;
@@ -219,7 +210,6 @@ public final class ConnectionPersistenceActor
         connectivityConfig = getConnectivityConfigWithOverwrites(connectivityConfigOverwrites);
         commandValidator = getCommandValidator();
         final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
-        automaticConnectionDecodingMigrationEnabled = connectionConfig.doubleDecodingMigrationEnabled();
         this.allClientActorsOnOneNode = allClientActorsOnOneNode.orElse(connectionConfig.areAllClientActorsOnOneNode());
         connectionPriorityProvider = ConnectionPriorityProviderFactory.get(actorSystem, dittoExtensionConfig)
                 .newProvider(self(), log);
@@ -626,10 +616,10 @@ public final class ConnectionPersistenceActor
                 passivate();
                 break;
             case OPEN_CONNECTION:
-                openConnection(command.next(), false, false);
+                openConnection(command.next(), false);
                 break;
             case OPEN_CONNECTION_IGNORE_ERRORS:
-                openConnection(command.next(), true, false);
+                openConnection(command.next(), true);
                 break;
             case CLOSE_CONNECTION:
                 closeConnection(command.next());
@@ -681,7 +671,6 @@ public final class ConnectionPersistenceActor
     @Override
     protected Receive matchAnyAfterInitialization() {
         return ReceiveBuilder.create()
-                .match(RetryOpenConnection.class, this::retryOpenConnectionWithAdaptedEntity)
                 // CreateSubscription is a ThingSearchCommand, but it is created in InboundDispatchingSink from an
                 // adaptable and directly sent to this actor:
                 .match(CreateSubscription.class, this::startThingSearchSession)
@@ -845,26 +834,15 @@ public final class ConnectionPersistenceActor
         }
     }
 
-    private void openConnection(final StagedCommand command, final boolean ignoreErrors, final boolean retry) {
+    private void openConnection(final StagedCommand command, final boolean ignoreErrors) {
         final OpenConnection openConnection = OpenConnection.of(entityId, command.getDittoHeaders());
         final Consumer<Object> successConsumer = response -> getSelf().tell(command, ActorRef.noSender());
         startAndAskClientActors(openConnection, getClientCount())
                 .thenAccept(successConsumer)
                 .exceptionally(error -> {
-                    if (retry && automaticConnectionDecodingMigrationEnabled) {
-                        self().tell(new RetryOpenConnection(openConnection, error, ignoreErrors, command.getSender()),
-                                ActorRef.noSender());
-                    } else {
-                        handleOpenConnectionError(error, ignoreErrors, command.getSender());
-                    }
+                    handleOpenConnectionError(error, ignoreErrors, command.getSender());
                     return null;
                 });
-    }
-
-    private void handleOpenConnectionError(final RetryOpenConnection retryOpenConnection) {
-        handleOpenConnectionError(retryOpenConnection.error,
-                retryOpenConnection.ignoreErrors,
-                retryOpenConnection.sender);
     }
 
     private void handleOpenConnectionError(final Throwable error, final boolean ignoreErrors, final ActorRef sender) {
@@ -876,9 +854,6 @@ public final class ConnectionPersistenceActor
             handleException("open-connection", sender, error);
         }
     }
-
-    private record RetryOpenConnection(OpenConnection openConnection, Throwable error, boolean ignoreErrors,
-                                       ActorRef sender) {}
 
     private void closeConnection(final StagedCommand command) {
         final CloseConnection closeConnection = CloseConnection.of(entityId, command.getDittoHeaders());
@@ -960,14 +935,10 @@ public final class ConnectionPersistenceActor
     }
 
     private CompletionStage<Object> startAndAskClientActors(final SignalWithEntityId<?> cmd, final int clientCount) {
-        try {
-            startClientActorsIfRequired(clientCount, cmd.getDittoHeaders());
-            return processClientAskResult(Patterns.ask(clientActorRouter,
-                    consistentHashableEnvelope(cmd, cmd.getEntityId().toString()),
-                    clientActorAskTimeout));
-        } catch (final Exception e) {
-            return CompletableFuture.failedStage(e);
-        }
+        startClientActorsIfRequired(clientCount, cmd.getDittoHeaders());
+        final Object msg = consistentHashableEnvelope(cmd, cmd.getEntityId().toString());
+
+        return processClientAskResult(Patterns.ask(clientActorRouter, msg, clientActorAskTimeout));
     }
 
     private static Object consistentHashableEnvelope(final Object message, final String hashKey) {
@@ -1198,67 +1169,7 @@ public final class ConnectionPersistenceActor
                 ConnectionOpened.of(entityId, getRevisionNumber(), Instant.now(), DittoHeaders.empty(), null);
         final StagedCommand stagedCommand = StagedCommand.of(connect, connectionOpened, connect,
                 Collections.singletonList(ConnectionAction.UPDATE_SUBSCRIPTIONS));
-        openConnection(stagedCommand, false, true);
-    }
-
-    private void retryOpenConnectionWithAdaptedEntity(final RetryOpenConnection retryOpenConnection) {
-        stopClientActors();
-        if (entity != null) {
-            final Optional<String> passwordOptional = entity.getPassword(false);
-            if (passwordOptional.isPresent()) {
-                final String oldUri = entity.getUri();
-                final URI uri;
-                try {
-                    uri = new URI(oldUri);
-                } catch (URISyntaxException e) {
-                    log.info("Got invalid URI when trying to adapt the connection automatically. Skipping adaption.");
-                    handleOpenConnectionError(retryOpenConnection);
-                    return;
-                }
-                final var oldUserNameAndPassword = uri.getRawUserInfo();
-                final var newUserNameAndPassword =
-                        entity.getUsername(false).orElseThrow() + ":" + passwordOptional.orElseThrow();
-                final var newUri = entity.getUri().replace(oldUserNameAndPassword, newUserNameAndPassword);
-                if (newUri.equals(oldUri)) {
-                    handleOpenConnectionError(retryOpenConnection.error,
-                            retryOpenConnection.ignoreErrors,
-                            retryOpenConnection.sender);
-                } else {
-                    final var connectionWithSingleEncodedPassword = entity.toBuilder()
-                            .uri(newUri)
-                            .build();
-                    final DittoHeaders dittoHeaders = retryOpenConnection.openConnection.getDittoHeaders();
-                    updatedConnectionTester.testConnection(connectionWithSingleEncodedPassword, dittoHeaders)
-                            .thenAccept(optionalResponse -> {
-                                if (optionalResponse.isPresent()) {
-                                    final var response = optionalResponse.get();
-                                    if (response.getHttpStatus().isSuccess()) {
-                                        log.info("Adjusting encoding of connection with ID: {}. The connection URI " +
-                                                        "will now be single encoded.",
-                                                connectionWithSingleEncodedPassword.getId());
-                                        final var modifyConnection =
-                                                ModifyConnection.of(connectionWithSingleEncodedPassword,
-                                                        response.getDittoHeaders());
-                                        self().tell(modifyConnection, ActorRef.noSender());
-                                    } else {
-                                        handleOpenConnectionError(retryOpenConnection);
-                                    }
-                                } else {
-                                    handleOpenConnectionError(retryOpenConnection);
-                                }
-
-
-                            })
-                            .exceptionally(error -> {
-                                handleOpenConnectionError(retryOpenConnection.error, retryOpenConnection.ignoreErrors,
-                                        retryOpenConnection.sender);
-                                return null;
-                            });
-                }
-            }
-        } else {
-            log.warning("Could not retry open connection because entity is null");
-        }
+        openConnection(stagedCommand, false);
     }
 
     private ConnectivityCommandInterceptor getCommandValidator() {
@@ -1273,7 +1184,7 @@ public final class ConnectionPersistenceActor
                         Mqtt3Validator.newInstance(mqttConfig),
                         Mqtt5Validator.newInstance(mqttConfig),
                         HonoValidator.getInstance(),
-                        KafkaValidator.getInstance(connectivityConfig.getConnectionConfig().doubleDecodingEnabled()),
+                        KafkaValidator.getInstance(),
                         HttpPushValidator.newInstance(connectivityConfig.getConnectionConfig().getHttpPushConfig()));
 
         final DittoConnectivityCommandValidator dittoCommandValidator =

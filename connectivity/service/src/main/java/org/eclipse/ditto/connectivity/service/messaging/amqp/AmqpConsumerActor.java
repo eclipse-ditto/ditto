@@ -300,9 +300,9 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
         final CompletionStage<Object> responseFuture =
                 Patterns.ask(jmsActor, createMessageConsumer, jmsActorAskTimeout)
                         .thenApply(response -> {
-                            if (response instanceof Throwable) {
+                            if (response instanceof Throwable throwable) {
                                 // create failed future so that Patterns.pipe sends me Status.Failure
-                                throw new CompletionException((Throwable) response);
+                                throw new CompletionException(throwable);
                             }
                             return response;
                         });
@@ -449,6 +449,9 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
                 inboundAcknowledgedMonitor.exception(externalMessageHeaders,
                         "Sending negative acknowledgement: <{0}>", ackTypeName);
             }
+        } catch (final IllegalStateException e) {
+            logger.withCorrelationId(correlationId.orElse(null))
+                    .warning(e, "Failed to ack an AMQP message because of server side issues");
         } catch (final Exception e) {
             logger.withCorrelationId(correlationId.orElse(null)).error(e, "Failed to ack an AMQP message");
         }
@@ -456,11 +459,10 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
 
     private ExternalMessageBuilder extractPayloadFromMessage(final JmsMessage message,
             final ExternalMessageBuilder builder, @Nullable final String correlationId) throws JMSException {
-        if (message instanceof TextMessage) {
-            final String payload = ((TextMessage) message).getText();
+        if (message instanceof TextMessage textMessage) {
+            final String payload = textMessage.getText();
             builder.withTextAndBytes(payload, payload.getBytes());
-        } else if (message instanceof BytesMessage) {
-            final BytesMessage bytesMessage = (BytesMessage) message;
+        } else if (message instanceof BytesMessage bytesMessage) {
             final long bodyLength = bytesMessage.getBodyLength();
             if (bodyLength >= Integer.MIN_VALUE && bodyLength <= Integer.MAX_VALUE) {
                 final int length = (int) bodyLength;

@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.service.config.IllegalReceiveMaximumValueException;
+import org.eclipse.ditto.connectivity.model.mqtt.IllegalReceiveMaximumValueException;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.junit.Before;
 import org.junit.Test;
@@ -78,7 +78,7 @@ public final class MqttSpecificConfigTest {
                 .isEqualTo(KeepAliveInterval.of(Duration.ofSeconds(30L)));
         assertThat(specificConfig.getMqttLastWillTopic()).contains(MqttTopic.of("lastWillTopic"));
         assertThat(specificConfig.getLastWillQosOrThrow()).isEqualTo(MqttQos.AT_LEAST_ONCE);
-        assertThat(specificConfig.getMqttWillRetain()).isEqualTo(true);
+        assertThat(specificConfig.getMqttWillRetain()).isTrue();
         assertThat(specificConfig.getMqttWillMessage()).contains("last will message");
     }
 

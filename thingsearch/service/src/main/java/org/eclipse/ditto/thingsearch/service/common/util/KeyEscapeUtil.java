@@ -26,8 +26,7 @@ public final class KeyEscapeUtil {
 
     public static final String FAKE_DOT = "~2";
 
-    private KeyEscapeUtil() {
-    }
+    private KeyEscapeUtil() {}
 
     /**
      * Escapes the given String to be usable as MongoDB key.
@@ -41,4 +40,5 @@ public final class KeyEscapeUtil {
                 .replace("$", FAKE_DOLLAR)
                 .replace(".", FAKE_DOT);
     }
+
 }

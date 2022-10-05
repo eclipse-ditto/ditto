@@ -15,9 +15,9 @@ package org.eclipse.ditto.placeholders;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
@@ -73,30 +73,6 @@ public interface ExpressionResolver {
      * @param expressionTemplate the expressionTemplate to resolve {@link Placeholder}s and execute optional
      * pipeline stages
      * @param forbiddenUnresolvedExpressionPrefixes a collection of expression prefixes which must be resolved
-     * @return the stream of resolved strings.
-     * @throws PlaceholderFunctionTooComplexException thrown if the {@code expressionTemplate} contains a placeholder
-     * function chain which is too complex (e.g. too much chained function calls)
-     * @throws UnresolvedPlaceholderException if placeholders could not be resolved which contained prefixed in the
-     * provided {@code forbiddenUnresolvedExpressionPrefixes} list.
-     * @since 2.0.0
-     * @deprecated Since 2.4.0. Use {@link #resolvePartiallyAsPipelineElement(String, java.util.Collection)} instead.
-     * Using {@link PipelineElement#toStream()} on the return value allows to create multiple streams and therefore
-     * reuse the stream.
-     */
-    @Deprecated
-    default String resolvePartially(final String expressionTemplate,
-            final Collection<String> forbiddenUnresolvedExpressionPrefixes) {
-        return resolvePartiallyAsPipelineElement(expressionTemplate, forbiddenUnresolvedExpressionPrefixes).findFirst()
-                .orElseThrow(() -> UnresolvedPlaceholderException.newBuilder(expressionTemplate).build());
-    }
-
-    /**
-     * Resolves a complete expression template starting with a {@link Placeholder} followed by optional pipeline stages
-     * (e.g. functions). Keep unresolvable expressions as is.
-     *
-     * @param expressionTemplate the expressionTemplate to resolve {@link Placeholder}s and execute optional
-     * pipeline stages
-     * @param forbiddenUnresolvedExpressionPrefixes a collection of expression prefixes which must be resolved
      * @return the resolved PipelineElement.
      * @throws PlaceholderFunctionTooComplexException thrown if the {@code expressionTemplate} contains a placeholder
      * function chain which is too complex (e.g. too much chained function calls)
@@ -141,8 +117,7 @@ public interface ExpressionResolver {
             final Function<String, PipelineElement> substitutionFunction) {
 
         final Matcher matcher = Placeholders.pattern().matcher(input);
-        Collection<StringBuffer> resultBuilder = new ArrayList<>();
-        resultBuilder.add(new StringBuffer());
+        final List<PipelineElement> elements = new ArrayList<>();
 
         while (matcher.find()) {
             final String placeholderExpression = Placeholders.groupNames()
@@ -152,37 +127,32 @@ public interface ExpressionResolver {
                     .findAny()
                     .orElse("");
 
-            final Collection<StringBuffer> finalResultBuilder = resultBuilder;
-
-            final PipelineElement element = substitutionFunction.apply(placeholderExpression);
-
-            if (element.getType() == PipelineElement.Type.DELETED) {
-                return element;
+            final StringBuffer replacementBuffer = new StringBuffer();
+            matcher.appendReplacement(replacementBuffer, "");
+            if (replacementBuffer.length() > 0) {
+                elements.add(PipelineElement.resolved(replacementBuffer.toString()));
             }
 
-            final AtomicInteger counter = new AtomicInteger();
-            final AtomicReference<StringBuffer> appendingBuffer = new AtomicReference<>(new StringBuffer());
-
-            resultBuilder = finalResultBuilder.stream()
-                    .flatMap(string -> {
-                        if (counter.get() == 0) {
-                            counter.getAndIncrement();
-                            matcher.appendReplacement(appendingBuffer.get(), "");
-                        }
-                        return element.toStream()
-                                .map(streamElement ->
-                                        new StringBuffer(string)
-                                                .append(appendingBuffer.get())
-                                                .append(streamElement)
-                                );
-                    })
-                    .collect(Collectors.toList());
+            elements.add(substitutionFunction.apply(placeholderExpression));
         }
-        return PipelineElement.resolved(resultBuilder.stream()
-                .map(matcher::appendTail)
-                .map(StringBuffer::toString)
-                .collect(Collectors.toList()));
 
+        final StringBuffer tailBuffer = new StringBuffer();
+        matcher.appendTail(tailBuffer);
+        if (tailBuffer.length() > 0) {
+            elements.add(PipelineElement.resolved(tailBuffer.toString()));
+        }
+
+        if (elements.isEmpty()) {
+            return PipelineElement.resolved("");
+        } else if (elements.stream().allMatch(PipelineElementDeleted.class::isInstance)) {
+            return PipelineElement.deleted();
+        } else {
+            return PipelineElement.resolved(elements.stream()
+                    .filter(e -> !(e instanceof PipelineElementDeleted))
+                    .reduce(Collections.singletonList(""), (results, nextElement) -> results.stream()
+                                    .flatMap(result -> nextElement.toStream().map(next -> result + next))
+                                    .collect(Collectors.toList()),
+                            (x, y) -> Stream.concat(x.stream(), y.stream()).collect(Collectors.toList())));
+        }
     }
-
 }

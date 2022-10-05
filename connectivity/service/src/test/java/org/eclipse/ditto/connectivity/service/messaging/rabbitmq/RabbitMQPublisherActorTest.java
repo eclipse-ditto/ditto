@@ -153,7 +153,7 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
         final Acknowledgements acks = acksFuture.join();
         assertThat(acks.getSize()).describedAs("Expect 1 acknowledgement in: " + acks).isEqualTo(1);
         final Acknowledgement ack = acks.stream().findAny().orElseThrow();
-        assertThat(ack.getLabel().toString()).describedAs("Ack label").isEqualTo("please-verify");
+        assertThat(ack.getLabel().toString()).describedAs("Ack label").hasToString("please-verify");
         assertThat(ack.getHttpStatus()).describedAs("Ack status").isEqualTo(HttpStatus.OK);
     }
 
@@ -173,15 +173,15 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
         verify(channel, timeout(1000)).basicPublish(eq("exchange"), eq("outbound"), eq(true),
                 propertiesCaptor.capture(), bodyCaptor.capture());
 
-        assertThat(propertiesCaptor.getValue().getHeaders().get("thing_id"))
-                .isEqualTo(TestConstants.Things.THING_ID.toString());
-        assertThat(propertiesCaptor.getValue().getHeaders().get("suffixed_thing_id")).isEqualTo(
-                TestConstants.Things.THING_ID + ".some.suffix");
-        assertThat(propertiesCaptor.getValue().getHeaders().get("prefixed_thing_id")).isEqualTo(
-                "some.prefix." + TestConstants.Things.THING_ID);
-        assertThat(propertiesCaptor.getValue().getHeaders().get("eclipse")).isEqualTo("ditto");
-        assertThat(propertiesCaptor.getValue().getHeaders().get("device_id"))
-                .isEqualTo(TestConstants.Things.THING_ID.toString());
+        assertThat(propertiesCaptor.getValue().getHeaders())
+                .containsEntry("thing_id", TestConstants.Things.THING_ID.toString());
+        assertThat(propertiesCaptor.getValue().getHeaders())
+                .containsEntry("suffixed_thing_id", TestConstants.Things.THING_ID + ".some.suffix");
+        assertThat(propertiesCaptor.getValue().getHeaders())
+                .containsEntry("prefixed_thing_id", "some.prefix." + TestConstants.Things.THING_ID);
+        assertThat(propertiesCaptor.getValue().getHeaders()).containsEntry("eclipse", "ditto");
+        assertThat(propertiesCaptor.getValue().getHeaders())
+                .containsEntry("device_id", TestConstants.Things.THING_ID.toString());
     }
 
     @Override
@@ -205,9 +205,10 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
                 propertiesCaptor.capture(),
                 bodyCaptor.capture());
 
-        assertThat(propertiesCaptor.getValue().getHeaders().get("correlation-id")).isEqualTo(
-                TestConstants.CORRELATION_ID);
-        assertThat(propertiesCaptor.getValue().getHeaders().get("mappedHeader2")).isEqualTo("thing:id");
+        assertThat(propertiesCaptor.getValue().getHeaders())
+                .containsEntry("correlation-id", TestConstants.CORRELATION_ID);
+        assertThat(propertiesCaptor.getValue().getHeaders())
+                .containsEntry("mappedHeader2", "thing:id");
     }
 
     protected String getOutboundAddress() {
@@ -242,4 +243,5 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
             throw new AssertionError(e);
         }
     }
+
 }

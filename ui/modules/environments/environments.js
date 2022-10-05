@@ -20,33 +20,33 @@ import * as Utils from '../utils.js';
 let environments = {
   local_ditto: {
     api_uri: 'http://localhost:8080',
-    solutionId: null,
+    ditto_version: '3',
     bearer: null,
-    usernamePassword: 'ditto:ditto',
-    usernamePasswordDevOps: 'devops:foobar',
+    defaultUsernamePassword: 'ditto:ditto',
+    defaultUsernamePasswordDevOps: 'devops:foobar',
     useBasicAuth: true,
     useDittoPreAuthenticatedAuth: false,
-    dittoPreAuthenticatedUsername: null,
+    defaultDittoPreAuthenticatedUsername: null,
   },
   local_ditto_ide: {
     api_uri: 'http://localhost:8080',
-    solutionId: null,
+    ditto_version: '3',
     bearer: null,
-    usernamePassword: null,
-    usernamePasswordDevOps: null,
+    defaultUsernamePassword: null,
+    defaultUsernamePasswordDevOps: null,
     useBasicAuth: false,
     useDittoPreAuthenticatedAuth: true,
-    dittoPreAuthenticatedUsername: 'pre:ditto',
+    defaultDittoPreAuthenticatedUsername: 'pre:ditto',
   },
   ditto_sandbox: {
     api_uri: 'https://ditto.eclipseprojects.io',
-    solutionId: null,
+    ditto_version: '3',
     bearer: null,
-    usernamePassword: 'ditto:ditto',
-    usernamePasswordDevOps: null,
+    defaultUsernamePassword: 'ditto:ditto',
+    defaultUsernamePasswordDevOps: null,
     useBasicAuth: true,
     useDittoPreAuthenticatedAuth: false,
-    dittoPreAuthenticatedUsername: null,
+    defaultDittoPreAuthenticatedUsername: null,
   },
 };
 
@@ -60,6 +60,7 @@ let dom = {
   buttonUpdateJson: null,
   inputEnvironmentName: null,
   inputApiUri: null,
+  inputDittoVersion: null,
   tbodyEnvironments: null,
 };
 
@@ -88,6 +89,30 @@ export function ready() {
     environments = JSON.parse(restoredEnv);
   }
 
+  Object.keys(environments).forEach((env) => {
+    Object.defineProperties(environments[env], {
+      bearer: {
+        enumerable: false,
+        writable: true,
+      },
+      usernamePassword: {
+        value: environments[env].defaultUsernamePassword,
+        enumerable: false,
+        writable: true,
+      },
+      usernamePasswordDevOps: {
+        value: environments[env].defaultUsernamePasswordDevOps,
+        enumerable: false,
+        writable: true,
+      },
+      dittoPreAuthenticatedUsername: {
+        value: environments[env].defaultDittoPreAuthenticatedUsername,
+        enumerable: false,
+        writable: true,
+      },
+    });
+  });
+
   settingsEditor = ace.edit('settingsEditor');
   settingsEditor.session.setMode('ace/mode/json');
 
@@ -98,6 +123,7 @@ export function ready() {
 
   dom.buttonUpdateFields.onclick = () => {
     environments[dom.inputEnvironmentName.value].api_uri = dom.inputApiUri.value;
+    environments[dom.inputEnvironmentName.value].ditto_version = dom.inputDittoVersion.value;
     environmentsJsonChanged();
   };
 
@@ -113,6 +139,7 @@ export function ready() {
     Utils.assert(!environments[dom.inputEnvironmentName.value], 'Name already used', dom.inputEnvironmentName);
     environments[dom.inputEnvironmentName.value] = {
       api_uri: dom.inputApiUri.value ? dom.inputApiUri.value : '',
+      ditto_version: dom.ditto_version.value ? dom.inputDittoVersion.value : '3',
     };
     environmentsJsonChanged();
   };
@@ -170,10 +197,12 @@ function updateEnvEditors() {
   if (selectedEnvironment) {
     settingsEditor.setValue(JSON.stringify(selectedEnvironment, null, 2), -1);
     dom.inputApiUri.value = selectedEnvironment.api_uri;
+    dom.inputDittoVersion.value = selectedEnvironment.ditto_version ? selectedEnvironment.ditto_version : '3';
   } else {
     dom.inputEnvironmentName.value = null;
     settingsEditor.setValue('');
     dom.inputApiUri.value = null;
+    dom.inputDittoVersion.value = null;
   }
 }
 

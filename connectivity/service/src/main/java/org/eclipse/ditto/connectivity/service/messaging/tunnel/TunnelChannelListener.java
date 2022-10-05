@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.tunnel;
 
+import java.io.IOException;
+
 import org.apache.sshd.client.future.OpenFuture;
 import org.apache.sshd.common.channel.Channel;
 import org.apache.sshd.common.channel.ChannelListener;
@@ -37,7 +39,8 @@ final class TunnelChannelListener implements ChannelListener {
      * @param initialSshChannelWindowSize the initial window size to use for the RemoteWindow of the SSH channel
      * @param logger the logger
      */
-    TunnelChannelListener(final ActorRef sshTunnelActor, final String initialSshChannelWindowSize, final LoggingAdapter logger) {
+    TunnelChannelListener(final ActorRef sshTunnelActor, final String initialSshChannelWindowSize,
+            final LoggingAdapter logger) {
         this.sshTunnelActor = sshTunnelActor;
         this.logger = logger;
         try {
@@ -95,18 +98,27 @@ final class TunnelChannelListener implements ChannelListener {
         // attach a listener to the open future, otherwise we have no access to the exception that caused the opening
         // to fail (e.g. channelOpenFailure is not called with an exception)
         if (channel instanceof TcpipClientChannel tcpipClientChannel) {
-            final OpenFuture openFuture = tcpipClientChannel.getOpenFuture();
-            if (openFuture != null) {
-                tcpipClientChannel.getOpenFuture()
-                        .addListener(future -> {
-                            final Throwable exception = future.getException();
-                            if (exception != null) {
-                                final SshTunnelActor.TunnelClosed tunnelClosed =
-                                        new SshTunnelActor.TunnelClosed(TUNNEL_EXCEPTION_MESSAGE, exception);
-                                sshTunnelActor.tell(tunnelClosed, ActorRef.noSender());
-                            }
-                        });
+            try {
+                final OpenFuture openFuture = tcpipClientChannel.open();
+                if (openFuture != null) {
+                    tcpipClientChannel.open()
+                            .addListener(future -> {
+                                final Throwable exception = future.getException();
+                                if (exception != null) {
+                                    tellExceptionToTunnelActor(exception);
+                                }
+                            });
+                }
+            } catch (IOException e) {
+                tellExceptionToTunnelActor(e);
             }
         }
     }
+
+    private void tellExceptionToTunnelActor(final Throwable exception) {
+        final SshTunnelActor.TunnelClosed tunnelClosed =
+                new SshTunnelActor.TunnelClosed(TUNNEL_EXCEPTION_MESSAGE, exception);
+        sshTunnelActor.tell(tunnelClosed, ActorRef.noSender());
+    }
+
 }

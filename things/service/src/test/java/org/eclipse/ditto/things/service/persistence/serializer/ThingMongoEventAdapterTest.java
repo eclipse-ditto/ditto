@@ -74,11 +74,12 @@ public final class ThingMongoEventAdapterTest {
                 .setAttributes(Attributes.newBuilder().set("hello", "cloud").build())
                 .build();
         final ThingCreated thingCreated =
-                ThingCreated.of(thing, 0, Instant.parse("2021-02-24T14:17:37.581679843Z"), DittoHeaders.empty(), null);
+                ThingCreated.of(thing, 1L, Instant.parse("2021-02-24T14:17:37.581679843Z"), DittoHeaders.empty(), null);
 
         final String journalEntry = "{\n" +
                 "                \"type\" : \"things.events:thingCreated\",\n" +
                 "                \"_timestamp\" : \"2021-02-24T14:17:37.581679843Z\",\n" +
+                "                \"revision\" : 1,\n" +
                 "                \"_metadata\" : null,\n" +
                 "                \"thingId\" : \"pap.th.tMJyAjktUVP:YlmZXbTQ\",\n" +
                 "                \"thing\" : {\n" +

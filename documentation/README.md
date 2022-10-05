@@ -49,7 +49,7 @@ bundle exec jekyll serve --verbose --unpublished
 Validate that the HTML does not contain dead links, etc.:
 
 ```bash
-htmlproofer --assume-extension --allow-hash-href --disable-external --url-ignore "/http-api-doc.html.*/" src/main/resources/_site/
+htmlproofer --assume-extension --allow-hash-href --disable-external --enforce-https=false --ignore-urls "/http-api-doc.html.*/" src/main/resources/_site/
 ```
 
 #### Alternative 2: use Maven (UNIX)

@@ -26,6 +26,7 @@ import org.eclipse.ditto.base.model.common.Placeholders;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
@@ -47,19 +48,21 @@ import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty;
 
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
+
 /**
  * This mapper extracts the headers {@code creation-time} and {@code ttd} from the message and builds a
  * {@link ModifyFeature} command from it. The default featureId is {@code ConnectionStatus} but can be changed via
  * the mapping configuration. The thingId must be set in the mapping configuration. It can either be a fixed Thing ID
  * or it can be resolved from the message headers by using a placeholder e.g. {@code {{ header:device_id }}}.
  */
-@PayloadMapper(
-        alias = "ConnectionStatus",
-        requiresMandatoryConfiguration = true // "thingId" is mandatory configuration
-)
 public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ConnectionStatusMessageMapper.class);
+
+    private static final String PAYLOAD_MAPPER_ALIAS = "ConnectionStatus";
 
     static final String HEADER_HONO_TTD = "ttd";
     static final String HEADER_HONO_CREATION_TIME = "creation-time";
@@ -80,17 +83,52 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
 
-    private String mappingOptionFeatureId;
     private String mappingOptionThingId;
+    private String mappingOptionFeatureId;
+
+    /**
+     * Constructs a new instance of ConnectionStatusMessageMapper extension.
+     *
+     * @param actorSystem the actor system in which to load the extension.
+     * @param config the configuration for this extension.
+     */
+    ConnectionStatusMessageMapper(final ActorSystem actorSystem, final Config config) {
+        super(actorSystem, config);
+    }
+
+    private ConnectionStatusMessageMapper(final ConnectionStatusMessageMapper copyFromMapper) {
+        super(copyFromMapper);
+        this.mappingOptionThingId = copyFromMapper.mappingOptionThingId;
+        this.mappingOptionFeatureId = copyFromMapper.mappingOptionFeatureId;
+    }
 
     @Override
-    public void doConfigure(final MappingConfig mappingConfig,
+    public String getAlias() {
+        return PAYLOAD_MAPPER_ALIAS;
+    }
+
+    /**
+     * "thingId" is mandatory.
+     */
+    @Override
+    public boolean isConfigurationMandatory() {
+        return true;
+    }
+
+    @Override
+    public MessageMapper createNewMapperInstance() {
+        // ConnectionStatusMessageMapper is stateful - so always return new instance:
+        return new ConnectionStatusMessageMapper(this);
+    }
+
+    @Override
+    public void doConfigure(final Connection connection, final MappingConfig mappingConfig,
             final MessageMapperConfiguration messageMapperConfiguration) {
         mappingOptionThingId = messageMapperConfiguration.findProperty(MAPPING_OPTIONS_PROPERTIES_THING_ID)
                 .orElseThrow(
                         () -> MessageMapperConfigurationInvalidException.newBuilder(MAPPING_OPTIONS_PROPERTIES_THING_ID)
                                 .build());
-        // Check if ThingId is valid when its not a placeholder
+        // Check if ThingId is valid when it's not a placeholder
         if (!Placeholders.containsAnyPlaceholder(mappingOptionThingId)) {
             try {
                 ThingId.of(mappingOptionThingId);
@@ -252,5 +290,14 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
     @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
         return Collections.emptyList();
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
+                ", mappingOptionThingId=" + mappingOptionThingId +
+                ", mappingOptionFeatureId=" + mappingOptionFeatureId +
+                "]";
     }
 }

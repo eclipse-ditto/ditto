@@ -29,16 +29,20 @@ import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
+
 /**
  * A message mapper implementation for the Ditto Protocol.
- * Expects messages to contain a JSON serialized Ditto Protocol message.
+ * Expect messages to contain a JSON serialized Ditto Protocol message.
  */
-@PayloadMapper(
-        alias = {"Ditto",
-                // legacy full qualified name
-                "org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper"})
 public final class DittoMessageMapper extends AbstractMessageMapper {
 
+    /**
+     * The alias of this mapper.
+     */
+    public static final String ALIAS = "Ditto";
 
     static final JsonObject DEFAULT_OPTIONS = JsonObject.newBuilder()
             .set(MessageMapperConfiguration.CONTENT_TYPE_BLOCKLIST,
@@ -53,9 +57,38 @@ public final class DittoMessageMapper extends AbstractMessageMapper {
      * The context representing this mapper
      */
     public static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContextBuilder(
-            DittoMessageMapper.class.getCanonicalName(),
-            DEFAULT_OPTIONS
-    ).build();
+                    DittoMessageMapper.class.getCanonicalName(),
+                    DEFAULT_OPTIONS)
+            .build();
+
+    /**
+     * Constructs a new instance of DittoMessageMapper extension.
+     *
+     * @param actorSystem the actor system in which to load the extension.
+     * @param config the configuration for this extension.
+     */
+    public DittoMessageMapper(final ActorSystem actorSystem, final Config config) {
+        super(actorSystem, config);
+    }
+
+    private DittoMessageMapper(final DittoMessageMapper copyFromMapper) {
+        super(copyFromMapper);
+    }
+
+    @Override
+    public String getAlias() {
+        return ALIAS;
+    }
+
+    @Override
+    public boolean isConfigurationMandatory() {
+        return false;
+    }
+
+    @Override
+    public MessageMapper createNewMapperInstance() {
+        return new DittoMessageMapper(this);
+    }
 
     @Override
     public List<Adaptable> map(final ExternalMessage message) {
@@ -101,4 +134,8 @@ public final class DittoMessageMapper extends AbstractMessageMapper {
         return DEFAULT_OPTIONS;
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" + super.toString() + "]";
+    }
 }

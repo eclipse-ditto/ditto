@@ -18,10 +18,9 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import java.time.Instant;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;

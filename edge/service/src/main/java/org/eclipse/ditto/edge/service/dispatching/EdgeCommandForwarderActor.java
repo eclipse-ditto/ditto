@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.edge.service.dispatching;
 
-import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
@@ -26,9 +25,10 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformers;
+import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
 import org.eclipse.ditto.connectivity.api.commands.sudo.ConnectivitySudoCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
-import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorProxyActor;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveAllConnectionIds;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
@@ -141,6 +141,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 .match(RetrieveThings.class, this::forwardToThingsAggregatorProxy)
                 .match(SudoRetrieveThings.class, this::forwardToThingsAggregatorProxy)
                 .match(PolicyCommand.class, this::forwardToPolicies)
+                .match(RetrieveAllConnectionIds.class, this::forwardToConnectivityPubSub)
                 .match(ConnectivityCommand.class, this::forwardToConnectivity)
                 .match(ConnectivitySudoCommand.class, this::forwardToConnectivity)
                 .match(ThingSearchCommand.class, this::forwardToThingSearch)
@@ -242,6 +243,12 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                         shardRegions.policies().tell(transformedPolicyCommand, sender);
                     }
                 }));
+    }
+
+    public void forwardToConnectivityPubSub(final RetrieveAllConnectionIds cmd) {
+        DistributedPubSubMediator.Send send =
+                DistPubSubAccess.send(ConnectivityMessagingConstants.CONNECTION_ID_RETRIEVAL_ACTOR_PATH, cmd);
+        pubSubMediator.tell(send, getSender());
     }
 
     private void forwardToConnectivity(final Command<?> connectivityCommand) {

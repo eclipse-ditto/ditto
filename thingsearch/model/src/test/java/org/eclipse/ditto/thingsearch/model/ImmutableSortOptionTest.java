@@ -23,7 +23,6 @@ import java.util.Collection;
 import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -57,7 +56,7 @@ public final class ImmutableSortOptionTest {
         final String expected = "";
         final ImmutableSortOption underTest = ImmutableSortOption.of(Collections.emptyList());
 
-        assertThat(underTest.toString()).isEqualTo(expected);
+        assertThat(underTest.toString()).hasToString(expected);
     }
 
     @Test
@@ -72,7 +71,7 @@ public final class ImmutableSortOptionTest {
 
         final String expected = "sort(+/thingId,-/attributes/manufacturer)";
 
-        assertThat(underTest.toString()).isEqualTo(expected);
+        assertThat(underTest.toString()).hasToString(expected);
     }
 
     @Test

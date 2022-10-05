@@ -68,7 +68,7 @@ public class DateTimeUtilTest {
     @Test
     public void parseZuluTime() {
         final OffsetDateTime time = DateTimeUtil.parseOffsetDateTime("19700123T012345Z");
-        assertThat(time.getOffset().getLong(ChronoField.OFFSET_SECONDS)).isEqualTo(0);
+        assertThat(time.getOffset().getLong(ChronoField.OFFSET_SECONDS)).isZero();
     }
 
     @Test(expected = DateTimeException.class)

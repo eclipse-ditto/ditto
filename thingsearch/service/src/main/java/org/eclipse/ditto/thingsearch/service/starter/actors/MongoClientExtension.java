@@ -93,21 +93,19 @@ public final class MongoClientExtension implements Extension {
                     .addCommandListener(getCommandListenerOrNull(monitoringConfig, UPDATER_PREFIX))
                     .addConnectionPoolListener(getConnectionPoolListenerOrNull(monitoringConfig, UPDATER_PREFIX))
                     .build();
+
             return new MongoClientExtension(searchClient, updaterClient);
         }
 
         @Nullable
         private static CommandListener getCommandListenerOrNull(final MongoDbConfig.MonitoringConfig monitoringConfig,
                 final String prefix) {
-
             return monitoringConfig.isCommandsEnabled() ? new KamonCommandListener(prefix) : null;
         }
 
         @Nullable
         private static ConnectionPoolListener getConnectionPoolListenerOrNull(
-                final MongoDbConfig.MonitoringConfig monitoringConfig,
-                final String prefix
-        ) {
+                final MongoDbConfig.MonitoringConfig monitoringConfig, final String prefix) {
             return monitoringConfig.isConnectionPoolEnabled() ? new KamonConnectionPoolListener(prefix) : null;
         }
 

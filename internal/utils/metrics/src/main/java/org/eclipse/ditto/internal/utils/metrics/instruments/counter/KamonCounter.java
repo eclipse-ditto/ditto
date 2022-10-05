@@ -105,8 +105,8 @@ public final class KamonCounter implements Counter {
 
     private long getSnapshot() {
         final kamon.metric.Counter kamonInternalCounter = getKamonInternalCounter();
-        if (kamonInternalCounter instanceof kamon.metric.Counter.LongAdder) {
-            return ((kamon.metric.Counter.LongAdder) kamonInternalCounter).snapshot(false);
+        if (kamonInternalCounter instanceof kamon.metric.Counter.LongAdder longAdder) {
+            return longAdder.snapshot(false);
         }
         LOGGER.warn("Could not get snapshot of Kamon counter with name <{}>!", name);
         return 0L;
@@ -120,8 +120,8 @@ public final class KamonCounter implements Counter {
     public boolean reset() {
         try {
             final kamon.metric.Counter kamonInternalCounter = getKamonInternalCounter();
-            if (kamonInternalCounter instanceof kamon.metric.Counter.LongAdder) {
-                ((kamon.metric.Counter.LongAdder) kamonInternalCounter).snapshot(true);
+            if (kamonInternalCounter instanceof kamon.metric.Counter.LongAdder longAdder) {
+                longAdder.snapshot(true);
                 LOGGER.trace("Reset counter with name <{}>.", name);
                 return true;
             }

@@ -72,7 +72,7 @@ public final class SaslPlainCredentialsSupplierTest {
                 .credentials(credentials)
                 .build();
         final Optional<UserPasswordCredentials> result =
-                SaslPlainCredentialsSupplier.of(actorSystem).get(connection, true);
+                SaslPlainCredentialsSupplier.of(actorSystem).get(connection);
 
         assertCredentialsContainCorrectSignature(result, signing);
     }
@@ -97,7 +97,7 @@ public final class SaslPlainCredentialsSupplierTest {
                 .credentials(null)
                 .build();
         final Optional<UserPasswordCredentials> result =
-                SaslPlainCredentialsSupplier.of(actorSystem).get(connection, true);
+                SaslPlainCredentialsSupplier.of(actorSystem).get(connection);
 
         assertThat(result)
                 .withFailMessage(
@@ -114,7 +114,7 @@ public final class SaslPlainCredentialsSupplierTest {
                 .build();
 
         final Optional<UserPasswordCredentials> result =
-                SaslPlainCredentialsSupplier.of(actorSystem).get(connection, true);
+                SaslPlainCredentialsSupplier.of(actorSystem).get(connection);
 
         assertThat(result).contains(UserPasswordCredentials.newInstance("user", "pass"));
     }
@@ -128,7 +128,7 @@ public final class SaslPlainCredentialsSupplierTest {
                 .build();
 
         assertThatExceptionOfType(MessageSendingFailedException.class)
-                .isThrownBy(() -> SaslPlainCredentialsSupplier.of(actorSystem).get(connection, true));
+                .isThrownBy(() -> SaslPlainCredentialsSupplier.of(actorSystem).get(connection));
     }
 
     private Instant extractExpiryFromSharedAccessSignature(final String password) {

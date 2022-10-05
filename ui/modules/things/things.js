@@ -68,6 +68,8 @@ export async function ready() {
   loadThingTemplates();
 
   dom.ulThingDefinitions.addEventListener('click', (event) => {
+    setTheThing(null);
+    Utils.tableAdjustSelection(dom.thingsTableBody, () => false);
     dom.inputThingDefinition.value = event.target.textContent;
     thingJsonEditor.setValue(JSON.stringify(thingTemplates[event.target.textContent], null, 2), -1);
   });
@@ -76,12 +78,26 @@ export async function ready() {
 
   dom.buttonCreateThing.onclick = async () => {
     const editorValue = thingJsonEditor.getValue();
-    API.callDittoREST('POST', '/things', editorValue === '' ? {} : JSON.parse(editorValue))
+    if (dom.thingId.value !== undefined && dom.thingId.value !== '') {
+      API.callDittoREST('PUT',
+                        '/things/' + dom.thingId.value,
+                        editorValue === '' ? {} : JSON.parse(editorValue),
+                        {
+                          'if-none-match': '*',
+                        }
+      ).then((data) => {
+          refreshThing(data.thingId, () => {
+            getThings([data.thingId]);
+          });
+        });
+    } else {
+      API.callDittoREST('POST', '/things', editorValue === '' ? {} : JSON.parse(editorValue))
         .then((data) => {
           refreshThing(data.thingId, () => {
             getThings([data.thingId]);
           });
         });
+    }
   };
 
   dom.buttonSaveThing.onclick = () => {
@@ -146,7 +162,7 @@ function fillThingsTable(thingsList) {
   });
   if (!thingSelected) {
     setTheThing(null);
-  };
+  }
 
   function fillHeaderRow() {
     dom.thingsTableHead.innerHTML = '';
@@ -195,7 +211,7 @@ export function searchThings(filter, cursor) {
 
   API.callDittoREST('GET',
       '/search/things?' + Fields.getQueryParameter() +
-      ((filter && filter != '') ? '&filter=' + encodeURIComponent(filter) : '') +
+      ((filter && filter !== '') ? '&filter=' + encodeURIComponent(filter) : '') +
       '&option=sort(%2BthingId)' +
       // ',size(3)' +
       (cursor ? ',cursor(' + cursor + ')' : ''),
@@ -237,6 +253,9 @@ function modifyThing(method) {
   API.callDittoREST(method,
       '/things/' + dom.thingId.value,
       method === 'PUT' ? JSON.parse(thingJsonEditor.getValue()) : null,
+      {
+        'if-match': '*',
+      }
   ).then(() => {
     method === 'PUT' ? refreshThing(dom.thingId.value) : SearchFilter.performLastSearch();
   });
@@ -250,7 +269,7 @@ function modifyThing(method) {
 export function refreshThing(thingId, successCallback) {
   API.callDittoREST('GET',
       `/things/${thingId}?` +
-      'fields=thingId%2Cdefinition%2Cattributes%2Cfeatures%2C_created%2C_modified%2C_revision%2C_policy')
+      'fields=thingId%2CpolicyId%2Cdefinition%2Cattributes%2Cfeatures%2C_created%2C_modified%2C_revision')
       .then((thing) => {
         setTheThing(thing);
         successCallback && successCallback();
@@ -274,7 +293,7 @@ function setTheThing(thingJson) {
     dom.thingDetails.innerHTML = '';
     if (theThing) {
       Utils.addTableRow(dom.thingDetails, 'thingId', false, true, theThing.thingId);
-      Utils.addTableRow(dom.thingDetails, 'policyId', false, true, theThing._policy.policyId);
+      Utils.addTableRow(dom.thingDetails, 'policyId', false, true, theThing.policyId);
       Utils.addTableRow(dom.thingDetails, 'definition', false, true, theThing.definition ?? '');
       Utils.addTableRow(dom.thingDetails, 'revision', false, true, theThing._revision);
       Utils.addTableRow(dom.thingDetails, 'created', false, true, theThing._created);
@@ -290,8 +309,6 @@ function setTheThing(thingJson) {
       delete thingCopy['_revision'];
       delete thingCopy['_created'];
       delete thingCopy['_modified'];
-      delete thingCopy['_policy'];
-      thingCopy.policyId = theThing._policy.policyId;
       thingJsonEditor.setValue(JSON.stringify(thingCopy, null, 2), -1);
     } else {
       dom.thingId.value = null;
@@ -357,10 +374,11 @@ function onTabActivated() {
     refreshView();
     viewDirty = false;
   }
+  dom.searchFilterEdit.focus();
 }
 
 function onEnvironmentChanged(modifiedField) {
-  if (!['pinnedThings', 'filterList'].includes(modifiedField)) {
+  if (!['pinnedThings', 'filterList', 'messageTemplates'].includes(modifiedField)) {
     if (dom.collapseThings.classList.contains('show')) {
       refreshView();
     } else {

@@ -1,0 +1,46 @@
+# Copyright (c) 2022 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: object
+description: Represents a log entry for a connection.
+required:
+  - timestamp
+  - correlationId
+  - message
+  - category
+  - type
+  - level
+properties:
+  timestamp:
+    type: string
+    description: Timestamp of the log entry.
+    example: '2019-01-21T08:57:24.710Z'
+  correlationId:
+    type: string
+    description: Correlation ID that is associated with the log entry.
+    example: '759304b8-8056-11e9-bc42-526af7764f64'
+  message:
+    type: string
+    description: The log message.
+    example: 'Successfully connected to ... at ...'
+  category:
+    $ref: 'logCategory.yml'
+  type:
+    $ref: 'logType.yml'
+  level:
+    $ref: 'logLevel.yml'
+  address:
+    type: string
+    description: Connection address on which the log occurred.
+    example: 'telemetry/address'
+  thingId:
+    type: string
+    description: The thing for which the log entry was created.
+    example: 'org.ditto:theThing'

@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -67,7 +66,7 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
                                 .filter(JsonValue::isObject)
                                 .map(JsonValue::asObject)
                                 .map(ImmutableLoggerConfig::fromJson)
-                                .collect(Collectors.toList());
+                                .toList();
 
                         return new RetrieveLoggerConfigResponse(
                                 jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME).orElse(null),
@@ -165,7 +164,7 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
                         .filter(JsonValue::isObject)
                         .map(JsonValue::asObject)
                         .map(ImmutableLoggerConfig::fromJson)
-                        .collect(Collectors.toList()),
+                        .toList(),
                 getDittoHeaders());
     }
 

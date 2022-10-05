@@ -69,6 +69,7 @@ final class SudoSignalEnrichmentFacade implements SignalEnrichmentFacade {
         } else {
             command = SudoRetrieveThing.of(thingId, jsonFieldSelector, headersWithCorrelationId);
         }
+
         return Patterns.ask(commandHandler, command, askTimeout).thenCompose(SudoSignalEnrichmentFacade::extractThing);
     }
 
@@ -81,6 +82,7 @@ final class SudoSignalEnrichmentFacade implements SignalEnrichmentFacade {
         } else {
             final CompletableFuture<JsonObject> failedFuture = new CompletableFuture<>();
             failedFuture.completeExceptionally(toThrowable(object));
+
             return failedFuture;
         }
     }

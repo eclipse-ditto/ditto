@@ -15,15 +15,12 @@ package org.eclipse.ditto.gateway.service.starter;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
-import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.edge.service.dispatching.EdgeCommandForwarderActor;
 import org.eclipse.ditto.edge.service.dispatching.ShardRegions;
-import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
-import org.eclipse.ditto.base.service.signaltransformer.SignalTransformers;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
@@ -32,6 +29,7 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.HttpBindFlowProvider;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RootRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.endpoints.routes.cloudevents.CloudEventsRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.connections.ConnectionsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.policies.OAuthTokenIntegrationSubjectIdFactory;
@@ -230,9 +228,7 @@ public final class GatewayRootActor extends DittoRootActor {
         final StatusAndHealthProvider statusAndHealthProvider =
                 DittoStatusAndHealthProviderFactory.of(actorSystem, clusterStateSupplier, healthCheckConfig);
 
-        final LimitsConfig limitsConfig = gatewayConfig.getLimitsConfig();
-        final DittoHeadersSizeChecker dittoHeadersSizeChecker =
-                DittoHeadersSizeChecker.of(limitsConfig.getHeadersMaxSize(), limitsConfig.getAuthSubjectsMaxCount());
+        final var dittoHeadersValidator = DittoHeadersValidator.get(actorSystem, dittoExtensionConfig);
 
         final HttpConfig httpConfig = gatewayConfig.getHttpConfig();
 
@@ -269,6 +265,7 @@ public final class GatewayRootActor extends DittoRootActor {
                 .thingsRoute(new ThingsRoute(routeBaseProperties,
                         gatewayConfig.getMessageConfig(),
                         gatewayConfig.getClaimMessageConfig()))
+                .connectionsRoute(new ConnectionsRoute(routeBaseProperties, devopsAuthenticationDirective))
                 .thingSearchRoute(new ThingSearchRoute(routeBaseProperties))
                 .whoamiRoute(new WhoamiRoute(routeBaseProperties))
                 .cloudEventsRoute(new CloudEventsRoute(routeBaseProperties, gatewayConfig.getCloudEventsConfig()))
@@ -282,7 +279,7 @@ public final class GatewayRootActor extends DittoRootActor {
                         authenticationDirectiveFactory.buildHttpAuthentication(jwtAuthenticationFactory))
                 .wsAuthenticationDirective(
                         authenticationDirectiveFactory.buildWsAuthentication(jwtAuthenticationFactory))
-                .dittoHeadersSizeChecker(dittoHeadersSizeChecker)
+                .dittoHeadersValidator(dittoHeadersValidator)
                 .customApiRoutesProvider(customApiRoutesProvider, routeBaseProperties)
                 .build();
     }

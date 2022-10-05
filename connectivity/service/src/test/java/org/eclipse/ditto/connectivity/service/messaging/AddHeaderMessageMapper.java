@@ -21,15 +21,15 @@ import java.util.Map;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.MappingContext;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.mapping.AbstractMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
-import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
-import org.eclipse.ditto.connectivity.service.mapping.PayloadMapper;
 import org.eclipse.ditto.protocol.Adaptable;
+import org.mockito.Mockito;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -38,8 +38,7 @@ import akka.actor.ActorSystem;
  * {@link org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper} and adds some headers to verify the
  * custom mapping was applied.
  */
-@PayloadMapper(alias = AddHeaderMessageMapper.ALIAS)
-public final class AddHeaderMessageMapper implements MessageMapper {
+public final class AddHeaderMessageMapper extends AbstractMessageMapper {
 
     static final String ALIAS = "header";
 
@@ -53,7 +52,15 @@ public final class AddHeaderMessageMapper implements MessageMapper {
     static final Map.Entry<String, String> OUTBOUND_HEADER =
             new AbstractMap.SimpleImmutableEntry<>("outbound", "mapping");
 
-    private final MessageMapper delegate = new DittoMessageMapper();
+    private final MessageMapper delegate = new DittoMessageMapper(Mockito.mock(ActorSystem.class), Mockito.mock(Config.class));
+
+    AddHeaderMessageMapper(final ActorSystem actorSystem, final Config config) {
+        super(actorSystem, config);
+    }
+
+    private AddHeaderMessageMapper(final AddHeaderMessageMapper copyFromMapper) {
+        super(copyFromMapper);
+    }
 
     @Override
     public String getId() {
@@ -61,14 +68,23 @@ public final class AddHeaderMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Collection<String> getContentTypeBlocklist() {
-        return Collections.emptyList();
+    public String getAlias() {
+        return ALIAS;
     }
 
     @Override
-    public void configure(final Connection connection, final ConnectivityConfig connectivityConfig,
-            final MessageMapperConfiguration configuration, final ActorSystem actorSystem) {
-        // ignore
+    public boolean isConfigurationMandatory() {
+        return false;
+    }
+
+    @Override
+    public MessageMapper createNewMapperInstance() {
+        return new AddHeaderMessageMapper(this);
+    }
+
+    @Override
+    public Collection<String> getContentTypeBlocklist() {
+        return Collections.emptyList();
     }
 
     @Override

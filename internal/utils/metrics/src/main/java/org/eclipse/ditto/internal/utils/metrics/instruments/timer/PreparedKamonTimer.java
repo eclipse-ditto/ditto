@@ -173,8 +173,8 @@ final class PreparedKamonTimer implements PreparedTimer {
 
     private Optional<Distribution> getSnapshot(boolean reset) {
         final Timer kamonInternalTimer = getKamonInternalTimer();
-        if (kamonInternalTimer instanceof Timer.Atomic) {
-            return Optional.of(((Timer.Atomic) kamonInternalTimer).snapshot(reset));
+        if (kamonInternalTimer instanceof Timer.Atomic atomic) {
+            return Optional.of(atomic.snapshot(reset));
         } else {
             LOGGER.warn("Could not get snapshot of kamon timer");
             return Optional.empty();

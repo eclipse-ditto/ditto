@@ -23,7 +23,6 @@ import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.connectivity.service.config.javascript.DefaultJavaScriptConfig;
 import org.eclipse.ditto.connectivity.service.config.javascript.JavaScriptConfig;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 

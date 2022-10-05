@@ -53,7 +53,7 @@ public final class PolicyAssert extends AbstractAssert<PolicyAssert, Policy> {
 
         final PolicyId actualId = actual.getEntityId().orElse(null);
 
-        assertThat((CharSequence) actualId).isEqualTo(expectedIdentifier) //
+        assertThat((CharSequence) actualId).isEqualTo(expectedIdentifier)
                 .overridingErrorMessage("Expected Policy identifier to be \n<%s> but was \n<%s>",
                         String.valueOf(expectedIdentifier), String.valueOf(actualId));
 
@@ -65,7 +65,7 @@ public final class PolicyAssert extends AbstractAssert<PolicyAssert, Policy> {
 
         final String actualNamespace = actual.getNamespace().orElse(null);
 
-        assertThat(actualNamespace).isEqualTo(expectedNamespace) //
+        assertThat(actualNamespace).isEqualTo(expectedNamespace)
                 .overridingErrorMessage("Expected Thing namespace to be \n<%s> but was \n<%s>", expectedNamespace,
                         actualNamespace);
 
@@ -75,7 +75,7 @@ public final class PolicyAssert extends AbstractAssert<PolicyAssert, Policy> {
     public PolicyAssert hasLabel(final Label expectedLabel) {
         isNotNull();
 
-        assertThat(actual.getLabels()).contains(expectedLabel) //
+        assertThat(actual.getLabels()).contains(expectedLabel)
                 .overridingErrorMessage("Expected Labels to contain \n<%s> but did not: \n<%s>", expectedLabel,
                         actual.getLabels());
 
@@ -85,7 +85,7 @@ public final class PolicyAssert extends AbstractAssert<PolicyAssert, Policy> {
     public PolicyAssert doesNotHaveLabel(final Label expectedLabel) {
         isNotNull();
 
-        assertThat(actual.getLabels()).doesNotContain(expectedLabel) //
+        assertThat(actual.getLabels()).doesNotContain(expectedLabel)
                 .overridingErrorMessage("Expected Labels to NOT contain \n<%s> but it did: \n<%s>", expectedLabel,
                         actual.getLabels());
 
@@ -98,7 +98,7 @@ public final class PolicyAssert extends AbstractAssert<PolicyAssert, Policy> {
 
         final PolicyEntry policyEntry = actual.getEntryFor(label).get();
 
-        assertThat(policyEntry.getSubjects().getSubject(subjectId)).isPresent() //
+        assertThat(policyEntry.getSubjects().getSubject(subjectId)).isPresent()
                 .overridingErrorMessage(
                         "Expected Label <%s> to contain Subject for SubjectId \n<%s> " + "but did not: \n<%s>",
                         label, subjectId, policyEntry.getSubjects());
@@ -112,7 +112,7 @@ public final class PolicyAssert extends AbstractAssert<PolicyAssert, Policy> {
 
         final PolicyEntry policyEntry = actual.getEntryFor(label).get();
 
-        assertThat(policyEntry.getSubjects().getSubject(subjectId)).isEmpty() //
+        assertThat(policyEntry.getSubjects().getSubject(subjectId)).isEmpty()
                 .overridingErrorMessage(
                         "Expected Label <%s> to NOT contain Subject for SubjectId \n<%s> " + "but it did: \n<%s>",
                         label, subjectId,
@@ -128,7 +128,7 @@ public final class PolicyAssert extends AbstractAssert<PolicyAssert, Policy> {
 
         final Subject subject = actual.getEntryFor(label).get().getSubjects().getSubject(subjectId).get();
 
-        assertThat(subject.getType()).isEqualTo(expectedSubjectType) //
+        assertThat(subject.getType()).isEqualTo(expectedSubjectType)
                 .overridingErrorMessage(
                         "Expected Label <%s> to contain for SubjectId <%s> SubjectType " + "\n<%s> but did not: \n<%s>",
                         label,
@@ -147,7 +147,7 @@ public final class PolicyAssert extends AbstractAssert<PolicyAssert, Policy> {
 
         final PolicyEntry policyEntry = actual.getEntryFor(label).get();
 
-        assertThat(policyEntry.getResources().getResource(resourceKey)).isPresent() //
+        assertThat(policyEntry.getResources().getResource(resourceKey)).isPresent()
                 .overridingErrorMessage(
                         "Expected Label <%s> to contain Resource for path \n<%s> " + "but did not: \n<%s>",
                         label, resourceKey, policyEntry.getResources());
@@ -165,7 +165,7 @@ public final class PolicyAssert extends AbstractAssert<PolicyAssert, Policy> {
 
         final PolicyEntry policyEntry = actual.getEntryFor(label).get();
 
-        assertThat(policyEntry.getResources().getResource(resourceKey)).isEmpty() //
+        assertThat(policyEntry.getResources().getResource(resourceKey)).isEmpty()
                 .overridingErrorMessage(
                         "Expected Label <%s> to NOT contain Resource for path \n<%s> " + "but it did: \n<%s>",
                         label, resourceKey, policyEntry.getResources());
@@ -186,7 +186,7 @@ public final class PolicyAssert extends AbstractAssert<PolicyAssert, Policy> {
 
         final Resource resource = actual.getEntryFor(label).get().getResources().getResource(resourceKey).get();
 
-        assertThat(resource.getEffectedPermissions()).isEqualTo(expectedEffectedPermissions) //
+        assertThat(resource.getEffectedPermissions()).isEqualTo(expectedEffectedPermissions)
                 .overridingErrorMessage(
                         "Expected Label <%s> to contain for Resource path <%s> EffectedPermissions " +
                                 "\n<%s> but did not: \n<%s>",
@@ -202,7 +202,7 @@ public final class PolicyAssert extends AbstractAssert<PolicyAssert, Policy> {
 
         assertThat(lifecycleOptional.isPresent() && Objects.equals(lifecycleOptional.get(), expectedLifecycle)) //
                 .overridingErrorMessage("Expected Policy lifecycle to have lifecycle \n<%s> but it had \n<%s>",
-                        expectedLifecycle, lifecycleOptional.orElse(null)) //
+                        expectedLifecycle, lifecycleOptional.orElse(null))
                 .isTrue();
 
         return this;
@@ -213,10 +213,10 @@ public final class PolicyAssert extends AbstractAssert<PolicyAssert, Policy> {
 
         final Optional<PolicyLifecycle> actualLifecycleOptional = actual.getLifecycle();
 
-        assertThat(actualLifecycleOptional.isPresent()) //
+        assertThat(actualLifecycleOptional)
                 .overridingErrorMessage("Expected Policy not to have a lifecycle but it had <%s>",
-                        actualLifecycleOptional.orElse(null)) //
-                .isFalse();
+                        actualLifecycleOptional.orElse(null))
+                .isNotPresent();
 
         return this;
     }
@@ -228,7 +228,7 @@ public final class PolicyAssert extends AbstractAssert<PolicyAssert, Policy> {
 
         assertThat(revisionOptional) //
                 .overridingErrorMessage("Expected Policy revision to be \n<%s> but it was \n<%s>", expectedRevision,
-                        revisionOptional.orElse(null)) //
+                        revisionOptional.orElse(null))
                 .contains(expectedRevision);
 
         return this;
@@ -239,10 +239,10 @@ public final class PolicyAssert extends AbstractAssert<PolicyAssert, Policy> {
 
         final Optional<PolicyRevision> actualRevisionOptional = actual.getRevision();
 
-        assertThat(actualRevisionOptional.isPresent()) //
+        assertThat(actualRevisionOptional) //
                 .overridingErrorMessage("Expected Policy not have a revision but it had <%s>",
-                        actualRevisionOptional.orElse(null)) //
-                .isFalse();
+                        actualRevisionOptional.orElse(null))
+                .isNotPresent();
 
         return this;
     }
@@ -254,7 +254,7 @@ public final class PolicyAssert extends AbstractAssert<PolicyAssert, Policy> {
 
         assertThat(modifiedOptional) //
                 .overridingErrorMessage("Expected Policy modified to be \n<%s> but it was \n<%s>", expectedmodified,
-                        modifiedOptional.orElse(null)) //
+                        modifiedOptional.orElse(null))
                 .contains(expectedmodified);
 
         return this;
@@ -263,12 +263,12 @@ public final class PolicyAssert extends AbstractAssert<PolicyAssert, Policy> {
     public PolicyAssert hasNoModified() {
         isNotNull();
 
-        final Optional<Instant> actualmodifiedOptional = actual.getModified();
+        final Optional<Instant> actualModifiedOptional = actual.getModified();
 
-        assertThat(actualmodifiedOptional.isPresent()) //
+        assertThat(actualModifiedOptional)
                 .overridingErrorMessage("Expected Policy not have a modified but it had <%s>",
-                        actualmodifiedOptional.orElse(null)) //
-                .isFalse();
+                        actualModifiedOptional.orElse(null))
+                .isNotPresent();
 
         return this;
     }
@@ -280,10 +280,9 @@ public final class PolicyAssert extends AbstractAssert<PolicyAssert, Policy> {
 
         final Instant modified = actual.getModified().get();
 
-        assertThat(modified.isAfter(Instant)) //
+        assertThat(modified.isAfter(Instant))
                 .overridingErrorMessage("Expected <%s> to be after <%s> but it was not",
-                        modified,
-                        Instant) //
+                        modified, Instant)
                 .isTrue();
 
         return this;
@@ -296,10 +295,9 @@ public final class PolicyAssert extends AbstractAssert<PolicyAssert, Policy> {
 
         final Instant modified = actual.getModified().get();
 
-        assertThat(modified.isBefore(Instant)) //
+        assertThat(modified.isBefore(Instant))
                 .overridingErrorMessage("Expected <%s> to be before <%s> but it was not",
-                        modified,
-                        Instant) //
+                        modified, Instant)
                 .isTrue();
 
         return this;

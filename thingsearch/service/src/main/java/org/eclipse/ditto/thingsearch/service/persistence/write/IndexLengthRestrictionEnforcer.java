@@ -120,6 +120,6 @@ public final class IndexLengthRestrictionEnforcer {
         if (thingId.isEmpty()) {
             throw new IllegalArgumentException("Thing ID must not be empty!");
         }
-
     }
+
 }

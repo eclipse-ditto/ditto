@@ -40,8 +40,6 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexFactory;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.mongodb.client.model.Accumulators;
 import com.mongodb.client.model.Aggregates;
@@ -84,9 +82,6 @@ import akka.stream.javadsl.Source;
  */
 @AllValuesAreNonnullByDefault
 public final class MongoReadJournal {
-    // not a final class to test with Mockito
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(MongoReadJournal.class);
 
     /**
      * ID field of documents delivered by the read journal.
@@ -440,7 +435,32 @@ public final class MongoReadJournal {
         return getSnapshotStore()
                 .withAttributes(Attributes.inputBuffer(1, 1))
                 .flatMapConcat(snapshotStore ->
-                        listNewestSnapshots(snapshotStore, lowerBoundPid, batchSize, includeDeleted, mat,
+                        listNewestSnapshots(snapshotStore, SnapshotFilter.of(lowerBoundPid), batchSize, includeDeleted, mat,
+                                snapshotFields)
+                )
+                .mapConcat(pids -> pids);
+    }
+
+    /**
+     * Retrieve all latest snapshots with unique PIDs in snapshot store above a lower bound.
+     * Does not limit database access in any way.
+     *
+     * @param snapshotFilter filter applied when streaming snapshots
+     * @param batchSize how many snapshots to read in 1 query.
+     * @param mat the materializer.
+     * @param snapshotFields snapshot fields to project out.
+     * @return source of newest snapshots with unique PIDs.
+     */
+    public Source<Document, NotUsed> getNewestSnapshotsAbove(
+            final SnapshotFilter snapshotFilter,
+            final int batchSize,
+            final Materializer mat,
+            final String... snapshotFields) {
+
+        return getSnapshotStore()
+                .withAttributes(Attributes.inputBuffer(1, 1))
+                .flatMapConcat(snapshotStore ->
+                        listNewestSnapshots(snapshotStore, snapshotFilter, batchSize, false, mat,
                                 snapshotFields)
                 )
                 .mapConcat(pids -> pids);
@@ -544,19 +564,19 @@ public final class MongoReadJournal {
     }
 
     private Source<List<Document>, NotUsed> listNewestSnapshots(final MongoCollection<Document> snapshotStore,
-            final String lowerBoundPid,
+            final SnapshotFilter filter,
             final int batchSize,
             final boolean includeDeleted,
             final Materializer mat,
             final String... snapshotFields) {
 
-        return unfoldBatchedSource(lowerBoundPid,
+        return unfoldBatchedSource(filter.getLowerBoundPid(),
                 mat,
-                SnapshotBatch::getMaxPid,
-                actualStartPid -> listNewestActiveSnapshotsByBatch(snapshotStore, actualStartPid, batchSize,
+                SnapshotBatch::maxPid,
+                actualStartPid -> listNewestActiveSnapshotsByBatch(snapshotStore, filter.withLowerBound(actualStartPid), batchSize,
                         includeDeleted, snapshotFields))
                 .mapConcat(x -> x)
-                .map(SnapshotBatch::getItems);
+                .map(SnapshotBatch::items);
     }
 
     private <T> Source<List<T>, NotUsed> unfoldBatchedSource(
@@ -673,7 +693,9 @@ public final class MongoReadJournal {
                         MongoReadJournal.MAX_BACK_OFF_DURATION, randomFactor)
                 .withMaxRestarts(maxRestarts, minBackOff);
         return RestartSource.onFailuresWithBackoff(restartSettings, () ->
-                Source.fromPublisher(journal.aggregate(pipeline))
+                Source.fromPublisher(journal.aggregate(pipeline)
+                        .batchSize(batchSize) // use batchSize also for the cursor batchSize (16 by default bc of backpressure!)
+                )
         );
     }
 
@@ -701,16 +723,14 @@ public final class MongoReadJournal {
 
     private static Source<SnapshotBatch, NotUsed> listNewestActiveSnapshotsByBatch(
             final MongoCollection<Document> snapshotStore,
-            final String startPid,
+            final SnapshotFilter snapshotFilter,
             final int batchSize,
             final boolean includeDeleted,
             final String... snapshotFields) {
 
         final List<Bson> pipeline = new ArrayList<>(5);
         // optional match stage
-        if (!startPid.isEmpty()) {
-            pipeline.add(Aggregates.match(Filters.gt(S_PROCESSOR_ID, startPid)));
-        }
+        snapshotFilter.toMongoFilter().ifPresent(bson -> pipeline.add(Aggregates.match(bson)));
 
         // sort stage
         pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.ascending(S_PROCESSOR_ID), Sorts.descending(S_SN))));
@@ -750,7 +770,9 @@ public final class MongoReadJournal {
             ));
         }
 
-        return Source.fromPublisher(snapshotStore.aggregate(pipeline))
+        return Source.fromPublisher(snapshotStore.aggregate(pipeline)
+                        .batchSize(batchSize) // use batchSize also for the cursor batchSize (16 by default bc of backpressure!)
+                )
                 .flatMapConcat(document -> {
                     final String theMaxPid = document.getString(maxPid);
                     if (theMaxPid == null) {
@@ -790,7 +812,7 @@ public final class MongoReadJournal {
                             return Accumulators.first(fieldName, serializedFieldName);
                         });
 
-        return Stream.concat(snFieldStream, snapshotFieldStream).collect(Collectors.toList());
+        return Stream.concat(snFieldStream, snapshotFieldStream).toList();
     }
 
     private Source<MongoCollection<Document>, NotUsed> getJournal() {
@@ -843,23 +865,8 @@ public final class MongoReadJournal {
         return journalOrSnapsConfig.getString(key);
     }
 
-    private static final class SnapshotBatch {
+    private record SnapshotBatch(String maxPid, List<Document> items) {
 
-        private final String maxPid;
-        private final List<Document> items;
-
-        private SnapshotBatch(final String maxPid, final List<Document> items) {
-            this.maxPid = maxPid;
-            this.items = items;
-        }
-
-        private String getMaxPid() {
-            return maxPid;
-        }
-
-        private List<Document> getItems() {
-            return items;
-        }
     }
 
 }

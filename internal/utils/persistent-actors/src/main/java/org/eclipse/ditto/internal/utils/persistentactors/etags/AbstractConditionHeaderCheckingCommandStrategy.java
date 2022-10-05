@@ -107,9 +107,8 @@ public abstract class AbstractConditionHeaderCheckingCommandStrategy<
     }
 
     private static <C extends Command<?>> boolean commandHasEntityIdAndIsEqual(EntityId entityId, C command) {
-        if (command instanceof WithEntityId) {
-            final WithEntityId commandWithEntityId = (WithEntityId) command;
-            return Objects.equals(entityId, commandWithEntityId.getEntityId());
+        if (command instanceof WithEntityId withEntityId) {
+            return Objects.equals(entityId, withEntityId.getEntityId());
         } else {
             return false;
         }

@@ -25,11 +25,12 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.gateway.service.endpoints.directives.CorrelationIdEnsuringDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.CorsEnablingDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.EncodingEnsuringDirective;
@@ -39,6 +40,7 @@ import org.eclipse.ditto.gateway.service.endpoints.directives.RequestTimeoutHand
 import org.eclipse.ditto.gateway.service.endpoints.directives.RequestTracingDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.routes.cloudevents.CloudEventsRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.connections.ConnectionsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.policies.PoliciesRoute;
@@ -89,6 +91,7 @@ public final class RootRoute extends AllDirectives {
     private final SseRouteBuilder sseThingsRouteBuilder;
     private final ThingsRoute thingsRoute;
     private final ThingSearchRoute thingSearchRoute;
+    private final ConnectionsRoute connectionsRoute;
     private final WebSocketRouteBuilder websocketRouteBuilder;
     private final StatsRoute statsRoute;
     private final WhoamiRoute whoamiRoute;
@@ -119,6 +122,7 @@ public final class RootRoute extends AllDirectives {
         sseThingsRouteBuilder = builder.sseThingsRouteBuilder;
         thingsRoute = builder.thingsRoute;
         thingSearchRoute = builder.thingSearchRoute;
+        connectionsRoute = builder.connectionsRoute;
         websocketRouteBuilder = builder.websocketRouteBuilder;
         statsRoute = builder.statsRoute;
         whoamiRoute = builder.whoamiRoute;
@@ -141,7 +145,7 @@ public final class RootRoute extends AllDirectives {
         rootRouteHeadersStepBuilder = RootRouteHeadersStepBuilder.getInstance(builder.headerTranslator,
                 QueryParametersToHeadersMap.getInstance(httpConfig),
                 customHeadersHandler,
-                builder.dittoHeadersSizeChecker);
+                builder.dittoHeadersValidator);
     }
 
     public static RootRouteBuilder getBuilder(final HttpConfig httpConfig) {
@@ -162,6 +166,7 @@ public final class RootRoute extends AllDirectives {
                                 concat(
                                         statsRoute.buildStatsRoute(correlationId), // /stats
                                         cachingHealthRoute.buildHealthRoute(), // /health
+                                        connections(ctx, correlationId, queryParameters), // /api/2/connections
                                         api(ctx, correlationId, queryParameters), // /api
                                         ws(ctx, correlationId, queryParameters), // /ws
                                         ownStatusRoute.buildStatusRoute(), // /status
@@ -214,6 +219,34 @@ public final class RootRoute extends AllDirectives {
     }
 
     /*
+     * Describes {@code /api/2/connections} route.
+     *
+     * @return route for API resource.
+     */
+    private Route connections(final RequestContext ctx, final String correlationId,
+            final Map<String, String> queryParameters) {
+
+        return rawPathPrefix(PathMatchers.slash().concat(HTTP_PATH_API_PREFIX), () -> // /api
+                ensureSchemaVersion(apiVersion ->  // /api/<apiVersion>
+                        rawPathPrefixTest(PathMatchers.slash().concat(ConnectionsRoute.PATH_CONNECTIONS), () -> // /api/<apiVersion>/connections
+                                withDittoHeaders(rootRouteHeadersStepBuilder.withInitialDittoHeadersBuilder(
+                                                DittoHeaders.newBuilder()
+                                                        .schemaVersion(apiVersion)
+                                                        .correlationId(correlationId)
+                                                        .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(),
+                                                                Boolean.TRUE.toString())
+                                        )
+                                        .withRequestContext(ctx)
+                                        .withQueryParameters(queryParameters)
+                                        .build(CustomHeadersHandler.RequestType.API),
+                                        dittoHeaders -> connectionsRoute.buildConnectionsRoute(ctx, dittoHeaders)
+                                ).seal() // sealing here is important as we don't want to fall back to other routes if devops auth failed
+                        )
+                )
+        );
+    }
+
+    /*
      * Describes {@code /api} route.
      *
      * @return route for API resource.
@@ -222,22 +255,20 @@ public final class RootRoute extends AllDirectives {
             final Map<String, String> queryParameters) {
 
         return rawPathPrefix(PathMatchers.slash().concat(HTTP_PATH_API_PREFIX), () -> // /api
-                ensureSchemaVersion(apiVersion -> // /api/<apiVersion>
-                        customApiRoutesProvider.unauthorized(routeBaseProperties, apiVersion, correlationId).orElse(
-                                apiAuthentication(apiVersion, correlationId, auth -> {
-                                            final CompletionStage<DittoHeaders> dittoHeadersPromise =
-                                                    rootRouteHeadersStepBuilder
-                                                            .withInitialDittoHeadersBuilder(
-                                                                    auth.getDittoHeaders().toBuilder())
+                ensureSchemaVersion(apiVersion ->  // /api/<apiVersion>
+                        customApiRoutesProvider
+                                .unauthorized(routeBaseProperties, apiVersion, correlationId)
+                                .orElse(apiAuthentication(apiVersion, correlationId, auth ->
+                                            withDittoHeaders(
+                                                    rootRouteHeadersStepBuilder.withInitialDittoHeadersBuilder(
+                                                                    auth.getDittoHeaders().toBuilder()
+                                                            )
                                                             .withRequestContext(ctx)
                                                             .withQueryParameters(queryParameters)
-                                                            .build(CustomHeadersHandler.RequestType.API);
-
-                                            return withDittoHeaders(dittoHeadersPromise,
-                                                    dittoHeaders -> buildApiSubRoutes(ctx, dittoHeaders, auth));
-                                        }
-                                )
-                        )
+                                                            .build(CustomHeadersHandler.RequestType.API),
+                                                    dittoHeaders -> buildApiSubRoutes(ctx, dittoHeaders, auth)
+                                            )
+                                ))
                 )
         );
     }
@@ -400,6 +431,7 @@ public final class RootRoute extends AllDirectives {
         private SseRouteBuilder sseThingsRouteBuilder;
         private ThingsRoute thingsRoute;
         private ThingSearchRoute thingSearchRoute;
+        private ConnectionsRoute connectionsRoute;
         private WebSocketRouteBuilder websocketRouteBuilder;
         private StatsRoute statsRoute;
         private WhoamiRoute whoamiRoute;
@@ -416,7 +448,7 @@ public final class RootRoute extends AllDirectives {
         private CustomHeadersHandler customHeadersHandler;
         private RejectionHandler rejectionHandler;
 
-        private DittoHeadersSizeChecker dittoHeadersSizeChecker;
+        private DittoHeadersValidator dittoHeadersValidator;
 
         private Builder(final HttpConfig httpConfig) {
             this.httpConfig = httpConfig;
@@ -467,6 +499,12 @@ public final class RootRoute extends AllDirectives {
         @Override
         public RootRouteBuilder thingSearchRoute(final ThingSearchRoute route) {
             thingSearchRoute = route;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder connectionsRoute(final ConnectionsRoute route) {
+            connectionsRoute = route;
             return this;
         }
 
@@ -553,8 +591,8 @@ public final class RootRoute extends AllDirectives {
         }
 
         @Override
-        public RootRouteBuilder dittoHeadersSizeChecker(final DittoHeadersSizeChecker checker) {
-            dittoHeadersSizeChecker = checker;
+        public RootRouteBuilder dittoHeadersValidator(final DittoHeadersValidator dittoHeadersValidator) {
+            this.dittoHeadersValidator = dittoHeadersValidator;
             return this;
         }
 

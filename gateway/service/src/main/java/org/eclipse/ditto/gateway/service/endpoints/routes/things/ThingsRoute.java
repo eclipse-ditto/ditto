@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -279,7 +278,7 @@ public final class ThingsRoute extends AbstractRoute {
         } else {
             result = Stream.of(thingIdString.split(","))
                     .map(ThingId::of)
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         return result;
