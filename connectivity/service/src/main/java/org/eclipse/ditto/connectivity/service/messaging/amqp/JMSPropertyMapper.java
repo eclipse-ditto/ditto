@@ -360,9 +360,7 @@ final class JMSPropertyMapper {
             wrap(msg -> {
                 facade.filterTracingAnnotations((key, value) -> {
                     if (value != null) {
-                        final var headerName = isDefinedAmqpProperty(key)
-                                ? AMQP.MESSAGE_ANNOTATION_PREFIX + key
-                                : key;
+                        final var headerName = AMQP.MESSAGE_ANNOTATION_PREFIX + key;
                         headers.put(headerName, value.toString());
                     }
                 });

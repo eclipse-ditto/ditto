@@ -1,0 +1,16 @@
+I"‰<p>A warm welcome, dear visitor, to our new project site.</p>
+
+<p>The initial contribution of the Ditto codebase was one month ago and we did show the Digital twins a little on
+EclipseCon Europe in Ludwigsburg.<br />
+Meanwhile we worked on setting up the project site and documentation which we have now finished from the technical side.</p>
+
+<p>The <a href="http-api-doc.html">HTTP API Documentation</a> is already complete and describes both of our API versions 1 and 2.</p>
+
+<p>Next we focus on releasing a first Milestone <code class="language-plaintext highlighter-rouge">0.1.0-M1</code> including images on <a href="https://hub.docker.com/u/eclipse/">Docker Hub</a>
+so that you can try out Eclipse Ditto more easily without building it first.</p>
+
+<p>We are looking forward to any feedback you have via our <a href="feedback.html">Feedback channels</a>.</p>
+
+<p>â€“<br />
+The Eclipse Ditto team</p>
+:ET
