@@ -73,8 +73,8 @@ the message annotation `to` to the value of the Ditto protocol header `reply-to`
 }
 ```
 
-To read a message annotation whose name is identical to an AMQP 1.0 property, prefix it by `amqp.message.
-annotation:`. The following [source header mapping](basic-connections.html#source-header-mapping) sets
+To read a message annotation, prefix it by `amqp.message.annotation:`. 
+The following [source header mapping](basic-connections.html#source-header-mapping) sets
 the Ditto protocol header `reply-to` to the value of the message annotation `to`:
 ```json
 {

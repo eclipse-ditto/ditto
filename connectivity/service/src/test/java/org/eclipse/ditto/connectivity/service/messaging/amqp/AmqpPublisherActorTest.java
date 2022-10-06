@@ -466,7 +466,7 @@ public final class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             assertThat(receivedHeaders).containsEntry("amqp.application.property:to", "value1");
             assertThat(receivedHeaders).containsEntry("anotherApplicationProperty", "value2");
             // group-sequence is an AMQP prop of type "int", therefore it must not be contained in the headers here
-            assertThat(receivedHeaders).containsEntry("message-annotation", "value3");
+            assertThat(receivedHeaders).containsEntry("amqp.message.annotation:message-annotation", "value3");
             assertThat(receivedHeaders).doesNotContainKey("group-sequence");
         }};
 
