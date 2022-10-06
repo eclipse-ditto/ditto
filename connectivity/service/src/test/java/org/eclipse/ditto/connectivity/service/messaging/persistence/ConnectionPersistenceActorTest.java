@@ -280,6 +280,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // close connection
         final CloseConnection closeConnection = CloseConnection.of(connectionId, dittoHeadersWithCorrelationId);
         underTest.tell(closeConnection, testProbe.ref());
+        expectMockClientActorMessage(closeConnection);
+        mockClientActorProbe.reply(new Status.Success("mock"));
         clientWatcher.expectTerminated(clientActor, FiniteDuration.apply(3, "s"));
         testProbe.expectMsg(CloseConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
 
@@ -305,6 +307,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
         // delete connection
         underTest.tell(DeleteConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
+        expectMockClientActorMessage(CloseConnection.of(connectionId, dittoHeadersWithCorrelationId));
+        mockClientActorProbe.reply(new Status.Success("mock"));
         clientActorWatcher.expectTerminated(clientActor, FiniteDuration.apply(3, TimeUnit.SECONDS));
         testProbe.expectMsg(DeleteConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
         testProbe.expectTerminated(underTest, FiniteDuration.apply(3, TimeUnit.SECONDS));
@@ -328,7 +332,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         });
         final var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
-        testProbe.watch(underTest);
+        final var connectionWatcher = actorSystemResource1.newTestProbe();
+        connectionWatcher.watch(underTest);
 
         // create closed connection
         underTest.tell(createConnection(closedConnectionWith2Clients), testProbe.ref());
@@ -356,12 +361,16 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // close connection: at least 1 client actor gets the command; the other may or may not be started.
         final CloseConnection closeConnection = CloseConnection.of(connectionId, dittoHeadersWithCorrelationId);
         underTest.tell(closeConnection, testProbe.ref());
+        for (int i = 0; i < 2; ++i) {
+            expectMockClientActorMessage(closeConnection);
+            mockClientActorProbe.reply(new Status.Success("mock"));
+        }
         testProbe.expectMsg(CloseConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
 
         // delete connection
         underTest.tell(DeleteConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
+        connectionWatcher.expectTerminated(underTest, FiniteDuration.apply(5, TimeUnit.SECONDS));
         testProbe.expectMsg(DeleteConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
-        testProbe.expectTerminated(underTest, FiniteDuration.apply(5, TimeUnit.SECONDS));
     }
 
     private void startSecondActorSystemAndJoinCluster() throws Exception {
@@ -379,7 +388,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     public void createConnectionAfterDeleted() {
         final var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
-        final var clientWatcher  = actorSystemResource1.newTestProbe();
+        final var clientWatcher = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
@@ -390,6 +399,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
         // delete connection
         underTest.tell(DeleteConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
+        expectMockClientActorMessage(CloseConnection.of(connectionId, dittoHeadersWithCorrelationId));
+        mockClientActorProbe.reply(new Status.Success("mock"));
         clientWatcher.expectTerminated(clientActor, FiniteDuration.apply(3, "s"));
         testProbe.expectMsg(DeleteConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
 
@@ -413,6 +424,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
         // delete connection
         underTest.tell(DeleteConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
+        expectMockClientActorMessage(CloseConnection.of(connectionId, dittoHeadersWithCorrelationId));
+        mockClientActorProbe.reply(new Status.Success("mock"));
         testProbe.expectMsg(DeleteConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
 
         // open connection should fail
@@ -599,7 +612,10 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var clientActor = clientWatcher.watch(gossipProbe.expectMsgClass(ActorRef.class));
 
         // close connection
-        underTest.tell(CloseConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
+        final var closeConnection = CloseConnection.of(connectionId, dittoHeadersWithCorrelationId);
+        underTest.tell(closeConnection, testProbe.ref());
+        expectMockClientActorMessage(closeConnection);
+        mockClientActorProbe.reply(new Status.Success("mock"));
         clientWatcher.expectTerminated(clientActor, FiniteDuration.apply(3, "s"));
         testProbe.expectMsg(CloseConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
 
@@ -649,6 +665,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // modify connection | Implicitly validates the restart by waiting for pubsub subscribe from client actor.
         final var newHeaders = refresh(dittoHeadersWithCorrelationId);
         underTest.tell(ModifyConnection.of(connection, newHeaders), testProbe.ref());
+        expectMockClientActorMessage(CloseConnection.of(connectionId, newHeaders));
+        mockClientActorProbe.reply(new Status.Success("mock"));
         clientWatcher.expectTerminated(firstClientActor, FiniteDuration.apply(3, "s"));
 
         // and sends an open connection (if desired state is open). Since logging is enabled from creation
@@ -730,6 +748,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 .targets(Collections.singletonList(TestConstants.Targets.MESSAGE_TARGET))
                 .build();
         underTest.tell(ModifyConnection.of(modifiedConnection, dittoHeadersWithCorrelationId), testProbe.ref());
+        expectMockClientActorMessage(CloseConnection.of(connectionId, dittoHeadersWithCorrelationId));
+        mockClientActorProbe.reply(new Status.Success("mock"));
         simulateSuccessfulOpenConnectionInClientActor();
         testProbe.expectMsg(ModifyConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
 
@@ -757,7 +777,10 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         testProbe.expectMsg(createConnectionResponse());
 
         // close connection
-        underTest.tell(CloseConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
+        final var closeConnection = CloseConnection.of(connectionId, dittoHeadersWithCorrelationId);
+        underTest.tell(closeConnection, testProbe.ref());
+        expectMockClientActorMessage(closeConnection);
+        mockClientActorProbe.reply(new Status.Success("mock"));
         testProbe.expectMsg(CloseConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
 
         // stop actor
@@ -798,6 +821,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
         // delete connection
         underTest.tell(DeleteConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
+        expectMockClientActorMessage(CloseConnection.of(connectionId, dittoHeadersWithCorrelationId));
+        mockClientActorProbe.reply(new Status.Success("mock"));
         testProbe.expectMsg(DeleteConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
         testProbe.expectTerminated(underTest, FiniteDuration.apply(3, TimeUnit.SECONDS));
 
@@ -1024,6 +1049,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
         // modify connection
         underTest.tell(ModifyConnection.of(connection, dittoHeadersWithCorrelationId), testProbe.ref());
+        expectMockClientActorMessage(CloseConnection.of(connectionId, dittoHeadersWithCorrelationId));
+        mockClientActorProbe.reply(new Status.Success("mock"));
         simulateSuccessfulOpenConnectionInClientActor();
         testProbe.expectMsg(ModifyConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
 
@@ -1051,6 +1078,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // modify connection
         final var newHeaders = refresh(dittoHeadersWithCorrelationId);
         underTest.tell(ModifyConnection.of(connection, newHeaders), testProbe.ref());
+        expectMockClientActorMessage(CloseConnection.of(connectionId, newHeaders));
+        mockClientActorProbe.reply(new Status.Success("mock"));
 
         clientWatcher.expectTerminated(clientActor1, FiniteDuration.apply(3, "s"));
         final var clientActor2 = gossipProbe.expectMsgClass(ActorRef.class);
