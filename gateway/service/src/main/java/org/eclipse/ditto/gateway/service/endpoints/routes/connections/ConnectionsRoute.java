@@ -27,6 +27,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
@@ -306,51 +307,89 @@ public final class ConnectionsRoute extends AbstractRoute {
     }
 
     private static Connection buildConnectionForPost(final String connectionJson) {
-        final JsonObject connectionJsonObject = wrapJsonRuntimeException(() -> JsonFactory.newObject(connectionJson));
-
-        if (connectionJsonObject.contains(Connection.JsonFields.ID.getPointer())) {
+        final var connectionJsonObject = getConnectionJsonObjectOrThrow(connectionJson);
+        if (isContainingId(connectionJsonObject)) {
             throw ConnectionIdNotExplicitlySettableException.newBuilder().build();
+        } else {
+            return ConnectivityModelFactory.connectionFromJson(
+                    setUriForHonoConnectionType(
+                            setConnectionId(
+                                    setConnectionStatus(connectionJsonObject),
+                                    ConnectionId.generateRandom()
+                            )
+                    )
+            );
         }
-
-        final JsonObjectBuilder jsonObjectBuilder = connectionJsonObject.toBuilder();
-        jsonObjectBuilder.set(Connection.JsonFields.ID, UUID.randomUUID().toString());
-        final String connectionStatus = connectionJsonObject.getValue(Connection.JsonFields.CONNECTION_STATUS)
-                .orElse(ConnectivityStatus.UNKNOWN.getName());
-        jsonObjectBuilder.set(Connection.JsonFields.CONNECTION_STATUS, connectionStatus);
-
-        return ConnectivityModelFactory.connectionFromJson(jsonObjectBuilder.build());
     }
 
     private static Connection buildConnectionForTest(final String connectionJson) {
-        final JsonObject connectionJsonObject;
-        final JsonObject connectionJsonObjectBeforeReplacement =
-                wrapJsonRuntimeException(() -> JsonFactory.newObject(connectionJson));
-        final Optional<String> optionalConnectionId =
-                connectionJsonObjectBeforeReplacement.getValue(Connection.JsonFields.ID);
-        final String temporaryTestConnectionId = UUID.randomUUID() + "-dry-run";
-        if (optionalConnectionId.isPresent()) {
-            final String temporaryConnectionJson =
-                    connectionJson.replace(optionalConnectionId.get(), temporaryTestConnectionId);
-            connectionJsonObject = wrapJsonRuntimeException(() -> JsonFactory.newObject(temporaryConnectionJson));
-        } else {
-            final JsonObjectBuilder jsonObjectBuilder = connectionJsonObjectBeforeReplacement.toBuilder();
-            connectionJsonObject = jsonObjectBuilder.set(Connection.JsonFields.ID, temporaryTestConnectionId).build();
-        }
-        return ConnectivityModelFactory.connectionFromJson(connectionJsonObject);
+        final var connectionJsonObject = getConnectionJsonObjectOrThrow(connectionJson);
+        final var temporaryTestConnectionId = UUID.randomUUID() + "-dry-run";
+        return ConnectivityModelFactory.connectionFromJson(
+                setUriForHonoConnectionType(
+                        getConnectionId(connectionJsonObject)
+                                .map(connectionId -> connectionJson.replace(connectionId, temporaryTestConnectionId))
+                                .map(ConnectionsRoute::getConnectionJsonObjectOrThrow)
+                                .orElseGet(() -> setConnectionId(connectionJsonObject, temporaryTestConnectionId))
+                )
+        );
     }
 
     private static Connection buildConnectionForPut(final ConnectionId connectionId, final String connectionJson) {
-        final JsonObject connectionJsonObject = wrapJsonRuntimeException(() -> JsonFactory.newObject(connectionJson));
-        if (connectionJsonObject.contains(Connection.JsonFields.ID.getPointer())
-                &&
-                !connectionId.toString().equals(connectionJsonObject.getValue(Connection.JsonFields.ID).orElse(null))) {
+        var connectionJsonObject = getConnectionJsonObjectOrThrow(connectionJson);
+        final var actualConnectionIdOptional = getConnectionId(connectionJsonObject);
+        if (actualConnectionIdOptional.isEmpty()) {
+            connectionJsonObject = setConnectionId(connectionJsonObject, connectionId);
+        } else if (!connectionId.equals(actualConnectionIdOptional.get())) {
             throw ConnectionIdNotExplicitlySettableException.newBuilder().build();
         }
 
-        final JsonObjectBuilder jsonObjectBuilder = connectionJsonObject.toBuilder();
-        jsonObjectBuilder.set(Connection.JsonFields.ID, connectionId.toString());
+        return ConnectivityModelFactory.connectionFromJson(setUriForHonoConnectionType(connectionJsonObject));
+    }
 
-        return ConnectivityModelFactory.connectionFromJson(jsonObjectBuilder.build());
+    private static boolean isHonoConnectionType(final JsonObject connectionJsonObject) {
+        return connectionJsonObject.getValue(Connection.JsonFields.CONNECTION_TYPE)
+                .flatMap(ConnectionType::forName)
+                .filter(ConnectionType.HONO::equals)
+                .isPresent();
+    }
+
+    private static JsonObject setUriForHonoConnectionType(final JsonObject connectionJsonObject) {
+        final JsonObject result;
+        if (isHonoConnectionType(connectionJsonObject)) {
+            result = connectionJsonObject.set(Connection.JsonFields.URI, "ssl://hono-endpoint:9094");
+        } else {
+            result = connectionJsonObject;
+        }
+        return result;
+    }
+
+    private static JsonObject getConnectionJsonObjectOrThrow(final String connectionJsonString) {
+        return wrapJsonRuntimeException(() -> JsonObject.of(connectionJsonString));
+    }
+
+    private static boolean isContainingId(final JsonObject connectionJsonObject) {
+        return connectionJsonObject.contains(Connection.JsonFields.ID.getPointer());
+    }
+
+    private static JsonObject setConnectionStatus(final JsonObject connectionJsonObject) {
+        return connectionJsonObject.set(
+                Connection.JsonFields.CONNECTION_STATUS,
+                getConnectionStatusOrElseUnknown(connectionJsonObject)
+        );
+    }
+
+    private static String getConnectionStatusOrElseUnknown(final JsonObject connectionJsonObject) {
+        return connectionJsonObject.getValue(Connection.JsonFields.CONNECTION_STATUS)
+                .orElseGet(ConnectivityStatus.UNKNOWN::getName);
+    }
+
+    private static JsonObject setConnectionId(final JsonObject connectionJsonObject, final CharSequence connectionId) {
+        return connectionJsonObject.set(Connection.JsonFields.ID, connectionId.toString());
+    }
+
+    private static Optional<ConnectionId> getConnectionId(final JsonObject connectionJsonObject) {
+        return connectionJsonObject.getValue(Connection.JsonFields.ID).map(ConnectionId::of);
     }
 
 }
