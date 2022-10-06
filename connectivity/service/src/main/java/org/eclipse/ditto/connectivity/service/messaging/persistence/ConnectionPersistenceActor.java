@@ -110,6 +110,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.CommonMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -184,6 +185,8 @@ public final class ConnectionPersistenceActor
     private final ConnectionPubSub connectionPubSub;
     private final ActorRef clientShardRegion;
     private int subscriptionCounter = 0;
+    private int ongoingStagedCommands = 0;
+    private boolean inCoordinatedShutdown = false;
     private Instant connectionClosedAt = Instant.now();
     private boolean connectionOpened;
     @Nullable private Instant loggingEnabledUntil;
@@ -552,6 +555,7 @@ public final class ConnectionPersistenceActor
     public void onMutation(final Command<?> command, final ConnectivityEvent<?> event,
             final WithDittoHeaders response, final boolean becomeCreated, final boolean becomeDeleted) {
         if (command instanceof StagedCommand stagedCommand) {
+            ++ongoingStagedCommands;
             interpretStagedCommand(stagedCommand.withSenderUnlessDefined(getSender()));
         } else {
             super.onMutation(command, event, response, becomeCreated, becomeDeleted);
@@ -578,6 +582,11 @@ public final class ConnectionPersistenceActor
     private void interpretStagedCommand(final StagedCommand command) {
         if (!command.hasNext()) {
             // execution complete
+            --ongoingStagedCommands;
+            if (inCoordinatedShutdown && ongoingStagedCommands == 0) {
+                log.debug("Stopping after waiting for ongoing staged commands");
+                getContext().stop(getSelf());
+            }
             return;
         }
         switch (command.nextAction()) {
@@ -662,6 +671,7 @@ public final class ConnectionPersistenceActor
                 .matchEquals(Control.CHECK_LOGGING_ACTIVE, this::checkLoggingEnabled)
                 .matchEquals(Control.TRIGGER_UPDATE_PRIORITY, this::triggerUpdatePriority)
                 .match(UpdatePriority.class, this::updatePriority)
+                .match(StopShardedActor.class, this::stopShardedActor)
                 .build()
                 .orElse(super.matchAnyAfterInitialization());
     }
@@ -921,7 +931,7 @@ public final class ConnectionPersistenceActor
     private void broadcastToClientActors(final Object cmd, final ActorRef sender) {
         for (int i = 0; i < getClientCount(); ++i) {
             final var clientActorId = new ClientActorId(entityId, i);
-            final var envelope = consistentHashableEnvelope(cmd, clientActorId);
+            final var envelope = consistentHashableEnvelope(cmd, clientActorId.toString());
             clientShardRegion.tell(envelope, sender);
         }
     }
@@ -933,7 +943,7 @@ public final class ConnectionPersistenceActor
         CompletionStage<Object> askFuture = CompletableFuture.completedStage(null);
         for (int i = 0; i < getClientCount(); ++i) {
             final var clientActorId = new ClientActorId(entityId, i);
-            final var envelope = consistentHashableEnvelope(cmd, clientActorId);
+            final var envelope = consistentHashableEnvelope(cmd, clientActorId.toString());
             askFuture = askFuture.thenCombine(
                     processClientAskResult(Patterns.ask(clientShardRegion, envelope, clientActorAskTimeout)),
                     (left, right) -> right
@@ -1115,6 +1125,16 @@ public final class ConnectionPersistenceActor
                 CustomConnectivityCommandInterceptorProvider.get(actorSystem, dittoExtensionsConfig)
                         .getCommandInterceptor();
         return new CompoundConnectivityCommandInterceptor(dittoCommandValidator, customCommandValidator);
+    }
+
+    private void stopShardedActor(final StopShardedActor trigger) {
+        if (ongoingStagedCommands == 0) {
+            log.debug("Stopping: no ongoing requests.");
+            getContext().stop(getSelf());
+        } else {
+            inCoordinatedShutdown = true;
+            log.debug("Waiting for <{}> staged commands before stopping", ongoingStagedCommands);
+        }
     }
 
     private static DittoRuntimeException toDittoRuntimeException(final Throwable error, final ConnectionId id,

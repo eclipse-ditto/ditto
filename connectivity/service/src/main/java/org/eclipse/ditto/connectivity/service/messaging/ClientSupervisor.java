@@ -26,6 +26,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnect
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
+import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
@@ -113,6 +114,7 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
                 .match(Terminated.class, this::childTerminated)
                 .match(CloseConnection.class, this::isNoClientActorStarted, this::respondAndStop)
                 .match(ConsistentHashingRouter.ConsistentHashableEnvelope.class, this::extractFromEnvelope)
+                .match(StopShardedActor.class, this::restartIfOpen)
                 .matchAny(this::forwardToClientActor)
                 .build();
     }
@@ -193,6 +195,18 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
 
     private void respondAndStop(final CloseConnection command) {
         getSender().tell(CloseConnectionResponse.of(command.getEntityId(), command.getDittoHeaders()), getSelf());
+        getContext().stop(getSelf());
+    }
+
+    private void restartIfOpen(final StopShardedActor stopShardedActor) {
+        if (props != null) {
+            logger.debug("Restarting connected client actor.");
+            final var envelope =
+                    new ConsistentHashingRouter.ConsistentHashableEnvelope(props, clientActorId.toString());
+            ClusterSharding.get(getContext().getSystem())
+                    .shardRegion(ConnectivityMessagingConstants.CLIENT_SHARD_REGION)
+                    .tell(envelope, ActorRef.noSender());
+        }
         getContext().stop(getSelf());
     }
 

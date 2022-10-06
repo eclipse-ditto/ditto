@@ -31,7 +31,7 @@ import org.eclipse.ditto.edge.service.dispatching.ShardRegions;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
+import org.eclipse.ditto.internal.utils.cluster.ShardRegionCreator;
 import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
@@ -50,8 +50,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
-import akka.cluster.sharding.ClusterSharding;
-import akka.cluster.sharding.ClusterShardingSettings;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.DeciderBuilder;
 import scala.PartialFunction;
@@ -177,25 +175,16 @@ public final class ConnectivityRootActor extends DittoRootActor {
 
     private static ActorRef startConnectionShardRegion(final ActorSystem actorSystem,
             final Props connectionSupervisorProps, final ClusterConfig clusterConfig) {
-
-        final ClusterShardingSettings shardingSettings = ClusterShardingSettings.create(actorSystem)
-                .withRole(ConnectivityMessagingConstants.CLUSTER_ROLE);
-
-        return ClusterSharding.get(actorSystem)
-                .start(ConnectivityMessagingConstants.SHARD_REGION,
-                        connectionSupervisorProps,
-                        shardingSettings,
-                        ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem));
+        return ShardRegionCreator.start(actorSystem, ConnectivityMessagingConstants.SHARD_REGION,
+                connectionSupervisorProps, clusterConfig.getNumberOfShards(),
+                ConnectivityMessagingConstants.CLUSTER_ROLE);
     }
 
     private static ActorRef startClientShardRegion(final ActorSystem actorSystem, final ConnectivityConfig config) {
         final var numberOfShards = config.getClusterConfig().getNumberOfShards();
         final var refreshInterval = config.getClientConfig().getSubscriptionRefreshDelay();
         final var props = ClientSupervisor.props(numberOfShards, refreshInterval);
-        final ClusterShardingSettings shardingSettings = ClusterShardingSettings.create(actorSystem)
-                .withRole(ConnectivityMessagingConstants.CLUSTER_ROLE);
-        return ClusterSharding.get(actorSystem)
-                .start(ConnectivityMessagingConstants.CLIENT_SHARD_REGION, props, shardingSettings,
-                        ShardRegionExtractor.of(numberOfShards, actorSystem));
+        return ShardRegionCreator.start(actorSystem, ConnectivityMessagingConstants.CLIENT_SHARD_REGION, props,
+                numberOfShards, ConnectivityMessagingConstants.CLUSTER_ROLE);
     }
 }
