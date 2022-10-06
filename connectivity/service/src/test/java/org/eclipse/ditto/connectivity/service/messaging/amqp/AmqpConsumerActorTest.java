@@ -345,6 +345,9 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
 
     @Test
     public void jmsMessageWithNullPropertyAndNullContentTypeTest() throws JMSException {
+        final var tracingAnnotationKey = "user-id";
+        final var tracingAnnotationValue = "value";
+
         new TestKit(actorSystem) {{
             final ActorRef testActor = getTestActor();
             final Sink<Object, NotUsed> mappingSink = setupMappingSink(testActor, null, actorSystem);
@@ -354,7 +357,8 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                     .thenReturn(TestConstants.Authorization.AUTHORIZATION_CONTEXT);
             when(source.getHeaderMapping())
                     .thenReturn(ConnectivityModelFactory.newHeaderMapping(
-                            Collections.singletonMap("correlation-id", "{{ header:correlation-id }}")
+                            Map.of("correlation-id", "{{ header:correlation-id }}",
+                                    "user-id", "{{ header:amqp.message.annotation:user-id }}")
                     ));
             final ActorRef underTest = actorSystem.actorOf(
                     AmqpConsumerActor.props(CONNECTION,
@@ -372,6 +376,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
             messageFacade.setText(plainPayload);
             messageFacade.setContentType(null);
             messageFacade.setCorrelationId(correlationId);
+            messageFacade.setTracingAnnotation(tracingAnnotationKey, tracingAnnotationValue);
             final JmsMessage jmsMessage = messageFacade.asJmsMessage();
             underTest.tell(jmsMessage, null);
 
@@ -380,6 +385,8 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
             assertThat(command.getDittoHeaders().getCorrelationId()).contains(correlationId);
             assertThat(command.getDittoHeaders().getContentType()).isEmpty();
             assertThat(command.getDittoHeaders().get("JMSXDeliveryCount")).isNull();
+            assertThat(command.getDittoHeaders().get(tracingAnnotationKey)).as("Message " +
+                    "annotations are extracted correctly").isEqualTo(tracingAnnotationValue);
             assertThat(((ModifyFeatureProperty) command).getPropertyPointer()).isEqualTo(JsonPointer.of("/x"));
             assertThat(((ModifyFeatureProperty) command).getPropertyValue()).isEqualTo(JsonValue.of(42));
         }};

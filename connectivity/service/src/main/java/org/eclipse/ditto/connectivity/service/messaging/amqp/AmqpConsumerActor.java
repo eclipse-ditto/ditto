@@ -484,8 +484,8 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
         return builder;
     }
 
-    private Map<String, String> extractHeadersMapFromJmsMessage(final JmsMessage message) {
-        return JMSPropertyMapper.getPropertiesAndApplicationProperties(message);
+    private static Map<String, String> extractHeadersMapFromJmsMessage(final JmsMessage message) {
+        return JMSPropertyMapper.getHeadersFromProperties(message);
     }
 
     @Override
