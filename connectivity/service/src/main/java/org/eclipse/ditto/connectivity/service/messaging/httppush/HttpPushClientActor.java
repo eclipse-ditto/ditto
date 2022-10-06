@@ -71,10 +71,10 @@ public final class HttpPushClientActor extends BaseClientActor {
     private HttpPushClientActor(final Connection connection,
             final ActorRef connectionActor,
             final ActorRef commandForwarderActor,
-            final DittoHeaders dittoHeaders,
+            final boolean dryRun,
             final Config connectivityConfigOverwrites) {
 
-        super(connection, commandForwarderActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
+        super(connection, commandForwarderActor, connectionActor, dryRun, connectivityConfigOverwrites);
         httpPushConfig = connectivityConfig().getConnectionConfig().getHttpPushConfig();
         final MonitoringLoggerConfig loggerConfig = connectivityConfig().getMonitoringConfig().logger();
         factory = HttpPushFactory.of(connection, httpPushConfig, connectionLogger, this::getSshTunnelState);
@@ -93,8 +93,8 @@ public final class HttpPushClientActor extends BaseClientActor {
     public static Props props(final Connection connection, final ActorRef commandForwarderActor,
             final ActorRef connectionActor, final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
-        return Props.create(HttpPushClientActor.class, connection, connectionActor, commandForwarderActor, dittoHeaders,
-                connectivityConfigOverwrites);
+        return Props.create(HttpPushClientActor.class, connection, connectionActor, commandForwarderActor,
+                dittoHeaders.isDryRun(), connectivityConfigOverwrites);
     }
 
     @Override

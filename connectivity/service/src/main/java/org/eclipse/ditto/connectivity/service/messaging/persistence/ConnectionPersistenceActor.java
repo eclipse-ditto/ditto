@@ -499,6 +499,11 @@ public final class ConnectionPersistenceActor
             // only ask for connection status after initial recovery was completed + some grace period
             askSelfForRetrieveConnectionStatus(ping.getCorrelationId().orElse(null));
         }
+
+        // refresh client actors
+        if (isDesiredStateOpen()) {
+            startClientActors(getClientCount(), DittoHeaders.empty());
+        }
     }
 
     private void askSelfForRetrieveConnectionStatus(@Nullable final CharSequence correlationId) {

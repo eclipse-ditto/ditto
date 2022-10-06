@@ -761,7 +761,7 @@ public final class BaseClientActorTest {
                 final BaseClientActor delegate,
                 final Config config) {
 
-            super(connection, proxyActor, connectionActor, DittoHeaders.empty(), config);
+            super(connection, proxyActor, connectionActor, false, config);
             this.publisherActor = publisherActor;
             this.delegate = delegate;
         }
