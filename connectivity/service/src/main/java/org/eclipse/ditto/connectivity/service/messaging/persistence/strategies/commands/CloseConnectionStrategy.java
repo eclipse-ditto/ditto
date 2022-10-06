@@ -53,7 +53,8 @@ final class CloseConnectionStrategy extends AbstractConnectivityCommandStrategy<
                 CloseConnectionResponse.of(context.getState().id(), command.getDittoHeaders());
         final List<ConnectionAction> actions =
                 Arrays.asList(ConnectionAction.PERSIST_AND_APPLY_EVENT, ConnectionAction.CHECK_LOGGING_ENABLED,
-                        ConnectionAction.STOP_CLIENT_ACTORS, ConnectionAction.SEND_RESPONSE);
+                        ConnectionAction.CLOSE_CONNECTION, ConnectionAction.STOP_CLIENT_ACTORS,
+                        ConnectionAction.SEND_RESPONSE);
         return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
     }
 }
