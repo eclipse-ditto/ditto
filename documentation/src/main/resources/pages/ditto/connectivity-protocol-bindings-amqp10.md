@@ -20,7 +20,7 @@ application/vnd.eclipse.ditto+json
 If messages, which are not in Ditto Protocol, should be processed, a [payload mapping](connectivity-mapping.html) must
 be configured for the AMQP 1.0 connection in order to transform the messages. 
 
-## AMQP 1.0 properties and application properties
+## AMQP 1.0 properties, application properties and message annotations
 
 When set as external headers by outgoing payload or header mapping, the properties defined by AMQP 1.0 specification are
 set to the corresponding header value. Conversely, the values of AMQP 1.0 properties are available for incoming payload
@@ -58,6 +58,28 @@ the Ditto protocol header `reply-to` to the value of the application property `t
 {
   "headerMapping": {
     "reply-to": "{%raw%}{{ header:amqp.application.property:to }}{%endraw%}"
+  }
+}
+```
+
+To set a message annotation, prefix it by `amqp.message.annotation:`. 
+The following [target header mapping](basic-connections.html#target-header-mapping) sets
+the message annotation `to` to the value of the Ditto protocol header `reply-to`:
+```json
+{
+  "headerMapping": {
+    "amqp.message.annotation:to": "{%raw%}{{ header:reply-to }}{%endraw%}"
+  }
+}
+```
+
+To read a message annotation, prefix it by `amqp.message.annotation:`. 
+The following [source header mapping](basic-connections.html#source-header-mapping) sets
+the Ditto protocol header `reply-to` to the value of the message annotation `to`:
+```json
+{
+  "headerMapping": {
+    "reply-to": "{%raw%}{{ header:amqp.message.annotation:to }}{%endraw%}"
   }
 }
 ```
