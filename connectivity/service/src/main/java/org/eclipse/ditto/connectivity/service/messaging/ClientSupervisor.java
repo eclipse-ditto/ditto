@@ -207,7 +207,12 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
                     .shardRegion(ConnectivityMessagingConstants.CLIENT_SHARD_REGION)
                     .tell(envelope, ActorRef.noSender());
         }
-        getContext().stop(getSelf());
+        if (clientActor != null) {
+            // wait for ongoing ackregators in the client actor; terminate when the client actor terminates
+            clientActor.tell(BaseClientActor.Control.STOP_SHARDED_ACTOR, ActorRef.noSender());
+        } else {
+            getContext().stop(getSelf());
+        }
     }
 
     private enum Control {
