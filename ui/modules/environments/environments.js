@@ -17,6 +17,10 @@
 import * as Authorization from '../environments/authorization.js';
 import * as Utils from '../utils.js';
 
+const URL_PRIMARY_ENVIRONMENT_NAME = 'primaryEnvironmentName';
+const URL_ENVIRONMENTS = 'environmentsURL';
+const STORAGE_KEY = 'ditto-ui-env';
+
 let urlSearchParams;
 let environments;
 
@@ -126,7 +130,9 @@ export async function ready() {
     settingsEditor.renderer.updateFull();
   });
 
-  document.getElementById('environmentSelector').onchange = () => {
+  dom.environmentSelector.onchange = () => {
+    urlSearchParams.set(URL_PRIMARY_ENVIRONMENT_NAME, dom.environmentSelector.value);
+    window.history.replaceState({}, '', `${window.location.pathname}?${urlSearchParams}`);
     notifyAll();
   };
 
@@ -134,7 +140,7 @@ export async function ready() {
 }
 
 export function environmentsJsonChanged(modifiedField) {
-  localStorage.setItem('ditto-ui-env', JSON.stringify(environments));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(environments));
 
   updateEnvSelector();
   updateEnvEditors();
@@ -145,7 +151,7 @@ export function environmentsJsonChanged(modifiedField) {
   function updateEnvSelector() {
     let activeEnvironment = dom.environmentSelector.value;
     if (!activeEnvironment) {
-      activeEnvironment = urlSearchParams.get('primaryEnvironmentName');
+      activeEnvironment = urlSearchParams.get(URL_PRIMARY_ENVIRONMENT_NAME);
     }
     if (!activeEnvironment || !environments[activeEnvironment]) {
       activeEnvironment = Object.keys(environments)[0];
@@ -183,7 +189,7 @@ async function loadEnvironmentTemplates() {
   let fromURL;
   let fromLocalStorage;
 
-  let environmentsURL = urlSearchParams.get('environmentsURL');
+  let environmentsURL = urlSearchParams.get(URL_ENVIRONMENTS);
   if (environmentsURL) {
     try {
       let response = await fetch(environmentsURL);
@@ -200,7 +206,7 @@ async function loadEnvironmentTemplates() {
     }
   }
 
-  const restoredEnv = localStorage.getItem('ditto-ui-env');
+  const restoredEnv = localStorage.getItem(STORAGE_KEY);
   if (restoredEnv) {
     fromLocalStorage = JSON.parse(restoredEnv);
   }
