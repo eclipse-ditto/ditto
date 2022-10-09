@@ -762,6 +762,10 @@ entries:
         url: /sandbox.html
         output: web
 
+      - title: User Interface
+        url: /user-interface.html
+        output: web
+
       - title: Presentations
         url: /presentations.html
         output: web
