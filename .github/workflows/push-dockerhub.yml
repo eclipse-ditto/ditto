@@ -263,6 +263,3 @@ jobs:
           push: true
           tags: |
             eclipse/ditto-ui:${{ env.IMAGE_TAG }}
-            eclipse/ditto-ui:${{ env.IMAGE_MINOR_TAG }}
-            eclipse/ditto-ui:${{ env.IMAGE_MAJOR_TAG }}
-            eclipse/ditto-ui:latest
