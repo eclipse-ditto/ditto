@@ -167,6 +167,9 @@ jobs:
           push: true
           tags: |
             eclipse/ditto-ui:${{ env.IMAGE_TAG }}
+            eclipse/ditto-ui:${{ env.IMAGE_MINOR_TAG }}
+            eclipse/ditto-ui:${{ env.IMAGE_MAJOR_TAG }}
+            eclipse/ditto-ui:latest
       -
         name: Build and push ditto-policies milestone/RC
         if: env.MILESTONE_OR_RC_SUFFIX != env.IMAGE_TAG
@@ -260,3 +263,6 @@ jobs:
           push: true
           tags: |
             eclipse/ditto-ui:${{ env.IMAGE_TAG }}
+            eclipse/ditto-ui:${{ env.IMAGE_MINOR_TAG }}
+            eclipse/ditto-ui:${{ env.IMAGE_MAJOR_TAG }}
+            eclipse/ditto-ui:latest
