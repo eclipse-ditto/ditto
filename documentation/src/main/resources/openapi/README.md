@@ -16,9 +16,6 @@ To extend or update the OpenAPI of Ditto you can add or change the files in the 
 // go to sources
 $ cd sources
 
-// only v2
-$ npm run build-v2
-
-// both
+// run build
 $ npm run build
 ```

@@ -4211,6 +4211,7 @@ paths:
         - $ref: '#/components/parameters/MessageSubjectPathParam'
         - $ref: '#/components/parameters/MessageTimeoutParam'
         - $ref: '#/components/parameters/LiveMessageRequestedAcksParam'
+        - $ref: '#/components/parameters/ConditionParam'
       responses:
         '202':
           description: The message was sent but not necessarily received by the thing (fire and forget).
@@ -4253,6 +4254,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/MessageTooLarge'
         '424':
@@ -4290,6 +4293,7 @@ paths:
         - $ref: '#/components/parameters/MessageSubjectPathParam'
         - $ref: '#/components/parameters/MessageTimeoutParam'
         - $ref: '#/components/parameters/LiveMessageRequestedAcksParam'
+        - $ref: '#/components/parameters/ConditionParam'
       responses:
         '202':
           description: The message was sent (fire and forget).
@@ -4332,6 +4336,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/MessageTooLarge'
         '424':
@@ -4371,6 +4377,7 @@ paths:
         - $ref: '#/components/parameters/MessageSubjectPathParam'
         - $ref: '#/components/parameters/MessageTimeoutParam'
         - $ref: '#/components/parameters/LiveMessageRequestedAcksParam'
+        - $ref: '#/components/parameters/ConditionParam'
       responses:
         '202':
           description: |-
@@ -4415,6 +4422,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/MessageTooLarge'
         '424':
@@ -4454,6 +4463,7 @@ paths:
         - $ref: '#/components/parameters/MessageSubjectPathParam'
         - $ref: '#/components/parameters/MessageTimeoutParam'
         - $ref: '#/components/parameters/LiveMessageRequestedAcksParam'
+        - $ref: '#/components/parameters/ConditionParam'
       responses:
         '202':
           description: The message was sent (fire and forget).
@@ -4496,6 +4506,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/MessageTooLarge'
         '424':
@@ -7179,7 +7191,7 @@ components:
       name: condition
       in: query
       description: |-
-        Defines that the request should only be applied to a thing if the given condition is met. The condition can be specified using RQL syntax. 
+        Defines that the request should only be processed if the given condition is met. The condition can be specified using RQL syntax. 
         #### Examples
         E.g. if the temperature is not 23.9 update it to 23.9:
         * ```PUT /api/2/things/{thingId}/features/temperature/properties/value?condition=ne(features/temperature/properties/value,23.9)```
@@ -8095,7 +8107,7 @@ components:
         randomizationInterval:
           type: string
           default: 5m
-          description: 'Interval in which the announcement can be sent earlier in effort to prevent announcement peaks. If omitted, the default value will be applied. If set to minimum, no randomization will be applied.'
+          description: 'Interval in which the announcement can be sent earlier than the configured `beforeExpiry`. The actual point in time when the announcement will be sent is `beforeExpire` plus a randomly chosen time within the `randomizationInterval`. E.g assuming `beforeExpiry` is set to 5m and `randomizationInterval` is set to 1m, the announcements will be sent between 5 and 6 minutes before the subject expires. If omitted, the default value will be applied. If set to minimum, no randomization will be applied.'
       example:
         beforeExpiry: 5m
         whenDeleted: true
