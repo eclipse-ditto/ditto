@@ -46,12 +46,14 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.model.EffectedImports;
+import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.policies.model.PolicyImports;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyModificationInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
@@ -74,10 +76,10 @@ class PolicyImportsPreEnforcerTest {
 
     private static final AuthorizationContext AUTH_CONTEXT_SUBJECT_FORBIDDEN = AuthorizationModelFactory.newAuthContext(
             JsonObject.of("""
-                        {
-                            "type" : "unspecified",
-                            "subjects" : ["ditto:subject2"]
-                        }
+                    {
+                        "type" : "unspecified",
+                        "subjects" : ["ditto:subject2"]
+                    }
                     """));
     private PolicyImportsPreEnforcer policyImportsPreEnforcer;
 
@@ -129,6 +131,74 @@ class PolicyImportsPreEnforcerTest {
         assertThatExceptionOfType(CompletionException.class)
                 .isThrownBy(signalFuture::join)
                 .withCauseInstanceOf(PolicyNotAccessibleException.class);
+    }
+
+    @Test
+    void testPolicyValidWhenImportedPolicyGrantsWriteToPolicyResource() {
+        testPolicyValid(ImportableType.IMPLICIT);
+    }
+
+    @Test
+    void testPolicyValidWhenImportedPolicyGrantsNoWriteToPolicyResource() {
+        testPolicyValid(ImportableType.NEVER);
+    }
+
+    private void testPolicyValid(final ImportableType importableTypeOfDefaultEntry) {
+        final DittoHeaders dittoHeaders =
+                DittoHeaders.newBuilder().authorizationContext(
+                        AuthorizationModelFactory.newAuthContext(JsonObject.of("""
+                                {
+                                  "type" : "unspecified",
+                                  "subjects" : ["ditto:admin"]
+                                }
+                                """))
+                ).build();
+
+        final Policy importedPolicy = PoliciesModelFactory.newPolicy("""
+                {
+                  "policyId": "test:imported",
+                  "entries": {
+                    "DEFAULT" : {
+                      "subjects": {
+                          "ditto:admin" : { "type": "test" }
+                      },
+                      "resources": {
+                          "policy:/": { "grant": [ "READ", "WRITE" ], "revoke": [] }
+                      }
+                    }
+                  }
+                }
+                """).setImportableFor("DEFAULT", importableTypeOfDefaultEntry);
+        final Policy importingPolicy = PoliciesModelFactory.newPolicy("""
+                {
+                  "policyId": "test:importing",
+                  "imports": { "test:imported": {} }
+                }
+                """);
+        final CreatePolicy createPolicy = CreatePolicy.of(importingPolicy, dittoHeaders);
+
+        PolicyEnforcerProvider policyEnforcerProvider = Mockito.mock(PolicyEnforcerProvider.class);
+
+        when(policyEnforcerProvider.getPolicyEnforcer(IMPORTED_POLICY_ID))
+                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(importedPolicy))));
+        when(policyEnforcerProvider.getPolicyEnforcer(IMPORTING_POLICY_ID))
+                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(importingPolicy))));
+
+        final PolicyImportsPreEnforcer underTest = new PolicyImportsPreEnforcer(policyEnforcerProvider);
+
+        final CompletableFuture<Signal<?>> future = underTest.apply(createPolicy).toCompletableFuture();
+
+        switch (importableTypeOfDefaultEntry) {
+            case IMPLICIT -> {
+                assertThat(future.join()).isSameAs(createPolicy);
+            }
+            case NEVER -> {
+                assertThatExceptionOfType(CompletionException.class)
+                        .isThrownBy(future::join)
+                        .withCauseInstanceOf(PolicyModificationInvalidException.class);
+            }
+        }
+
     }
 
     static class PolicyModifyCommandsProvider implements ArgumentsProvider {
