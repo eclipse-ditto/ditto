@@ -101,16 +101,7 @@
         </div>
     </div>
     <!-- Notifications to user ----------------------------------------------------------------->
-    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 5; right: 0; bottom: 0">
-        <div class="toast hide" data-bs-delay="5000" id="errorToast">
-            <div class="toast-header alert-danger">
-                <i class="bi me-2 bi-exclamation-triangle-fill"></i>
-                <strong class="me-auto" id="errorHeader"></strong>
-                <small id="errorStatus"></small>
-                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body" id="errorBody"></div>
-        </div>
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 5; right: 0; bottom: 0" id="toastContainer">      
         <div class="toast hide bg-success" data-bs-delay="2000" id="successToast">
             <div class="toast-header" id="successHeader">
             </div>

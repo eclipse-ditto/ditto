@@ -1,0 +1,32 @@
+{
+  "local_ditto": {
+    "api_uri": "http://localhost:8080",
+    "ditto_version": 3,
+    "bearer": null,
+    "defaultUsernamePassword": "ditto:ditto",
+    "defaultUsernamePasswordDevOps": "devops:foobar",
+    "useBasicAuth": true,
+    "useDittoPreAuthenticatedAuth": false,
+    "defaultDittoPreAuthenticatedUsername": null
+  },
+  "local_ditto_ide": {
+    "api_uri": "http://localhost:8080",
+    "ditto_version": 3,
+    "bearer": null,
+    "defaultUsernamePassword": null,
+    "defaultUsernamePasswordDevOps": null,
+    "useBasicAuth": false,
+    "useDittoPreAuthenticatedAuth": true,
+    "defaultDittoPreAuthenticatedUsername": "pre:ditto"
+  },
+  "ditto_sandbox": {
+    "api_uri": "https://ditto.eclipseprojects.io",
+    "ditto_version": 3,
+    "bearer": null,
+    "defaultUsernamePassword": "ditto:ditto",
+    "defaultUsernamePasswordDevOps": null,
+    "useBasicAuth": true,
+    "useDittoPreAuthenticatedAuth": false,
+    "defaultDittoPreAuthenticatedUsername": null
+  }
+}
