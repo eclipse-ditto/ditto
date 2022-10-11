@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -26,6 +27,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 
 /**
  * An immutable implementation of {@link PolicyEntry}.
@@ -104,15 +106,25 @@ final class ImmutablePolicyEntry implements PolicyEntry {
             final Subjects subjectsFromJson = PoliciesModelFactory.newSubjects(subjectsJsonObject);
             final JsonObject resourcesJsonObject = jsonObject.getValueOrThrow(JsonFields.RESOURCES);
             final Resources resourcesFromJson = PoliciesModelFactory.newResources(resourcesJsonObject);
-            final Optional<ImportableType> importableTypeOpt =
-                    jsonObject.getValue(JsonFields.IMPORTABLE_TYPE).flatMap(ImportableType::forName);
-
+            final Optional<ImportableType> importableTypeOpt = readImportableType(jsonObject);
             return importableTypeOpt
                     .map(importableType -> of(lbl, subjectsFromJson, resourcesFromJson, importableType))
                     .orElseGet(() -> of(lbl, subjectsFromJson, resourcesFromJson));
         } catch (final JsonMissingFieldException e) {
             throw new DittoJsonException(e);
         }
+    }
+
+    private static Optional<ImportableType> readImportableType(final JsonObject json) {
+        return json.getValue(JsonFields.IMPORTABLE_TYPE).map(typeFromJson -> ImportableType.forName(typeFromJson)
+                .orElseThrow(() -> PolicyEntryInvalidException
+                        .newBuilder()
+                        .description(() -> {
+                            final JsonPointer field = JsonFields.IMPORTABLE_TYPE.getPointer();
+                            final String validTypes = Arrays.toString(ImportableType.values());
+                            return String.format("The value '%s' of field '%s' is not valid. Valid values are: %s", typeFromJson, field, validTypes);
+                        })
+                        .build()));
     }
 
     @Override

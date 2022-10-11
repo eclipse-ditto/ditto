@@ -77,6 +77,19 @@ public final class ImmutablePolicyEntryTest {
         ImmutablePolicyEntry.fromJson(LABEL_END_USER, jsonObject);
     }
 
+    @Test(expected = PolicyEntryInvalidException.class)
+    public void testFromJsonWithInvalidImportableType() {
+        ImmutablePolicyEntry.fromJson("DEFAULT", JsonObject.of(
+                "{ \"subjects\": {}, \"resources\": {}, \"importable\": \"invalid\" }"));
+    }
+
+    @Test
+    public void testFromJsonWithoutImportableType() {
+        final PolicyEntry entry = ImmutablePolicyEntry.fromJson("DEFAULT", JsonObject.of(
+                "{ \"subjects\": {}, \"resources\": {} }"));
+        assertThat(entry.getImportableType()).isEqualTo(ImportableType.IMPLICIT);
+    }
+
     @Test(expected = DittoJsonException.class)
     public void testFromJsonOnlySchemaVersion() {
         final JsonObject jsonObject = JsonFactory.newObjectBuilder()
