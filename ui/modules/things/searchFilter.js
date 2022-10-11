@@ -117,6 +117,7 @@ function searchTriggered(filter) {
 function pinnedTriggered() {
   lastSearch = 'pinned';
   dom.searchFilterEdit.value = null;
+  dom.favIcon.classList.replace('bi-star-fill', 'bi-star');
   Things.getThings(Environments.current()['pinnedThings']);
 }
 

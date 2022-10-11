@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   Policies.ready();
   Connections.ready();
   Authorization.ready();
-  Environments.ready();
+  await Environments.ready();
 
   const thingDescription = WoTDescription({
     itemsId: 'tabItemsThing',
