@@ -67,6 +67,7 @@ import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.cluster.Cluster;
 import akka.testkit.CallingThreadDispatcher;
 import akka.testkit.javadsl.TestKit;
 
@@ -105,7 +106,10 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
 
     @After
     public void tearDown() {
-        actorSystem.terminate();
+        if (actorSystem != null) {
+            Cluster.get(actorSystem).prepareForFullClusterShutdown();
+            actorSystem.terminate();
+        }
     }
 
     @Before

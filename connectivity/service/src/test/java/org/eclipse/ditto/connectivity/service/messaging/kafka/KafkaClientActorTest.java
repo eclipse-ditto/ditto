@@ -59,6 +59,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.cluster.Cluster;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
@@ -102,7 +103,10 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
 
     @AfterClass
     public static void tearDown() {
-        actorSystem.terminate();
+        if (actorSystem != null) {
+            Cluster.get(actorSystem).prepareForFullClusterShutdown();
+            actorSystem.terminate();
+        }
         stopMockServer();
     }
 
