@@ -15,6 +15,7 @@ package org.eclipse.ditto.internal.utils.cluster;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 
@@ -72,9 +73,10 @@ public final class ShardedBinarySerializer
         final int serializerId = serialization.findSerializerFor(message).identifier();
         final byte[] messageBytes = serialization.serialize(message).get();
         final byte[] entityNameBytes = envelope.entityName().getBytes(CHARSET);
-        final var buffer = ByteBuffer.allocate(4 + 4 + entityNameBytes.length + messageBytes.length);
+        final var buffer = ByteBuffer.allocate(12 + entityNameBytes.length + messageBytes.length);
         buffer.putInt(serializerId);
         buffer.putInt(entityNameBytes.length);
+        buffer.putInt(messageBytes.length);
         buffer.put(entityNameBytes);
         buffer.put(messageBytes);
         return buffer.array();
@@ -87,15 +89,24 @@ public final class ShardedBinarySerializer
 
     @Override
     public Object fromBinary(final ByteBuffer buf, final String manifest) {
-        final int serializerId = buf.getInt();
-        final int entityNameLength = buf.getInt();
-        final byte[] entityNameBytes = new byte[entityNameLength];
-        buf.get(entityNameBytes);
-        final byte[] messageBytes = new byte[buf.remaining()];
-        buf.get(messageBytes);
-        final var message = getSerialization().deserialize(messageBytes, serializerId, manifest).get();
-        final var entityName = new String(entityNameBytes, CHARSET);
-        return new ShardedBinaryEnvelope(message, entityName);
+        final int position = buf.position();
+        try {
+            final int serializerId = buf.getInt();
+            final int entityNameLength = buf.getInt();
+            final int messageBytesLength = buf.getInt();
+            final byte[] entityNameBytes = new byte[entityNameLength];
+            final byte[] messageBytes = new byte[messageBytesLength];
+            buf.get(entityNameBytes);
+            buf.get(messageBytes);
+            final var message = getSerialization().deserialize(messageBytes, serializerId, manifest).get();
+            final var entityName = new String(entityNameBytes, CHARSET);
+            return new ShardedBinaryEnvelope(message, entityName);
+        } catch (final RuntimeException e) {
+            final var bytes = buf.array();
+            actorSystem.log().error("Serialization exception! position={} Buffer={}",
+                    position, IntStream.range(0, bytes.length).map(i -> bytes[i]).boxed().toList());
+            throw e;
+        }
     }
 
     private Serialization getSerialization() {
