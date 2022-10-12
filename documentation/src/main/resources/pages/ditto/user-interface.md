@@ -46,7 +46,7 @@ Select an environment in the drop down in the upper right:
 ### Control environments by URL parameters
 The following query parameters can be used to control environments
 
-| URL search parameter | Description |
+| URL query parameter | Description |
 | ---------------------|-------------|
 | `primaryEnvironmentName` | Name of an environment to be selected by default |
 | `environmentsURL` | URL to a json file with environment configurations |
