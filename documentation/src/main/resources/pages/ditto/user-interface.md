@@ -38,7 +38,7 @@ Another example would be to use different stages of Ditto™ like **development*
 To create a new environment you just need to specify
 * a unique name
 * the api URI to reach Ditto™
-* If it is a Ditto 2 or ditto 3 Version (only relevant if you want to use the connectivity API of Ditto™ prior to version 3)
+* whether it is a Ditto 2 or Ditto 3 version (only relevant if you want to use the connectivity API of Ditto™ prior to version 3)
 
 {% include image.html file="pages/ui/screenshot_add_environment.png" alt="Screenshot how to add an environment" caption="Create a new environment" max-width=800 %}
 
