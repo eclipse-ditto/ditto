@@ -51,16 +51,26 @@
 
     #header-left {
       position: absolute;
-      top: 0%;
-      left: 0%;
+      top: 0;
+      left: 0;
       opacity: 1 !important;
+    }
+    #header-left img {
+        width: 80px;
+        padding-top: 0;
+        padding-left: 20px
     }
 
     #header-right {
       position: absolute;
-      top: 0%;
-      right: 0%;
+      top: 0;
+      right: 0;
       opacity: 1 !important;
+    }
+    #header-right img {
+        width: 120px;
+        padding-top: 0;
+        padding-right: 20px
     }
 
     .reveal section img {
@@ -71,17 +81,29 @@
 
     .dim-background .slide-background {
       opacity: 0.3 !important;
-      /*background: none !important;  for printing ! */
-      /* print with: file:///C:/...../index.html?print-pdf */
     }
 
-    .chapter-background .slide-background {
+    .chapter-background .slide-background .slide-background-content {
       opacity: 0.7 !important;
-      /*background: none !important;*/ /* for printing ! */
     }
 
-    .print-pdf .reveal .slide-background {
+    .pdf-page .reveal .slide-background .slide-background-content {
       opacity: 0.7 !important;
+    }
+
+    .pdf-page #header-left img {
+        width: 50%;
+        padding-left: 0;
+    }
+    .pdf-page #header-right img {
+        width: 50%;
+        padding-right: 0;
+    }
+    .pdf-page .dim-background .slide-background {
+        background: none !important;
+    }
+    .pdf-page .slide-background .slide-background-content {
+        background: none !important;
     }
 
     .dim-background .slide-background.past {
@@ -158,21 +180,6 @@
     /* active links    */
   </style>
 
-  <!-- Printing and PDF exports -->
-  <script>
-    var link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.type = 'text/css';
-    link.href =
-      window.location.search.match(/print-pdf/gi)
-      ? 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/css/print/pdf.min.css'
-      : 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/css/print/paper.min.css';
-    document.getElementsByTagName('head')[0].appendChild(link);
-  </script>
-
-  <!--[if lt IE 9]>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/lib/js/html5shiv.js"></script>
-  <![endif]-->
 </head>
 
 <body>
@@ -182,8 +189,8 @@
     <!-- 2. Create hidden header/footer <div> -->
     <div id="hidden" style="display:none;">
         <div id="header">
-            <div id="header-left"><img src="../../images/ditto.svg" style="width: 80px; padding-top: 0; padding-left: 20px" alt="Ditto logo"></div>
-            <div id="header-right"><img src="../../images/iot_logo.svg" style="width: 120px; padding-top: 0; padding-right: 20px" alt="Eclipse IoT logo"></div>
+            <div id="header-left"><img src="../../images/ditto.svg" alt="Ditto logo"></div>
+            <div id="header-right"><img src="../../images/iot_logo.svg" alt="Eclipse IoT logo"></div>
         </div>
     </div>
 
@@ -335,18 +342,18 @@
                 <img src="../../images/pages/protocol/ditto-live-channel.png" style="width: 80%;padding-left: 1em" alt="Ditto live channel">
               </div>
             </section>
-          <section id="ditto-5" style="clear: both">
-            <h2>authorization</h2>
-            <br/>
-            <div style="text-align: left; float: left; width: 58%">
-              <br/>
-              <ul>
-                <li>Ditto contains a built-in authorization mechanism (<b>Policies</b>)</li>
-                <li style="margin-top: 1em;">every API call is authorized</li>
-              </ul>
-            </div>
-            <a href="https://www.eclipse.org/ditto/basic-auth.html#authorization" style="float: right; font-size: 0.7em">→ docs</a>
-          </section>
+<!--          <section id="ditto-5" style="clear: both">-->
+<!--            <h2>authorization</h2>-->
+<!--            <br/>-->
+<!--            <div style="text-align: left; float: left; width: 58%">-->
+<!--              <br/>-->
+<!--              <ul>-->
+<!--                <li>Ditto contains a built-in authorization mechanism (<b>Policies</b>)</li>-->
+<!--                <li style="margin-top: 1em;">every API call is authorized</li>-->
+<!--              </ul>-->
+<!--            </div>-->
+<!--            <a href="https://www.eclipse.org/ditto/basic-auth.html#authorization" style="float: right; font-size: 0.7em">→ docs</a>-->
+<!--          </section>-->
           <section id="ditto-6" style="clear: both;">
             <h2>search</h2>
             <br/>
@@ -378,17 +385,17 @@
               <a href="https://www.eclipse.org/ditto/basic-search.html" style="float: right; font-size: 0.7em">→ docs</a>
             </div>
           </section>
-          <section id="ditto-7" style="clear: both;">
-            <h2>get notified about changes</h2>
-            <br/>
-            <ul>
-              <li>notification via various channels: WebSocket, SSE, MQTT (3.1.1 | 5), AMQP (0.9.1 | 1.0), Apache Kafka, HTTP hook</li>
-              <li class="fragment" data-fragment-index="1" style="margin-top: 1em;">server side filtering via RQL (same as in search)</li>
-            </ul>
-            <div class="fragment" data-fragment-index="1">
-              <a href="https://www.eclipse.org/ditto/basic-changenotifications.html" style="float: right; font-size: 0.7em">→ docs</a>
-            </div>
-          </section>
+<!--          <section id="ditto-7" style="clear: both;">-->
+<!--            <h2>get notified about changes</h2>-->
+<!--            <br/>-->
+<!--            <ul>-->
+<!--              <li>notification via various channels: WebSocket, SSE, MQTT (3.1.1 | 5), AMQP (0.9.1 | 1.0), Apache Kafka, HTTP hook</li>-->
+<!--              <li class="fragment" data-fragment-index="1" style="margin-top: 1em;">server side filtering via RQL (same as in search)</li>-->
+<!--            </ul>-->
+<!--            <div class="fragment" data-fragment-index="1">-->
+<!--              <a href="https://www.eclipse.org/ditto/basic-changenotifications.html" style="float: right; font-size: 0.7em">→ docs</a>-->
+<!--            </div>-->
+<!--          </section>-->
         </section>
 
       <!-- Section: Ditto + WoT -->
@@ -471,7 +478,7 @@
         <!-- Section: Demo -->
         <section style="clear: both;">
             <section id="demo" style="clear: both;">
-                <h1>Demo</h1>
+                <h2>Demo</h2>
                 <a href="https://eclipse.github.io/ditto/?primaryEnvironmentName=ditto_sandbox">
                   <img src="../images/ditto-ui-screenshot.png" alt="Ditto UI Screenshot" style="width: 80%"/>
                 </a>
@@ -483,7 +490,8 @@
             <section id="q-a" class="new-chapter" data-background="../bg-images/background-conclusion-small.jpg"
                      data-state="chapter-background">
                 <br/>
-              <p>Links:</p>
+              <h2>Links</h2>
+              <br/>
               <ul>
                 <li><a target="_blank" href="https://www.eclipse.org/ditto">Ditto website and documentation</a></li>
                 <li><a target="_blank" href="https://github.org/eclipse/ditto">GitHub</a> - please give us a star ;)</li>
@@ -533,6 +541,7 @@
                       center: true,
                       fragments: getParameterByName('fragments') === '', // only use "fragments" feature if queryParam 'fragments' is present
                       slideNumber: 'h.v',
+                      // slideNumber: false, /* for printing */
 
                       transition: 'convex', // none/fade/cube/slide/convex/concave/zoom
 
@@ -544,6 +553,10 @@
                       //  40: 'prev'
                       }
                     });
+
+  /* for printing */
+  Reveal.configure({ pdfSeparateFragments: false });
+
 
 </script>
 
