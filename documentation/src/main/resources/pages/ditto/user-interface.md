@@ -21,7 +21,11 @@ The latest version of the Explorer UI is available online [here](https://eclipse
 
 There is also a Docker image prepared to server the latest version by docker:
 ```bash
-docker pull eclipse/ditto-ui:nightly
+# to start the latest released UI version:
+docker run -p 8088:8080 eclipse/ditto-ui
+
+# or to start the latest nightly instead:
+docker run -p 8088:8080 eclipse/ditto-ui:nightly
 ```
 
 ## Environments
