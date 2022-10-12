@@ -198,6 +198,52 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
     }
 
     @Test
+    public void nullPayloadMappingTest() {
+        new TestKit(actorSystem) {
+            {
+                final MappingContext mappingContext = ConnectivityModelFactory.newMappingContextBuilder(
+                        "JavaScript",
+                        JavaScriptMessageMapperFactory
+                                .createJavaScriptMessageMapperConfigurationBuilder(
+                                        "plainStringMapping",
+                                        Collections.emptyMap())
+                                .incomingScript(TestConstants.Mapping.INCOMING_MAPPING_SCRIPT)
+                                .outgoingScript(TestConstants.Mapping.OUTGOING_MAPPING_SCRIPT)
+                                .build()
+                                .getPropertiesAsJson())
+                        .build();
+
+                final Sink<Object, NotUsed> mappingSink = setupMappingSink(getRef(), mappingContext,
+                        actorSystem);
+
+                final Source source = mock(Source.class);
+                when(source.getAuthorizationContext())
+                        .thenReturn(TestConstants.Authorization.AUTHORIZATION_CONTEXT);
+                when(source.getPayloadMapping())
+                        .thenReturn(ConnectivityModelFactory.newPayloadMapping("test"));
+                final ActorRef underTest = actorSystem.actorOf(AmqpConsumerActor.props(CONNECTION,
+                        consumerData("foo", mock(MessageConsumer.class), source), mappingSink,
+                        getRef(),
+                        mock(ConnectivityStatusResolver.class),
+                        CONNECTIVITY_CONFIG));
+
+                final String plainPayload = null;
+                final String correlationId = "cor-";
+
+                underTest.tell(getJmsMessage(plainPayload, correlationId), null);
+
+                final Command<?> command = expectMsgClass(Command.class);
+                assertThat(command.getType()).isEqualTo(ModifyAttribute.TYPE);
+                assertThat(command.getDittoHeaders().getCorrelationId()).contains(correlationId);
+                assertThat(((ModifyAttribute) command).getAttributePointer())
+                        .isEqualTo(JsonPointer.of("/foo"));
+                assertThat(((ModifyAttribute) command).getAttributeValue())
+                        .isEqualTo(JsonValue.nullLiteral());
+            }
+        };
+    }
+
+    @Test
     public void plainStringMappingTest() {
         new TestKit(actorSystem) {{
             final MappingContext mappingContext = ConnectivityModelFactory.newMappingContextBuilder(
@@ -277,14 +323,16 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
     }
 
     @SafeVarargs // varargs array is not modified or passed around
-    private JmsMessage getJmsMessage(final String plainPayload, final String correlationId,
+    private JmsMessage getJmsMessage(@Nullable final String plainPayload, final String correlationId,
             final Map.Entry<String, ?>... headers) {
         try {
             final AmqpJmsTextMessageFacade messageFacade = new AmqpJmsTextMessageFacade();
             // give it a connection returning null for all methods to set any AMQP properties at all
             messageFacade.initialize(mock(AmqpConnection.class));
-            messageFacade.setText(plainPayload);
-            messageFacade.setContentType(Symbol.getSymbol("text/plain"));
+            if (plainPayload != null) {
+                messageFacade.setText(plainPayload);
+                messageFacade.setContentType(Symbol.getSymbol("text/plain"));
+            }
             messageFacade.setCorrelationId(correlationId);
 
             final JmsMessage message = messageFacade.asJmsMessage();
