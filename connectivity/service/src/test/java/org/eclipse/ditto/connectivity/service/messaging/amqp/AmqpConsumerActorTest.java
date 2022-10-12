@@ -238,7 +238,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                 assertThat(((ModifyAttribute) command).getAttributePointer())
                         .isEqualTo(JsonPointer.of("/foo"));
                 assertThat(((ModifyAttribute) command).getAttributeValue())
-                        .isEqualTo(JsonValue.of(plainPayload));
+                        .isEqualTo(JsonValue.nullLiteral());
             }
         };
     }
@@ -323,7 +323,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
     }
 
     @SafeVarargs // varargs array is not modified or passed around
-    private JmsMessage getJmsMessage(final String plainPayload, final String correlationId,
+    private JmsMessage getJmsMessage(@Nullable final String plainPayload, final String correlationId,
             final Map.Entry<String, ?>... headers) {
         try {
             final AmqpJmsTextMessageFacade messageFacade = new AmqpJmsTextMessageFacade();
