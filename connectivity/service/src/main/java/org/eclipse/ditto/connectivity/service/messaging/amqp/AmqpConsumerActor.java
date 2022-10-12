@@ -461,7 +461,11 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
             final ExternalMessageBuilder builder, @Nullable final String correlationId) throws JMSException {
         if (message instanceof TextMessage textMessage) {
             final String payload = textMessage.getText();
-            builder.withTextAndBytes(payload, payload.getBytes());
+            if (payload == null) {
+                builder.withText(null);
+            } else {
+                builder.withTextAndBytes(payload, payload.getBytes());
+            }
         } else if (message instanceof BytesMessage bytesMessage) {
             final long bodyLength = bytesMessage.getBodyLength();
             if (bodyLength >= Integer.MIN_VALUE && bodyLength <= Integer.MAX_VALUE) {

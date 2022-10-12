@@ -8095,7 +8095,7 @@ components:
         randomizationInterval:
           type: string
           default: 5m
-          description: 'Interval in which the announcement can be sent earlier in effort to prevent announcement peaks. If omitted, the default value will be applied. If set to minimum, no randomization will be applied.'
+          description: 'Interval in which the announcement can be sent earlier than the configured `beforeExpiry`. The actual point in time when the announcement will be sent is `beforeExpire` plus a randomly chosen time within the `randomizationInterval`. E.g assuming `beforeExpiry` is set to 5m and `randomizationInterval` is set to 1m, the announcements will be sent between 5 and 6 minutes before the subject expires. If omitted, the default value will be applied. If set to minimum, no randomization will be applied.'
       example:
         beforeExpiry: 5m
         whenDeleted: true
@@ -8130,7 +8130,7 @@ components:
         connectionType:
           $ref: '#/components/schemas/ConnectionType'
         connectionStatus:
-          $ref: '#/components/schemas/ConnectionStatus'
+          $ref: '#/components/schemas/ConnectivityStatus'
         uri:
           type: string
           description: The URI of the connection

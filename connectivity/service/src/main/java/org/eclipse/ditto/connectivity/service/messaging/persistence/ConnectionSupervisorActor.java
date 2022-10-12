@@ -47,6 +47,7 @@ import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
+import akka.actor.ReceiveTimeout;
 import akka.actor.SupervisorStrategy;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.FI;
@@ -80,6 +81,8 @@ public final class ConnectionSupervisorActor
                             .build()
                             .orElse(SupervisorStrategy.stoppingStrategy().decider()));
     private static final Duration OVERWRITES_CHECK_BACKOFF_DURATION = Duration.ofSeconds(30);
+
+    private static final Duration INITIAL_MESSAGE_RECEIVE_TIMEOUT = Duration.ofSeconds(2);
 
     private final ActorRef commandForwarderActor;
     private final ActorRef pubSubMediator;
@@ -164,10 +167,16 @@ public final class ConnectionSupervisorActor
     protected void handleMessagesDuringStartup(final Object message) {
         if (message instanceof WithDittoHeaders withDittoHeaders) {
             initConfigOverwrites(entityId, withDittoHeaders.getDittoHeaders());
+        } else if (message.equals(ReceiveTimeout.getInstance())) {
+            // this needs to be done to be started as part of "remember-entities" automatic restarting of connections:
+            // only after the config overwrites were retrieved, the ConnectionSupervisorActor
+            // will move to the "initialized" state and open the connection
+            initConfigOverwrites(entityId, null);
         } else if (message != Control.REGISTRATION_FOR_CONFIG_CHANGES_SUCCESSFUL
                 && message != Control.REGISTRATION_FOR_HUB_PARAMS_CHANGES_SUCCESSFUL) {
             initConfigOverwrites(entityId, null);
         }
+        getContext().cancelReceiveTimeout();
         super.handleMessagesDuringStartup(message);
     }
 
@@ -210,13 +219,21 @@ public final class ConnectionSupervisorActor
      * This method is called when a config modification is received. Implementations must handle the modified config
      * appropriately i.e. check if any relevant config has changed and re-initialize state if necessary.
      */
-    private void onConnectivityConfigModified(Config modifiedConfig) {
+    private void onConnectivityConfigModified(final Config modifiedConfig) {
         if (Objects.equals(connectivityConfigOverwrites, modifiedConfig)) {
             log.debug("Received modified config is unchanged, not restarting persistence actor.");
         } else {
             log.info("Restarting persistence actor with modified config: {}", modifiedConfig);
             restartPersistenceActorWithModifiedConfig(modifiedConfig);
         }
+    }
+
+    @Override
+    public void preStart() throws Exception {
+        super.preStart();
+        // if no other message is received, the actor was started because of automatic start due to "remember-entities"
+        // in that case, we want to call #initConfigOverwrites()
+        getContext().setReceiveTimeout(INITIAL_MESSAGE_RECEIVE_TIMEOUT);
     }
 
     @Override
@@ -231,9 +248,13 @@ public final class ConnectionSupervisorActor
     }
 
     private void initConfigOverwrites(final ConnectionId connectionId, @Nullable final DittoHeaders dittoHeaders) {
-        log.debug("Retrieve config overwrites for connection: {}", connectionId);
-        Patterns.pipe(retrieveConfigOverwritesOrTimeout(connectionId, dittoHeaders), getContext().getDispatcher())
-                .to(getSelf());
+        if (isRegisteredForConnectivityConfigChanges) {
+            log.debug("Connection is already initialized with Config: {}", connectionId);
+        } else {
+            log.debug("Retrieve config overwrites for connection: {}", connectionId);
+            Patterns.pipe(retrieveConfigOverwritesOrTimeout(connectionId, dittoHeaders), getContext().getDispatcher())
+                    .to(getSelf());
+        }
     }
 
     private CompletionStage<Config> retrieveConfigOverwritesOrTimeout(final ConnectionId connectionId,
