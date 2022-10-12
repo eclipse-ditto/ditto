@@ -127,7 +127,7 @@ abstract class AbstractThingEnforcementTest {
 
     protected void expectAndAnswerSudoRetrieveThing(final Object sudoRetrieveThingResponse) {
         final SudoRetrieveThing sudoRetrieveThing =
-                thingPersistenceActorProbe.expectMsgClass(FiniteDuration.apply(5, TimeUnit.SECONDS),
+                thingPersistenceActorProbe.expectMsgClass(FiniteDuration.apply(15, TimeUnit.SECONDS),
                         SudoRetrieveThing.class);
         assertThat((CharSequence) sudoRetrieveThing.getEntityId()).isEqualTo(THING_ID);
         thingPersistenceActorProbe.reply(sudoRetrieveThingResponse);
