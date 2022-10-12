@@ -49,6 +49,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionLifecycle;
 import org.eclipse.ditto.connectivity.model.ConnectionMetrics;
+import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
@@ -80,6 +81,7 @@ import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.connectivity.service.messaging.ClientActorRefs;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpValidator;
+import org.eclipse.ditto.connectivity.service.messaging.hono.HonoConnectionFactory;
 import org.eclipse.ditto.connectivity.service.messaging.hono.HonoValidator;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushValidator;
 import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaValidator;
@@ -188,6 +190,7 @@ public final class ConnectionPersistenceActor
     private final ConnectivityCommandInterceptor commandValidator;
     private int subscriptionCounter = 0;
     private Instant connectionClosedAt = Instant.now();
+    private HonoConnectionFactory honoConnectionFactory;
     @Nullable private Instant loggingEnabledUntil;
     @Nullable private ActorRef clientActorRouter;
     @Nullable private ActorRef clientActorRefsAggregationActor;
@@ -221,6 +224,7 @@ public final class ConnectionPersistenceActor
 
         loggingEnabledDuration = monitoringConfig.logger().logDuration();
         checkLoggingActiveInterval = monitoringConfig.logger().loggingActiveCheckInterval();
+        honoConnectionFactory = HonoConnectionFactory.get(actorSystem, actorSystem.settings().config());
         // Make duration fuzzy to avoid all connections getting updated at once.
         final Duration fuzzyPriorityUpdateInterval =
                 makeFuzzy(connectivityConfig.getConnectionConfig().getPriorityUpdateInterval());
@@ -802,7 +806,6 @@ public final class ConnectionPersistenceActor
                 .toBuilder()
                 .dryRun(true)
                 .build();
-        final TestConnection testConnection = (TestConnection) command.getCommand().setDittoHeaders(headersWithDryRun);
 
         if (clientActorRouter != null) {
             // client actor is already running, so either another TestConnection command is currently executed or the
@@ -810,6 +813,14 @@ public final class ConnectionPersistenceActor
             // prevent strange behavior.
             origin.tell(TestConnectionResponse.alreadyCreated(entityId, command.getDittoHeaders()), self);
         } else {
+            final TestConnection testConnection;
+            TestConnection connection = (TestConnection) command.getCommand().setDittoHeaders(headersWithDryRun);
+            if (connection.getConnection().getConnectionType() == ConnectionType.HONO) {
+                testConnection = TestConnection.of(
+                        honoConnectionFactory.getHonoConnection(connection.getConnection()), headersWithDryRun);
+            } else {
+                testConnection = connection;
+            }
             // no need to start more than 1 client for tests
             // set connection status to CLOSED so that client actors will not try to connect on startup
             setConnectionStatusClosedForTestConnection();

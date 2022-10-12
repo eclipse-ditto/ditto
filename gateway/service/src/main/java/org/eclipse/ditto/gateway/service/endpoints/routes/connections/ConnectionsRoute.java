@@ -51,9 +51,7 @@ import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevOpsOAuth2A
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 
 import akka.http.javadsl.model.MediaTypes;
 import akka.http.javadsl.server.PathMatchers;
@@ -144,9 +142,9 @@ public final class ConnectionsRoute extends AbstractRoute {
                 concat(
                         get(() -> // GET /connections?ids-only=false
                                 parameterOptional(ConnectionsParameter.IDS_ONLY.toString(), idsOnly -> handlePerRequest(ctx,
-                                        RetrieveConnections.newInstance(idsOnly.map(Boolean::valueOf).orElse(false),
-                                                dittoHeaders)
-                                ))
+                                                RetrieveConnections.newInstance(idsOnly.map(Boolean::valueOf).orElse(false),
+                                                        dittoHeaders)
+                                        ))
 
                         ),
                         post(() -> // POST /connections?dry-run=<dryRun>
@@ -326,12 +324,12 @@ public final class ConnectionsRoute extends AbstractRoute {
         final var connectionJsonObject = getConnectionJsonObjectOrThrow(connectionJson);
         final var temporaryTestConnectionId = UUID.randomUUID() + "-dry-run";
         return ConnectivityModelFactory.connectionFromJson(
-                setUriForHonoConnectionType(
-                        getConnectionId(connectionJsonObject)
-                                .map(connectionId -> connectionJson.replace(connectionId, temporaryTestConnectionId))
-                                .map(ConnectionsRoute::getConnectionJsonObjectOrThrow)
-                                .orElseGet(() -> setConnectionId(connectionJsonObject, temporaryTestConnectionId))
-                )
+                                setUriForHonoConnectionType(
+                                        getConnectionId(connectionJsonObject)
+                                                .map(connectionId -> connectionJson.replace(connectionId, temporaryTestConnectionId))
+                                                .map(ConnectionsRoute::getConnectionJsonObjectOrThrow)
+                                                .orElseGet(() -> setConnectionId(connectionJsonObject, temporaryTestConnectionId))
+                                )
         );
     }
 
