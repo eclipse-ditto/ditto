@@ -223,10 +223,10 @@
                 </ul>
             </section>
             <section id="twin-1" style="clear: both;">
-                <h2>DT - our interpretation</h2>
+                <h2>Twins in scope of Ditto</h2>
               <br/>
                 <ul>
-                    <li class="fragment">a pattern for working with <b>things</b> in the IoT</li>
+                  <li class="fragment">a pattern for working with <b>things</b> in the IoT</li>
                   <li class="fragment" style="margin-top: 0.8em;">provide state <b>persistence</b> and <b>search</b> capabilities</li>
                   <li class="fragment" style="margin-top: 0.8em;">access twins always in an <b>authorized</b> way</li>
                   <li class="fragment" style="margin-top: 0.8em;">provide APIs - <b>Device as a Service</b></li>
@@ -407,11 +407,36 @@
           <img src="../images/wot.png" alt="W3C Web of Things logo" style="width: 40%"/>
         </section>
         <section id="ditto-wot-1" style="clear: both;">
-          <p style="margin-top: 0.5em;">generation of WoT Thing Descriptions for Thing and Feature instances based on referenced Thing Models
+          <h2>The what:</h2>
+          <br/>
+          <p>
+            Let Ditto provide WoT TDs via Digital Twin APIs<br/>
+            by referencing to WoT TMs in Ditto "things"
+          </p>
+        </section>
+        <section id="ditto-wot-2" style="clear: both;">
+          <h3>The why: benefits for a WoT approach</h3>
+          <ul style="margin-top: 0.8em;">
+            <li>devices do not need to "know" their TD or be able to provide it somehow</li>
+            <li class="fragment" data-fragment-index="1" style="margin-top: 0.5em;">simulate twins and deliver TD without physical device</li>
+            <li class="fragment" data-fragment-index="2" style="margin-top: 0.5em;">"retrofit" an already connected device with a TD - enabling "brownfield" scenarios</li>
+            <li class="fragment" data-fragment-index="3" style="margin-top: 0.5em;">Ditto abstracts on how devices are connected - provided Protocol Binding: HTTP vocabulary</li>
+          </ul>
+        </section>
+        <section id="ditto-wot-3" style="clear: both;">
+          <h3>The why: benefits for Ditto and the digital twin pattern</h3>
+          <ul style="margin-top: 0.8em;">
+            <li>Ditto managed things were "schemaless" until now - now a schema can be defined</li>
+            <li class="fragment" data-fragment-index="1" style="margin-top: 0.5em;">using HTTP content negotiation, digital twins can be "introspected" asking for their capabilities</li>
+            <li class="fragment" data-fragment-index="2" style="margin-top: 0.5em;">Ditto users will benefit from future tooling around the WoT standard</li>
+          </ul>
+        </section>
+        <section id="ditto-wot-4" style="clear: both;">
+          <p style="margin-top: 0.5em;">The how: generation of WoT TDs for Thing and Feature instances based on referenced TMs
             <ul>
-              <li class="fragment" data-fragment-index="1" style="margin-top: 0.3em; font-size: 0.8em">resolving extensions via <code>tm:extends</code> and imports via <code>tm:ref</code></li>
-              <li class="fragment" data-fragment-index="2" style="margin-top: 0.3em; font-size: 0.8em">resolving Thing level compositions via <code>tm:submodel</code></li>
-              <li class="fragment" data-fragment-index="3" style="margin-top: 0.3em; font-size: 0.8em">resolving TM placeholders</li>
+              <li class="fragment" data-fragment-index="1" style="margin-top: 0.3em; font-size: 0.7em">resolving extensions via <code>tm:extends</code> and imports via <code>tm:ref</code></li>
+              <li class="fragment" data-fragment-index="2" style="margin-top: 0.3em; font-size: 0.7em">resolving Thing level compositions via <code>tm:submodel</code></li>
+              <li class="fragment" data-fragment-index="3" style="margin-top: 0.3em; font-size: 0.7em">resolving TM placeholders</li>
             </ul>
           </p>
 
@@ -435,8 +460,8 @@
 }</code></pre>
 
         </section>
-        <section id="ditto-wot-2" style="clear: both;">
-          <p style="margin-top: 0.5em;">upon creation of new Things, generation of a "JSON skeleton" following the WoT Thing Model</p>
+        <section id="ditto-wot-5" style="clear: both;">
+          <p style="margin-top: 0.5em;">The how: upon creation of new Things, generation of a "JSON skeleton" following the WoT TM</p>
 
           <pre class="fragment" data-fragment-index="1" style="width: 100%; font-size: 0.4em;"><code class="hljs bash">curl -X PUT -u ditto:ditto \
   'https://ditto.eclipseprojects.io/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815' \
