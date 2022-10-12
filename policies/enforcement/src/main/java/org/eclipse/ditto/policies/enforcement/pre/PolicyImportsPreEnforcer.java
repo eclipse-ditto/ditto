@@ -26,7 +26,6 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.policies.api.Permission;
-import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProviderExtension;
@@ -37,10 +36,8 @@ import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
-import org.eclipse.ditto.policies.model.PolicyImporter;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyModificationInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
@@ -86,56 +83,26 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
     @Override
     public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
         if (signal instanceof ModifyPolicy modifyPolicy) {
-            return doApply(modifyPolicy.getPolicy().getPolicyImports().stream(), modifyPolicy)
-                    .thenCompose(this::validateModifiedPolicy);
+            return doApply(modifyPolicy.getPolicy().getPolicyImports().stream(), modifyPolicy);
         } else if (signal instanceof CreatePolicy createPolicy) {
-            return doApply(createPolicy.getPolicy().getPolicyImports().stream(), createPolicy)
-                    .thenCompose(this::validateModifiedPolicy);
+            return doApply(createPolicy.getPolicy().getPolicyImports().stream(), createPolicy);
         } else if (signal instanceof ModifyPolicyImports modifyPolicyImports) {
-            return doApply(modifyPolicyImports.getPolicyImports().stream(), modifyPolicyImports)
-                    .thenCompose(this::validateModifiedPolicy);
+            return doApply(modifyPolicyImports.getPolicyImports().stream(), modifyPolicyImports);
         } else if (signal instanceof ModifyPolicyImport modifyPolicyImport) {
-            return doApply(Stream.of(modifyPolicyImport.getPolicyImport()), modifyPolicyImport)
-                    .thenCompose(this::validateModifiedPolicy);
+            return doApply(Stream.of(modifyPolicyImport.getPolicyImport()), modifyPolicyImport);
         } else {
             return CompletableFuture.completedStage(signal);
         }
     }
 
-    /**
-     * Checks whether the modified policy or an imported entry still defines one
-     * subject with WRITE permission on policy root resource.
-     */
-    private CompletionStage<Signal<?>> validateModifiedPolicy(final PolicyModifyCommand<?> command) {
-        final PolicyId policyId = command.getEntityId();
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        return getPolicyEnforcer(policyId, dittoHeaders)
-                .thenApply(policyEnforcer -> policyEnforcer.getPolicy()
-                        .orElseThrow(policyNotAccessible(command.getEntityId(),
-                                dittoHeaders)))
-                .thenCompose(policy -> PolicyImporter.mergeImportedPolicyEntries(policy,
-                        importedPolicyId -> getPolicyEnforcer(importedPolicyId, dittoHeaders)
-                                .thenApply(PolicyEnforcer::getPolicy)))
-                .thenApply(PoliciesValidator::newInstance)
-                .thenApply(validator -> {
-                    if (validator.isValid()) {
-                        return command;
-                    } else {
-                        throw PolicyModificationInvalidException.newBuilder(policyId)
-                                .description(validator.getReason().orElse(null))
-                                .dittoHeaders(dittoHeaders)
-                                .build();
-                    }
-                });
-    }
-
-    private CompletionStage<PolicyModifyCommand<?>> doApply(final Stream<PolicyImport> policyImportStream,
+    private CompletionStage<Signal<?>> doApply(final Stream<PolicyImport> policyImportStream,
             final PolicyModifyCommand<?> command) {
 
         if (LOG.isDebugEnabled()) {
             LOG.withCorrelationId(command)
                     .debug("Applying policy import pre-enforcement on policy <{}>.", command.getEntityId());
         }
+
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         return policyImportStream.map(
                         policyImport -> getPolicyEnforcer(policyImport.getImportedPolicyId(), dittoHeaders).thenApply(
@@ -157,8 +124,7 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
         return () -> PolicyNotAccessibleException.newBuilder(policyId).dittoHeaders(dittoHeaders).build();
     }
 
-    private static Set<ResourceKey> getImportedResourceKeys(final Policy importedPolicy,
-            final PolicyImport policyImport) {
+    private static Set<ResourceKey> getImportedResourceKeys(final Policy importedPolicy, final PolicyImport policyImport) {
         final Stream<Label> implicitImports = importedPolicy.stream()
                 .filter(entry -> ImportableType.IMPLICIT.equals(entry.getImportableType()))
                 .map(PolicyEntry::getLabel);
@@ -177,8 +143,7 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
     private boolean authorize(final PolicyModifyCommand<?> command, final PolicyEnforcer policyEnforcer,
             final PolicyImport policyImport) {
         final Enforcer enforcer = policyEnforcer.getEnforcer();
-        final Policy importedPolicy = policyEnforcer.getPolicy()
-                .orElseThrow(policyNotAccessible(command.getEntityId(), command.getDittoHeaders()));
+        final Policy importedPolicy = policyEnforcer.getPolicy().orElseThrow(policyNotAccessible(command.getEntityId(), command.getDittoHeaders()));
         final Set<ResourceKey> resourceKeys = getImportedResourceKeys(importedPolicy, policyImport);
         final AuthorizationContext authorizationContext = command.getDittoHeaders().getAuthorizationContext();
         // the authorized subject must have READ access on the given entries of the imported policy
