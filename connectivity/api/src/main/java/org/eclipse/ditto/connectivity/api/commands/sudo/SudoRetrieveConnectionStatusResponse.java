@@ -54,7 +54,7 @@ public final class SudoRetrieveConnectionStatusResponse
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
                         return new SudoRetrieveConnectionStatusResponse(
-                                ConnectivityStatus.valueOf(jsonObject.getValueOrThrow(CONNECTION_STATUS)),
+                                ConnectivityStatus.valueOf(jsonObject.getValueOrThrow(CONNECTION_STATUS).toUpperCase()),
                                 jsonObject.getValueOrThrow(CLIENT_COUNT),
                                 context.getDittoHeaders());
                     });
@@ -101,7 +101,9 @@ public final class SudoRetrieveConnectionStatusResponse
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
-        jsonObjectBuilder.set(CONNECTION_STATUS, status.getName(), schemaVersion.and(thePredicate));
+        final var predicate = schemaVersion.and(thePredicate);
+        jsonObjectBuilder.set(CONNECTION_STATUS, status.getName(), thePredicate);
+        jsonObjectBuilder.set(CLIENT_COUNT, clientCount, predicate);
     }
 
     /**

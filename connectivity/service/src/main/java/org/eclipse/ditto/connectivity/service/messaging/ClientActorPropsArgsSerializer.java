@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service.messaging;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
@@ -41,6 +42,7 @@ public final class ClientActorPropsArgsSerializer
 
     private static final int UNIQUE_IDENTIFIER = 597861065;
     private static final Charset CHARSET = StandardCharsets.UTF_8;
+    private static final ByteOrder BYTE_ORDER = ByteOrder.BIG_ENDIAN;
 
     private final ActorSystem actorSystem;
     @Nullable private Serialization serialization;
@@ -85,6 +87,7 @@ public final class ClientActorPropsArgsSerializer
                         dittoHeaders.length() +
                         connectivityConfigOverwrites.length()
         );
+        buffer.order(BYTE_ORDER);
 
         connection.write(buffer);
         commandForwarder.write(buffer);
@@ -101,11 +104,14 @@ public final class ClientActorPropsArgsSerializer
 
     @Override
     public Object fromBinary(final ByteBuffer buf, final String manifest) {
+        final var originalByteOrder = buf.order();
+        buf.order(BYTE_ORDER);
         final var connection = Field.read(buf);
         final var commandForwarder = FieldWithManifest.read(buf);
         final var connectionActor = Field.read(buf);
         final var dittoHeaders = Field.read(buf);
         final var connectivityConfigOverwrites = FieldWithManifest.read(buf);
+        buf.order(originalByteOrder);
         return new ClientActorPropsArgs(
                 ConnectivityModelFactory.connectionFromJson(JsonObject.of(connection.asString())),
                 toActorRef(commandForwarder, commandForwarder.value()),

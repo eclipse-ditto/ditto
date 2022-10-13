@@ -13,6 +13,7 @@
 package org.eclipse.ditto.internal.utils.cluster;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.IntStream;
@@ -35,6 +36,7 @@ public final class ShardedBinarySerializer
 
     private static final int UNIQUE_IDENTIFIER = 1259836351;
     private static final Charset CHARSET = StandardCharsets.UTF_8;
+    private static final ByteOrder BYTE_ORDER = ByteOrder.BIG_ENDIAN;
 
     private final ActorSystem actorSystem;
     @Nullable private Serialization serialization;
@@ -91,6 +93,8 @@ public final class ShardedBinarySerializer
     public Object fromBinary(final ByteBuffer buf, final String manifest) {
         final int position = buf.position();
         try {
+            final var originalByteOrder = buf.order();
+            buf.order(BYTE_ORDER);
             final int serializerId = buf.getInt();
             final int entityNameLength = buf.getInt();
             final int messageBytesLength = buf.getInt();
@@ -100,6 +104,7 @@ public final class ShardedBinarySerializer
             buf.get(messageBytes);
             final var message = getSerialization().deserialize(messageBytes, serializerId, manifest).get();
             final var entityName = new String(entityNameBytes, CHARSET);
+            buf.order(originalByteOrder);
             return new ShardedBinaryEnvelope(message, entityName);
         } catch (final RuntimeException e) {
             final var bytes = buf.array();
