@@ -814,12 +814,12 @@ public final class ConnectionPersistenceActor
             origin.tell(TestConnectionResponse.alreadyCreated(entityId, command.getDittoHeaders()), self);
         } else {
             final TestConnection testConnection;
-            TestConnection connection = (TestConnection) command.getCommand().setDittoHeaders(headersWithDryRun);
-            if (connection.getConnection().getConnectionType() == ConnectionType.HONO) {
+            TestConnection testConnectionUnresolved = (TestConnection) command.getCommand().setDittoHeaders(headersWithDryRun);
+            if (testConnectionUnresolved.getConnection().getConnectionType() == ConnectionType.HONO) {
                 testConnection = TestConnection.of(
-                        honoConnectionFactory.getHonoConnection(connection.getConnection()), headersWithDryRun);
+                        honoConnectionFactory.getHonoConnection(testConnectionUnresolved.getConnection()), headersWithDryRun);
             } else {
-                testConnection = connection;
+                testConnection = testConnectionUnresolved;
             }
             // no need to start more than 1 client for tests
             // set connection status to CLOSED so that client actors will not try to connect on startup

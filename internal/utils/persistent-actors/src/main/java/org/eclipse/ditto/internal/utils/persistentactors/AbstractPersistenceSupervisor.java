@@ -463,6 +463,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
 
     protected void restartChild() {
         if (persistenceActorChild != null) {
+            log.debug("Restarting persistence child actor.");
             waitingForStopBeforeRestart = true;
             getContext().stop(persistenceActorChild); // start happens when "Terminated" message is received.
         }
