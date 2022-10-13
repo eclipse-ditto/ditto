@@ -33,7 +33,6 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.policies.enforcement.pre.PreEnforcerProvider;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
@@ -131,10 +130,10 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
     @SuppressWarnings("unchecked")
     private void doEnforceSignal(final S signal, final ActorRef sender) {
 
-        final StartedTrace trace = DittoTracing
-                .trace(signal, TraceOperationName.of("enforce"))
+        final var trace = DittoTracing.newPreparedTrace(signal.getDittoHeaders(), TraceOperationName.of("enforce"))
                 .start();
-        final S tracedSignal = DittoTracing.propagateContext(trace.getContext(), signal);
+        final var tracedSignal =
+                signal.setDittoHeaders(DittoHeaders.of(trace.propagateContext(signal.getDittoHeaders())));
         final ActorRef self = getSelf();
 
         try {
@@ -167,7 +166,8 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
                             log.withCorrelationId(tracedSignal)
                                     .warning(
                                             "Neither authorizedSignal nor throwable were present during enforcement of signal: " +
-                                                    "<{}>", tracedSignal);
+                                                    "<{}>",
+                                            tracedSignal);
                         }
                     });
         } catch (final DittoRuntimeException dittoRuntimeException) {

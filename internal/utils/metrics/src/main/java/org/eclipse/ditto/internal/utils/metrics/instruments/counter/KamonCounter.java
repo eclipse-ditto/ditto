@@ -18,8 +18,8 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.slf4j.Logger;
@@ -75,10 +75,9 @@ public final class KamonCounter implements Counter {
         return new KamonCounter(name, newMap);
     }
 
-    @Nullable
     @Override
-    public String getTag(final String key) {
-        return tags.get(key);
+    public Optional<String> getTag(final String key) {
+        return Optional.ofNullable(tags.get(key));
     }
 
     @Override

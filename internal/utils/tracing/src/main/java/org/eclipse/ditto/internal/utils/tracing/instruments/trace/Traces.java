@@ -12,9 +12,10 @@
  */
 package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
 
-import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
+import java.util.Map;
 
-import kamon.context.Context;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 
 /**
  * Factory methods for traces.
@@ -26,33 +27,42 @@ public final class Traces {
     }
 
     /**
-     * Builds a {@link PreparedTrace} with the given name.
+     * Returns a new instance of {@code PreparedKamonTrace} for the specified arguments.
      *
-     * @param context the trace context.
-     * @param operationName the name of the operation.
-     * @return the new prepared trace.
+     * @param headers the headers from which to derive the trace context.
+     * @param traceOperationName name of the operation to be traced.
+     * @param kamonHttpContextPropagation derives and propagates the trace context from and to headers.
+     * @return the new instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static PreparedTrace newTrace(final Context context, final TraceOperationName operationName) {
-        return new PreparedKamonTrace(context, operationName);
+    public static PreparedTrace newPreparedKamonTrace(
+            final Map<String, String> headers,
+            final TraceOperationName traceOperationName,
+            final KamonHttpContextPropagation kamonHttpContextPropagation
+    ) {
+        return PreparedKamonTrace.newInstance(headers, traceOperationName, kamonHttpContextPropagation);
     }
 
     /**
-     * Builds an empty {@link PreparedTrace}.
+     * Returns an empty {@code PreparedTrace}.
      *
-     * @return the new prepared trace
+     * @param operationName name of the operation the returned span is about.
+     * @return the new prepared trace.
+     * @throws NullPointerException if {@code operationName} is {@code null}.
      */
-    public static PreparedTrace emptyPreparedTrace() {
-        return EmptyPreparedTrace.getInstance();
+    public static PreparedTrace emptyPreparedTrace(final TraceOperationName operationName) {
+        return EmptyPreparedTrace.newInstance(ConditionChecker.checkNotNull(operationName, "operationName"));
     }
 
     /**
-     * Builds an empty {@link StartedTrace}.
+     * Returns an empty {@code StartedTrace} with the specified TraceOperationName argument.
      *
-     * @return the new prepared trace
+     * @param operationName name of the operation the returned span is about.
+     * @return the new started trace.
+     * @throws NullPointerException if {@code operationName} is {@code null}.
      */
-    public static StartedTrace emptyStartedTrace() {
-        return EmptyStartedTrace.getInstance();
+    public static StartedTrace emptyStartedTrace(final TraceOperationName operationName) {
+        return EmptyStartedTrace.newInstance(operationName);
     }
 
 }

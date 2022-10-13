@@ -45,7 +45,9 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConne
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.junit.After;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
@@ -67,6 +69,10 @@ import akka.testkit.javadsl.TestKit;
  * Abstract unit test for classes that extend {@link BaseClientActor}.
  */
 public abstract class AbstractBaseClientActorTest {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     protected final DittoHeaders dittoHeaders = DittoHeaders.empty();
     private ServerBinding binding;

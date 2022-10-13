@@ -36,6 +36,7 @@ import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOu
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.protocol.DittoProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.protocol.config.DefaultProtocolConfig;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -43,6 +44,7 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.eclipse.ditto.things.model.signals.events.AttributeModified;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -60,6 +62,10 @@ import scala.concurrent.duration.FiniteDuration;
  * Tests {@link InboundMappingSink} and its outbound equivalent.
  */
 public final class MappingSinksTest {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     private static final String NOOP_OUTBOUND_SCRIPT = "function mapFromDittoProtocolMsg(){return null;}";
     private static final String NOOP_INBOUND_SCRIPT = "function mapToDittoProtocolMsg(){return null;}";

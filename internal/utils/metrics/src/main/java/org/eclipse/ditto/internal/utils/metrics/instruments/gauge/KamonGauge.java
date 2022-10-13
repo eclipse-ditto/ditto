@@ -15,8 +15,8 @@ package org.eclipse.ditto.internal.utils.metrics.instruments.gauge;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.slf4j.Logger;
@@ -69,12 +69,15 @@ public final class KamonGauge implements Gauge {
 
     @Override
     public Long get() {
+        final long result;
         final kamon.metric.Gauge kamonInternalGauge = getKamonInternalGauge();
-        if (kamonInternalGauge instanceof kamon.metric.Gauge.Volatile) {
-            return (long) ((kamon.metric.Gauge.Volatile) kamonInternalGauge).snapshot(false);
+        if (kamonInternalGauge instanceof kamon.metric.Gauge.Volatile volatileGauge) {
+            result = (long) volatileGauge.snapshot(false);
+        } else {
+            LOGGER.warn("Could not get value from kamon gauge");
+            result = 0L;
         }
-        LOGGER.warn("Could not get value from kamon gauge");
-        return 0L;
+        return result;
     }
 
     @Override
@@ -91,10 +94,9 @@ public final class KamonGauge implements Gauge {
         return new KamonGauge(name, newMap);
     }
 
-    @Nullable
     @Override
-    public String getTag(final String key) {
-        return this.tags.get(key);
+    public Optional<String> getTag(final String key) {
+        return Optional.ofNullable(tags.get(key));
     }
 
     @Override
@@ -118,7 +120,6 @@ public final class KamonGauge implements Gauge {
         return Kamon.gauge(name).withTags(TagSet.from(new HashMap<>(tags)));
     }
 
-
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
@@ -126,4 +127,5 @@ public final class KamonGauge implements Gauge {
                 ", tags=" + tags +
                 "]";
     }
+
 }

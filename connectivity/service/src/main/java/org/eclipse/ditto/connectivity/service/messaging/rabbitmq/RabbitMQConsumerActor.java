@@ -133,7 +133,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
         final Envelope envelope = delivery.getEnvelope();
         final byte[] body = delivery.getBody();
 
-        StartedTrace trace = Traces.emptyStartedTrace();
+        StartedTrace trace = Traces.emptyStartedTrace(TraceOperationName.of("rabbitmq_consume"));
         Map<String, String> headers = null;
         try {
             @Nullable final String correlationId = properties.getCorrelationId();
@@ -144,17 +144,11 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
             }
             headers = extractHeadersFromMessage(properties, envelope);
 
-            final var preparedTrace = DittoTracing.trace(
-                            DittoTracing.extractTraceContext(headers),
-                            TraceOperationName.of("rabbitmq_consume")
-                    )
-                    .connectionId(connectionId);
+            trace = DittoTracing.newPreparedTrace(headers, trace.getOperationName())
+                    .connectionId(connectionId)
+                    .correlationId(correlationId)
+                    .start();
             headers = trace.propagateContext(headers);
-            if (null != correlationId) {
-                trace = preparedTrace.correlationId(correlationId).start();
-            } else {
-                trace = preparedTrace.start();
-            }
 
             final ExternalMessageBuilder externalMessageBuilder =
                     ExternalMessageFactory.newExternalMessageBuilder(headers);
@@ -195,7 +189,8 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
                                             "basic.nack for deliveryTag={0}, requeue={0}",
                                     delivery.getEnvelope().getDeliveryTag(), requeue);
                         } catch (final IOException e) {
-                            logger.error("Delivery of basic.nack for deliveryTag={} failed: {}", envelope.getDeliveryTag(),
+                            logger.error("Delivery of basic.nack for deliveryTag={} failed: {}",
+                                    envelope.getDeliveryTag(),
                                     e.getMessage());
                             inboundAcknowledgedMonitor.exception(e);
                         }

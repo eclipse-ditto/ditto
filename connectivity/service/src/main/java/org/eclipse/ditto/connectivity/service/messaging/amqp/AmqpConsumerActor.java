@@ -339,7 +339,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
     private void handleJmsMessage(final JmsMessage message) {
         Map<String, String> headers = null;
         String correlationId = null;
-        StartedTrace trace = Traces.emptyStartedTrace();
+        StartedTrace trace = Traces.emptyStartedTrace(TraceOperationName.of("amqp_consume"));
         try {
             recordIncomingForRateLimit(message.getJMSMessageID());
             if (logger.isDebugEnabled()) {
@@ -353,7 +353,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
             }
             headers = extractHeadersMapFromJmsMessage(message);
             correlationId = headers.get(DittoHeaderDefinition.CORRELATION_ID.getKey());
-            trace = DittoTracing.trace(DittoTracing.extractTraceContext(headers), TraceOperationName.of("amqp_consume"))
+            trace = DittoTracing.newPreparedTrace(headers, trace.getOperationName())
                     .correlationId(correlationId)
                     .connectionId(connectionId)
                     .start();

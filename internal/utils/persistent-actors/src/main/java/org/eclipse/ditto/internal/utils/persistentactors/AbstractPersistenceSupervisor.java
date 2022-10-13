@@ -693,12 +693,15 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      * cause
      */
     protected CompletionStage<Object> enforceSignalAndForwardToTargetActor(final S signal, final ActorRef sender) {
-
         if (null != enforcerChild) {
-            final var trace = DittoTracing.trace(signal, TraceOperationName.of(signal.getType()))
+            final var trace = DittoTracing.newPreparedTrace(
+                            signal.getDittoHeaders(),
+                            TraceOperationName.of(signal.getType())
+                    )
                     .correlationId(signal.getDittoHeaders().getCorrelationId().orElse(null))
                     .start();
-            final S tracedSignal = DittoTracing.propagateContext(trace.getContext(), signal);
+            final var tracedSignal =
+                    signal.setDittoHeaders(DittoHeaders.of(trace.propagateContext(signal.getDittoHeaders())));
             final StartedTimer rootTimer = createTimer(tracedSignal);
             final StartedTimer enforcementTimer = rootTimer.startNewSegment(ENFORCEMENT_TIMER_SEGMENT_ENFORCEMENT);
             return askEnforcerChild(tracedSignal)
@@ -904,4 +907,5 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
 
     private record EnforcedSignalAndTargetActorResponse(@Nullable Signal<?> enforcedSignal,
                                                         @Nullable Object response) {}
+
 }

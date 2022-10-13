@@ -41,7 +41,6 @@ import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.server.Complete;
 import akka.http.javadsl.server.Route;
 import akka.http.javadsl.server.RouteResult;
-import kamon.context.Context;
 
 /**
  * Custom Akka Http directive tracing the request.
@@ -97,7 +96,7 @@ public final class RequestTracingDirective {
                 result = innerRouteSupplier.get();
             } else {
                 result = getRouteWithEnabledTracing(
-                        startTrace(getTraceContext(request), traceOperationName, correlationId),
+                        startTrace(getHttpHeadersAsMap(request.getHeaders()), traceOperationName, correlationId),
                         request,
                         innerRouteSupplier
                 );
@@ -131,21 +130,17 @@ public final class RequestTracingDirective {
         return disabledTraceOperationNames.contains(traceOperationName);
     }
 
-    private static Context getTraceContext(final HttpRequest httpRequest) {
-        return DittoTracing.extractTraceContext(getHttpHeadersAsMap(httpRequest.getHeaders()));
-    }
-
     private static Map<String, String> getHttpHeadersAsMap(final Iterable<HttpHeader> httpHeaders) {
         return StreamSupport.stream(httpHeaders.spliterator(), false)
                 .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value));
     }
 
     private static StartedTrace startTrace(
-            final Context traceContext,
+            final Map<String, String> headersMap,
             final TraceOperationName traceOperationName,
             @Nullable final CharSequence correlationId
     ) {
-        return DittoTracing.trace(traceContext, traceOperationName)
+        return DittoTracing.newPreparedTrace(headersMap, traceOperationName)
                 .correlationId(correlationId)
                 .start();
     }
@@ -158,7 +153,7 @@ public final class RequestTracingDirective {
         return mapRequest(
                 req -> addIfHeaderExists(
                         req,
-                        DittoTracing.propagateContext(startedTrace.getContext()),
+                        startedTrace.propagateContext(Map.of()),
                         DittoHeaderDefinition.W3C_TRACEPARENT,
                         DittoHeaderDefinition.W3C_TRACESTATE
                 ),

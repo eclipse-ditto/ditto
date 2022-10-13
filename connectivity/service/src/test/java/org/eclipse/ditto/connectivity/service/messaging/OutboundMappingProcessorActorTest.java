@@ -19,7 +19,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
@@ -40,7 +39,9 @@ import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
+import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.Attributes;
@@ -50,17 +51,18 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
-import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.FixMethodOrder;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+
 @FixMethodOrder(MethodSorters.DEFAULT)
 /**
  * Tests in addition to {@link MessageMappingProcessorActorTest}
@@ -68,39 +70,37 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class OutboundMappingProcessorActorTest {
 
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
+
     private static final Connection CONNECTION = createTestConnection();
 
-    private ActorSystem actorSystem;
+    @Rule
+    public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance(TestConstants.CONFIG);
+
     private ProtocolAdapterProvider protocolAdapterProvider;
     private TestProbe clientActorProbe;
     private TestProbe proxyActorProbe;
 
     @Before
     public void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
-        protocolAdapterProvider = ProtocolAdapterProvider.load(TestConstants.PROTOCOL_CONFIG, actorSystem);
-        clientActorProbe = TestProbe.apply("clientActor", actorSystem);
-        proxyActorProbe = TestProbe.apply("proxyActor", actorSystem);
-        MockCommandForwarder.create(actorSystem, proxyActorProbe.ref());
+        protocolAdapterProvider =
+                ProtocolAdapterProvider.load(TestConstants.PROTOCOL_CONFIG, actorSystemResource.getActorSystem());
+        clientActorProbe = actorSystemResource.newTestProbe("clientActor");
+        proxyActorProbe = actorSystemResource.newTestProbe("proxyActor");
+        MockCommandForwarder.create(actorSystemResource.getActorSystem(), proxyActorProbe.ref());
         proxyActorProbe.expectMsgClass(ActorRef.class).tell(proxyActorProbe.ref(), proxyActorProbe.ref());
         proxyActorProbe.expectMsgClass(ActorRef.class);
     }
 
-    @After
-    public void tearDown() {
-        if (actorSystem != null) {
-            TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
-                    false);
-        }
-    }
-
     @Test
     public void sendWeakAckForAllSourcesAndTargetsWhenDroppedByAllTargets() {
-        new TestKit(actorSystem) {{
+        new TestKit(actorSystemResource.getActorSystem()) {{
             final Props props =
                     OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessors(), CONNECTION,
                             TestConstants.CONNECTIVITY_CONFIG, 3);
-            final ActorRef underTest = actorSystem.actorOf(props);
+            final ActorRef underTest = actorSystemResource.newActor(props);
 
             // WHEN: mapping processor actor receives outbound signal whose every authorized target is filtered out
             final OutboundSignal outboundSignal = outboundTwinEvent(
@@ -125,11 +125,13 @@ public final class OutboundMappingProcessorActorTest {
 
     @Test
     public void eventsWithFailedEnrichmentIssueFailedAcks() {
-        new TestKit(actorSystem) {{
-            final Props props =
-                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessors(), CONNECTION,
-                            TestConstants.CONNECTIVITY_CONFIG, 3);
-            final ActorRef underTest = actorSystem.actorOf(props);
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            final Props props = OutboundMappingProcessorActor.props(clientActorProbe.ref(),
+                    getProcessors(),
+                    CONNECTION,
+                    TestConstants.CONNECTIVITY_CONFIG,
+                    3);
+            final ActorRef underTest = actorSystemResource.newActor(props);
 
             final OutboundSignal outboundSignal = outboundTwinEvent(
                     Attributes.newBuilder().set("target2", "wayne").build(),
@@ -150,11 +152,13 @@ public final class OutboundMappingProcessorActorTest {
 
     @Test
     public void sendWeakAckWhenDroppedBySomeTarget() {
-        new TestKit(actorSystem) {{
-            final Props props =
-                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessors(), CONNECTION,
-                            TestConstants.CONNECTIVITY_CONFIG, 3);
-            final ActorRef underTest = actorSystem.actorOf(props);
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            final Props props = OutboundMappingProcessorActor.props(clientActorProbe.ref(),
+                    getProcessors(),
+                    CONNECTION,
+                    TestConstants.CONNECTIVITY_CONFIG,
+                    3);
+            final ActorRef underTest = actorSystemResource.newActor(props);
 
             // WHEN: mapping processor actor receives outbound signal with 2 authorized targets,
             // 1 of which drops it via RQL filter after enrichment
@@ -180,11 +184,13 @@ public final class OutboundMappingProcessorActorTest {
 
     @Test
     public void sendWeakAckWhenDroppedByMapper() {
-        new TestKit(actorSystem) {{
-            final Props props =
-                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessors(), CONNECTION,
-                            TestConstants.CONNECTIVITY_CONFIG, 3);
-            final ActorRef underTest = actorSystem.actorOf(props);
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            final Props props = OutboundMappingProcessorActor.props(clientActorProbe.ref(),
+                    getProcessors(),
+                    CONNECTION,
+                    TestConstants.CONNECTIVITY_CONFIG,
+                    3);
+            final ActorRef underTest = actorSystemResource.newActor(props);
 
             // WHEN: mapping processor actor receives outbound signal with 2 authorized targets,
             // 1 of which drops it via payload mapping
@@ -208,11 +214,13 @@ public final class OutboundMappingProcessorActorTest {
 
     @Test
     public void doNotSendWeakAckForLiveResponse() {
-        new TestKit(actorSystem) {{
-            final Props props =
-                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessors(), CONNECTION,
-                            TestConstants.CONNECTIVITY_CONFIG, 3);
-            final ActorRef underTest = actorSystem.actorOf(props);
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            final Props props = OutboundMappingProcessorActor.props(clientActorProbe.ref(),
+                    getProcessors(),
+                    CONNECTION,
+                    TestConstants.CONNECTIVITY_CONFIG,
+                    3);
+            final ActorRef underTest = actorSystemResource.newActor(props);
 
             // WHEN: mapping processor actor receives outbound signal with 3 authorized targets,
             // 2 of which drops it via payload mapping, 1 of which issues live-response
@@ -236,11 +244,13 @@ public final class OutboundMappingProcessorActorTest {
 
     @Test
     public void expectNoTargetIssuedAckRequestInPublishedSignals() {
-        new TestKit(actorSystem) {{
-            final Props props =
-                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessors(), CONNECTION,
-                            TestConstants.CONNECTIVITY_CONFIG, 3);
-            final ActorRef underTest = actorSystem.actorOf(props);
+        new TestKit(actorSystemResource.getActorSystem()) {{
+            final Props props = OutboundMappingProcessorActor.props(clientActorProbe.ref(),
+                    getProcessors(),
+                    CONNECTION,
+                    TestConstants.CONNECTIVITY_CONFIG,
+                    3);
+            final ActorRef underTest = actorSystemResource.newActor(props);
 
             // WHEN: mapping processor actor receives outbound signal
             // with requests for source-declared and target-issued acks
@@ -262,9 +272,13 @@ public final class OutboundMappingProcessorActorTest {
     }
 
     private List<OutboundMappingProcessor> getProcessors() {
-        return List.of(OutboundMappingProcessor.of(CONNECTION, TestConstants.CONNECTIVITY_CONFIG, actorSystem,
+        return List.of(
+                OutboundMappingProcessor.of(CONNECTION,
+                TestConstants.CONNECTIVITY_CONFIG,
+                actorSystemResource.getActorSystem(),
                 protocolAdapterProvider.getProtocolAdapter("test"),
-                AbstractMessageMappingProcessorActorTest.mockLoggingAdapter()));
+                AbstractMessageMappingProcessorActorTest.mockLoggingAdapter())
+        );
     }
 
     private static OutboundSignal outboundTwinEvent(final Attributes attributes, final Collection<String> requestedAcks,
@@ -276,7 +290,8 @@ public final class OutboundMappingProcessorActorTest {
                         .acknowledgementRequests(requestedAcks.stream()
                                 .map(AcknowledgementRequest::parseAcknowledgementRequest)
                                 .toList())
-                        .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), testRef.path().toSerializationFormat())
+                        .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(),
+                                testRef.path().toSerializationFormat())
                         .build(),
                 Metadata.newMetadata(JsonObject.empty()));
         return OutboundSignalFactory.newOutboundSignal(thingModified, targets);
@@ -395,4 +410,5 @@ public final class OutboundMappingProcessorActorTest {
                 Thing.newBuilder().setId(thingId()).setAttributes(attributes).build(), null, null,
                 DittoHeaders.empty());
     }
+
 }

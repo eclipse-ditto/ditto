@@ -77,8 +77,10 @@ import org.eclipse.ditto.internal.utils.akka.PingCommand;
 import org.eclipse.ditto.internal.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.test.Retry;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -100,6 +102,10 @@ import scala.concurrent.duration.FiniteDuration;
  * Unit test for {@link ConnectionPersistenceActor}.
  */
 public final class ConnectionPersistenceActorTest extends WithMockServers {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     @Rule
     public final ActorSystemResource actorSystemResource1 = ActorSystemResource.newInstance(

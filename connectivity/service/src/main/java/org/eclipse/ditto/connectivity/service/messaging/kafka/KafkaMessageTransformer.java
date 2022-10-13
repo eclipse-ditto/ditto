@@ -108,10 +108,7 @@ final class KafkaMessageTransformer {
         final String correlationId = messageHeaders
                 .getOrDefault(DittoHeaderDefinition.CORRELATION_ID.getKey(), UUID.randomUUID().toString());
 
-        final var trace = DittoTracing.trace(
-                        DittoTracing.extractTraceContext(messageHeaders),
-                        TraceOperationName.of("kafka_consume")
-                )
+        final var trace = DittoTracing.newPreparedTrace(messageHeaders, TraceOperationName.of("kafka_consume"))
                 .correlationId(correlationId)
                 .connectionId(connectionId)
                 .start();

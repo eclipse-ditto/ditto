@@ -38,7 +38,7 @@ import kamon.tag.TagSet;
 final class PreparedKamonTimer implements PreparedTimer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PreparedKamonTimer.class);
-    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private static final ScheduledExecutorService SCHEDULER = Executors.newScheduledThreadPool(1);
 
     private final String name;
     private final Map<String, String> tags;
@@ -49,8 +49,12 @@ final class PreparedKamonTimer implements PreparedTimer {
         this(name, new HashMap<>(), Duration.ofMinutes(5), startedTimer -> {});
     }
 
-    private PreparedKamonTimer(final String name, final Map<String, String> tags, final Duration maximumDuration,
-            final Consumer<StartedTimer> additionalExpirationHandling) {
+    private PreparedKamonTimer(
+            final String name,
+            final Map<String, String> tags,
+            final Duration maximumDuration,
+            final Consumer<StartedTimer> additionalExpirationHandling
+    ) {
         this.name = name;
         this.tags = tags;
         this.maximumDuration = maximumDuration;
@@ -61,8 +65,11 @@ final class PreparedKamonTimer implements PreparedTimer {
         return new PreparedKamonTimer(name);
     }
 
-    private static void defaultExpirationHandling(final String tracingFilter, final StartedTimer timer,
-            @Nullable Consumer<StartedTimer> additionalExpirationHandling) {
+    private static void defaultExpirationHandling(
+            final String tracingFilter,
+            final StartedTimer timer,
+            @Nullable final Consumer<StartedTimer> additionalExpirationHandling
+    ) {
         LOGGER.trace("Trace for {} stopped. Cause: Timer expired", tracingFilter);
 
         if (additionalExpirationHandling != null) {
@@ -96,10 +103,9 @@ final class PreparedKamonTimer implements PreparedTimer {
         return this;
     }
 
-    @Nullable
     @Override
-    public String getTag(final String key) {
-        return tags.get(key);
+    public Optional<String> getTag(final String key) {
+        return Optional.ofNullable(tags.get(key));
     }
 
     @Override
@@ -109,7 +115,7 @@ final class PreparedKamonTimer implements PreparedTimer {
 
     @Override
     public PreparedTimer tag(final String key, final String value) {
-        this.tags.put(key, value);
+        tags.put(key, value);
         return this;
     }
 
@@ -121,7 +127,7 @@ final class PreparedKamonTimer implements PreparedTimer {
      */
     public StartedTimer start() {
         final StartedTimer timer = StartedKamonTimer.fromPreparedTimer(this);
-        final ScheduledFuture<?> expirationFuture = scheduler.schedule(
+        final ScheduledFuture<?> expirationFuture = SCHEDULER.schedule(
                 () -> defaultExpirationHandling(timer.getName(), timer, additionalExpirationHandling),
                 maximumDuration.toMillis(), TimeUnit.MILLISECONDS);
         timer.onStop(stoppedTimer -> cancelScheduledExpiration(stoppedTimer, expirationFuture));
@@ -156,7 +162,7 @@ final class PreparedKamonTimer implements PreparedTimer {
 
     @Override
     public String getName() {
-        return this.name;
+        return name;
     }
 
     @Override
@@ -182,7 +188,7 @@ final class PreparedKamonTimer implements PreparedTimer {
     }
 
     private kamon.metric.Timer getKamonInternalTimer() {
-        return Kamon.timer(name).withTags(TagSet.from(new HashMap<>(this.tags)));
+        return Kamon.timer(name).withTags(TagSet.from(new HashMap<>(tags)));
     }
 
     @Override
@@ -192,4 +198,5 @@ final class PreparedKamonTimer implements PreparedTimer {
                 ", tags=" + tags +
                 "]";
     }
+
 }

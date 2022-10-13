@@ -86,11 +86,14 @@ public interface SessionedJsonifiable {
             final DittoHeaders sessionHeaders,
             final StreamingSession session
     ) {
-        final var trace = DittoTracing.trace(signal, TraceOperationName.of("gw_streaming_out_signal"))
+        final var trace = DittoTracing.newPreparedTrace(
+                        signal.getDittoHeaders(),
+                        TraceOperationName.of("gw_streaming_out_signal")
+                )
                 .tag(TracingTags.SIGNAL_TYPE, signal.getType())
                 .start();
         return new SessionedSignal(
-                DittoTracing.propagateContext(trace.getContext(), signal),
+                signal.setDittoHeaders(DittoHeaders.of(trace.propagateContext(signal.getDittoHeaders()))),
                 sessionHeaders,
                 session,
                 trace
@@ -104,11 +107,14 @@ public interface SessionedJsonifiable {
      * @return the sessioned Jsonifiable.
      */
     static SessionedJsonifiable error(final DittoRuntimeException error) {
-        final var trace = DittoTracing.trace(error, TraceOperationName.of("gw_streaming_out_error"));
+        final var trace = DittoTracing.newPreparedTrace(
+                error.getDittoHeaders(),
+                TraceOperationName.of("gw_streaming_out_error")
+        );
         final var startedTrace = trace.start();
         startedTrace.fail(error);
         return new SessionedResponseErrorOrAck(
-                DittoTracing.propagateContext(startedTrace.getContext(), error),
+                error.setDittoHeaders(DittoHeaders.of(startedTrace.propagateContext(error.getDittoHeaders()))),
                 error.getDittoHeaders(),
                 startedTrace
         );
@@ -121,11 +127,14 @@ public interface SessionedJsonifiable {
      * @return the sessioned Jsonifiable.
      */
     static SessionedJsonifiable response(final CommandResponse<?> response) {
-        final var trace = DittoTracing.trace(response, TraceOperationName.of("gw_streaming_out_response"))
+        final var trace = DittoTracing.newPreparedTrace(
+                        response.getDittoHeaders(),
+                        TraceOperationName.of("gw_streaming_out_response")
+                )
                 .tag(TracingTags.SIGNAL_TYPE, response.getType())
                 .start();
         return new SessionedResponseErrorOrAck(
-                DittoTracing.propagateContext(trace.getContext(), response),
+                response.setDittoHeaders(DittoHeaders.of(trace.propagateContext(response.getDittoHeaders()))),
                 response.getDittoHeaders(),
                 trace
         );

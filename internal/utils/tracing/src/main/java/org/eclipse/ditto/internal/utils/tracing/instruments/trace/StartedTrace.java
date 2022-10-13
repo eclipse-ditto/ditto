@@ -17,8 +17,7 @@ import java.time.Instant;
 import java.util.Map;
 
 import org.eclipse.ditto.internal.utils.metrics.instruments.TaggableMetricsInstrument;
-
-import kamon.context.Context;
+import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 
 /**
  * A started trace.
@@ -87,15 +86,35 @@ public interface StartedTrace extends TaggableMetricsInstrument<StartedTrace>, T
     StartedTrace mark(String key, Instant at);
 
     /**
-     * @return the current trace context associated with this {@code StartedTrace}
+     * Returns the identifier of this trace span.
+     *
+     * @return the identifier.
      */
-    Context getContext();
+    SpanId getSpanId();
 
     /**
-     * Propagates the current context trace context to the given map.
+     * Returns the operation name of this trace span.
      *
-     * @param map the map containing to which the current trace context is added
-     * @return the given map with the current trace context added
+     * @return the operation name.
+     */
+    TraceOperationName getOperationName();
+
+    /**
+     * Propagates the current context of this trace to the specified map.
+     *
+     * @param map the map to which the current trace context is propagated.
+     * @return the given map with the current trace context added.
+     * @throws NullPointerException if {@code map} is {@code null}.
      */
     Map<String, String> propagateContext(Map<String, String> map);
+
+    /**
+     * Spawns a child trace of this StartedTrace with the specified TraceOperationName argument.
+     *
+     * @param traceOperationName the operation name of the returned child trace.
+     * @return the child trace of this trace.
+     * @throws NullPointerException if {@code traceOperationName} is {@code null}.
+     */
+    PreparedTrace spawnChild(TraceOperationName traceOperationName);
+
 }

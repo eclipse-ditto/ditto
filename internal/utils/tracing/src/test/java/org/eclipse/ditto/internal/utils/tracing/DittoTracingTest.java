@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -13,297 +13,236 @@
 package org.eclipse.ditto.internal.utils.tracing;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
-import java.util.ArrayList;
-import java.util.Collections;
+import java.time.Duration;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
+import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
-import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.internal.utils.tracing.config.DefaultTracingConfig;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.Timers;
+import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.KamonTracingInitResource;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.TestSpanReporter;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.Traces;
+import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
-import org.junit.experimental.runners.Enclosed;
-import org.junit.runner.RunWith;
-import org.mockito.ArgumentMatchers;
+import org.junit.rules.TestName;
 import org.mockito.Mockito;
 
-import com.typesafe.config.ConfigFactory;
-
-import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.server.RequestContext;
 import kamon.Kamon;
-import kamon.context.Context;
-import kamon.trace.Identifier;
-import kamon.trace.Span;
-import kamon.trace.Trace;
 
 /**
- * Tests {@link org.eclipse.ditto.internal.utils.tracing.DittoTracing}.
+ * Unit test for {@link DittoTracing}.
  */
-@RunWith(Enclosed.class)
-public class DittoTracingTest {
+public final class DittoTracingTest {
 
-    private static final Identifier SPAN_ID = Kamon.identifierScheme().spanIdFactory().generate();
-    private static final Identifier TRACE_ID = Kamon.identifierScheme().traceIdFactory().generate();
-    private static final Identifier EXPECTED_TRACE_ID = Kamon.identifierScheme().traceIdFactory().from(
-            "0000000000000000" + TRACE_ID.string());
-    private static final String EXPECTED_TRACEPARENT =
-            "00-0000000000000000" + TRACE_ID.string() + "-" + SPAN_ID.string() + "-00";
+    @ClassRule
+    public static final KamonTracingInitResource KAMON_TRACING_INIT_RESOURCE = KamonTracingInitResource.newInstance(
+            KamonTracingInitResource.KamonTracingConfig.defaultValues()
+                    .withIdentifierSchemeDouble()
+                    .withSamplerAlways()
+                    .withTickInterval(Duration.ofMillis(100L))
+    );
 
-    public static final class EnabledDittoTracingTest {
+    @Rule
+    public final TestName testName = new TestName();
 
-        private Context context;
+    private TracingConfig tracingConfigMock;
 
-        @BeforeClass
-        public static void beforeClass() throws Exception {
-            Kamon.init(ConfigFactory.parseMap(Map.of(
-                    "kamon.trace.sampler", "always",
-                    "kamon.trace.identifier-scheme", "double",
-                    "kamon.trace.tick-interval", "10ms",
-                    "kamon.propagation.http.default.entries.incoming.span", "w3c",
-                    "kamon.propagation.http.default.entries.outgoing.span", "w3c"
-            )).withFallback(ConfigFactory.load()));
-            DittoTracing.initialize(DefaultTracingConfig.of(ConfigFactory.parseMap(
-                    Map.of("tracing.enabled", "true"))));
-        }
+    @Before
+    public void before() {
+        tracingConfigMock = Mockito.mock(TracingConfig.class);
+        Mockito.when(tracingConfigMock.isTracingEnabled()).thenReturn(true);
+        Mockito.when(tracingConfigMock.getPropagationChannel()).thenReturn("default");
+    }
 
-        @Before
-        public void setUp() throws Exception {
-            final Trace trace = mock(Trace.class);
-            final Span span = Mockito.mock(Span.class);
-            when(span.trace()).thenReturn(trace);
-            when(span.id()).thenReturn(SPAN_ID);
-            when(trace.id()).thenReturn(TRACE_ID);
-            context = Context.of(Span.Key(), span);
-        }
+    @After
+    public void after() {
+        DittoTracing.reset();
+    }
 
-        @Test
-        public void propagateContextToCommand() {
-            final Command<?> command = mock(Command.class);
-            when(command.getDittoHeaders()).thenReturn(DittoHeaders.empty());
+    @Test
+    public void initWithUndefinedPropagationChannelNameInConfigThrowsDittoConfigError() {
+        final var invalidChannelName = "zoeglfrex";
+        Mockito.when(tracingConfigMock.getPropagationChannel()).thenReturn(invalidChannelName);
 
-            DittoTracing.propagateContext(context, command);
+        assertThatExceptionOfType(DittoConfigError.class)
+                .isThrownBy(() -> DittoTracing.init(tracingConfigMock))
+                .withMessage("HTTP propagation for channel name <%s> is undefined.", invalidChannelName)
+                .withCauseInstanceOf(IllegalArgumentException.class);
+    }
 
-            verify(command).setDittoHeaders(ArgumentMatchers.argThat(dh -> {
-                assertThat(dh).containsEntry(DittoHeaderDefinition.W3C_TRACEPARENT.getKey(), EXPECTED_TRACEPARENT);
-                return true;
-            }));
-        }
+    @Test
+    public void newPreparedTraceBeforeInitThrowsIllegalStateException() {
+        assertThatIllegalStateException()
+                .isThrownBy(() -> DittoTracing.newPreparedTrace(
+                        Map.of(),
+                        TraceOperationName.of(testName.getMethodName())
+                ))
+                .withMessage("Operation not allowed in uninitialized state.")
+                .withNoCause();
+    }
 
-        @Test
-        public void propagateContextToSignal() {
-            final Signal<?> signal = mock(Signal.class);
-            when(signal.getDittoHeaders()).thenReturn(DittoHeaders.empty());
+    @Test
+    public void newPreparedTraceWithNullHeadersThrowsNullPointerException() {
+        DittoTracing.init(tracingConfigMock);
 
-            DittoTracing.propagateContext(context, signal);
+        assertThatNullPointerException()
+                .isThrownBy(() -> DittoTracing.newPreparedTrace(null, TraceOperationName.of(testName.getMethodName())))
+                .withMessage("The headers must not be null!")
+                .withNoCause();
+    }
 
-            verify(signal).setDittoHeaders(ArgumentMatchers.argThat(dh -> {
-                assertThat(dh).containsEntry(DittoHeaderDefinition.W3C_TRACEPARENT.getKey(), EXPECTED_TRACEPARENT);
-                return true;
-            }));
-        }
+    @Test
+    public void newPreparedTraceWithNullTraceOperationNameThrowsNullPointerException() {
+        DittoTracing.init(tracingConfigMock);
 
-        @Test
-        public void propagateContextToDittoHeadersSettable() {
-            final DittoHeadersSettable<?> dittoHeadersSettable = mock(DittoHeadersSettable.class);
-            when(dittoHeadersSettable.getDittoHeaders()).thenReturn(DittoHeaders.empty());
+        assertThatNullPointerException()
+                .isThrownBy(() -> DittoTracing.newPreparedTrace(Map.of(), null))
+                .withMessage("The traceOperationName must not be null!")
+                .withNoCause();
+    }
 
-            DittoTracing.propagateContext(context, dittoHeadersSettable);
+    @Test
+    public void newTraceTraceByTimerBeforeInitThrowsIllegalStateException() {
+        assertThatIllegalStateException()
+                .isThrownBy(() -> DittoTracing.newStartedTraceByTimer(
+                        Map.of(),
+                        Timers.newTimer(testName.getMethodName()).start()
+                ))
+                .withMessage("Operation not allowed in uninitialized state.")
+                .withNoCause();
+    }
 
-            verify(dittoHeadersSettable).setDittoHeaders(ArgumentMatchers.argThat(dh -> {
-                assertThat(dh).containsEntry("traceparent", EXPECTED_TRACEPARENT);
-                return true;
-            }));
-        }
+    @Test
+    public void newStartedTraceByTimerWithNullHeadersThrowsNullPointerException() {
+        DittoTracing.init(tracingConfigMock);
+        final var startedTimer = Timers.newTimer(testName.getMethodName()).start();
 
-        @Test
-        public void propagateContextToDittoHeaders() {
-            final DittoHeaders dittoHeaders = DittoTracing.propagateContext(context, DittoHeaders.empty());
-            assertThat(dittoHeaders).containsEntry("traceparent", EXPECTED_TRACEPARENT);
-        }
+        assertThatNullPointerException()
+                .isThrownBy(() -> DittoTracing.newStartedTraceByTimer(null, startedTimer))
+                .withMessage("The headers must not be null!")
+                .withNoCause();
+    }
 
-        @Test
-        public void propagateContextWithCustomSetter() {
-            final List<String> result = DittoTracing.propagateContext(context, Collections.emptyList(), (l, e) -> {
-                final List<String> theList = new ArrayList<>(l);
-                theList.add(e.getKey() + "=" + e.getValue());
-                return theList;
-            });
-            assertThat(result).contains(DittoHeaderDefinition.W3C_TRACEPARENT.getKey() + "=" + EXPECTED_TRACEPARENT);
-        }
+    @Test
+    public void newStartedTraceByTimerWithNullStartedTimerThrowsNullPointerException() {
+        DittoTracing.init(tracingConfigMock);
 
-        @Test
-        public void propagateContextToNewMap() {
-            final Map<String, String> map = DittoTracing.propagateContext(context);
-            assertThat(map).containsEntry("traceparent", EXPECTED_TRACEPARENT);
-        }
+        assertThatNullPointerException()
+                .isThrownBy(() -> DittoTracing.newStartedTraceByTimer(Map.of(), null))
+                .withMessage("The startedTimer must not be null!")
+                .withNoCause();
+    }
 
-        @Test
-        public void propagateContextToExistingMap() {
-            final Map<String, String> existing = new HashMap<>(Map.of("eclipse", "ditto"));
-            final Map<String, String> map = DittoTracing.propagateContext(context, existing);
-            assertThat(map).contains(Map.entry("traceparent", EXPECTED_TRACEPARENT), Map.entry("eclipse", "ditto"));
-        }
+    @Test
+    public void newPreparedTraceWhenTracingIsDisabledReturnsEmptyPreparedTrace() {
+        disableDittoTracingByConfig();
+        DittoTracing.init(tracingConfigMock);
+        final var operationName = TraceOperationName.of(testName.getMethodName());
 
-        @Test
-        public void extractTraceContextFromHttpRequest() {
-            final HttpRequest httpRequest = mock(HttpRequest.class);
-            when(httpRequest.getHeaders()).thenReturn(List.of(HttpHeader.parse("traceparent", EXPECTED_TRACEPARENT)));
-            final Context extracted = DittoTracing.extractTraceContext(httpRequest);
-            assertThat(extracted.get(Span.Key()).id()).isEqualTo(SPAN_ID);
-            assertThat(extracted.get(Span.Key()).trace().id()).isEqualTo(EXPECTED_TRACE_ID);
-        }
+        final var preparedTrace = DittoTracing.newPreparedTrace(Map.of(), operationName);
 
-        @Test
-        public void extractTraceContextFromRequestContext() {
-            final RequestContext requestContext = mock(RequestContext.class);
-            final HttpRequest httpRequest = mock(HttpRequest.class);
-            when(httpRequest.getHeaders()).thenReturn(List.of(HttpHeader.parse("traceparent", EXPECTED_TRACEPARENT)));
-            when(requestContext.getRequest()).thenReturn(httpRequest);
-            final Context extracted = DittoTracing.extractTraceContext(requestContext);
-            assertThat(extracted.get(Span.Key()).id()).isEqualTo(SPAN_ID);
-            assertThat(extracted.get(Span.Key()).trace().id()).isEqualTo(EXPECTED_TRACE_ID);
-        }
+        assertThat(preparedTrace).isEqualTo(Traces.emptyPreparedTrace(operationName));
+    }
 
-        @Test
-        public void extractTraceContextFromWithDittoHeaders() {
-            final WithDittoHeaders withDittoHeaders = mock(WithDittoHeaders.class);
-            when(withDittoHeaders.getDittoHeaders()).thenReturn(
-                    DittoHeaders.newBuilder().traceparent(EXPECTED_TRACEPARENT).build());
-            final Context extracted = DittoTracing.extractTraceContext(withDittoHeaders);
-            assertThat(extracted.get(Span.Key()).id()).isEqualTo(SPAN_ID);
-            assertThat(extracted.get(Span.Key()).trace().id()).isEqualTo(EXPECTED_TRACE_ID);
-        }
+    private void disableDittoTracingByConfig() {
+        Mockito.when(tracingConfigMock.isTracingEnabled()).thenReturn(false);
+    }
 
-        @Test
-        public void extractTraceContextFromMap() {
-            final Context extracted = DittoTracing.extractTraceContext(Map.of("traceparent", EXPECTED_TRACEPARENT));
-            assertThat(extracted.get(Span.Key()).id()).isEqualTo(SPAN_ID);
-            assertThat(extracted.get(Span.Key()).trace().id()).isEqualTo(EXPECTED_TRACE_ID);
+    @Test
+    public void newStartedTraceByTimerWhenTracingIsDisabledReturnsEmptyPreparedTrace() {
+        disableDittoTracingByConfig();
+        DittoTracing.init(tracingConfigMock);
+        final var traceOperationName = TraceOperationName.of(testName.getMethodName());
+        final var startedTimer = Timers.newTimer(traceOperationName.toString()).start();
+
+        final var startedTrace = DittoTracing.newStartedTraceByTimer(Map.of(), startedTimer);
+
+        assertThat(startedTrace).isEqualTo(Traces.emptyStartedTrace(traceOperationName));
+    }
+
+    @Test
+    public void newPreparedTraceWhenTracingIsEnabledReturnsExpectedPreparedTrace() {
+        DittoTracing.init(tracingConfigMock);
+        final var correlationId = testName.getMethodName();
+        final var connectionId = "my-connection";
+        final var entityId = "my-entity";
+        final var retainedHeaders = Map.of(
+                DittoHeaderDefinition.CORRELATION_ID.getKey(), correlationId,
+                DittoHeaderDefinition.CONNECTION_ID.getKey(), connectionId,
+                DittoHeaderDefinition.ENTITY_ID.getKey(), entityId
+        );
+        final var allHeaders = new HashMap<>(retainedHeaders);
+        allHeaders.put("foo", "bar");
+        allHeaders.put("ping", "pong");
+        final var operationName = TraceOperationName.of(correlationId);
+
+        final var preparedTrace = DittoTracing.newPreparedTrace(allHeaders, operationName);
+
+        try (final var softly = new AutoCloseableSoftAssertions()) {
+            softly.assertThat(preparedTrace.getTags())
+                    .as("tags")
+                    .containsOnly(
+                            Map.entry(TracingTags.CORRELATION_ID, correlationId),
+                            Map.entry(TracingTags.CONNECTION_ID, connectionId),
+                            Map.entry(TracingTags.ENTITY_ID, entityId)
+                    );
+            softly.assertThat(preparedTrace.start())
+                    .satisfies(startedTrace -> softly.assertThat((CharSequence) startedTrace.getOperationName())
+                            .as("operation name")
+                            .isEqualTo(operationName));
         }
     }
 
-    public static final class DisabledDittoTracingTest {
+    @Test
+    public void newStartedTraceByTimerWhenTracingIsEnabledReturnsExpectedStartedTrace() {
+        DittoTracing.init(tracingConfigMock);
+        final var operationName = TraceOperationName.of(testName.getMethodName());
+        final var timerTags = Map.of(
+                "foo", "bar",
+                "marco", "polo"
+        );
+        final var startedTimer = Timers.newTimer(operationName.toString()).tags(timerTags).start();
+        final var dittoHeaders = DittoHeaders.newBuilder().correlationId(operationName).build();
+        final var spanReporter = TestSpanReporter.newInstance();
+        Kamon.addReporter("mySpanReporter", spanReporter);
 
-        private Context context;
+        final var startedTrace = DittoTracing.newStartedTraceByTimer(dittoHeaders, startedTimer);
 
-        @BeforeClass
-        public static void beforeClass() throws Exception {
-            DittoTracing.initialize(DefaultTracingConfig.of(ConfigFactory.parseMap(
-                    Map.of("tracing.enabled", "false"))));
-        }
+        final var tagsForSpanFuture = spanReporter.getTagsForSpanWithId(startedTrace.getSpanId());
+        final var startInstantForSpanFuture = spanReporter.getStartInstantForSpanWithId(startedTrace.getSpanId());
+        startedTimer.stop();
 
-        @Before
-        public void setUp() throws Exception {
-            final Trace trace = mock(Trace.class);
-            final Span span = Mockito.mock(Span.class);
-            when(span.trace()).thenReturn(trace);
-            when(span.id()).thenReturn(SPAN_ID);
-            when(trace.id()).thenReturn(TRACE_ID);
-
-            context = Context.of(Span.Key(), span);
-        }
-
-        @Test
-        public void propagateContextToCommand() {
-            final Command<?> command = mock(Command.class);
-            final Command<?> sameCommand = DittoTracing.propagateContext(context, command);
-            assertThat(sameCommand).isSameAs(command);
-            verifyNoInteractions(command);
-        }
-
-        @Test
-        public void propagateContextToSignal() {
-            final Signal<?> signal = mock(Signal.class);
-            final Signal<?> sameSignal = DittoTracing.propagateContext(context, signal);
-            assertThat(sameSignal).isSameAs(signal);
-            verifyNoInteractions(signal);
-        }
-
-        @Test
-        public void propagateContextToDittoHeadersSettable() {
-            final DittoHeadersSettable<?> dittoHeadersSettable = mock(DittoHeadersSettable.class);
-            final DittoHeadersSettable<?> sameSettable = DittoTracing.propagateContext(context, dittoHeadersSettable);
-            assertThat(sameSettable).isSameAs(dittoHeadersSettable);
-            verifyNoInteractions(dittoHeadersSettable);
-        }
-
-        @Test
-        public void propagateContextToDittoHeaders() {
-            final DittoHeaders empty = DittoHeaders.empty();
-            final DittoHeaders dittoHeaders = DittoTracing.propagateContext(context, empty);
-            assertThat(dittoHeaders).isSameAs(empty);
-        }
-
-        @Test
-        public void propagateContextWithCustomSetter() {
-            final List<String> emptyList = Collections.emptyList();
-            final List<String> result = DittoTracing.propagateContext(context, emptyList, (l, e) -> {
-                final List<String> theList = new ArrayList<>(l);
-                theList.add(e.getKey() + "=" + e.getValue());
-                return theList;
-            });
-            assertThat(result).isSameAs(emptyList);
-        }
-
-        @Test
-        public void propagateContextToNewMap() {
-            final Map<String, String> map = DittoTracing.propagateContext(context);
-            assertThat(map).isEmpty();
-        }
-
-        @Test
-        public void propagateContextToExistingMap() {
-            final Map<String, String> existing = new HashMap<>(Map.of("eclipse", "ditto"));
-            final Map<String, String> map = DittoTracing.propagateContext(context, existing);
-            assertThat(map).isSameAs(existing);
-        }
-
-
-        @Test
-        public void extractTraceContextFromHttpRequest() {
-            final HttpRequest httpRequest = mock(HttpRequest.class);
-            when(httpRequest.getHeaders()).thenReturn(List.of(HttpHeader.parse("traceparent", EXPECTED_TRACEPARENT)));
-            final Context extracted = DittoTracing.extractTraceContext(httpRequest);
-            assertThat(extracted.isEmpty()).isTrue();
-        }
-
-        @Test
-        public void extractTraceContextFromRequestContext() {
-            final RequestContext requestContext = mock(RequestContext.class);
-            final HttpRequest httpRequest = mock(HttpRequest.class);
-            when(httpRequest.getHeaders()).thenReturn(List.of(HttpHeader.parse("traceparent", EXPECTED_TRACEPARENT)));
-            when(requestContext.getRequest()).thenReturn(httpRequest);
-            final Context extracted = DittoTracing.extractTraceContext(requestContext);
-            assertThat(extracted.isEmpty()).isTrue();
-        }
-
-        @Test
-        public void extractTraceContextFromWithDittoHeaders() {
-            final WithDittoHeaders withDittoHeaders = mock(WithDittoHeaders.class);
-            when(withDittoHeaders.getDittoHeaders()).thenReturn(
-                    DittoHeaders.newBuilder().traceparent(EXPECTED_TRACEPARENT).build());
-            final Context extracted = DittoTracing.extractTraceContext(withDittoHeaders);
-            assertThat(extracted.isEmpty()).isTrue();
-        }
-
-        @Test
-        public void extractTraceContextFromMap() {
-            final Context extracted = DittoTracing.extractTraceContext(Map.of("traceparent", EXPECTED_TRACEPARENT));
-            assertThat(extracted.isEmpty()).isTrue();
+        try (final var softly = new AutoCloseableSoftAssertions()) {
+            softly.assertThat((CharSequence) startedTrace.getOperationName())
+                    .as("operation name")
+                    .isEqualTo(operationName);
+            softly.assertThat(tagsForSpanFuture)
+                    .as("tags")
+                    .succeedsWithin(Duration.ofSeconds(2L))
+                    .satisfies(actualTags -> {
+                        softly.assertThat(actualTags)
+                                .containsAllEntriesOf(timerTags)
+                                .containsEntry(
+                                        TracingTags.CORRELATION_ID,
+                                        dittoHeaders.getCorrelationId().orElseThrow()
+                                );
+                    });
+            softly.assertThat(startInstantForSpanFuture)
+                    .as("start instant")
+                    .succeedsWithin(Duration.ofSeconds(2L))
+                    .isEqualTo(startedTimer.getStartInstant().toInstant());
         }
     }
+
 }

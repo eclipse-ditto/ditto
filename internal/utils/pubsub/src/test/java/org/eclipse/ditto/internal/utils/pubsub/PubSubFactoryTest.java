@@ -48,11 +48,12 @@ import org.eclipse.ditto.internal.utils.pubsub.api.Subscribe;
 import org.eclipse.ditto.internal.utils.pubsub.api.Unsubscribe;
 import org.eclipse.ditto.internal.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
-import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.AbstractActor;
@@ -77,6 +78,10 @@ import scala.concurrent.duration.Duration;
  */
 public final class PubSubFactoryTest {
 
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
+
     private ActorSystem system1;
     private ActorSystem system2;
     private ActorSystem system3;
@@ -93,16 +98,23 @@ public final class PubSubFactoryTest {
     private Map<String, EntityId> thingIdMap;
     private Map<String, DittoHeaders> dittoHeadersMap;
 
-    private Config getTestConf() {
-        return ConfigFactory.load("pubsub-factory-test.conf");
-    }
+//    @BeforeClass
+//    public static void beforeClass() {
+//        DittoTracing.init(Mockito.mock(TracingConfig.class));
+//    }
+//
+//    @AfterClass
+//    public static void afterClass() {
+//        DittoTracing.reset();
+//    }
 
     @Before
     public void setUpCluster() throws Exception {
         final CountDownLatch latch = new CountDownLatch(2);
-        system1 = ActorSystem.create("actorSystem", getTestConf());
-        system2 = ActorSystem.create("actorSystem", getTestConf());
-        system3 = ActorSystem.create("actorSystem", getTestConf());
+        final var testConf = ConfigFactory.load("pubsub-factory-test.conf");
+        system1 = ActorSystem.create("actorSystem", testConf);
+        system2 = ActorSystem.create("actorSystem", testConf);
+        system3 = ActorSystem.create("actorSystem", testConf);
         cluster1 = Cluster.get(system1);
         cluster2 = Cluster.get(system2);
         cluster3 = Cluster.get(system3);

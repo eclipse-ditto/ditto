@@ -13,59 +13,237 @@
 package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+import java.time.Duration;
+import java.util.Map;
+
+import org.assertj.core.api.AutoCloseableSoftAssertions;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartInstant;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.Timers;
+import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 import org.eclipse.ditto.internal.utils.tracing.TracingTags;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
-import kamon.context.Context;
+import kamon.Kamon;
 
-public class PreparedKamonTraceTest {
+/**
+ * Unit test for {@link PreparedKamonTrace}.
+ */
+public final class PreparedKamonTraceTest {
 
-    private PreparedTrace underTest;
+    @Rule
+    public final KamonTracingInitResource kamonTracingInitResource = KamonTracingInitResource.newInstance(
+            KamonTracingInitResource.KamonTracingConfig.defaultValues()
+                    .withIdentifierSchemeDouble()
+                    .withSamplerAlways()
+                    .withTickInterval(Duration.ofMillis(100L))
+    );
+
+    @Rule
+    public final TestName testName = new TestName();
+
+    private PreparedKamonTrace underTest;
 
     @Before
     public void setup() {
-        underTest = new PreparedKamonTrace(Context.Empty(), "prepared");
+        underTest = PreparedKamonTrace.newInstance(
+                Map.of(),
+                TraceOperationName.of(testName.getMethodName()),
+                KamonHttpContextPropagation.newInstanceForChannelName("default")
+        );
     }
 
     @Test
-    public void taggingWorks() {
-        underTest.tag("stringTag", "2");
-        underTest.tag("longTag", 2L);
-        underTest.tag("booleanTag", true);
-        underTest.tag("doubleTag", 2.0);
+    public void setSingleTagWorks() {
+        final var stringTagKey = "stringTag";
+        final var stringTagValue = "2";
+        final var longTagKey = "longTag";
+        final var longTagValue = Long.valueOf(2L);
+        final var booleanTagKey = "booleanTag";
+        final var booleanTagValue = Boolean.TRUE;
+        final var doubleTagKey = "doubleTag";
+        final var doubleTagValue = Double.valueOf(2.0);
 
-        assertThat(underTest.getTags()).hasSize(4);
-        assertThat(underTest.getTag("stringTag")).isEqualTo("2");
-        assertThat(underTest.getTag("longTag")).isEqualTo("2");
-        assertThat(underTest.getTag("booleanTag")).isEqualTo("true");
-        assertThat(underTest.getTag("doubleTag")).isEqualTo("2.0");
+        underTest.tag(stringTagKey, stringTagValue);
+        underTest.tag(longTagKey, longTagValue);
+        underTest.tag(booleanTagKey, booleanTagValue);
+        underTest.tag(doubleTagKey, doubleTagValue);
+
+        assertThat(underTest.getTags())
+                .containsOnly(
+                        Map.entry(stringTagKey, stringTagValue),
+                        Map.entry(longTagKey, longTagValue.toString()),
+                        Map.entry(booleanTagKey, booleanTagValue.toString()),
+                        Map.entry(doubleTagKey, doubleTagValue.toString())
+                );
     }
 
     @Test
-    public void traceTags() {
-        underTest.correlationId("12345");
-        underTest.connectionType("test");
-        underTest.connectionId("connection-1");
+    public void getTagWithNullKeyThrowsNullPointerException() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> underTest.getTag(null))
+                .withMessage("The key must not be null!")
+                .withNoCause();
+    }
 
-        assertThat(underTest.getTags()).hasSize(3);
-        assertThat(underTest.getTag(TracingTags.CORRELATION_ID)).isEqualTo("12345");
-        assertThat(underTest.getTag(TracingTags.CONNECTION_TYPE)).isEqualTo("test");
-        assertThat(underTest.getTag(TracingTags.CONNECTION_ID)).isEqualTo("connection-1");
+    @Test
+    public void getTagForKeyWithNoAssociatedValueReturnsEmptyOptional() {
+        assertThat(underTest.getTag("foo")).isEmpty();
+    }
+
+    @Test
+    public void getTagForKeyWithAssociatedValueReturnsOptionalContainingThatValue() {
+        final var key = "foo";
+        final var value = "bar";
+        underTest.tag(key, value);
+
+        assertThat(underTest.getTag(key)).hasValue(value);
+    }
+
+    @Test
+    public void getTagsReturnsExpected() {
+        final var correlationId = "12345";
+        final var connectionId = "connection-1";
+        final var entityId = "my-entity";
+
+        underTest.correlationId(correlationId);
+        underTest.connectionId(connectionId);
+        underTest.entityId(entityId);
+
+        assertThat(underTest.getTags())
+                .containsOnly(
+                        Map.entry(TracingTags.CORRELATION_ID, correlationId),
+                        Map.entry(TracingTags.CONNECTION_ID, connectionId),
+                        Map.entry(TracingTags.ENTITY_ID, entityId)
+                );
     }
 
     @Test
     public void nullTraceTagsAreIgnored() {
         underTest.correlationId(null);
-        underTest.connectionType(null);
         underTest.connectionId(null);
+        underTest.entityId(null);
+
         assertThat(underTest.getTags()).isEmpty();
+    }
+
+    @Test
+    public void tagsWithNullMapThrowsNullPointerException() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> underTest.tags(null))
+                .withMessage("The tags must not be null!")
+                .withNoCause();
+    }
+
+    @Test
+    public void tagsPutsKeysAndValuesOfSpecifiedMapToTagsOfPreparedKamonSpan() {
+        final var stringTagKey = "stringTag";
+        final var longTagKey = "longTag";
+        final var booleanTagKey = "booleanTag";
+        final var doubleTagKey = "doubleTag";
+        final var stringTagKeyEntry = Map.entry(stringTagKey, "Tardis");
+        final var longTagKeyEntry = Map.entry(longTagKey, "23");
+        final var booleanTagKeyEntry = Map.entry(booleanTagKey, "true");
+        final var doubleTagKeyEntry = Map.entry(doubleTagKey, "4.2");
+        final var fooEntry = Map.entry("foo", "bar");
+        underTest.tag(stringTagKey, "stringTag");
+        underTest.tag(longTagKey, 1L);
+        underTest.tag(booleanTagKey, false);
+        underTest.tag(doubleTagKey, 1.2);
+        underTest.tag(fooEntry.getKey(), fooEntry.getValue());
+
+        underTest.tags(Map.ofEntries(stringTagKeyEntry, longTagKeyEntry, booleanTagKeyEntry, doubleTagKeyEntry));
+
+        assertThat(underTest.getTags())
+                .containsOnly(
+                        stringTagKeyEntry,
+                        longTagKeyEntry,
+                        booleanTagKeyEntry,
+                        doubleTagKeyEntry,
+                        fooEntry
+                );
     }
 
     @Test
     public void selfReturnsSelf() {
         assertThat(underTest.self()).isSameAs(underTest);
+    }
+
+    @Test
+    public void startReturnsStartedTraceWithExpectedTags() {
+        underTest.tags(Map.of(
+                "foo", "bar",
+                "ping", "pong",
+                "marco", "polo"
+        ));
+        final var spanReporter = TestSpanReporter.newInstance();
+        Kamon.addReporter("mySpanReporter", spanReporter);
+
+        final var startedTrace = underTest.start();
+
+        final var tagsForSpanFuture = spanReporter.getTagsForSpanWithId(startedTrace.getSpanId());
+        startedTrace.finish();
+
+        assertThat(tagsForSpanFuture)
+                .succeedsWithin(Duration.ofSeconds(1L))
+                .isEqualTo(underTest.getTags());
+    }
+
+    @SuppressWarnings("java:S2925")
+    @Test
+    public void startAtReturnsStartedTraceWithExpectedTagsAndStartInstant() throws InterruptedException {
+        final var startInstant = StartInstant.now();
+        underTest.tags(Map.of(
+                "foo", "bar",
+                "ping", "pong",
+                "marco", "polo"
+        ));
+        final var spanReporter = TestSpanReporter.newInstance();
+        Kamon.addReporter("mySpanReporter", spanReporter);
+        Thread.sleep(150L);
+
+        final var startedTrace = underTest.startAt(startInstant);
+
+        final var tagsForSpanFuture = spanReporter.getTagsForSpanWithId(startedTrace.getSpanId());
+        final var startInstantForSpanFuture = spanReporter.getStartInstantForSpanWithId(startedTrace.getSpanId());
+        startedTrace.finish();
+
+        try (final var softly = new AutoCloseableSoftAssertions()) {
+            softly.assertThat(tagsForSpanFuture)
+                    .as("tags")
+                    .succeedsWithin(Duration.ofSeconds(2L))
+                    .isEqualTo(underTest.getTags());
+            softly.assertThat(startInstantForSpanFuture)
+                    .as("start instant")
+                    .succeedsWithin(Duration.ofSeconds(2L))
+                    .isEqualTo(startInstant.toInstant());
+        }
+    }
+
+    @Test
+    public void startByStartedTimerReturnsStartedTraceWithTagsOfTimer() {
+        final var spanReporter = TestSpanReporter.newInstance();
+        Kamon.addReporter("mySpanReporter", spanReporter);
+        final var startedTimer = Timers.newTimer(testName.getMethodName())
+                .tags(Map.of(
+                        "foo", "bar",
+                        "ping", "pong",
+                        "marco", "polo"
+                ))
+                .start();
+
+        final var startedTrace = underTest.startBy(startedTimer);
+
+        final var tagsForSpanFuture = spanReporter.getTagsForSpanWithId(startedTrace.getSpanId());
+        startedTimer.stop();
+
+        assertThat(tagsForSpanFuture)
+                .succeedsWithin(Duration.ofSeconds(1L))
+                .isEqualTo(startedTimer.getTags());
     }
 
 }

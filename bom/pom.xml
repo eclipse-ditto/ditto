@@ -990,6 +990,13 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-internal-utils-tracing</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-internal-connectivity-common</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>

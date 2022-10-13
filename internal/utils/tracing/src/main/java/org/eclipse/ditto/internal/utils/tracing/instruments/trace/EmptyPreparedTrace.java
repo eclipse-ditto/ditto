@@ -12,47 +12,48 @@
  */
 package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
-import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartInstant;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 
 /**
  * An empty noop implementation of {@code PreparedTrace} interface.
  */
+@Immutable
 final class EmptyPreparedTrace implements PreparedTrace {
 
-    private static final PreparedTrace INSTANCE = new EmptyPreparedTrace();
+    private final TraceOperationName operationName;
 
-    private EmptyPreparedTrace() {
+    private EmptyPreparedTrace(final TraceOperationName operationName) {
+        this.operationName = operationName;
     }
 
-    /**
-     * @return the {@code EmptyPreparedTrace} singleton instance.
-     */
-    static PreparedTrace getInstance() {
-        return INSTANCE;
+    static EmptyPreparedTrace newInstance(final TraceOperationName operationName) {
+        return new EmptyPreparedTrace(ConditionChecker.checkNotNull(operationName, "operationName"));
     }
 
     @Override
-    public PreparedTrace tag(final String key, final String value) {
+    public EmptyPreparedTrace tag(final String key, final String value) {
         return this;
     }
 
     @Override
-    public PreparedTrace tags(final Map<String, String> tags) {
+    public EmptyPreparedTrace tags(final Map<String, String> tags) {
         return this;
     }
 
-    @Nullable
     @Override
-    public String getTag(final String key) {
-        return null;
+    public Optional<String> getTag(final String key) {
+        return Optional.empty();
     }
 
     @Override
@@ -62,21 +63,34 @@ final class EmptyPreparedTrace implements PreparedTrace {
 
     @Override
     public StartedTrace start() {
-        return EmptyStartedTrace.getInstance();
+        return Traces.emptyStartedTrace(operationName);
     }
 
     @Override
-    public StartedTrace startAt(final Instant startInstant) {
-        return EmptyStartedTrace.getInstance();
+    public StartedTrace startAt(final StartInstant startInstant) {
+        return Traces.emptyStartedTrace(operationName);
     }
 
     @Override
-    public <T> T run(final DittoHeaders dittoHeaders, final Function<DittoHeaders, T> function) {
-        return function.apply(dittoHeaders);
+    public StartedTrace startBy(final StartedTimer startedTimer) {
+        return Traces.emptyStartedTrace(operationName);
     }
 
     @Override
-    public void run(final DittoHeaders dittoHeaders, final Consumer<DittoHeaders> consumer) {
-        consumer.accept(dittoHeaders);
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final var that = (EmptyPreparedTrace) o;
+        return Objects.equals(operationName, that.operationName);
     }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(operationName);
+    }
+
 }

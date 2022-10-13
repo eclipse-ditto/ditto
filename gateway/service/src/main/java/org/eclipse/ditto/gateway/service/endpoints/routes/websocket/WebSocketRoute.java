@@ -457,14 +457,13 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final ProtocolAdapter adapter,
             final ThreadSafeDittoLogger logger) {
 
-        final ProtocolMessageExtractor protocolMessageExtractor =
-                new ProtocolMessageExtractor(connectionAuthContext, connectionCorrelationId);
+        final var protocolMsgExtractor = new ProtocolMessageExtractor(connectionAuthContext, connectionCorrelationId);
 
         return Filter.multiplexByEither(
                 cmdString -> {
                     final Optional<StreamControlMessage> streamControlMessage;
                     try {
-                        streamControlMessage = protocolMessageExtractor.apply(cmdString);
+                        streamControlMessage = protocolMsgExtractor.apply(cmdString);
                     } catch (final DittoRuntimeException dre) {
                         return Left.apply(dre);
                     }
@@ -475,21 +474,26 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                         final var initialInternalHeaders =
                                 getInitialInternalHeaders(version, connectionAuthContext, connectionCorrelationId);
                         try {
-                            final Signal<?> signal = buildSignal(connectionCorrelationId,
+                            final var signal = buildSignal(connectionCorrelationId,
                                     initialInternalHeaders,
                                     getJsonifiableAdaptableOrThrow(cmdString, initialInternalHeaders),
                                     additionalHeaders,
                                     adapter,
                                     headerTranslator,
                                     logger);
-                            final var trace = DittoTracing.trace(
-                                            signal,
+                            final var trace = DittoTracing.newPreparedTrace(
+                                            signal.getDittoHeaders(),
                                             TraceOperationName.of("gw_streaming_in_signal")
                                     )
                                     .tag(TracingTags.SIGNAL_TYPE, signal.getType())
                                     .start();
-                            final Signal<?> tracedSignal = DittoTracing.propagateContext(trace.getContext(), signal);
-                            result = Right.apply(Right.apply(tracedSignal));
+                            result = Right.apply(
+                                    Right.apply(
+                                            signal.setDittoHeaders(
+                                                    DittoHeaders.of(trace.propagateContext(signal.getDittoHeaders()))
+                                            )
+                                    )
+                            );
                             trace.finish();
                         } catch (final IllegalAdaptableException e) {
                             logSignalBuildingFailure(logger.withCorrelationId(e)::info, e, cmdString);
@@ -534,14 +538,14 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         final var trace = startTrace(failure, TraceOperationName.of("gw.streaming.in.error"));
         trace.fail(failure);
         try {
-            return DittoTracing.propagateContext(trace.getContext(), failure);
+            return failure.setDittoHeaders(DittoHeaders.of(trace.propagateContext(failure.getDittoHeaders())));
         } finally {
             trace.finish();
         }
     }
 
     private static StartedTrace startTrace(final WithDittoHeaders withDittoHeaders, final TraceOperationName name) {
-        final var trace = DittoTracing.trace(withDittoHeaders, name);
+        final var trace = DittoTracing.newPreparedTrace(withDittoHeaders.getDittoHeaders(), name);
         return trace.start();
     }
 

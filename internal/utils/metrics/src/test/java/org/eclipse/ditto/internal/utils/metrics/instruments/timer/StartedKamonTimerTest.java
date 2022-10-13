@@ -28,7 +28,7 @@ import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class StartedKamonTimerTest {
+public final class StartedKamonTimerTest {
 
     private StartedTimer sut;
 
@@ -120,7 +120,7 @@ public class StartedKamonTimerTest {
 
     @Test
     public void startTimeStampAlwaysSet() {
-        assertThat(sut.getStartNanoTime()).isPositive();
+        assertThat(sut.getStartInstant()).satisfies(startInstant -> assertThat(startInstant.toNanos()).isPositive());
     }
 
     @Test
@@ -139,9 +139,9 @@ public class StartedKamonTimerTest {
         sut.tag("doubleTag", 1.0);
 
         assertThat(sut.getTags()).hasSize(5); // 4 tags + segment tag
-        assertThat(sut.getTag("stringTag")).isEqualTo("1");
-        assertThat(sut.getTag("longTag")).isEqualTo("1");
-        assertThat(sut.getTag("booleanTag")).isEqualTo("false");
-        assertThat(sut.getTag("doubleTag")).isEqualTo("1.0");
+        assertThat(sut.getTag("stringTag")).hasValue("1");
+        assertThat(sut.getTag("longTag")).hasValue("1");
+        assertThat(sut.getTag("booleanTag")).hasValue("false");
+        assertThat(sut.getTag("doubleTag")).hasValue("1.0");
     }
 }

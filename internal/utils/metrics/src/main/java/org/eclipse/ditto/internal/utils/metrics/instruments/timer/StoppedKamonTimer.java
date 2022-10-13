@@ -35,14 +35,14 @@ final class StoppedKamonTimer implements StoppedTimer {
     private final String name;
     private final Map<String, String> tags;
 
-    private final long startNanoTime;
+    private final StartInstant startInstant;
     private final long endNanoTime;
 
     private StoppedKamonTimer(final StartedTimer startedTimer) {
-        this.name = startedTimer.getName();
-        this.startNanoTime = startedTimer.getStartNanoTime();
-        this.endNanoTime = System.nanoTime();
-        this.tags = new HashMap<>(startedTimer.getTags());
+        name = startedTimer.getName();
+        startInstant = startedTimer.getStartInstant();
+        endNanoTime = System.nanoTime();
+        tags = new HashMap<>(startedTimer.getTags());
         startedTimer.getSegments().forEach((segmentName, segment) -> {
             if (segment.isRunning()) {
                 segment.stop();
@@ -76,18 +76,17 @@ final class StoppedKamonTimer implements StoppedTimer {
         return tags.get(key);
     }
 
-
     kamon.metric.Timer getKamonInternalTimer() {
-        return Kamon.timer(name).withTags(TagSet.from(new HashMap<>(this.tags)));
+        return Kamon.timer(name).withTags(TagSet.from(new HashMap<>(tags)));
     }
 
     @Override
     public String getName() {
-        return this.name;
+        return name;
     }
 
     private long getElapsedNano() {
-        return this.endNanoTime - this.startNanoTime;
+        return endNanoTime - startInstant.toNanos();
     }
 
     @Override
@@ -95,8 +94,9 @@ final class StoppedKamonTimer implements StoppedTimer {
         return getClass().getSimpleName() + " [" +
                 "name=" + name +
                 ", tags=" + tags +
-                ", startNanoTime=" + startNanoTime +
+                ", startNanoTime=" + startInstant.toNanos() +
                 ", endNanoTime=" + endNanoTime +
                 "]";
     }
+
 }

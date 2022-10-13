@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.slf4j.Logger;
@@ -35,7 +34,7 @@ import scala.jdk.javaapi.CollectionConverters;
  * Kamon based implementation of {@link Histogram}.
  */
 @Immutable
-public class KamonHistogram implements Histogram {
+public final class KamonHistogram implements Histogram {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KamonHistogram.class);
 
@@ -65,10 +64,9 @@ public class KamonHistogram implements Histogram {
         return new KamonHistogram(name, newMap);
     }
 
-    @Nullable
     @Override
-    public String getTag(final String key) {
-        return tags.get(key);
+    public Optional<String> getTag(final String key) {
+        return Optional.ofNullable(tags.get(key));
     }
 
     @Override
@@ -78,11 +76,10 @@ public class KamonHistogram implements Histogram {
 
     @Override
     public boolean reset() {
-
         try {
             getSnapshot(true);
             LOGGER.trace("Reset histogram with name <{}>.", name);
-        } catch (IllegalStateException e) {
+        } catch (final IllegalStateException e) {
             LOGGER.warn("Could not reset Kamon timer.", e);
             return false;
         }
@@ -104,7 +101,7 @@ public class KamonHistogram implements Histogram {
         return values.toArray(new Long[0]);
     }
 
-    private List<Long> addBucketValuesToList(Distribution.Bucket bucket, List<Long> values) {
+    private static List<Long> addBucketValuesToList(final Distribution.Bucket bucket, final List<Long> values) {
         for (int i = 0; i < bucket.frequency(); i++) {
             values.add(bucket.value());
         }
@@ -124,7 +121,6 @@ public class KamonHistogram implements Histogram {
     private kamon.metric.Histogram getKamonInternalHistogram() {
         return Kamon.histogram(name).withTags(TagSet.from(new HashMap<>(tags)));
     }
-
 
     @Override
     public String toString() {

@@ -16,8 +16,8 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
@@ -107,9 +107,8 @@ public final class MetricsAlertGauge implements Gauge {
         return new MetricsAlertGauge(taggedDelegee, metricsAlert, measurementWindow);
     }
 
-    @Nullable
     @Override
-    public String getTag(final String key) {
+    public Optional<String> getTag(final String key) {
         return delegee.getTag(key);
     }
 
@@ -128,7 +127,6 @@ public final class MetricsAlertGauge implements Gauge {
         delegee.reset();
         return true;
     }
-
 
     @Override
     public String toString() {

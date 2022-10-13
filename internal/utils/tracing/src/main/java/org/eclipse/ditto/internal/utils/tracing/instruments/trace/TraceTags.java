@@ -31,10 +31,13 @@ public interface TraceTags<T extends TaggableMetricsInstrument<T>> extends Tagga
      * @return the new TaggedMetricInstrument instance containing the tag
      */
     default T correlationId(@Nullable final CharSequence correlationId) {
+        final T result;
         if (null == correlationId) {
-            return self();
+            result = self();
+        } else {
+            result = tag(TracingTags.CORRELATION_ID, correlationId.toString());
         }
-        return tag(TracingTags.CORRELATION_ID, correlationId.toString());
+        return result;
     }
 
     /**
@@ -44,23 +47,29 @@ public interface TraceTags<T extends TaggableMetricsInstrument<T>> extends Tagga
      * @return the new TaggedMetricInstrument instance containing the tag
      */
     default T connectionId(@Nullable final CharSequence connectionId) {
+        final T result;
         if (null == connectionId) {
-            return self();
+            result = self();
+        } else {
+            result = tag(TracingTags.CONNECTION_ID, connectionId.toString());
         }
-        return tag(TracingTags.CONNECTION_ID, connectionId.toString());
+        return result;
     }
 
     /**
-     * Adds a {@link TracingTags#CONNECTION_TYPE} tag to the trace.
+     * Puts the specified entity ID as value for {@link TracingTags#ENTITY_ID} tag to the trace.
      *
-     * @param connectionType the connection type to add to the trace
-     * @return the new TaggedMetricInstrument instance containing the tag
+     * @param entityId the entity ID to put to the trace.
+     * @return this instance to allow method chaining.
      */
-    default T connectionType(@Nullable final CharSequence connectionType) {
-        if (null == connectionType) {
-            return self();
+    default T entityId(@Nullable final CharSequence entityId) {
+        final T result;
+        if (null == entityId) {
+            result = self();
+        } else {
+            result = tag(TracingTags.ENTITY_ID, entityId.toString());
         }
-        return tag(TracingTags.CONNECTION_TYPE, connectionType.toString());
+        return result;
     }
 
 }

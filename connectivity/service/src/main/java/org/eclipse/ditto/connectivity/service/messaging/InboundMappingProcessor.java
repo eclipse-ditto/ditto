@@ -44,13 +44,11 @@ import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
-import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.ThingConstants;
 
 import akka.actor.ActorSystem;
-import kamon.context.Context;
 
 /**
  * Processes incoming {@link ExternalMessage}s to {@link Signal}s.
@@ -115,7 +113,12 @@ public final class InboundMappingProcessor
             final ProtocolAdapter adapter, final DittoHeadersValidator dittoHeadersValidator) {
         final var connectionId = connection.getId();
         final var connectionType = connection.getConnectionType();
-        return new InboundMappingProcessor(connectionId, connectionType, registry, logger, adapter, dittoHeadersValidator);
+        return new InboundMappingProcessor(connectionId,
+                connectionType,
+                registry,
+                logger,
+                adapter,
+                dittoHeadersValidator);
     }
 
     /**
@@ -126,16 +129,20 @@ public final class InboundMappingProcessor
      */
     @Override
     List<MappingOutcome<MappedInboundExternalMessage>> process(final ExternalMessage message) {
-        final List<MessageMapper> mappers = getMappers(message.getPayloadMapping().orElse(null));
+        final var mappers = getMappers(message.getPayloadMapping().orElse(null));
         logger.withCorrelationId(message.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey()))
                 .debug("Mappers resolved for message: {}", mappers);
-        final Context context = DittoTracing.extractTraceContext(message.getHeaders());
-        final MappingTimer mappingTimer = MappingTimer.inbound(connectionId, connectionType, context);
-        final ExternalMessage externalMessageWithTraceContext =
-                DittoTracing.propagateContext(mappingTimer.getContext(), message,
-                        (msg, header) -> msg.withHeader(header.getKey(), header.getValue()));
+        final var mappingTimer = MappingTimer.inbound(connectionId, connectionType, message.getHeaders());
         return mappingTimer.overall(() -> mappers.stream()
-                .flatMap(mapper -> runMapper(mapper, externalMessageWithTraceContext, mappingTimer))
+                .flatMap(mapper -> {
+                            final var mappingTimerTrace = mappingTimer.getTrace();
+                            return runMapper(
+                                    mapper,
+                                    message.withHeaders(mappingTimerTrace.propagateContext(message.getHeaders())),
+                                    mappingTimer
+                            );
+                        }
+                )
                 .toList()
         );
     }
@@ -170,7 +177,8 @@ public final class InboundMappingProcessor
                                             signalWithMapperHeader);
                             mappedMessages.add(mappedMessage);
                         } catch (final Exception e) {
-                            logger.withCorrelationId(e instanceof WithDittoHeaders wdh ? wdh.getDittoHeaders() : adaptable.getDittoHeaders())
+                            logger.withCorrelationId(e instanceof WithDittoHeaders wdh ? wdh.getDittoHeaders() :
+                                            adaptable.getDittoHeaders())
                                     .info("Exception during inbound adaptable conversion to Signal: <{}: {}>",
                                             e.getClass().getSimpleName(), e.getMessage());
                             return Stream.of(MappingOutcome.error(mapper.getId(),

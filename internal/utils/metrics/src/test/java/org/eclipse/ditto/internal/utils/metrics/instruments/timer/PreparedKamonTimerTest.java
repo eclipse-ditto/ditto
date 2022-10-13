@@ -20,7 +20,7 @@ import org.assertj.core.data.Percentage;
 import org.junit.Before;
 import org.junit.Test;
 
-public class PreparedKamonTimerTest {
+public final class PreparedKamonTimerTest {
 
     private PreparedTimer sut;
 
@@ -64,26 +64,29 @@ public class PreparedKamonTimerTest {
         sut.tag("doubleTag", 2.0);
 
         assertThat(sut.getTags()).hasSize(4);
-        assertThat(sut.getTag("stringTag")).isEqualTo("2");
-        assertThat(sut.getTag("longTag")).isEqualTo("2");
-        assertThat(sut.getTag("booleanTag")).isEqualTo("true");
-        assertThat(sut.getTag("doubleTag")).isEqualTo("2.0");
+        assertThat(sut.getTag("stringTag")).hasValue("2");
+        assertThat(sut.getTag("longTag")).hasValue("2");
+        assertThat(sut.getTag("booleanTag")).hasValue("true");
+        assertThat(sut.getTag("doubleTag")).hasValue("2.0");
     }
 
     @Test
     public void startedTimerHasSameNameAndSameTags() {
         sut.tag("TEST", "someValue");
         final StartedTimer start = sut.start();
+
         assertThat(start.getTags().keySet()).hasSize(2);
-        assertThat(start.getTag("segment")).isEqualTo("overall");
-        assertThat(start.getTag("TEST")).isEqualTo("someValue");
+        assertThat(start.getTag("segment")).hasValue("overall");
+        assertThat(start.getTag("TEST")).hasValue("someValue");
         assertThat(start.getName()).isEqualTo(sut.getName());
     }
 
     @Test
     public void canStartMultipleTimes() {
-        final StartedTimer started1 = sut.start();
-        final StartedTimer started2 = sut.start();
-        assertThat(started1.getStartNanoTime()).isNotEqualTo(started2.getStartNanoTime());
+        final var started1 = sut.start();
+        final var started2 = sut.start();
+
+        assertThat(started1.getStartInstant()).isNotEqualTo(started2.getStartInstant());
     }
+
 }

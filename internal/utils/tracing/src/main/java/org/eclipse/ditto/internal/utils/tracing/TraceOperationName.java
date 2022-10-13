@@ -76,14 +76,15 @@ public final class TraceOperationName implements CharSequence, Comparable<TraceO
 
     @Override
     public boolean equals(@Nullable final Object o) {
+        final boolean result;
         if (this == o) {
-            return true;
+            result = true;
+        } else if (o instanceof TraceOperationName that) {
+            result = name.equals(that.name);
+        } else {
+            result = false;
         }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        final var that = (TraceOperationName) o;
-        return Objects.equals(name, that.name);
+        return result;
     }
 
     @Override

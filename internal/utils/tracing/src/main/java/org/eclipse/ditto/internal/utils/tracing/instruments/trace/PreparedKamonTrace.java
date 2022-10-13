@@ -12,22 +12,20 @@
  */
 package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
 
-import java.time.Instant;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.Map;
-import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.base.model.common.ConditionChecker;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.TracingTags;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartInstant;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 
 import kamon.Kamon;
-import kamon.context.Context;
 import kamon.tag.Lookups;
 import kamon.tag.Tag;
 import kamon.trace.Span;
@@ -41,38 +39,65 @@ import scala.jdk.javaapi.CollectionConverters;
 final class PreparedKamonTrace implements PreparedTrace {
 
     private final SpanBuilder spanBuilder;
+    private final KamonHttpContextPropagation httpContextPropagation;
+
+    private PreparedKamonTrace(
+            final TraceOperationName operationName,
+            final Map<String, String> headers,
+            final KamonHttpContextPropagation httpContextPropagation
+    ) {
+        final var context = httpContextPropagation.getContextFromHeaders(headers);
+        spanBuilder = Kamon.spanBuilder(operationName.toString()).asChildOf(context.get(Span.Key()));
+        this.httpContextPropagation = httpContextPropagation;
+    }
 
     /**
-     * Constructs a {@code PreparedKamonTrace} object.
+     * Returns a new instance of {@code PreparedKamonTrace} for the specified arguments.
      *
+     * @param headers the headers from which to derive the trace context.
+     * @param traceOperationName name of the operation to be traced.
+     * @param kamonHttpContextPropagation derives and propagates the trace context from and to headers.
+     * @return the new instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    PreparedKamonTrace(final Context context, final CharSequence operationName) {
-        ConditionChecker.checkNotNull(context, "context");
-        ConditionChecker.checkNotNull(operationName, "operationName");
+    static PreparedKamonTrace newInstance(
+            final Map<String, String> headers,
+            final TraceOperationName traceOperationName,
+            final KamonHttpContextPropagation kamonHttpContextPropagation
+    ) {
+        final var result = new PreparedKamonTrace(
+                checkNotNull(traceOperationName, "traceOperationName"),
+                checkNotNull(headers, "headers"),
+                checkNotNull(kamonHttpContextPropagation, "kamonHttpContextPropagation")
+        );
+        result.addWellKnownTracingTagsFromHeaders(headers);
+        return result;
+    }
 
-        spanBuilder = Kamon.spanBuilder(operationName.toString()).asChildOf(context.get(Span.Key()));
+    private void addWellKnownTracingTagsFromHeaders(final Map<String, String> headers) {
+        correlationId(headers.get(DittoHeaderDefinition.CORRELATION_ID.getKey()));
+        connectionId(headers.get(DittoHeaderDefinition.CONNECTION_ID.getKey()));
+        entityId(headers.get(DittoHeaderDefinition.ENTITY_ID.getKey()));
     }
 
     @Override
-    public PreparedTrace tag(final String key, final String value) {
-        spanBuilder.tag(ConditionChecker.checkNotNull(key, "key"), ConditionChecker.checkNotNull(value, "value"));
+    public PreparedKamonTrace tag(final String key, final String value) {
+        spanBuilder.tag(checkNotNull(key, "key"), checkNotNull(value, "value"));
         return this;
     }
 
     @Override
-    public PreparedTrace tags(final Map<String, String> tags) {
-        ConditionChecker.checkNotNull(tags, "tags");
+    public PreparedKamonTrace tags(final Map<String, String> tags) {
+        checkNotNull(tags, "tags");
         tags.forEach(this::tag);
         return this;
     }
 
-    @Nullable
     @Override
-    public String getTag(final String key) {
-        ConditionChecker.checkNotNull(key, "key");
+    public Optional<String> getTag(final String key) {
+        checkNotNull(key, "key");
         final var tags = spanBuilder.tags();
-        return tags.get(Lookups.plain(key));
+        return Optional.ofNullable(tags.get(Lookups.plain(key)));
     }
 
     @Override
@@ -88,48 +113,29 @@ final class PreparedKamonTrace implements PreparedTrace {
     }
 
     @Override
-    public StartedTrace start() {
-        return new StartedKamonTrace(spanBuilder.start());
+    public StartedKamonTrace start() {
+        return getStartedTrace(spanBuilder.start());
+    }
+
+    private StartedKamonTrace getStartedTrace(final Span span) {
+        return StartedKamonTrace.newInstance(span, httpContextPropagation);
     }
 
     @Override
-    public StartedTrace startAt(final Instant startInstant) {
-        return new StartedKamonTrace(spanBuilder.start(ConditionChecker.checkNotNull(startInstant, "startInstant")));
+    public StartedKamonTrace startAt(final StartInstant startInstant) {
+        checkNotNull(startInstant, "traceStartInstant");
+        return getStartedTrace(spanBuilder.start(startInstant.toInstant()));
     }
 
     @Override
-    public <T> T run(final DittoHeaders dittoHeaders, final Function<DittoHeaders, T> function) {
-        ConditionChecker.checkNotNull(dittoHeaders, "dittoHeaders");
-        ConditionChecker.checkNotNull(function, "function");
-        final var span = spanBuilder.start();
-        return Kamon.runWithSpan(
-                span,
-                () -> {
-                    tagSpanWithCorrelationId(span, dittoHeaders);
-                    return function.apply(propagateTraceContextToDittoHeaders(dittoHeaders));
-                }
-        );
-    }
-
-    private static void tagSpanWithCorrelationId(final Span currentSpan, final DittoHeaders dittoHeaders) {
-        dittoHeaders.getCorrelationId()
-                .ifPresent(correlationId -> currentSpan.tag(TracingTags.CORRELATION_ID, correlationId));
-    }
-
-    private static DittoHeaders propagateTraceContextToDittoHeaders(final DittoHeaders dittoHeaders) {
-        return DittoTracing.propagateContext(Kamon.currentContext(), dittoHeaders);
-    }
-
-    @Override
-    public void run(final DittoHeaders dittoHeaders, final Consumer<DittoHeaders> consumer) {
-        ConditionChecker.checkNotNull(consumer, "consumer");
-        run(
-                dittoHeaders,
-                sameDittoHeaders -> {
-                    consumer.accept(sameDittoHeaders);
-                    return null;
-                }
-        );
+    public StartedKamonTrace startBy(final StartedTimer startedTimer) {
+        checkNotNull(startedTimer, "startedTimer");
+        final var result = startAt(startedTimer.getStartInstant());
+        startedTimer.onStop(stoppedTimer -> {
+            result.tags(stoppedTimer.getTags());
+            result.finishAfter(stoppedTimer.getDuration());
+        });
+        return result;
     }
 
 }

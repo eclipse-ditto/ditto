@@ -463,13 +463,16 @@ public final class SearchActor extends AbstractActor {
                 .collect(JsonCollectors.valuesToArray());
     }
 
-    private static StartedTimer startNewTimer(final JsonSchemaVersion version, final String queryType,
-            final WithDittoHeaders withDittoHeaders) {
-        final StartedTimer startedTimer = DittoMetrics.timer(TRACING_THINGS_SEARCH)
+    private static StartedTimer startNewTimer(
+            final JsonSchemaVersion version,
+            final String queryType,
+            final WithDittoHeaders withDittoHeaders
+    ) {
+        final var startedTimer = DittoMetrics.timer(TRACING_THINGS_SEARCH)
                 .tag(QUERY_TYPE_TAG, queryType)
                 .tag(API_VERSION_TAG, version.toString())
                 .start();
-        DittoTracing.wrapTimer(DittoTracing.extractTraceContext(withDittoHeaders), startedTimer);
+        DittoTracing.newStartedTraceByTimer(withDittoHeaders.getDittoHeaders(), startedTimer);
         return startedTimer;
     }
 

@@ -15,24 +15,28 @@ package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Objects;
 
-import kamon.context.Context;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 
 /**
  * An empty noop implementation of {@code StartedStrace} interface.
  */
+@Immutable
 final class EmptyStartedTrace implements StartedTrace {
 
-    private static final StartedTrace INSTANCE = new EmptyStartedTrace();
+    private final TraceOperationName operationName;
 
-    private EmptyStartedTrace() {
+    private EmptyStartedTrace(final TraceOperationName operationName) {
+        this.operationName = operationName;
     }
 
-    /**
-     * @return the {@code NoopStartedTrace}.
-     */
-    static StartedTrace getInstance() {
-        return INSTANCE;
+    static StartedTrace newInstance(final TraceOperationName operationName) {
+        return new EmptyStartedTrace(ConditionChecker.checkNotNull(operationName, "operationName"));
     }
 
     @Override
@@ -46,10 +50,14 @@ final class EmptyStartedTrace implements StartedTrace {
     }
 
     @Override
-    public void finish() {}
+    public void finish() {
+        // Nothing to finish in an empty started trace.
+    }
 
     @Override
-    public void finishAfter(final Duration duration) {}
+    public void finishAfter(final Duration duration) {
+        // Nothing to finish in an empty started trace.
+    }
 
     @Override
     public StartedTrace fail(final String errorMessage) {
@@ -72,8 +80,13 @@ final class EmptyStartedTrace implements StartedTrace {
     }
 
     @Override
-    public Context getContext() {
-        return Context.Empty();
+    public SpanId getSpanId() {
+        return SpanId.empty();
+    }
+
+    @Override
+    public TraceOperationName getOperationName() {
+        return operationName;
     }
 
     @Override
@@ -85,4 +98,28 @@ final class EmptyStartedTrace implements StartedTrace {
     public Map<String, String> propagateContext(final Map<String, String> map) {
         return map;
     }
+
+    @Override
+    public PreparedTrace spawnChild(final TraceOperationName traceOperationName) {
+        return Traces.emptyPreparedTrace(traceOperationName);
+    }
+
+    @Override
+    public boolean equals(@Nullable final Object o) {
+        final boolean result;
+        if (this == o) {
+            result = true;
+        } else if (o instanceof EmptyStartedTrace that) {
+            result = operationName.equals(that.operationName);
+        } else {
+            result = false;
+        }
+        return result;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(operationName);
+    }
+
 }

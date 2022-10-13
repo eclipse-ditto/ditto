@@ -152,18 +152,13 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
     private void askTargetActor(final Command<?> command, final List<ThingId> thingIds,
             final Object msgToAsk, final ActorRef sender) {
 
-        final StartedTrace trace;
         final Object tracedMsgToAsk;
+        final var trace = DittoTracing.newPreparedTrace(command.getDittoHeaders(), TRACE_AGGREGATOR_RETRIEVE_THINGS)
+                .tag("size", Integer.toString(thingIds.size()))
+                .start();
         if (msgToAsk instanceof Signal<?> signal) {
-            trace = DittoTracing.trace(signal, TRACE_AGGREGATOR_RETRIEVE_THINGS)
-                    .tag("size", Integer.toString(thingIds.size()))
-                    .start();
-            tracedMsgToAsk = DittoTracing.propagateContext(trace.getContext(), signal);
+            tracedMsgToAsk = signal.setDittoHeaders(DittoHeaders.of(trace.propagateContext(signal.getDittoHeaders())));
         } else {
-            trace = DittoTracing.trace(command, TRACE_AGGREGATOR_RETRIEVE_THINGS)
-                    .tag("size", Integer.toString(thingIds.size()))
-                    .start();
-            DittoTracing.propagateContext(trace.getContext());
             tracedMsgToAsk = msgToAsk;
         }
 

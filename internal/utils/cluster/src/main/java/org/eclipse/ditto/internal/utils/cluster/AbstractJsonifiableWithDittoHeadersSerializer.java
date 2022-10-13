@@ -21,7 +21,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
-import java.time.Instant;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -39,9 +38,9 @@ import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartInstant;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -63,7 +62,6 @@ import akka.io.BufferPool;
 import akka.io.DirectByteBufferPool;
 import akka.serialization.ByteBufferSerializer;
 import akka.serialization.SerializerWithStringManifest;
-import kamon.context.Context;
 
 /**
  * Abstract {@link SerializerWithStringManifest} which handles serializing and deserializing {@link Jsonifiable}s
@@ -145,16 +143,14 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     @Override
     public void toBinary(final Object object, final ByteBuffer buf) {
         if (object instanceof Jsonifiable) {
-            final Instant beforeSerializeInstant = DittoTracing.getTracingInstantNow();
             final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
             final DittoHeaders dittoHeaders = getDittoHeadersOrEmpty(object);
+            final var beforeSerializeInstant = StartInstant.now();
 
-            final Context context = DittoTracing.extractTraceContext(dittoHeaders);
-            final StartedTrace trace = DittoTracing.trace(context, TraceOperationName.of("serialize"))
+            final var trace = DittoTracing.newPreparedTrace(dittoHeaders, TraceOperationName.of("serialize"))
                     .startAt(beforeSerializeInstant);
             dittoHeaders.getCorrelationId().ifPresent(trace::correlationId);
-            final DittoHeaders dittoHeadersWithTraceContext =
-                    DittoTracing.propagateContext(trace.getContext(), dittoHeaders);
+            final var dittoHeadersWithTraceContext = DittoHeaders.of(trace.propagateContext(dittoHeaders));
 
             jsonObjectBuilder.set(JSON_DITTO_HEADERS, dittoHeadersWithTraceContext.toJson());
 
@@ -268,8 +264,11 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
         } catch (final DittoRuntimeException | JsonRuntimeException e) {
             LOG.error(
                     "Got <{}> during deserialization for manifest <{}> and serializer {} while processing message: <{}>.",
-                    e.getClass().getSimpleName(), manifest, serializerName,
-                    BinaryToHexConverter.createDebugMessageByTryingToConvertToHexString(byteBuffer), e);
+                    e.getClass().getSimpleName(),
+                    manifest,
+                    serializerName,
+                    BinaryToHexConverter.createDebugMessageByTryingToConvertToHexString(byteBuffer),
+                    e);
             throw new NotSerializableException(manifest);
         }
     }
@@ -277,7 +276,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     private Jsonifiable<?> createJsonifiableFrom(final String manifest, final ByteBuffer bytebuffer)
             throws NotSerializableException {
 
-        final Instant beforeDeserializeInstant = DittoTracing.getTracingInstantNow();
+        final var beforeDeserializeInstant = StartInstant.now();
         final JsonValue jsonValue = deserializeFromByteBuffer(bytebuffer);
 
         final JsonObject jsonObject;
@@ -300,12 +299,10 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
                 .orElseGet(DittoHeaders::newBuilder);
 
         final DittoHeaders dittoHeaders = dittoHeadersBuilder.build();
-        final StartedTrace trace = DittoTracing.trace(dittoHeaders, TraceOperationName.of("deserialize"))
+        final var trace = DittoTracing.newPreparedTrace(dittoHeaders, TraceOperationName.of("deserialize"))
                 .startAt(beforeDeserializeInstant);
         try {
-            final DittoHeaders dittoHeadersWithTraceContext =
-                    DittoTracing.propagateContext(trace.getContext(), dittoHeaders);
-            return deserializeJson(payload, manifest, dittoHeadersWithTraceContext);
+            return deserializeJson(payload, manifest, DittoHeaders.of(trace.propagateContext(dittoHeaders)));
         } finally {
             trace.finish();
         }
@@ -356,4 +353,5 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
 
         return result;
     }
+
 }

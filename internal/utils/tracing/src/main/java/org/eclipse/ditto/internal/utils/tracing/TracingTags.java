@@ -23,6 +23,7 @@ public final class TracingTags {
     public static final String CORRELATION_ID = PREFIX + "correlationId";
     public static final String SIGNAL_TYPE = PREFIX + "signal.type";
     public static final String CHANNEL = PREFIX + "channel";
+    public static final String ENTITY_ID = PREFIX + "entityId";
 
     // connectivity tags
     public static final String CONNECTION_ID = PREFIX + "connection.id";

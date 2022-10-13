@@ -12,12 +12,9 @@
  */
 package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
 
-import java.time.Instant;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.metrics.instruments.TaggedMetricInstrument;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartInstant;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 
 /**
  * A trace which is prepared to be {@link #start() started}.
@@ -32,38 +29,28 @@ public interface PreparedTrace extends TaggedMetricInstrument<PreparedTrace>, Tr
     /**
      * Starts the trace at the current instant.
      *
-     * @return The started {@link StartedTrace trace}.
+     * @return the StartedTrace.
      */
     StartedTrace start();
 
     /**
-     * Starts the trace setting the given start instant.
-     * <p>
-     * The passed in {@code Instant} <strong>must be</strong> created using Kamon's clock {@link kamon.Kamon#clock()},
-     * a "normal" Instant of the JVM might have too low precision or might be too slow.
-     * </p>
+     * Starts the trace at the specified {@code StartedTrace} argument.
      *
-     * @param startInstant the instant where to start the trace at.
-     * @return The started {@link StartedTrace trace}.
+     * @param startInstant the instant that determines when to start the trace.
+     * @return the StartedTrace.
+     * @throws NullPointerException if {@code startInstant} is {@code null}.
      */
-    StartedTrace startAt(Instant startInstant);
+    StartedTrace startAt(StartInstant startInstant);
 
     /**
-     * Executes the given {@code Function} and records the duration with this {@code PreparedTrace}.
+     * Starts the trace at the same instant as the specified StartedTimer argument.
+     * After the specified StartedTimer stopped, the returned trace automatically finishes after the duration of the
+     * stopped timer and gets the tags of the stopped timer put to its own tags.
      *
-     * @param dittoHeaders the DittoHeaders to which the trace context is attached
-     * @param function the function to execute
-     * @param <T> the return type of the function
-     * @return the value returned by the executed Function
+     * @param startedTimer provides the name, the start and the finish time of the returned trace.
+     * @return the new started trace which will be automatically stopped by {@code startedTimer}.
+     * @throws NullPointerException if {@code startedTimer} is {@code null}.
      */
-    <T> T run(DittoHeaders dittoHeaders, Function<DittoHeaders, T> function);
-
-    /**
-     * Executes the given {@code Consumer} and records the duration with this {@code PreparedTrace}.
-     *
-     * @param dittoHeaders the DittoHeaders to which the trace context is attached
-     * @param consumer the consumer to execute
-     */
-    void run(DittoHeaders dittoHeaders, Consumer<DittoHeaders> consumer);
+    StartedTrace startBy(StartedTimer startedTimer);
 
 }

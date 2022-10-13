@@ -35,6 +35,7 @@ import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.test.mongo.MongoDbResource;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
@@ -84,6 +85,10 @@ import akka.testkit.javadsl.TestKit;
  * Tests {@link SearchActor}.
  */
 public final class SearchActorIT {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     private static final AuthorizationContext AUTH_CONTEXT =
             AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,

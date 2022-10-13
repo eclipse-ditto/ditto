@@ -54,7 +54,7 @@ import akka.stream.javadsl.Source;
 /**
  * Tests {@code KafkaConsumerActor}.
  */
-public class KafkaConsumerActorTest extends AbstractConsumerActorTest<ConsumerRecord<String, ByteBuffer>> {
+public final class KafkaConsumerActorTest extends AbstractConsumerActorTest<ConsumerRecord<String, ByteBuffer>> {
 
     private static final Connection CONNECTION = TestConstants.createConnection();
     private static final String TOPIC = "kafka.topic";

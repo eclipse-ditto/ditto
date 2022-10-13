@@ -18,6 +18,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoE
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsubthings.LiveSignalPub;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Thing;
@@ -32,6 +33,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.enforcement.TestSetup;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -46,6 +48,10 @@ import akka.actor.Props;
  */
 @AllValuesAreNonnullByDefault
 public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITAssertions<ThingId> {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     private PolicyEnforcerProvider policyEnforcerProvider;
 
