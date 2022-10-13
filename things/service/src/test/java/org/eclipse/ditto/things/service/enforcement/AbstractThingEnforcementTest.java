@@ -133,6 +133,16 @@ abstract class AbstractThingEnforcementTest {
         thingPersistenceActorProbe.reply(sudoRetrieveThingResponse);
     }
 
+    protected void expectAndAnswerSudoRetrieveThingWithSpecificTimeout(final Object sudoRetrieveThingResponse,
+            final FiniteDuration timeout) {
+
+        final SudoRetrieveThing sudoRetrieveThing =
+                thingPersistenceActorProbe.expectMsgClass(timeout, SudoRetrieveThing.class);
+        assertThat((CharSequence) sudoRetrieveThing.getEntityId()).isEqualTo(THING_ID);
+        thingPersistenceActorProbe.reply(sudoRetrieveThingResponse);
+    }
+
+
     protected void expectAndAnswerRetrievePolicy(final PolicyId policyId, final Object retrievePolicyResponse) {
         final var retrievePolicy = policiesShardRegionProbe.expectMsgClass(RetrievePolicy.class);
         assertThat((CharSequence) retrievePolicy.getEntityId()).isEqualTo(policyId);
