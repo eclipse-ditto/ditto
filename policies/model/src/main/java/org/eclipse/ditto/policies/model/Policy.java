@@ -411,18 +411,6 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
     boolean isSemanticallySameAs(Policy otherPolicy);
 
     /**
-     * Checks if the passed {@code otherPolicy} are semantically the same as this policy.
-     * I.e. that those contain the same policy entries with the same subject ids having the same resources and the same
-     * imports.
-     *
-     * @param otherPolicy the other policy to check against.
-     * @return {@code true} if the other policy entries are semantically the same as the in this policy contained policy
-     * entries.
-     * @since 3.x.0 TODO ditto#298
-     */
-    boolean isSemanticallySameAs(Policy otherPolicy);
-
-    /**
      * Returns a JSON object representation of this policy to embed in another JSON object.
      *
      * @param schemaVersion the JsonSchemaVersion in which to return the JSON.

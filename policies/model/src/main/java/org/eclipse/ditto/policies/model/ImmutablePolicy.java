@@ -511,13 +511,7 @@ final class ImmutablePolicy implements Policy {
             semanticallyTheSame &= others.next().isSemanticallySameAs(owns.next());
         }
         semanticallyTheSame &= !others.hasNext() && !owns.hasNext();
-        return semanticallyTheSame;
-    }
-
-    @Override
-    public boolean isSemanticallySameAs(final Policy otherPolicy) {
-        return getPolicyImports().equals(otherPolicy.getPolicyImports()) &&
-                isSemanticallySameAs(otherPolicy.getEntriesSet());
+        return semanticallyTheSame && getPolicyImports().equals(otherPolicy.getPolicyImports());
     }
 
     @Override
