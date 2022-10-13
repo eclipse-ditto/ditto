@@ -1,0 +1,71 @@
+# Copyright (c) 2022 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: object
+description: |-
+  A mapping definition consisting of the used mappingEngine and the options required by this engine.
+required:
+  - mappingEngine
+  - options
+properties:
+  mappingEngine:
+    type: string
+    description: |-
+      The mapping engine used to process incoming and outgoing messages. Available mapping engines are
+      `JavaScript`, `Normalized`, `ConnectionStatus`, `RawMessage`, `Ditto`, `ImplicitThingCreation`, and `UpdateTwinWithLiveResponse`.
+  options:
+    type: object
+    description: |-
+      Configuration options specific to the used mapping engine:
+
+      #### JavaScript
+        * `incomingScript` (`string`, required): The mapping script for incoming messages
+        * `outgoingScript` (`string`, required): The mapping script for outgoing messages
+        * `loadBytebufferJS` (`boolean`, optional): Whether or not ByteBufferJS library should be included
+          (default: `false`)
+        * `loadLongJS` (`boolean`, optional): Whether or not LongJS library should be included (default: `false`)
+
+      #### Normalized
+        * `fields` (`string`, optional): Comma separated list of fields included in the normalized message
+          (default: all fields included)
+
+      #### ConnectionStatus
+        * `thingId` (`string`, required): The ID of the thing
+        * `featureId` (`string`, optional): The ID of the modified feature (default: `ConnectionStatus`)
+
+      #### RawMessage
+        * `outgoingContentType` (`string`, optional): The fallback content type for outgoing messages.
+        * `incomingMessageHeaders` (`object`, optional): The fallback headers for incoming messages
+          containing the necessary information to map them to message commands and responses.
+          The relevant header keys are: `content-type`, `ditto-message-subject`, `ditto-message-direction`,
+          `ditto-message-thing-id`, `ditto-message-feature-id` and `status`. The header values may contain
+          placeholder expressions.
+
+      #### Ditto
+        * no options required
+
+      #### ImplicitThingCreation
+        * `thing` (`object`, required): The template of the thing to be implicitly created
+
+      #### UpdateTwinWithLiveResponse
+        * `dittoHeadersForMerge` (`object`, optional): The Ditto headers to use for constructing the "merge thing"
+           command for updating the twin, may for example add a condition to apply in order to update the twin
+           (default ditto headers: `response-required: false`, `if-match: "*"`).
+
+  incomingConditions:
+    type: object
+    description: |-
+      Optional conditions to be checked before applying the mapping engine to inbound messages.
+      Can use placeholders and functional expressions.
+  outgoingConditions:
+    type: object
+    description: |-
+      Optional conditions to be checked before applying the mapping engine to outbound messages.
+      Can use placeholders and functional expressions.

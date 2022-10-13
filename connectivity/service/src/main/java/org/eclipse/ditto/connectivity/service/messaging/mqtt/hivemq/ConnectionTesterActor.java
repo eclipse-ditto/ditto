@@ -34,6 +34,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.service.CompletableFutureUtils;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.mqtt.SessionExpiryInterval;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ChildActorNanny;
@@ -216,6 +217,7 @@ final class ConnectionTesterActor extends AbstractActor {
 
         return client.connect(GenericMqttConnect.newInstance(true,
                         KeepAliveInterval.zero(),
+                        SessionExpiryInterval.defaultSessionExpiryInterval(),
                         mqttConfig.getClientReceiveMaximum()))
                 .thenApply(unusedVoid -> clientContext);
     }

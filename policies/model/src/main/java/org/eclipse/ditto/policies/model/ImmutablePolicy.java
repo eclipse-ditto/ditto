@@ -495,9 +495,9 @@ final class ImmutablePolicy implements Policy {
     }
 
     @Override
-    public boolean isSemanticallySameAs(final Collection<PolicyEntry> otherPolicyEntries) {
+    public boolean isSemanticallySameAs(final Policy otherPolicy) {
         // sorting via the policy entry label is required in order to not depend on the order:
-        final Iterator<PolicyEntry> others = otherPolicyEntries.stream()
+        final Iterator<PolicyEntry> others = otherPolicy.stream()
                 .sorted(Comparator.comparing(e -> e.getLabel().toString()))
                 .collect(Collectors.toCollection(LinkedHashSet::new))
                 .iterator();

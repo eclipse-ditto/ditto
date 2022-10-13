@@ -28,25 +28,42 @@ import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidExc
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
-import org.eclipse.ditto.connectivity.service.mapping.PayloadMapper;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 
-@PayloadMapper(alias = "test")
 @AllParametersAndReturnValuesAreNonnullByDefault
 public final class MockMapper implements MessageMapper {
 
+    public static final String ALIAS = "MockMapper";
+
     public static final String OPT_IS_VALID = "Mock";
 
-    MockMapper() {
-        super();
+    public MockMapper(final ActorSystem actorSystem, final Config config) {
+
     }
 
     @Override
     public String getId() {
         return "mock";
+    }
+
+    @Override
+    public String getAlias() {
+        return ALIAS;
+    }
+
+    @Override
+    public boolean isConfigurationMandatory() {
+        return false;
+    }
+
+    @Override
+    public MessageMapper createNewMapperInstance() {
+        return this;
     }
 
     @Override

@@ -47,6 +47,8 @@ const dom = {
   tabThings: null,
 };
 
+const uuidRegex = /([0-9a-f]{7})[0-9a-f]-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g;
+
 /**
  * Adds a listener function for the currently selected thing
  * @param {function} observer function that will be called if the current thing was changed
@@ -78,12 +80,26 @@ export async function ready() {
 
   dom.buttonCreateThing.onclick = async () => {
     const editorValue = thingJsonEditor.getValue();
-    API.callDittoREST('POST', '/things', editorValue === '' ? {} : JSON.parse(editorValue))
-        .then((data) => {
-          refreshThing(data.thingId, () => {
-            getThings([data.thingId]);
-          });
+    if (dom.thingId.value !== undefined && dom.thingId.value !== '') {
+      API.callDittoREST('PUT',
+          '/things/' + dom.thingId.value,
+          editorValue === '' ? {} : JSON.parse(editorValue),
+          {
+            'if-none-match': '*',
+          },
+      ).then((data) => {
+        refreshThing(data.thingId, () => {
+          getThings([data.thingId]);
         });
+      });
+    } else {
+      API.callDittoREST('POST', '/things', editorValue === '' ? {} : JSON.parse(editorValue))
+          .then((data) => {
+            refreshThing(data.thingId, () => {
+              getThings([data.thingId]);
+            });
+          });
+    }
   };
 
   dom.buttonSaveThing.onclick = () => {
@@ -148,7 +164,7 @@ function fillThingsTable(thingsList) {
   });
   if (!thingSelected) {
     setTheThing(null);
-  };
+  }
 
   function fillHeaderRow() {
     dom.thingsTableHead.innerHTML = '';
@@ -172,7 +188,7 @@ function fillThingsTable(thingsList) {
         Environments.current().pinnedThings.includes(item.thingId),
         togglePinnedThing,
     );
-    row.insertCell(-1).innerHTML = item.thingId;
+    Utils.addCellToRow(row, beautifyId(item.thingId), item.thingId);
     activeFields.forEach((field) => {
       let path = field.path.replace(/\//g, '.');
       if (path.charAt(0) !== '.') {
@@ -182,9 +198,21 @@ function fillThingsTable(thingsList) {
         json: item,
         path: path,
       });
-      row.insertCell(-1).innerHTML = elem.length !== 0 ? elem[0] : '';
+      Utils.addCellToRow(row, elem.length !== 0 ? elem[0] : '');
     });
   }
+
+  function beautifyId(longId) {
+    let result = longId;
+    if (Environments.current()['shortenUUID']) {
+      result = result.replace(uuidRegex, '$1');
+    }
+    if (Environments.current()['defaultNamespace']) {
+      result = result.replace(Environments.current()['defaultNamespace'], 'dn');
+    }
+    return result;
+  }
+
 }
 
 /**
@@ -197,7 +225,7 @@ export function searchThings(filter, cursor) {
 
   API.callDittoREST('GET',
       '/search/things?' + Fields.getQueryParameter() +
-      ((filter && filter != '') ? '&filter=' + encodeURIComponent(filter) : '') +
+      ((filter && filter !== '') ? '&filter=' + encodeURIComponent(filter) : '') +
       '&option=sort(%2BthingId)' +
       // ',size(3)' +
       (cursor ? ',cursor(' + cursor + ')' : ''),
@@ -239,6 +267,9 @@ function modifyThing(method) {
   API.callDittoREST(method,
       '/things/' + dom.thingId.value,
       method === 'PUT' ? JSON.parse(thingJsonEditor.getValue()) : null,
+      {
+        'if-match': '*',
+      },
   ).then(() => {
     method === 'PUT' ? refreshThing(dom.thingId.value) : SearchFilter.performLastSearch();
   });
@@ -252,7 +283,7 @@ function modifyThing(method) {
 export function refreshThing(thingId, successCallback) {
   API.callDittoREST('GET',
       `/things/${thingId}?` +
-      'fields=thingId%2Cdefinition%2Cattributes%2Cfeatures%2C_created%2C_modified%2C_revision%2C_policy')
+      'fields=thingId%2CpolicyId%2Cdefinition%2Cattributes%2Cfeatures%2C_created%2C_modified%2C_revision')
       .then((thing) => {
         setTheThing(thing);
         successCallback && successCallback();
@@ -276,7 +307,7 @@ function setTheThing(thingJson) {
     dom.thingDetails.innerHTML = '';
     if (theThing) {
       Utils.addTableRow(dom.thingDetails, 'thingId', false, true, theThing.thingId);
-      Utils.addTableRow(dom.thingDetails, 'policyId', false, true, theThing._policy.policyId);
+      Utils.addTableRow(dom.thingDetails, 'policyId', false, true, theThing.policyId);
       Utils.addTableRow(dom.thingDetails, 'definition', false, true, theThing.definition ?? '');
       Utils.addTableRow(dom.thingDetails, 'revision', false, true, theThing._revision);
       Utils.addTableRow(dom.thingDetails, 'created', false, true, theThing._created);
@@ -292,8 +323,6 @@ function setTheThing(thingJson) {
       delete thingCopy['_revision'];
       delete thingCopy['_created'];
       delete thingCopy['_modified'];
-      delete thingCopy['_policy'];
-      thingCopy.policyId = theThing._policy.policyId;
       thingJsonEditor.setValue(JSON.stringify(thingCopy, null, 2), -1);
     } else {
       dom.thingId.value = null;
@@ -359,7 +388,7 @@ function onTabActivated() {
     refreshView();
     viewDirty = false;
   }
-  dom.searchFilterEdit.focus();
+  // dom.searchFilterEdit.focus();
 }
 
 function onEnvironmentChanged(modifiedField) {

@@ -16,6 +16,7 @@
 const dom = {
   modalBodyConfirm: null,
   buttonConfirmed: null,
+  toastContainer: null,
 };
 
 /**
@@ -36,9 +37,9 @@ export function ready() {
 export const addTableRow = function(table, key, selected, withClipBoardCopy, ...columnValues) {
   const row = table.insertRow();
   row.id = key;
-  row.insertCell(0).innerHTML = key;
+  addCellToRow(row, key, key, 0);
   columnValues.forEach((value) => {
-    row.insertCell().innerHTML = value;
+    addCellToRow(row, value);
   });
   if (selected) {
     row.classList.add('table-active');
@@ -64,6 +65,20 @@ export function addCheckboxToRow(row, id, checked, onToggle) {
   checkBox.checked = checked;
   checkBox.onchange = onToggle;
   td.append(checkBox);
+}
+
+/**
+ * Adds a cell to the row including a tooltip
+ * @param {HTMRTableRowElement} row target row
+ * @param {String} cellContent content of new cell
+ * @param {String} cellTooltip tooltip for new cell
+ * @param {integer} position optional, default -1 (add to the end)
+ */
+export function addCellToRow(row, cellContent, cellTooltip, position) {
+  const cell = row.insertCell(position ?? -1);
+  cell.innerHTML = cellContent;
+  cell.setAttribute('data-bs-toggle', 'tooltip');
+  cell.title = cellTooltip ?? cellContent;
 }
 
 /**
@@ -186,8 +201,6 @@ export function getAllElementsById(domObjects) {
   });
 }
 
-let errorToast = null;
-
 /**
  * Show an error toast
  * @param {String} message Message for toast
@@ -195,13 +208,22 @@ let errorToast = null;
  * @param {String} status Status text for toas
  */
 export function showError(message, header, status) {
-  if (!errorToast) {
-    errorToast = new bootstrap.Toast(document.getElementById('errorToast'));
-  }
-  document.getElementById('errorHeader').innerText = header ? header : 'Error';
-  document.getElementById('errorBody').innerText = message;
-  document.getElementById('errorStatus').innerText = status ? status : '';
-  errorToast.show();
+  const domToast = document.createElement('div');
+  domToast.classList.add('toast');
+  domToast.innerHTML = `<div class="toast-header alert-danger">
+  <i class="bi me-2 bi-exclamation-triangle-fill"></i>
+  <strong class="me-auto">${header ?? 'Error'}</strong>
+  <small>${status ?? ''}</small>
+  <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+  </div>
+  <div class="toast-body">${message}</div>`;
+
+  dom.toastContainer.appendChild(domToast);
+  domToast.addEventListener("hidden.bs.toast", () => {
+    domToast.remove();
+  });
+  const bsToast = new bootstrap.Toast(domToast);
+  bsToast.show();
 }
 
 /**

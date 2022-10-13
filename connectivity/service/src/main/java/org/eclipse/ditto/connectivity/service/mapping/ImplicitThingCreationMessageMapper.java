@@ -18,8 +18,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
@@ -33,6 +31,7 @@ import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
@@ -58,6 +57,10 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
+
 /**
  * This mapper creates a {@link org.eclipse.ditto.things.model.signals.commands.modify.CreateThing} command from
  * a given thing template and may substitutes placeholders by given headers which can be {@code device_id},
@@ -69,11 +72,9 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
  *
  * @since 1.3.0
  */
-@PayloadMapper(
-        alias = "ImplicitThingCreation",
-        requiresMandatoryConfiguration = true // "thing" is mandatory configuration
-)
-public final class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
+public class ImplicitThingCreationMessageMapper extends AbstractMessageMapper {
+
+    private static final String PAYLOAD_MAPPER_ALIAS = "ImplicitThingCreation";
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ImplicitThingCreationMessageMapper.class);
 
@@ -90,32 +91,48 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
     private static final String POLICY_ID_CONFIGURATION_PROPERTY = THING_TEMPLATE + "/" + POLICY_ID;
     public static final EntityTagMatcher ASTERISK = EntityTagMatcher.asterisk();
 
-    private final BiFunction<Map<String, String>, AuthorizationContext, Optional<ExpressionResolver>> resolverFactory;
-
     private String thingTemplate;
     private Map<String, String> commandHeaders;
     private boolean allowPolicyLockout;
 
     /**
-     * Default constructor that supports headers placeholders in mapped headers and templates.
+     * Constructs a new instance of ImplicitThingCreationMessageMapper extension.
+     *
+     * @param actorSystem the actor system in which to load the extension.
+     * @param config the configuration for this extension.
      */
-    @SuppressWarnings("unused")
-    public ImplicitThingCreationMessageMapper() {
-        this((headers, authorizationContext) -> Optional.of(getExpressionResolver(headers, authorizationContext)));
+    public ImplicitThingCreationMessageMapper(final ActorSystem actorSystem, final Config config) {
+        super(actorSystem, config);
     }
 
-    /**
-     * Constructor with customizable expression resolver.
-     *
-     * @param resolverFactory the creator of expression resolver.
-     */
-    public ImplicitThingCreationMessageMapper(
-            final BiFunction<Map<String, String>, AuthorizationContext, Optional<ExpressionResolver>> resolverFactory) {
-        this.resolverFactory = resolverFactory;
+    protected ImplicitThingCreationMessageMapper(final ImplicitThingCreationMessageMapper copyFromMapper) {
+        super(copyFromMapper);
+        this.thingTemplate = copyFromMapper.thingTemplate;
+        this.commandHeaders = copyFromMapper.commandHeaders;
+        this.allowPolicyLockout = copyFromMapper.allowPolicyLockout;
     }
 
     @Override
-    protected void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
+    public String getAlias() {
+        return PAYLOAD_MAPPER_ALIAS;
+    }
+
+    /**
+     * "thing" is mandatory.
+     */
+    @Override
+    public boolean isConfigurationMandatory() {
+        return true;
+    }
+
+    @Override
+    public MessageMapper createNewMapperInstance() {
+        return new ImplicitThingCreationMessageMapper(this);
+    }
+
+    @Override
+    protected void doConfigure(final Connection connection, final MappingConfig mappingConfig,
+            final MessageMapperConfiguration configuration) {
         thingTemplate = configuration.findProperty(THING_TEMPLATE).orElseThrow(
                 () -> MessageMapperConfigurationInvalidException.newBuilder(THING_TEMPLATE).build());
 
@@ -183,16 +200,10 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         LOGGER.withCorrelationId(message.getInternalHeaders()).debug("Received ExternalMessage: {}", message);
 
         final Map<String, String> externalHeaders = message.getHeaders();
-        final ExpressionResolver expressionResolver = resolverFactory.apply(
-                        externalHeaders,
-                        message.getAuthorizationContext().orElse(null)
-                )
-                .orElseGet(() -> {
-                    LOGGER.withCorrelationId(message.getInternalHeaders())
-                            .warn("Could not obtain ExpressionResolver via resolverFactory - falling back to default " +
-                                    "ExpressionResolver");
-                    return getExpressionResolver(externalHeaders, message.getAuthorizationContext().orElse(null));
-                });
+        final ExpressionResolver expressionResolver = createExpressionResolver(
+                externalHeaders,
+                message.getAuthorizationContext().orElse(null)
+        );
 
         final String resolvedTemplate;
         if (Placeholders.containsAnyPlaceholder(thingTemplate)) {
@@ -223,7 +234,15 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         return DittoHeaders.empty();
     }
 
-    private static ExpressionResolver getExpressionResolver(final Map<String, String> headers,
+    /**
+     * Creates a new {@code ExpressionResolver} based on the passed in {@code headers} and {@code authorizationContext}.
+     * May be overwritten in subclasses which add additional expressions to resolve.
+     *
+     * @param headers the headers to use for resolving via headers placeholder expressions.
+     * @param authorizationContext the authorization context to resolve via request placeholder expressions.
+     * @return the created ExpressionResolver.
+     */
+    protected ExpressionResolver createExpressionResolver(final Map<String, String> headers,
             @Nullable final AuthorizationContext authorizationContext) {
         return PlaceholderFactory.newExpressionResolver(
                 PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object()),
@@ -289,4 +308,13 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         return topicPath.isCriterion(TopicPath.Criterion.ERRORS);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
+                ", thingTemplate=" + thingTemplate +
+                ", commandHeaders=" + commandHeaders +
+                ", allowPolicyLockout=" + allowPolicyLockout +
+                "]";
+    }
 }

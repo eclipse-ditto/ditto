@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.service.config;
+package org.eclipse.ditto.connectivity.model.mqtt;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -40,8 +40,8 @@ public final class ReceiveMaximumTest {
 
     @Test
     public void testCompareTo() throws IllegalReceiveMaximumValueException {
-        final var minimumReceiveMaximum = ReceiveMaximum.of(1);
-        final var defaultReceiveMaximum = ReceiveMaximum.defaultReceiveMaximum();
+        final ReceiveMaximum minimumReceiveMaximum = ReceiveMaximum.of(1);
+        final ReceiveMaximum defaultReceiveMaximum = ReceiveMaximum.defaultReceiveMaximum();
         
         assertThat(minimumReceiveMaximum).isLessThan(defaultReceiveMaximum);
         assertThat(defaultReceiveMaximum).isGreaterThan(minimumReceiveMaximum);
@@ -49,7 +49,7 @@ public final class ReceiveMaximumTest {
 
     @Test
     public void ofWithZeroThrowsException() {
-        final var value = 0;
+        final int value = 0;
 
         Assertions.assertThatExceptionOfType(IllegalReceiveMaximumValueException.class)
                 .isThrownBy(() -> ReceiveMaximum.of(value))
@@ -62,7 +62,7 @@ public final class ReceiveMaximumTest {
 
     @Test
     public void ofWithValueExceedingMaximumThrowsException() {
-        final var value = ReceiveMaximum.MAX_VALUE + 1;
+        final int value = ReceiveMaximum.MAX_VALUE + 1;
 
         Assertions.assertThatExceptionOfType(IllegalReceiveMaximumValueException.class)
                 .isThrownBy(() -> ReceiveMaximum.of(value))
@@ -75,8 +75,8 @@ public final class ReceiveMaximumTest {
 
     @Test
     public void getValueReturnsExpectedValue() throws IllegalReceiveMaximumValueException {
-        final var value = 42;
-        final var underTest = ReceiveMaximum.of(value);
+        final int value = 42;
+        final ReceiveMaximum underTest = ReceiveMaximum.of(value);
 
         assertThat(underTest.getValue()).isEqualTo(value);
     }

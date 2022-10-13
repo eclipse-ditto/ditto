@@ -31,6 +31,8 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.awaitility.Awaitility;
+import org.eclipse.ditto.base.api.common.Shutdown;
+import org.eclipse.ditto.base.api.common.ShutdownReasonFactory;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
@@ -46,6 +48,8 @@ import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.internal.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -152,6 +156,50 @@ public final class BackgroundSyncActorTest {
     }
 
     @Test
+    public void synchronizesThingsWithFilterAfterShutdown() {
+        new TestKit(actorSystem) {{
+            whenSearchPersistenceHasIndexedThings();
+            whenTimestampPersistenceProvidesTaggedTimestamp();
+
+            final ActorRef underTest = thenCreateBackgroundSyncActor(this, DefaultBackgroundSyncConfig.parse(
+                    ConfigFactory.parseString("quiet-period=200ms")
+                            .withFallback(ConfigFactory.load("background-sync-test.conf"))));
+
+            expectDefaultSyncIteration();
+            expectSyncActorToBeUpAndHealthy(underTest, this);
+
+            underTest.tell(Shutdown.getInstance(ShutdownReasonFactory.fromJson(JsonObject.empty()),
+                    DittoHeaders.newBuilder()
+                            .putHeader("force-update", Boolean.TRUE.toString())
+                            .putHeader("namespaces", JsonArray.of("namespace1", "namespace2").toString())
+                            .build()), getRef());
+
+            // next iteration is forced and limited to given namespaces
+            expectForcedSyncIteration();
+            expectSyncActorToBeUpAndHealthy(underTest, this);
+
+            // next iteration is default again
+            expectDefaultSyncIteration();
+
+            expectSyncActorToBeUpAndHealthy(underTest, this);
+        }};
+    }
+
+    private void expectDefaultSyncIteration() {
+        expectSyncActorToStartStreaming(pubSub, DEFAULT_TIMEOUT, msg -> assertThat(msg.getNamespaces()).isEmpty());
+        thenRespondWithPersistedThingsStream(pubSub);
+        expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater);
+    }
+
+    private void expectForcedSyncIteration() {
+        expectSyncActorToStartStreaming(pubSub, DEFAULT_TIMEOUT,
+                msg -> assertThat(msg.getNamespaces()).containsExactly("namespace1", "namespace2"));
+        thenRespondWithPersistedThingsStream(pubSub);
+        expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, false,
+                DittoHeaders.newBuilder().putHeader("force-update", "true").build());
+    }
+
+    @Test
     public void providesHealthWarningWhenSyncStreamFails() {
 
         new TestKit(actorSystem) {{
@@ -194,7 +242,6 @@ public final class BackgroundSyncActorTest {
 
             expectSyncActorToBeUpAndHealthy(underTest, this);
         }};
-
     }
 
     @Test
@@ -274,6 +321,11 @@ public final class BackgroundSyncActorTest {
     }
 
     private ActorRef thenCreateBackgroundSyncActor(final TestKit system) {
+        return thenCreateBackgroundSyncActor(system, backgroundSyncConfig);
+    }
+
+    private ActorRef thenCreateBackgroundSyncActor(final TestKit system,
+            final BackgroundSyncConfig backgroundSyncConfig) {
         return system.childActorOf(BackgroundSyncActor.props(
                 backgroundSyncConfig,
                 pubSub.getRef(),
@@ -289,9 +341,15 @@ public final class BackgroundSyncActorTest {
     }
 
     private void expectSyncActorToStartStreaming(final TestKit pubSub, final Duration withinTimeout) {
+        expectSyncActorToStartStreaming(pubSub, withinTimeout, msg -> {});
+    }
+
+    private void expectSyncActorToStartStreaming(final TestKit pubSub, final Duration withinTimeout,
+            final Consumer<SudoStreamSnapshots> msgAssertions) {
         final DistributedPubSubMediator.Send startStream =
                 pubSub.expectMsgClass(withinTimeout, DistributedPubSubMediator.Send.class);
         assertThat(startStream.msg()).isInstanceOf(SudoStreamSnapshots.class);
+        msgAssertions.accept(((SudoStreamSnapshots) startStream.msg()));
     }
 
     private void thenRespondWithFailingPersistedThingsStream(final TestKit pubSub) {
@@ -312,18 +370,23 @@ public final class BackgroundSyncActorTest {
     }
 
     private void expectSyncActorToRequestThingUpdatesInSearch(final TestKit thingsUpdater) {
+        expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, true, HEADERS);
+    }
+
+    private void expectSyncActorToRequestThingUpdatesInSearch(final TestKit thingsUpdater,
+            final boolean invalidateThing, final DittoHeaders headers) {
         expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(
-                SudoUpdateThing.of(KNOWN_IDs.get(0), true, false, UpdateReason.BACKGROUND_SYNC, HEADERS),
-                SudoUpdateThing.of(KNOWN_IDs.get(1), true, false, UpdateReason.BACKGROUND_SYNC, HEADERS),
-                SudoUpdateThing.of(KNOWN_IDs.get(2), true, false, UpdateReason.BACKGROUND_SYNC, HEADERS),
-                SudoUpdateThing.of(KNOWN_IDs.get(3), true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)
+                SudoUpdateThing.of(KNOWN_IDs.get(0), invalidateThing, false, UpdateReason.BACKGROUND_SYNC, headers),
+                SudoUpdateThing.of(KNOWN_IDs.get(1), invalidateThing, false, UpdateReason.BACKGROUND_SYNC, headers),
+                SudoUpdateThing.of(KNOWN_IDs.get(2), invalidateThing, false, UpdateReason.BACKGROUND_SYNC, headers),
+                SudoUpdateThing.of(KNOWN_IDs.get(3), invalidateThing, false, UpdateReason.BACKGROUND_SYNC, headers)
         ));
     }
 
     private void expectSyncActorToRequestThingUpdatesInSearch(final TestKit thingsUpdater,
             final List<SudoUpdateThing> commands) {
         commands.forEach(command -> {
-            thingsUpdater.expectMsg(command);
+            thingsUpdater.expectMsg(DEFAULT_TIMEOUT, command);
             thingsUpdater.reply(toAcknowledgement(command));
         });
     }

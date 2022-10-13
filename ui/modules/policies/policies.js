@@ -220,7 +220,7 @@ function validations(entryFilled, entrySelected, subjectFilled, subjectSelected,
 }
 
 function onThingChanged(thing) {
-  dom.inputPolicyId.value = (thing && thing._policy) ? thing._policy.policyId : null;
+  dom.inputPolicyId.value = (thing && thing.policyId) ? thing.policyId : null;
   viewDirty = true;
 }
 

@@ -189,18 +189,6 @@
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
-                            <exclude>org.eclipse.ditto.protocol.HeaderTranslator</exclude> <!-- moved to ditto-model-base -->
-                            <exclude>org.eclipse.ditto.protocol.adapter.acknowledgements.DefaultAcknowledgementsAdapterProvider</exclude>
-                            <exclude>org.eclipse.ditto.protocol.adapter.connectivity.DefaultConnectivityCommandAdapterProvider</exclude>
-                            <exclude>org.eclipse.ditto.protocol.adapter.policies.DefaultPolicyCommandAdapterProvider</exclude>
-                            <exclude>org.eclipse.ditto.protocol.adapter.things.DefaultThingCommandAdapterProvider</exclude>
-                            <exclude>org.eclipse.ditto.protocol.adapter.things.RetrieveThingsCommandAdapter#of(org.eclipse.ditto.protocol.HeaderTranslator)</exclude>
-                            <exclude>org.eclipse.ditto.protocol.adapter.things.RetrieveThingsCommandResponseAdapter#of(org.eclipse.ditto.protocol.HeaderTranslator)</exclude>
-                            <exclude>org.eclipse.ditto.protocol.adapter.ProtocolAdapter#headerTranslator()</exclude>
-                            <exclude>org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter#getHeaderTranslator()</exclude>
-                            <exclude>org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter#headerTranslator()</exclude>
-                            <exclude>org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter#of(org.eclipse.ditto.protocol.HeaderTranslator)</exclude>
-                            <exclude>org.eclipse.ditto.protocol.adapter.AbstractErrorResponseAdapter#getTopicPathBuilder(org.eclipse.ditto.base.model.signals.commands.ErrorResponse)</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

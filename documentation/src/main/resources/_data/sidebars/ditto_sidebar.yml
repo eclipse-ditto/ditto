@@ -758,6 +758,11 @@ entries:
           - title: → Search examples
             url: /protocol-examples-search.html
             output: web
+
+      - title: User Interface
+        url: /user-interface.html
+        output: web
+
       - title: Sandbox
         url: /sandbox.html
         output: web

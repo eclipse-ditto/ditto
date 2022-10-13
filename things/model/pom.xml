@@ -157,16 +157,6 @@
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
-                            <exclude>org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator#DITTO_LIMITS_THINGS_MAX_SIZE_BYTES</exclude>
-                            <exclude>org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse#getEntityId()</exclude>
-                            <exclude>org.eclipse.ditto.things.model.Thing#getPolicyEntityId()</exclude> <!-- renamed to getPolicyId() -->
-                            <exclude>org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckRequestSetter</exclude>
-                            <exclude>org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAckRequestSetter</exclude>
-                            <exclude>org.eclipse.ditto.things.model.Feature$JsonFields#SCHEMA_VERSION</exclude>
-                            <exclude>org.eclipse.ditto.things.model.Thing$JsonFields#SCHEMA_VERSION</exclude>
-                            <exclude>org.eclipse.ditto.things.model.signals.commands.WithSelectedFields</exclude>
-                            <exclude>org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings</exclude>
-                            <exclude>org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

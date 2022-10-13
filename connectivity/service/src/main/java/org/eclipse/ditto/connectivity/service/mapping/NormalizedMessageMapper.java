@@ -22,6 +22,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
@@ -40,13 +41,18 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
+
 /**
  * A message mapper implementation for normalized changes.
  * Create-,  modify- and merged-events are mapped to nested sparse JSON.
  * All other signals and incoming messages are dropped.
  */
-@PayloadMapper(alias = "Normalized")
 public final class NormalizedMessageMapper extends AbstractMessageMapper {
+
+    private static final String PAYLOAD_MAPPER_ALIAS = "Normalized";
 
     /**
      * Config property to project parts from the mapping result.
@@ -62,13 +68,38 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
     @Nullable
     private JsonFieldSelector jsonFieldSelector;
 
-    @Override
-    public String getId() {
-        return "normalized";
+    /**
+     * Constructs a new instance of NormalizedMessageMapper extension.
+     *
+     * @param actorSystem the actor system in which to load the extension.
+     * @param config the configuration for this extension.
+     */
+    NormalizedMessageMapper(final ActorSystem actorSystem, final Config config) {
+        super(actorSystem, config);
+    }
+
+    private NormalizedMessageMapper(final NormalizedMessageMapper copyFromMapper) {
+        super(copyFromMapper);
+        this.jsonFieldSelector = copyFromMapper.jsonFieldSelector;
     }
 
     @Override
-    public void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
+    public String getAlias() {
+        return PAYLOAD_MAPPER_ALIAS;
+    }
+
+    @Override
+    public boolean isConfigurationMandatory() {
+        return false;
+    }
+
+    @Override
+    public MessageMapper createNewMapperInstance() {
+        return new NormalizedMessageMapper(this);
+    }
+
+    @Override
+    public void doConfigure(final Connection connection, final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
         final Optional<String> fields = configuration.findProperty(FIELDS);
         fields.ifPresent(s ->
                 jsonFieldSelector =
@@ -198,4 +229,11 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
         return builder.build();
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
+                ", jsonFieldSelector=" + jsonFieldSelector +
+                "]";
+    }
 }

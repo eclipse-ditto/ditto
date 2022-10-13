@@ -91,12 +91,23 @@ public class ExpressionResolverTest {
     public void testLoneDelete() {
         assertThat(expressionResolver.resolve("{{ fn:delete() }}"))
                 .isEqualTo(PipelineElement.deleted());
+        assertThat(expressionResolver.resolve("{{ fn:delete() }}{{ fn:delete() }}"))
+                .isEqualTo(PipelineElement.deleted());
+        assertThat(expressionResolver.resolve("{{ fn:delete() }}{{ fn:delete() }}{{ fn:delete() }}"))
+                .isEqualTo(PipelineElement.deleted());
+        assertThat(expressionResolver.resolve("{{ fn:default(fn:delete()) }}"))
+                .isEqualTo(PipelineElement.deleted());
     }
 
     @Test
     public void testLoneDefault() {
         assertThat(expressionResolver.resolve("{{ fn:default(header:header-name) }}"))
                 .contains("header-val");
+    }
+    @Test
+    public void testEmptyTemplate() {
+        assertThat(expressionResolver.resolve("")).isEqualTo(PipelineElement.resolved(""));
+        assertThat(expressionResolver.resolve(" ")).isEqualTo(PipelineElement.resolved(" "));
     }
 
     @Test
@@ -115,6 +126,18 @@ public class ExpressionResolverTest {
 
         assertThat(expressionResolver.resolve("{{ header:header-name | fn:delete() }}"))
                 .isEqualTo(PipelineElement.deleted());
+    }
+
+    @Test
+    public void testDeleteIfResolved() {
+        assertThat(expressionResolver.resolve("/{{ fn:delete() }}/{{ header:header-name }}/{{ fn:delete() }}/"))
+                .isEqualTo(PipelineElement.resolved("//header-val//"));
+        assertThat(expressionResolver.resolve("/{{ header:header-name | fn:delete() }}/{{ header:header-name }}/"))
+                .isEqualTo(PipelineElement.resolved("//header-val/"));
+        assertThat(expressionResolver.resolve("/{{ header:header-name }}/{{ header:header-name | fn:delete() }}/"))
+                .isEqualTo(PipelineElement.resolved("/header-val//"));
+        assertThat(expressionResolver.resolve("/{{ fn:delete() | fn:default(header:header-name) }}/{{ header:header-name | fn:delete() }}/"))
+                .isEqualTo(PipelineElement.resolved("///"));
     }
 
     @Test

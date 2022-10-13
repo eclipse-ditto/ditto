@@ -105,9 +105,6 @@
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
-                            <exclude>org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings</exclude>
-                            <exclude>org.eclipse.ditto.thingsearch.model.signals.events.ThingsOutOfSync</exclude>
-                            <exclude>org.eclipse.ditto.thingsearch.model.SearchResult$JsonFields#SCHEMA_VERSION</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

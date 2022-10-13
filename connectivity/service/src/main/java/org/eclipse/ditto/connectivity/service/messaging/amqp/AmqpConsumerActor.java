@@ -449,6 +449,9 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
                 inboundAcknowledgedMonitor.exception(externalMessageHeaders,
                         "Sending negative acknowledgement: <{0}>", ackTypeName);
             }
+        } catch (final IllegalStateException e) {
+            logger.withCorrelationId(correlationId.orElse(null))
+                    .warning(e, "Failed to ack an AMQP message because of server side issues");
         } catch (final Exception e) {
             logger.withCorrelationId(correlationId.orElse(null)).error(e, "Failed to ack an AMQP message");
         }
@@ -458,7 +461,11 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
             final ExternalMessageBuilder builder, @Nullable final String correlationId) throws JMSException {
         if (message instanceof TextMessage textMessage) {
             final String payload = textMessage.getText();
-            builder.withTextAndBytes(payload, payload.getBytes());
+            if (payload == null) {
+                builder.withText(null);
+            } else {
+                builder.withTextAndBytes(payload, payload.getBytes());
+            }
         } else if (message instanceof BytesMessage bytesMessage) {
             final long bodyLength = bytesMessage.getBodyLength();
             if (bodyLength >= Integer.MIN_VALUE && bodyLength <= Integer.MAX_VALUE) {
@@ -481,8 +488,8 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
         return builder;
     }
 
-    private Map<String, String> extractHeadersMapFromJmsMessage(final JmsMessage message) {
-        return JMSPropertyMapper.getPropertiesAndApplicationProperties(message);
+    private static Map<String, String> extractHeadersMapFromJmsMessage(final JmsMessage message) {
+        return JMSPropertyMapper.getHeadersFromProperties(message);
     }
 
     @Override

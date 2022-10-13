@@ -149,19 +149,6 @@
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!-- <exclude></exclude> -->
-                            <exclude>org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator#DITTO_LIMITS_POLICIES_MAX_SIZE_BYTES</exclude>
-                            <exclude>org.eclipse.ditto.policies.model.signals.commands.modify.DeleteExpiredSubject</exclude>
-                            <exclude>org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers#defaultEvaluator(org.eclipse.ditto.policies.model.Policy)</exclude>
-                            <exclude>org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers#memoryOptimizedEvaluator(org.eclipse.ditto.policies.model.Policy)</exclude>
-                            <exclude>org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers#throughputOptimizedEvaluator(org.eclipse.ditto.policies.model.Policy)</exclude>
-                            <exclude>org.eclipse.ditto.policies.model.enforcers.tree.TreeBasedPolicyEnforcer#createInstance(org.eclipse.ditto.policies.model.Policy)</exclude>
-                            <exclude>org.eclipse.ditto.policies.model.enforcers.trie.TrieBasedPolicyEnforcer#newInstance(org.eclipse.ditto.policies.model.Policy)</exclude>
-                            <exclude>org.eclipse.ditto.policies.model.SubjectAnnouncement#of(org.eclipse.ditto.base.model.common.DittoDuration, boolean, java.util.List, org.eclipse.ditto.base.model.common.DittoDuration)</exclude>
-                            <exclude>org.eclipse.ditto.policies.model.EffectedPermissions$JsonFields#SCHEMA_VERSION</exclude>
-                            <exclude>org.eclipse.ditto.policies.model.Policy$JsonFields#SCHEMA_VERSION</exclude>
-                            <exclude>org.eclipse.ditto.policies.model.PolicyEntry$JsonFields#SCHEMA_VERSION</exclude>
-                            <exclude>org.eclipse.ditto.policies.model.Resource$JsonFields</exclude>
-                            <exclude>org.eclipse.ditto.policies.model.Subject$JsonFields</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

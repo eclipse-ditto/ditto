@@ -160,7 +160,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
     }
 
     @Test
-    public void rejectQueryByPolicyNotAccessibleException() {
+    public void rejectQueryByPolicyNotAccessibleExceptionWhenThingExists() {
         final PolicyId policyId = PolicyId.of("not:accessible");
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(TestSetup.newThingWithPolicyId(policyId), DittoHeaders.empty());
@@ -170,13 +170,14 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
         new TestKit(system) {{
             supervisor.tell(getReadCommand(), getRef());
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             final DittoRuntimeException error = TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
             assertThat(error.getMessage()).contains(THING_ID);
         }};
     }
 
     @Test
-    public void rejectUpdateByPolicyNotAccessibleException() {
+    public void rejectUpdateByPolicyNotAccessibleExceptionWhenThingExists() {
         final PolicyId policyId = PolicyId.of("not:accessible");
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(TestSetup.newThingWithPolicyId(policyId), DittoHeaders.empty());
@@ -185,6 +186,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
         new TestKit(system) {{
             supervisor.tell(getModifyCommand(), getRef());
 
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
 
             final DittoRuntimeException error = TestSetup.fishForMsgClass(this, ThingNotModifiableException.class);

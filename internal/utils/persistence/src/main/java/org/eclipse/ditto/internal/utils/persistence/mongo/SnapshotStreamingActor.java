@@ -13,10 +13,15 @@
 package org.eclipse.ditto.internal.utils.persistence.mongo;
 
 import java.time.Duration;
+import java.util.Collection;
+import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.bson.Document;
+import org.eclipse.ditto.base.model.entity.id.AbstractNamespacedEntityId;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.internal.models.streaming.StreamedSnapshot;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamSnapshots;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -25,6 +30,7 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.SnapshotFilter;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
@@ -124,14 +130,47 @@ public final class SnapshotStreamingActor extends AbstractActor {
     private Source<StreamedSnapshot, NotUsed> createSource(final SudoStreamSnapshots command) {
         log.info("Starting stream for <{}>", command);
         final int batchSize = command.getBurst();
-        final String start = command.hasNonEmptyLowerBound() ? entityId2Pid.apply(command.getLowerBound()) : "";
         final Source<Document, NotUsed> snapshotSource = readJournal.getNewestSnapshotsAbove(
-                start,
+                getSnapshotFilterFromCommand(command),
                 batchSize,
                 materializer,
                 command.getSnapshotFields().stream().map(JsonValue::asString).toArray(String[]::new)
         );
         return snapshotSource.map(this::mapSnapshot).log("snapshot-streaming", log);
+    }
+
+    private SnapshotFilter getSnapshotFilterFromCommand(final SudoStreamSnapshots command) {
+        final String start = command.hasNonEmptyLowerBound() ? entityId2Pid.apply(command.getLowerBound()) : "";
+        final String pidFilter = FilteredNamespacedEntityId.toPidFilter(command, entityId2Pid);
+        return SnapshotFilter.of(start, pidFilter);
+    }
+
+    /**
+     * Implementation of NamespacedEntityId that generates an entity id filter based on a given set of namespaces.
+     */
+    private static class FilteredNamespacedEntityId extends AbstractNamespacedEntityId {
+
+        private FilteredNamespacedEntityId(final EntityType type, final String namespaceRegex) {
+            super(type, namespaceRegex, ".*", false);
+        }
+
+        /**
+         * Creates a pid regex from the given SudoStreamSnapshots command.
+         *
+         * @param command the command from which to create the entity id filter
+         * @param entityId2Pid the function to convert from entity if to persistence id
+         * @return a regular expression that matches PIDs of the given namespace(s)
+         */
+        static String toPidFilter(final SudoStreamSnapshots command, final Function<EntityId, String> entityId2Pid) {
+            return Optional.of(command.getNamespaces())
+                    .filter(namespaces -> !namespaces.isEmpty())
+                    .map(Collection::stream)
+                    .map(namespaces -> namespaces.collect(Collectors.joining("|", "(", ")")))
+                    .map(regex -> new FilteredNamespacedEntityId(EntityType.of(command.getType()), regex))
+                    .map(entityId2Pid)
+                    .map(pid -> "^" + pid)
+                    .orElse("");
+        }
     }
 
     private StreamedSnapshot mapSnapshot(final Document snapshot) {

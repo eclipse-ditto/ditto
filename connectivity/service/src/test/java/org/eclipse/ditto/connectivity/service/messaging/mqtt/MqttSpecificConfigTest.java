@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.service.config.IllegalReceiveMaximumValueException;
+import org.eclipse.ditto.connectivity.model.mqtt.IllegalReceiveMaximumValueException;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.junit.Before;
 import org.junit.Test;

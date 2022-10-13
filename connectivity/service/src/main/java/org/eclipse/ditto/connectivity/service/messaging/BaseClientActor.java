@@ -815,7 +815,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         }
 
         if (message instanceof Throwable throwable) {
-            logger.error(throwable, "received Exception {} in state {} - status: {} - sender: {}",
+            logger.warning(throwable, "received Exception {} in state {} - status: {} - sender: {}",
                     message,
                     stateName(),
                     state.getConnectionStatus() + ": " + state.getConnectionStatusDetails().orElse(""),

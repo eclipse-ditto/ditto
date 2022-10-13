@@ -15,6 +15,7 @@ package org.eclipse.ditto.internal.utils.persistence.mongo.streaming;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -230,6 +231,90 @@ public final class MongoReadJournalIT {
                         .append("sn", 3L)
         );
 
+    }
+
+    private static Document snapshot(final String pid, final long sn, final boolean deleted) {
+        return new Document().append("pid", pid)
+                            .append("sn", sn)
+                            .append("s2", new Document().append("_modified", Instant.ofEpochSecond(sn).toString())
+                                    .append("__lifecycle", deleted  ? "DELETED"  :"ACTIVE"));
+    }
+
+    @Test
+    public void streamLatestSnapshotsWithPidFilter() {
+        // GIVEN
+        insert("test_snaps", snapshot("snip:pid1", 1L, false));
+        insert("test_snaps", snapshot("snap:pid1", 1L, false));
+        insert("test_snaps", snapshot("snap:pid1", 2L, false));
+        insert("test_snaps", snapshot("snap:pid1", 3L, false));
+        insert("test_snaps", snapshot("snip:pid3", 1L, false));
+        insert("test_snaps", snapshot("snap:pid4", 4L, false));
+
+        // latest snapshot of pid5 is deleted; it should not show up
+        insert("test_snaps", snapshot("snap:pid5", 1L, false));
+        insert("test_snaps", snapshot("snap:pid5", 2L, true));
+
+        insert("test_snaps", snapshot("snap:pid6", 6L, false));
+
+
+        // WHEN: latest snapshots requested with batch size that splits the snapshots of pid3 into 2 batches
+        final List<Document> snapshots =
+                readJournal.getNewestSnapshotsAbove(SnapshotFilter.of("", "^snap:.*"), 2, materializer, "_modified")
+                        .runWith(Sink.seq(), materializer)
+                        .toCompletableFuture()
+                        .join();
+
+        // THEN: snapshots of the highest sequence number for each pid are returned
+        assertThat(snapshots).containsExactly(
+                new Document().append("_id", "snap:pid1")
+                        .append("__lifecycle", "ACTIVE")
+                        .append("_modified", "1970-01-01T00:00:03Z")
+                        .append("sn", 3L),
+                new Document().append("_id", "snap:pid4")
+                        .append("__lifecycle", "ACTIVE")
+                        .append("_modified", "1970-01-01T00:00:04Z")
+                        .append("sn", 4L),
+                new Document().append("_id", "snap:pid6")
+                        .append("__lifecycle", "ACTIVE")
+                        .append("_modified", "1970-01-01T00:00:06Z")
+                        .append("sn", 6L)
+        );
+    }
+
+    @Test
+    public void streamLatestSnapshotsWithLowerBoundAndPidFilter() {
+        // GIVEN
+        insert("test_snaps", snapshot("snip:pid1", 1L, false));
+        insert("test_snaps", snapshot("snap:pid1", 1L, false));
+        insert("test_snaps", snapshot("snap:pid1", 2L, false));
+        insert("test_snaps", snapshot("snap:pid1", 3L, false));
+        insert("test_snaps", snapshot("snip:pid3", 1L, false));
+        insert("test_snaps", snapshot("snap:pid4", 4L, false));
+
+        // latest snapshot of pid5 is deleted; it should not show up
+        insert("test_snaps", snapshot("snap:pid5", 1L, false));
+        insert("test_snaps", snapshot("snap:pid5", 2L, true));
+
+        insert("test_snaps", snapshot("snap:pid6", 6L, false));
+
+        // WHEN: latest snapshots requested lower bound and pid filter
+        final List<Document> snapshots =
+                readJournal.getNewestSnapshotsAbove(SnapshotFilter.of("snap:pid2", "^snap:.*"), 2, materializer, "_modified")
+                        .runWith(Sink.seq(), materializer)
+                        .toCompletableFuture()
+                        .join();
+
+        // THEN: snapshots of the highest sequence number for each pid are returned
+        assertThat(snapshots).containsExactly(
+                new Document().append("_id", "snap:pid4")
+                        .append("__lifecycle", "ACTIVE")
+                        .append("_modified", "1970-01-01T00:00:04Z")
+                        .append("sn", 4L),
+                new Document().append("_id", "snap:pid6")
+                        .append("__lifecycle", "ACTIVE")
+                        .append("_modified", "1970-01-01T00:00:06Z")
+                        .append("sn", 6L)
+        );
     }
 
     @Test

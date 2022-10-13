@@ -1,0 +1,53 @@
+# Copyright (c) 2022 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+get:
+  summary: Retrieve metrics of a specific Connection
+  description: |-
+    Returns the metrics of the connection identified by the `connectionId` path parameter.
+  security:
+    - DevOpsBasic: [ ]
+  tags:
+    - Connections
+  parameters:
+    - $ref: '../../parameters/connectionIdPathParam.yml'
+  responses:
+    '200':
+      description: The request successfully returned the connection metrics.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/connections/connectionMetrics.yml'
+    '400':
+      description: |-
+        The request could not be completed. The `connectionId` must be an URI.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '403':
+      description: The request could not be completed due to invalid authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The connection with ID `connectionId` was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'

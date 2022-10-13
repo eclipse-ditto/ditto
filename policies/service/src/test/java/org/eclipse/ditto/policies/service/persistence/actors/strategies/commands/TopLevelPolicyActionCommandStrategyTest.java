@@ -163,7 +163,7 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
     public void activateUnresolvableSubject() {
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
         final Instant expiry = Instant.now().plus(Duration.ofDays(1L));
-        final SubjectId subjectId = SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{fn:delete()}}");
+        final SubjectId subjectId = SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{ policy:id }}");
         final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
                 ActivateTokenIntegration.of(context.getState(), DUMMY_LABEL, Collections.singleton(subjectId), expiry,
@@ -171,7 +171,7 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
                 List.of(LABEL)
         );
         assertExceptionIsThrown(underTest, TestConstants.Policy.POLICY, command,
-                UnresolvedPlaceholderException.newBuilder("integration:{{fn:delete()}}").build());
+                UnresolvedPlaceholderException.newBuilder("integration:{{ policy:id }}").build());
     }
 
     @Test
@@ -374,7 +374,7 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
     @Test
     public void deactivateUnresolvableSubject() {
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
-        final SubjectId subjectId = SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{fn:delete()}}");
+        final SubjectId subjectId = SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{ policy:id }}");
         final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
                 DeactivateTokenIntegration.of(context.getState(), DUMMY_LABEL, Collections.singleton(subjectId),
@@ -382,7 +382,7 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
                 List.of(LABEL)
         );
         assertExceptionIsThrown(underTest, TestConstants.Policy.POLICY, command,
-                UnresolvedPlaceholderException.newBuilder("integration:{{fn:delete()}}").build());
+                UnresolvedPlaceholderException.newBuilder("integration:{{ policy:id }}").build());
     }
 
     @Test

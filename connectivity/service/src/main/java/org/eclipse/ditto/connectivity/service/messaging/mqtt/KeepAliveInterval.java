@@ -66,7 +66,7 @@ public final class KeepAliveInterval {
     /**
      * Returns an instance of {@code KeepAliveInterval} with zero seconds.
      *
-     * @return the zero keep alive.
+     * @return the zero keep alive interval.
      */
     public static KeepAliveInterval zero() {
         return new KeepAliveInterval(MIN_INTERVAL_SECONDS);

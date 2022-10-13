@@ -62,6 +62,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -88,7 +89,7 @@ public final class NormalizedMessageMapperTest {
         connectivityConfig =
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(config));
         connection = TestConstants.createConnection();
-        underTest = new NormalizedMessageMapper();
+        underTest = new NormalizedMessageMapper(actorSystem, Mockito.mock(Config.class));
         actorSystem = ActorSystem.create("Test", config);
     }
 

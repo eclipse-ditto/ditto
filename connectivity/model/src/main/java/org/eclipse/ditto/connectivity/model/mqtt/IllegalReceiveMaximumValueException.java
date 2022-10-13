@@ -10,9 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.service.config;
-
-import java.io.Serial;
+package org.eclipse.ditto.connectivity.model.mqtt;
 
 import javax.annotation.Nullable;
 
@@ -22,7 +20,7 @@ import javax.annotation.Nullable;
  */
 public final class IllegalReceiveMaximumValueException extends Exception {
 
-    @Serial private static final long serialVersionUID = -2401780934628723671L;
+    private static final long serialVersionUID = -2401780934628723671L;
 
     /**
      * Constructs an {@code IllegalReceiveMaximumValueException} for the specified detail message argument.

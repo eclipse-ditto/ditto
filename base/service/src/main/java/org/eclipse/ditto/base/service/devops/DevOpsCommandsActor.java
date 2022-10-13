@@ -326,7 +326,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
         final List<LoggerConfig> loggerConfigs;
 
         if (command.isAllKnownLoggers()) {
-            loggerConfigs = loggingFacade.getLoggerConfig();
+            loggerConfigs = loggingFacade.getLoggerConfig(command.includeDisabledLoggers());
         } else {
             loggerConfigs = loggingFacade.getLoggerConfig(command.getSpecificLoggers());
         }

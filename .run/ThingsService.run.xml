@@ -13,7 +13,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="ThingsService" type="Application" factoryName="Application" folderName="Ditto" nameIsGenerated="true">
     <envs>
-      <env name="DITTO_DEVOPS_FEATURE_WOT_INTEGRATION_ENABLED" value="true" />
       <env name="LOG_LEVEL_APPLICATION" value="INFO" />
     </envs>
     <option name="MAIN_CLASS_NAME" value="org.eclipse.ditto.things.service.starter.ThingsService" />

@@ -235,7 +235,7 @@ Add support for connecting to an external system from Ditto via an SSH tunnel.
 
 #### [DevOps API to retrieve all known connections](https://github.com/eclipse/ditto/issues/605)
 
-Adds a new [DevOps command](connectivity-manage-connections.html#retrieve-ids-of-all-connections) to list all 
+Adds a new [DevOps command](connectivity-manage-connections.html) to list all 
 configured, non-deleted connections.
 
 #### [Expiring policy subjects](https://github.com/eclipse/ditto/issues/890)
