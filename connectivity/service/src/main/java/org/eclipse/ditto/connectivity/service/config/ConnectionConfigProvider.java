@@ -69,7 +69,8 @@ public interface ConnectionConfigProvider {
      *
      * @param event the event used to create a config which should overwrite the default connectivity config.
      * In case of Hub params changed, a null value is passed, which will invoke unconditional connection restart
+     * @param subscriber the actor that potentially will receive a command from this handler.
      */
-    void handleEvent(Event<?> event);
+    void handleEvent(Event<?> event, ActorRef subscriber);
 
 }

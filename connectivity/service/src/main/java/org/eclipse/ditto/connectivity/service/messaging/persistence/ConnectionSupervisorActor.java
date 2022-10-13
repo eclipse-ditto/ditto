@@ -152,7 +152,7 @@ public final class ConnectionSupervisorActor
                     isRegisteredForConnectivityConfigChanges = true;
                 })
                 .build()
-                .orElse(connectivityConfigModifiedBehavior())
+                .orElse(connectivityConfigModifiedBehavior(getSelf()))
                 .orElse(super.activeBehaviour(matchProcessNextTwinMessageBehavior, matchAnyBehavior));
     }
 

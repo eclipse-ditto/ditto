@@ -18,6 +18,7 @@ import com.typesafe.config.Config;
 
 import akka.actor.AbstractActor;
 import akka.actor.Actor;
+import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -25,25 +26,27 @@ import akka.japi.pf.ReceiveBuilder;
  */
 public interface ConnectivityConfigModifiedBehavior extends Actor {
 
-     /**
-     * Injectable behavior to handle an {@code Event} that transports config changes.
-      * This involves modified Hub parameters (credentials) for 'Hono'-connections as well.
-     *
-     * @return behavior to handle an {@code Event} that transports config changes.
-     */
-    default AbstractActor.Receive connectivityConfigModifiedBehavior() {
+    /**
+    * Injectable behavior to handle an {@code Event} that transports config changes.
+    * This involves modified Hub parameters (credentials) for 'Hono'-connections as well.
+    *
+    * @param subscriber the actor that potentially will receive a command message after handling the event.
+    * @return behavior to handle an {@code Event} that transports config changes.
+    */
+    default AbstractActor.Receive connectivityConfigModifiedBehavior(ActorRef subscriber) {
         return ReceiveBuilder.create()
-                .match(Event.class, event -> getConnectivityConfigProvider().canHandle(event), this::handleEvent)
+                .match(Event.class, event -> getConnectivityConfigProvider().canHandle(event), event -> handleEvent(event, subscriber))
                 .build();
     }
 
     /**
      * Handles the received event by converting it to a {@link Config}.
      *
+     * @param subscriber the actor that potentially will receive a command message from this handler.
      * @param event the received event
      */
-    default void handleEvent(final Event<?> event) {
-        getConnectivityConfigProvider().handleEvent(event);
+    default void handleEvent(final Event<?> event, ActorRef subscriber) {
+        getConnectivityConfigProvider().handleEvent(event, subscriber);
     }
 
     /**
