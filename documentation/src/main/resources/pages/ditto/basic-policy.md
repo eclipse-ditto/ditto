@@ -309,6 +309,79 @@ The [Things example at the end of the page](basic-policy.html#example) also defi
 | revoke | WRITE      | All subjects named in the section are _prohibited to write_ on the resources specified in the path, and all nested paths, except they are granted again such permission at a deeper level, or another policy entry (label). |
 | revoke | EXECUTE    | All subjects named in the section are _prohibited to execute_ on the resources specified in the path, and all nested paths, except they are granted again such permission at a deeper level, or another policy entry (label). |
 
+## Policy imports
+
+With policy imports it is possible to import entries from other referenced policies. 
+Which parts of the referenced policy are imported is controlled by two properties of a policy.
+
+Firstly, the imported policy can define for each entry whether and how a policy entry is importable by others using JSON field `importable`. 
+The field can have one of the following three values:
+1. `implicit` (default): the policy entry is imported without being listed in the importing policy individually
+1. `explicit`: the policy entry is only imported if it is listed in the importing policy
+1. `never`: the policy entry is not imported, regardless of being listed in the importing policy
+
+If the field is not specified, the default value is `implicit`.
+
+Example of a policy specifying different types of `importable` entries: 
+```json
+{
+  "entries": {
+    "DEFAULT": {
+      "subjects": { ... },
+      "resources": { ... }
+    },
+    "IMPLICIT": {
+      "subjects": { ... },
+      "resources": { ... },
+      "importable": "implicit"
+    },
+    "EXPLICIT": {
+      "subjects": { ... },
+      "resources": { ... },
+      "importable": "explicit"
+    },
+    "NEVER": {
+      "subjects": { ... },
+      "resources": { ... },
+      "importable": "never"
+    }
+  }
+}
+``` 
+
+Secondly, the importing policy may define a set of entries (identified by their label) it wants to import in addition to those entries that are implicitly imported.
+
+Example of a policy importing two other policies:
+```json
+{
+  "policyId": "ditto:importing-policy",
+  "entries": {  ...  },
+  "imports": {
+    "ditto:imported-policy" : {
+      // import the "EXPLICIT" entry and entries that are of importable type implicit      
+      "entries": [ "EXPLICIT" ] 
+    },
+    "ditto:another-imported-policy" : { } // import only entries that are of importable type implicit
+  }
+}
+``` 
+
+A subject creating or modifying a policy with policy imports must have the following permissions:
+ * permission on the _importing policy_ to `WRITE` the modified policy import or policy imports
+ * permission on the _imported policy_ to `READ` entries that are implicitly or explicitly referenced in the policy imports
+
+The entries of the importing policy and the entries of the imported policy are merged at runtime and evaluated as if the entries were defined in one single policy. The same rules for the evaluation of grant/revoke permissions apply to imported entries in the same way as for entries defined in the importing policy itself. This also means that changes to an imported policy are reflected in all policies that import it. For direct access to the entities protected by a policy (things, policies, ...) via e.g. HTTP this happens instantaneously. When searching things it may take some time to sync the changes as the search index is [eventually consistent](basic-search.html#consistency). This is particularly the case if the changed policy is imported by a large number of other policies.
+
+
+{% include note.html content="The sanity check, ensuring that at least one subject has WRITE permission on the policy's root resource, is *not* applied for policies defining policy imports. So pay attention that you don't lock yourself out when creating/modifying such policies."
+%}
+
+### Limitations
+
+When managing and using policy imports the following limitations apply:
+
+ * The maximum number of policy imports allowed per policy is 10.
+ * To avoid conflicts with imported entries, it is not allowed to use the prefix `imported` for the name of a policy entry label. Trying to do so will result in an error.
 
 ## Tools for editing a Policy
 

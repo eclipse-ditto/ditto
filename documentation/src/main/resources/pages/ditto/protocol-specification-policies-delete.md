@@ -96,3 +96,25 @@ Delete the subject identified by the `<namespace>/<policyName>` pair in the `top
 |            | `204`  | Success - The subject was successfully deleted.       |
 
 **Example:** [Delete a subject](protocol-examples-policies-deletesubject.html)
+
+## Delete a single policy import
+
+Deletes the policy import identified by the `<namespace>/<policyName>` pair in the `topic` field and the `<importedPolicyId>` in the `path` field.
+
+### Command
+
+| Field     | Value                                               |
+|-----------|-----------------------------------------------------|
+| **topic** | `<namespace>/<policyName>/policies/commands/delete` |
+| **path**  | `/imports/<importedPolicyId>`  |
+
+### Response
+
+| Field      |        | Value                                                  |
+|------------|--------|--------------------------------------------------------|
+| **topic**  |        | `<namespace>/<policyName>/policies/commands/delete`    |
+| **path**   |        | `/imports/<importedPolicyId>`                          |
+| **status** | _code_ |
+|            | `204`  | Success - The policy import was successfully deleted. |
+
+**Example:** [Delete a policy import](protocol-examples-policies-deleteimport.html)

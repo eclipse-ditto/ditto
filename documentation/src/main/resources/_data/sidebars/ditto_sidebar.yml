@@ -740,6 +740,24 @@ entries:
                   - title: Retrieve a single resource
                     url: /protocol-examples-policies-retrieveresource.html
                     output: web
+                  - title: Modify policy imports
+                    url: /protocol-examples-policies-modifyimports.html
+                    output: web
+                  - title: Retrieve policy imports
+                    url: /protocol-examples-policies-retrieveimports.html
+                    output: web
+                  - title: Create a single policy import
+                    url: /protocol-examples-policies-createimport.html
+                    output: web
+                  - title: Delete a single policy import
+                    url: /protocol-examples-policies-deleteimport.html
+                    output: web
+                  - title: Modify a single policy import
+                    url: /protocol-examples-policies-modifyimport.html
+                    output: web
+                  - title: Retrieve a single policy import
+                    url: /protocol-examples-policies-retrieveimport.html
+                    output: web
                   - title: Error responses
                     url: /protocol-examples-policies-errorresponses.html
                     output: web
