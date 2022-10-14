@@ -174,8 +174,6 @@
                         <excludes>
                             <!-- Always exclude the 'internal' package -->
                             <exclude>org.eclipse.ditto.rql.parser.internal</exclude>
-                            <!-- thingsearch package was moved to its own module "ditto-rql-search-option-parser" -->
-                            <exclude>org.eclipse.ditto.rql.parser.thingsearch</exclude>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
                         </excludes>

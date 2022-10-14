@@ -24,7 +24,7 @@ Find the documentation on the project site: [https://www.eclipse.org/ditto/](htt
 
 ## Eclipse Ditto™ explorer UI
 
-Find a live version of the latest explorer UI: [https://eclipse.github.io/ditto/](https://eclipse.github.io/ditto/)
+Find a live version of the latest explorer UI: [https://eclipse.github.io/ditto/](https://eclipse.github.io/ditto/?primaryEnvironmentName=ditto_sandbox)
 
 You should be able to work with your locally running default using the `local_ditto` environment - and you can add additional environments to also work with e.g. with a deployed installation of Ditto.
 

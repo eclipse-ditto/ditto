@@ -47,6 +47,8 @@ const dom = {
   tabThings: null,
 };
 
+const uuidRegex = /([0-9a-f]{7})[0-9a-f]-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g;
+
 /**
  * Adds a listener function for the currently selected thing
  * @param {function} observer function that will be called if the current thing was changed
@@ -80,23 +82,23 @@ export async function ready() {
     const editorValue = thingJsonEditor.getValue();
     if (dom.thingId.value !== undefined && dom.thingId.value !== '') {
       API.callDittoREST('PUT',
-                        '/things/' + dom.thingId.value,
-                        editorValue === '' ? {} : JSON.parse(editorValue),
-                        {
-                          'if-none-match': '*',
-                        }
+          '/things/' + dom.thingId.value,
+          editorValue === '' ? {} : JSON.parse(editorValue),
+          {
+            'if-none-match': '*',
+          },
       ).then((data) => {
-          refreshThing(data.thingId, () => {
-            getThings([data.thingId]);
-          });
+        refreshThing(data.thingId, () => {
+          getThings([data.thingId]);
         });
+      });
     } else {
       API.callDittoREST('POST', '/things', editorValue === '' ? {} : JSON.parse(editorValue))
-        .then((data) => {
-          refreshThing(data.thingId, () => {
-            getThings([data.thingId]);
+          .then((data) => {
+            refreshThing(data.thingId, () => {
+              getThings([data.thingId]);
+            });
           });
-        });
     }
   };
 
@@ -186,7 +188,7 @@ function fillThingsTable(thingsList) {
         Environments.current().pinnedThings.includes(item.thingId),
         togglePinnedThing,
     );
-    row.insertCell(-1).innerHTML = item.thingId;
+    Utils.addCellToRow(row, beautifyId(item.thingId), item.thingId);
     activeFields.forEach((field) => {
       let path = field.path.replace(/\//g, '.');
       if (path.charAt(0) !== '.') {
@@ -196,9 +198,21 @@ function fillThingsTable(thingsList) {
         json: item,
         path: path,
       });
-      row.insertCell(-1).innerHTML = elem.length !== 0 ? elem[0] : '';
+      Utils.addCellToRow(row, elem.length !== 0 ? elem[0] : '');
     });
   }
+
+  function beautifyId(longId) {
+    let result = longId;
+    if (Environments.current()['shortenUUID']) {
+      result = result.replace(uuidRegex, '$1');
+    }
+    if (Environments.current()['defaultNamespace']) {
+      result = result.replace(Environments.current()['defaultNamespace'], 'dn');
+    }
+    return result;
+  }
+
 }
 
 /**
@@ -255,7 +269,7 @@ function modifyThing(method) {
       method === 'PUT' ? JSON.parse(thingJsonEditor.getValue()) : null,
       {
         'if-match': '*',
-      }
+      },
   ).then(() => {
     method === 'PUT' ? refreshThing(dom.thingId.value) : SearchFilter.performLastSearch();
   });
@@ -374,7 +388,7 @@ function onTabActivated() {
     refreshView();
     viewDirty = false;
   }
-  dom.searchFilterEdit.focus();
+  // dom.searchFilterEdit.focus();
 }
 
 function onEnvironmentChanged(modifiedField) {

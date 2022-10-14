@@ -22,7 +22,7 @@ properties:
   connectionType:
     $ref: 'connectionType.yml'
   connectionStatus:
-    $ref: 'connectionStatus.yml'
+    $ref: 'connectivityStatus.yml'
   uri:
     type: string
     description: The URI of the connection

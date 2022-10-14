@@ -12,7 +12,7 @@ version: '2.4'
 
 services:
   mongodb:
-    image: docker.io/mongo:4.2
+    image: docker.io/mongo:4.4
     mem_limit: 256m
     restart: always
     networks:
@@ -37,14 +37,12 @@ services:
     environment:
       - TZ=Europe/Berlin
       - BIND_HOSTNAME=0.0.0.0
+      # Set additional configuration options here appending JAVA_TOOL_OPTIONS: -Dditto.policies...
       - JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s -Dakka.cluster.downing-provider-class=
       - MONGO_DB_HOSTNAME=mongodb
       # in order to write logs into a file you can enable this by setting the following env variable
       # the log file(s) can be found in /var/log/ditto directory on the host machine
       # - DITTO_LOGGING_FILE_APPENDER=true
-    # Set additional configuration options here
-    # -Dditto.policies...
-    #command: java -jar starter.jar
     # only needed if DITTO_LOGGING_FILE_APPENDER is set
     # volumes:
     #  - ditto_log_files:/var/log/ditto
@@ -68,14 +66,12 @@ services:
     environment:
       - TZ=Europe/Berlin
       - BIND_HOSTNAME=0.0.0.0
+      # Set additional configuration options here appending JAVA_TOOL_OPTIONS: -Dditto.things...
       - JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s -Dakka.cluster.downing-provider-class=
       - MONGO_DB_HOSTNAME=mongodb
       # in order to write logs into a file you can enable this by setting the following env variable
       # the log file(s) can be found in /var/log/ditto directory on the host machine
       # - DITTO_LOGGING_FILE_APPENDER=true
-    # Set additional configuration options here
-    # -Dditto.things...
-    #command: java -jar starter.jar
     # only needed if DITTO_LOGGING_FILE_APPENDER is set
     # volumes:
     #  - ditto_log_files:/var/log/ditto
@@ -99,14 +95,12 @@ services:
     environment:
       - TZ=Europe/Berlin
       - BIND_HOSTNAME=0.0.0.0
+      # Set additional configuration options here appending JAVA_TOOL_OPTIONS: -Dditto.search...
       - JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s -Dakka.cluster.downing-provider-class=
       - MONGO_DB_HOSTNAME=mongodb
       # in order to write logs into a file you can enable this by setting the following env variable
       # the log file(s) can be found in /var/log/ditto directory on the host machine
       # - DITTO_LOGGING_FILE_APPENDER=true
-    # Set additional configuration options here
-    # -Dditto.search...
-    #command: java -jar starter.jar
     # only needed if DITTO_LOGGING_FILE_APPENDER is set
     # volumes:
     #  - ditto_log_files:/var/log/ditto
@@ -131,14 +125,12 @@ services:
       - TZ=Europe/Berlin
       - BIND_HOSTNAME=0.0.0.0
       # if connections to rabbitmq broker are used, you might want to disable ExitOnOutOfMemoryError, because the amqp-client has a bug throwing OOM exceptions and causing a restart loop
+      # Set additional configuration options here appending JAVA_TOOL_OPTIONS: -Dditto.connectivity...
       - JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s -Dakka.cluster.downing-provider-class=
       - MONGO_DB_HOSTNAME=mongodb
       # in order to write logs into a file you can enable this by setting the following env variable
       # the log file(s) can be found in /var/log/ditto directory on the host machine
       # - DITTO_LOGGING_FILE_APPENDER=true
-    # Set additional configuration options here
-    # -Dditto.connectivity...
-    #command: java -jar starter.jar
     # only needed if DITTO_LOGGING_FILE_APPENDER is set
     #volumes:
     #  - ditto_log_files:/var/log/ditto
@@ -165,16 +157,13 @@ services:
       - TZ=Europe/Berlin
       - BIND_HOSTNAME=0.0.0.0
       - ENABLE_PRE_AUTHENTICATION=true
+      # Set additional configuration options here appending JAVA_TOOL_OPTIONS: -Dditto.gateway.authentication.devops.password=foobar -Dditto.gateway...
       - JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s -Dakka.cluster.downing-provider-class=
       # in order to write logs into a file you can enable this by setting the following env variable
       # the log file(s) can be found in /var/log/ditto directory on the host machine
       # - DITTO_LOGGING_FILE_APPENDER=true
       # You may use the environment for setting the devops password
       #- DEVOPS_PASSWORD=foobar
-    # Set additional configuration options here
-    # -Dditto.gateway...
-    # Setting the devops password via java VM environment
-    #command: java -Dditto.gateway.authentication.devops.password=foobar -jar starter.jar
     # only needed if DITTO_LOGGING_FILE_APPENDER is set
     # volumes:
     #  - ditto_log_files:/var/log/ditto
@@ -186,7 +175,7 @@ services:
       start_period: 120s
 
   swagger-ui:
-    image: docker.io/swaggerapi/swagger-ui:v4.14.0
+    image: docker.io/swaggerapi/swagger-ui:v4.14.3
     mem_limit: 32m
     restart: always
     environment:

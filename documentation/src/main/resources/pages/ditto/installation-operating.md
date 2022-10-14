@@ -54,7 +54,8 @@ to supply additional configuration one has to add the variable in the correspond
 ```yml
 ...
 # Alternative approach for configuration of the service
-command: java -Dditto.gateway.authentication.devops.password=foobar -jar starter.jar
+environment:
+  - JAVA_TOOL_OPTIONS=-Dditto.gateway.authentication.devops.password=foobar
 ```
 
 The executable for the microservice is called `starter.jar`. The configuration variables have to be set before

@@ -39,6 +39,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.typesafe.config.Config;
+
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -122,7 +124,8 @@ public final class InboundMappingProcessorActorTest {
 
     private static InboundMappingProcessor createThrowingProcessor() {
         final MessageMapperRegistry registry = Mockito.mock(MessageMapperRegistry.class);
-        Mockito.doAnswer(inv -> new DittoMessageMapper()).when(registry).getDefaultMapper();
+        Mockito.doAnswer(inv -> new DittoMessageMapper(Mockito.mock(ActorSystem.class), Mockito.mock(Config.class)))
+                .when(registry).getDefaultMapper();
         Mockito.doAnswer(inv -> List.of(new ThrowingMapper())).when(registry).getMappers(Mockito.any());
         final ThreadSafeDittoLoggingAdapter logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
         Mockito.doAnswer(inv -> logger).when(logger).withCorrelationId(Mockito.<CharSequence>any());

@@ -1,0 +1,280 @@
+# Copyright (c) 2022 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+name: push-dockerhub-on-demand
+
+on:
+  workflow_dispatch:
+    inputs:
+      dittoVersion:
+        description: 'Ditto Image version'
+        required: true
+        type: string
+      dittoImage:
+        description: 'Ditto Image to push'
+        required: true
+        default: 'ditto-ui'
+        type: choice
+        options:
+          - ditto-policies
+          - ditto-things
+          - ditto-gateway
+          - ditto-things-search
+          - ditto-connectivity
+          - ditto-ui
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      -
+        name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2 # setup buildx in order to do build and push multi-architecture images
+      -
+        name: Inspect buildx builder
+        run: |
+          echo "Name:      ${{ steps.buildx.outputs.name }}"
+          echo "Endpoint:  ${{ steps.buildx.outputs.endpoint }}"
+          echo "Status:    ${{ steps.buildx.outputs.status }}"
+          echo "Flags:     ${{ steps.buildx.outputs.flags }}"
+          echo "Platforms: ${{ steps.buildx.outputs.platforms }}"
+      -
+        name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: eclipsedittobot
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+      -
+        name: Branch name
+        id: branch_name
+        run: |
+          echo "IMAGE_TAG=${{ inputs.dittoVersion }}" >> $GITHUB_ENV
+          echo "IMAGE_MINOR_TAG=$(echo ${{ inputs.dittoVersion }} | cut -d. -f-2)" >> $GITHUB_ENV
+          echo "IMAGE_MAJOR_TAG=$(echo ${{ inputs.dittoVersion }} | cut -d. -f-1)" >> $GITHUB_ENV
+          echo "MILESTONE_OR_RC_SUFFIX=$(echo ${{ inputs.dittoVersion }} | cut -d- -f2)" >> $GITHUB_ENV
+      -
+        name: Building Docker images for tag
+        run: |
+          echo $IMAGE_TAG
+          echo "Full version: $IMAGE_TAG"
+          echo "Minor version: $IMAGE_MINOR_TAG"
+          echo "Major version: $IMAGE_MAJOR_TAG"
+          echo "Milestone or RC suffix: $MILESTONE_OR_RC_SUFFIX"
+      -
+        name: Build and push ditto-policies
+        if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG && inputs.dittoImage == 'ditto-policies'
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: dockerfile-release
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            SERVICE_STARTER=ditto-policies-service
+            SERVICE_VERSION=${{ env.IMAGE_TAG }}
+            MAIN_CLASS=org.eclipse.ditto.policies.service.starter.PoliciesService
+          pull: true
+          push: true
+          tags: |
+            eclipse/ditto-policies:${{ env.IMAGE_TAG }}
+            eclipse/ditto-policies:${{ env.IMAGE_MINOR_TAG }}
+            eclipse/ditto-policies:${{ env.IMAGE_MAJOR_TAG }}
+            eclipse/ditto-policies:latest
+      -
+        name: Build and push ditto-things
+        if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG && inputs.dittoImage == 'ditto-things'
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: dockerfile-release
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            SERVICE_STARTER=ditto-things-service
+            SERVICE_VERSION=${{ env.IMAGE_TAG }}
+            MAIN_CLASS=org.eclipse.ditto.things.service.starter.ThingsService
+          pull: true
+          push: true
+          tags: |
+            eclipse/ditto-things:${{ env.IMAGE_TAG }}
+            eclipse/ditto-things:${{ env.IMAGE_MINOR_TAG }}
+            eclipse/ditto-things:${{ env.IMAGE_MAJOR_TAG }}
+            eclipse/ditto-things:latest
+      -
+        name: Build and push ditto-gateway
+        if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG && inputs.dittoImage == 'ditto-gateway'
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: dockerfile-release
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            SERVICE_STARTER=ditto-gateway-service
+            SERVICE_VERSION=${{ env.IMAGE_TAG }}
+            MAIN_CLASS=org.eclipse.ditto.gateway.service.starter.GatewayService
+          pull: true
+          push: true
+          tags: |
+            eclipse/ditto-gateway:${{ env.IMAGE_TAG }}
+            eclipse/ditto-gateway:${{ env.IMAGE_MINOR_TAG }}
+            eclipse/ditto-gateway:${{ env.IMAGE_MAJOR_TAG }}
+            eclipse/ditto-gateway:latest
+      -
+        name: Build and push ditto-thingsearch
+        if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG && inputs.dittoImage == 'ditto-things-search'
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: dockerfile-release
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            SERVICE_STARTER=ditto-thingsearch-service
+            SERVICE_VERSION=${{ env.IMAGE_TAG }}
+            MAIN_CLASS=org.eclipse.ditto.thingsearch.service.starter.SearchService
+          pull: true
+          push: true
+          tags: |
+            eclipse/ditto-things-search:${{ env.IMAGE_TAG }}
+            eclipse/ditto-things-search:${{ env.IMAGE_MINOR_TAG }}
+            eclipse/ditto-things-search:${{ env.IMAGE_MAJOR_TAG }}
+            eclipse/ditto-things-search:latest
+      -
+        name: Build and push ditto-connectivity
+        if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG && inputs.dittoImage == 'ditto-connectivity'
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: dockerfile-release
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            SERVICE_STARTER=ditto-connectivity-service
+            SERVICE_VERSION=${{ env.IMAGE_TAG }}
+            MAIN_CLASS=org.eclipse.ditto.connectivity.service.ConnectivityService
+            JVM_CMD_ARGS=--add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/sun.security.util=ALL-UNNAMED
+          pull: true
+          push: true
+          tags: |
+            eclipse/ditto-connectivity:${{ env.IMAGE_TAG }}
+            eclipse/ditto-connectivity:${{ env.IMAGE_MINOR_TAG }}
+            eclipse/ditto-connectivity:${{ env.IMAGE_MAJOR_TAG }}
+            eclipse/ditto-connectivity:latest
+      -
+        name: Build and push ditto-ui
+        if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG && inputs.dittoImage == 'ditto-ui'
+        uses: docker/build-push-action@v3
+        with:
+          context: ./ui
+          file: ui/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          pull: true
+          push: true
+          tags: |
+            eclipse/ditto-ui:${{ env.IMAGE_TAG }}
+            eclipse/ditto-ui:${{ env.IMAGE_MINOR_TAG }}
+            eclipse/ditto-ui:${{ env.IMAGE_MAJOR_TAG }}
+            eclipse/ditto-ui:latest
+      -
+        name: Build and push ditto-policies milestone/RC
+        if: env.MILESTONE_OR_RC_SUFFIX != env.IMAGE_TAG && inputs.dittoImage == 'ditto-policies'
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: dockerfile-release
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            SERVICE_STARTER=ditto-policies-service
+            SERVICE_VERSION=${{ env.IMAGE_TAG }}
+            MAIN_CLASS=org.eclipse.ditto.policies.service.starter.PoliciesService
+          pull: true
+          push: true
+          tags: |
+            eclipse/ditto-policies:${{ env.IMAGE_TAG }}
+      -
+        name: Build and push ditto-things milestone/RC
+        if: env.MILESTONE_OR_RC_SUFFIX != env.IMAGE_TAG && inputs.dittoImage == 'ditto-things'
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: dockerfile-release
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            SERVICE_STARTER=ditto-things-service
+            SERVICE_VERSION=${{ env.IMAGE_TAG }}
+            MAIN_CLASS=org.eclipse.ditto.things.service.starter.ThingsService
+          pull: true
+          push: true
+          tags: |
+            eclipse/ditto-things:${{ env.IMAGE_TAG }}
+      -
+        name: Build and push ditto-gateway milestone/RC
+        if: env.MILESTONE_OR_RC_SUFFIX != env.IMAGE_TAG && inputs.dittoImage == 'ditto-gateway'
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: dockerfile-release
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            SERVICE_STARTER=ditto-gateway-service
+            SERVICE_VERSION=${{ env.IMAGE_TAG }}
+            MAIN_CLASS=org.eclipse.ditto.gateway.service.starter.GatewayService
+          pull: true
+          push: true
+          tags: |
+            eclipse/ditto-gateway:${{ env.IMAGE_TAG }}
+      -
+        name: Build and push ditto-thingsearch milestone/RC
+        if: env.MILESTONE_OR_RC_SUFFIX != env.IMAGE_TAG && inputs.dittoImage == 'ditto-things-search'
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: dockerfile-release
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            SERVICE_STARTER=ditto-thingsearch-service
+            SERVICE_VERSION=${{ env.IMAGE_TAG }}
+            MAIN_CLASS=org.eclipse.ditto.thingsearch.service.starter.SearchService
+          pull: true
+          push: true
+          tags: |
+            eclipse/ditto-things-search:${{ env.IMAGE_TAG }}
+      -
+        name: Build and push ditto-connectivity milestone/RC
+        if: env.MILESTONE_OR_RC_SUFFIX != env.IMAGE_TAG && inputs.dittoImage == 'ditto-connectivity'
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: dockerfile-release
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            SERVICE_STARTER=ditto-connectivity-service
+            SERVICE_VERSION=${{ env.IMAGE_TAG }}
+            MAIN_CLASS=org.eclipse.ditto.connectivity.service.ConnectivityService
+            JVM_CMD_ARGS=--add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/sun.security.util=ALL-UNNAMED
+          pull: true
+          push: true
+          tags: |
+            eclipse/ditto-connectivity:${{ env.IMAGE_TAG }}
+      -
+        name: Build and push ditto-ui milestone/RC
+        if: env.MILESTONE_OR_RC_SUFFIX != env.IMAGE_TAG && inputs.dittoImage == 'ditto-ui'
+        uses: docker/build-push-action@v3
+        with:
+          context: ./ui
+          file: ui/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          pull: true
+          push: true
+          tags: |
+            eclipse/ditto-ui:${{ env.IMAGE_TAG }}

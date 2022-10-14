@@ -33,6 +33,11 @@ import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
 
 public final class CloudEventsMapperTest {
 
@@ -120,7 +125,7 @@ public final class CloudEventsMapperTest {
 
     @Before
     public void setUp() {
-        underTest = new CloudEventsMapper();
+        underTest = new CloudEventsMapper(Mockito.mock(ActorSystem.class), Mockito.mock(Config.class));
     }
 
     @Test

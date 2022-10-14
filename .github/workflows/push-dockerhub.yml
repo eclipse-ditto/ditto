@@ -147,6 +147,7 @@ jobs:
             SERVICE_STARTER=ditto-connectivity-service
             SERVICE_VERSION=${{ env.IMAGE_TAG }}
             MAIN_CLASS=org.eclipse.ditto.connectivity.service.ConnectivityService
+            JVM_CMD_ARGS=--add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/sun.security.util=ALL-UNNAMED
           pull: true
           push: true
           tags: |
@@ -166,6 +167,9 @@ jobs:
           push: true
           tags: |
             eclipse/ditto-ui:${{ env.IMAGE_TAG }}
+            eclipse/ditto-ui:${{ env.IMAGE_MINOR_TAG }}
+            eclipse/ditto-ui:${{ env.IMAGE_MAJOR_TAG }}
+            eclipse/ditto-ui:latest
       -
         name: Build and push ditto-policies milestone/RC
         if: env.MILESTONE_OR_RC_SUFFIX != env.IMAGE_TAG
@@ -242,6 +246,7 @@ jobs:
             SERVICE_STARTER=ditto-connectivity-service
             SERVICE_VERSION=${{ env.IMAGE_TAG }}
             MAIN_CLASS=org.eclipse.ditto.connectivity.service.ConnectivityService
+            JVM_CMD_ARGS=--add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/sun.security.util=ALL-UNNAMED
           pull: true
           push: true
           tags: |

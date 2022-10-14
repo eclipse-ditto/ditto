@@ -35,33 +35,65 @@ import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
+
 /**
  * A message mapper implementation for the Mapping incoming CloudEvents to Ditto Protocol.
  */
-@PayloadMapper(alias = {"CloudEvents",
-        // legacy full qualified name
-        "org.eclipse.ditto.connectivity.service.mapping.CloudEventsMapper"})
 public final class CloudEventsMapper extends AbstractMessageMapper {
 
-    static final String CE_ID = "ce-id";
-    static final String CE_TYPE = "ce-type";
-    static final String CE_SOURCE = "ce-source";
-    static final String CE_SPECVERSION = "ce-specversion";
-    static final String STRUCTURED_CONTENT_TYPE = "application/cloudevents+json";
-    static final String DITTO_PROTOCOL_CONTENT_TYPE = "application/vnd.eclipse.ditto+json";
-    static final String SPECVERSION = "specversion";
-    static final String ID = "id";
-    static final String SOURCE = "source";
-    static final String TYPE = "type";
-    static final String OUTBOUNDTYPE = "org.eclipse.ditto.outbound";
-    static final String OUTBOUNDSPECVERSION = "1.0";
-    static final String OUTBOUNDSOURCE = "https://github.com/eclipse/ditto";
-    static final String DATA = "data";
-    static final String DATA_BASE64 = "data_base64";
-    static final String OUTBOUND_DATA_CONTENT_TYPE = "datacontenttype";
-    static final String OUTBOUND_TIME = "time";
-    static final String OUTBOUND_SUBJECT = "subject";
-    static final String DEFAULT_MAPPING_ERROR_MESSAGE = "This is not a CloudEvent";
+    private static final String PAYLOAD_MAPPER_ALIAS = "CloudEvents";
+
+    private static final String CE_ID = "ce-id";
+    private static final String CE_TYPE = "ce-type";
+    private static final String CE_SOURCE = "ce-source";
+    private static final String CE_SPECVERSION = "ce-specversion";
+    private static final String STRUCTURED_CONTENT_TYPE = "application/cloudevents+json";
+    private static final String DITTO_PROTOCOL_CONTENT_TYPE = "application/vnd.eclipse.ditto+json";
+    private static final String SPECVERSION = "specversion";
+    private static final String ID = "id";
+    private static final String SOURCE = "source";
+    private static final String TYPE = "type";
+    private static final String OUTBOUNDTYPE = "org.eclipse.ditto.outbound";
+    private static final String OUTBOUNDSPECVERSION = "1.0";
+    private static final String OUTBOUNDSOURCE = "https://github.com/eclipse/ditto";
+    private static final String DATA = "data";
+    private static final String DATA_BASE64 = "data_base64";
+    private static final String OUTBOUND_DATA_CONTENT_TYPE = "datacontenttype";
+    private static final String OUTBOUND_TIME = "time";
+    private static final String OUTBOUND_SUBJECT = "subject";
+    private static final String DEFAULT_MAPPING_ERROR_MESSAGE = "This is not a CloudEvent";
+
+    /**
+     * Constructs a new instance of CloudEventsMapper extension.
+     *
+     * @param actorSystem the actor system in which to load the extension.
+     * @param config the configuration for this extension.
+     */
+    public CloudEventsMapper(final ActorSystem actorSystem, final Config config) {
+        super(actorSystem, config);
+    }
+
+    private CloudEventsMapper(final CloudEventsMapper copyFromMapper) {
+        super(copyFromMapper);
+    }
+
+    @Override
+    public String getAlias() {
+        return PAYLOAD_MAPPER_ALIAS;
+    }
+
+    @Override
+    public boolean isConfigurationMandatory() {
+        return false;
+    }
+
+    @Override
+    public MessageMapper createNewMapperInstance() {
+        return new CloudEventsMapper(this);
+    }
 
     @Override
     public List<Adaptable> map(final ExternalMessage message) {

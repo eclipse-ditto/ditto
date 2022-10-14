@@ -72,6 +72,11 @@ public final class DevOpsRoute extends AbstractRoute {
      */
     private static final String PATH_PARAMETER = "path";
 
+    /**
+     * Path parameter for retrieving disabled loggers.
+     */
+    private static final String INCLUDE_DISABLED_LOGGERS_PARAMETER = "includeDisabledLoggers";
+
     private final HttpConfig httpConfig;
     private final DevopsAuthenticationDirective devOpsAuthenticationDirective;
 
@@ -189,12 +194,12 @@ public final class DevOpsRoute extends AbstractRoute {
             final DittoHeaders dittoHeaders) {
 
         return concat(
-                get(() ->
+                get(() -> parameterOptional(INCLUDE_DISABLED_LOGGERS_PARAMETER, idl ->
                         handlePerRequest(ctx,
-                                RetrieveLoggerConfig.ofAllKnownLoggers(serviceName, instance, dittoHeaders),
+                                RetrieveLoggerConfig.ofAllKnownLoggers(serviceName, instance, idl.map(Boolean::valueOf).orElse(false), dittoHeaders),
                                 transformResponse(serviceName, instance)
                         )
-                ),
+                )),
                 put(() ->
                         extractDataBytes(payloadSource ->
                                 handlePerRequest(ctx, dittoHeaders, payloadSource,

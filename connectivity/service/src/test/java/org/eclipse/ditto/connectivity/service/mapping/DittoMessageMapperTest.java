@@ -38,6 +38,11 @@ import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mockito;
+
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
 
 /**
  * Unit test for {@link DittoMessageMapper}.
@@ -51,7 +56,7 @@ public final class DittoMessageMapperTest {
 
     @Before
     public void setUp() {
-        underTest = new DittoMessageMapper();
+        underTest = new DittoMessageMapper(Mockito.mock(ActorSystem.class), Mockito.mock(Config.class));
     }
 
     @Test

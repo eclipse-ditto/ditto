@@ -28,6 +28,8 @@ import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.TopicPath;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 
 /**
@@ -36,10 +38,27 @@ import akka.actor.ActorSystem;
  */
 public abstract class AbstractMessageMapper implements MessageMapper {
 
+    protected final ActorSystem actorSystem;
+    protected final Config config;
+
     private String id;
     private Map<String, String> incomingConditions;
     private Map<String, String> outgoingConditions;
     private Collection<String> contentTypeBlocklist;
+
+    protected AbstractMessageMapper(final ActorSystem actorSystem, final Config config) {
+        this.actorSystem = actorSystem;
+        this.config = config;
+    }
+
+    protected AbstractMessageMapper(final AbstractMessageMapper copyFromMapper) {
+        this.actorSystem = copyFromMapper.actorSystem;
+        this.config = copyFromMapper.config;
+        this.id = copyFromMapper.getId();
+        this.incomingConditions = copyFromMapper.getIncomingConditions();
+        this.outgoingConditions = copyFromMapper.getOutgoingConditions();
+        this.contentTypeBlocklist = copyFromMapper.getContentTypeBlocklist();
+    }
 
     @Override
     public String getId() {
@@ -72,16 +91,18 @@ public abstract class AbstractMessageMapper implements MessageMapper {
         this.outgoingConditions = configuration.getOutgoingConditions();
         this.contentTypeBlocklist = configuration.getContentTypeBlocklist();
         final MappingConfig mappingConfig = connectivityConfig.getMappingConfig();
-        doConfigure(mappingConfig, configuration);
+        doConfigure(connection, mappingConfig, configuration);
     }
 
     /**
      * Applies the mapper specific configuration.
      *
+     * @param connection the connection to apply the mapping for.
      * @param mappingConfig the service configuration for the mapping.
      * @param configuration the mapper specific configuration configured in scope of a single connection.
      */
-    protected void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
+    protected void doConfigure(final Connection connection, final MappingConfig mappingConfig,
+            final MessageMapperConfiguration configuration) {
         // noop default
     }
 
@@ -130,4 +151,11 @@ public abstract class AbstractMessageMapper implements MessageMapper {
         return adaptable.getTopicPath().isChannel(TopicPath.Channel.LIVE);
     }
 
+    @Override
+    public String toString() {
+        return "id=" + id +
+            ", incomingConditions=" + incomingConditions +
+            ", outgoingConditions=" + outgoingConditions +
+            ", contentTypeBlocklist=" + contentTypeBlocklist;
+    }
 }

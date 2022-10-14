@@ -73,6 +73,7 @@ final class DefaultGenericMqttClient implements GenericMqttClient {
             return CompletableFuture.completedFuture(
                     GenericMqttConnect.newInstance(mqttSpecificConfig.cleanSession(),
                             mqttSpecificConfig.getKeepAliveIntervalOrDefault(),
+                            mqttConfig.getSessionExpiryInterval(),
                             mqttConfig.getClientReceiveMaximum())
             );
         } catch (final IllegalKeepAliveIntervalSecondsException e) {
