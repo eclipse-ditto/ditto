@@ -38,10 +38,12 @@ import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.internal.utils.health.config.PersistenceConfig;
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.PersistencePingActor;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceCleanupActor;
+import org.eclipse.ditto.internal.utils.pubsubpolicies.PolicyAnnouncementPubSubFactory;
 import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
 
 import com.typesafe.config.Config;
@@ -87,10 +89,12 @@ public final class ConnectivityRootActor extends DittoRootActor {
                         ConnectionPersistenceStreamingActorCreator.props());
         pubSubMediator.tell(DistPubSubAccess.put(persistenceStreamingActor), getSelf());
 
-        // start DittoProtocolSub extension, even if not passed to connections via reference
+
+        // start DittoProtocolSub and blocked namespaces extensions, even if not passed to connections via reference
         //  because of serialization issues the single BaseClientActors "get" the extension themselves
         //  it must however be started here in order to already participate in Ditto pub/sub, even if no connection is
         //  available!
+        BlockedNamespaces.of(actorSystem);
         DittoProtocolSub.get(actorSystem);
 
         final MongoReadJournal mongoReadJournal = MongoReadJournal.newInstance(actorSystem);

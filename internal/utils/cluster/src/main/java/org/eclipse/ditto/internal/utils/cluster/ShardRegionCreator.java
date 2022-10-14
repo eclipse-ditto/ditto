@@ -63,7 +63,9 @@ public final class ShardRegionCreator {
     public static ActorRef start(final ActorSystem system, final String shardRegionName, final Props props,
             final ShardRegion.MessageExtractor extractor, final String clusterRole) {
         final var clusterSharding = ClusterSharding.get(system);
-        final var settings = ClusterShardingSettings.create(system).withRole(clusterRole);
+        final var settings = ClusterShardingSettings.create(system)
+                .withRole(clusterRole)
+                .withPassivationStrategy(ClusterShardingSettings.PassivationStrategySettings$.MODULE$.disabled());
         final var strategy = clusterSharding.defaultShardAllocationStrategy(settings);
 
         return clusterSharding.start(shardRegionName, props, settings, extractor, strategy, new StopShardedActor());

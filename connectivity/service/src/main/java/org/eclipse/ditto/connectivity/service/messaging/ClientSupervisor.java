@@ -61,7 +61,6 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
     private Props props;
     private ActorRef clientActor;
 
-    // TODO: hand-off message to restart self
     private ClientSupervisor(final int numberOfShards, final Duration statusCheckInterval) {
         this.statusCheckInterval = statusCheckInterval;
         final var actorSystem = getContext().getSystem();
