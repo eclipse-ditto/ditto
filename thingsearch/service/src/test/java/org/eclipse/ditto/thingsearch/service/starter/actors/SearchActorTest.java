@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.thingsearch.service.starter.actors;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 
 import java.util.List;
@@ -26,10 +25,8 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
-import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.SubscriptionAbortedException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThingsResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
@@ -50,11 +47,8 @@ import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.japi.pf.PFBuilder;
 import akka.stream.CompletionStrategy;
 import akka.stream.OverflowStrategy;
-import akka.stream.RemoteStreamRefActorTerminatedException;
-import akka.stream.SourceRef;
 import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
@@ -86,7 +80,8 @@ public final class SearchActorTest {
             final var underTest = childActorOf(props, SearchActor.ACTOR_NAME);
 
             final var expectedSubscribe =
-                    DistPubSubAccess.subscribeViaGroup(ThingSearchCommand.TYPE_PREFIX, SearchActor.ACTOR_NAME, underTest);
+                    DistPubSubAccess.subscribeViaGroup(ThingSearchCommand.TYPE_PREFIX, SearchActor.ACTOR_NAME,
+                            underTest);
             expectMsg(expectedSubscribe);
             reply(new DistributedPubSubMediator.SubscribeAck(expectedSubscribe));
 
@@ -112,7 +107,8 @@ public final class SearchActorTest {
             final var underTest = childActorOf(props, SearchActor.ACTOR_NAME);
 
             final var expectedSubscribe =
-                    DistPubSubAccess.subscribeViaGroup(ThingSearchCommand.TYPE_PREFIX, SearchActor.ACTOR_NAME, underTest);
+                    DistPubSubAccess.subscribeViaGroup(ThingSearchCommand.TYPE_PREFIX, SearchActor.ACTOR_NAME,
+                            underTest);
             expectMsg(expectedSubscribe);
             reply(new DistributedPubSubMediator.SubscribeAck(expectedSubscribe));
 
@@ -153,42 +149,6 @@ public final class SearchActorTest {
             queryActor.tell("complete", ActorRef.noSender());
             expectMsgClass(QueryThingsResponse.class);
             shutdownProbe.expectMsg(Done.getInstance());
-
-            // terminate actor in order not to prevent actor system shutdown
-            underTest.tell(PoisonPill.getInstance(), getRef());
-        }};
-    }
-
-    @Test
-    public void terminateStreams() {
-        final var system = actorSystemResource.getActorSystem();
-        new TestKit(system) {{
-            final var props = SearchActor.props(queryParser, persistence, getRef());
-            final var underTest = childActorOf(props, SearchActor.ACTOR_NAME);
-
-            final var expectedSubscribe =
-                    DistPubSubAccess.subscribeViaGroup(ThingSearchCommand.TYPE_PREFIX, SearchActor.ACTOR_NAME, underTest);
-            expectMsg(expectedSubscribe);
-            reply(new DistributedPubSubMediator.SubscribeAck(expectedSubscribe));
-
-            final var serviceRequestsDone = SearchActor.Control.SERVICE_REQUESTS_DONE;
-            use(p -> p.findAllUnlimited(any(), any(), any()));
-
-            final var stream =
-                    StreamThings.of(null, null, null, null, DittoHeaders.empty());
-
-            underTest.tell(stream, getRef());
-            final SourceRef<?> sourceRef = expectMsgClass(SourceRef.class);
-            final var elementProbe = TestProbe.apply(system);
-            sourceRef.getSource()
-                    .<Object>map(x -> x)
-                    .recover(new PFBuilder<Throwable, Object>().matchAny(x -> x).build())
-                    .runForeach(e -> elementProbe.ref().tell(e, ActorRef.noSender()), system);
-
-            underTest.tell(serviceRequestsDone, getRef());
-            final Throwable e = elementProbe.expectMsgClass(RemoteStreamRefActorTerminatedException.class);
-            assertThat(e.getMessage()).contains(SubscriptionAbortedException.MESSAGE);
-            expectMsg(Done.getInstance());
 
             // terminate actor in order not to prevent actor system shutdown
             underTest.tell(PoisonPill.getInstance(), getRef());
