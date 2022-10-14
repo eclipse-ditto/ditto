@@ -50,7 +50,7 @@ public final class ThingConditionValidator {
     public static Optional<ThingConditionFailedException> validate(final Signal<?> signal,
             final String condition, @Nullable final Thing entity) {
 
-        checkNotNull(signal, "Command");
+        checkNotNull(signal, "Signal");
 
         final Optional<ThingConditionFailedException> result;
         if (!(signal instanceof CreateThing) && entity != null) {

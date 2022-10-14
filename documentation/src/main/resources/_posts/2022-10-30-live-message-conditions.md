@@ -107,7 +107,7 @@ curl -X PATCH -H 'Content-Type: application/json' -H 'condition: eq(features/ala
 
 ### Conditional request with HTTP query parameter
 ```
-curl -X PATCH -H 'Content-Type: application/json' /api/2/things/org.eclipse.ditto:carbon-monoxide-alarm/outbox/messages/co-alarm?eq(features/alarm/properties/confirmed/,false) -d '{ "CO Level to high! Open your windows!" }'
+curl -X PATCH -H 'Content-Type: application/json' /api/2/things/org.eclipse.ditto:carbon-monoxide-alarm/outbox/messages/co-alarm?condition=eq(features/alarm/properties/confirmed/,false) -d '{ "CO Level to high! Open your windows!" }'
 ```
 
 ## Conditional request via Ditto protocol
