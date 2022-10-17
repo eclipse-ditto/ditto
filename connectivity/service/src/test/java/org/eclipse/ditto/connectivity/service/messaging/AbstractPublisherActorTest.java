@@ -68,7 +68,10 @@ public abstract class AbstractPublisherActorTest {
     protected static final String DEVICE_ID = "ditto:thing";
 
     @Rule
-    public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance(CONFIG);
+    public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance(
+            getClass().getSimpleName(),
+            CONFIG
+    );
 
     protected ActorSystem actorSystem;
     protected TestProbe proxyActorTestProbe;
@@ -104,27 +107,25 @@ public abstract class AbstractPublisherActorTest {
 
     @Test
     public void testAutoAck() throws Exception {
-        new TestKit(actorSystem) {{
+        setupMocks(actorSystemResource.newTestProbe());
+        final var sender = actorSystemResource.newTestKit();
+        final var multiMapped = OutboundSignalFactory.newMultiMappedOutboundSignal(
+                List.of(
+                        getMockOutboundSignalWithAutoAck("please-verify",
+                                DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(),
+                                sender.getRef().path().toSerializationFormat())
+                ),
+                sender.getRef()
+        );
 
-            final TestProbe probe = new TestProbe(actorSystem);
-            setupMocks(probe);
-            final OutboundSignal.MultiMapped multiMapped = OutboundSignalFactory.newMultiMappedOutboundSignal(
-                    List.of(getMockOutboundSignalWithAutoAck("please-verify",
-                            DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat())),
-                    getRef()
-            );
+        final var publisherActor = sender.childActorOf(getPublisherActorProps());
 
-            final Props props = getPublisherActorProps();
-            final ActorRef publisherActor = childActorOf(props);
+        publisherCreated(sender, publisherActor);
 
-            publisherCreated(this, publisherActor);
-
-            verifyAcknowledgements(() -> {
-                publisherActor.tell(multiMapped, getRef());
-                return expectMsgClass(Acknowledgements.class);
-            });
-        }};
-
+        verifyAcknowledgements(() -> {
+            publisherActor.tell(multiMapped, sender.getRef());
+            return sender.expectMsgClass(Acknowledgements.class);
+        });
     }
 
     @Test

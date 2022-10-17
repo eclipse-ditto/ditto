@@ -77,7 +77,10 @@ public final class OutboundMappingProcessorActorTest {
     private static final Connection CONNECTION = createTestConnection();
 
     @Rule
-    public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance(TestConstants.CONFIG);
+    public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance(
+            getClass().getSimpleName(),
+            TestConstants.CONFIG
+    );
 
     private ProtocolAdapterProvider protocolAdapterProvider;
     private TestProbe clientActorProbe;
