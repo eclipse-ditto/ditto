@@ -49,6 +49,8 @@ import scala.util.Failure;
 import scala.util.Success;
 import scala.util.Try;
 
+import javax.annotation.Nullable;
+
 /**
  * Implementation of AsyncCacheLoader for loading {@code JsonWebToken}s.
  */
@@ -69,7 +71,7 @@ final class AsyncJwtLoader implements AsyncCacheLoader<String, JsonWebToken> {
     AsyncJwtLoader(final ActorSystem actorSystem, final Flow<HttpRequest, Try<HttpResponse>, NotUsed> httpFlow,
             final OAuthClientCredentials credentials) {
         tokenRequest = toTokenRequest(credentials.getTokenEndpoint(), credentials.getClientId(),
-                credentials.getClientSecret(), credentials.getRequestedScopes());
+                credentials.getClientSecret(), credentials.getRequestedScopes(), credentials.getAudience().orElse(null));
         materializer = Materializer.createMaterializer(actorSystem);
         this.httpFlow = httpFlow;
     }
@@ -147,21 +149,34 @@ final class AsyncJwtLoader implements AsyncCacheLoader<String, JsonWebToken> {
     private static HttpRequest toTokenRequest(final String tokenEndpoint,
             final String clientId,
             final String clientSecret,
-            final String scope) {
+            final String scope,
+            @Nullable final String audience) {
 
-        final var body = asFormEncoded(clientId, clientSecret, scope);
+        final var body = asFormEncoded(clientId, clientSecret, scope, audience);
         final var entity = HttpEntities.create(ContentTypes.APPLICATION_X_WWW_FORM_URLENCODED, body);
         return HttpRequest.POST(tokenEndpoint).withEntity(entity).addHeader(ACCEPT_JSON);
     }
 
-    private static String asFormEncoded(final String clientId, final String clientSecret, final String scope) {
+    private static String asFormEncoded(final String clientId, final String clientSecret, final String scope, @Nullable final String audience) {
+        if (audience == null) {
+            return String.format("grant_type=client_credentials" +
+                            "&client_id=%s" +
+                            "&client_secret=%s" +
+                            "&scope=%s",
+                    UriEncoding.encodeAllButUnreserved(clientId),
+                    UriEncoding.encodeAllButUnreserved(clientSecret),
+                    UriEncoding.encodeAllButUnreserved(scope)
+            );
+        }
         return String.format("grant_type=client_credentials" +
                         "&client_id=%s" +
                         "&client_secret=%s" +
-                        "&scope=%s",
+                        "&scope=%s" +
+                        "&audience=%s",
                 UriEncoding.encodeAllButUnreserved(clientId),
                 UriEncoding.encodeAllButUnreserved(clientSecret),
-                UriEncoding.encodeAllButUnreserved(scope)
+                UriEncoding.encodeAllButUnreserved(scope),
+                UriEncoding.encodeAllButUnreserved(audience)
         );
     }
 
