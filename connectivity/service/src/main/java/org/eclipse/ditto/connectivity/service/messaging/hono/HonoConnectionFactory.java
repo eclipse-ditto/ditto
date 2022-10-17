@@ -58,8 +58,6 @@ import akka.actor.ActorSystem;
  *     <li>the credentials and</li>
  *     <li>the sources and targets.</li>
  * </ul>
- *
- * @since 3.0.0
  */
 public abstract class HonoConnectionFactory implements DittoExtensionPoint {
 

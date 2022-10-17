@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
 
 /**
  * Possible address aliases used by connections of type 'Hono'
+ * @since 3.1.0
  */
 public enum HonoAddressAlias {
 

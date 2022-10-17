@@ -28,8 +28,6 @@ import akka.actor.ActorSystem;
 /**
  * Default implementation of {@link HonoConnectionFactory}.
  * This implementation uses {@link HonoConfig} to obtain the required properties for creating the Hono connection.
- *
- * @since 3.0.0
  */
 public final class DefaultHonoConnectionFactory extends HonoConnectionFactory {
 

@@ -25,6 +25,8 @@ import org.eclipse.ditto.internal.utils.persistentactors.commands.AbstractComman
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 
+import akka.actor.ActorSystem;
+
 /**
  * Strategies to handle signals as an existing connection.
  */
@@ -32,20 +34,19 @@ public final class ConnectionCreatedStrategies
         extends AbstractCommandStrategies<Command<?>, Connection, ConnectionState, ConnectivityEvent<?>>
         implements ConnectivityCommandStrategies {
 
-    private static final ConnectionCreatedStrategies CREATED_STRATEGIES = newCreatedStrategies();
-
     private ConnectionCreatedStrategies() {
         super(Command.class);
     }
 
     /**
+     * @param actorSystem Actor system reference
      * @return the unique instance of this class.
      */
-    public static ConnectionCreatedStrategies getInstance() {
-        return CREATED_STRATEGIES;
+    public static ConnectionCreatedStrategies getInstance(final ActorSystem actorSystem) {
+        return newCreatedStrategies(actorSystem);
     }
 
-    private static ConnectionCreatedStrategies newCreatedStrategies() {
+    private static ConnectionCreatedStrategies newCreatedStrategies(final ActorSystem actorSystem) {
         final ConnectionCreatedStrategies strategies = new ConnectionCreatedStrategies();
         strategies.addStrategy(new StagedCommandStrategy());
         strategies.addStrategy(new TestConnectionConflictStrategy());
@@ -59,7 +60,7 @@ public final class ConnectionCreatedStrategies
         strategies.addStrategy(new RetrieveConnectionLogsStrategy());
         strategies.addStrategy(new ResetConnectionLogsStrategy());
         strategies.addStrategy(new RetrieveConnectionStrategy());
-        strategies.addStrategy(new RetrieveHonoConnectionStrategy());
+        strategies.addStrategy(new RetrieveResolvedHonoConnectionStrategy(actorSystem));
         strategies.addStrategy(new RetrieveConnectionStatusStrategy());
         strategies.addStrategy(new RetrieveConnectionMetricsStrategy());
         strategies.addStrategy(new LoggingExpiredStrategy());

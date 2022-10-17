@@ -115,6 +115,7 @@ public final class UserPasswordCredentials implements Credentials {
      *
      * @param jsonObject the jsonObject
      * @return credentials.
+     * @since 3.1.0
      */
     public static UserPasswordCredentials newInstance(final JsonObject jsonObject) {
         return UserPasswordCredentials.fromJson(jsonObject);

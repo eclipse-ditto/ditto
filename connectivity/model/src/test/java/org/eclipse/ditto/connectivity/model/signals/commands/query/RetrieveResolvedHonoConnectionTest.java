@@ -35,25 +35,25 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link RetrieveHonoConnection}.
+ * Unit test for {@link RetrieveResolvedHonoConnection}.
  */
-public final class RetrieveHonoConnectionTest {
+public final class RetrieveResolvedHonoConnectionTest {
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
-            .set(Command.JsonFields.TYPE, RetrieveHonoConnection.TYPE)
+            .set(Command.JsonFields.TYPE, RetrieveResolvedHonoConnection.TYPE)
             .set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, TestConstants.ID.toString())
             .build();
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(RetrieveHonoConnection.class)
+        EqualsVerifier.forClass(RetrieveResolvedHonoConnection.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveHonoConnection.class,
+        assertInstancesOf(RetrieveResolvedHonoConnection.class,
                 areImmutable(),
                 provided(ConnectionId.class).isAlsoImmutable());
     }
@@ -61,18 +61,18 @@ public final class RetrieveHonoConnectionTest {
     @Test
     public void createInstanceWithNullConnectionId() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> RetrieveHonoConnection.of(null, DittoHeaders.empty()))
+                .isThrownBy(() -> RetrieveResolvedHonoConnection.of(null, DittoHeaders.empty()))
                 .withMessage("The %s must not be null!", "connectionId")
                 .withNoCause();
     }
 
     @Test
     public void fromJsonReturnsExpected() {
-        final RetrieveHonoConnection expected =
-                RetrieveHonoConnection.of(TestConstants.ID, DittoHeaders.empty());
+        final RetrieveResolvedHonoConnection expected =
+                RetrieveResolvedHonoConnection.of(TestConstants.ID, DittoHeaders.empty());
 
-        final RetrieveHonoConnection actual =
-                RetrieveHonoConnection.fromJson(KNOWN_JSON, DittoHeaders.empty());
+        final RetrieveResolvedHonoConnection actual =
+                RetrieveResolvedHonoConnection.fromJson(KNOWN_JSON, DittoHeaders.empty());
 
         assertThat(actual).isEqualTo(expected);
     }
@@ -80,15 +80,15 @@ public final class RetrieveHonoConnectionTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual =
-                RetrieveHonoConnection.of(TestConstants.ID, DittoHeaders.empty()).toJson();
+                RetrieveResolvedHonoConnection.of(TestConstants.ID, DittoHeaders.empty()).toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }
 
     @Test
     public void getEntityIdReturnsExpected() {
-        final RetrieveHonoConnection actual =
-                RetrieveHonoConnection.of(TestConstants.ID, DittoHeaders.empty());
+        final RetrieveResolvedHonoConnection actual =
+                RetrieveResolvedHonoConnection.of(TestConstants.ID, DittoHeaders.empty());
 
         assertThat((CharSequence) actual.getEntityId()).isEqualTo(ConnectionId.of(TestConstants.ID));
     }
@@ -100,11 +100,11 @@ public final class RetrieveHonoConnectionTest {
         map.put("header2_key", "header2_value");
         map.put("header3_key", "header3_value");
         final DittoHeaders EXPECTED_DITTO_HEADERS = DittoHeaders.of(map);
-        final RetrieveHonoConnection actual =
-                RetrieveHonoConnection.of(TestConstants.ID, DittoHeaders.empty());
+        final RetrieveResolvedHonoConnection actual =
+                RetrieveResolvedHonoConnection.of(TestConstants.ID, DittoHeaders.empty());
 
         assertThat(actual.getDittoHeaders()).isEmpty();
-        RetrieveHonoConnection changed = actual.setDittoHeaders(EXPECTED_DITTO_HEADERS);
+        RetrieveResolvedHonoConnection changed = actual.setDittoHeaders(EXPECTED_DITTO_HEADERS);
         assertThat(changed.getDittoHeaders()).isEqualTo(EXPECTED_DITTO_HEADERS);
     }
 
@@ -112,8 +112,8 @@ public final class RetrieveHonoConnectionTest {
     public void getResourcePathReturnsExpected() {
         final JsonPointer expectedResourcePath = JsonFactory.emptyPointer();
 
-        final RetrieveHonoConnection underTest =
-                RetrieveHonoConnection.of(TestConstants.ID, DittoHeaders.empty());
+        final RetrieveResolvedHonoConnection underTest =
+                RetrieveResolvedHonoConnection.of(TestConstants.ID, DittoHeaders.empty());
 
         DittoJsonAssertions.assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
     }

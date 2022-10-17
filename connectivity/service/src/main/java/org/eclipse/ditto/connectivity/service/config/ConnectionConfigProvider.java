@@ -57,7 +57,7 @@ public interface ConnectionConfigProvider {
 
     /**
      * Returns {@code true} if the implementation can handle the given {@code event} to generate a modified {@link
-     * ConnectivityConfig} when passed to {@link #handleEvent(Event)}.
+     * ConnectivityConfig} when passed to {@link #handleEvent(Event, akka.actor.ActorRef)}.
      *
      * @param event the event that may be used to generate modified config
      * @return {@code true} if the event is compatible

@@ -37,16 +37,18 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 /**
  * Command which retrieves a {@link org.eclipse.ditto.connectivity.model.Connection} of type 'hono'
  * after resolving its aliases and with its additional properties like header mappings and specific config.
+ *
+ * @since 3.1.0
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = RetrieveHonoConnection.NAME)
-public final class RetrieveHonoConnection extends AbstractCommand<RetrieveHonoConnection>
-        implements ConnectivityQueryCommand<RetrieveHonoConnection>, WithConnectionId, SignalWithEntityId<RetrieveHonoConnection> {
+@JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = RetrieveResolvedHonoConnection.NAME)
+public final class RetrieveResolvedHonoConnection extends AbstractCommand<RetrieveResolvedHonoConnection>
+        implements ConnectivityQueryCommand<RetrieveResolvedHonoConnection>, WithConnectionId, SignalWithEntityId<RetrieveResolvedHonoConnection> {
 
     /**
      * Name of this command.
      */
-    public static final String NAME = "retrieveHonoConnection";
+    public static final String NAME = "retrieveResolvedHonoConnection";
 
     /**
      * Type of this command.
@@ -55,7 +57,7 @@ public final class RetrieveHonoConnection extends AbstractCommand<RetrieveHonoCo
 
     private final ConnectionId connectionId;
 
-    private RetrieveHonoConnection(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
+    private RetrieveResolvedHonoConnection(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.connectionId = connectionId;
     }
@@ -68,9 +70,9 @@ public final class RetrieveHonoConnection extends AbstractCommand<RetrieveHonoCo
      * @return a new RetrieveHonoConnection command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveHonoConnection of(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
+    public static RetrieveResolvedHonoConnection of(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "connectionId");
-        return new RetrieveHonoConnection(connectionId, dittoHeaders);
+        return new RetrieveResolvedHonoConnection(connectionId, dittoHeaders);
     }
 
     /**
@@ -84,7 +86,7 @@ public final class RetrieveHonoConnection extends AbstractCommand<RetrieveHonoCo
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if connectionId is missing in the passed in {@code jsonString}
      */
-    public static RetrieveHonoConnection fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
+    public static RetrieveResolvedHonoConnection fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
@@ -98,8 +100,8 @@ public final class RetrieveHonoConnection extends AbstractCommand<RetrieveHonoCo
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static RetrieveHonoConnection fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<RetrieveHonoConnection>(TYPE, jsonObject).deserialize(() -> {
+    public static RetrieveResolvedHonoConnection fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<RetrieveResolvedHonoConnection>(TYPE, jsonObject).deserialize(() -> {
             final String readConnectionId = jsonObject.getValueOrThrow(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID);
             final ConnectionId connectionId = ConnectionId.of(readConnectionId);
 
@@ -127,13 +129,13 @@ public final class RetrieveHonoConnection extends AbstractCommand<RetrieveHonoCo
     }
 
     @Override
-    public RetrieveHonoConnection setDittoHeaders(final DittoHeaders dittoHeaders) {
+    public RetrieveResolvedHonoConnection setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(connectionId, dittoHeaders);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof RetrieveHonoConnection;
+        return other instanceof RetrieveResolvedHonoConnection;
     }
 
     @Override
@@ -147,7 +149,7 @@ public final class RetrieveHonoConnection extends AbstractCommand<RetrieveHonoCo
         if (!super.equals(o)) {
             return false;
         }
-        final RetrieveHonoConnection that = (RetrieveHonoConnection) o;
+        final RetrieveResolvedHonoConnection that = (RetrieveResolvedHonoConnection) o;
         return Objects.equals(connectionId, that.connectionId);
     }
 

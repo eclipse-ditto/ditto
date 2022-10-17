@@ -12,7 +12,7 @@
       "consumerCount": 1,
       "qos": 0,
       "authorizationContext": [
-        "integration:{{solution.id}}:hub"
+        "nginx:ditto"
       ],
       "enforcement": {
         "input": "{{ header:device_id }}",
@@ -53,7 +53,7 @@
       "consumerCount": 1,
       "qos": 1,
       "authorizationContext": [
-        "integration:{{solution.id}}:hub"
+        "nginx:ditto"
       ],
       "enforcement": {
         "input": "{{ header:device_id }}",
@@ -93,7 +93,7 @@
       "consumerCount": 1,
       "qos": 0,
       "authorizationContext": [
-        "integration:{{solution.id}}:hub"
+        "nginx:ditto"
       ],
       "enforcement": {
         "input": "{{ header:device_id }}",
@@ -126,7 +126,7 @@
         "_/_/things/live/commands"
       ],
       "authorizationContext": [
-        "integration:{{solution.id}}:hub"
+        "nginx:ditto"
       ],
       "headerMapping": {
         "user_key4": "user_value4",
@@ -143,7 +143,7 @@
         "_/_/things/live/events"
       ],
       "authorizationContext": [
-        "integration:{{solution.id}}:hub"
+        "nginx:ditto"
       ],
       "headerMapping": {
         "user_key5": "user_value5",
@@ -191,8 +191,8 @@
             "entries": {
               "DEVICE": {
                 "subjects": {
-                  "integration:{{solution:id}}:hub": {
-                    "type": "iot-things-integration"
+                  "integration:hono": {
+                    "type": "hono-integration"
                   }
                 },
                 "resources": {
@@ -220,47 +220,8 @@
               },
               "DEFAULT": {
                 "subjects": {
-                  "iot-suite-dev:/service-instance.{{solution:package-service-instance-id}}.iot-things": {
-                    "type": "suite-auth"
-                  }
-                },
-                "resources": {
-                  "policy:/": {
-                    "revoke": [],
-                    "grant": [
-                      "READ",
-                      "WRITE"
-                    ]
-                  },
-                  "thing:/": {
-                    "revoke": [],
-                    "grant": [
-                      "READ",
-                      "WRITE"
-                    ]
-                  },
-                  "message:/": {
-                    "revoke": [],
-                    "grant": [
-                      "READ",
-                      "WRITE"
-                    ]
-                  }
-                }
-              },
-              "DEVICE-MANAGEMENT": {
-                "subjects": {
-                  "iot-suite-dev:/service-instance.{{ solution:package-service-instance-id }}.iot-things@iot-manager": {
-                    "type": "suite-auth"
-                  },
-                  "iot-suite-dev:/service-instance.{{ solution:package-service-instance-id }}.iot-things@developer-console": {
-                    "type": "suite-auth"
-                  },
-                  "iot-suite-dev:/service-instance.{{ solution:package-service-instance-id }}.iot-things@iot-rollouts": {
-                    "type": "suite-auth"
-                  },
-                  "integration:{{ solution:id }}:iot-manager": {
-                    "type": "iot-things-integration"
+                  "integration:hono": {
+                    "type": "generated"
                   }
                 },
                 "resources": {

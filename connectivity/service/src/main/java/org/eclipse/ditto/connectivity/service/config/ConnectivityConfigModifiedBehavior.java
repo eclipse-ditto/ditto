@@ -28,7 +28,7 @@ public interface ConnectivityConfigModifiedBehavior extends Actor {
 
     /**
     * Injectable behavior to handle an {@code Event} that transports config changes.
-    * This involves modified Hub parameters (credentials) for 'Hono'-connections as well.
+    * This involves modified credentials for Hono-connections as well.
     *
     * @param subscriber the actor that potentially will receive a command message after handling the event.
     * @return behavior to handle an {@code Event} that transports config changes.

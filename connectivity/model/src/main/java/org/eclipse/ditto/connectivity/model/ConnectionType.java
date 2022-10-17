@@ -54,6 +54,7 @@ public enum ConnectionType implements CharSequence {
 
     /**
      * Indicates a connection to Eclipse Hono.
+     * @since 3.1.0
      */
     HONO("hono");
 

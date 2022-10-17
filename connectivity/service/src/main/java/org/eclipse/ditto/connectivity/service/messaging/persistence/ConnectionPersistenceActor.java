@@ -173,6 +173,7 @@ public final class ConnectionPersistenceActor
     // never retry, just escalate. ConnectionSupervisorActor will handle restarting this actor
     private static final SupervisorStrategy ESCALATE_ALWAYS_STRATEGY = OneForOneEscalateStrategy.escalateStrategy();
 
+    private final ActorSystem actorSystem;
     private final Cluster cluster;
     private final ActorRef commandForwarderActor;
     private final ClientActorPropsFactory propsFactory;
@@ -204,7 +205,7 @@ public final class ConnectionPersistenceActor
             final Config connectivityConfigOverwrites) {
 
         super(connectionId);
-        final ActorSystem actorSystem = context().system();
+        this.actorSystem = context().system();
         cluster = Cluster.get(actorSystem);
         final Config dittoExtensionConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
         this.commandForwarderActor = commandForwarderActor;
@@ -314,7 +315,7 @@ public final class ConnectionPersistenceActor
 
     @Override
     protected ConnectionCreatedStrategies getCreatedStrategy() {
-        return ConnectionCreatedStrategies.getInstance();
+        return ConnectionCreatedStrategies.getInstance(actorSystem);
     }
 
     @Override
@@ -1186,7 +1187,6 @@ public final class ConnectionPersistenceActor
 
     private ConnectivityCommandInterceptor getCommandValidator() {
 
-        final var actorSystem = getContext().getSystem();
         final MqttConfig mqttConfig = connectivityConfig.getConnectionConfig().getMqttConfig();
         final ConnectionValidator connectionValidator =
                 ConnectionValidator.of(actorSystem.log(),

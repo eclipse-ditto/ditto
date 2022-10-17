@@ -172,8 +172,7 @@ public final class ConnectionSupervisorActor
             // only after the config overwrites were retrieved, the ConnectionSupervisorActor
             // will move to the "initialized" state and open the connection
             initConfigOverwrites(entityId, null);
-        } else if (message != Control.REGISTRATION_FOR_CONFIG_CHANGES_SUCCESSFUL
-                && message != Control.REGISTRATION_FOR_HUB_PARAMS_CHANGES_SUCCESSFUL) {
+        } else if (message != Control.REGISTRATION_FOR_CONFIG_CHANGES_SUCCESSFUL) {
             initConfigOverwrites(entityId, null);
         }
         getContext().cancelReceiveTimeout();
@@ -296,8 +295,7 @@ public final class ConnectionSupervisorActor
     }
 
     private enum Control {
-        REGISTRATION_FOR_CONFIG_CHANGES_SUCCESSFUL,
-        REGISTRATION_FOR_HUB_PARAMS_CHANGES_SUCCESSFUL
+        REGISTRATION_FOR_CONFIG_CHANGES_SUCCESSFUL
     }
 
     private static class CheckForOverwritesConfig {
@@ -310,9 +308,9 @@ public final class ConnectionSupervisorActor
     }
 
     /**
-     * Command to restart the connection. Used in case the config or hub params ('hono'-connections only) are modified.
+     * Command to restart the connection with a modified Config (provided in the command) or unconditional restart if modifiedConfig is null.
      */
-    public static class RestartConnection {
+    public static final class RestartConnection {
 
         @Nullable
         private final Config modifiedConfig;

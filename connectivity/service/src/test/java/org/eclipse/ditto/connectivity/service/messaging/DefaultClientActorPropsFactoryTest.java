@@ -114,7 +114,7 @@ public final class DefaultClientActorPropsFactoryTest extends WithMockServers {
     }
 
     /**
-     * Tests serialization of props of Kafka client actor. The props needs to be serializable because client actors
+     * Tests serialization of props of Hono client actor. The props needs to be serializable because client actors
      * may be created on a different connectivity service instance using a local connection object.
      */
     @Test
