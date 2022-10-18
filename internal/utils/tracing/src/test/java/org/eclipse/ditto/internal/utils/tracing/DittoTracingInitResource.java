@@ -12,14 +12,15 @@
  */
 package org.eclipse.ditto.internal.utils.tracing;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.internal.utils.tracing.config.TracingConfig.TracingConfigValue.TRACING_ENABLED;
 import static org.eclipse.ditto.internal.utils.tracing.config.TracingConfig.TracingConfigValue.TRACING_PROPAGATION_CHANNEL;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.internal.utils.tracing.config.DefaultTracingConfig;
 import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
 import org.junit.rules.ExternalResource;
@@ -46,9 +47,10 @@ public final class DittoTracingInitResource extends ExternalResource {
      * @param tracingConfig the configuration properties for {@code DittoTracing}.
      * @return the new instance.
      * @throws NullPointerException if {@code tracingConfig} is {@code null}.
+     * @see TracingConfigBuilder#defaultValues()
      */
     public static DittoTracingInitResource newInstance(final TracingConfig tracingConfig) {
-        return new DittoTracingInitResource(ConditionChecker.checkNotNull(tracingConfig, "tracingConfig"));
+        return new DittoTracingInitResource(checkNotNull(tracingConfig, "tracingConfig"));
     }
 
     /**
@@ -57,12 +59,7 @@ public final class DittoTracingInitResource extends ExternalResource {
      * @return the new instance.
      */
     public static DittoTracingInitResource disableDittoTracing() {
-        return newInstance(
-                DefaultTracingConfig.of(ConfigFactory.parseMap(Map.of(
-                    TRACING_ENABLED.getConfigPath(), "false",
-                    TRACING_PROPAGATION_CHANNEL.getConfigPath(), TRACING_PROPAGATION_CHANNEL.getDefaultValue()
-                )))
-        );
+        return newInstance(TracingConfigBuilder.defaultValues().withTracingDisabled().build());
     }
 
     @Override
@@ -75,6 +72,51 @@ public final class DittoTracingInitResource extends ExternalResource {
     protected void after() {
         DittoTracing.reset();
         super.after();
+    }
+
+    @NotThreadSafe
+    public static final class TracingConfigBuilder {
+
+        private final Map<String, Object> rawConfigMap;
+
+        private TracingConfigBuilder() {
+            rawConfigMap = new HashMap<>();
+        }
+
+        public static TracingConfigBuilder defaultValues() {
+            final var result = new TracingConfigBuilder();
+            result.setTracingEnabledValue(TRACING_ENABLED.getDefaultValue());
+            result.setTracingPropagationChannelValue(TRACING_PROPAGATION_CHANNEL.getDefaultValue());
+            return result;
+        }
+
+        public TracingConfigBuilder withTracingEnabled() {
+            setTracingEnabledValue(true);
+            return this;
+        }
+
+        private void setTracingEnabledValue(final Object tracingEnabled) {
+            rawConfigMap.put(TRACING_ENABLED.getConfigPath(), tracingEnabled);
+        }
+
+        public TracingConfigBuilder withTracingDisabled() {
+            setTracingEnabledValue(false);
+            return this;
+        }
+
+        public TracingConfigBuilder withTracingPropagationChannel(final CharSequence propagationChannelName) {
+            setTracingPropagationChannelValue(checkNotNull(propagationChannelName, "propagationChannelName"));
+            return this;
+        }
+
+        private void setTracingPropagationChannelValue(final Object propagationChannelName) {
+            rawConfigMap.put(TRACING_PROPAGATION_CHANNEL.getConfigPath(), propagationChannelName);
+        }
+
+        public TracingConfig build() {
+            return DefaultTracingConfig.of(ConfigFactory.parseMap(Map.of("tracing", rawConfigMap)));
+        }
+
     }
 
 }
