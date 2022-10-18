@@ -132,7 +132,7 @@ public final class RequestTracingDirective {
 
     private static Map<String, String> getHttpHeadersAsMap(final Iterable<HttpHeader> httpHeaders) {
         return StreamSupport.stream(httpHeaders.spliterator(), false)
-                .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value));
+                .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value, (oldValue, value) -> value));
     }
 
     private static StartedTrace startTrace(
