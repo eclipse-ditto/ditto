@@ -53,6 +53,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyImportsValidator;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImportsTooLargeException;
 
 /**
  * Immutable implementation of {@link Policy}.
@@ -119,7 +120,13 @@ final class ImmutablePolicy implements Policy {
         final Map<Label, PolicyEntry> entryMap = new LinkedHashMap<>();
         entries.forEach(policyEntry -> entryMap.put(policyEntry.getLabel(), policyEntry));
 
-        return new ImmutablePolicy(policyId, policyImports, entryMap, lifecycle, revision, modified, created, metadata);
+        if (policyImports.getSize() <= Integer.parseInt(System.getProperty("ditto.limits.policy.imports-limit"))) {
+            return new ImmutablePolicy(policyId, policyImports, entryMap, lifecycle, revision, modified, created,
+                    metadata);
+        } else {
+            throw PolicyImportsTooLargeException.newBuilder(checkNotNull(policyId, "policyId")).build();
+        }
+
     }
 
     /**

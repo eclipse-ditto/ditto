@@ -19,7 +19,9 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -30,6 +32,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.assertions.DittoPolicyAssertions;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImportsTooLargeException;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -152,16 +155,19 @@ public final class ImmutablePolicyTest {
 
         DittoPolicyAssertions.assertThat(policy).hasLabel(END_USER_LABEL);
         DittoPolicyAssertions.assertThat(policy).hasSubjectFor(END_USER_LABEL, END_USER_SUBJECT_ID_1);
-        DittoPolicyAssertions.assertThat(policy).hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1);
+        DittoPolicyAssertions.assertThat(policy)
+                .hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1);
         DittoPolicyAssertions.assertThat(policy).doesNotHaveSubjectFor(END_USER_LABEL, NEW_SUBJECT_1.getId());
         DittoPolicyAssertions.assertThat(policy).doesNotHaveSubjectFor(END_USER_LABEL, NEW_SUBJECT_2.getId());
-        DittoPolicyAssertions.assertThat(policy).hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE, END_USER_RESOURCE_1);
+        DittoPolicyAssertions.assertThat(policy)
+                .hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE, END_USER_RESOURCE_1);
         DittoPolicyAssertions.assertThat(policyModified).hasLabel(END_USER_LABEL);
         DittoPolicyAssertions.assertThat(policyModified).doesNotHaveSubjectFor(END_USER_LABEL, END_USER_SUBJECT_ID_1);
         DittoPolicyAssertions.assertThat(policyModified).hasSubjectFor(END_USER_LABEL, NEW_SUBJECT_1.getId());
         DittoPolicyAssertions.assertThat(policyModified).hasSubjectFor(END_USER_LABEL, NEW_SUBJECT_2.getId());
-        DittoPolicyAssertions.assertThat(policyModified).hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
-                END_USER_RESOURCE_1);
+        DittoPolicyAssertions.assertThat(policyModified)
+                .hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
+                        END_USER_RESOURCE_1);
     }
 
     @Test
@@ -173,16 +179,21 @@ public final class ImmutablePolicyTest {
 
         DittoPolicyAssertions.assertThat(policy).hasLabel(END_USER_LABEL);
         DittoPolicyAssertions.assertThat(policy).hasSubjectFor(END_USER_LABEL, END_USER_SUBJECT_ID_1);
-        DittoPolicyAssertions.assertThat(policy).hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1);
+        DittoPolicyAssertions.assertThat(policy)
+                .hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1);
         DittoPolicyAssertions.assertThat(policy).doesNotHaveSubjectFor(END_USER_LABEL, END_USER_SUBJECT_ID_2);
-        DittoPolicyAssertions.assertThat(policy).hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE, END_USER_RESOURCE_1);
+        DittoPolicyAssertions.assertThat(policy)
+                .hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE, END_USER_RESOURCE_1);
         DittoPolicyAssertions.assertThat(policyModified).hasLabel(END_USER_LABEL);
         DittoPolicyAssertions.assertThat(policyModified).hasSubjectFor(END_USER_LABEL, END_USER_SUBJECT_ID_1);
-        DittoPolicyAssertions.assertThat(policyModified).hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1);
+        DittoPolicyAssertions.assertThat(policyModified)
+                .hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1);
         DittoPolicyAssertions.assertThat(policyModified).hasSubjectFor(END_USER_LABEL, END_USER_SUBJECT_ID_2);
-        DittoPolicyAssertions.assertThat(policyModified).hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_2, END_USER_SUBJECT_TYPE_2);
-        DittoPolicyAssertions.assertThat(policyModified).hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
-                END_USER_RESOURCE_1);
+        DittoPolicyAssertions.assertThat(policyModified)
+                .hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_2, END_USER_SUBJECT_TYPE_2);
+        DittoPolicyAssertions.assertThat(policyModified)
+                .hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
+                        END_USER_RESOURCE_1);
     }
 
     @Test
@@ -203,12 +214,15 @@ public final class ImmutablePolicyTest {
 
         DittoPolicyAssertions.assertThat(policy).hasLabel(END_USER_LABEL);
         DittoPolicyAssertions.assertThat(policy).hasSubjectFor(END_USER_LABEL, END_USER_SUBJECT_ID_1);
-        DittoPolicyAssertions.assertThat(policy).hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1);
-        DittoPolicyAssertions.assertThat(policy).hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE, END_USER_RESOURCE_1);
+        DittoPolicyAssertions.assertThat(policy)
+                .hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1);
+        DittoPolicyAssertions.assertThat(policy)
+                .hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE, END_USER_RESOURCE_1);
         DittoPolicyAssertions.assertThat(policyModified).hasLabel(END_USER_LABEL);
         DittoPolicyAssertions.assertThat(policyModified).doesNotHaveSubjectFor(END_USER_LABEL, END_USER_SUBJECT_ID_1);
-        DittoPolicyAssertions.assertThat(policyModified).hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
-                END_USER_RESOURCE_1);
+        DittoPolicyAssertions.assertThat(policyModified)
+                .hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
+                        END_USER_RESOURCE_1);
     }
 
     @Test
@@ -226,21 +240,29 @@ public final class ImmutablePolicyTest {
 
         DittoPolicyAssertions.assertThat(policy).hasLabel(END_USER_LABEL);
         DittoPolicyAssertions.assertThat(policy).hasSubjectFor(END_USER_LABEL, END_USER_SUBJECT_ID_1);
-        DittoPolicyAssertions.assertThat(policy).hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1);
-        DittoPolicyAssertions.assertThat(policy).hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE, END_USER_RESOURCE_1);
-        DittoPolicyAssertions.assertThat(policy).doesNotHaveResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
-                NEW_RESOURCE_1.getPath());
-        DittoPolicyAssertions.assertThat(policy).doesNotHaveResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
-                NEW_RESOURCE_2.getPath());
+        DittoPolicyAssertions.assertThat(policy)
+                .hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1);
+        DittoPolicyAssertions.assertThat(policy)
+                .hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE, END_USER_RESOURCE_1);
+        DittoPolicyAssertions.assertThat(policy)
+                .doesNotHaveResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
+                        NEW_RESOURCE_1.getPath());
+        DittoPolicyAssertions.assertThat(policy)
+                .doesNotHaveResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
+                        NEW_RESOURCE_2.getPath());
         DittoPolicyAssertions.assertThat(policyModified).hasLabel(END_USER_LABEL);
         DittoPolicyAssertions.assertThat(policyModified).hasSubjectFor(END_USER_LABEL, END_USER_SUBJECT_ID_1);
-        DittoPolicyAssertions.assertThat(policyModified).hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1);
-        DittoPolicyAssertions.assertThat(policyModified).doesNotHaveResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
-                END_USER_RESOURCE_1);
-        DittoPolicyAssertions.assertThat(policyModified).hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
-                NEW_RESOURCE_1.getPath());
-        DittoPolicyAssertions.assertThat(policyModified).hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
-                NEW_RESOURCE_2.getPath());
+        DittoPolicyAssertions.assertThat(policyModified)
+                .hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1);
+        DittoPolicyAssertions.assertThat(policyModified)
+                .doesNotHaveResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
+                        END_USER_RESOURCE_1);
+        DittoPolicyAssertions.assertThat(policyModified)
+                .hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
+                        NEW_RESOURCE_1.getPath());
+        DittoPolicyAssertions.assertThat(policyModified)
+                .hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
+                        NEW_RESOURCE_2.getPath());
     }
 
     @Test
@@ -254,17 +276,23 @@ public final class ImmutablePolicyTest {
 
         DittoPolicyAssertions.assertThat(policy).hasLabel(END_USER_LABEL);
         DittoPolicyAssertions.assertThat(policy).hasSubjectFor(END_USER_LABEL, END_USER_SUBJECT_ID_1);
-        DittoPolicyAssertions.assertThat(policy).hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1);
-        DittoPolicyAssertions.assertThat(policy).hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE, END_USER_RESOURCE_1);
-        DittoPolicyAssertions.assertThat(policy).doesNotHaveResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
-                END_USER_RESOURCE_2);
+        DittoPolicyAssertions.assertThat(policy)
+                .hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1);
+        DittoPolicyAssertions.assertThat(policy)
+                .hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE, END_USER_RESOURCE_1);
+        DittoPolicyAssertions.assertThat(policy)
+                .doesNotHaveResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
+                        END_USER_RESOURCE_2);
         DittoPolicyAssertions.assertThat(policyModified).hasLabel(END_USER_LABEL);
         DittoPolicyAssertions.assertThat(policyModified).hasSubjectFor(END_USER_LABEL, END_USER_SUBJECT_ID_1);
-        DittoPolicyAssertions.assertThat(policyModified).hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1);
-        DittoPolicyAssertions.assertThat(policyModified).hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
-                END_USER_RESOURCE_1);
-        DittoPolicyAssertions.assertThat(policyModified).hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
-                END_USER_RESOURCE_2);
+        DittoPolicyAssertions.assertThat(policyModified)
+                .hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1);
+        DittoPolicyAssertions.assertThat(policyModified)
+                .hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
+                        END_USER_RESOURCE_1);
+        DittoPolicyAssertions.assertThat(policyModified)
+                .hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
+                        END_USER_RESOURCE_2);
     }
 
     @Test
@@ -275,13 +303,17 @@ public final class ImmutablePolicyTest {
 
         DittoPolicyAssertions.assertThat(policy).hasLabel(END_USER_LABEL);
         DittoPolicyAssertions.assertThat(policy).hasSubjectFor(END_USER_LABEL, END_USER_SUBJECT_ID_1);
-        DittoPolicyAssertions.assertThat(policy).hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1);
-        DittoPolicyAssertions.assertThat(policy).hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE, END_USER_RESOURCE_1);
+        DittoPolicyAssertions.assertThat(policy)
+                .hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1);
+        DittoPolicyAssertions.assertThat(policy)
+                .hasResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE, END_USER_RESOURCE_1);
         DittoPolicyAssertions.assertThat(policyModified).hasLabel(END_USER_LABEL);
         DittoPolicyAssertions.assertThat(policyModified).hasSubjectFor(END_USER_LABEL, END_USER_SUBJECT_ID_1);
-        DittoPolicyAssertions.assertThat(policyModified).hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1);
-        DittoPolicyAssertions.assertThat(policyModified).doesNotHaveResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
-                END_USER_RESOURCE_1);
+        DittoPolicyAssertions.assertThat(policyModified)
+                .hasSubjectTypeFor(END_USER_LABEL, END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1);
+        DittoPolicyAssertions.assertThat(policyModified)
+                .doesNotHaveResourceFor(END_USER_LABEL, TestConstants.Policy.RESOURCE_TYPE,
+                        END_USER_RESOURCE_1);
     }
 
     @Test
@@ -462,5 +494,55 @@ public final class ImmutablePolicyTest {
         final List<PolicyEntry> emptyList = Collections.emptyList();
         assertThatExceptionOfType(PolicyImportInvalidException.class).isThrownBy(
                 () -> ImmutablePolicy.of(POLICY_ID, null, null, null, null, null, policyImports, emptyList));
+    }
+
+    @Test
+    public void policyWithTooManyImportsThrowsPolicyImportsTooLargeException() {
+        System.setProperty("ditto.limits.policy.imports-limit", "10");
+        final int policyImportLimit = Integer.parseInt(System.getProperty("ditto.limits.policy.imports-limit"));
+        // Ensure size always exceeds the allowed limit.
+        PolicyImports policyImports = createPolicyImport(policyImportLimit + 1);
+
+
+        final List<PolicyEntry> emptyList = Collections.emptyList();
+        assertThatExceptionOfType(PolicyImportsTooLargeException.class).isThrownBy(
+                () -> ImmutablePolicy.of(POLICY_ID, null, null, null, null, null, policyImports, emptyList));
+    }
+
+    @Test
+    public void policyWithMaximumImportsReceivesOneMoreAndThrowsPolicyImportsTooLargeException() {
+        PolicyImports policyImports = createPolicyImport(10);
+        System.setProperty("ditto.limits.policy.imports-limit", "10");
+        final List<PolicyEntry> emptyList = Collections.emptyList();
+        Policy policyWithImports =
+                ImmutablePolicy.of(POLICY_ID, null, null, null, null, null, policyImports, emptyList);
+
+
+        assertThatExceptionOfType(PolicyImportsTooLargeException.class).isThrownBy(
+                () -> ImmutablePolicyBuilder.of(policyWithImports)
+                        .setPolicyImport(ImmutablePolicyImport.of(PolicyId.of(POLICY_ID + "-oneTooManyImports"))));
+    }
+
+    @Test
+    public void policyWithNoPolicyImportsReceivesTooManyAndThrowsPolicyImportsTooLargeException() {
+        PolicyImports policyImports = createPolicyImport(11);
+        System.setProperty("ditto.limits.policy.imports-limit", "10");
+        final List<PolicyEntry> emptyList = Collections.emptyList();
+        Policy policyWithNoImports =
+                ImmutablePolicy.of(POLICY_ID, null, null, null, null, null, emptyPolicyImports(), emptyList);
+
+        assertThatExceptionOfType(PolicyImportsTooLargeException.class).isThrownBy(
+                () -> ImmutablePolicyBuilder.of(policyWithNoImports)
+                        .setPolicyImports(policyImports));
+    }
+
+    private static PolicyImports createPolicyImport(final int importsNumber) {
+        final Collection<PolicyImport> allPolicyImports =
+                new ArrayList<>(1 + importsNumber);
+        for (int i = 1; i <= importsNumber; i++) {
+            allPolicyImports.add(PoliciesModelFactory.newPolicyImport(
+                    PolicyId.of(POLICY_ID + "-imported" + i)));
+        }
+        return PoliciesModelFactory.newPolicyImports(allPolicyImports);
     }
 }

@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImportsTooLargeException;
 
 /**
  * A mutable builder for a {@link ImmutablePolicy} with a fluent API.
@@ -164,6 +165,10 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     @Override
     public ImmutablePolicyBuilder setPolicyImports(final PolicyImports policyImports) {
         checkNotNull(policyImports, "policyImports");
+
+        if (policyImports.getSize() > Integer.parseInt(System.getProperty("ditto.limits.policy.imports-limit"))) {
+            throw PolicyImportsTooLargeException.newBuilder(policyImports.getSize()).build();
+        }
         this.policyImports = policyImports;
         return this;
     }

@@ -109,7 +109,7 @@ public final class Metadata {
     }
 
     /**
-     * Create an Metadata object retaining the original ackRecipient of an event.
+     * Create a Metadata object retaining the original ackRecipient of an event.
      *
      * @param thingId the Thing ID.
      * @param thingRevision the Thing revision.
@@ -133,7 +133,7 @@ public final class Metadata {
     }
 
     /**
-     * Create an Metadata object retaining the original ackRecipient of an event.
+     * Create a Metadata object retaining the original ackRecipient of an event.
      *
      * @param thingId the Thing ID.
      * @param thingRevision the Thing revision.
@@ -161,7 +161,7 @@ public final class Metadata {
     }
 
     /**
-     * Create an Metadata object with timestamp for the last modification.
+     * Create a Metadata object with timestamp for the last modification.
      *
      * @param thingId the Thing ID.
      * @param thingRevision the Thing revision.

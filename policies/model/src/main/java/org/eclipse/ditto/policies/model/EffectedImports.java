@@ -63,9 +63,9 @@ public interface EffectedImports extends Jsonifiable.WithFieldSelectorAndPredica
     ImportedLabels getImportedLabels();
 
     /**
-     * Returns all non hidden marked fields of this EffectedImports.
+     * Returns all non-hidden marked fields of this EffectedImports.
      *
-     * @return a JSON object representation of this EffectedImports including only non hidden marked fields.
+     * @return a JSON object representation of this EffectedImports including only non-hidden marked fields.
      */
     @Override
     default JsonObject toJson() {

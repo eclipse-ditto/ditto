@@ -66,9 +66,9 @@ public interface PolicyImport extends Jsonifiable.WithFieldSelectorAndPredicate<
     Optional<EffectedImports> getEffectedImports();
 
     /**
-     * Returns all non hidden marked fields of this PolicyImport.
+     * Returns all non-hidden marked fields of this PolicyImport.
      *
-     * @return a JSON object representation of this PolicyImport including only non hidden marked fields.
+     * @return a JSON object representation of this PolicyImport including only non-hidden marked fields.
      */
     @Override
     default JsonObject toJson() {

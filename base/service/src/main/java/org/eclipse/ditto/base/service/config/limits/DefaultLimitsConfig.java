@@ -37,6 +37,7 @@ public final class DefaultLimitsConfig implements LimitsConfig, WithConfigPath {
     private final long messagesMaxSize;
     private final int thingsSearchDefaultPageSize;
     private final int thingsSearchMaxPageSize;
+    private final int policyImportsLimit;
 
     private DefaultLimitsConfig(final ConfigWithFallback config) {
         thingsMaxSize = config.getNonNegativeBytesOrThrow(LimitsConfigValue.THINGS_MAX_SIZE);
@@ -44,6 +45,7 @@ public final class DefaultLimitsConfig implements LimitsConfig, WithConfigPath {
         messagesMaxSize = config.getNonNegativeBytesOrThrow(LimitsConfigValue.MESSAGES_MAX_SIZE);
         thingsSearchDefaultPageSize = config.getPositiveIntOrThrow(LimitsConfigValue.THINGS_SEARCH_DEFAULT_PAGE_SIZE);
         thingsSearchMaxPageSize = config.getPositiveIntOrThrow(LimitsConfigValue.THINGS_SEARCH_MAX_PAGE_SIZE);
+        policyImportsLimit = config.getPositiveIntOrThrow(LimitsConfigValue.POLICY_IMPORTS_LIMIT);
     }
 
     /**
@@ -91,6 +93,11 @@ public final class DefaultLimitsConfig implements LimitsConfig, WithConfigPath {
     }
 
     @Override
+    public int getPolicyImportsLimit() {
+        return policyImportsLimit;
+    }
+
+    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
@@ -103,7 +110,8 @@ public final class DefaultLimitsConfig implements LimitsConfig, WithConfigPath {
                 policiesMaxSize == that.policiesMaxSize &&
                 messagesMaxSize == that.messagesMaxSize &&
                 thingsSearchDefaultPageSize == that.thingsSearchDefaultPageSize &&
-                thingsSearchMaxPageSize == that.thingsSearchMaxPageSize;
+                thingsSearchMaxPageSize == that.thingsSearchMaxPageSize &&
+                policyImportsLimit == that.policyImportsLimit;
     }
 
     @Override
@@ -120,6 +128,7 @@ public final class DefaultLimitsConfig implements LimitsConfig, WithConfigPath {
                 ", messagesMaxSize=" + messagesMaxSize +
                 ", thingsSearchDefaultPageSize=" + thingsSearchDefaultPageSize +
                 ", thingsSearchMaxPageSize=" + thingsSearchMaxPageSize +
+                ", policyImportsLimit=" + policyImportsLimit +
                 "]";
     }
 

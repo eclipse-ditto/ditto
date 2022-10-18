@@ -64,7 +64,7 @@ public final class EnforcedThingMapper {
      *
      * @param thing the Thing in JSON format.
      * @param policy the policy-enforcer of the Thing.
-     * @param policyRevision revision of the policy for an policy enforcer.
+     * @param policyRevision revision of the policy for a policy enforcer.
      * @param referencedPolicies all policies referenced by the policy.
      * @param oldMetadata the metadata that triggered the search update, possibly containing sender information.
      * @param maxArraySize only arrays smaller than this are indexed.

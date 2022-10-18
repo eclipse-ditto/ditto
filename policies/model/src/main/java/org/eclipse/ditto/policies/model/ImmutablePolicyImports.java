@@ -38,6 +38,7 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImportsTooLargeException;
 
 /**
  * An immutable implementation of {@link PolicyImports}.
@@ -142,6 +143,9 @@ final class ImmutablePolicyImports implements PolicyImports {
     private PolicyImports createNewPolicyImportsWithNewPolicyImport(final PolicyImport newPolicyImport) {
         final Map<CharSequence, PolicyImport> resourcesCopy = copyPolicyImports();
         resourcesCopy.put(newPolicyImport.getImportedPolicyId(), newPolicyImport);
+        if (resourcesCopy.size() > Integer.parseInt(System.getProperty("ditto.limits.policy.imports-limit"))) {
+            throw PolicyImportsTooLargeException.newBuilder(newPolicyImport.getImportedPolicyId()).build();
+        }
         return new ImmutablePolicyImports(resourcesCopy);
     }
 

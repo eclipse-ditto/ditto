@@ -44,8 +44,7 @@ final class ImmutableEffectedImports implements EffectedImports {
     }
 
     /**
-     * Returns a new {@code EffectedImports} object of the given {@code importedLabels} and {@code
-     * excludedImportedLabels}.
+     * Returns a new {@code EffectedImports} object of the given {@code importedLabels}.
      *
      * @param labels the labels of the policy entries which should be added from the imported policy.
      * @return a new {@code EffectedImports} object.
