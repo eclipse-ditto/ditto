@@ -14,6 +14,7 @@ package org.eclipse.ditto.internal.utils.tracing;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -123,7 +124,12 @@ public final class DittoTracing {
 
     private static interface DittoTracingState {
 
-        void init(TracingConfig tracingConfig);
+        default void init(final TracingConfig tracingConfig) {
+            throw new IllegalStateException(MessageFormat.format(
+                    "{0} was already initialized. Please ensure that initialization is only performed once.",
+                    DittoTracing.class.getSimpleName()
+            ));
+        }
 
         PreparedTrace newPreparedTrace(Map<String, String> headers, TraceOperationName operationName);
 
@@ -193,11 +199,6 @@ public final class DittoTracing {
         }
 
         @Override
-        public void init(final TracingConfig tracingConfig) {
-            // Nothing to do because already initialized.
-        }
-
-        @Override
         public PreparedTrace newPreparedTrace(
                 final Map<String, String> headers,
                 final TraceOperationName operationName
@@ -220,11 +221,6 @@ public final class DittoTracing {
 
     @Immutable
     private static final class TracingDisabledState implements DittoTracingState {
-
-        @Override
-        public void init(final TracingConfig tracingConfig) {
-            // Nothing to do because already initialized.
-        }
 
         @Override
         public PreparedTrace newPreparedTrace(

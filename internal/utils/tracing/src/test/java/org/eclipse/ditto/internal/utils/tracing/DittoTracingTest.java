@@ -82,6 +82,34 @@ public final class DittoTracingTest {
     }
 
     @Test
+    public void callInitOnAlreadyInitializedDisabledDittoTracingThrowsIllegalStateException() {
+        Mockito.when(tracingConfigMock.isTracingEnabled()).thenReturn(false);
+        DittoTracing.init(tracingConfigMock);
+
+        assertThatIllegalStateException()
+                .isThrownBy(() -> DittoTracing.init(tracingConfigMock))
+                .withMessage(
+                        "%s was already initialized. Please ensure that initialization is only performed once.",
+                        DittoTracing.class.getSimpleName()
+                )
+                .withNoCause();
+    }
+
+    @Test
+    public void callInitOnAlreadyInitializedEnabledDittoTracingThrowsIllegalStateException() {
+        Mockito.when(tracingConfigMock.isTracingEnabled()).thenReturn(true);
+        DittoTracing.init(tracingConfigMock);
+
+        assertThatIllegalStateException()
+                .isThrownBy(() -> DittoTracing.init(tracingConfigMock))
+                .withMessage(
+                        "%s was already initialized. Please ensure that initialization is only performed once.",
+                        DittoTracing.class.getSimpleName()
+                )
+                .withNoCause();
+    }
+
+    @Test
     public void newPreparedTraceBeforeInitThrowsIllegalStateException() {
         assertThatIllegalStateException()
                 .isThrownBy(() -> DittoTracing.newPreparedTrace(
