@@ -138,7 +138,7 @@ public final class DittoTracingTest {
 
         assertThatNullPointerException()
                 .isThrownBy(() -> DittoTracing.newPreparedSpan(Map.of(), null))
-                .withMessage("The traceOperationName must not be null!")
+                .withMessage("The operationName must not be null!")
                 .withNoCause();
     }
 
