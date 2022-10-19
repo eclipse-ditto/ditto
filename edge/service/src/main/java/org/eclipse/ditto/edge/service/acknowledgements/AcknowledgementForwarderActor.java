@@ -42,6 +42,7 @@ import akka.actor.ActorRefFactory;
 import akka.actor.ActorSelection;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
+import akka.japi.Pair;
 
 /**
  * Actor which is created with an acknowledgement requester actor reference that requested to receive custom
@@ -97,6 +98,7 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
         return receiveBuilder()
                 .match(CommandResponse.class, this::forwardCommandResponse)
                 .match(ReceiveTimeout.class, this::handleReceiveTimeout)
+                .matchEquals(Control.PING, ping -> getSender().tell(Control.PONG, getSelf()))
                 .matchAny(m -> log.warning("Received unexpected message: <{}>", m))
                 .build();
     }
@@ -183,15 +185,53 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
             final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig,
             final Predicate<AcknowledgementLabel> isAckLabelAllowed) {
+
+        return startAcknowledgementForwarderForSignal(actorRefFactory, parent, commandForwarder, entityId, signal,
+                acknowledgementConfig, isAckLabelAllowed).first();
+    }
+
+    /**
+     * Creates and starts an {@code AcknowledgementForwarderActor} actor in the passed {@code context} using the passed
+     * arguments.
+     * The actor's name is derived from the {@code correlation-id} extracted via the passed {@code dittoHeaders} and
+     * in case that an Actor with this name already exists, a new correlation ID is generated and the process repeated.
+     * If the signal does not require acknowledgements, no forwarder starts and the signal itself is returned.
+     *
+     * @param actorRefFactory the factory to start the forwarder actor in.
+     * @param parent the parent of the forwarder actor.
+     * @param commandForwarder the actor ref of the edge command forwarder actor.
+     * @param entityId the entityId of the {@code Signal} which requested the Acknowledgements.
+     * @param signal the signal for which acknowledgements are expected.
+     * @param acknowledgementConfig the AcknowledgementConfig to use for looking up config values.
+     * @param isAckLabelAllowed predicate for whether an ack label is allowed for publication at this channel.
+     * @return the signal for which a suitable ack forwarder has started whenever required, and the actor reference
+     * of the forwarder if it started.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static Pair<Signal<?>, Optional<ActorRef>> startAcknowledgementForwarderForSignal(
+            final ActorRefFactory actorRefFactory,
+            final ActorRef parent,
+            final ActorSelection commandForwarder,
+            final EntityId entityId,
+            final Signal<?> signal,
+            final AcknowledgementConfig acknowledgementConfig,
+            final Predicate<AcknowledgementLabel> isAckLabelAllowed) {
         final AcknowledgementForwarderActorStarter starter =
                 AcknowledgementForwarderActorStarter.getInstance(actorRefFactory, parent, commandForwarder, entityId,
                         signal, acknowledgementConfig, isAckLabelAllowed);
         final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = signal.getDittoHeaders().toBuilder();
-        starter.getConflictFree().ifPresent(dittoHeadersBuilder::correlationId);
+        final var forwarderOptional = starter.getConflictFreeWithActorRef();
+        forwarderOptional.map(Pair::first).ifPresent(dittoHeadersBuilder::correlationId);
         if (!signal.getDittoHeaders().getAcknowledgementRequests().isEmpty()) {
             dittoHeadersBuilder.acknowledgementRequests(starter.getAllowedAckRequests());
         }
-        return signal.setDittoHeaders(dittoHeadersBuilder.build());
+        return Pair.create(signal.setDittoHeaders(dittoHeadersBuilder.build()), forwarderOptional.map(Pair::second));
     }
 
+    /**
+     * Ping command and response for the acknowledgement forwarder actor.
+     */
+    public enum Control {
+        PING, PONG
+    }
 }

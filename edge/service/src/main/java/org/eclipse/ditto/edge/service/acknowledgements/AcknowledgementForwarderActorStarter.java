@@ -149,6 +149,17 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
      * start because no acknowledgement was requested.
      */
     public Optional<String> getConflictFree() {
+        return getConflictFreeWithActorRef().map(Pair::first);
+    }
+
+    /**
+     * Start an acknowledgement forwarder.
+     * Always succeeds.
+     *
+     * @return the new correlation ID togeether with the started forwarder if an ack forwarder started, or an empty
+     * optional if the ack forwarder did not start because no acknowledgement was requested.
+     */
+    public Optional<Pair<String, ActorRef>> getConflictFreeWithActorRef() {
         if (hasEffectiveAckRequests(signal, acknowledgementRequests)) {
             final DittoHeadersBuilder<?, ?> builder = dittoHeaders.toBuilder()
                     .acknowledgementRequests(acknowledgementRequests);
@@ -159,8 +170,7 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
             while (true) {
                 try {
                     builder.correlationId(correlationId);
-                    startAckForwarderActor(builder.build());
-                    return Optional.of(correlationId);
+                    return Optional.of(Pair.create(correlationId, startAckForwarderActor(builder.build())));
                 } catch (final InvalidActorNameException e) {
                     // generate a new ID
                     correlationId = joinPrefixAndCounter(prefix, ++counter);
@@ -169,6 +179,7 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
         } else {
             return Optional.empty();
         }
+
     }
 
     private String joinPrefixAndCounter(final String prefix, final int counter) {
