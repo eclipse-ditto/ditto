@@ -40,7 +40,7 @@ import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartInstant;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -147,10 +147,10 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
             final DittoHeaders dittoHeaders = getDittoHeadersOrEmpty(object);
             final var beforeSerializeInstant = StartInstant.now();
 
-            final var trace = DittoTracing.newPreparedTrace(dittoHeaders, TraceOperationName.of("serialize"))
+            final var startedSpan = DittoTracing.newPreparedSpan(dittoHeaders, SpanOperationName.of("serialize"))
                     .startAt(beforeSerializeInstant);
-            dittoHeaders.getCorrelationId().ifPresent(trace::correlationId);
-            final var dittoHeadersWithTraceContext = DittoHeaders.of(trace.propagateContext(dittoHeaders));
+            dittoHeaders.getCorrelationId().ifPresent(startedSpan::correlationId);
+            final var dittoHeadersWithTraceContext = DittoHeaders.of(startedSpan.propagateContext(dittoHeaders));
 
             jsonObjectBuilder.set(JSON_DITTO_HEADERS, dittoHeadersWithTraceContext.toJson());
 
@@ -175,17 +175,17 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
                 final String errorMessage = MessageFormat.format(
                         "Could not put bytes of JSON string <{0}> into ByteBuffer due to BufferOverflow", jsonObject);
                 LOG.error(errorMessage, e);
-                trace.fail(e);
+                startedSpan.fail(e);
                 throw new IllegalArgumentException(errorMessage, e);
             } catch (final IOException e) {
                 final String errorMessage = MessageFormat.format(
                         "Serialization failed with {} on Jsonifiable with string representation <{}>",
                         e.getClass().getName(), jsonObject);
                 LOG.warn(errorMessage, e);
-                trace.fail(e);
+                startedSpan.fail(e);
                 throw new RuntimeException(errorMessage, e);
             } finally {
-                trace.finish();
+                startedSpan.finish();
             }
         } else {
             LOG.error("Could not serialize class <{}> as it does not implement <{}>!", object.getClass(),
@@ -299,12 +299,12 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
                 .orElseGet(DittoHeaders::newBuilder);
 
         final DittoHeaders dittoHeaders = dittoHeadersBuilder.build();
-        final var trace = DittoTracing.newPreparedTrace(dittoHeaders, TraceOperationName.of("deserialize"))
+        final var startedSpan = DittoTracing.newPreparedSpan(dittoHeaders, SpanOperationName.of("deserialize"))
                 .startAt(beforeDeserializeInstant);
         try {
-            return deserializeJson(payload, manifest, DittoHeaders.of(trace.propagateContext(dittoHeaders)));
+            return deserializeJson(payload, manifest, DittoHeaders.of(startedSpan.propagateContext(dittoHeaders)));
         } finally {
-            trace.finish();
+            startedSpan.finish();
         }
     }
 

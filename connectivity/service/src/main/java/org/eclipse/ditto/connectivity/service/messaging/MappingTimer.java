@@ -26,9 +26,9 @@ import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
-import org.eclipse.ditto.internal.utils.tracing.TracingTags;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTags;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,14 +53,14 @@ final class MappingTimer {
     private final StartedTimer timer;
 
     /**
-     * Holds the current trace context to create child spans to reflect the call hierarchy e.g. overall -> protocol
+     * Holds the current span context to create child spans to reflect the call hierarchy e.g. overall -> protocol
      * -> payload.
      */
-    private StartedTrace startedTrace;
+    private StartedSpan startedSpan;
 
-    private MappingTimer(final StartedTimer timer, final StartedTrace startedTrace) {
+    private MappingTimer(final StartedTimer timer, final StartedSpan startedSpan) {
         this.timer = timer;
-        this.startedTrace = startedTrace;
+        this.startedSpan = startedSpan;
     }
 
     /**
@@ -74,7 +74,7 @@ final class MappingTimer {
             final Map<String, String> headersMap
     ) {
         final var startedTimer = startNewTimer(connectionId, connectionType, INBOUND);
-        return new MappingTimer(startedTimer, DittoTracing.newStartedTraceByTimer(headersMap, startedTimer));
+        return new MappingTimer(startedTimer, DittoTracing.newStartedSpanByTimer(headersMap, startedTimer));
     }
 
     private static StartedTimer startNewTimer(
@@ -83,12 +83,12 @@ final class MappingTimer {
             final CharSequence messageDirection
     ) {
         return DittoMetrics.timer(TIMER_NAME)
-                .tag(TracingTags.CONNECTION_ID, connectionId.toString())
-                .tag(TracingTags.CONNECTION_TYPE, connectionType.getName())
+                .tag(SpanTags.CONNECTION_ID, connectionId.toString())
+                .tag(SpanTags.CONNECTION_TYPE, connectionType.getName())
                 .tag(DIRECTION_TAG_NAME, messageDirection.toString())
                 .onExpiration(expiredTimer -> {
                     LOGGER.warn("Mapping timer expired. This should not happen. Timer: <{}>", expiredTimer);
-                    expiredTimer.tag(TracingTags.MAPPING_SUCCESS, false);
+                    expiredTimer.tag(SpanTags.MAPPING_SUCCESS, false);
                 })
                 .start();
     }
@@ -104,7 +104,7 @@ final class MappingTimer {
             final Map<String, String> headersMap
     ) {
         final var startedTimer = startNewTimer(connectionId, connectionType, OUTBOUND);
-        return new MappingTimer(startedTimer, DittoTracing.newStartedTraceByTimer(headersMap, startedTimer));
+        return new MappingTimer(startedTimer, DittoTracing.newStartedSpanByTimer(headersMap, startedTimer));
     }
 
     /**
@@ -120,7 +120,7 @@ final class MappingTimer {
 
     /**
      * Measures the execution of the given supplier using a separate 'payload' segment and a tag for the given mapper.
-     * The current trace context is attached to each resulting external messages.
+     * The current span context is attached to each resulting external messages.
      *
      * @param mapper ID of the used mapper.
      * @param supplier the supplier which is invoked and measured.
@@ -128,7 +128,7 @@ final class MappingTimer {
      */
     List<ExternalMessage> outboundPayload(final String mapper, final Supplier<List<ExternalMessage>> supplier) {
         final var startedTimer = startNewTimerSegment(mapper);
-        startedTrace = spawnChildTraceFromStartedTimer(startedTimer);
+        startedSpan = spawnChildSpanFromStartedTimer(startedTimer);
         return timed(
                 startedTimer,
                 () -> {
@@ -144,18 +144,18 @@ final class MappingTimer {
         return timer.startNewSegment(PAYLOAD_SEGMENT_NAME).tag(MAPPER_TAG_NAME, mapperName);
     }
 
-    private StartedTrace spawnChildTraceFromStartedTimer(final StartedTimer startedTimer) {
-        final var preparedTrace = startedTrace.spawnChild(TraceOperationName.of(startedTimer.getName()));
-        return preparedTrace.startBy(startedTimer);
+    private StartedSpan spawnChildSpanFromStartedTimer(final StartedTimer startedTimer) {
+        final var preparedSpan = startedSpan.spawnChild(SpanOperationName.of(startedTimer.getName()));
+        return preparedSpan.startBy(startedTimer);
     }
 
     private ExternalMessage propagateContextToExternalMessage(final ExternalMessage externalMessage) {
-        return externalMessage.withHeaders(startedTrace.propagateContext(externalMessage.getHeaders()));
+        return externalMessage.withHeaders(startedSpan.propagateContext(externalMessage.getHeaders()));
     }
 
     /**
      * Measures the execution of the given adaptable supplier using a separate 'payload' segment and a tag for the given
-     * mapper. The current trace context is attached to each resulting adaptables.
+     * mapper. The current span context is attached to each resulting adaptables.
      *
      * @param mapper the used mapper
      * @param supplier the supplier of adaptables
@@ -163,7 +163,7 @@ final class MappingTimer {
      */
     List<Adaptable> inboundPayload(final String mapper, final Supplier<List<Adaptable>> supplier) {
         final var startedTimer = startNewTimerSegment(mapper);
-        startedTrace = spawnChildTraceFromStartedTimer(startedTimer);
+        startedSpan = spawnChildSpanFromStartedTimer(startedTimer);
         return timed(
                 startedTimer,
                 () -> {
@@ -176,24 +176,24 @@ final class MappingTimer {
     }
 
     private Adaptable propagateContextToAdaptable(final Adaptable adaptable) {
-        return adaptable.setDittoHeaders(DittoHeaders.of(startedTrace.propagateContext(adaptable.getDittoHeaders())));
+        return adaptable.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(adaptable.getDittoHeaders())));
     }
 
     /**
      * Measures the execution of the given signal supplier using a separate protocol segment.
-     * The current trace context is attached to the resulting signal.
+     * The current span context is attached to the resulting signal.
      *
      * @param supplier the supplier which is invoked and measured
      * @return the result of the supplier
      */
     Signal<?> inboundProtocol(final Supplier<Signal<?>> supplier) {
         final var startedTimer = timer.startNewSegment(PROTOCOL_SEGMENT_NAME);
-        startedTrace = spawnChildTraceFromStartedTimer(startedTimer);
+        startedSpan = spawnChildSpanFromStartedTimer(startedTimer);
         return timed(startedTimer, () -> propagateContextToSignalDittoHeaders(supplier.get()));
     }
 
     private Signal<?> propagateContextToSignalDittoHeaders(final Signal<?> signal) {
-        return signal.setDittoHeaders(DittoHeaders.of(startedTrace.propagateContext(signal.getDittoHeaders())));
+        return signal.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(signal.getDittoHeaders())));
     }
 
     /**
@@ -210,16 +210,16 @@ final class MappingTimer {
     private static <T> T timed(final StartedTimer startedTimer, final Supplier<T> supplier) {
         try {
             final var result = supplier.get();
-            startedTimer.tag(TracingTags.MAPPING_SUCCESS, true).stop();
+            startedTimer.tag(SpanTags.MAPPING_SUCCESS, true).stop();
             return result;
         } catch (final Exception ex) {
-            startedTimer.tag(TracingTags.MAPPING_SUCCESS, false).stop();
+            startedTimer.tag(SpanTags.MAPPING_SUCCESS, false).stop();
             throw ex;
         }
     }
 
-    StartedTrace getTrace() {
-        return startedTrace;
+    StartedSpan getSpan() {
+        return startedSpan;
     }
 
 }

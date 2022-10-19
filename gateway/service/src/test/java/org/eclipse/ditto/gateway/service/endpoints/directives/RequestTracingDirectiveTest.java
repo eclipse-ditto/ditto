@@ -27,10 +27,10 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
-import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 import org.eclipse.ditto.internal.utils.tracing.TraceUriGenerator;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.PreparedTrace;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.internal.utils.tracing.span.PreparedSpan;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -55,7 +55,7 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
                     .build()
     );
 
-    private static final TraceOperationName DISABLED_TRACE_OPERATION_NAME = TraceOperationName.of("/ws/2 GET");
+    private static final SpanOperationName DISABLED_SPAN_OPERATION_NAME = SpanOperationName.of("/ws/2 GET");
 
     @Rule
     public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
@@ -69,7 +69,7 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
                 RequestTracingDirective.class,
                 areImmutable(),
                 provided(TraceUriGenerator.class).isAlsoImmutable(),
-                assumingFields("disabledTraceOperationNames")
+                assumingFields("disabledSpanOperationNames")
                         .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements()
         );
     }
@@ -78,7 +78,7 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
     public void newInstanceWithDisabledWithNullThrowsNullPointerException() {
         Assertions.assertThatNullPointerException()
                 .isThrownBy(() -> RequestTracingDirective.newInstanceWithDisabled(null))
-                .withMessage("The disabledTraceOperationNames must not be null!")
+                .withMessage("The disabledSpanOperationNames must not be null!")
                 .withNoCause();
     }
 
@@ -93,8 +93,8 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
     }
 
     @Test
-    public void traceRequestDoesNotCallDittoTracingIfTracingIsDisabledForResolvedTraceOperationName() {
-        final var underTest = RequestTracingDirective.newInstanceWithDisabled(Set.of(DISABLED_TRACE_OPERATION_NAME));
+    public void traceRequestDoesNotCallDittoTracingIfTracingIsDisabledForResolvedSpanOperationName() {
+        final var underTest = RequestTracingDirective.newInstanceWithDisabled(Set.of(DISABLED_SPAN_OPERATION_NAME));
 
         final var innerRoute = Mockito.mock(Route.class);
         final var httpRequest = HttpRequest.create().withUri(Uri.create("/ws/2")).withMethod(HttpMethods.GET);
@@ -115,7 +115,7 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
     }
 
     @Test
-    public void traceRequestCallsDittoTracingIfTracingIsEnabledForResolvedTraceOperationName() {
+    public void traceRequestCallsDittoTracingIfTracingIsEnabledForResolvedSpanOperationName() {
         final var underTest = RequestTracingDirective.newInstanceWithDisabled(Set.of());
 
         final var headersMap = Map.ofEntries(
@@ -127,14 +127,14 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
         );
 
         try (final var dittoTracingMockedStatic = Mockito.mockStatic(DittoTracing.class)) {
-            final var preparedTrace = Mockito.mock(PreparedTrace.class);
-            Mockito.when(preparedTrace.correlationId(Mockito.any())).thenReturn(preparedTrace);
-            Mockito.when(preparedTrace.start()).thenReturn(Mockito.mock(StartedTrace.class));
-            dittoTracingMockedStatic.when(() -> DittoTracing.newPreparedTrace(
+            final var preparedSpan = Mockito.mock(PreparedSpan.class);
+            Mockito.when(preparedSpan.correlationId(Mockito.any())).thenReturn(preparedSpan);
+            Mockito.when(preparedSpan.start()).thenReturn(Mockito.mock(StartedSpan.class));
+            dittoTracingMockedStatic.when(() -> DittoTracing.newPreparedSpan(
                             Mockito.eq(headersMap),
-                            Mockito.eq(DISABLED_TRACE_OPERATION_NAME))
+                            Mockito.eq(DISABLED_SPAN_OPERATION_NAME))
                     )
-                    .thenReturn(preparedTrace);
+                    .thenReturn(preparedSpan);
             final var testRoute = testRoute(
                     extractRequestContext(
                             requestContext -> underTest.traceRequest(
@@ -153,8 +153,8 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
                                     .map(entry -> HttpHeader.parse(entry.getKey(), entry.getValue()))
                                     .collect(Collectors.toList()))
             );
-            Mockito.verify(preparedTrace).correlationId(Mockito.eq(testNameCorrelationId.getCorrelationId()));
-            Mockito.verify(preparedTrace).start();
+            Mockito.verify(preparedSpan).correlationId(Mockito.eq(testNameCorrelationId.getCorrelationId()));
+            Mockito.verify(preparedSpan).start();
         }
     }
 

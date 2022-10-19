@@ -28,7 +28,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StoppedTimer;
 import org.eclipse.ditto.internal.utils.tracing.TraceUtils;
-import org.eclipse.ditto.internal.utils.tracing.TracingTags;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTags;
 import org.slf4j.Logger;
 
 import akka.http.javadsl.model.ContentTypes;
@@ -83,7 +83,7 @@ public final class RequestTimeoutHandlingDirective {
                     final Supplier<Route> innerWithTimer = () -> Directives.mapResponse(response -> {
                         final int statusCode = response.status().intValue();
                         if (timer.isRunning()) {
-                            final StoppedTimer stoppedTimer = timer.tag(TracingTags.STATUS_CODE, statusCode).stop();
+                            final StoppedTimer stoppedTimer = timer.tag(SpanTags.STATUS_CODE, statusCode).stop();
                             logger.debug("Finished timer <{}> with status <{}>.", timer, statusCode);
                             checkDurationWarning(stoppedTimer, logger);
                         }
@@ -98,7 +98,7 @@ public final class RequestTimeoutHandlingDirective {
 
     private static void checkDurationWarning(final StoppedTimer mutableTimer, final Logger logger) {
         final Duration duration = mutableTimer.getDuration();
-        final String requestPath = mutableTimer.getTag(TracingTags.REQUEST_PATH);
+        final String requestPath = mutableTimer.getTag(SpanTags.REQUEST_PATH);
 
         if (requestPath != null && requestPath.contains("/search/things")) {
             if (SEARCH_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
@@ -135,7 +135,7 @@ public final class RequestTimeoutHandlingDirective {
         logger.debug("Raw request URI was <{}>.", rawRequestUri);
 
         if (timer.isRunning()) {
-            timer.tag(TracingTags.STATUS_CODE, statusCode)
+            timer.tag(SpanTags.STATUS_CODE, statusCode)
                     .stop();
             logger.debug("Finished mutable timer <{}> after a request timeout with status <{}>", timer, statusCode);
         } else {

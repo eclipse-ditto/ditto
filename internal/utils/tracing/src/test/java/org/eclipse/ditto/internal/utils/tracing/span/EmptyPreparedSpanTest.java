@@ -10,14 +10,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
+package org.eclipse.ditto.internal.utils.tracing.span;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -25,21 +24,21 @@ import org.junit.rules.TestName;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link EmptyPreparedTrace}.
+ * Unit test for {@link EmptyPreparedSpan}.
  */
-public final class EmptyPreparedTraceTest {
+public final class EmptyPreparedSpanTest {
 
     @Rule
     public final TestName testName = new TestName();
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(EmptyPreparedTrace.class, areImmutable());
+        assertInstancesOf(EmptyPreparedSpan.class, areImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(EmptyPreparedTrace.class)
+        EqualsVerifier.forClass(EmptyPreparedSpan.class)
                 .usingGetClass()
                 .verify();
     }
@@ -47,19 +46,19 @@ public final class EmptyPreparedTraceTest {
     @Test
     public void newInstanceWithNullOperationNameThrowsNullPointerException() {
         assertThatNullPointerException()
-                .isThrownBy(() -> EmptyPreparedTrace.newInstance(null))
+                .isThrownBy(() -> EmptyPreparedSpan.newInstance(null))
                 .withMessage("The operationName must not be null!")
                 .withNoCause();
     }
 
     @Test
-    public void operationNameIsPropagatedToStartedTrace() {
-        final var operationName = TraceOperationName.of(testName.getMethodName());
-        final var underTest = EmptyPreparedTrace.newInstance(operationName);
+    public void operationNameIsPropagatedToStartedSpan() {
+        final var operationName = SpanOperationName.of(testName.getMethodName());
+        final var underTest = EmptyPreparedSpan.newInstance(operationName);
 
-        final var startedTrace = underTest.start();
+        final var startedSpan = underTest.start();
 
-        assertThat((CharSequence) startedTrace.getOperationName()).isEqualTo(operationName);
+        assertThat((CharSequence) startedSpan.getOperationName()).isEqualTo(operationName);
     }
 
 }

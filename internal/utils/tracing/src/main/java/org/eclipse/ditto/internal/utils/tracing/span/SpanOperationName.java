@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.tracing;
+package org.eclipse.ditto.internal.utils.tracing.span;
 
 import java.util.Objects;
 
@@ -20,32 +20,32 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 
 /**
- * This class represents the name of an operation to be used as name for a trace span.
+ * This class represents the name of an operation to be used as name for a tracing span.
  */
 @Immutable
-public final class TraceOperationName implements CharSequence, Comparable<TraceOperationName> {
+public final class SpanOperationName implements CharSequence, Comparable<SpanOperationName> {
 
     private final String name;
 
-    private TraceOperationName(final String name) {
+    private SpanOperationName(final String name) {
         this.name = name;
     }
 
     /**
-     * Returns an instance of {@code TraceOperationName} for the specified CharSequence argument.
+     * Returns an instance of {@code SpanOperationName} for the specified CharSequence argument.
      *
      * @param name the name of the operation. <em>Note:</em> all leading and trailing spaces will be deleted in the
-     * resulting {@code TraceOperationName}.
+     * resulting {@code SpanOperationName}.
      * @return the instance.
      * @throws NullPointerException if {@code name} is {@code null}.
      * @throws IllegalArgumentException if {@code name} is empty or blank.
      */
-    public static TraceOperationName of(final CharSequence name) {
+    public static SpanOperationName of(final CharSequence name) {
         ConditionChecker.checkNotNull(name, "name");
 
-        // Convert to String to ensure immutability of TraceOperationName.
+        // Convert to String to ensure immutability of SpanOperationName.
         final var nameAsString = name.toString().trim();
-        return new TraceOperationName(
+        return new SpanOperationName(
                 ConditionChecker.checkArgument(
                         nameAsString,
                         arg -> !arg.isBlank(),
@@ -79,7 +79,7 @@ public final class TraceOperationName implements CharSequence, Comparable<TraceO
         final boolean result;
         if (this == o) {
             result = true;
-        } else if (o instanceof TraceOperationName that) {
+        } else if (o instanceof SpanOperationName that) {
             result = name.equals(that.name);
         } else {
             result = false;
@@ -93,7 +93,7 @@ public final class TraceOperationName implements CharSequence, Comparable<TraceO
     }
 
     @Override
-    public int compareTo(final TraceOperationName o) {
+    public int compareTo(final SpanOperationName o) {
         ConditionChecker.checkNotNull(o, "o");
         return CharSequence.compare(name, o.name);
     }

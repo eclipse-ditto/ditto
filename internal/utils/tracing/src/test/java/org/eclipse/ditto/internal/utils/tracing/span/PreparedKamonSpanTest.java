@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
+package org.eclipse.ditto.internal.utils.tracing.span;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
@@ -21,8 +21,6 @@ import java.util.Map;
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartInstant;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.Timers;
-import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
-import org.eclipse.ditto.internal.utils.tracing.TracingTags;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -31,9 +29,9 @@ import org.junit.rules.TestName;
 import kamon.Kamon;
 
 /**
- * Unit test for {@link PreparedKamonTrace}.
+ * Unit test for {@link PreparedKamonSpan}.
  */
-public final class PreparedKamonTraceTest {
+public final class PreparedKamonSpanTest {
 
     @Rule
     public final KamonTracingInitResource kamonTracingInitResource = KamonTracingInitResource.newInstance(
@@ -46,13 +44,13 @@ public final class PreparedKamonTraceTest {
     @Rule
     public final TestName testName = new TestName();
 
-    private PreparedKamonTrace underTest;
+    private PreparedKamonSpan underTest;
 
     @Before
     public void setup() {
-        underTest = PreparedKamonTrace.newInstance(
+        underTest = PreparedKamonSpan.newInstance(
                 Map.of(),
-                TraceOperationName.of(testName.getMethodName()),
+                SpanOperationName.of(testName.getMethodName()),
                 KamonHttpContextPropagation.newInstanceForChannelName("default")
         );
     }
@@ -116,14 +114,14 @@ public final class PreparedKamonTraceTest {
 
         assertThat(underTest.getTags())
                 .containsOnly(
-                        Map.entry(TracingTags.CORRELATION_ID, correlationId),
-                        Map.entry(TracingTags.CONNECTION_ID, connectionId),
-                        Map.entry(TracingTags.ENTITY_ID, entityId)
+                        Map.entry(SpanTags.CORRELATION_ID, correlationId),
+                        Map.entry(SpanTags.CONNECTION_ID, connectionId),
+                        Map.entry(SpanTags.ENTITY_ID, entityId)
                 );
     }
 
     @Test
-    public void nullTraceTagsAreIgnored() {
+    public void nullSpanTagsAreIgnored() {
         underTest.correlationId(null);
         underTest.connectionId(null);
         underTest.entityId(null);
@@ -174,7 +172,7 @@ public final class PreparedKamonTraceTest {
     }
 
     @Test
-    public void startReturnsStartedTraceWithExpectedTags() {
+    public void startReturnsStartedSpanWithExpectedTags() {
         underTest.tags(Map.of(
                 "foo", "bar",
                 "ping", "pong",
@@ -183,10 +181,10 @@ public final class PreparedKamonTraceTest {
         final var spanReporter = TestSpanReporter.newInstance();
         Kamon.addReporter("mySpanReporter", spanReporter);
 
-        final var startedTrace = underTest.start();
+        final var startedSpan = underTest.start();
 
-        final var tagsForSpanFuture = spanReporter.getTagsForSpanWithId(startedTrace.getSpanId());
-        startedTrace.finish();
+        final var tagsForSpanFuture = spanReporter.getTagsForSpanWithId(startedSpan.getSpanId());
+        startedSpan.finish();
 
         assertThat(tagsForSpanFuture)
                 .succeedsWithin(Duration.ofSeconds(1L))
@@ -195,7 +193,7 @@ public final class PreparedKamonTraceTest {
 
     @SuppressWarnings("java:S2925")
     @Test
-    public void startAtReturnsStartedTraceWithExpectedTagsAndStartInstant() throws InterruptedException {
+    public void startAtReturnsStartedSpanWithExpectedTagsAndStartInstant() throws InterruptedException {
         final var startInstant = StartInstant.now();
         underTest.tags(Map.of(
                 "foo", "bar",
@@ -206,11 +204,11 @@ public final class PreparedKamonTraceTest {
         Kamon.addReporter("mySpanReporter", spanReporter);
         Thread.sleep(150L);
 
-        final var startedTrace = underTest.startAt(startInstant);
+        final var startedSpan = underTest.startAt(startInstant);
 
-        final var tagsForSpanFuture = spanReporter.getTagsForSpanWithId(startedTrace.getSpanId());
-        final var startInstantForSpanFuture = spanReporter.getStartInstantForSpanWithId(startedTrace.getSpanId());
-        startedTrace.finish();
+        final var tagsForSpanFuture = spanReporter.getTagsForSpanWithId(startedSpan.getSpanId());
+        final var startInstantForSpanFuture = spanReporter.getStartInstantForSpanWithId(startedSpan.getSpanId());
+        startedSpan.finish();
 
         try (final var softly = new AutoCloseableSoftAssertions()) {
             softly.assertThat(tagsForSpanFuture)
@@ -225,7 +223,7 @@ public final class PreparedKamonTraceTest {
     }
 
     @Test
-    public void startByStartedTimerReturnsStartedTraceWithTagsOfTimer() {
+    public void startByStartedTimerReturnsStartedSpanWithTagsOfTimer() {
         final var spanReporter = TestSpanReporter.newInstance();
         Kamon.addReporter("mySpanReporter", spanReporter);
         final var startedTimer = Timers.newTimer(testName.getMethodName())
@@ -236,9 +234,9 @@ public final class PreparedKamonTraceTest {
                 ))
                 .start();
 
-        final var startedTrace = underTest.startBy(startedTimer);
+        final var startedSpan = underTest.startBy(startedTimer);
 
-        final var tagsForSpanFuture = spanReporter.getTagsForSpanWithId(startedTrace.getSpanId());
+        final var tagsForSpanFuture = spanReporter.getTagsForSpanWithId(startedSpan.getSpanId());
         startedTimer.stop();
 
         assertThat(tagsForSpanFuture)

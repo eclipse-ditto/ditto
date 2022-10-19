@@ -472,7 +472,7 @@ public final class SearchActor extends AbstractActor {
                 .tag(QUERY_TYPE_TAG, queryType)
                 .tag(API_VERSION_TAG, version.toString())
                 .start();
-        DittoTracing.newStartedTraceByTimer(withDittoHeaders.getDittoHeaders(), startedTimer);
+        DittoTracing.newStartedSpanByTimer(withDittoHeaders.getDittoHeaders(), startedTimer);
         return startedTimer;
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -11,4 +11,4 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 @org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
-package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
+package org.eclipse.ditto.internal.utils.tracing.span;

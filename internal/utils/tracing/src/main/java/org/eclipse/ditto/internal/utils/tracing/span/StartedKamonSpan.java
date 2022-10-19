@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
+package org.eclipse.ditto.internal.utils.tracing.span;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
@@ -20,40 +20,38 @@ import java.util.Map;
 
 import javax.annotation.concurrent.ThreadSafe;
 
-import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
-
 import kamon.context.Context;
 import kamon.trace.Span;
 
 /**
- * Kamon based implementation of {@code StartedTrace}. Basically wraps a Kamon {@link kamon.trace.Span}.
+ * Kamon based implementation of {@code StartedSpan}. Basically wraps a Kamon {@link kamon.trace.Span}.
  */
 @ThreadSafe // Thread safety results from `Span` being thread-safe.
-final class StartedKamonTrace implements StartedTrace {
+final class StartedKamonSpan implements StartedSpan {
 
     private final Span span;
     private final KamonHttpContextPropagation httpContextPropagation;
 
-    private StartedKamonTrace(final Span span, final KamonHttpContextPropagation httpContextPropagation) {
+    private StartedKamonSpan(final Span span, final KamonHttpContextPropagation httpContextPropagation) {
         this.span = span;
         this.httpContextPropagation = httpContextPropagation;
     }
 
-    static StartedKamonTrace newInstance(final Span span, final KamonHttpContextPropagation httpContextPropagation) {
-        return new StartedKamonTrace(
+    static StartedKamonSpan newInstance(final Span span, final KamonHttpContextPropagation httpContextPropagation) {
+        return new StartedKamonSpan(
                 checkNotNull(span, "span"),
                 checkNotNull(httpContextPropagation, "httpContextPropagation")
         );
     }
 
     @Override
-    public StartedTrace tag(final String key, final String value) {
+    public StartedSpan tag(final String key, final String value) {
         span.tag(checkNotNull(key, "key"), checkNotNull(value, "value"));
         return this;
     }
 
     @Override
-    public StartedTrace tags(final Map<String, String> tags) {
+    public StartedSpan tags(final Map<String, String> tags) {
         checkNotNull(tags, "tags");
         tags.forEach(this::tag);
         return this;
@@ -70,31 +68,31 @@ final class StartedKamonTrace implements StartedTrace {
     }
 
     @Override
-    public StartedTrace fail(final String errorMessage) {
+    public StartedSpan fail(final String errorMessage) {
         span.fail(checkNotNull(errorMessage, "errorMessage"));
         return this;
     }
 
     @Override
-    public StartedTrace fail(final Throwable throwable) {
+    public StartedSpan fail(final Throwable throwable) {
         span.fail(checkNotNull(throwable, "throwable"));
         return this;
     }
 
     @Override
-    public StartedTrace fail(final String errorMessage, final Throwable throwable) {
+    public StartedSpan fail(final String errorMessage, final Throwable throwable) {
         span.fail(errorMessage, throwable);
         return this;
     }
 
     @Override
-    public StartedTrace mark(final String key) {
+    public StartedSpan mark(final String key) {
         span.mark(checkNotNull(key, "key"));
         return this;
     }
 
     @Override
-    public StartedTrace mark(final String key, final Instant at) {
+    public StartedSpan mark(final String key, final Instant at) {
         span.mark(checkNotNull(key, "key"), checkNotNull(at, "at"));
         return this;
     }
@@ -105,8 +103,8 @@ final class StartedKamonTrace implements StartedTrace {
     }
 
     @Override
-    public TraceOperationName getOperationName() {
-        return TraceOperationName.of(span.operationName());
+    public SpanOperationName getOperationName() {
+        return SpanOperationName.of(span.operationName());
     }
 
     @Override
@@ -119,8 +117,8 @@ final class StartedKamonTrace implements StartedTrace {
     }
 
     @Override
-    public PreparedTrace spawnChild(final TraceOperationName traceOperationName) {
-        return Traces.newPreparedKamonTrace(propagateContext(Map.of()), traceOperationName, httpContextPropagation);
+    public PreparedSpan spawnChild(final SpanOperationName operationName) {
+        return TracingSpans.newPreparedKamonSpan(propagateContext(Map.of()), operationName, httpContextPropagation);
     }
 
 }

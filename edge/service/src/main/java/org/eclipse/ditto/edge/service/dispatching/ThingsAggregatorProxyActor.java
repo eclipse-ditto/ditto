@@ -40,8 +40,8 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
@@ -79,8 +79,8 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "aggregatorProxy";
 
-    private static final TraceOperationName TRACE_AGGREGATOR_RETRIEVE_THINGS =
-            TraceOperationName.of("aggregatorproxy_retrievethings");
+    private static final SpanOperationName TRACE_AGGREGATOR_RETRIEVE_THINGS =
+            SpanOperationName.of("aggregatorproxy_retrievethings");
 
     private static final int ASK_TIMEOUT = 60;
 
@@ -153,11 +153,15 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
             final Object msgToAsk, final ActorRef sender) {
 
         final Object tracedMsgToAsk;
-        final var trace = DittoTracing.newPreparedTrace(command.getDittoHeaders(), TRACE_AGGREGATOR_RETRIEVE_THINGS)
+        final var startedSpan = DittoTracing.newPreparedSpan(
+                        command.getDittoHeaders(),
+                        TRACE_AGGREGATOR_RETRIEVE_THINGS
+                )
                 .tag("size", Integer.toString(thingIds.size()))
                 .start();
         if (msgToAsk instanceof Signal<?> signal) {
-            tracedMsgToAsk = signal.setDittoHeaders(DittoHeaders.of(trace.propagateContext(signal.getDittoHeaders())));
+            tracedMsgToAsk =
+                    signal.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(signal.getDittoHeaders())));
         } else {
             tracedMsgToAsk = msgToAsk;
         }
@@ -167,9 +171,9 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
         Patterns.ask(pubSubMediator, pubSubMsg, Duration.ofSeconds(ASK_TIMEOUT))
                 .thenAccept(response -> {
                     if (response instanceof SourceRef) {
-                        handleSourceRef((SourceRef<?>) response, thingIds, command, sender, trace);
+                        handleSourceRef((SourceRef<?>) response, thingIds, command, sender, startedSpan);
                     } else if (response instanceof DittoRuntimeException dre) {
-                        trace.fail(dre).finish();
+                        startedSpan.fail(dre).finish();
                         sender.tell(response, getSelf());
                     } else {
                         log.error("Unexpected non-DittoRuntimeException error - responding with " +
@@ -179,14 +183,14 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                                 DittoInternalErrorException.newBuilder()
                                         .dittoHeaders(command.getDittoHeaders())
                                         .build();
-                        trace.fail(responseEx).finish();
+                        startedSpan.fail(responseEx).finish();
                         sender.tell(responseEx, getSelf());
                     }
                 });
     }
 
     private void handleSourceRef(final SourceRef<?> sourceRef, final List<ThingId> thingIds,
-            final Command<?> originatingCommand, final ActorRef originatingSender, final StartedTrace trace) {
+            final Command<?> originatingCommand, final ActorRef originatingSender, final StartedSpan startedSpan) {
         final Function<Jsonifiable<?>, PlainJson> thingPlainJsonSupplier;
         final Function<List<PlainJson>, CommandResponse<?>> overallResponseSupplier;
         final UnaryOperator<List<PlainJson>> plainJsonSorter = supplyPlainJsonSorter(thingIds);
@@ -221,7 +225,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 .thenApply(plainJsonSorter)
                 .thenApply(overallResponseSupplier::apply)
                 .thenApply(list -> {
-                    trace.finish();
+                    startedSpan.finish();
                     return list;
                 });
 

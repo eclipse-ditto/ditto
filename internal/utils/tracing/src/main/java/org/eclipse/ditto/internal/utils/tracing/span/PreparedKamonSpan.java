@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
+package org.eclipse.ditto.internal.utils.tracing.span;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
@@ -23,7 +23,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartInstant;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 
 import kamon.Kamon;
 import kamon.tag.Lookups;
@@ -33,16 +32,16 @@ import kamon.trace.SpanBuilder;
 import scala.jdk.javaapi.CollectionConverters;
 
 /**
- * Kamon based implementation of {@code PreparedTrace}.
+ * Kamon based implementation of {@code PreparedSpan}.
  */
 @NotThreadSafe
-final class PreparedKamonTrace implements PreparedTrace {
+final class PreparedKamonSpan implements PreparedSpan {
 
     private final SpanBuilder spanBuilder;
     private final KamonHttpContextPropagation httpContextPropagation;
 
-    private PreparedKamonTrace(
-            final TraceOperationName operationName,
+    private PreparedKamonSpan(
+            final SpanOperationName operationName,
             final Map<String, String> headers,
             final KamonHttpContextPropagation httpContextPropagation
     ) {
@@ -52,21 +51,21 @@ final class PreparedKamonTrace implements PreparedTrace {
     }
 
     /**
-     * Returns a new instance of {@code PreparedKamonTrace} for the specified arguments.
+     * Returns a new instance of {@code PreparedKamonSpan} for the specified arguments.
      *
-     * @param headers the headers from which to derive the trace context.
-     * @param traceOperationName name of the operation to be traced.
-     * @param kamonHttpContextPropagation derives and propagates the trace context from and to headers.
+     * @param headers the headers from which to derive the span context.
+     * @param operationName name of the operation to be traced.
+     * @param kamonHttpContextPropagation derives and propagates the span context from and to headers.
      * @return the new instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    static PreparedKamonTrace newInstance(
+    static PreparedKamonSpan newInstance(
             final Map<String, String> headers,
-            final TraceOperationName traceOperationName,
+            final SpanOperationName operationName,
             final KamonHttpContextPropagation kamonHttpContextPropagation
     ) {
-        final var result = new PreparedKamonTrace(
-                checkNotNull(traceOperationName, "traceOperationName"),
+        final var result = new PreparedKamonSpan(
+                checkNotNull(operationName, "operationName"),
                 checkNotNull(headers, "headers"),
                 checkNotNull(kamonHttpContextPropagation, "kamonHttpContextPropagation")
         );
@@ -81,13 +80,13 @@ final class PreparedKamonTrace implements PreparedTrace {
     }
 
     @Override
-    public PreparedKamonTrace tag(final String key, final String value) {
+    public PreparedKamonSpan tag(final String key, final String value) {
         spanBuilder.tag(checkNotNull(key, "key"), checkNotNull(value, "value"));
         return this;
     }
 
     @Override
-    public PreparedKamonTrace tags(final Map<String, String> tags) {
+    public PreparedKamonSpan tags(final Map<String, String> tags) {
         checkNotNull(tags, "tags");
         tags.forEach(this::tag);
         return this;
@@ -105,7 +104,7 @@ final class PreparedKamonTrace implements PreparedTrace {
         final var tagSet = spanBuilder.tags();
         return CollectionConverters.asJava(tagSet.all())
                 .stream()
-                .collect(Collectors.toMap(Tag::key, PreparedKamonTrace::getTagValueAsString));
+                .collect(Collectors.toMap(Tag::key, PreparedKamonSpan::getTagValueAsString));
     }
 
     private static String getTagValueAsString(final Tag tag) {
@@ -113,22 +112,22 @@ final class PreparedKamonTrace implements PreparedTrace {
     }
 
     @Override
-    public StartedKamonTrace start() {
-        return getStartedTrace(spanBuilder.start());
+    public StartedKamonSpan start() {
+        return getStartedSpan(spanBuilder.start());
     }
 
-    private StartedKamonTrace getStartedTrace(final Span span) {
-        return StartedKamonTrace.newInstance(span, httpContextPropagation);
-    }
-
-    @Override
-    public StartedKamonTrace startAt(final StartInstant startInstant) {
-        checkNotNull(startInstant, "traceStartInstant");
-        return getStartedTrace(spanBuilder.start(startInstant.toInstant()));
+    private StartedKamonSpan getStartedSpan(final Span span) {
+        return StartedKamonSpan.newInstance(span, httpContextPropagation);
     }
 
     @Override
-    public StartedKamonTrace startBy(final StartedTimer startedTimer) {
+    public StartedKamonSpan startAt(final StartInstant startInstant) {
+        checkNotNull(startInstant, "startInstant");
+        return getStartedSpan(spanBuilder.start(startInstant.toInstant()));
+    }
+
+    @Override
+    public StartedKamonSpan startBy(final StartedTimer startedTimer) {
         checkNotNull(startedTimer, "startedTimer");
         final var result = startAt(startedTimer.getStartInstant());
         startedTimer.onStop(stoppedTimer -> {

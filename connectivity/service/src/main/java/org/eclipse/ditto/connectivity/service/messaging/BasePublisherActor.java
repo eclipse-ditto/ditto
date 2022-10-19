@@ -77,8 +77,8 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
-import org.eclipse.ditto.internal.utils.tracing.TracingTags;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTags;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
@@ -471,15 +471,15 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
             final HeaderMapping headerMapping = genericTarget.getHeaderMapping();
             final ExternalMessage mappedMessage = applyHeaderMapping(resolver, outbound, headerMapping);
-            final var trace = DittoTracing.newPreparedTrace(
+            final var startedSpan = DittoTracing.newPreparedSpan(
                             mappedMessage.getHeaders(),
-                            TraceOperationName.of(connection.getConnectionType() + "_publish")
+                            SpanOperationName.of(connection.getConnectionType() + "_publish")
                     )
                     .connectionId(connection.getId())
-                    .tag(TracingTags.CONNECTION_TYPE, connection.getConnectionType().toString())
+                    .tag(SpanTags.CONNECTION_TYPE, connection.getConnectionType().toString())
                     .start();
             final var mappedMessageWithTraceContext =
-                    mappedMessage.withHeaders(trace.propagateContext(mappedMessage.getHeaders()));
+                    mappedMessage.withHeaders(startedSpan.propagateContext(mappedMessage.getHeaders()));
 
             final CompletionStage<SendResult> responsesFuture = publishMessage(outboundSource,
                     autoAckTarget,
@@ -489,7 +489,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     quota,
                     sendingContext.getTargetAuthorizationContext().orElse(null)
             );
-            responsesFuture.whenComplete((sr, throwable) -> trace.finish());
+            responsesFuture.whenComplete((sr, throwable) -> startedSpan.finish());
             // set the external message after header mapping for the result of header mapping to show up in log
             result = new Sending(sendingContext.setExternalMessage(mappedMessageWithTraceContext), responsesFuture,
                     connectionIdResolver, l);

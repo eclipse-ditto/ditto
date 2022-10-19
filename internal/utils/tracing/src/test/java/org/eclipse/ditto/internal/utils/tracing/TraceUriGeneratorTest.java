@@ -19,6 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.regex.Pattern;
 
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTags;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -55,7 +56,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri + "/features" + TraceUriGenerator.SHORTENED_PATH_SUFFIX;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
+                        .tag(SpanTags.REQUEST_PATH, expectedPath)
                         .build());
     }
 
@@ -66,7 +67,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri + "/features" + TraceUriGenerator.SHORTENED_PATH_SUFFIX;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
+                        .tag(SpanTags.REQUEST_PATH, expectedPath)
                         .build());
     }
 
@@ -77,7 +78,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
+                        .tag(SpanTags.REQUEST_PATH, expectedPath)
                         .build());
     }
 
@@ -88,7 +89,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
+                        .tag(SpanTags.REQUEST_PATH, expectedPath)
                         .build());
     }
 
@@ -99,7 +100,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
+                        .tag(SpanTags.REQUEST_PATH, expectedPath)
                         .build());
     }
 
@@ -110,7 +111,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
+                        .tag(SpanTags.REQUEST_PATH, expectedPath)
                         .build());
     }
 
@@ -121,7 +122,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
+                        .tag(SpanTags.REQUEST_PATH, expectedPath)
                         .build());
     }
 
@@ -132,7 +133,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
+                        .tag(SpanTags.REQUEST_PATH, expectedPath)
                         .build());
     }
 
@@ -143,7 +144,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
+                        .tag(SpanTags.REQUEST_PATH, expectedPath)
                         .build());
     }
 
@@ -154,7 +155,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
+                        .tag(SpanTags.REQUEST_PATH, expectedPath)
                         .build());
     }
 
@@ -165,7 +166,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
+                        .tag(SpanTags.REQUEST_PATH, expectedPath)
                         .build());
     }
 
@@ -176,7 +177,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
+                        .tag(SpanTags.REQUEST_PATH, expectedPath)
                         .build());
     }
 
@@ -187,7 +188,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
+                        .tag(SpanTags.REQUEST_PATH, expectedPath)
                         .build());
     }
 
@@ -198,7 +199,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
+                        .tag(SpanTags.REQUEST_PATH, expectedPath)
                         .build());
     }
 
@@ -209,7 +210,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.REQUEST_PATH, expectedPath)
+                        .tag(SpanTags.REQUEST_PATH, expectedPath)
                         .build());
     }
 

@@ -135,10 +135,10 @@ public final class InboundMappingProcessor
         final var mappingTimer = MappingTimer.inbound(connectionId, connectionType, message.getHeaders());
         return mappingTimer.overall(() -> mappers.stream()
                 .flatMap(mapper -> {
-                            final var mappingTimerTrace = mappingTimer.getTrace();
+                            final var mappingTimerSpan = mappingTimer.getSpan();
                             return runMapper(
                                     mapper,
-                                    message.withHeaders(mappingTimerTrace.propagateContext(message.getHeaders())),
+                                    message.withHeaders(mappingTimerSpan.propagateContext(message.getHeaders())),
                                     mappingTimer
                             );
                         }

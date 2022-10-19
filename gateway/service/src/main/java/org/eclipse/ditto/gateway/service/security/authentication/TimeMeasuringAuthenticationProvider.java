@@ -28,7 +28,7 @@ import org.eclipse.ditto.gateway.api.GatewayAuthenticationProviderUnavailableExc
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.TraceUtils;
-import org.eclipse.ditto.internal.utils.tracing.TracingTags;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTags;
 
 import akka.http.javadsl.server.RequestContext;
 
@@ -41,8 +41,8 @@ import akka.http.javadsl.server.RequestContext;
 public abstract class TimeMeasuringAuthenticationProvider<R extends AuthenticationResult>
         implements AuthenticationProvider<R> {
 
-    private static final String AUTH_ERROR_TAG = TracingTags.AUTH_ERROR;
-    private static final String AUTH_SUCCESS_TAG = TracingTags.AUTH_SUCCESS;
+    private static final String AUTH_ERROR_TAG = SpanTags.AUTH_ERROR;
+    private static final String AUTH_SUCCESS_TAG = SpanTags.AUTH_SUCCESS;
 
     private final ThreadSafeDittoLogger logger;
 

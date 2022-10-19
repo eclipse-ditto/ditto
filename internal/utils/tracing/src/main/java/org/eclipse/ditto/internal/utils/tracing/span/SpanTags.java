@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,12 +10,12 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.tracing;
+package org.eclipse.ditto.internal.utils.tracing.span;
 
 /**
  * This class provides Keys that should be used when adding tags to traces.
  */
-public final class TracingTags {
+public final class SpanTags {
 
     private static final String PREFIX = "ditto.";
 
@@ -46,7 +46,7 @@ public final class TracingTags {
     public static final String ACK_SUCCESS = PREFIX + "ack.success";
     public static final String ACK_REDELIVER = PREFIX + "ack.redeliver";
 
-    private TracingTags() {
+    private SpanTags() {
         throw new AssertionError();
     }
 }

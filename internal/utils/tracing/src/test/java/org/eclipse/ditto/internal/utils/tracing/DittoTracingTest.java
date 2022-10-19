@@ -27,9 +27,11 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.Timers;
 import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.KamonTracingInitResource;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.TestSpanReporter;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.Traces;
+import org.eclipse.ditto.internal.utils.tracing.span.KamonTracingInitResource;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.TestSpanReporter;
+import org.eclipse.ditto.internal.utils.tracing.span.TracingSpans;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTags;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -110,40 +112,40 @@ public final class DittoTracingTest {
     }
 
     @Test
-    public void newPreparedTraceBeforeInitThrowsIllegalStateException() {
+    public void newPreparedSpanBeforeInitThrowsIllegalStateException() {
         assertThatIllegalStateException()
-                .isThrownBy(() -> DittoTracing.newPreparedTrace(
+                .isThrownBy(() -> DittoTracing.newPreparedSpan(
                         Map.of(),
-                        TraceOperationName.of(testName.getMethodName())
+                        SpanOperationName.of(testName.getMethodName())
                 ))
                 .withMessage("Operation not allowed in uninitialized state.")
                 .withNoCause();
     }
 
     @Test
-    public void newPreparedTraceWithNullHeadersThrowsNullPointerException() {
+    public void newPreparedSpanWithNullHeadersThrowsNullPointerException() {
         DittoTracing.init(tracingConfigMock);
 
         assertThatNullPointerException()
-                .isThrownBy(() -> DittoTracing.newPreparedTrace(null, TraceOperationName.of(testName.getMethodName())))
+                .isThrownBy(() -> DittoTracing.newPreparedSpan(null, SpanOperationName.of(testName.getMethodName())))
                 .withMessage("The headers must not be null!")
                 .withNoCause();
     }
 
     @Test
-    public void newPreparedTraceWithNullTraceOperationNameThrowsNullPointerException() {
+    public void newPreparedSpanWithNullOperationNameThrowsNullPointerException() {
         DittoTracing.init(tracingConfigMock);
 
         assertThatNullPointerException()
-                .isThrownBy(() -> DittoTracing.newPreparedTrace(Map.of(), null))
+                .isThrownBy(() -> DittoTracing.newPreparedSpan(Map.of(), null))
                 .withMessage("The traceOperationName must not be null!")
                 .withNoCause();
     }
 
     @Test
-    public void newTraceTraceByTimerBeforeInitThrowsIllegalStateException() {
+    public void newStartedSpanByTimerBeforeInitThrowsIllegalStateException() {
         assertThatIllegalStateException()
-                .isThrownBy(() -> DittoTracing.newStartedTraceByTimer(
+                .isThrownBy(() -> DittoTracing.newStartedSpanByTimer(
                         Map.of(),
                         Timers.newTimer(testName.getMethodName()).start()
                 ))
@@ -152,35 +154,35 @@ public final class DittoTracingTest {
     }
 
     @Test
-    public void newStartedTraceByTimerWithNullHeadersThrowsNullPointerException() {
+    public void newStartedSpanByTimerWithNullHeadersThrowsNullPointerException() {
         DittoTracing.init(tracingConfigMock);
         final var startedTimer = Timers.newTimer(testName.getMethodName()).start();
 
         assertThatNullPointerException()
-                .isThrownBy(() -> DittoTracing.newStartedTraceByTimer(null, startedTimer))
+                .isThrownBy(() -> DittoTracing.newStartedSpanByTimer(null, startedTimer))
                 .withMessage("The headers must not be null!")
                 .withNoCause();
     }
 
     @Test
-    public void newStartedTraceByTimerWithNullStartedTimerThrowsNullPointerException() {
+    public void newStartedSpanByTimerWithNullStartedTimerThrowsNullPointerException() {
         DittoTracing.init(tracingConfigMock);
 
         assertThatNullPointerException()
-                .isThrownBy(() -> DittoTracing.newStartedTraceByTimer(Map.of(), null))
+                .isThrownBy(() -> DittoTracing.newStartedSpanByTimer(Map.of(), null))
                 .withMessage("The startedTimer must not be null!")
                 .withNoCause();
     }
 
     @Test
-    public void newPreparedTraceWhenTracingIsDisabledReturnsEmptyPreparedTrace() {
+    public void newPreparedSpanWhenTracingIsDisabledReturnsEmptyPreparedSpan() {
         disableDittoTracingByConfig();
         DittoTracing.init(tracingConfigMock);
-        final var operationName = TraceOperationName.of(testName.getMethodName());
+        final var operationName = SpanOperationName.of(testName.getMethodName());
 
-        final var preparedTrace = DittoTracing.newPreparedTrace(Map.of(), operationName);
+        final var preparedSpan = DittoTracing.newPreparedSpan(Map.of(), operationName);
 
-        assertThat(preparedTrace).isEqualTo(Traces.emptyPreparedTrace(operationName));
+        assertThat(preparedSpan).isEqualTo(TracingSpans.emptyPreparedSpan(operationName));
     }
 
     private void disableDittoTracingByConfig() {
@@ -188,19 +190,19 @@ public final class DittoTracingTest {
     }
 
     @Test
-    public void newStartedTraceByTimerWhenTracingIsDisabledReturnsEmptyPreparedTrace() {
+    public void newStartedSpanByTimerWhenTracingIsDisabledReturnsEmptyPreparedSpan() {
         disableDittoTracingByConfig();
         DittoTracing.init(tracingConfigMock);
-        final var traceOperationName = TraceOperationName.of(testName.getMethodName());
+        final var traceOperationName = SpanOperationName.of(testName.getMethodName());
         final var startedTimer = Timers.newTimer(traceOperationName.toString()).start();
 
-        final var startedTrace = DittoTracing.newStartedTraceByTimer(Map.of(), startedTimer);
+        final var startedSpan = DittoTracing.newStartedSpanByTimer(Map.of(), startedTimer);
 
-        assertThat(startedTrace).isEqualTo(Traces.emptyStartedTrace(traceOperationName));
+        assertThat(startedSpan).isEqualTo(TracingSpans.emptyStartedSpan(traceOperationName));
     }
 
     @Test
-    public void newPreparedTraceWhenTracingIsEnabledReturnsExpectedPreparedTrace() {
+    public void newPreparedSpanWhenTracingIsEnabledReturnsExpectedPreparedSpan() {
         DittoTracing.init(tracingConfigMock);
         final var correlationId = testName.getMethodName();
         final var connectionId = "my-connection";
@@ -213,29 +215,29 @@ public final class DittoTracingTest {
         final var allHeaders = new HashMap<>(retainedHeaders);
         allHeaders.put("foo", "bar");
         allHeaders.put("ping", "pong");
-        final var operationName = TraceOperationName.of(correlationId);
+        final var operationName = SpanOperationName.of(correlationId);
 
-        final var preparedTrace = DittoTracing.newPreparedTrace(allHeaders, operationName);
+        final var preparedSpan = DittoTracing.newPreparedSpan(allHeaders, operationName);
 
         try (final var softly = new AutoCloseableSoftAssertions()) {
-            softly.assertThat(preparedTrace.getTags())
+            softly.assertThat(preparedSpan.getTags())
                     .as("tags")
                     .containsOnly(
-                            Map.entry(TracingTags.CORRELATION_ID, correlationId),
-                            Map.entry(TracingTags.CONNECTION_ID, connectionId),
-                            Map.entry(TracingTags.ENTITY_ID, entityId)
+                            Map.entry(SpanTags.CORRELATION_ID, correlationId),
+                            Map.entry(SpanTags.CONNECTION_ID, connectionId),
+                            Map.entry(SpanTags.ENTITY_ID, entityId)
                     );
-            softly.assertThat(preparedTrace.start())
-                    .satisfies(startedTrace -> softly.assertThat((CharSequence) startedTrace.getOperationName())
+            softly.assertThat(preparedSpan.start())
+                    .satisfies(startedSpan -> softly.assertThat((CharSequence) startedSpan.getOperationName())
                             .as("operation name")
                             .isEqualTo(operationName));
         }
     }
 
     @Test
-    public void newStartedTraceByTimerWhenTracingIsEnabledReturnsExpectedStartedTrace() {
+    public void newStartedSpanByTimerWhenTracingIsEnabledReturnsExpectedStartedSpan() {
         DittoTracing.init(tracingConfigMock);
-        final var operationName = TraceOperationName.of(testName.getMethodName());
+        final var operationName = SpanOperationName.of(testName.getMethodName());
         final var timerTags = Map.of(
                 "foo", "bar",
                 "marco", "polo"
@@ -245,14 +247,14 @@ public final class DittoTracingTest {
         final var spanReporter = TestSpanReporter.newInstance();
         Kamon.addReporter("mySpanReporter", spanReporter);
 
-        final var startedTrace = DittoTracing.newStartedTraceByTimer(dittoHeaders, startedTimer);
+        final var startedSpan = DittoTracing.newStartedSpanByTimer(dittoHeaders, startedTimer);
 
-        final var tagsForSpanFuture = spanReporter.getTagsForSpanWithId(startedTrace.getSpanId());
-        final var startInstantForSpanFuture = spanReporter.getStartInstantForSpanWithId(startedTrace.getSpanId());
+        final var tagsForSpanFuture = spanReporter.getTagsForSpanWithId(startedSpan.getSpanId());
+        final var startInstantForSpanFuture = spanReporter.getStartInstantForSpanWithId(startedSpan.getSpanId());
         startedTimer.stop();
 
         try (final var softly = new AutoCloseableSoftAssertions()) {
-            softly.assertThat((CharSequence) startedTrace.getOperationName())
+            softly.assertThat((CharSequence) startedSpan.getOperationName())
                     .as("operation name")
                     .isEqualTo(operationName);
             softly.assertThat(tagsForSpanFuture)
@@ -262,7 +264,7 @@ public final class DittoTracingTest {
                         softly.assertThat(actualTags)
                                 .containsAllEntriesOf(timerTags)
                                 .containsEntry(
-                                        TracingTags.CORRELATION_ID,
+                                        SpanTags.CORRELATION_ID,
                                         dittoHeaders.getCorrelationId().orElseThrow()
                                 );
                     });

@@ -21,6 +21,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTags;
 
 import akka.http.javadsl.model.HttpRequest;
 
@@ -51,16 +52,26 @@ public final class TraceUtils {
      * @return The prepared {@link PreparedTimer}
      */
     public static PreparedTimer newHttpRoundTripTimer(final HttpRequest request) {
-        final String requestMethod = request.method().name();
-        final String requestPath = request.getUri().toRelative().path();
-        final String channel = determineChannel(request);
-
-        final TraceInformation traceInformation = determineTraceInformation(requestPath);
-
         return newExpiringTimer(HTTP_ROUNDTRIP_METRIC_NAME)
-                .tags(traceInformation.getTags())
-                .tag(TracingTags.REQUEST_METHOD, requestMethod)
-                .tag(TracingTags.CHANNEL, channel);
+                .tags(getTraceInformationTags(request))
+                .tag(SpanTags.REQUEST_METHOD, request.method().name())
+                .tag(SpanTags.CHANNEL, determineChannel(request));
+    }
+
+    private static Map<String, String> getTraceInformationTags(final HttpRequest httpRequest) {
+        final var traceInformation = determineTraceInformation(getRelativeUriPath(httpRequest));
+        return traceInformation.getTags();
+    }
+
+    private static TraceInformation determineTraceInformation(final String requestPath) {
+        final var traceUriGenerator = TraceUriGenerator.getInstance();
+        return traceUriGenerator.apply(requestPath);
+    }
+
+    private static String getRelativeUriPath(final HttpRequest httpRequest) {
+        final var uri = httpRequest.getUri();
+        final var relativeUri = uri.toRelative();
+        return relativeUri.path();
     }
 
     /**
@@ -73,6 +84,21 @@ public final class TraceUtils {
         return newAuthFilterTimer(authenticationType, new HashMap<>());
     }
 
+    private static PreparedTimer newAuthFilterTimer(
+            final CharSequence authenticationType,
+            final Map<String, String> requestTags
+    ) {
+        return newExpiringTimer(FILTER_AUTH_METRIC_NAME)
+                .tags(requestTags)
+                .tag(SpanTags.AUTH_SUCCESS, false)
+                .tag(SpanTags.AUTH_ERROR, false)
+                .tag(SpanTags.AUTH_TYPE, authenticationType.toString())
+                .onExpiration(expiredTimer ->
+                        expiredTimer
+                                .tag(SpanTags.AUTH_SUCCESS, false)
+                                .tag(SpanTags.AUTH_ERROR, true));
+    }
+
     /**
      * Prepares an {@link PreparedTimer} with default {@link #FILTER_AUTH_METRIC_NAME} and tags.
      *
@@ -80,39 +106,12 @@ public final class TraceUtils {
      * @param request The HttpRequest used to extract required tags.
      * @return The prepared {@link PreparedTimer}
      */
-    public static PreparedTimer newAuthFilterTimer(final CharSequence authenticationType,
-            final HttpRequest request) {
-        final String requestPath = request.getUri().toRelative().path();
-
-        final TraceInformation traceInformation = determineTraceInformation(requestPath);
-
-        return newAuthFilterTimer(authenticationType, traceInformation.getTags());
-    }
-
-    private static PreparedTimer newAuthFilterTimer(final CharSequence authenticationType,
-            final Map<String, String> requestTags) {
-
-        Map<String, String> defaultTags = new HashMap<>();
-        defaultTags.put(TracingTags.AUTH_SUCCESS, Boolean.toString(false));
-        defaultTags.put(TracingTags.AUTH_ERROR, Boolean.toString(false));
-
-        return newExpiringTimer(FILTER_AUTH_METRIC_NAME)
-                .tags(requestTags)
-                .tags(defaultTags)
-                .tag(TracingTags.AUTH_TYPE, authenticationType.toString())
-                .onExpiration(expiredTimer ->
-                        expiredTimer
-                                .tag(TracingTags.AUTH_SUCCESS, false)
-                                .tag(TracingTags.AUTH_ERROR, true));
+    public static PreparedTimer newAuthFilterTimer(final CharSequence authenticationType, final HttpRequest request) {
+        return newAuthFilterTimer(authenticationType, getTraceInformationTags(request));
     }
 
     private static PreparedTimer newExpiringTimer(final String tracingFilter) {
         return DittoMetrics.timer(metricizeTraceUri(tracingFilter));
-    }
-
-    private static TraceInformation determineTraceInformation(final String requestPath) {
-        final TraceUriGenerator traceUriGenerator = TraceUriGenerator.getInstance();
-        return traceUriGenerator.apply(requestPath);
     }
 
     private static String determineChannel(final HttpRequest request) {
@@ -127,7 +126,7 @@ public final class TraceUtils {
         final String normalizePath = normalizePath(request.getUri().path());
         final boolean messageRequest = messagePattern.matcher(normalizePath).matches();
 
-        return (liveHeaderPresent || liveQueryPresent || messageRequest) ? LIVE_CHANNEL_NAME : TWIN_CHANNEL_NAME;
+        return liveHeaderPresent || liveQueryPresent || messageRequest ? LIVE_CHANNEL_NAME : TWIN_CHANNEL_NAME;
     }
 
     /**

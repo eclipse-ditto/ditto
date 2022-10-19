@@ -31,6 +31,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTags;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -161,13 +162,13 @@ public final class TraceUriGenerator implements Function<String, TraceInformatio
                     throw new IllegalStateException();
                 }
             }
-            tags.put(TracingTags.REQUEST_PATH, sanitizedPath);
+            tags.put(SpanTags.REQUEST_PATH, sanitizedPath);
             final TraceInformation info = new TraceInformation(traceUri, tags);
             LOGGER.debug("Generated traceUri for '{}': '{}'", path, info);
             return info;
         } else {
             // return fallback trace URI
-            tags.put(TracingTags.REQUEST_PATH, FALLBACK_PATH);
+            tags.put(SpanTags.REQUEST_PATH, FALLBACK_PATH);
             final TraceInformation fallback = new TraceInformation(FALLBACK_PATH, tags);
             LOGGER.debug("Returning fallback traceUri for '{}': '{}'", path, fallback);
             return fallback;

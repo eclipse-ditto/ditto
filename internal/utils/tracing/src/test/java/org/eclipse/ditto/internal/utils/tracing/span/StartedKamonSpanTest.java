@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,12 +10,12 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
+package org.eclipse.ditto.internal.utils.tracing.span;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.eclipse.ditto.internal.utils.tracing.TraceOperationName.of;
+import static org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName.of;
 
 import java.text.MessageFormat;
 import java.util.Map;
@@ -34,9 +34,9 @@ import kamon.trace.Identifier;
 import kamon.trace.Span;
 
 /**
- * Unit test for {@link StartedKamonTrace}.
+ * Unit test for {@link StartedKamonSpan}.
  */
-public final class StartedKamonTraceTest {
+public final class StartedKamonSpanTest {
 
     @ClassRule
     public static final KamonTracingInitResource KAMON_TRACING_INIT_RESOURCE = KamonTracingInitResource.newInstance(
@@ -50,7 +50,7 @@ public final class StartedKamonTraceTest {
     @Rule
     public final TestName testName = new TestName();
 
-    private StartedTrace underTest;
+    private StartedSpan underTest;
 
     @BeforeClass
     public static void beforeClass() {
@@ -59,7 +59,7 @@ public final class StartedKamonTraceTest {
 
     @Before
     public void setup() {
-        underTest = StartedKamonTrace.newInstance(
+        underTest = StartedKamonSpan.newInstance(
                 Kamon.spanBuilder(testName.getMethodName()).asChildOf(rootSpan).start(),
                 KamonHttpContextPropagation.newInstanceForChannelName("default")
         );
@@ -76,7 +76,7 @@ public final class StartedKamonTraceTest {
     }
 
     @Test
-    public void traceTags() {
+    public void spanTags() {
         assertThatNoException().isThrownBy(() -> {
             underTest.correlationId("12345");
             underTest.connectionId("connection-1");
@@ -85,7 +85,7 @@ public final class StartedKamonTraceTest {
     }
 
     @Test
-    public void nullTraceTagsAreIgnored() {
+    public void nullSpanTagsAreIgnored() {
         assertThatNoException().isThrownBy(() -> {
             underTest.correlationId(null);
             underTest.connectionId(null);
@@ -138,18 +138,18 @@ public final class StartedKamonTraceTest {
     }
 
     @Test
-    public void spawnChildWithNullTraceOperationNameThrowsNullPointerException() {
+    public void spawnChildWithNullOperationNameThrowsNullPointerException() {
         assertThatNullPointerException()
                 .isThrownBy(() -> underTest.spawnChild(null))
-                .withMessage("The traceOperationName must not be null!")
+                .withMessage("The operationName must not be null!")
                 .withNoCause();
     }
 
     @Test
-    public void spawnChildReturnsExpectedPreparedTrace() {
-        final var childTrace = underTest.spawnChild(of("foo"));
+    public void spawnChildReturnsExpectedPreparedSpan() {
+        final var childSpan = underTest.spawnChild(of("foo"));
 
-        assertThat(childTrace).isNotNull();
+        assertThat(childSpan).isNotNull();
 
     }
 

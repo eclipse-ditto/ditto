@@ -29,10 +29,10 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 import org.eclipse.ditto.internal.utils.tracing.TraceUriGenerator;
-import org.eclipse.ditto.internal.utils.tracing.TracingTags;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTags;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
@@ -48,14 +48,14 @@ import akka.http.javadsl.server.RouteResult;
 @Immutable
 public final class RequestTracingDirective {
 
-    private final Set<TraceOperationName> disabledTraceOperationNames;
+    private final Set<SpanOperationName> disabledSpanOperationNames;
     private final TraceUriGenerator traceUriGenerator;
 
     private RequestTracingDirective(
-            final Set<TraceOperationName> disabledTraceOperationNames,
+            final Set<SpanOperationName> disabledSpanOperationNames,
             final TraceUriGenerator traceUriGenerator
     ) {
-        this.disabledTraceOperationNames = Set.copyOf(disabledTraceOperationNames);
+        this.disabledSpanOperationNames = Set.copyOf(disabledSpanOperationNames);
         this.traceUriGenerator = traceUriGenerator;
     }
 
@@ -63,22 +63,22 @@ public final class RequestTracingDirective {
      * Return new instance of {@code RequestTracingDirective} which disables tracing for operations with the specified
      * set of operation names.
      *
-     * @param disabledTraceOperationNames names of operations for which no tracing is performed at all.
+     * @param disabledSpanOperationNames names of operations for which no tracing is performed at all.
      * @return the new instance.
-     * @throws NullPointerException if {@code disabledTraceOperationNames} is {@code null}.
+     * @throws NullPointerException if {@code disabledSpanOperationNames} is {@code null}.
      */
     public static RequestTracingDirective newInstanceWithDisabled(
-            final Set<TraceOperationName> disabledTraceOperationNames
+            final Set<SpanOperationName> disabledSpanOperationNames
     ) {
         return new RequestTracingDirective(
-                ConditionChecker.checkNotNull(disabledTraceOperationNames, "disabledTraceOperationNames"),
+                ConditionChecker.checkNotNull(disabledSpanOperationNames, "disabledSpanOperationNames"),
                 TraceUriGenerator.getInstance()
         );
     }
 
     /**
      * Conditionally starts and finishes a new trace for every request.
-     * If the resolved trace operation name is contained in the known disabled trace operation names then the inner
+     * If the resolved span operation name is contained in the known disabled span operation names then the inner
      * Route will be returned as is.
      *
      * @param innerRouteSupplier supplies the inner Route to be traced.
@@ -91,12 +91,12 @@ public final class RequestTracingDirective {
         ConditionChecker.checkNotNull(innerRouteSupplier, "innerRouteSupplier");
         return extractRequest(request -> {
             final Route result;
-            final var traceOperationName = resolveTraceOperationName(request);
-            if (isTracingDisabledForOperationName(traceOperationName)) {
+            final var operationName = resolveSpanOperationName(request);
+            if (isTracingDisabledForOperationName(operationName)) {
                 result = innerRouteSupplier.get();
             } else {
                 result = getRouteWithEnabledTracing(
-                        startTrace(getHttpHeadersAsMap(request.getHeaders()), traceOperationName, correlationId),
+                        startTrace(getHttpHeadersAsMap(request.getHeaders()), operationName, correlationId),
                         request,
                         innerRouteSupplier
                 );
@@ -105,8 +105,8 @@ public final class RequestTracingDirective {
         });
     }
 
-    private TraceOperationName resolveTraceOperationName(final HttpRequest httpRequest) {
-        return TraceOperationName.of(
+    private SpanOperationName resolveSpanOperationName(final HttpRequest httpRequest) {
+        return SpanOperationName.of(
                 MessageFormat.format("{0} {1}", getTraceUri(httpRequest), getRequestMethodName(httpRequest))
         );
     }
@@ -126,8 +126,8 @@ public final class RequestTracingDirective {
         return httpMethod.name();
     }
 
-    private boolean isTracingDisabledForOperationName(final TraceOperationName traceOperationName) {
-        return disabledTraceOperationNames.contains(traceOperationName);
+    private boolean isTracingDisabledForOperationName(final SpanOperationName traceOperationName) {
+        return disabledSpanOperationNames.contains(traceOperationName);
     }
 
     private static Map<String, String> getHttpHeadersAsMap(final Iterable<HttpHeader> httpHeaders) {
@@ -135,18 +135,18 @@ public final class RequestTracingDirective {
                 .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value, (oldValue, value) -> value));
     }
 
-    private static StartedTrace startTrace(
+    private static StartedSpan startTrace(
             final Map<String, String> headersMap,
-            final TraceOperationName traceOperationName,
+            final SpanOperationName traceOperationName,
             @Nullable final CharSequence correlationId
     ) {
-        return DittoTracing.newPreparedTrace(headersMap, traceOperationName)
+        return DittoTracing.newPreparedSpan(headersMap, traceOperationName)
                 .correlationId(correlationId)
                 .start();
     }
 
     private static Route getRouteWithEnabledTracing(
-            final StartedTrace startedTrace,
+            final StartedSpan startedTrace,
             final HttpRequest httpRequest,
             final Supplier<Route> innerRouteSupplier
     ) {
@@ -183,7 +183,7 @@ public final class RequestTracingDirective {
     private static RouteResult tryToHandleRouteResult(
             @Nullable final RouteResult routeResult,
             final HttpRequest httpRequest,
-            final StartedTrace startedTrace
+            final StartedSpan startedTrace
     ) {
         try {
             handleRouteResult(routeResult, httpRequest, startedTrace);
@@ -198,7 +198,7 @@ public final class RequestTracingDirective {
     private static void handleRouteResult(
             @Nullable final RouteResult routeResult,
             final HttpRequest httpRequest,
-            final StartedTrace startedTrace
+            final StartedSpan startedTrace
     ) {
         if (routeResult instanceof Complete complete) {
             addRequestResponseTags(startedTrace, httpRequest, complete.getResponse());
@@ -210,16 +210,16 @@ public final class RequestTracingDirective {
     }
 
     private static void addRequestResponseTags(
-            final StartedTrace startedTrace,
+            final StartedSpan startedTrace,
             final HttpRequest httpRequest,
             final HttpResponse httpResponse
     ) {
-        startedTrace.tag(TracingTags.REQUEST_METHOD, getRequestMethodName(httpRequest));
+        startedTrace.tag(SpanTags.REQUEST_METHOD, getRequestMethodName(httpRequest));
         startedTrace.tag(
-                TracingTags.REQUEST_PATH,
+                SpanTags.REQUEST_PATH,
                 String.valueOf(RequestLoggingFilter.filterUri(getRelativeUri(httpRequest)))
         );
-        startedTrace.tag(TracingTags.STATUS_CODE, getResponseStatusCode(httpResponse));
+        startedTrace.tag(SpanTags.STATUS_CODE, getResponseStatusCode(httpResponse));
     }
 
     private static int getResponseStatusCode(final HttpResponse httpResponse) {

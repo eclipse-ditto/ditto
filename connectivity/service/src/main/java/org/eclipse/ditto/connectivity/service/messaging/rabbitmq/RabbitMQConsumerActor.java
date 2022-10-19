@@ -41,9 +41,8 @@ import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.Traces;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.TracingSpans;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 
 import com.rabbitmq.client.BasicProperties;
@@ -133,7 +132,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
         final Envelope envelope = delivery.getEnvelope();
         final byte[] body = delivery.getBody();
 
-        StartedTrace trace = Traces.emptyStartedTrace(TraceOperationName.of("rabbitmq_consume"));
+        var startedSpan = TracingSpans.emptyStartedSpan(SpanOperationName.of("rabbitmq_consume"));
         Map<String, String> headers = null;
         try {
             @Nullable final String correlationId = properties.getCorrelationId();
@@ -144,11 +143,11 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
             }
             headers = extractHeadersFromMessage(properties, envelope);
 
-            trace = DittoTracing.newPreparedTrace(headers, trace.getOperationName())
+            startedSpan = DittoTracing.newPreparedSpan(headers, startedSpan.getOperationName())
                     .connectionId(connectionId)
                     .correlationId(correlationId)
                     .start();
-            headers = trace.propagateContext(headers);
+            headers = startedSpan.propagateContext(headers);
 
             final ExternalMessageBuilder externalMessageBuilder =
                     ExternalMessageFactory.newExternalMessageBuilder(headers);
@@ -204,7 +203,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
             } else {
                 inboundMonitor.failure(e);
             }
-            trace.fail(e);
+            startedSpan.fail(e);
         } catch (final Exception e) {
             logger.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage());
             if (headers != null) {
@@ -212,9 +211,9 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
             } else {
                 inboundMonitor.exception(e);
             }
-            trace.fail(e);
+            startedSpan.fail(e);
         } finally {
-            trace.finish();
+            startedSpan.finish();
         }
     }
 

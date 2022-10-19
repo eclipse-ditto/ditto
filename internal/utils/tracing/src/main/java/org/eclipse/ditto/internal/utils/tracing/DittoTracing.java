@@ -25,17 +25,17 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.KamonHttpContextPropagation;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.PreparedTrace;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.Traces;
+import org.eclipse.ditto.internal.utils.tracing.span.KamonHttpContextPropagation;
+import org.eclipse.ditto.internal.utils.tracing.span.PreparedSpan;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
+import org.eclipse.ditto.internal.utils.tracing.span.TracingSpans;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Main entry point for tracing within Ditto.
- * By default, tracing is disabled.
- * Before tracing can be used, {@link DittoTracing#init(TracingConfig)} has to be called.
+ * Before tracing spans can be created, {@link DittoTracing#init(TracingConfig)} has to be called.
  */
 @ThreadSafe
 public final class DittoTracing {
@@ -74,37 +74,37 @@ public final class DittoTracing {
     }
 
     /**
-     * Creates a new trace for an operation with the given name.
+     * Creates a new {@code PreparedSpan} for an operation with the given name.
      *
-     * @param headers the headers to derive the trace context from.
+     * @param headers the headers to derive the span context from.
      * @param operationName the name of the operation.
-     * @return the new prepared trace.
+     * @return the new prepared span.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalStateException if {@link #init(TracingConfig)} was not called beforehand.
      */
-    public static PreparedTrace newPreparedTrace(
+    public static PreparedSpan newPreparedSpan(
             final Map<String, String> headers,
-            final TraceOperationName operationName
+            final SpanOperationName operationName
     ) {
         final var state = getState();
-        return state.newPreparedTrace(headers, operationName);
+        return state.newPreparedSpan(headers, operationName);
     }
 
     /**
-     * Creates and starts a trace for the specified arguments.
+     * Creates and starts a span for the specified arguments.
      *
-     * @param headers the headers to derive the trace context from.
-     * @param startedTimer provides the name, the start and the finish time of the returned trace.
-     * @return the new started trace which will be automatically stopped by {@code startedTimer}.
+     * @param headers the headers to derive the span context from.
+     * @param startedTimer provides the name, the start and the finish time of the returned span.
+     * @return the new started span which will be automatically stopped by {@code startedTimer}.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalStateException if {@link #init(TracingConfig)} was not called beforehand.
      */
-    public static StartedTrace newStartedTraceByTimer(
+    public static StartedSpan newStartedSpanByTimer(
             final Map<String, String> headers,
             final StartedTimer startedTimer
     ) {
         final var state = getState();
-        return state.newStartedTraceByTimer(headers, startedTimer);
+        return state.newStartedSpanByTimer(headers, startedTimer);
     }
 
     /**
@@ -131,9 +131,9 @@ public final class DittoTracing {
             ));
         }
 
-        PreparedTrace newPreparedTrace(Map<String, String> headers, TraceOperationName operationName);
+        PreparedSpan newPreparedSpan(Map<String, String> headers, SpanOperationName operationName);
 
-        StartedTrace newStartedTraceByTimer(Map<String, String> headers, StartedTimer startedTimer);
+        StartedSpan newStartedSpanByTimer(Map<String, String> headers, StartedTimer startedTimer);
 
     }
 
@@ -157,7 +157,7 @@ public final class DittoTracing {
                         propagationChannelName);
             } else {
                 newStateConsumer.accept(new TracingDisabledState());
-                LOGGER.info("Ditto tracing is disabled. No traces are generated and trace context is not propagated.");
+                LOGGER.info("Ditto tracing is disabled. No traces are generated and span context is not propagated.");
             }
         }
 
@@ -172,10 +172,7 @@ public final class DittoTracing {
         }
 
         @Override
-        public PreparedTrace newPreparedTrace(
-                final Map<String, String> headers,
-                final TraceOperationName operationName
-        ) {
+        public PreparedSpan newPreparedSpan(final Map<String, String> headers, final SpanOperationName operationName) {
             throw newIllegalStateException();
         }
 
@@ -184,7 +181,7 @@ public final class DittoTracing {
         }
 
         @Override
-        public StartedTrace newStartedTraceByTimer(final Map<String, String> headers, final StartedTimer startedTimer) {
+        public StartedSpan newStartedSpanByTimer(final Map<String, String> headers, final StartedTimer startedTimer) {
             throw newIllegalStateException();
         }
 
@@ -199,22 +196,19 @@ public final class DittoTracing {
         }
 
         @Override
-        public PreparedTrace newPreparedTrace(
-                final Map<String, String> headers,
-                final TraceOperationName operationName
-        ) {
-            return Traces.newPreparedKamonTrace(headers, operationName, kamonHttpContextPropagation);
+        public PreparedSpan newPreparedSpan(final Map<String, String> headers, final SpanOperationName operationName) {
+            return TracingSpans.newPreparedKamonSpan(headers, operationName, kamonHttpContextPropagation);
         }
 
         @Override
-        public StartedTrace newStartedTraceByTimer(final Map<String, String> headers, final StartedTimer startedTimer) {
+        public StartedSpan newStartedSpanByTimer(final Map<String, String> headers, final StartedTimer startedTimer) {
             checkNotNull(startedTimer, "startedTimer");
-            final var preparedKamonTrace = Traces.newPreparedKamonTrace(
+            final var preparedKamonSpan = TracingSpans.newPreparedKamonSpan(
                     headers,
-                    TraceOperationName.of(startedTimer.getName()),
+                    SpanOperationName.of(startedTimer.getName()),
                     kamonHttpContextPropagation
             );
-            return preparedKamonTrace.startBy(startedTimer);
+            return preparedKamonSpan.startBy(startedTimer);
         }
 
     }
@@ -223,17 +217,14 @@ public final class DittoTracing {
     private static final class TracingDisabledState implements DittoTracingState {
 
         @Override
-        public PreparedTrace newPreparedTrace(
-                final Map<String, String> headers,
-                final TraceOperationName operationName
-        ) {
-            return Traces.emptyPreparedTrace(operationName);
+        public PreparedSpan newPreparedSpan(final Map<String, String> headers, final SpanOperationName operationName) {
+            return TracingSpans.emptyPreparedSpan(operationName);
         }
 
         @Override
-        public StartedTrace newStartedTraceByTimer(final Map<String, String> headers, final StartedTimer startedTimer) {
+        public StartedSpan newStartedSpanByTimer(final Map<String, String> headers, final StartedTimer startedTimer) {
             checkNotNull(startedTimer, "startedTimer");
-            return Traces.emptyStartedTrace(TraceOperationName.of(startedTimer.getName()));
+            return TracingSpans.emptyStartedSpan(SpanOperationName.of(startedTimer.getName()));
         }
 
     }

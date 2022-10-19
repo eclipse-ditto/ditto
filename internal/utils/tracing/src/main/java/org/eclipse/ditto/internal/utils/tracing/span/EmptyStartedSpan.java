@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
+package org.eclipse.ditto.internal.utils.tracing.span;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -21,61 +21,60 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
-import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 
 /**
- * An empty noop implementation of {@code StartedStrace} interface.
+ * An empty noop implementation of {@code StartedSpan} interface.
  */
 @Immutable
-final class EmptyStartedTrace implements StartedTrace {
+final class EmptyStartedSpan implements StartedSpan {
 
-    private final TraceOperationName operationName;
+    private final SpanOperationName operationName;
 
-    private EmptyStartedTrace(final TraceOperationName operationName) {
+    private EmptyStartedSpan(final SpanOperationName operationName) {
         this.operationName = operationName;
     }
 
-    static StartedTrace newInstance(final TraceOperationName operationName) {
-        return new EmptyStartedTrace(ConditionChecker.checkNotNull(operationName, "operationName"));
+    static StartedSpan newInstance(final SpanOperationName operationName) {
+        return new EmptyStartedSpan(ConditionChecker.checkNotNull(operationName, "operationName"));
     }
 
     @Override
-    public StartedTrace tag(final String key, final String value) {
+    public StartedSpan tag(final String key, final String value) {
         return this;
     }
 
     @Override
-    public StartedTrace tags(final Map<String, String> tags) {
+    public StartedSpan tags(final Map<String, String> tags) {
         return this;
     }
 
     @Override
     public void finish() {
-        // Nothing to finish in an empty started trace.
+        // Nothing to finish in an empty started span.
     }
 
     @Override
     public void finishAfter(final Duration duration) {
-        // Nothing to finish in an empty started trace.
+        // Nothing to finish in an empty started span.
     }
 
     @Override
-    public StartedTrace fail(final String errorMessage) {
+    public StartedSpan fail(final String errorMessage) {
         return this;
     }
 
     @Override
-    public StartedTrace fail(final String errorMessage, final Throwable throwable) {
+    public StartedSpan fail(final String errorMessage, final Throwable throwable) {
         return this;
     }
 
     @Override
-    public StartedTrace mark(final String key) {
+    public StartedSpan mark(final String key) {
         return this;
     }
 
     @Override
-    public StartedTrace mark(final String key, final Instant at) {
+    public StartedSpan mark(final String key, final Instant at) {
         return this;
     }
 
@@ -85,12 +84,12 @@ final class EmptyStartedTrace implements StartedTrace {
     }
 
     @Override
-    public TraceOperationName getOperationName() {
+    public SpanOperationName getOperationName() {
         return operationName;
     }
 
     @Override
-    public StartedTrace fail(final Throwable throwable) {
+    public StartedSpan fail(final Throwable throwable) {
         return this;
     }
 
@@ -100,8 +99,8 @@ final class EmptyStartedTrace implements StartedTrace {
     }
 
     @Override
-    public PreparedTrace spawnChild(final TraceOperationName traceOperationName) {
-        return Traces.emptyPreparedTrace(traceOperationName);
+    public PreparedSpan spawnChild(final SpanOperationName operationName) {
+        return TracingSpans.emptyPreparedSpan(operationName);
     }
 
     @Override
@@ -109,7 +108,7 @@ final class EmptyStartedTrace implements StartedTrace {
         final boolean result;
         if (this == o) {
             result = true;
-        } else if (o instanceof EmptyStartedTrace that) {
+        } else if (o instanceof EmptyStartedSpan that) {
             result = operationName.equals(that.operationName);
         } else {
             result = false;

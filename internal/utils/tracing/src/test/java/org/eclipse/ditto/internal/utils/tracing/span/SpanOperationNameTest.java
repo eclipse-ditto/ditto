@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
+package org.eclipse.ditto.internal.utils.tracing.span;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -18,28 +18,26 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.util.UUID;
-
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link SpanId}.
+ * Unit test for {@link SpanOperationName}.
  */
-public final class SpanIdTest {
+public final class SpanOperationNameTest {
 
-    private static final String KNOWN_SPAN_IDENTIFIER = String.valueOf(UUID.randomUUID());
+    private static final String KNOWN_NAME = "my_operation";
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(SpanId.class, areImmutable());
+        assertInstancesOf(SpanOperationName.class, areImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(SpanId.class)
+        EqualsVerifier.forClass(SpanOperationName.class)
                 .usingGetClass()
                 .verify();
     }
@@ -47,70 +45,70 @@ public final class SpanIdTest {
     @Test
     public void ofWithNullNameThrowsNullPointerException() {
         assertThatNullPointerException()
-                .isThrownBy(() -> SpanId.of(null))
-                .withMessage("The identifier must not be null!")
+                .isThrownBy(() -> SpanOperationName.of(null))
+                .withMessage("The name must not be null!")
                 .withNoCause();
     }
 
     @Test
     public void ofWithEmptyNameThrowsIllegalArgumentException() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> SpanId.of(""))
-                .withMessage("The identifier must neither be empty nor blank.")
+                .isThrownBy(() -> SpanOperationName.of(""))
+                .withMessage("The name must neither be empty nor blank.")
                 .withNoCause();
     }
 
     @Test
     public void ofWithWhitespacesAsNameThrowsIllegalArgumentException() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> SpanId.of("   "))
-                .withMessage("The identifier must neither be empty nor blank.")
+                .isThrownBy(() -> SpanOperationName.of("   "))
+                .withMessage("The name must neither be empty nor blank.")
                 .withNoCause();
     }
 
     @Test
-    public void lengthReturnsExpected() {
-        final var underTest = SpanId.of(KNOWN_SPAN_IDENTIFIER);
+    public void ofTrimsLeadingAndTrailingWhitespaces() {
+        final var name = "  my_operation   ";
+        final var underTest = SpanOperationName.of(name);
 
-        assertThat(underTest.length()).isEqualTo(KNOWN_SPAN_IDENTIFIER.length());
+        assertThat(underTest.toString()).isEqualTo("my_operation");
+    }
+
+    @Test
+    public void lengthReturnsExpected() {
+        final var underTest = SpanOperationName.of(KNOWN_NAME);
+
+        assertThat(underTest.length()).isEqualTo(KNOWN_NAME.length());
     }
 
     @Test
     public void charAtReturnsExpected() {
         final var charIndex = 3;
-        final var underTest = SpanId.of(KNOWN_SPAN_IDENTIFIER);
+        final var underTest = SpanOperationName.of(KNOWN_NAME);
 
-        assertThat(underTest.charAt(charIndex)).isEqualTo(KNOWN_SPAN_IDENTIFIER.charAt(charIndex));
+        assertThat(underTest.charAt(charIndex)).isEqualTo(KNOWN_NAME.charAt(charIndex));
     }
 
     @Test
     public void subSequenceReturnsExpected() {
         final var startIndex = 0;
         final var endIndex = 3;
-        final var underTest = SpanId.of(KNOWN_SPAN_IDENTIFIER);
+        final var underTest = SpanOperationName.of(KNOWN_NAME);
 
-        assertThat(underTest.subSequence(startIndex, endIndex))
-                .isEqualTo(KNOWN_SPAN_IDENTIFIER.subSequence(startIndex, endIndex));
-    }
-
-    @Test
-    public void getEmptyInstanceReturnsEmpty() {
-        final var underTest = SpanId.empty();
-
-        assertThat(underTest.isEmpty()).isTrue();
+        assertThat(underTest.subSequence(startIndex, endIndex)).isEqualTo(KNOWN_NAME.subSequence(startIndex, endIndex));
     }
 
     @Test
     public void toStringReturnsExpected() {
-        final var underTest = SpanId.of(KNOWN_SPAN_IDENTIFIER);
+        final var underTest = SpanOperationName.of(KNOWN_NAME);
 
-        assertThat((CharSequence) underTest).hasToString(KNOWN_SPAN_IDENTIFIER);
+        assertThat((CharSequence) underTest).hasToString(KNOWN_NAME);
     }
 
     @Test
     public void compareToWorksAsExpected() {
-        final var operationNameA = SpanId.of("span_a");
-        final var operationNameB = SpanId.of("span_b");
+        final var operationNameA = SpanOperationName.of("operation_a");
+        final var operationNameB = SpanOperationName.of("operation_b");
 
         try (final var softly = new AutoCloseableSoftAssertions()) {
             softly.assertThat(operationNameA.compareTo(operationNameA)).as("compare to self").isZero();
@@ -118,6 +116,5 @@ public final class SpanIdTest {
             softly.assertThat(operationNameB.compareTo(operationNameA)).as("compare to less").isPositive();
         }
     }
-
 
 }

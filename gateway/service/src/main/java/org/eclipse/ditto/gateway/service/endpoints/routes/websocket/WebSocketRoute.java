@@ -74,9 +74,9 @@ import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
-import org.eclipse.ditto.internal.utils.tracing.TracingTags;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTags;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -481,20 +481,20 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                                     adapter,
                                     headerTranslator,
                                     logger);
-                            final var trace = DittoTracing.newPreparedTrace(
+                            final var startedSpan = DittoTracing.newPreparedSpan(
                                             signal.getDittoHeaders(),
-                                            TraceOperationName.of("gw_streaming_in_signal")
+                                            SpanOperationName.of("gw_streaming_in_signal")
                                     )
-                                    .tag(TracingTags.SIGNAL_TYPE, signal.getType())
+                                    .tag(SpanTags.SIGNAL_TYPE, signal.getType())
                                     .start();
                             result = Right.apply(
                                     Right.apply(
-                                            signal.setDittoHeaders(
-                                                    DittoHeaders.of(trace.propagateContext(signal.getDittoHeaders()))
-                                            )
+                                            signal.setDittoHeaders(DittoHeaders.of(
+                                                    startedSpan.propagateContext(signal.getDittoHeaders())
+                                            ))
                                     )
                             );
-                            trace.finish();
+                            startedSpan.finish();
                         } catch (final IllegalAdaptableException e) {
                             logSignalBuildingFailure(logger.withCorrelationId(e)::info, e, cmdString);
                             final var failure = e.setDittoHeaders(DittoHeaders.newBuilder(e.getDittoHeaders())
@@ -535,18 +535,18 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     }
 
     private static DittoRuntimeException traceSignalBuildingFailure(final DittoRuntimeException failure) {
-        final var trace = startTrace(failure, TraceOperationName.of("gw.streaming.in.error"));
-        trace.fail(failure);
+        final var startedSpan = startTraceSpan(failure, SpanOperationName.of("gw.streaming.in.error"));
+        startedSpan.fail(failure);
         try {
-            return failure.setDittoHeaders(DittoHeaders.of(trace.propagateContext(failure.getDittoHeaders())));
+            return failure.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(failure.getDittoHeaders())));
         } finally {
-            trace.finish();
+            startedSpan.finish();
         }
     }
 
-    private static StartedTrace startTrace(final WithDittoHeaders withDittoHeaders, final TraceOperationName name) {
-        final var trace = DittoTracing.newPreparedTrace(withDittoHeaders.getDittoHeaders(), name);
-        return trace.start();
+    private static StartedSpan startTraceSpan(final WithDittoHeaders withDittoHeaders, final SpanOperationName name) {
+        final var preparedSpan = DittoTracing.newPreparedSpan(withDittoHeaders.getDittoHeaders(), name);
+        return preparedSpan.start();
     }
 
     private Pair<Connect, Flow<DittoRuntimeException, Message, NotUsed>> createOutgoing(
@@ -759,10 +759,10 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     return Collections.singletonList(toJsonStringWithExtra(adaptable, extra));
                 }
                 issuePotentialWeakAcknowledgements(sessionedJsonifiable);
-                sessionedJsonifiable.finishTrace();
+                sessionedJsonifiable.finishSpan();
                 return Collections.emptyList();
             }).exceptionally(error -> {
-                sessionedJsonifiable.finishTrace();
+                sessionedJsonifiable.finishSpan();
                 return WebSocketRoute.reportEnrichmentError(error, adapter, adaptable, logger);
             });
         };

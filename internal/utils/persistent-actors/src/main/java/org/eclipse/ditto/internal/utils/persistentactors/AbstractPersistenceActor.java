@@ -42,8 +42,8 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
-import org.eclipse.ditto.internal.utils.tracing.TracingTags;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTags;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonValue;
 
@@ -468,24 +468,24 @@ public abstract class AbstractPersistenceActor<
     private <T extends Command<?>> void handleByStrategy(final T command, final CommandStrategy<T, S, K, E> strategy) {
         log.debug("Handling by strategy: <{}>", command);
 
-        final var trace = DittoTracing.newPreparedTrace(
+        final var startedSpan = DittoTracing.newPreparedSpan(
                         command.getDittoHeaders(),
-                        TraceOperationName.of("apply_command_strategy")
+                        SpanOperationName.of("apply_command_strategy")
                 )
                 .start();
 
         final var tracedCommand =
-                command.setDittoHeaders(DittoHeaders.of(trace.propagateContext(command.getDittoHeaders())));
+                command.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(command.getDittoHeaders())));
 
         accessCounter++;
         Result<E> result;
         try {
             result = strategy.apply(getStrategyContext(), entity, getNextRevisionNumber(), (T) tracedCommand);
         } catch (final DittoRuntimeException e) {
-            trace.fail(e);
+            startedSpan.fail(e);
             result = ResultFactory.newErrorResult(e, tracedCommand);
         } finally {
-            trace.finish();
+            startedSpan.finish();
         }
         result.accept(this);
     }
@@ -541,20 +541,20 @@ public abstract class AbstractPersistenceActor<
         final var l = log.withCorrelationId(event);
         l.debug("Persisting Event <{}>.", event.getType());
 
-        final var persistTrace = DittoTracing.newPreparedTrace(
+        final var persistOperationSpan = DittoTracing.newPreparedSpan(
                         event.getDittoHeaders(),
-                        TraceOperationName.of("persist_event")
+                        SpanOperationName.of("persist_event")
                 )
-                .tag(TracingTags.SIGNAL_TYPE, event.getType())
+                .tag(SpanTags.SIGNAL_TYPE, event.getType())
                 .start();
 
         persist(
-                event.setDittoHeaders(DittoHeaders.of(persistTrace.propagateContext(event.getDittoHeaders()))),
+                event.setDittoHeaders(DittoHeaders.of(persistOperationSpan.propagateContext(event.getDittoHeaders()))),
                 persistedEvent -> {
                     l.info("Successfully persisted Event <{}> w/ rev: <{}>.",
                             persistedEvent.getType(),
                             getRevisionNumber());
-                    persistTrace.finish();
+                    persistOperationSpan.finish();
 
                     /*
                      * The event has to be applied before creating the snapshot, otherwise a snapshot with new

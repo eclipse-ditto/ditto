@@ -57,7 +57,7 @@ import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationR
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.internal.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 
 import akka.http.javadsl.model.HttpHeader;
@@ -182,7 +182,7 @@ public final class RootRoute extends AllDirectives {
 
     private Route wrapWithRootDirectives(final Function<String, Route> rootRoute) {
         final var requestTracingDirective = RequestTracingDirective.newInstanceWithDisabled(Set.of(
-                TraceOperationName.of("/ws/2 GET")
+                SpanOperationName.of("/ws/2 GET")
         ));
 
         final Function<Function<String, Route>, Route> outerRouteProvider = innerRouteProvider ->

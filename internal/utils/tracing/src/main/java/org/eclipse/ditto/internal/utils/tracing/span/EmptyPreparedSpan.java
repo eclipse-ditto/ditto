@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
+package org.eclipse.ditto.internal.utils.tracing.span;
 
 import java.util.Collections;
 import java.util.Map;
@@ -23,31 +23,30 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartInstant;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.internal.utils.tracing.TraceOperationName;
 
 /**
- * An empty noop implementation of {@code PreparedTrace} interface.
+ * An empty noop implementation of {@code PreparedSpan} interface.
  */
 @Immutable
-final class EmptyPreparedTrace implements PreparedTrace {
+final class EmptyPreparedSpan implements PreparedSpan {
 
-    private final TraceOperationName operationName;
+    private final SpanOperationName operationName;
 
-    private EmptyPreparedTrace(final TraceOperationName operationName) {
+    private EmptyPreparedSpan(final SpanOperationName operationName) {
         this.operationName = operationName;
     }
 
-    static EmptyPreparedTrace newInstance(final TraceOperationName operationName) {
-        return new EmptyPreparedTrace(ConditionChecker.checkNotNull(operationName, "operationName"));
+    static EmptyPreparedSpan newInstance(final SpanOperationName operationName) {
+        return new EmptyPreparedSpan(ConditionChecker.checkNotNull(operationName, "operationName"));
     }
 
     @Override
-    public EmptyPreparedTrace tag(final String key, final String value) {
+    public EmptyPreparedSpan tag(final String key, final String value) {
         return this;
     }
 
     @Override
-    public EmptyPreparedTrace tags(final Map<String, String> tags) {
+    public EmptyPreparedSpan tags(final Map<String, String> tags) {
         return this;
     }
 
@@ -62,18 +61,18 @@ final class EmptyPreparedTrace implements PreparedTrace {
     }
 
     @Override
-    public StartedTrace start() {
-        return Traces.emptyStartedTrace(operationName);
+    public StartedSpan start() {
+        return TracingSpans.emptyStartedSpan(operationName);
     }
 
     @Override
-    public StartedTrace startAt(final StartInstant startInstant) {
-        return Traces.emptyStartedTrace(operationName);
+    public StartedSpan startAt(final StartInstant startInstant) {
+        return TracingSpans.emptyStartedSpan(operationName);
     }
 
     @Override
-    public StartedTrace startBy(final StartedTimer startedTimer) {
-        return Traces.emptyStartedTrace(operationName);
+    public StartedSpan startBy(final StartedTimer startedTimer) {
+        return TracingSpans.emptyStartedSpan(operationName);
     }
 
     @Override
@@ -84,7 +83,7 @@ final class EmptyPreparedTrace implements PreparedTrace {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final var that = (EmptyPreparedTrace) o;
+        final var that = (EmptyPreparedSpan) o;
         return Objects.equals(operationName, that.operationName);
     }
 
