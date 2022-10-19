@@ -49,7 +49,7 @@ public interface ConnectionConfigProvider {
      *
      * @param connectionId the connection id
      * @param dittoHeaders the DittoHeaders of the original command which woke up the connection supervisor actor.
-     * @param subscriber the subscriber that will receive {@link org.eclipse.ditto.base.model.signals.events.Event}s
+     * @param subscriber the supervisor actor of the connection interested in these {@link org.eclipse.ditto.base.model.signals.events.Event}s
      * @return a future that succeeds or fails depending on whether registration was successful.
      */
     CompletionStage<Void> registerForConnectivityConfigChanges(ConnectionId connectionId,
@@ -57,7 +57,9 @@ public interface ConnectionConfigProvider {
 
     /**
      * Returns {@code true} if the implementation can handle the given {@code event} to generate a modified {@link
-     * ConnectivityConfig} when passed to {@link #handleEvent(Event, akka.actor.ActorRef)}.
+     * ConnectivityConfig} when passed to {@link #handleEvent(Event, akka.actor.ActorRef, akka.actor.ActorRef)}.
+     * Returns {@code true} if the implementation can handle the given {@code event} to generate a modified {@link ConnectivityConfig}
+     * when passed to {@link #handleEvent(org.eclipse.ditto.base.model.signals.events.Event, akka.actor.ActorRef, akka.actor.ActorRef)}.
      *
      * @param event the event that may be used to generate modified config
      * @return {@code true} if the event is compatible
@@ -68,9 +70,10 @@ public interface ConnectionConfigProvider {
      * Uses the given {@code event} to create a config which should overwrite the default connectivity config.
      *
      * @param event the event used to create a config which should overwrite the default connectivity config.
-     * In case of Hub params changed, a null value is passed, which will invoke unconditional connection restart
-     * @param subscriber the actor that potentially will receive a command from this handler.
+     * In case of changed connection credentialsHub, a null value should be passed.
+     * @param supervisorActor the supervisor actor of the connection interested in these {@link org.eclipse.ditto.base.model.signals.events.Event}s
+     * @param persistenceActor the persistence actor of the connection
      */
-    void handleEvent(Event<?> event, ActorRef subscriber);
+    void handleEvent(Event<?> event, ActorRef supervisorActor, @Nullable ActorRef persistenceActor);
 
 }

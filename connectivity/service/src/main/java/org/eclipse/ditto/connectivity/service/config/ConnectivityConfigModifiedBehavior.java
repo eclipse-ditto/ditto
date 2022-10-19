@@ -12,6 +12,10 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
+import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.signals.events.Event;
 
 import com.typesafe.config.Config;
@@ -30,23 +34,25 @@ public interface ConnectivityConfigModifiedBehavior extends Actor {
     * Injectable behavior to handle an {@code Event} that transports config changes.
     * This involves modified credentials for Hono-connections as well.
     *
-    * @param subscriber the actor that potentially will receive a command message after handling the event.
+    * @param supervisorActor the actor that potentially will receive a command message after handling the event.
     * @return behavior to handle an {@code Event} that transports config changes.
     */
-    default AbstractActor.Receive connectivityConfigModifiedBehavior(ActorRef subscriber) {
+    default AbstractActor.Receive connectivityConfigModifiedBehavior(ActorRef supervisorActor, Supplier<ActorRef> persistenceActorSupplier) {
         return ReceiveBuilder.create()
-                .match(Event.class, event -> getConnectivityConfigProvider().canHandle(event), event -> handleEvent(event, subscriber))
+                .match(Event.class, getConnectivityConfigProvider()::canHandle,
+                        event -> handleEvent(event, supervisorActor, persistenceActorSupplier.get()))
                 .build();
     }
 
     /**
      * Handles the received event by converting it to a {@link Config}.
      *
-     * @param subscriber the actor that potentially will receive a command message from this handler.
+     * @param supervisorActor the connection supervisor actor reference
+     * @param persistenceActor the connection persistence actor reference
      * @param event the received event
      */
-    default void handleEvent(final Event<?> event, ActorRef subscriber) {
-        getConnectivityConfigProvider().handleEvent(event, subscriber);
+    default void handleEvent(final Event<?> event, ActorRef supervisorActor, @Nullable ActorRef persistenceActor) {
+        getConnectivityConfigProvider().handleEvent(event, supervisorActor, persistenceActor);
     }
 
     /**

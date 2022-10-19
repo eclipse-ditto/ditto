@@ -30,6 +30,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionUnavailableException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.LoggingExpired;
@@ -152,7 +153,7 @@ public final class ConnectionSupervisorActor
                     isRegisteredForConnectivityConfigChanges = true;
                 })
                 .build()
-                .orElse(connectivityConfigModifiedBehavior(getSelf()))
+                .orElse(connectivityConfigModifiedBehavior(getSelf(), () -> persistenceActorChild))
                 .orElse(super.activeBehaviour(matchProcessNextTwinMessageBehavior, matchAnyBehavior));
     }
 
@@ -327,6 +328,45 @@ public final class ConnectionSupervisorActor
         public Config getModifiedConfig() {
             return modifiedConfig;
         }
+        @Override
+        public boolean equals(@Nullable final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
 
+            final RestartConnection that = (RestartConnection) o;
+            return Objects.equals(modifiedConfig, that.modifiedConfig);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(modifiedConfig);
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" +
+                    ", modifiedConfig=" + modifiedConfig +
+                    "]";
+        }
+    }
+
+    /**
+     * Signals the persistence actor to initiate restart of itself if its type is equal to the specified connectionType.
+     */
+    public static class RestartByConnectionType {
+
+        private final ConnectionType connectionType;
+
+        public RestartByConnectionType(ConnectionType connectionType) {
+            this.connectionType = connectionType;
+        }
+
+        public ConnectionType getConnectionType() {
+            return connectionType;
+        }
     }
 }

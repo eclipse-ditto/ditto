@@ -683,6 +683,7 @@ public final class ConnectionPersistenceActor
                 .matchEquals(Control.CHECK_LOGGING_ACTIVE, this::checkLoggingEnabled)
                 .matchEquals(Control.TRIGGER_UPDATE_PRIORITY, this::triggerUpdatePriority)
                 .match(UpdatePriority.class, this::updatePriority)
+                .match(ConnectionSupervisorActor.RestartByConnectionType.class, this::initiateRestartByConnectionType)
 
                 // maintain client actor refs
                 .match(ClientActorRefs.class, this::syncClientActorRefs)
@@ -690,6 +691,17 @@ public final class ConnectionPersistenceActor
                 .match(Terminated.class, this::removeClientActor)
                 .build()
                 .orElse(super.matchAnyAfterInitialization());
+    }
+
+    private void initiateRestartByConnectionType(
+            final ConnectionSupervisorActor.RestartByConnectionType restartByConnectionType) {
+        if (entity.getConnectionType().equals(restartByConnectionType.getConnectionType())) {
+            sender().tell(ConnectionSupervisorActor.RestartConnection.of(null), self());
+            log.info("Restart command sent to ConnectionSupervisorActor {}.", sender());
+        } else {
+            log.info("Skipping restart of non-{} connection {}.",
+                    restartByConnectionType.getConnectionType(), entityId);
+        }
     }
 
     @Override
@@ -815,10 +827,12 @@ public final class ConnectionPersistenceActor
             origin.tell(TestConnectionResponse.alreadyCreated(entityId, command.getDittoHeaders()), self);
         } else {
             final TestConnection testConnection;
-            TestConnection testConnectionUnresolved = (TestConnection) command.getCommand().setDittoHeaders(headersWithDryRun);
+            TestConnection testConnectionUnresolved =
+                    (TestConnection) command.getCommand().setDittoHeaders(headersWithDryRun);
             if (testConnectionUnresolved.getConnection().getConnectionType() == ConnectionType.HONO) {
                 testConnection = TestConnection.of(
-                        honoConnectionFactory.getHonoConnection(testConnectionUnresolved.getConnection()), headersWithDryRun);
+                        honoConnectionFactory.getHonoConnection(testConnectionUnresolved.getConnection()),
+                        headersWithDryRun);
             } else {
                 testConnection = testConnectionUnresolved;
             }
@@ -1251,7 +1265,7 @@ public final class ConnectionPersistenceActor
     }
 
     /**
-     * Local message this actor may sent to itself in order to update the priority of the connection.
+     * Local message this actor may send to itself in order to update the priority of the connection.
      */
     @Immutable
     static final class UpdatePriority implements WithDittoHeaders {

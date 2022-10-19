@@ -20,6 +20,7 @@ import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.INS
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException;
+import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.RecoveryStatus;
@@ -117,11 +119,13 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                     "ditto.extensions.custom-connectivity-command-interceptor-provider",
                     MockCommandValidator.class.getName(),
                     "ditto.extensions.hono-connection-factory",
-                    ConfigValueFactory.fromAnyRef("org.eclipse.ditto.connectivity.service.messaging.hono.DefaultHonoConnectionFactory"),
+                    ConfigValueFactory.fromAnyRef(
+                            "org.eclipse.ditto.connectivity.service.messaging.hono.DefaultHonoConnectionFactory"),
                     "ditto.connectivity.hono.base-uri", ConfigValueFactory.fromAnyRef("tcp://localhost:9922"),
                     "ditto.connectivity.hono.validate-certificates", ConfigValueFactory.fromAnyRef("false"),
                     "ditto.connectivity.hono.sasl-mechanism", ConfigValueFactory.fromAnyRef("PLAIN"),
-                    "ditto.connectivity.hono.bootstrap-servers", ConfigValueFactory.fromAnyRef("tcp://server1:port1,tcp://server2:port2,tcp://server3:port3")
+                    "ditto.connectivity.hono.bootstrap-servers",
+                    ConfigValueFactory.fromAnyRef("tcp://server1:port1,tcp://server2:port2,tcp://server3:port3")
             )).withFallback(TestConstants.CONFIG));
 
     @Rule
@@ -214,10 +218,49 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 .build());
         expectMockClientActorMessage(testConnectionWithDryRunHeader);
         mockClientActorProbe.reply(new Status.Success("mock"));
-        testProbe.expectMsg(TestConnectionResponse.success(honoConnection.getId(), "mock", testConnection.getDittoHeaders()));
+        testProbe.expectMsg(
+                TestConnectionResponse.success(honoConnection.getId(), "mock", testConnection.getDittoHeaders()));
     }
 
-    private static Connection generateConnectionObjectFromJsonFile( String fileName) throws IOException {
+    @Test
+    public void testRestartByConnectionType() throws IOException {
+        // GIVEN
+        final var honoConnection = generateConnectionObjectFromJsonFile("hono-connection-custom-test.json");
+        mockClientActorProbe.setAutoPilot(new TestActor.AutoPilot() {
+            @Override
+            public TestActor.AutoPilot run(final ActorRef sender, final Object msg) {
+                if (msg instanceof WithSender<?> withSender && withSender.getMessage() instanceof OpenConnection) {
+                    sender.tell(new Status.Success("connected"), mockClientActorProbe.ref());
+                }
+                return keepRunning();
+            }
+        });
+        final var testProbe = actorSystemResource1.newTestProbe();
+        final var connectionActorProps = Props.create(ConnectionPersistenceActor.class,
+                () -> new ConnectionPersistenceActor(connectionId,
+                        commandForwarderActor,
+                        pubSubMediatorProbe.ref(),
+                        Trilean.TRUE,
+                        ConfigFactory.empty()));
+
+        final var underTest = actorSystemResource1.newActor(connectionActorProps, connectionId.toString());
+        underTest.tell(createConnection(honoConnection), testProbe.ref());
+        testProbe.expectMsgClass(CreateConnectionResponse.class);
+
+        Arrays.stream(ConnectionType.values()).forEach(connectionType -> {
+            // WHEN
+            underTest.tell(new ConnectionSupervisorActor.RestartByConnectionType(connectionType), testProbe.ref());
+
+            // THEN
+            if (connectionType == honoConnection.getConnectionType()) {
+                testProbe.expectMsg(ConnectionSupervisorActor.RestartConnection.of(null));
+            } else {
+                testProbe.expectNoMsg();
+            }
+        });
+    }
+
+    private static Connection generateConnectionObjectFromJsonFile(String fileName) throws IOException {
         final var testClassLoader = DefaultHonoConnectionFactoryTest.class.getClassLoader();
         try (final var connectionJsonFileStreamReader = new InputStreamReader(
                 testClassLoader.getResourceAsStream(fileName)
