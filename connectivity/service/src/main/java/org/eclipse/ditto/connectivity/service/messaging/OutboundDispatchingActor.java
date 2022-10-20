@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
-import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -44,11 +43,9 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.CoordinatedShutdown;
-import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
 
 /**
  * This Actor makes the decision whether to dispatch outbound signals and their acknowledgements or to drop them.
@@ -90,6 +87,7 @@ final class OutboundDispatchingActor extends AbstractActor {
                 .match(DittoRuntimeException.class, this::forwardWithoutCheck)
                 .match(Signal.class, this::handleSignal)
                 .match(Terminated.class, this::actorTerminated)
+                .matchEquals(AcknowledgementForwarderActor.Control.ACKNOWLEDGEMENT_FORWARDED, this::ackForwarded)
                 .matchEquals(Control.SHUTDOWN, this::gracefulShutdown)
                 .matchAny(message -> logger.warning("Unknown message: <{}>", message))
                 .build();
@@ -181,8 +179,8 @@ final class OutboundDispatchingActor extends AbstractActor {
                             entityId,
                             signal,
                             settings.getAcknowledgementConfig(),
-                            this::isSourceDeclaredOrTargetIssuedAck
-                    );
+                            this::isSourceDeclaredOrTargetIssuedAck,
+                            getSelf());
             acksCounter.register(signalWithAckForwarder, getContext());
             return signalWithAckForwarder.first();
         } else {
@@ -197,6 +195,14 @@ final class OutboundDispatchingActor extends AbstractActor {
 
     private void actorTerminated(final Terminated event) {
         acksCounter.terminated(event);
+        if (acksCounter.shouldTerminateOutboundDispatchingActor()) {
+            logger.debug("All tasks done, shutting down");
+            getContext().stop(getSelf());
+        }
+    }
+
+    private void ackForwarded(final AcknowledgementForwarderActor.Control trigger) {
+        acksCounter.countDown(getSender());
         if (acksCounter.shouldTerminateOutboundDispatchingActor()) {
             logger.debug("All tasks done, shutting down");
             getContext().stop(getSelf());
@@ -227,17 +233,6 @@ final class OutboundDispatchingActor extends AbstractActor {
         if (ackForwarderOptional.isPresent()) {
             final var acknowledgementForwarder = ackForwarderOptional.get();
             acknowledgementForwarder.forward(responseOrAck, context);
-            acksCounter.countDown(acknowledgementForwarder);
-            if (acksCounter.shouldTerminateOutboundDispatchingActor()) {
-                logger.debug("Terminating after dispatching the last acknowledgement");
-                // wait for ack forwarder to process the final response or acknowledgement before stopping self
-                final Duration shutdownTimeout = Duration.ofMinutes(2);
-                final var ping = AcknowledgementForwarderActor.Control.PING;
-                final var poisonPillFuture =
-                        Patterns.ask(acknowledgementForwarder, ping, shutdownTimeout)
-                                .handle((result, error) -> PoisonPill.getInstance());
-                Patterns.pipe(poisonPillFuture, getContext().dispatcher()).to(getSelf());
-            }
         } else {
             final var forwarderActorClassName = AcknowledgementForwarderActor.class.getSimpleName();
             final var template = "No {} found. Forwarding signal to proxy actor: <{}>";

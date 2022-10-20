@@ -21,6 +21,8 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
@@ -132,7 +134,7 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
         ActorRef actorRef = null;
         if (hasEffectiveAckRequests(signal, acknowledgementRequests)) {
             try {
-                actorRef = startAckForwarderActor(dittoHeaders);
+                actorRef = startAckForwarderActor(dittoHeaders, null);
             } catch (final InvalidActorNameException e) {
                 // In case that the actor with that name already existed, the correlation-id was already used recently:
                 declineAllNonDittoAckRequests(getDuplicateCorrelationIdException(e));
@@ -149,17 +151,18 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
      * start because no acknowledgement was requested.
      */
     public Optional<String> getConflictFree() {
-        return getConflictFreeWithActorRef().map(Pair::first);
+        return getConflictFreeWithActorRef(null).map(Pair::first);
     }
 
     /**
      * Start an acknowledgement forwarder.
      * Always succeeds.
      *
+     * @param notificationReceiver receiver of notifications when an acknowledgement is received.
      * @return the new correlation ID togeether with the started forwarder if an ack forwarder started, or an empty
      * optional if the ack forwarder did not start because no acknowledgement was requested.
      */
-    public Optional<Pair<String, ActorRef>> getConflictFreeWithActorRef() {
+    public Optional<Pair<String, ActorRef>> getConflictFreeWithActorRef(@Nullable final ActorRef notificationReceiver) {
         if (hasEffectiveAckRequests(signal, acknowledgementRequests)) {
             final DittoHeadersBuilder<?, ?> builder = dittoHeaders.toBuilder()
                     .acknowledgementRequests(acknowledgementRequests);
@@ -170,7 +173,8 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
             while (true) {
                 try {
                     builder.correlationId(correlationId);
-                    return Optional.of(Pair.create(correlationId, startAckForwarderActor(builder.build())));
+                    return Optional.of(Pair.create(correlationId,
+                            startAckForwarderActor(builder.build(), notificationReceiver)));
                 } catch (final InvalidActorNameException e) {
                     // generate a new ID
                     correlationId = joinPrefixAndCounter(prefix, ++counter);
@@ -206,9 +210,10 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
         return Pair.create(UUID.randomUUID().toString(), -1);
     }
 
-    private ActorRef startAckForwarderActor(final DittoHeaders dittoHeaders) {
+    private ActorRef startAckForwarderActor(final DittoHeaders dittoHeaders,
+            @Nullable final ActorRef notificationReceiver) {
         final Props props = AcknowledgementForwarderActor.props(commandForwarder, dittoHeaders,
-                acknowledgementConfig.getForwarderFallbackTimeout());
+                acknowledgementConfig.getForwarderFallbackTimeout(), notificationReceiver);
         return actorRefFactory.actorOf(props, AcknowledgementForwarderActor.determineActorName(dittoHeaders));
     }
 
@@ -234,7 +239,7 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
         } else {
             LOGGER.withCorrelationId(headers)
                     .error("Received DittoRuntimeException <{}> did not contain header of acknowledgement aggregator " +
-                                    "address: {}", dittoRuntimeException.getClass().getSimpleName(), headers);
+                            "address: {}", dittoRuntimeException.getClass().getSimpleName(), headers);
         }
     }
 
