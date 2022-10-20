@@ -15,21 +15,19 @@ package org.eclipse.ditto.internal.utils.tracing.span;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.KamonTagSetConverter;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartInstant;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 
 import kamon.Kamon;
-import kamon.tag.Lookups;
-import kamon.tag.Tag;
 import kamon.trace.Span;
 import kamon.trace.SpanBuilder;
-import scala.jdk.javaapi.CollectionConverters;
 
 /**
  * Kamon based implementation of {@code PreparedSpan}.
@@ -80,35 +78,21 @@ final class PreparedKamonSpan implements PreparedSpan {
     }
 
     @Override
-    public PreparedKamonSpan tag(final String key, final String value) {
-        spanBuilder.tag(checkNotNull(key, "key"), checkNotNull(value, "value"));
+    public PreparedKamonSpan tag(final Tag tag) {
+        checkNotNull(tag, "tag");
+        spanBuilder.tag(tag.getKey(), tag.getValue());
         return this;
     }
 
     @Override
-    public PreparedKamonSpan tags(final Map<String, String> tags) {
-        checkNotNull(tags, "tags");
-        tags.forEach(this::tag);
+    public PreparedKamonSpan tags(final TagSet tags) {
+        spanBuilder.tag(KamonTagSetConverter.getKamonTagSet(tags));
         return this;
     }
 
     @Override
-    public Optional<String> getTag(final String key) {
-        checkNotNull(key, "key");
-        final var tags = spanBuilder.tags();
-        return Optional.ofNullable(tags.get(Lookups.plain(key)));
-    }
-
-    @Override
-    public Map<String, String> getTags() {
-        final var tagSet = spanBuilder.tags();
-        return CollectionConverters.asJava(tagSet.all())
-                .stream()
-                .collect(Collectors.toMap(Tag::key, PreparedKamonSpan::getTagValueAsString));
-    }
-
-    private static String getTagValueAsString(final Tag tag) {
-        return String.valueOf(Tag.unwrapValue(tag));
+    public TagSet getTagSet() {
+        return KamonTagSetConverter.getDittoTagSet(spanBuilder.tags());
     }
 
     @Override
@@ -131,7 +115,7 @@ final class PreparedKamonSpan implements PreparedSpan {
         checkNotNull(startedTimer, "startedTimer");
         final var result = startAt(startedTimer.getStartInstant());
         startedTimer.onStop(stoppedTimer -> {
-            result.tags(stoppedTimer.getTags());
+            result.tags(stoppedTimer.getTagSet());
             result.finishAfter(stoppedTimer.getDuration());
         });
         return result;

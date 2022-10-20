@@ -75,7 +75,7 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
-import org.eclipse.ditto.internal.utils.tracing.span.SpanTags;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
@@ -485,7 +485,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                                             signal.getDittoHeaders(),
                                             SpanOperationName.of("gw_streaming_in_signal")
                                     )
-                                    .tag(SpanTags.SIGNAL_TYPE, signal.getType())
+                                    .tag(SpanTagKey.SIGNAL_TYPE.getTagForValue(signal.getType()))
                                     .start();
                             result = Right.apply(
                                     Right.apply(

@@ -12,15 +12,14 @@
  */
 package org.eclipse.ditto.internal.utils.tracing.span;
 
-import java.util.Collections;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartInstant;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 
@@ -41,23 +40,18 @@ final class EmptyPreparedSpan implements PreparedSpan {
     }
 
     @Override
-    public EmptyPreparedSpan tag(final String key, final String value) {
+    public EmptyPreparedSpan tag(final Tag tag) {
         return this;
     }
 
     @Override
-    public EmptyPreparedSpan tags(final Map<String, String> tags) {
+    public EmptyPreparedSpan tags(final TagSet tags) {
         return this;
     }
 
     @Override
-    public Optional<String> getTag(final String key) {
-        return Optional.empty();
-    }
-
-    @Override
-    public Map<String, String> getTags() {
-        return Collections.emptyMap();
+    public TagSet getTagSet() {
+        return TagSet.empty();
     }
 
     @Override

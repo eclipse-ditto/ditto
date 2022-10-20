@@ -27,7 +27,7 @@ import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
-import org.eclipse.ditto.internal.utils.tracing.span.SpanTags;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
@@ -90,7 +90,7 @@ public interface SessionedJsonifiable {
                         signal.getDittoHeaders(),
                         SpanOperationName.of("gw_streaming_out_signal")
                 )
-                .tag(SpanTags.SIGNAL_TYPE, signal.getType())
+                .tag(SpanTagKey.SIGNAL_TYPE.getTagForValue(signal.getType()))
                 .start();
         return new SessionedSignal(
                 signal.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(signal.getDittoHeaders()))),
@@ -131,7 +131,7 @@ public interface SessionedJsonifiable {
                         response.getDittoHeaders(),
                         SpanOperationName.of("gw_streaming_out_response")
                 )
-                .tag(SpanTags.SIGNAL_TYPE, response.getType())
+                .tag(SpanTagKey.SIGNAL_TYPE.getTagForValue(response.getType()))
                 .start();
         return new SessionedResponseErrorOrAck(
                 response.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(response.getDittoHeaders()))),

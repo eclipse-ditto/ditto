@@ -43,7 +43,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
-import org.eclipse.ditto.internal.utils.tracing.span.SpanTags;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonValue;
 
@@ -545,7 +545,7 @@ public abstract class AbstractPersistenceActor<
                         event.getDittoHeaders(),
                         SpanOperationName.of("persist_event")
                 )
-                .tag(SpanTags.SIGNAL_TYPE, event.getType())
+                .tag(SpanTagKey.SIGNAL_TYPE.getTagForValue(event.getType()))
                 .start();
 
         persist(

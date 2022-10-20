@@ -15,7 +15,9 @@ package org.eclipse.ditto.gateway.service.endpoints.directives;
 import static akka.http.javadsl.server.Directives.extractRequest;
 import static akka.http.javadsl.server.Directives.mapRequest;
 import static akka.http.javadsl.server.Directives.mapRouteResult;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.net.URI;
 import java.text.MessageFormat;
 import java.util.Map;
 import java.util.Set;
@@ -26,12 +28,15 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.TraceUriGenerator;
+import org.eclipse.ditto.internal.utils.tracing.TraceInformationGenerator;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
-import org.eclipse.ditto.internal.utils.tracing.span.SpanTags;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 
 import akka.http.javadsl.model.HttpHeader;
@@ -48,15 +53,12 @@ import akka.http.javadsl.server.RouteResult;
 @Immutable
 public final class RequestTracingDirective {
 
-    private final Set<SpanOperationName> disabledSpanOperationNames;
-    private final TraceUriGenerator traceUriGenerator;
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(RequestTracingDirective.class);
 
-    private RequestTracingDirective(
-            final Set<SpanOperationName> disabledSpanOperationNames,
-            final TraceUriGenerator traceUriGenerator
-    ) {
+    private final Set<SpanOperationName> disabledSpanOperationNames;
+
+    private RequestTracingDirective(final Set<SpanOperationName> disabledSpanOperationNames) {
         this.disabledSpanOperationNames = Set.copyOf(disabledSpanOperationNames);
-        this.traceUriGenerator = traceUriGenerator;
     }
 
     /**
@@ -70,10 +72,7 @@ public final class RequestTracingDirective {
     public static RequestTracingDirective newInstanceWithDisabled(
             final Set<SpanOperationName> disabledSpanOperationNames
     ) {
-        return new RequestTracingDirective(
-                ConditionChecker.checkNotNull(disabledSpanOperationNames, "disabledSpanOperationNames"),
-                TraceUriGenerator.getInstance()
-        );
+        return new RequestTracingDirective(checkNotNull(disabledSpanOperationNames, "disabledSpanOperationNames"));
     }
 
     /**
@@ -88,31 +87,46 @@ public final class RequestTracingDirective {
      * @throws NullPointerException if {@code inner} is {@code null}.
      */
     public Route traceRequest(final Supplier<Route> innerRouteSupplier, @Nullable final CharSequence correlationId) {
-        ConditionChecker.checkNotNull(innerRouteSupplier, "innerRouteSupplier");
+        checkNotNull(innerRouteSupplier, "innerRouteSupplier");
         return extractRequest(request -> {
             final Route result;
-            final var operationName = resolveSpanOperationName(request);
+            @Nullable final var operationName = tryToResolveSpanOperationName(request, correlationId);
             if (isTracingDisabledForOperationName(operationName)) {
                 result = innerRouteSupplier.get();
             } else {
                 result = getRouteWithEnabledTracing(
                         startTrace(getHttpHeadersAsMap(request.getHeaders()), operationName, correlationId),
                         request,
-                        innerRouteSupplier
+                        innerRouteSupplier,
+                        correlationId
                 );
             }
             return result;
         });
     }
 
-    private SpanOperationName resolveSpanOperationName(final HttpRequest httpRequest) {
+    @Nullable // internally working with null to avoid creating many Optionals
+    private static SpanOperationName tryToResolveSpanOperationName(
+            final HttpRequest httpRequest,
+            @Nullable final CharSequence correlationId
+    ) {
+        try {
+            return resolveSpanOperationName(httpRequest);
+        } catch (final IllegalArgumentException e) {
+            LOGGER.withCorrelationId(correlationId).warn("Failed to resolve span operation name: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private static SpanOperationName resolveSpanOperationName(final HttpRequest httpRequest) {
         return SpanOperationName.of(
                 MessageFormat.format("{0} {1}", getTraceUri(httpRequest), getRequestMethodName(httpRequest))
         );
     }
 
-    private String getTraceUri(final HttpRequest httpRequest) {
-        final var traceInformation = traceUriGenerator.apply(String.valueOf(getRelativeUri(httpRequest)));
+    private static URI getTraceUri(final HttpRequest httpRequest) {
+        final var traceInformationGenerator = TraceInformationGenerator.getInstance();
+        final var traceInformation = traceInformationGenerator.apply(String.valueOf(getRelativeUri(httpRequest)));
         return traceInformation.getTraceUri();
     }
 
@@ -126,8 +140,8 @@ public final class RequestTracingDirective {
         return httpMethod.name();
     }
 
-    private boolean isTracingDisabledForOperationName(final SpanOperationName traceOperationName) {
-        return disabledSpanOperationNames.contains(traceOperationName);
+    private boolean isTracingDisabledForOperationName(@Nullable final SpanOperationName traceOperationName) {
+        return null == traceOperationName || disabledSpanOperationNames.contains(traceOperationName);
     }
 
     private static Map<String, String> getHttpHeadersAsMap(final Iterable<HttpHeader> httpHeaders) {
@@ -148,8 +162,8 @@ public final class RequestTracingDirective {
     private static Route getRouteWithEnabledTracing(
             final StartedSpan startedTrace,
             final HttpRequest httpRequest,
-            final Supplier<Route> innerRouteSupplier
-    ) {
+            final Supplier<Route> innerRouteSupplier,
+            @Nullable final CharSequence correlationId) {
         return mapRequest(
                 req -> addIfHeaderExists(
                         req,
@@ -158,7 +172,7 @@ public final class RequestTracingDirective {
                         DittoHeaderDefinition.W3C_TRACESTATE
                 ),
                 () -> mapRouteResult(
-                        routeResult -> tryToHandleRouteResult(routeResult, httpRequest, startedTrace),
+                        routeResult -> tryToHandleRouteResult(routeResult, httpRequest, startedTrace, correlationId),
                         innerRouteSupplier
                 )
         );
@@ -183,10 +197,10 @@ public final class RequestTracingDirective {
     private static RouteResult tryToHandleRouteResult(
             @Nullable final RouteResult routeResult,
             final HttpRequest httpRequest,
-            final StartedSpan startedTrace
-    ) {
+            final StartedSpan startedTrace,
+            @Nullable final CharSequence correlationId) {
         try {
-            handleRouteResult(routeResult, httpRequest, startedTrace);
+            handleRouteResult(routeResult, httpRequest, startedTrace, correlationId);
         } catch (final Exception e) {
             startedTrace.fail(e);
         } finally {
@@ -198,10 +212,10 @@ public final class RequestTracingDirective {
     private static void handleRouteResult(
             @Nullable final RouteResult routeResult,
             final HttpRequest httpRequest,
-            final StartedSpan startedTrace
-    ) {
+            final StartedSpan startedTrace,
+            @Nullable final CharSequence correlationId) {
         if (routeResult instanceof Complete complete) {
-            addRequestResponseTags(startedTrace, httpRequest, complete.getResponse());
+            addRequestResponseTags(startedTrace, httpRequest, complete.getResponse(), correlationId);
         } else if (null != routeResult) {
             startedTrace.fail("Request rejected: " + routeResult.getClass().getName());
         } else {
@@ -212,19 +226,57 @@ public final class RequestTracingDirective {
     private static void addRequestResponseTags(
             final StartedSpan startedTrace,
             final HttpRequest httpRequest,
-            final HttpResponse httpResponse
-    ) {
-        startedTrace.tag(SpanTags.REQUEST_METHOD, getRequestMethodName(httpRequest));
-        startedTrace.tag(
-                SpanTags.REQUEST_PATH,
-                String.valueOf(RequestLoggingFilter.filterUri(getRelativeUri(httpRequest)))
-        );
-        startedTrace.tag(SpanTags.STATUS_CODE, getResponseStatusCode(httpResponse));
+            final HttpResponse httpResponse,
+            @Nullable final CharSequence correlationId) {
+        startedTrace.tag(SpanTagKey.REQUEST_METHOD_NAME.getTagForValue(getRequestMethodName(httpRequest)));
+        @Nullable final var relativeRequestUri = tryToGetRelativeRequestUri(httpRequest, correlationId);
+        if (null != relativeRequestUri) {
+            startedTrace.tag(SpanTagKey.REQUEST_URI.getTagForValue(relativeRequestUri));
+        }
+        @Nullable final var httpStatus = tryToGetResponseHttpStatus(httpResponse, correlationId);
+        if (null != httpStatus) {
+            startedTrace.tag(SpanTagKey.HTTP_STATUS.getTagForValue(httpStatus));
+        }
     }
 
-    private static int getResponseStatusCode(final HttpResponse httpResponse) {
+    @Nullable
+    private static URI tryToGetRelativeRequestUri(
+            final HttpRequest httpRequest,
+            @Nullable final CharSequence correlationId
+    ) {
+        try {
+            return getRelativeRequestUri(httpRequest);
+        } catch (final IllegalArgumentException e) {
+            LOGGER.withCorrelationId(correlationId)
+                    .info("Failed to get {} for HTTP response: {}", URI.class.getSimpleName(), e.getMessage());
+            return null;
+        }
+    }
+
+    private static URI getRelativeRequestUri(final HttpRequest httpRequest) {
+        final var filteredRelativeRequestUri = RequestLoggingFilter.filterUri(getRelativeUri(httpRequest));
+        return URI.create(filteredRelativeRequestUri.getPathString());
+    }
+
+    @Nullable
+    private static HttpStatus tryToGetResponseHttpStatus(
+            final HttpResponse httpResponse,
+            @Nullable final CharSequence correlationId
+    ) {
+        try {
+            return getResponseHttpStatus(httpResponse);
+        } catch (final HttpStatusCodeOutOfRangeException e) {
+            LOGGER.withCorrelationId(correlationId)
+                    .info("Failed to get {} for HTTP response: {}", HttpStatus.class.getSimpleName(), e.getMessage());
+            return null;
+        }
+    }
+
+    private static HttpStatus getResponseHttpStatus(final HttpResponse httpResponse)
+            throws HttpStatusCodeOutOfRangeException {
+
         final var statusCode = httpResponse.status();
-        return statusCode.intValue();
+        return HttpStatus.getInstance(statusCode.intValue());
     }
 
 }

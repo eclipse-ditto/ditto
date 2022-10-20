@@ -17,25 +17,26 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.concurrent.TimeUnit;
 
 import org.assertj.core.data.Percentage;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.junit.Before;
 import org.junit.Test;
 
 public final class PreparedKamonTimerTest {
 
-    private PreparedTimer sut;
+    private PreparedTimer underTest;
 
     @Before
     public void setup() {
-        sut = PreparedKamonTimer.newTimer("TestTimer");
-        sut.reset();
+        underTest = PreparedKamonTimer.newTimer("TestTimer");
+        underTest.reset();
     }
 
     @Test
     public void getRecords() {
-        sut.record(1, TimeUnit.SECONDS);
-        sut.record(5, TimeUnit.NANOSECONDS);
+        underTest.record(1, TimeUnit.SECONDS);
+        underTest.record(5, TimeUnit.NANOSECONDS);
 
-        final Long totalTime = sut.getTotalTime();
+        final Long totalTime = underTest.getTotalTime();
 
         final long expectedTotalTime = TimeUnit.SECONDS.toNanos(1) + TimeUnit.NANOSECONDS.toNanos(5);
         assertThat(totalTime).isCloseTo(expectedTotalTime, Percentage.withPercentage(1));
@@ -43,48 +44,46 @@ public final class PreparedKamonTimerTest {
 
     @Test
     public void getRecordsDoesNotResetRecords() {
-        sut.record(1, TimeUnit.SECONDS);
-        assertThat(sut.getTotalTime()).isPositive();
-        assertThat(sut.getTotalTime()).isPositive();
+        underTest.record(1, TimeUnit.SECONDS);
+        assertThat(underTest.getTotalTime()).isPositive();
+        assertThat(underTest.getTotalTime()).isPositive();
     }
 
     @Test
     public void reset() {
-        sut.record(1, TimeUnit.SECONDS);
-        assertThat(sut.getTotalTime()).isCloseTo(TimeUnit.SECONDS.toNanos(1), Percentage.withPercentage(1));
-        sut.reset();
-        assertThat(sut.getTotalTime()).isZero();
+        underTest.record(1, TimeUnit.SECONDS);
+        assertThat(underTest.getTotalTime()).isCloseTo(TimeUnit.SECONDS.toNanos(1), Percentage.withPercentage(1));
+        underTest.reset();
+        assertThat(underTest.getTotalTime()).isZero();
     }
 
     @Test
     public void taggingWorks() {
-        sut.tag("stringTag", "2");
-        sut.tag("longTag", 2L);
-        sut.tag("booleanTag", true);
-        sut.tag("doubleTag", 2.0);
+        final var stringTag = Tag.of("stringTag", "2");
+        final var booleanTag = Tag.of("booleanTag", true);
 
-        assertThat(sut.getTags()).hasSize(4);
-        assertThat(sut.getTag("stringTag")).hasValue("2");
-        assertThat(sut.getTag("longTag")).hasValue("2");
-        assertThat(sut.getTag("booleanTag")).hasValue("true");
-        assertThat(sut.getTag("doubleTag")).hasValue("2.0");
+        underTest.tag(stringTag);
+        underTest.tag(booleanTag);
+
+        assertThat(underTest.getTagSet()).containsOnly(stringTag, booleanTag);
     }
 
     @Test
-    public void startedTimerHasSameNameAndSameTags() {
-        sut.tag("TEST", "someValue");
-        final StartedTimer start = sut.start();
+    public void startedTimerHasSameNameAndExpectedTags() {
+        final var testTag = Tag.of("TEST", "someValue");
+        underTest.tag(testTag);
+        final var startedTimer = underTest.start();
 
-        assertThat(start.getTags().keySet()).hasSize(2);
-        assertThat(start.getTag("segment")).hasValue("overall");
-        assertThat(start.getTag("TEST")).hasValue("someValue");
-        assertThat(start.getName()).isEqualTo(sut.getName());
+        assertThat(startedTimer.getName()).as("name").isEqualTo(underTest.getName());
+        assertThat(startedTimer.getTagSet())
+                .as("tags")
+                .containsOnly(testTag, Tag.of("segment", "overall"));
     }
 
     @Test
     public void canStartMultipleTimes() {
-        final var started1 = sut.start();
-        final var started2 = sut.start();
+        final var started1 = underTest.start();
+        final var started2 = underTest.start();
 
         assertThat(started1.getStartInstant()).isNotEqualTo(started2.getStartInstant());
     }

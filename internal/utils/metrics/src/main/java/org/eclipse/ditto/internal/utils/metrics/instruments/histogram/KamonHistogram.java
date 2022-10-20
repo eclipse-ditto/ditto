@@ -14,19 +14,19 @@ package org.eclipse.ditto.internal.utils.metrics.instruments.histogram;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.KamonTagSetConverter;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kamon.Kamon;
 import kamon.metric.Distribution;
-import kamon.tag.TagSet;
 import scala.collection.Seq;
 import scala.jdk.javaapi.CollectionConverters;
 
@@ -38,39 +38,30 @@ public final class KamonHistogram implements Histogram {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KamonHistogram.class);
 
-    private final Map<String, String> tags;
     private final String name;
+    private final TagSet tags;
 
-    private KamonHistogram(final String name, final Map<String, String> tags) {
+    private KamonHistogram(final String name, final TagSet tags) {
         this.name = name;
-        this.tags = Collections.unmodifiableMap(new HashMap<>(tags));
+        this.tags = tags;
     }
 
     public static Histogram newHistogram(final String name) {
-        return new KamonHistogram(name, Collections.emptyMap());
+        return new KamonHistogram(name, TagSet.empty());
     }
 
     @Override
-    public Histogram tag(final String key, final String value) {
-        final HashMap<String, String> newMap = new HashMap<>(tags);
-        newMap.put(key, value);
-        return new KamonHistogram(name, newMap);
+    public Histogram tag(final Tag tag) {
+        return new KamonHistogram(name, tags.putTag(tag));
     }
 
     @Override
-    public Histogram tags(final Map<String, String> tags) {
-        final HashMap<String, String> newMap = new HashMap<>(this.tags);
-        newMap.putAll(tags);
-        return new KamonHistogram(name, newMap);
+    public Histogram tags(final TagSet tags) {
+        return new KamonHistogram(name, this.tags.putAllTags(tags));
     }
 
     @Override
-    public Optional<String> getTag(final String key) {
-        return Optional.ofNullable(tags.get(key));
-    }
-
-    @Override
-    public Map<String, String> getTags() {
+    public TagSet getTagSet() {
         return tags;
     }
 
@@ -119,7 +110,7 @@ public final class KamonHistogram implements Histogram {
     }
 
     private kamon.metric.Histogram getKamonInternalHistogram() {
-        return Kamon.histogram(name).withTags(TagSet.from(new HashMap<>(tags)));
+        return Kamon.histogram(name).withTags(KamonTagSetConverter.getKamonTagSet(tags));
     }
 
     @Override

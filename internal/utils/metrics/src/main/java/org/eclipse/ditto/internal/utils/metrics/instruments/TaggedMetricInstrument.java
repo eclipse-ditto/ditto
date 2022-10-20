@@ -12,8 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.metrics.instruments;
 
-import java.util.Map;
-import java.util.Optional;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 
 /**
  * {@link MetricInstrument} which is able to be tagged with keys and values and can the tags can be read from.
@@ -23,19 +22,10 @@ import java.util.Optional;
 public interface TaggedMetricInstrument<T extends MetricInstrument> extends TaggableMetricsInstrument<T> {
 
     /**
-     * Gets the value of the tag with the given key.
+     * Returns all tags of this TaggableMetricsInstrument.
      *
-     * @param key the key of the tag.
-     * @return an Optional containing the value of the tag with the given key or an empty Optional if no value is
-     * associated with {@code key}.
+     * @return all tags.
      */
-    Optional<String> getTag(String key);
-
-    /**
-     * Gets the map containing all tags.
-     *
-     * @return All tags.
-     */
-    Map<String, String> getTags();
+    TagSet getTagSet();
 
 }

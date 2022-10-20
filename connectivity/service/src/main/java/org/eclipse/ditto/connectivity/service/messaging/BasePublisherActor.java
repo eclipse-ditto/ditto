@@ -78,7 +78,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapt
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
-import org.eclipse.ditto.internal.utils.tracing.span.SpanTags;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
@@ -476,7 +476,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                             SpanOperationName.of(connection.getConnectionType() + "_publish")
                     )
                     .connectionId(connection.getId())
-                    .tag(SpanTags.CONNECTION_TYPE, connection.getConnectionType().toString())
+                    .tag(SpanTagKey.CONNECTION_TYPE.getTagForValue(connection.getConnectionType()))
                     .start();
             final var mappedMessageWithTraceContext =
                     mappedMessage.withHeaders(startedSpan.propagateContext(mappedMessage.getHeaders()));

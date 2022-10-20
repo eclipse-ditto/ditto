@@ -19,19 +19,22 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.Timers;
 import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
 import org.eclipse.ditto.internal.utils.tracing.span.KamonTracingInitResource;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 import org.eclipse.ditto.internal.utils.tracing.span.TestSpanReporter;
 import org.eclipse.ditto.internal.utils.tracing.span.TracingSpans;
-import org.eclipse.ditto.internal.utils.tracing.span.SpanTags;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -220,12 +223,12 @@ public final class DittoTracingTest {
         final var preparedSpan = DittoTracing.newPreparedSpan(allHeaders, operationName);
 
         try (final var softly = new AutoCloseableSoftAssertions()) {
-            softly.assertThat(preparedSpan.getTags())
+            softly.assertThat(preparedSpan.getTagSet())
                     .as("tags")
                     .containsOnly(
-                            Map.entry(SpanTags.CORRELATION_ID, correlationId),
-                            Map.entry(SpanTags.CONNECTION_ID, connectionId),
-                            Map.entry(SpanTags.ENTITY_ID, entityId)
+                            SpanTagKey.CORRELATION_ID.getTagForValue(correlationId),
+                            SpanTagKey.CONNECTION_ID.getTagForValue(connectionId),
+                            SpanTagKey.ENTITY_ID.getTagForValue(entityId)
                     );
             softly.assertThat(preparedSpan.start())
                     .satisfies(startedSpan -> softly.assertThat((CharSequence) startedSpan.getOperationName())
@@ -238,10 +241,7 @@ public final class DittoTracingTest {
     public void newStartedSpanByTimerWhenTracingIsEnabledReturnsExpectedStartedSpan() {
         DittoTracing.init(tracingConfigMock);
         final var operationName = SpanOperationName.of(testName.getMethodName());
-        final var timerTags = Map.of(
-                "foo", "bar",
-                "marco", "polo"
-        );
+        final var timerTags = TagSet.ofTagCollection(List.of(Tag.of("foo", "bar"), Tag.of("marco", "polo")));
         final var startedTimer = Timers.newTimer(operationName.toString()).tags(timerTags).start();
         final var dittoHeaders = DittoHeaders.newBuilder().correlationId(operationName).build();
         final var spanReporter = TestSpanReporter.newInstance();
@@ -260,14 +260,13 @@ public final class DittoTracingTest {
             softly.assertThat(tagsForSpanFuture)
                     .as("tags")
                     .succeedsWithin(Duration.ofSeconds(2L))
-                    .satisfies(actualTags -> {
-                        softly.assertThat(actualTags)
-                                .containsAllEntriesOf(timerTags)
-                                .containsEntry(
-                                        SpanTags.CORRELATION_ID,
-                                        dittoHeaders.getCorrelationId().orElseThrow()
-                                );
-                    });
+                    .satisfies(actualTags -> softly.assertThat(actualTags)
+                            .containsAll(timerTags)
+                            .contains(
+                                    SpanTagKey.CORRELATION_ID.getTagForValue(
+                                            dittoHeaders.getCorrelationId().orElseThrow()
+                                    )
+                            ));
             softly.assertThat(startInstantForSpanFuture)
                     .as("start instant")
                     .succeedsWithin(Duration.ofSeconds(2L))

@@ -21,11 +21,12 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.KamonTagSetConverter;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
+
 import com.typesafe.config.Config;
 
 import kamon.module.SpanReporter;
-import kamon.tag.Tag;
-import kamon.tag.TagSet;
 import kamon.trace.Identifier;
 import kamon.trace.Span;
 import scala.collection.immutable.Seq;
@@ -38,7 +39,7 @@ import scala.collection.immutable.Seq;
 @NotThreadSafe
 public final class TestSpanReporter implements SpanReporter {
 
-    private final Map<SpanId, CompletableFuture<Map<String, String>>> tagsOfSpanFutures;
+    private final Map<SpanId, CompletableFuture<TagSet>> tagsOfSpanFutures;
     private final Map<SpanId, CompletableFuture<Instant>> startInstantOfSpanFutures;
 
     private TestSpanReporter() {
@@ -51,8 +52,8 @@ public final class TestSpanReporter implements SpanReporter {
         return new TestSpanReporter();
     }
 
-    public CompletionStage<Map<String, String>> getTagsForSpanWithId(final SpanId spanId) {
-        final var result = new CompletableFuture<Map<String, String>>();
+    public CompletionStage<TagSet> getTagsForSpanWithId(final SpanId spanId) {
+        final var result = new CompletableFuture<TagSet>();
         tagsOfSpanFutures.put(spanId, result);
         return result;
     }
@@ -87,27 +88,17 @@ public final class TestSpanReporter implements SpanReporter {
         return SpanId.of(identifier.string());
     }
 
-    private void completeTagsOfSpan(final SpanId spanId, final TagSet tags) {
+    private void completeTagsOfSpan(final SpanId spanId, final kamon.tag.TagSet kamonTagSet) {
         @Nullable final var tagsFuture = tagsOfSpanFutures.remove(spanId);
         if (null != tagsFuture) {
-            tagsFuture.complete(getTagsAsMap(tags));
+            tagsFuture.complete(KamonTagSetConverter.getDittoTagSet(kamonTagSet));
         }
-    }
-
-    private static Map<String, String> getTagsAsMap(final TagSet tags) {
-        final Map<String, String> result = new HashMap<>();
-        final var iterator = tags.iterator();
-        while (iterator.hasNext()) {
-            final var next = iterator.next();
-            result.put(next.key(), String.valueOf(Tag.unwrapValue(next)));
-        }
-        return result;
     }
 
     private void completeStartInstantOfSpan(final SpanId spanId, final Instant startInstant) {
         @Nullable final var startInstantFuture = startInstantOfSpanFutures.remove(spanId);
         if (null != startInstantFuture) {
-            startInstantFuture.complete((startInstant));
+            startInstantFuture.complete(startInstant);
         }
     }
 

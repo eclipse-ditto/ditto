@@ -69,9 +69,7 @@ public final class StartedKamonSpanTest {
     public void taggingWorks() {
         assertThatNoException().isThrownBy(() -> {
             underTest.tag("stringTag", "2");
-            underTest.tag("longTag", 2L);
             underTest.tag("booleanTag", true);
-            underTest.tag("doubleTag", 2.0);
         });
     }
 

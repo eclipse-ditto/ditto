@@ -19,6 +19,10 @@ import static org.eclipse.ditto.gateway.service.endpoints.utils.HttpUtils.getRaw
 import java.time.Duration;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.api.GatewayServiceUnavailableException;
@@ -28,7 +32,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StoppedTimer;
 import org.eclipse.ditto.internal.utils.tracing.TraceUtils;
-import org.eclipse.ditto.internal.utils.tracing.span.SpanTags;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 import org.slf4j.Logger;
 
 import akka.http.javadsl.model.ContentTypes;
@@ -83,7 +87,11 @@ public final class RequestTimeoutHandlingDirective {
                     final Supplier<Route> innerWithTimer = () -> Directives.mapResponse(response -> {
                         final int statusCode = response.status().intValue();
                         if (timer.isRunning()) {
-                            final StoppedTimer stoppedTimer = timer.tag(SpanTags.STATUS_CODE, statusCode).stop();
+                            @Nullable final var httpStatus = tryToGetResponseHttpStatus(response, logger);
+                            if (null != httpStatus) {
+                                timer.tag(SpanTagKey.HTTP_STATUS.getTagForValue(httpStatus));
+                            }
+                            final var stoppedTimer = timer.stop();
                             logger.debug("Finished timer <{}> with status <{}>.", timer, statusCode);
                             checkDurationWarning(stoppedTimer, logger);
                         }
@@ -96,19 +104,47 @@ public final class RequestTimeoutHandlingDirective {
         ));
     }
 
-    private static void checkDurationWarning(final StoppedTimer mutableTimer, final Logger logger) {
-        final Duration duration = mutableTimer.getDuration();
-        final String requestPath = mutableTimer.getTag(SpanTags.REQUEST_PATH);
+    @Nullable
+    private static HttpStatus tryToGetResponseHttpStatus(
+            final HttpResponse httpResponse,
+            final ThreadSafeDittoLogger logger
+    ) {
+        try {
+            return getResponseHttpStatus(httpResponse);
+        } catch (final HttpStatusCodeOutOfRangeException e) {
+            logger.info("Failed to get {} for HTTP response: {}", HttpStatus.class.getSimpleName(), e.getMessage());
+            return null;
+        }
+    }
 
-        if (requestPath != null && requestPath.contains("/search/things")) {
+    private static HttpStatus getResponseHttpStatus(final HttpResponse httpResponse)
+            throws HttpStatusCodeOutOfRangeException {
+
+        final var statusCode = httpResponse.status();
+        return HttpStatus.getInstance(statusCode.intValue());
+    }
+
+    private static void checkDurationWarning(final StoppedTimer mutableTimer, final Logger logger) {
+        final var duration = mutableTimer.getDuration();
+
+        if (isThingsSearchRequest(mutableTimer)) {
             if (SEARCH_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
-                logger.warn("Encountered slow search which took over <{}> ms: <{}> ms!", SEARCH_WARN_TIMEOUT_MS.toMillis(),
+                logger.warn("Encountered slow search which took over <{}> ms: <{}> ms!",
+                        SEARCH_WARN_TIMEOUT_MS.toMillis(),
                         duration.toMillis());
             }
         } else if (HTTP_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
             logger.warn("Encountered slow HTTP request which took over <{}> ms: <{}> ms!",
-                    HTTP_WARN_TIMEOUT_MS.toMillis(), duration.toMillis());
+                    HTTP_WARN_TIMEOUT_MS.toMillis(),
+                    duration.toMillis());
         }
+    }
+
+    private static boolean isThingsSearchRequest(final StoppedTimer stoppedTimer) {
+        final var stoppedTimerTagSet = stoppedTimer.getTagSet();
+        return stoppedTimerTagSet.getTagValue(SpanTagKey.REQUEST_URI.toString())
+                .filter(requestUriString -> requestUriString.contains("/search/things"))
+                .isPresent();
     }
 
     private HttpResponse doHandleRequestTimeout(final CharSequence correlationId,
@@ -124,20 +160,21 @@ public final class RequestTimeoutHandlingDirective {
 
         /* We have to log and create a trace here because the RequestResultLoggingDirective won't be called by akka
            in case of a timeout */
-        final int statusCode = cre.getHttpStatus().getCode();
+        final var httpStatus = cre.getHttpStatus();
 
         final String requestMethod = request.method().name();
         final String requestUri = request.getUri().toRelative().toString();
         logger.warn("Request <{} {}> timed out after <{}>!", requestMethod, requestUri,
                 httpConfig.getRequestTimeout());
-        logger.info("Status code of request <{} {}> was <{}>.", requestMethod, requestUri, statusCode);
+        logger.info("Status code of request <{} {}> was <{}>.", requestMethod, requestUri, httpStatus.getCode());
         final String rawRequestUri = getRawRequestUri(request);
         logger.debug("Raw request URI was <{}>.", rawRequestUri);
 
         if (timer.isRunning()) {
-            timer.tag(SpanTags.STATUS_CODE, statusCode)
-                    .stop();
-            logger.debug("Finished mutable timer <{}> after a request timeout with status <{}>", timer, statusCode);
+            timer.tag(SpanTagKey.HTTP_STATUS.getTagForValue(httpStatus));
+            timer.stop();
+            logger.debug("Finished mutable timer <{}> after a request timeout with status <{}>", timer,
+                    httpStatus.getCode());
         } else {
             logger.warn("Wanted to stop() timer which was already stopped indicating that a requestTimeout" +
                     " was detected where it should not have been");
@@ -148,7 +185,7 @@ public final class RequestTimeoutHandlingDirective {
          * called by akka in case of a timeout.
          */
         return HttpResponse.create()
-                .withStatus(statusCode)
+                .withStatus(httpStatus.getCode())
                 .withEntity(ContentTypes.APPLICATION_JSON, ByteString.fromString(cre.toJsonString()));
     }
 

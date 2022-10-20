@@ -21,6 +21,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 
 /**
  * An empty noop implementation of {@code StartedSpan} interface.
@@ -39,12 +41,12 @@ final class EmptyStartedSpan implements StartedSpan {
     }
 
     @Override
-    public StartedSpan tag(final String key, final String value) {
+    public EmptyStartedSpan tag(final Tag tag) {
         return this;
     }
 
     @Override
-    public StartedSpan tags(final Map<String, String> tags) {
+    public EmptyStartedSpan tags(final TagSet tags) {
         return this;
     }
 

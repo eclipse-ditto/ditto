@@ -27,7 +27,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
-import org.eclipse.ditto.internal.utils.tracing.TraceUriGenerator;
+import org.eclipse.ditto.internal.utils.tracing.TraceInformationGenerator;
 import org.eclipse.ditto.internal.utils.tracing.span.PreparedSpan;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
@@ -68,7 +68,7 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
         assertInstancesOf(
                 RequestTracingDirective.class,
                 areImmutable(),
-                provided(TraceUriGenerator.class).isAlsoImmutable(),
+                provided(TraceInformationGenerator.class).isAlsoImmutable(),
                 assumingFields("disabledSpanOperationNames")
                         .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements()
         );

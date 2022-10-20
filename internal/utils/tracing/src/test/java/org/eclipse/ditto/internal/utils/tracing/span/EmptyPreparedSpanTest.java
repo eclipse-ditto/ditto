@@ -61,4 +61,11 @@ public final class EmptyPreparedSpanTest {
         assertThat((CharSequence) startedSpan.getOperationName()).isEqualTo(operationName);
     }
 
+    @Test
+    public void getTagSetReturnsAnEmptyTagSet() {
+        final var underTest = EmptyPreparedSpan.newInstance(SpanOperationName.of(testName.getMethodName()));
+
+        assertThat(underTest.getTagSet()).isEmpty();
+    }
+
 }

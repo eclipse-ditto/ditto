@@ -25,7 +25,7 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.TaggableMetricsInstr
 public interface SpanTagging<T extends TaggableMetricsInstrument<T>> extends TaggableMetricsInstrument<T> {
 
     /**
-     * Adds a {@link SpanTags#CORRELATION_ID} tag to the span.
+     * Adds a {@link SpanTagKey#CORRELATION_ID} tag to the span.
      *
      * @param correlationId the correlation ID to add to the span
      * @return the new TaggedMetricInstrument instance containing the tag.
@@ -35,13 +35,13 @@ public interface SpanTagging<T extends TaggableMetricsInstrument<T>> extends Tag
         if (null == correlationId) {
             result = self();
         } else {
-            result = tag(SpanTags.CORRELATION_ID, correlationId.toString());
+            result = tag(SpanTagKey.CORRELATION_ID.getTagForValue(correlationId.toString()));
         }
         return result;
     }
 
     /**
-     * Adds a {@link SpanTags#CONNECTION_ID} tag to the span.
+     * Adds a {@link SpanTagKey#CONNECTION_ID} tag to the span.
      *
      * @param connectionId the connection ID to add to the span.
      * @return the new TaggedMetricInstrument instance containing the tag.
@@ -51,13 +51,13 @@ public interface SpanTagging<T extends TaggableMetricsInstrument<T>> extends Tag
         if (null == connectionId) {
             result = self();
         } else {
-            result = tag(SpanTags.CONNECTION_ID, connectionId.toString());
+            result = tag(SpanTagKey.CONNECTION_ID.getTagForValue(connectionId));
         }
         return result;
     }
 
     /**
-     * Puts the specified entity ID as value for {@link SpanTags#ENTITY_ID} tag to the span.
+     * Puts the specified entity ID as value for {@link SpanTagKey#ENTITY_ID} tag to the span.
      *
      * @param entityId the entity ID to put to the span.
      * @return this instance to allow method chaining.
@@ -67,7 +67,7 @@ public interface SpanTagging<T extends TaggableMetricsInstrument<T>> extends Tag
         if (null == entityId) {
             result = self();
         } else {
-            result = tag(SpanTags.ENTITY_ID, entityId.toString());
+            result = tag(SpanTagKey.ENTITY_ID.getTagForValue(entityId));
         }
         return result;
     }

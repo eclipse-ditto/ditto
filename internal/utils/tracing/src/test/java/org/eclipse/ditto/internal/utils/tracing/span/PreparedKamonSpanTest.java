@@ -16,9 +16,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartInstant;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.Timers;
 import org.junit.Before;
@@ -57,49 +60,16 @@ public final class PreparedKamonSpanTest {
 
     @Test
     public void setSingleTagWorks() {
-        final var stringTagKey = "stringTag";
-        final var stringTagValue = "2";
-        final var longTagKey = "longTag";
-        final var longTagValue = Long.valueOf(2L);
-        final var booleanTagKey = "booleanTag";
-        final var booleanTagValue = Boolean.TRUE;
-        final var doubleTagKey = "doubleTag";
-        final var doubleTagValue = Double.valueOf(2.0);
+        final var tagSet = TagSet.ofTagCollection(List.of(
+                Tag.of("stringTag", "2"),
+                Tag.of("longTag", 2L),
+                Tag.of("booleanTag", true),
+                Tag.of("doubleTag", Double.toString(2.0D))
+        ));
 
-        underTest.tag(stringTagKey, stringTagValue);
-        underTest.tag(longTagKey, longTagValue);
-        underTest.tag(booleanTagKey, booleanTagValue);
-        underTest.tag(doubleTagKey, doubleTagValue);
+        tagSet.forEach(underTest::tag);
 
-        assertThat(underTest.getTags())
-                .containsOnly(
-                        Map.entry(stringTagKey, stringTagValue),
-                        Map.entry(longTagKey, longTagValue.toString()),
-                        Map.entry(booleanTagKey, booleanTagValue.toString()),
-                        Map.entry(doubleTagKey, doubleTagValue.toString())
-                );
-    }
-
-    @Test
-    public void getTagWithNullKeyThrowsNullPointerException() {
-        assertThatNullPointerException()
-                .isThrownBy(() -> underTest.getTag(null))
-                .withMessage("The key must not be null!")
-                .withNoCause();
-    }
-
-    @Test
-    public void getTagForKeyWithNoAssociatedValueReturnsEmptyOptional() {
-        assertThat(underTest.getTag("foo")).isEmpty();
-    }
-
-    @Test
-    public void getTagForKeyWithAssociatedValueReturnsOptionalContainingThatValue() {
-        final var key = "foo";
-        final var value = "bar";
-        underTest.tag(key, value);
-
-        assertThat(underTest.getTag(key)).hasValue(value);
+        assertThat(underTest.getTagSet()).isEqualTo(tagSet);
     }
 
     @Test
@@ -112,11 +82,11 @@ public final class PreparedKamonSpanTest {
         underTest.connectionId(connectionId);
         underTest.entityId(entityId);
 
-        assertThat(underTest.getTags())
+        assertThat(underTest.getTagSet())
                 .containsOnly(
-                        Map.entry(SpanTags.CORRELATION_ID, correlationId),
-                        Map.entry(SpanTags.CONNECTION_ID, connectionId),
-                        Map.entry(SpanTags.ENTITY_ID, entityId)
+                        SpanTagKey.CORRELATION_ID.getTagForValue(correlationId),
+                        SpanTagKey.CONNECTION_ID.getTagForValue(connectionId),
+                        SpanTagKey.ENTITY_ID.getTagForValue(entityId)
                 );
     }
 
@@ -126,7 +96,7 @@ public final class PreparedKamonSpanTest {
         underTest.connectionId(null);
         underTest.entityId(null);
 
-        assertThat(underTest.getTags()).isEmpty();
+        assertThat(underTest.getTagSet()).isEmpty();
     }
 
     @Test
@@ -138,32 +108,21 @@ public final class PreparedKamonSpanTest {
     }
 
     @Test
-    public void tagsPutsKeysAndValuesOfSpecifiedMapToTagsOfPreparedKamonSpan() {
+    public void tagsPutsKeysAndValuesOfSpecifiedTagSetToTagsOfPreparedKamonSpan() {
         final var stringTagKey = "stringTag";
-        final var longTagKey = "longTag";
         final var booleanTagKey = "booleanTag";
-        final var doubleTagKey = "doubleTag";
-        final var stringTagKeyEntry = Map.entry(stringTagKey, "Tardis");
-        final var longTagKeyEntry = Map.entry(longTagKey, "23");
-        final var booleanTagKeyEntry = Map.entry(booleanTagKey, "true");
-        final var doubleTagKeyEntry = Map.entry(doubleTagKey, "4.2");
-        final var fooEntry = Map.entry("foo", "bar");
-        underTest.tag(stringTagKey, "stringTag");
-        underTest.tag(longTagKey, 1L);
-        underTest.tag(booleanTagKey, false);
-        underTest.tag(doubleTagKey, 1.2);
-        underTest.tag(fooEntry.getKey(), fooEntry.getValue());
+        final var tardisTag = Tag.of(stringTagKey, "Tardis");
+        final var trueBooleanTag = Tag.of(booleanTagKey, "true");
+        final var stringTag = Tag.of(stringTagKey, "stringTag");
+        final var booleanTag = Tag.of(booleanTagKey, false);
+        final var fooTag = Tag.of("foo", "bar");
+        underTest.tag(stringTag);
+        underTest.tag(booleanTag);
+        underTest.tag(fooTag);
 
-        underTest.tags(Map.ofEntries(stringTagKeyEntry, longTagKeyEntry, booleanTagKeyEntry, doubleTagKeyEntry));
+        underTest.tags(TagSet.ofTagCollection(List.of(tardisTag, trueBooleanTag)));
 
-        assertThat(underTest.getTags())
-                .containsOnly(
-                        stringTagKeyEntry,
-                        longTagKeyEntry,
-                        booleanTagKeyEntry,
-                        doubleTagKeyEntry,
-                        fooEntry
-                );
+        assertThat(underTest.getTagSet()).containsOnly(tardisTag, trueBooleanTag, fooTag);
     }
 
     @Test
@@ -173,10 +132,8 @@ public final class PreparedKamonSpanTest {
 
     @Test
     public void startReturnsStartedSpanWithExpectedTags() {
-        underTest.tags(Map.of(
-                "foo", "bar",
-                "ping", "pong",
-                "marco", "polo"
+        underTest.tags(TagSet.ofTagCollection(
+                List.of(Tag.of("foo", "bar"), Tag.of("ping", "pong"), Tag.of("marco", "polo"))
         ));
         final var spanReporter = TestSpanReporter.newInstance();
         Kamon.addReporter("mySpanReporter", spanReporter);
@@ -188,17 +145,15 @@ public final class PreparedKamonSpanTest {
 
         assertThat(tagsForSpanFuture)
                 .succeedsWithin(Duration.ofSeconds(1L))
-                .isEqualTo(underTest.getTags());
+                .isEqualTo(underTest.getTagSet());
     }
 
     @SuppressWarnings("java:S2925")
     @Test
     public void startAtReturnsStartedSpanWithExpectedTagsAndStartInstant() throws InterruptedException {
         final var startInstant = StartInstant.now();
-        underTest.tags(Map.of(
-                "foo", "bar",
-                "ping", "pong",
-                "marco", "polo"
+        underTest.tags(TagSet.ofTagCollection(
+                List.of(Tag.of("foo", "bar"), Tag.of("ping", "pong"), Tag.of("marco", "polo"))
         ));
         final var spanReporter = TestSpanReporter.newInstance();
         Kamon.addReporter("mySpanReporter", spanReporter);
@@ -214,7 +169,7 @@ public final class PreparedKamonSpanTest {
             softly.assertThat(tagsForSpanFuture)
                     .as("tags")
                     .succeedsWithin(Duration.ofSeconds(2L))
-                    .isEqualTo(underTest.getTags());
+                    .isEqualTo(underTest.getTagSet());
             softly.assertThat(startInstantForSpanFuture)
                     .as("start instant")
                     .succeedsWithin(Duration.ofSeconds(2L))
@@ -227,10 +182,8 @@ public final class PreparedKamonSpanTest {
         final var spanReporter = TestSpanReporter.newInstance();
         Kamon.addReporter("mySpanReporter", spanReporter);
         final var startedTimer = Timers.newTimer(testName.getMethodName())
-                .tags(Map.of(
-                        "foo", "bar",
-                        "ping", "pong",
-                        "marco", "polo"
+                .tags(TagSet.ofTagCollection(
+                        List.of(Tag.of("foo", "bar"), Tag.of("ping", "pong"), Tag.of("marco", "polo"))
                 ))
                 .start();
 
@@ -241,7 +194,7 @@ public final class PreparedKamonSpanTest {
 
         assertThat(tagsForSpanFuture)
                 .succeedsWithin(Duration.ofSeconds(1L))
-                .isEqualTo(startedTimer.getTags());
+                .isEqualTo(startedTimer.getTagSet());
     }
 
 }

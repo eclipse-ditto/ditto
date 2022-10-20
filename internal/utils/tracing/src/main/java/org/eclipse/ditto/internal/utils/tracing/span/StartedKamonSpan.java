@@ -20,6 +20,9 @@ import java.util.Map;
 
 import javax.annotation.concurrent.ThreadSafe;
 
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
+
 import kamon.context.Context;
 import kamon.trace.Span;
 
@@ -45,15 +48,16 @@ final class StartedKamonSpan implements StartedSpan {
     }
 
     @Override
-    public StartedSpan tag(final String key, final String value) {
-        span.tag(checkNotNull(key, "key"), checkNotNull(value, "value"));
+    public StartedSpan tag(final Tag tag) {
+        checkNotNull(tag, "tag");
+        span.tag(tag.getKey(), tag.getValue());
         return this;
     }
 
     @Override
-    public StartedSpan tags(final Map<String, String> tags) {
+    public StartedSpan tags(final TagSet tags) {
         checkNotNull(tags, "tags");
-        tags.forEach(this::tag);
+        tags.forEach(tag -> span.tag(tag.getKey(), tag.getValue()));
         return this;
     }
 

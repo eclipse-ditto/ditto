@@ -24,10 +24,11 @@ import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
-import org.eclipse.ditto.internal.utils.tracing.span.SpanTags;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.slf4j.Logger;
@@ -83,14 +84,18 @@ final class MappingTimer {
             final CharSequence messageDirection
     ) {
         return DittoMetrics.timer(TIMER_NAME)
-                .tag(SpanTags.CONNECTION_ID, connectionId.toString())
-                .tag(SpanTags.CONNECTION_TYPE, connectionType.getName())
+                .tag(SpanTagKey.CONNECTION_ID.getTagForValue(connectionId))
+                .tag(SpanTagKey.CONNECTION_TYPE.getTagForValue(connectionType.getName()))
                 .tag(DIRECTION_TAG_NAME, messageDirection.toString())
                 .onExpiration(expiredTimer -> {
                     LOGGER.warn("Mapping timer expired. This should not happen. Timer: <{}>", expiredTimer);
-                    expiredTimer.tag(SpanTags.MAPPING_SUCCESS, false);
+                    expiredTimer.tag(getMappingSuccessTag(false));
                 })
                 .start();
+    }
+
+    private static Tag getMappingSuccessTag(final boolean success) {
+        return Tag.of(SpanTagKey.KEY_PREFIX + "mapping.success", success);
     }
 
     /**
@@ -210,10 +215,12 @@ final class MappingTimer {
     private static <T> T timed(final StartedTimer startedTimer, final Supplier<T> supplier) {
         try {
             final var result = supplier.get();
-            startedTimer.tag(SpanTags.MAPPING_SUCCESS, true).stop();
+            startedTimer.tag(getMappingSuccessTag(true));
+            startedTimer.stop();
             return result;
         } catch (final Exception ex) {
-            startedTimer.tag(SpanTags.MAPPING_SUCCESS, false).stop();
+            startedTimer.tag(getMappingSuccessTag(false));
+            startedTimer.stop();
             throw ex;
         }
     }
