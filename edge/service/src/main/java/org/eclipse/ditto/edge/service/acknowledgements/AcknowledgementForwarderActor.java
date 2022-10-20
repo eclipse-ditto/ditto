@@ -62,12 +62,11 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
     private final ActorSelection commandForwarder;
     private final String correlationId;
     @Nullable private final String ackgregatorAddressFallback;
-    @Nullable private final ActorRef notificationReceiver;
     private final DittoDiagnosticLoggingAdapter log;
 
     @SuppressWarnings("unused")
     private AcknowledgementForwarderActor(final ActorSelection commandForwarder, final DittoHeaders dittoHeaders,
-            final Duration defaultTimeout, @Nullable final ActorRef notificationReceiver) {
+            final Duration defaultTimeout) {
 
         this.commandForwarder = commandForwarder;
         correlationId = dittoHeaders.getCorrelationId()
@@ -76,7 +75,6 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
                         getSelf().path().name().replace(ACTOR_NAME_PREFIX, "")
                 );
         ackgregatorAddressFallback = dittoHeaders.get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey());
-        this.notificationReceiver = notificationReceiver;
         log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
         getContext().setReceiveTimeout(dittoHeaders.getTimeout().orElse(defaultTimeout));
@@ -88,13 +86,11 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
      * @param commandForwarder the actor ref of the edge command forwarder actor.
      * @param dittoHeaders the DittoHeaders of the Signal which contained the request for Acknowledgements.
      * @param defaultTimeout the default timeout to apply when {@code dittoHeaders} did not contain a specific timeout.
-     * @param notificationReceiver receiver of notifications when an acknowledgement is received.
      * @return the Akka configuration Props object.
      */
     static Props props(final ActorSelection commandForwarder, final DittoHeaders dittoHeaders,
-            final Duration defaultTimeout, @Nullable final ActorRef notificationReceiver) {
-        return Props.create(AcknowledgementForwarderActor.class, commandForwarder, dittoHeaders, defaultTimeout,
-                notificationReceiver);
+            final Duration defaultTimeout) {
+        return Props.create(AcknowledgementForwarderActor.class, commandForwarder, dittoHeaders, defaultTimeout);
     }
 
     @Override
@@ -102,6 +98,7 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
         return receiveBuilder()
                 .match(CommandResponse.class, this::forwardCommandResponse)
                 .match(ReceiveTimeout.class, this::handleReceiveTimeout)
+                .matchEquals(Control.PING, ping -> getSender().tell(Control.PONG, getSelf()))
                 .matchAny(m -> log.warning("Received unexpected message: <{}>", m))
                 .build();
     }
@@ -124,7 +121,6 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
                             acknowledgementOrResponse.getClass().getSimpleName(), dittoHeaders);
             commandForwarder.tell(acknowledgementOrResponse, ActorRef.noSender());
         }
-        notifyReceiver();
     }
 
     private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {
@@ -191,7 +187,7 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
             final Predicate<AcknowledgementLabel> isAckLabelAllowed) {
 
         return startAcknowledgementForwarderForSignal(actorRefFactory, parent, commandForwarder, entityId, signal,
-                acknowledgementConfig, isAckLabelAllowed, null).first();
+                acknowledgementConfig, isAckLabelAllowed).first();
     }
 
     /**
@@ -208,7 +204,6 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
      * @param signal the signal for which acknowledgements are expected.
      * @param acknowledgementConfig the AcknowledgementConfig to use for looking up config values.
      * @param isAckLabelAllowed predicate for whether an ack label is allowed for publication at this channel.
-     * @param notificationReceiver receiver of notifications when acknowledgements are received.
      * @return the signal for which a suitable ack forwarder has started whenever required, and the actor reference
      * of the forwarder if it started.
      * @throws NullPointerException if any argument is {@code null}.
@@ -220,13 +215,12 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
             final EntityId entityId,
             final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig,
-            final Predicate<AcknowledgementLabel> isAckLabelAllowed,
-            @Nullable final ActorRef notificationReceiver) {
+            final Predicate<AcknowledgementLabel> isAckLabelAllowed) {
         final AcknowledgementForwarderActorStarter starter =
                 AcknowledgementForwarderActorStarter.getInstance(actorRefFactory, parent, commandForwarder, entityId,
                         signal, acknowledgementConfig, isAckLabelAllowed);
         final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = signal.getDittoHeaders().toBuilder();
-        final var forwarderOptional = starter.getConflictFreeWithActorRef(notificationReceiver);
+        final var forwarderOptional = starter.getConflictFreeWithActorRef();
         forwarderOptional.map(Pair::first).ifPresent(dittoHeadersBuilder::correlationId);
         if (!signal.getDittoHeaders().getAcknowledgementRequests().isEmpty()) {
             dittoHeadersBuilder.acknowledgementRequests(starter.getAllowedAckRequests());
@@ -234,16 +228,10 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
         return Pair.create(signal.setDittoHeaders(dittoHeadersBuilder.build()), forwarderOptional.map(Pair::second));
     }
 
-    private void notifyReceiver() {
-        if (notificationReceiver != null) {
-            notificationReceiver.tell(Control.ACKNOWLEDGEMENT_FORWARDED, getSelf());
-        }
-    }
-
     /**
-     * Notification for when an acknowledgement is forwarded.
+     * Ping command and response for the acknowledgement forwarder actor.
      */
     public enum Control {
-        ACKNOWLEDGEMENT_FORWARDED
+        PING, PONG
     }
 }
