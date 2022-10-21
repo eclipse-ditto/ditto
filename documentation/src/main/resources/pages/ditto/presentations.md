@@ -11,7 +11,7 @@ This page contains a collection of presentations, videos and workshops about Ecl
 
 Topic: Project status update of Eclipse Ditto
 
-The slides can be found here: [2022_10_24-eclipse-iot-wg-community-day](slides/2022_10_24-eclipse-iot-wg-community-day/index.html).
+The slides can be found here: [2022_10_24_eclipse-iot-wg-community-day](slides/2022_10_24_eclipse-iot-wg-community-day/index.html).
 
 
 ## 13.10.2022 Web of Things Community Meetup 1 - Digital Twins
