@@ -31,6 +31,7 @@ import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -159,9 +160,10 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 )
                 .tag("size", Integer.toString(thingIds.size()))
                 .start();
-        if (msgToAsk instanceof Signal<?> signal) {
-            tracedMsgToAsk =
-                    signal.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(signal.getDittoHeaders())));
+        if (msgToAsk instanceof DittoHeadersSettable<?> dittoHeadersSettable) {
+            tracedMsgToAsk = dittoHeadersSettable.setDittoHeaders(
+                    DittoHeaders.of(startedSpan.propagateContext(dittoHeadersSettable.getDittoHeaders()))
+            );
         } else {
             tracedMsgToAsk = msgToAsk;
         }
