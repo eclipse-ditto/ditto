@@ -56,8 +56,6 @@ public interface ConnectionConfigProvider {
             @Nullable DittoHeaders dittoHeaders, ActorRef subscriber);
 
     /**
-     * Returns {@code true} if the implementation can handle the given {@code event} to generate a modified {@link
-     * ConnectivityConfig} when passed to {@link #handleEvent(Event, akka.actor.ActorRef, akka.actor.ActorRef)}.
      * Returns {@code true} if the implementation can handle the given {@code event} to generate a modified {@link ConnectivityConfig}
      * when passed to {@link #handleEvent(org.eclipse.ditto.base.model.signals.events.Event, akka.actor.ActorRef, akka.actor.ActorRef)}.
      *
@@ -69,9 +67,8 @@ public interface ConnectionConfigProvider {
     /**
      * Uses the given {@code event} to create a config which should overwrite the default connectivity config.
      *
-     * @param event the event used to create a config which should overwrite the default connectivity config.
-     * In case of changed connection credentialsHub, a null value should be passed.
-     * @param supervisorActor the supervisor actor of the connection interested in these {@link org.eclipse.ditto.base.model.signals.events.Event}s
+     * @param event the event used to invoke restart of the connection due to some changes in its configuration
+     * @param supervisorActor the supervisor actor of the connection interested in these {@link Event}s
      * @param persistenceActor the persistence actor of the connection
      */
     void handleEvent(Event<?> event, ActorRef supervisorActor, @Nullable ActorRef persistenceActor);

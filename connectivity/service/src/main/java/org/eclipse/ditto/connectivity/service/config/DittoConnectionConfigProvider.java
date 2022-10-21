@@ -57,7 +57,8 @@ public class DittoConnectionConfigProvider implements ConnectionConfigProvider {
     }
 
     @Override
-    public void handleEvent(final Event<?> event, ActorRef supervisorActor, @Nullable ActorRef persistenceActor) {
+    public void handleEvent(final Event<?> event, final ActorRef supervisorActor,
+            @Nullable final ActorRef persistenceActor) {
         // By default not handled in Ditto
     }
 

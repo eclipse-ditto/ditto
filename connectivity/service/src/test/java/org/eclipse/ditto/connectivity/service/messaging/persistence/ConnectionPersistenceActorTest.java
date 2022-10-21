@@ -182,7 +182,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     public void testConnection() {
         //GIVEN
         final var connection = TestConstants.createConnection(connectionId);
-        var testConnection = TestConnection.of(connection, dittoHeadersWithCorrelationId);
+        final var testConnection = TestConnection.of(connection, dittoHeadersWithCorrelationId);
         final var testProbe = actorSystemResource1.newTestProbe();
         final var connectionSupervisorActor = createSupervisor();
 
@@ -190,7 +190,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         connectionSupervisorActor.tell(testConnection, testProbe.ref());
 
         //THEN
-        var testConnectionWithDryRunHeader = TestConnection.of(connection, dittoHeadersWithCorrelationId
+        final var testConnectionWithDryRunHeader = TestConnection.of(connection, dittoHeadersWithCorrelationId
                 .toBuilder()
                 .dryRun(true)
                 .build());
@@ -212,10 +212,11 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         connectionSupervisorActor.tell(testConnection, testProbe.ref());
 
         //THEN
-        var testConnectionWithDryRunHeader = TestConnection.of(expectedHonoConnection, dittoHeadersWithCorrelationId
-                .toBuilder()
-                .dryRun(true)
-                .build());
+        final var testConnectionWithDryRunHeader = TestConnection.of(expectedHonoConnection,
+                dittoHeadersWithCorrelationId
+                        .toBuilder()
+                        .dryRun(true)
+                        .build());
         expectMockClientActorMessage(testConnectionWithDryRunHeader);
         mockClientActorProbe.reply(new Status.Success("mock"));
         testProbe.expectMsg(
@@ -260,7 +261,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         });
     }
 
-    private static Connection generateConnectionObjectFromJsonFile(String fileName) throws IOException {
+    private static Connection generateConnectionObjectFromJsonFile(final String fileName) throws IOException {
         final var testClassLoader = DefaultHonoConnectionFactoryTest.class.getClassLoader();
         try (final var connectionJsonFileStreamReader = new InputStreamReader(
                 testClassLoader.getResourceAsStream(fileName)
@@ -274,7 +275,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     public void testConnectionCausingFailure() {
         //GIVEN
         final var connection = TestConstants.createConnection(connectionId);
-        var testConnection = TestConnection.of(connection, dittoHeadersWithCorrelationId);
+        final var testConnection = TestConnection.of(connection, dittoHeadersWithCorrelationId);
         final var testProbe = actorSystemResource1.newTestProbe();
         final var connectionSupervisorActor = createSupervisor();
 
@@ -282,7 +283,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         connectionSupervisorActor.tell(testConnection, testProbe.ref());
 
         //THEN
-        var testConnectionWithDryRunHeader = TestConnection.of(connection, dittoHeadersWithCorrelationId
+        final var testConnectionWithDryRunHeader = TestConnection.of(connection, dittoHeadersWithCorrelationId
                 .toBuilder()
                 .dryRun(true)
                 .build());
@@ -298,7 +299,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     public void testConnectionCausingException() {
         //GIVEN
         final var connection = TestConstants.createConnection(connectionId);
-        var testConnection = TestConnection.of(connection, dittoHeadersWithCorrelationId);
+        final var testConnection = TestConnection.of(connection, dittoHeadersWithCorrelationId);
         final var testProbe = actorSystemResource1.newTestProbe();
         final var connectionSupervisorActor = createSupervisor();
 
@@ -306,7 +307,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         connectionSupervisorActor.tell(testConnection, testProbe.ref());
 
         //THEN
-        var testConnectionWithDryRunHeader = TestConnection.of(connection, dittoHeadersWithCorrelationId
+        final var testConnectionWithDryRunHeader = TestConnection.of(connection, dittoHeadersWithCorrelationId
                 .toBuilder()
                 .dryRun(true)
                 .build());

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -320,14 +322,24 @@ public final class ConnectionSupervisorActor
             this.modifiedConfig = modifiedConfig;
         }
 
-        public static RestartConnection of(@Nullable Config modifiedConfig) {
+        /**
+         *
+         * @param modifiedConfig a new config to restart connection if changed or {@link null} to restart it unconditionally
+         * @return {@link RestartConnection} command class
+         */
+        public static RestartConnection of(@Nullable final Config modifiedConfig) {
             return new RestartConnection(modifiedConfig);
         }
 
+        /**
+         * Getter
+         * @return the modified config
+         */
         @Nullable
         public Config getModifiedConfig() {
             return modifiedConfig;
         }
+
         @Override
         public boolean equals(@Nullable final Object o) {
             if (this == o) {
@@ -357,14 +369,23 @@ public final class ConnectionSupervisorActor
     /**
      * Signals the persistence actor to initiate restart of itself if its type is equal to the specified connectionType.
      */
-    public static class RestartByConnectionType {
+    public static final class RestartByConnectionType {
 
         private final ConnectionType connectionType;
 
-        public RestartByConnectionType(ConnectionType connectionType) {
+        /**
+         * Constructor
+         * @param connectionType the desired connection type to filter by
+         */
+        public RestartByConnectionType(final ConnectionType connectionType) {
+            checkNotNull(connectionType, "connectionType");
             this.connectionType = connectionType;
         }
 
+        /**
+         * Getter
+         * @return the connection type
+         */
         public ConnectionType getConnectionType() {
             return connectionType;
         }

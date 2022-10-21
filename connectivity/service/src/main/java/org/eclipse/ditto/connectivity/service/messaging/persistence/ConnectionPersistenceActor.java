@@ -191,7 +191,7 @@ public final class ConnectionPersistenceActor
     private final ConnectivityCommandInterceptor commandValidator;
     private int subscriptionCounter = 0;
     private Instant connectionClosedAt = Instant.now();
-    private HonoConnectionFactory honoConnectionFactory;
+    private final HonoConnectionFactory honoConnectionFactory;
     @Nullable private Instant loggingEnabledUntil;
     @Nullable private ActorRef clientActorRouter;
     @Nullable private ActorRef clientActorRefsAggregationActor;
@@ -264,6 +264,7 @@ public final class ConnectionPersistenceActor
      *
      * @param connectionId the connection ID.
      * @param commandForwarderActor the actor used to send signals into the ditto cluster..
+     * @param pubSubMediator the pubSubMediator
      * @param connectivityConfigOverwrites the overwrites for the connectivity config for the given connection.
      * @return the Akka configuration Props object.
      */
@@ -695,6 +696,7 @@ public final class ConnectionPersistenceActor
 
     private void initiateRestartByConnectionType(
             final ConnectionSupervisorActor.RestartByConnectionType restartByConnectionType) {
+        checkNotNull(entity, "entity");
         if (entity.getConnectionType().equals(restartByConnectionType.getConnectionType())) {
             sender().tell(ConnectionSupervisorActor.RestartConnection.of(null), self());
             log.info("Restart command sent to ConnectionSupervisorActor {}.", sender());
@@ -827,7 +829,7 @@ public final class ConnectionPersistenceActor
             origin.tell(TestConnectionResponse.alreadyCreated(entityId, command.getDittoHeaders()), self);
         } else {
             final TestConnection testConnection;
-            TestConnection testConnectionUnresolved =
+            final TestConnection testConnectionUnresolved =
                     (TestConnection) command.getCommand().setDittoHeaders(headersWithDryRun);
             if (testConnectionUnresolved.getConnection().getConnectionType() == ConnectionType.HONO) {
                 testConnection = TestConnection.of(

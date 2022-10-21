@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -31,13 +33,17 @@ import akka.japi.pf.ReceiveBuilder;
 public interface ConnectivityConfigModifiedBehavior extends Actor {
 
     /**
-    * Injectable behavior to handle an {@code Event} that transports config changes.
-    * This involves modified credentials for Hono-connections as well.
-    *
-    * @param supervisorActor the actor that potentially will receive a command message after handling the event.
-    * @return behavior to handle an {@code Event} that transports config changes.
-    */
-    default AbstractActor.Receive connectivityConfigModifiedBehavior(ActorRef supervisorActor, Supplier<ActorRef> persistenceActorSupplier) {
+     * Injectable behavior to handle an {@code Event} that transports config changes.
+     * This involves modified credentials for Hono-connections as well.
+     *
+     * @param supervisorActor the actor that potentially will receive a command message after handling the event.
+     * @param persistenceActorSupplier a supplier of the actor that potentially will receive a command message after
+     * handling the event.
+     * @return behavior to handle an {@code Event} that transports config changes.
+     */
+    default AbstractActor.Receive connectivityConfigModifiedBehavior(final ActorRef supervisorActor,
+            final Supplier<ActorRef> persistenceActorSupplier) {
+        checkNotNull(persistenceActorSupplier);
         return ReceiveBuilder.create()
                 .match(Event.class, getConnectivityConfigProvider()::canHandle,
                         event -> handleEvent(event, supervisorActor, persistenceActorSupplier.get()))
@@ -51,7 +57,8 @@ public interface ConnectivityConfigModifiedBehavior extends Actor {
      * @param persistenceActor the connection persistence actor reference
      * @param event the received event
      */
-    default void handleEvent(final Event<?> event, ActorRef supervisorActor, @Nullable ActorRef persistenceActor) {
+    default void handleEvent(final Event<?> event, final ActorRef supervisorActor,
+            @Nullable final ActorRef persistenceActor) {
         getConnectivityConfigProvider().handleEvent(event, supervisorActor, persistenceActor);
     }
 
