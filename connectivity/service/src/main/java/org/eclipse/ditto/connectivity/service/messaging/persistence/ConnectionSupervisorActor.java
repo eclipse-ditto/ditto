@@ -324,7 +324,7 @@ public final class ConnectionSupervisorActor
 
         /**
          *
-         * @param modifiedConfig a new config to restart connection if changed or {@link null} to restart it unconditionally
+         * @param modifiedConfig a new config to restart connection if changed or {@code null} to restart it unconditionally
          * @return {@link RestartConnection} command class
          */
         public static RestartConnection of(@Nullable final Config modifiedConfig) {
