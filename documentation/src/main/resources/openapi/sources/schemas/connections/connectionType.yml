@@ -16,4 +16,5 @@ enum:
   - http-push
   - mqtt
   - mqtt-5
-  - kafka
+  - kafka,
+  - hono

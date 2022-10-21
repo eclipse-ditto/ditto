@@ -129,50 +129,46 @@ post:
       application/json:
         schema:
           $ref: '../../schemas/connections/newConnection.yml'
-        example: {
+        example:  {
           "name": "hono-example-connection-123",
-          "connectionType": "amqp-10",
+          "connectionType": "hono",
           "connectionStatus": "open",
-          "uri": "amqps://user:password@hono.eclipseprojects.io:5671",
           "sources": [
             {
               "addresses": [
-                "telemetry/FOO",
-                "..."
+                  "telemetry",
+                  "event",
+                  "..."
               ],
               "authorizationContext": [
-                "ditto:inbound-auth-subject",
-                "..."
+                  "ditto:inbound-auth-subject",
+                  "..."
               ],
               "consumerCount": 1,
               "enforcement": {
                 "input": "{{ header:device_id }}",
                 "filters": [
-                  "{{ thing:id }}"
+                    "{{ thing:id }}"
                 ]
               },
               "payloadMapping": [
-                "Ditto",
-                "..."
+                  "Ditto",
+                  "status"
               ]
             }
           ],
           "targets": [
             {
-              "address": "events/twin",
+              "address": "command",
               "topics": [
-                "_/_/things/twin/events"
+                  "_/_/things/twin/events"
               ],
               "authorizationContext": [
-                "ditto:outbound-auth-subject",
-                "..."
+                  "ditto:outbound-auth-subject",
+                  "..."
               ],
-              "headerMapping": {
-                "message-id": "{{ header:correlation-id }}",
-                "content-type": "application/vnd.eclipse.ditto+json"
-              }
+              "headerMapping": { }
             }
-
           ]
         }
     description: |-

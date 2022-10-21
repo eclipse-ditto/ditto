@@ -16,7 +16,8 @@ properties:
     type: array
     uniqueItems: true
     title: Array of source addresses
-    description: The source addresses this connection consumes messages from
+    description: The source addresses this connection consumes messages from. The "telemetry", "events",
+    "command_response" aliases should be used for connections of type "hono".
     items:
       type: string
       title: Source address
@@ -146,6 +147,7 @@ properties:
           * Ditto protocol header value: `{{ header:[any-header-name] }}`
 
           If placeholder resolution fails for a response, then the response is dropped.
+          NOTE Use "command" alias for connections of type "hono".
         example:
           - "{{ header:device_id }}"
           - "{{ source:address }}"

@@ -24,6 +24,7 @@ properties:
       * Thing Namespace: `{{ thing:namespace }}`
 
       * Thing Name: `{{ thing:name }}` (the part of the ID without the namespace)
+      NOTE Use "command" alias for connections of type "hono".
   topics:
     type: array
     title: Topics
