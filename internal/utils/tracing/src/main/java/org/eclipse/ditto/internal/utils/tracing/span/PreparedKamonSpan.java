@@ -86,7 +86,7 @@ final class PreparedKamonSpan implements PreparedSpan {
 
     @Override
     public PreparedKamonSpan tags(final TagSet tags) {
-        spanBuilder.tag(KamonTagSetConverter.getKamonTagSet(tags));
+        spanBuilder.tag(KamonTagSetConverter.getKamonTagSet(checkNotNull(tags, "tags")));
         return this;
     }
 
