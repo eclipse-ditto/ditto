@@ -23,6 +23,7 @@ const STORAGE_KEY = 'ditto-ui-env';
 
 let urlSearchParams;
 let environments;
+let selectedEnvName;
 
 let settingsEditor;
 
@@ -34,8 +35,10 @@ let dom = {
   buttonUpdateJson: null,
   inputEnvironmentName: null,
   inputApiUri: null,
+  inputSearchNamespaces: null,
   selectDittoVersion: null,
   tbodyEnvironments: null,
+  tableValidationEnvironments: null,
 };
 
 let observers = [];
@@ -83,6 +86,8 @@ function notifyAll(modifiedField) {
 export async function ready() {
   Utils.getAllElementsById(dom);
 
+  Utils.addValidatorToTable(dom.tbodyEnvironments, dom.tableValidationEnvironments);
+
   urlSearchParams = new URLSearchParams(window.location.search);
   environments = await loadEnvironmentTemplates();
 
@@ -90,19 +95,31 @@ export async function ready() {
   settingsEditor.session.setMode('ace/mode/json');
 
   dom.buttonUpdateJson.onclick = () => {
-    environments[dom.inputEnvironmentName.value] = JSON.parse(settingsEditor.getValue());
+    Utils.assert(selectedEnvName, 'No environment selected', dom.tableValidationEnvironments);
+    environments[selectedEnvName] = JSON.parse(settingsEditor.getValue());
     environmentsJsonChanged();
   };
 
   dom.buttonUpdateFields.onclick = () => {
-    environments[dom.inputEnvironmentName.value].api_uri = dom.inputApiUri.value;
-    environments[dom.inputEnvironmentName.value].ditto_version = dom.selectDittoVersion.value;
+    Utils.assert(selectedEnvName, 'No environment selected', dom.tableValidationEnvironments);
+    if (selectedEnvName !== dom.inputEnvironmentName.value) {
+      environments[dom.inputEnvironmentName.value] = environments[selectedEnvName];
+      delete environments[selectedEnvName];
+      selectedEnvName = dom.inputEnvironmentName.value;
+    }
+    environments[selectedEnvName].api_uri = dom.inputApiUri.value;
+    environments[selectedEnvName].searchNamespaces = dom.inputSearchNamespaces.value;
+    environments[selectedEnvName].ditto_version = dom.selectDittoVersion.value;
     environmentsJsonChanged();
   };
 
   dom.tbodyEnvironments.addEventListener('click', (event) => {
     if (event.target && event.target.tagName === 'TD') {
-      dom.inputEnvironmentName.value = event.target.parentNode.id;
+      if (selectedEnvName && selectedEnvName === event.target.parentNode.id) {
+        selectedEnvName = null;
+      } else {
+        selectedEnvName = event.target.parentNode.id;
+      }
       updateEnvEditors();
     }
   });
@@ -114,14 +131,16 @@ export async function ready() {
       api_uri: dom.inputApiUri.value ? dom.inputApiUri.value : '',
       ditto_version: dom.selectDittoVersion.value ? dom.selectDittoVersion.value : '3',
     });
+    selectedEnvName = dom.inputEnvironmentName.value;
     environmentsJsonChanged();
   };
 
   dom.buttonDeleteEnvironment.onclick = () => {
-    Utils.assert(dom.inputEnvironmentName.value, 'No environment selected');
-    Utils.assert(Object.keys(environments).length >= 2, 'At least one environment is required');
-    delete environments[dom.inputEnvironmentName.value];
-    dom.inputEnvironmentName.value = null;
+    Utils.assert(selectedEnvName, 'No environment selected', dom.tableValidationEnvironments);
+    Utils.assert(Object.keys(environments).length >= 2, 'At least one environment is required',
+        dom.tableValidationEnvironments);
+    delete environments[selectedEnvName];
+    selectedEnvName = null;
     environmentsJsonChanged();
   };
 
@@ -165,21 +184,24 @@ export function environmentsJsonChanged(modifiedField) {
   function updateEnvTable() {
     dom.tbodyEnvironments.innerHTML = '';
     Object.keys(environments).forEach((key) => {
-      Utils.addTableRow(dom.tbodyEnvironments, key, key === dom.inputEnvironmentName.value);
+      Utils.addTableRow(dom.tbodyEnvironments, key, key === selectedEnvName);
     });
   }
 }
 
 function updateEnvEditors() {
-  const selectedEnvironment = environments[dom.inputEnvironmentName.value];
-  if (selectedEnvironment) {
+  if (selectedEnvName) {
+    const selectedEnvironment = environments[selectedEnvName];
+    dom.inputEnvironmentName.value = selectedEnvName;
     settingsEditor.setValue(JSON.stringify(selectedEnvironment, null, 2), -1);
     dom.inputApiUri.value = selectedEnvironment.api_uri;
+    dom.inputSearchNamespaces.value = selectedEnvironment.searchNamespaces ?? '';
     dom.selectDittoVersion.value = selectedEnvironment.ditto_version ? selectedEnvironment.ditto_version : '3';
   } else {
     dom.inputEnvironmentName.value = null;
     settingsEditor.setValue('');
     dom.inputApiUri.value = null;
+    dom.inputSearchNamespaces.value = null;
     dom.selectDittoVersion.value = 3;
   }
 }
