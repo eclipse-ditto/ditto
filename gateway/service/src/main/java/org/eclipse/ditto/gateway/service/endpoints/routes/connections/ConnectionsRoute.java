@@ -313,7 +313,7 @@ public final class ConnectionsRoute extends AbstractRoute {
         }
 
         final JsonObjectBuilder jsonObjectBuilder = connectionJsonObject.toBuilder();
-        jsonObjectBuilder.set(Connection.JsonFields.ID, UUID.randomUUID().toString());
+        jsonObjectBuilder.set(Connection.JsonFields.ID, ConnectionId.generateRandom().toString());
         final String connectionStatus = connectionJsonObject.getValue(Connection.JsonFields.CONNECTION_STATUS)
                 .orElse(ConnectivityStatus.UNKNOWN.getName());
         jsonObjectBuilder.set(Connection.JsonFields.CONNECTION_STATUS, connectionStatus);
