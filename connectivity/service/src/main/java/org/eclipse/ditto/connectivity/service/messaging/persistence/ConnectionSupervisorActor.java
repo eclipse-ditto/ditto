@@ -148,8 +148,8 @@ public final class ConnectionSupervisorActor
                 .match(Config.class, this::onConnectivityConfigModified)
                 .match(CheckForOverwritesConfig.class,
                         checkForOverwrites -> initConfigOverwrites(getEntityId(), checkForOverwrites.dittoHeaders))
-                .match(RestartConnection.class, restartConnection -> Optional.ofNullable(restartConnection
-                        .getModifiedConfig()).ifPresentOrElse(this::onConnectivityConfigModified, this::restartChild))
+                .match(RestartConnection.class, restartConnection -> restartConnection.getModifiedConfig()
+                        .ifPresentOrElse(this::onConnectivityConfigModified, this::restartChild))
                 .matchEquals(Control.REGISTRATION_FOR_CONFIG_CHANGES_SUCCESSFUL, c -> {
                     log.debug("Successfully registered for connectivity config changes.");
                     isRegisteredForConnectivityConfigChanges = true;
@@ -335,9 +335,8 @@ public final class ConnectionSupervisorActor
          * Getter
          * @return the modified config
          */
-        @Nullable
-        public Config getModifiedConfig() {
-            return modifiedConfig;
+        public Optional<Config> getModifiedConfig() {
+            return Optional.ofNullable(modifiedConfig);
         }
 
         @Override
@@ -378,8 +377,7 @@ public final class ConnectionSupervisorActor
          * @param connectionType the desired connection type to filter by
          */
         public RestartByConnectionType(final ConnectionType connectionType) {
-            checkNotNull(connectionType, "connectionType");
-            this.connectionType = connectionType;
+            this.connectionType = checkNotNull(connectionType, "connectionType");
         }
 
         /**

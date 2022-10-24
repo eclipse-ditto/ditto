@@ -696,13 +696,16 @@ public final class ConnectionPersistenceActor
 
     private void initiateRestartByConnectionType(
             final ConnectionSupervisorActor.RestartByConnectionType restartByConnectionType) {
-        checkNotNull(entity, "entity");
-        if (entity.getConnectionType().equals(restartByConnectionType.getConnectionType())) {
-            sender().tell(ConnectionSupervisorActor.RestartConnection.of(null), self());
-            log.info("Restart command sent to ConnectionSupervisorActor {}.", sender());
+        if (entity != null) {
+            if (entity.getConnectionType().equals(restartByConnectionType.getConnectionType())) {
+                sender().tell(ConnectionSupervisorActor.RestartConnection.of(null), self());
+                log.info("Restart command sent to ConnectionSupervisorActor {}.", sender());
+            } else {
+                log.info("Skipping restart of non-{} connection {}.",
+                        restartByConnectionType.getConnectionType(), entityId);
+            }
         } else {
-            log.info("Skipping restart of non-{} connection {}.",
-                    restartByConnectionType.getConnectionType(), entityId);
+            log.info("Skipping restart of connection {} due to unexpected null-entity.", entityId);
         }
     }
 
