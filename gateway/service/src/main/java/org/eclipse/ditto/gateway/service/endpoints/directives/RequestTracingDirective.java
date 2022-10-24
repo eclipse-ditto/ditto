@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
@@ -160,51 +161,68 @@ public final class RequestTracingDirective {
     }
 
     private static Route getRouteWithEnabledTracing(
-            final StartedSpan startedTrace,
+            final StartedSpan startedSpan,
             final HttpRequest httpRequest,
             final Supplier<Route> innerRouteSupplier,
-            @Nullable final CharSequence correlationId) {
+            @Nullable final CharSequence correlationId
+    ) {
         return mapRequest(
-                req -> addIfHeaderExists(
-                        req,
-                        startedTrace.propagateContext(Map.of()),
-                        DittoHeaderDefinition.W3C_TRACEPARENT,
-                        DittoHeaderDefinition.W3C_TRACESTATE
-                ),
+                req -> adjustSpanContextHeadersOfRequest(req, startedSpan.propagateContext(Map.of())),
                 () -> mapRouteResult(
-                        routeResult -> tryToHandleRouteResult(routeResult, httpRequest, startedTrace, correlationId),
+                        routeResult -> tryToHandleRouteResult(routeResult, httpRequest, startedSpan, correlationId),
                         innerRouteSupplier
                 )
         );
     }
 
-    private static HttpRequest addIfHeaderExists(
+    private static HttpRequest adjustSpanContextHeadersOfRequest(
             final HttpRequest originalRequest,
-            final Map<String, String> headers,
-            final DittoHeaderDefinition... dittoHeaderDefinitions
+            final Map<String, String> spanContextHeaders
     ) {
-        var result = originalRequest;
-        for (final var dittoHeaderDefinition : dittoHeaderDefinitions) {
-            @Nullable final var headerValue = headers.get(dittoHeaderDefinition.getKey());
-            if (null != headerValue) {
-                result = result.addHeader(HttpHeader.parse(dittoHeaderDefinition.getKey(), headerValue));
-            }
-        }
-        return result;
+
+        // Replace W3C tracing headers of original request because from now
+        // on the newly started span is the parent of all subsequent spans.
+        return originalRequest.withHeaders(originalHttpRequestHeaders(originalRequest)
+                .map(requestHeader -> {
+                    final HttpHeader result;
+                    if (isW3cTracingHeader(requestHeader)) {
+                        @Nullable final var spanContextHeaderValue = spanContextHeaders.get(requestHeader.name());
+                        if (null != spanContextHeaderValue) {
+                            result = HttpHeader.parse(requestHeader.name(), spanContextHeaderValue);
+                        } else {
+                            result = requestHeader;
+                        }
+                    } else {
+                        result = requestHeader;
+                    }
+                    return result;
+                })
+                .collect(Collectors.toList()));
+    }
+
+    private static Stream<HttpHeader> originalHttpRequestHeaders(final HttpRequest httpRequest) {
+        final var originalRequestHeaders = httpRequest.getHeaders();
+        return StreamSupport.stream(originalRequestHeaders.spliterator(), false);
+    }
+
+    private static boolean isW3cTracingHeader(final HttpHeader header) {
+        return header.is(DittoHeaderDefinition.W3C_TRACESTATE.getKey()) ||
+                header.is(DittoHeaderDefinition.W3C_TRACEPARENT.getKey());
     }
 
     @Nullable
     private static RouteResult tryToHandleRouteResult(
             @Nullable final RouteResult routeResult,
             final HttpRequest httpRequest,
-            final StartedSpan startedTrace,
-            @Nullable final CharSequence correlationId) {
+            final StartedSpan startedSpan,
+            @Nullable final CharSequence correlationId
+    ) {
         try {
-            handleRouteResult(routeResult, httpRequest, startedTrace, correlationId);
+            handleRouteResult(routeResult, httpRequest, startedSpan, correlationId);
         } catch (final Exception e) {
-            startedTrace.fail(e);
+            startedSpan.fail(e);
         } finally {
-            startedTrace.finish();
+            startedSpan.finish();
         }
         return routeResult;
     }
@@ -212,30 +230,32 @@ public final class RequestTracingDirective {
     private static void handleRouteResult(
             @Nullable final RouteResult routeResult,
             final HttpRequest httpRequest,
-            final StartedSpan startedTrace,
-            @Nullable final CharSequence correlationId) {
+            final StartedSpan startedSpan,
+            @Nullable final CharSequence correlationId
+    ) {
         if (routeResult instanceof Complete complete) {
-            addRequestResponseTags(startedTrace, httpRequest, complete.getResponse(), correlationId);
+            addRequestResponseTags(startedSpan, httpRequest, complete.getResponse(), correlationId);
         } else if (null != routeResult) {
-            startedTrace.fail("Request rejected: " + routeResult.getClass().getName());
+            startedSpan.fail("Request rejected: " + routeResult.getClass().getName());
         } else {
-            startedTrace.fail("Request failed.");
+            startedSpan.fail("Request failed.");
         }
     }
 
     private static void addRequestResponseTags(
-            final StartedSpan startedTrace,
+            final StartedSpan startedSpan,
             final HttpRequest httpRequest,
             final HttpResponse httpResponse,
-            @Nullable final CharSequence correlationId) {
-        startedTrace.tag(SpanTagKey.REQUEST_METHOD_NAME.getTagForValue(getRequestMethodName(httpRequest)));
+            @Nullable final CharSequence correlationId
+    ) {
+        startedSpan.tag(SpanTagKey.REQUEST_METHOD_NAME.getTagForValue(getRequestMethodName(httpRequest)));
         @Nullable final var relativeRequestUri = tryToGetRelativeRequestUri(httpRequest, correlationId);
         if (null != relativeRequestUri) {
-            startedTrace.tag(SpanTagKey.REQUEST_URI.getTagForValue(relativeRequestUri));
+            startedSpan.tag(SpanTagKey.REQUEST_URI.getTagForValue(relativeRequestUri));
         }
         @Nullable final var httpStatus = tryToGetResponseHttpStatus(httpResponse, correlationId);
         if (null != httpStatus) {
-            startedTrace.tag(SpanTagKey.HTTP_STATUS.getTagForValue(httpStatus));
+            startedSpan.tag(SpanTagKey.HTTP_STATUS.getTagForValue(httpStatus));
         }
     }
 

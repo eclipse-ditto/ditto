@@ -12,14 +12,20 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.directives;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.base.model.headers.DittoHeaderDefinition.W3C_TRACEPARENT;
+import static org.eclipse.ditto.base.model.headers.DittoHeaderDefinition.W3C_TRACESTATE;
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
@@ -28,6 +34,7 @@ import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.internal.utils.tracing.TraceInformationGenerator;
+import org.eclipse.ditto.internal.utils.tracing.span.KamonTracingInitResource;
 import org.eclipse.ditto.internal.utils.tracing.span.PreparedSpan;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
@@ -39,7 +46,9 @@ import org.mockito.Mockito;
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpMethods;
 import akka.http.javadsl.model.HttpRequest;
+import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.model.Uri;
+import akka.http.javadsl.server.AllDirectives;
 import akka.http.javadsl.server.Route;
 import akka.http.javadsl.testkit.JUnitRouteTest;
 
@@ -47,6 +56,14 @@ import akka.http.javadsl.testkit.JUnitRouteTest;
  * Unit test for {@link RequestTracingDirective}.
  */
 public final class RequestTracingDirectiveTest extends JUnitRouteTest {
+
+    @ClassRule
+    public static final KamonTracingInitResource KAMON_TRACING_INIT_RESOURCE = KamonTracingInitResource.newInstance(
+            KamonTracingInitResource.KamonTracingConfig.defaultValues()
+                    .withIdentifierSchemeSingle()
+                    .withSamplerAlways()
+                    .withTickInterval(Duration.ofMillis(100L))
+    );
 
     @ClassRule
     public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE = DittoTracingInitResource.newInstance(
@@ -156,6 +173,51 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
             Mockito.verify(preparedSpan).correlationId(Mockito.eq(testNameCorrelationId.getCorrelationId()));
             Mockito.verify(preparedSpan).start();
         }
+    }
+
+    @Test
+    public void traceRequestWithExistingW3cTracingHeadersReplacesThoseHeadersWithCurrentSpanContextHeaders() {
+        final var underTest = RequestTracingDirective.newInstanceWithDisabled(Set.of(DISABLED_SPAN_OPERATION_NAME));
+        final var expectedStatus = StatusCodes.NO_CONTENT;
+        final var effectiveHttpRequestHeader = new CompletableFuture<Map<String, String>>();
+        final var routeFactory = new AllDirectives() {
+            public Route createRoute() {
+                return path(
+                        "my-route",
+                        () -> extractRequest(request -> {
+                            effectiveHttpRequestHeader.complete(
+                                    StreamSupport.stream(request.getHeaders().spliterator(), false)
+                                            .collect(Collectors.toMap(HttpHeader::name,
+                                                    HttpHeader::value,
+                                                    (oldValue, newValue) -> newValue))
+                            );
+                            return get(() -> complete(expectedStatus));
+                        })
+                );
+            }
+        };
+        final var tracestateHeaderValue = ";";
+        final var traceparentHeaderValue = "00-00000000000000002d773e5f58ee5636-28cae4bd320cbc11-0";
+        final var fooHeaderValue = "bar";
+        final var testRoute = testRoute(
+                underTest.traceRequest(routeFactory::createRoute, testNameCorrelationId.getCorrelationId())
+        );
+
+        final var testRouteResult = testRoute.run(HttpRequest.create()
+                .withUri(Uri.create("/my-route"))
+                .withMethod(HttpMethods.GET)
+                .addHeader(HttpHeader.parse(W3C_TRACESTATE.getKey(), tracestateHeaderValue))
+                .addHeader(HttpHeader.parse(W3C_TRACEPARENT.getKey(), traceparentHeaderValue))
+                .addHeader(HttpHeader.parse("foo", fooHeaderValue)));
+
+        testRouteResult.assertStatusCode(expectedStatus);
+        assertThat(effectiveHttpRequestHeader)
+                .succeedsWithin(Duration.ofSeconds(1L))
+                .satisfies(httpRequestHeaders -> assertThat(httpRequestHeaders)
+                        .containsEntry("foo", fooHeaderValue)
+                        .containsKeys(W3C_TRACEPARENT.getKey(), W3C_TRACESTATE.getKey())
+                        .doesNotContainValue(tracestateHeaderValue)
+                        .doesNotContainValue(traceparentHeaderValue));
     }
 
 }
