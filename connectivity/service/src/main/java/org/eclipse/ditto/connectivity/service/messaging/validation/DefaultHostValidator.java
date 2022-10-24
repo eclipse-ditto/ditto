@@ -19,8 +19,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.commons.net.util.SubnetUtils;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
+import org.springframework.security.web.util.matcher.IpAddressMatcher;
 
 import akka.event.LoggingAdapter;
 
@@ -35,7 +35,7 @@ final class DefaultHostValidator implements HostValidator {
 
     private final Collection<String> allowedHostnames;
     private final Collection<InetAddress> blockedAddresses;
-    private final Collection<SubnetUtils.SubnetInfo> blockedSubnets;
+    private final Collection<IpAddressMatcher> blockedSubnets;
     private final AddressResolver resolver;
     private final Pattern hostRegexPattern;
 
@@ -117,8 +117,8 @@ final class DefaultHostValidator implements HostValidator {
                     // host is contained in the block-list --> block
                     return HostValidationResult.blocked(host);
                 }
-                for (final SubnetUtils.SubnetInfo subnet : blockedSubnets) {
-                    if (subnet.isInRange(requestAddress.getHostAddress())) {
+                for (final IpAddressMatcher subnet : blockedSubnets) {
+                    if (subnet.matches(requestAddress.getHostAddress())) {
                         // ip is contained in the blocked-subnet --> block
                         return HostValidationResult.blocked(host, "the hostname resides in a blocked subnet.");
                     }
@@ -163,14 +163,14 @@ final class DefaultHostValidator implements HostValidator {
      * @param log the logger.
      * @return info of blocked subnets.
      */
-    private Collection<SubnetUtils.SubnetInfo> calculateBlockedSubnets(final Collection<String> blockedSubnets,
+    private Collection<IpAddressMatcher> calculateBlockedSubnets(final Collection<String> blockedSubnets,
             final LoggingAdapter log) {
 
         return blockedSubnets.stream()
                 .filter(blockedSubnet -> !blockedSubnet.isEmpty())
                 .flatMap(blockedSubnet -> {
                     try {
-                        return Stream.of(new SubnetUtils(blockedSubnet).getInfo());
+                        return Stream.of(new IpAddressMatcher(blockedSubnet));
                     } catch (final IllegalArgumentException e) {
                         log.error(e, "Could not create subnet info during building blocked subnets set: <{}>",
                                 blockedSubnet);
