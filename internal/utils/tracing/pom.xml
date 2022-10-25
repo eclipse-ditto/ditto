@@ -86,6 +86,7 @@
                         <configuration>
                             <includes>
                                 <include>org/eclipse/ditto/internal/utils/tracing/*</include>
+                                <include>org/eclipse/ditto/internal/utils/tracing/span/*</include>
                             </includes>
                         </configuration>
                     </execution>
