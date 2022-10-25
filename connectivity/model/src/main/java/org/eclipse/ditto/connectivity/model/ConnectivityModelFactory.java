@@ -70,7 +70,9 @@ public final class ConnectivityModelFactory {
             final ConnectionType connectionType,
             final ConnectivityStatus connectionStatus,
             final String uri) {
-
+        if (connectionType == ConnectionType.HONO) {
+            return HonoConnection.getBuilder(id, connectionType, connectionStatus, uri);
+        }
         return ImmutableConnection.getBuilder(id, connectionType, connectionStatus, uri);
     }
 
@@ -83,6 +85,9 @@ public final class ConnectivityModelFactory {
      * @throws NullPointerException if {@code connection} is {@code null}.
      */
     public static ConnectionBuilder newConnectionBuilder(final Connection connection) {
+        if (HonoConnection.isHonoConnectionType(connection)) {
+            return HonoConnection.getBuilder(connection);
+        }
         return ImmutableConnection.getBuilder(connection);
     }
 
@@ -95,6 +100,9 @@ public final class ConnectivityModelFactory {
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static Connection connectionFromJson(final JsonObject jsonObject) {
+        if (HonoConnection.isHonoConnectionType(jsonObject)) {
+            return HonoConnection.fromJson(jsonObject);
+        }
         return ImmutableConnection.fromJson(jsonObject);
     }
 
