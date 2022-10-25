@@ -12,9 +12,12 @@
  */
 package org.eclipse.ditto.internal.utils.tracing.config;
 
+import java.util.Map;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.tracing.filter.TracingFilter;
 
 /**
  * Provides the configuration settings of tracing.
@@ -37,6 +40,13 @@ public interface TracingConfig {
     String getPropagationChannel();
 
     /**
+     * Returns a {@link TracingFilter} which is derived from configuration.
+     *
+     * @return the TracingFilter.
+     */
+    TracingFilter getTracingFilter();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code TracingConfig}.
      */
@@ -51,12 +61,18 @@ public interface TracingConfig {
          * Determines which propagation channel to use. The configured channel has to be configured at
          * {@code kamon.propagation.http.<channel>}.
          */
-        TRACING_PROPAGATION_CHANNEL("propagation-channel", "default");
+        TRACING_PROPAGATION_CHANNEL("propagation-channel", "default"),
+
+        /**
+         * Defines include and exclude patterns to determine whether to trace matching operation names.
+         * By default, all operation names are accepted for tracing – if tracing is enabled at all.
+         */
+        FILTER("filter", Map.of());
 
         private final String path;
         private final Object defaultValue;
 
-        TracingConfigValue(final String thePath, final Object theDefaultValue) {
+        private TracingConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

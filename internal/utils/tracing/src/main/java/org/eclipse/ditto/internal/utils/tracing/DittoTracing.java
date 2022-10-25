@@ -25,6 +25,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
+import org.eclipse.ditto.internal.utils.tracing.filter.TracingFilter;
 import org.eclipse.ditto.internal.utils.tracing.span.KamonHttpContextPropagation;
 import org.eclipse.ditto.internal.utils.tracing.span.PreparedSpan;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
@@ -151,7 +152,10 @@ public final class DittoTracing {
             if (tracingConfig.isTracingEnabled()) {
                 final var propagationChannelName = tracingConfig.getPropagationChannel();
                 newStateConsumer.accept(
-                        new TracingEnabledState(tryToGetKamonHttpContextPropagation(propagationChannelName))
+                        new TracingEnabledState(
+                                tryToGetKamonHttpContextPropagation(propagationChannelName),
+                                tracingConfig.getTracingFilter()
+                        )
                 );
                 LOGGER.info("Ditto tracing initialized and enabled using propagation channel <{}>.",
                         propagationChannelName);
@@ -190,25 +194,43 @@ public final class DittoTracing {
     private static final class TracingEnabledState implements DittoTracingState {
 
         private final KamonHttpContextPropagation kamonHttpContextPropagation;
+        private final TracingFilter tracingFilter;
 
-        private TracingEnabledState(final KamonHttpContextPropagation kamonHttpContextPropagation) {
+        private TracingEnabledState(
+                final KamonHttpContextPropagation kamonHttpContextPropagation,
+                final TracingFilter tracingFilter
+        ) {
             this.kamonHttpContextPropagation = checkNotNull(kamonHttpContextPropagation, "kamonHttpContextPropagation");
+            this.tracingFilter = tracingFilter;
         }
 
         @Override
         public PreparedSpan newPreparedSpan(final Map<String, String> headers, final SpanOperationName operationName) {
-            return TracingSpans.newPreparedKamonSpan(headers, operationName, kamonHttpContextPropagation);
+            final PreparedSpan result;
+            if (tracingFilter.accept(operationName)) {
+                result = TracingSpans.newPreparedKamonSpan(headers, operationName, kamonHttpContextPropagation);
+            } else {
+                result = TracingSpans.emptyPreparedSpan(operationName);
+            }
+            return result;
         }
 
         @Override
         public StartedSpan newStartedSpanByTimer(final Map<String, String> headers, final StartedTimer startedTimer) {
             checkNotNull(startedTimer, "startedTimer");
-            final var preparedKamonSpan = TracingSpans.newPreparedKamonSpan(
-                    headers,
-                    SpanOperationName.of(startedTimer.getName()),
-                    kamonHttpContextPropagation
-            );
-            return preparedKamonSpan.startBy(startedTimer);
+            final StartedSpan result;
+            final var operationName = SpanOperationName.of(startedTimer.getName());
+            if (tracingFilter.accept(operationName)) {
+                final var preparedKamonSpan = TracingSpans.newPreparedKamonSpan(
+                        headers,
+                        operationName,
+                        kamonHttpContextPropagation
+                );
+                result = preparedKamonSpan.startBy(startedTimer);
+            } else {
+                result = TracingSpans.emptyStartedSpan(operationName);
+            }
+            return result;
         }
 
     }
