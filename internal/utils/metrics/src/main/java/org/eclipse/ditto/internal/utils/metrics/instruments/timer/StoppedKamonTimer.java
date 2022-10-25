@@ -45,11 +45,13 @@ final class StoppedKamonTimer implements StoppedTimer {
             }
         });
 
-        final long durationNano = getElapsedNano();
-        LOGGER.trace("Timer with name <{}> and segment <{}> was stopped after <{}> nanoseconds",
-                name,
-                tags.getTagValue(SEGMENT_TAG).orElse(null),
-                durationNano);
+        final var durationNano = getElapsedNano();
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("Timer with name <{}> and segment <{}> was stopped after <{}> nanoseconds",
+                    name,
+                    tags.getTagValue(SEGMENT_TAG).orElse(null),
+                    durationNano);
+        }
         startedTimer.getOnStopHandlers().forEach(stoppedTimerConsumer -> stoppedTimerConsumer.handleStoppedTimer(this));
         getKamonInternalTimer().record(durationNano);
     }
