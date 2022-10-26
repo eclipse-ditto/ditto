@@ -92,17 +92,15 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
 
     @Test
     public void traceRequestWithNullInnerRouteSupplierThrowsNullPointerException() {
-        final var underTest = RequestTracingDirective.newInstanceWithDisabled();
 
         Assertions.assertThatNullPointerException()
-                .isThrownBy(() -> underTest.traceRequest(null, null))
+                .isThrownBy(() -> RequestTracingDirective.traceRequest(null, null))
                 .withMessage("The innerRouteSupplier must not be null!")
                 .withNoCause();
     }
 
     @Test
     public void traceRequestCallsDittoTracingIfTracingIsEnabledForResolvedSpanOperationName() {
-        final var underTest = RequestTracingDirective.newInstanceWithDisabled();
 
         final var headersMap = Map.ofEntries(
                 Map.entry(
@@ -123,7 +121,7 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
                     .thenReturn(preparedSpan);
             final var testRoute = testRoute(
                     extractRequestContext(
-                            requestContext -> underTest.traceRequest(
+                            requestContext -> RequestTracingDirective.traceRequest(
                                     () -> Mockito.mock(Route.class),
                                     testNameCorrelationId.getCorrelationId()
                             )
@@ -146,7 +144,6 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
 
     @Test
     public void traceRequestWithExistingW3cTracingHeadersReplacesThoseHeadersWithCurrentSpanContextHeaders() {
-        final var underTest = RequestTracingDirective.newInstanceWithDisabled();
         final var expectedStatus = StatusCodes.NO_CONTENT;
         final var effectiveHttpRequestHeader = new CompletableFuture<Map<String, String>>();
         final var routeFactory = new AllDirectives() {
@@ -169,7 +166,7 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
         final var traceparentHeaderValue = "00-00000000000000002d773e5f58ee5636-28cae4bd320cbc11-0";
         final var fooHeaderValue = "bar";
         final var testRoute = testRoute(
-                underTest.traceRequest(routeFactory::createRoute, testNameCorrelationId.getCorrelationId())
+                RequestTracingDirective.traceRequest(routeFactory::createRoute, testNameCorrelationId.getCorrelationId())
         );
 
         final var testRouteResult = testRoute.run(HttpRequest.create()

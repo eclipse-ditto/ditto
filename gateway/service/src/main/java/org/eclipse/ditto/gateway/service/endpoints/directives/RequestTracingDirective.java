@@ -56,18 +56,7 @@ public final class RequestTracingDirective {
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(RequestTracingDirective.class);
 
     private RequestTracingDirective() {
-        super();
-    }
-
-    /**
-     * Return new instance of {@code RequestTracingDirective} which disables tracing for operations with the specified
-     * set of operation names.
-     *
-     * @return the new instance.
-     * @throws NullPointerException if {@code disabledSpanOperationNames} is {@code null}.
-     */
-    public static RequestTracingDirective newInstanceWithDisabled() {
-        return new RequestTracingDirective();
+        throw new AssertionError();
     }
 
     /**
@@ -81,12 +70,14 @@ public final class RequestTracingDirective {
      * @return the new Route wrapping {@code inner} with tracing.
      * @throws NullPointerException if {@code inner} is {@code null}.
      */
-    public Route traceRequest(final Supplier<Route> innerRouteSupplier, @Nullable final CharSequence correlationId) {
+    public static Route traceRequest(final Supplier<Route> innerRouteSupplier,
+            @Nullable final CharSequence correlationId) {
+
         checkNotNull(innerRouteSupplier, "innerRouteSupplier");
         return extractRequest(request -> {
             final Route result;
             @Nullable final var operationName = tryToResolveSpanOperationName(request, correlationId);
-            if (isTracingDisabledForOperationName(operationName)) {
+            if (null == operationName) {
                 result = innerRouteSupplier.get();
             } else {
                 result = getRouteWithEnabledTracing(
@@ -115,7 +106,7 @@ public final class RequestTracingDirective {
 
     private static SpanOperationName resolveSpanOperationName(final HttpRequest httpRequest) {
         return SpanOperationName.of(
-                MessageFormat.format("{0} {1}", getTraceUri(httpRequest), getRequestMethodName(httpRequest))
+                MessageFormat.format("{0} {1}", getRequestMethodName(httpRequest), getTraceUri(httpRequest))
         );
     }
 
@@ -133,10 +124,6 @@ public final class RequestTracingDirective {
     private static String getRequestMethodName(final HttpRequest httpRequest) {
         final var httpMethod = httpRequest.method();
         return httpMethod.name();
-    }
-
-    private static boolean isTracingDisabledForOperationName(@Nullable final SpanOperationName traceOperationName) {
-        return null == traceOperationName;
     }
 
     private static Map<String, String> getHttpHeadersAsMap(final Iterable<HttpHeader> httpHeaders) {

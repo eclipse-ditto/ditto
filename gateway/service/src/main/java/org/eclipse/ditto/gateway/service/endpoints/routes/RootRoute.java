@@ -179,7 +179,6 @@ public final class RootRoute extends AllDirectives {
     }
 
     private Route wrapWithRootDirectives(final Function<String, Route> rootRoute) {
-        final var requestTracingDirective = RequestTracingDirective.newInstanceWithDisabled();
 
         final Function<Function<String, Route>, Route> outerRouteProvider = innerRouteProvider ->
                 /* the outer handleExceptions is for handling exceptions in the directives wrapping the rootRoute
@@ -188,7 +187,7 @@ public final class RootRoute extends AllDirectives {
                         CorrelationIdEnsuringDirective.ensureCorrelationId(
                                 correlationId -> requestTimeoutHandlingDirective
                                         .handleRequestTimeout(correlationId, () ->
-                                                requestTracingDirective.traceRequest(
+                                                RequestTracingDirective.traceRequest(
                                                         () -> RequestResultLoggingDirective.logRequestResult(
                                                                 correlationId,
                                                                 () -> innerRouteProvider.apply(correlationId)
