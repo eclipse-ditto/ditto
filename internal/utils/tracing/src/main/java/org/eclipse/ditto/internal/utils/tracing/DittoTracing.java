@@ -201,7 +201,7 @@ public final class DittoTracing {
                 final TracingFilter tracingFilter
         ) {
             this.kamonHttpContextPropagation = checkNotNull(kamonHttpContextPropagation, "kamonHttpContextPropagation");
-            this.tracingFilter = tracingFilter;
+            this.tracingFilter = checkNotNull(tracingFilter, "tracingFilter");
         }
 
         @Override

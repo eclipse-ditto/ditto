@@ -29,7 +29,9 @@ import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.Timers;
+import org.eclipse.ditto.internal.utils.tracing.config.DefaultTracingConfig;
 import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
+import org.eclipse.ditto.internal.utils.tracing.filter.AcceptAllTracingFilter;
 import org.eclipse.ditto.internal.utils.tracing.span.KamonTracingInitResource;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
@@ -42,6 +44,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.mockito.Mockito;
+
+import com.typesafe.config.ConfigFactory;
 
 import kamon.Kamon;
 
@@ -68,6 +72,7 @@ public final class DittoTracingTest {
         tracingConfigMock = Mockito.mock(TracingConfig.class);
         Mockito.when(tracingConfigMock.isTracingEnabled()).thenReturn(true);
         Mockito.when(tracingConfigMock.getPropagationChannel()).thenReturn("default");
+        Mockito.when(tracingConfigMock.getTracingFilter()).thenReturn(AcceptAllTracingFilter.getInstance());
     }
 
     @After
@@ -272,6 +277,24 @@ public final class DittoTracingTest {
                     .succeedsWithin(Duration.ofSeconds(2L))
                     .isEqualTo(startedTimer.getStartInstant().toInstant());
         }
+    }
+
+    @Test
+    public void newPreparedSpanWithFilteredOperationNameReturnsEmptyPreparedSpan() {
+        final var tracingConfig = DefaultTracingConfig.of(ConfigFactory.parseMap(Map.of(
+                "tracing",
+                Map.of(
+                        "enabled", true,
+                        "propagation-channel", "default",
+                        "filter", Map.of("includes", List.of("*"), "excludes", List.of("some-operation"))
+                )
+        )));
+        DittoTracing.init(tracingConfig);
+        final var operationName = SpanOperationName.of("some-operation");
+
+        final var preparedSpan = DittoTracing.newPreparedSpan(Map.of(), operationName);
+
+        assertThat(preparedSpan).isEqualTo(TracingSpans.emptyPreparedSpan(operationName));
     }
 
 }
