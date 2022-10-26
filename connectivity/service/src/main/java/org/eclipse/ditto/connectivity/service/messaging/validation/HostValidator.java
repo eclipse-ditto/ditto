@@ -13,7 +13,6 @@
 package org.eclipse.ditto.connectivity.service.messaging.validation;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 
 /**
  * Validates the given host.
@@ -37,7 +36,6 @@ interface HostValidator {
     default void validateHostname(final String host, final DittoHeaders dittoHeaders) {
         final HostValidationResult validationResult = validateHost(host);
         if (!validationResult.isValid()) {
-            DittoLoggerFactory.getLogger(this.getClass()).error("hostname validation failed!", validationResult);
             throw validationResult.toException(dittoHeaders);
         }
     }

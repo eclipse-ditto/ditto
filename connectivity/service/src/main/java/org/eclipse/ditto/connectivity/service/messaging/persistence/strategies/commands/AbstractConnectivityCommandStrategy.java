@@ -29,7 +29,6 @@ import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.Connecti
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.AbstractCommandStrategy;
 
 /**
@@ -85,9 +84,6 @@ abstract class AbstractConnectivityCommandStrategy<C extends Command<?>>
     private static Optional<DittoRuntimeException> handleValidationException(
             final Context<ConnectionState> context, final ConnectivityCommand<?> command,
             final Exception error) {
-
-        DittoLoggerFactory.getLogger(AbstractConnectivityCommandStrategy.class).error("Got an error whi8le validating" +
-                " connection", error);
         final DittoRuntimeException dre =
                 toDittoRuntimeException(error, context.getState().id(), command.getDittoHeaders());
         context.getLog().withCorrelationId(dre)
