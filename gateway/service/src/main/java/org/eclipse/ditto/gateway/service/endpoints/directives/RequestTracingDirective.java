@@ -20,7 +20,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -56,24 +55,19 @@ public final class RequestTracingDirective {
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(RequestTracingDirective.class);
 
-    private final Set<SpanOperationName> disabledSpanOperationNames;
-
-    private RequestTracingDirective(final Set<SpanOperationName> disabledSpanOperationNames) {
-        this.disabledSpanOperationNames = Set.copyOf(disabledSpanOperationNames);
+    private RequestTracingDirective() {
+        super();
     }
 
     /**
      * Return new instance of {@code RequestTracingDirective} which disables tracing for operations with the specified
      * set of operation names.
      *
-     * @param disabledSpanOperationNames names of operations for which no tracing is performed at all.
      * @return the new instance.
      * @throws NullPointerException if {@code disabledSpanOperationNames} is {@code null}.
      */
-    public static RequestTracingDirective newInstanceWithDisabled(
-            final Set<SpanOperationName> disabledSpanOperationNames
-    ) {
-        return new RequestTracingDirective(checkNotNull(disabledSpanOperationNames, "disabledSpanOperationNames"));
+    public static RequestTracingDirective newInstanceWithDisabled() {
+        return new RequestTracingDirective();
     }
 
     /**
@@ -141,8 +135,8 @@ public final class RequestTracingDirective {
         return httpMethod.name();
     }
 
-    private boolean isTracingDisabledForOperationName(@Nullable final SpanOperationName traceOperationName) {
-        return null == traceOperationName || disabledSpanOperationNames.contains(traceOperationName);
+    private static boolean isTracingDisabledForOperationName(@Nullable final SpanOperationName traceOperationName) {
+        return null == traceOperationName;
     }
 
     private static Map<String, String> getHttpHeadersAsMap(final Iterable<HttpHeader> httpHeaders) {
