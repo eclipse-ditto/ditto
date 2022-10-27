@@ -71,7 +71,7 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
                     .build()
     );
 
-    private static final SpanOperationName DISABLED_SPAN_OPERATION_NAME = SpanOperationName.of("/ws/2 GET");
+    private static final SpanOperationName DISABLED_SPAN_OPERATION_NAME = SpanOperationName.of("GET /ws/2");
 
     @Rule
     public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
