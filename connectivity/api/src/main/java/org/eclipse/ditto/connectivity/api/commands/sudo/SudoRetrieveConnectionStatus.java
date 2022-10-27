@@ -27,7 +27,6 @@ import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
 import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.WithConnectionId;
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
@@ -65,7 +64,6 @@ public final class SudoRetrieveConnectionStatus extends AbstractCommand<SudoRetr
         return new SudoRetrieveConnectionStatus(connectionId, dittoHeaders);
     }
 
-
     /**
      * Creates a new {@code SudoRetrieveConnectionStatus} from a JSON object.
      *
@@ -89,7 +87,6 @@ public final class SudoRetrieveConnectionStatus extends AbstractCommand<SudoRetr
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
-
         jsonObjectBuilder.set(ConnectivitySudoCommand.JsonFields.JSON_CONNECTION_ID, connectionId.toString(),
                 schemaVersion.and(thePredicate));
     }

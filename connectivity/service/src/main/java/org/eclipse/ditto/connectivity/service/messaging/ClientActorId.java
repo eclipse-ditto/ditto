@@ -48,6 +48,7 @@ public record ClientActorId(ConnectionId connectionId, int clientNumber) {
         }
         final var connectionId = ConnectionId.of(actorName.substring(0, separatorIndex));
         final int clientNumber = Integer.parseInt(actorName.substring(separatorIndex + 1));
+
         return new ClientActorId(connectionId, clientNumber);
     }
 }

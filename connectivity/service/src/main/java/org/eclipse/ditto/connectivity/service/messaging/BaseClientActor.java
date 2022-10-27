@@ -2050,6 +2050,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private Supplier<CompletionStage<Done>> askSelfServiceUnbind() {
         final var shutdownTimeout = Duration.ofMinutes(2);
+
         return () -> Patterns.ask(getSelf(), Control.SERVICE_UNBIND, shutdownTimeout).thenApply(answer -> Done.done());
     }
 
@@ -2072,7 +2073,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private FSM.State<BaseClientState, BaseClientData> serviceRequestsDone(final Control event,
             final BaseClientData data) {
-
         shuttingDown = true;
         logger.info("{}: ackregatorCount={}", Control.STOP_SHARDED_ACTOR, ackregatorCount);
         if (ackregatorCount == 0) {
@@ -2080,6 +2080,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         } else {
             final var shutdownTimeout = connectivityConfig.getConnectionConfig().getShutdownTimeout();
             startSingleTimer(Control.SHUTDOWN_TIMEOUT.name(), Control.SHUTDOWN_TIMEOUT, shutdownTimeout);
+
             return stay();
         }
     }
@@ -2088,6 +2089,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final BaseClientData data) {
         final var shutdownTimeout = connectivityConfig.getConnectionConfig().getShutdownTimeout();
         logger.warning("Shutdown timeout <{}> reached; aborting <{}> ackregators", shutdownTimeout, ackregatorCount);
+
         return stop();
     }
 
@@ -2098,6 +2100,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             getSelf().tell(SEND_DISCONNECT_ANNOUNCEMENT, ActorRef.noSender());
             final CompletableFuture<?> waitForAnnouncementFuture = new CompletableFuture<>();
             waitForAnnouncementFuture.completeOnTimeout(null, disconnectAnnouncementTimeout, TimeUnit.MILLISECONDS);
+
             return waitForAnnouncementFuture;
         } else {
             return CompletableFuture.completedStage(null);
@@ -2189,6 +2192,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         @Override
         public Duration getNextTimeout() {
             increaseTimeoutAfterRecovery();
+
             return currentTimeout;
         }
 
@@ -2197,6 +2201,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             // no need to perform recovery here because timeout always happens after a backoff
             final Duration result = nextBackoff;
             nextBackoff = minDuration(maxBackoff, nextBackoff.multipliedBy(2L));
+
             return result;
         }
 
@@ -2235,6 +2240,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         private static Predicate<Duration> isLowerThanOrEqual(final Duration otherDuration) {
             return arg -> {
                 final Duration minus = arg.minus(otherDuration);
+
                 return minus.isNegative() || minus.isZero();
             };
         }
@@ -2266,7 +2272,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     "outboundSignal=" + outboundSignal +
                     "]";
         }
-
     }
 
     /**

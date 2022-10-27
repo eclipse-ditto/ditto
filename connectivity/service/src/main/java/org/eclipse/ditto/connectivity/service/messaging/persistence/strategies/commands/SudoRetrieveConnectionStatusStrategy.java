@@ -42,12 +42,13 @@ final class SudoRetrieveConnectionStatusStrategy
             final long nextRevision,
             final SudoRetrieveConnectionStatus command,
             @Nullable final Metadata metadata) {
-
         final var connectionStatus = entity != null && !entity.hasLifecycle(ConnectionLifecycle.DELETED)
                 ? entity.getConnectionStatus()
                 : ConnectivityStatus.CLOSED;
         final var clientCount = entity != null ? entity.getClientCount() : 0;
+
         return ResultFactory.newQueryResult(command,
                 SudoRetrieveConnectionStatusResponse.of(connectionStatus, clientCount, command.getDittoHeaders()));
     }
+
 }

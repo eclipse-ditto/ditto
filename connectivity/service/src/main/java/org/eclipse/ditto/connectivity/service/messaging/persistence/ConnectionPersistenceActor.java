@@ -634,7 +634,7 @@ public final class ConnectionPersistenceActor
                 becomeDeletedHandler();
                 interpretStagedCommand(command.next());
             }
-            case CHECK_LOGGING_ENABLED -> CHECK_LOGGING_ENABLED(command.next());
+            case CHECK_LOGGING_ENABLED -> checkLoggingEnabled(command.next());
             case BROADCAST_TO_CLIENT_ACTORS_IF_STARTED -> {
                 broadcastToClientActors(command.getCommand(), getSelf());
                 interpretStagedCommand(command.next());
@@ -763,7 +763,7 @@ public final class ConnectionPersistenceActor
         }
     }
 
-    private void CHECK_LOGGING_ENABLED(final StagedCommand command) {
+    private void checkLoggingEnabled(final StagedCommand command) {
         if (isDesiredStateOpen()) {
             startEnabledLoggingChecker();
             updateLoggingIfEnabled();

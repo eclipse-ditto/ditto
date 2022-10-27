@@ -36,7 +36,7 @@ import org.eclipse.ditto.json.JsonValue;
 /**
  * Response to a {@link SudoRetrieveConnectionStatus} command.
  *
- * @since 3.0.0
+ * @since 3.1.0
  */
 @Immutable
 @JsonParsableCommandResponse(type = SudoRetrieveConnectionStatusResponse.TYPE)

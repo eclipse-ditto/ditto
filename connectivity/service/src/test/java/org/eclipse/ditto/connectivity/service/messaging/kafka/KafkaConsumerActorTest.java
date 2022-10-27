@@ -140,7 +140,7 @@ public class KafkaConsumerActorTest extends AbstractConsumerActorTest<ConsumerRe
         ));
         final HeaderMapping mappingWithSpecialKafkaHeaders = ConnectivityModelFactory.newHeaderMapping(map);
 
-        AtMostOnceKafkaConsumerSourceSupplier sourceSupplier = mock(AtMostOnceKafkaConsumerSourceSupplier.class);
+        final AtMostOnceKafkaConsumerSourceSupplier sourceSupplier = mock(AtMostOnceKafkaConsumerSourceSupplier.class);
         when(sourceSupplier.get()).thenReturn(source);
         final String address = "kafka";
         final org.eclipse.ditto.connectivity.model.Source connectionSource = ConnectivityModelFactory.newSourceBuilder()

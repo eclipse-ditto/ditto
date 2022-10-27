@@ -190,4 +190,5 @@ public final class ConnectivityRootActor extends DittoRootActor {
         return ShardRegionCreator.start(actorSystem, ConnectivityMessagingConstants.CLIENT_SHARD_REGION, props,
                 numberOfShards, ConnectivityMessagingConstants.CLUSTER_ROLE);
     }
+
 }

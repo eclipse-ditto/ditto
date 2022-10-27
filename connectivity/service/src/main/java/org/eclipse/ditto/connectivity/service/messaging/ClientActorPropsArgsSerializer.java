@@ -35,7 +35,7 @@ import akka.serialization.SerializerWithStringManifest;
 import akka.serialization.Serializers;
 
 /**
- * Serializer of {@link org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsArgsSerializer}.
+ * Serializer of {@link org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsArgs}.
  */
 public final class ClientActorPropsArgsSerializer
         extends SerializerWithStringManifest implements ByteBufferSerializer {
@@ -75,10 +75,12 @@ public final class ClientActorPropsArgsSerializer
     public byte[] toBinary(final Object o) {
         final var args = (ClientActorPropsArgs) o;
         final var connection = new Field(args.connection().toJsonString());
-        final var commandForwarder = toFieldWithManifest(args.commandForwarderActor());
+        final var commandForwarder =
+                toFieldWithManifest(args.commandForwarderActor());
         final var connectionActor = toField(args.connectionActor());
         final var dittoHeaders = new Field(args.dittoHeaders().toJsonString());
-        final var connectivityConfigOverwrites = toFieldWithManifest(args.connectivityConfigOverwrites());
+        final var connectivityConfigOverwrites =
+                toFieldWithManifest(args.connectivityConfigOverwrites());
 
         final var buffer = ByteBuffer.allocate(
                 connection.length() +
@@ -94,6 +96,7 @@ public final class ClientActorPropsArgsSerializer
         connectionActor.write(buffer);
         dittoHeaders.write(buffer);
         connectivityConfigOverwrites.write(buffer);
+
         return buffer.array();
     }
 
@@ -112,6 +115,7 @@ public final class ClientActorPropsArgsSerializer
         final var dittoHeaders = Field.read(buf);
         final var connectivityConfigOverwrites = FieldWithManifest.read(buf);
         buf.order(originalByteOrder);
+
         return new ClientActorPropsArgs(
                 ConnectivityModelFactory.connectionFromJson(JsonObject.of(connection.asString())),
                 toActorRef(commandForwarder, commandForwarder.value()),
@@ -125,6 +129,7 @@ public final class ClientActorPropsArgsSerializer
         if (serialization == null) {
             serialization = SerializationExtension.get(actorSystem);
         }
+
         return serialization;
     }
 
@@ -147,6 +152,7 @@ public final class ClientActorPropsArgsSerializer
         final int id = serializer.identifier();
         final var manifest = new Field(Serializers.manifestFor(serializer, value));
         final var valueField = new Field(serialization.serialize(value).get());
+
         return new FieldWithManifest(id, manifest, valueField);
     }
 
@@ -172,6 +178,7 @@ public final class ClientActorPropsArgsSerializer
         private static Field read(final ByteBuffer buffer) {
             final var bytes = new byte[buffer.getInt()];
             buffer.get(bytes);
+
             return new Field(bytes);
         }
     }
@@ -188,6 +195,7 @@ public final class ClientActorPropsArgsSerializer
             final var id = buffer.getInt();
             final var manifest = Field.read(buffer);
             final var value = Field.read(buffer);
+
             return new FieldWithManifest(id, manifest, value);
         }
 
@@ -195,4 +203,5 @@ public final class ClientActorPropsArgsSerializer
             return 4 + manifest.length() + value.length();
         }
     }
+
 }

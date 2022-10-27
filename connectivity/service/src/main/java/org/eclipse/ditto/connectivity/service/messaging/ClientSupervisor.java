@@ -49,7 +49,7 @@ import akka.japi.pf.ReceiveBuilder;
 public final class ClientSupervisor extends AbstractActorWithTimers {
 
     private final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-    ;
+
     private final ClientActorId clientActorId = ClientActorId.fromActorName(getSelf());
     private final SudoRetrieveConnectionStatus sudoRetrieveConnectionStatus =
             SudoRetrieveConnectionStatus.of(clientActorId.connectionId(),
@@ -60,17 +60,18 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
     private Props props;
     private ActorRef clientActor;
 
+    @SuppressWarnings({"unused"})
     private ClientSupervisor(final int numberOfShards, final Duration statusCheckInterval) {
         this.statusCheckInterval = statusCheckInterval;
         final var actorSystem = getContext().getSystem();
         final var clusterSharding = ClusterSharding.get(actorSystem);
         final var extractor = ShardRegionExtractor.of(numberOfShards, actorSystem);
         connectionShardRegion = clusterSharding.startProxy(ConnectivityMessagingConstants.SHARD_REGION,
-                Optional.of(ConnectivityMessagingConstants.CLUSTER_ROLE),
-                extractor);
+                Optional.of(ConnectivityMessagingConstants.CLUSTER_ROLE), extractor);
         propsFactory = getClientActorPropsFactory(actorSystem);
     }
 
+    @SuppressWarnings({"unused"})
     // constructor for unit tests
     private ClientSupervisor(final Duration statusCheckInterval, final ActorRef connectionShardRegion) {
         this.statusCheckInterval = statusCheckInterval;
@@ -147,18 +148,19 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
     }
 
     private void startClientActor(final ClientActorPropsArgs propsArgs) {
-        final var props = propsFactory.getActorProps(propsArgs, getContext().getSystem());
-        if (props.equals(this.props)) {
-            logger.debug("Refreshing props");
+        final var actorProps = propsFactory.getActorProps(propsArgs, getContext().getSystem());
+        if (actorProps.equals(this.props)) {
+            logger.debug("Refreshing actorProps");
         } else {
             final var oldClientActor = clientActor;
             if (oldClientActor != null) {
                 getContext().unwatch(oldClientActor);
                 getContext().stop(oldClientActor);
             }
-            this.props = props;
-            clientActor = getContext().watch(getContext().actorOf(props));
-            logger.debug("New props received; stopped client actor <{}> and started <{}>", oldClientActor, clientActor);
+            this.props = actorProps;
+            clientActor = getContext().watch(getContext().actorOf(actorProps));
+            logger.debug("New actorProps received; stopped client actor <{}> and started <{}>", oldClientActor,
+                    clientActor);
         }
     }
 
@@ -228,4 +230,5 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
     private enum Control {
         STATUS_CHECK
     }
+
 }

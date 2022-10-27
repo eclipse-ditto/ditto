@@ -29,7 +29,7 @@ import akka.serialization.SerializerWithStringManifest;
 import akka.serialization.Serializers;
 
 /**
- * Serializer of {@link ShardedBinarySerializer}.
+ * Serializer of {@link ShardedBinaryEnvelope}.
  */
 public final class ShardedBinarySerializer
         extends SerializerWithStringManifest implements ByteBufferSerializer {
@@ -59,6 +59,7 @@ public final class ShardedBinarySerializer
     public String manifest(final Object o) {
         final var envelope = (ShardedBinaryEnvelope) o;
         final var message = envelope.message();
+
         return Serializers.manifestFor(getSerialization().findSerializerFor(message), message);
     }
 
@@ -81,6 +82,7 @@ public final class ShardedBinarySerializer
         buffer.putInt(messageBytes.length);
         buffer.put(entityNameBytes);
         buffer.put(messageBytes);
+
         return buffer.array();
     }
 
@@ -105,6 +107,7 @@ public final class ShardedBinarySerializer
             final var message = getSerialization().deserialize(messageBytes, serializerId, manifest).get();
             final var entityName = new String(entityNameBytes, CHARSET);
             buf.order(originalByteOrder);
+
             return new ShardedBinaryEnvelope(message, entityName);
         } catch (final RuntimeException e) {
             final var bytes = buf.array();
@@ -118,6 +121,8 @@ public final class ShardedBinarySerializer
         if (serialization == null) {
             serialization = SerializationExtension.get(actorSystem);
         }
+
         return serialization;
     }
+
 }

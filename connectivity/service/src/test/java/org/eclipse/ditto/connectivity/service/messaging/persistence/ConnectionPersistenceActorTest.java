@@ -86,14 +86,12 @@ import org.junit.Test;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
-import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.japi.pf.ReceiveBuilder;
 import akka.testkit.TestActor;
 import akka.testkit.TestProbe;
 import scala.PartialFunction;
@@ -246,21 +244,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         testProbe.expectMsg(ConnectionNotAccessibleException.newBuilder(connectionId)
                 .dittoHeaders(dittoHeadersWithCorrelationId)
                 .build());
-    }
-
-    private static final class DummyActor extends AbstractActor {
-
-        @Override
-        public void preStart() {
-            System.out.println("--------------- ACTOR START ---------------");
-        }
-
-        @Override
-        public Receive createReceive() {
-            return ReceiveBuilder.create()
-                    .matchAny(msg -> getSender().tell(getSelf(), getSelf()))
-                    .build();
-        }
     }
 
     @Test
@@ -467,7 +450,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // assert that client actor is not called for closed connection
         mockClientActorProbe.expectNoMessage();
     }
-
 
     @Test
     public void testConnectionWithUnknownHost() {
