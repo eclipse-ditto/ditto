@@ -32,7 +32,7 @@ export function getQueryParameter() {
     Environments.current().fieldList = [];
   }
   const fields = Environments.current().fieldList.filter((f) => f.active).map((f) => f.path);
-  return 'fields=thingId' + (fields !== '' ? ',' + fields : '');
+  return 'fields=thingId' + (fields.length > 0 ? ',' + fields : '');
 }
 
 
