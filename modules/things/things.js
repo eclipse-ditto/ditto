@@ -212,7 +212,6 @@ function fillThingsTable(thingsList) {
     }
     return result;
   }
-
 }
 
 /**
@@ -223,9 +222,12 @@ function fillThingsTable(thingsList) {
 export function searchThings(filter, cursor) {
   document.body.style.cursor = 'progress';
 
+  const namespaces = Environments.current().searchNamespaces;
+
   API.callDittoREST('GET',
       '/search/things?' + Fields.getQueryParameter() +
       ((filter && filter !== '') ? '&filter=' + encodeURIComponent(filter) : '') +
+      ((namespaces && namespaces !== '') ? '&namespaces=' + namespaces : '') +
       '&option=sort(%2BthingId)' +
       // ',size(3)' +
       (cursor ? ',cursor(' + cursor + ')' : ''),
