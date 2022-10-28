@@ -120,7 +120,7 @@ final class ImmutablePolicy implements Policy {
         final Map<Label, PolicyEntry> entryMap = new LinkedHashMap<>();
         entries.forEach(policyEntry -> entryMap.put(policyEntry.getLabel(), policyEntry));
 
-        if (policyImports.getSize() <= Integer.parseInt(System.getProperty("ditto.limits.policy.imports-limit"))) {
+        if (policyImports.getSize() <= Integer.parseInt(System.getProperty("ditto.limits.policy.imports-limit", "10"))) {
             return new ImmutablePolicy(policyId, policyImports, entryMap, lifecycle, revision, modified, created,
                     metadata);
         } else {

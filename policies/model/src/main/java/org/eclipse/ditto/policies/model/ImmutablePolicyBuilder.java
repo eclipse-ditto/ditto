@@ -166,7 +166,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     public ImmutablePolicyBuilder setPolicyImports(final PolicyImports policyImports) {
         checkNotNull(policyImports, "policyImports");
 
-        if (policyImports.getSize() > Integer.parseInt(System.getProperty("ditto.limits.policy.imports-limit"))) {
+        if (policyImports.getSize() > Integer.parseInt(System.getProperty("ditto.limits.policy.imports-limit", "10"))) {
             throw PolicyImportsTooLargeException.newBuilder(policyImports.getSize()).build();
         }
         this.policyImports = policyImports;

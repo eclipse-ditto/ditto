@@ -143,7 +143,7 @@ final class ImmutablePolicyImports implements PolicyImports {
     private PolicyImports createNewPolicyImportsWithNewPolicyImport(final PolicyImport newPolicyImport) {
         final Map<CharSequence, PolicyImport> resourcesCopy = copyPolicyImports();
         resourcesCopy.put(newPolicyImport.getImportedPolicyId(), newPolicyImport);
-        if (resourcesCopy.size() > Integer.parseInt(System.getProperty("ditto.limits.policy.imports-limit"))) {
+        if (resourcesCopy.size() > Integer.parseInt(System.getProperty("ditto.limits.policy.imports-limit", "10"))) {
             throw PolicyImportsTooLargeException.newBuilder(newPolicyImport.getImportedPolicyId()).build();
         }
         return new ImmutablePolicyImports(resourcesCopy);
