@@ -20,6 +20,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -163,32 +164,22 @@ public final class RequestTracingDirective {
 
         // Replace W3C tracing headers of original request because from now
         // on the newly started span is the parent of all subsequent spans.
-        return originalRequest.withHeaders(originalHttpRequestHeaders(originalRequest)
-                .map(requestHeader -> {
-                    final HttpHeader result;
-                    if (isW3cTracingHeader(requestHeader)) {
-                        @Nullable final var spanContextHeaderValue = spanContextHeaders.get(requestHeader.name());
-                        if (null != spanContextHeaderValue) {
-                            result = HttpHeader.parse(requestHeader.name(), spanContextHeaderValue);
-                        } else {
-                            result = requestHeader;
-                        }
-                    } else {
-                        result = requestHeader;
-                    }
-                    return result;
-                })
-                .collect(Collectors.toList()));
+        var result = originalRequest;
+        for (final var w3cTracingHeader : getW3cTracingHeaders(spanContextHeaders)) {
+            result = result.removeHeader(w3cTracingHeader.name()).addHeader(w3cTracingHeader);
+        }
+        return result;
     }
 
-    private static Stream<HttpHeader> originalHttpRequestHeaders(final HttpRequest httpRequest) {
-        final var originalRequestHeaders = httpRequest.getHeaders();
-        return StreamSupport.stream(originalRequestHeaders.spliterator(), false);
-    }
-
-    private static boolean isW3cTracingHeader(final HttpHeader header) {
-        return header.is(DittoHeaderDefinition.W3C_TRACESTATE.getKey()) ||
-                header.is(DittoHeaderDefinition.W3C_TRACEPARENT.getKey());
+    private static Set<HttpHeader> getW3cTracingHeaders(final Map<String, String> spanContextHeaders) {
+        return Stream.of(DittoHeaderDefinition.W3C_TRACEPARENT, DittoHeaderDefinition.W3C_TRACESTATE)
+                .map(DittoHeaderDefinition::getKey)
+                .filter(spanContextHeaders::containsKey)
+                .map(w3cTracingHeaderName -> HttpHeader.parse(
+                        w3cTracingHeaderName,
+                        spanContextHeaders.get(w3cTracingHeaderName)
+                ))
+                .collect(Collectors.toSet());
     }
 
     @Nullable
