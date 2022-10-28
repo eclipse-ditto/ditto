@@ -317,8 +317,8 @@ Which parts of the referenced policy are imported is controlled by two propertie
 Firstly, the imported policy can define for each entry whether and how a policy entry is importable by others using JSON field `importable`. 
 The field can have one of the following three values:
 1. `implicit` (default): the policy entry is imported without being listed in the importing policy individually
-1. `explicit`: the policy entry is only imported if it is listed in the importing policy
-1. `never`: the policy entry is not imported, regardless of being listed in the importing policy
+2. `explicit`: the policy entry is only imported if it is listed in the importing policy
+3. `never`: the policy entry is not imported, regardless of being listed in the importing policy
 
 If the field is not specified, the default value is `implicit`.
 

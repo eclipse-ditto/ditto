@@ -13,6 +13,7 @@
 package org.eclipse.ditto.policies.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.policies.model.PoliciesModelFactory.DITTO_LIMITS_POLICY_IMPORTS_LIMIT;
 
 import java.text.MessageFormat;
 import java.util.Collections;
@@ -47,13 +48,14 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImport
 final class ImmutablePolicyImports implements PolicyImports {
 
     private final Map<CharSequence, PolicyImport> policyImports;
+    public static final String POLICY_IMPORTS = "policyImports";
 
     private ImmutablePolicyImports() {
         this.policyImports = Collections.emptyMap();
     }
 
     private ImmutablePolicyImports(final Map<CharSequence, PolicyImport> policyImports) {
-        checkNotNull(policyImports, "policyImports");
+        checkNotNull(policyImports, POLICY_IMPORTS);
         this.policyImports = Collections.unmodifiableMap(new HashMap<>(policyImports));
     }
 
@@ -65,7 +67,7 @@ final class ImmutablePolicyImports implements PolicyImports {
      * @throws NullPointerException if {@code policyImports} is {@code null}.
      */
     public static ImmutablePolicyImports of(final Iterable<PolicyImport> policyImports) {
-        checkNotNull(policyImports, "policyImports");
+        checkNotNull(policyImports, POLICY_IMPORTS);
 
         final Map<CharSequence, PolicyImport> resourcesMap = new HashMap<>();
         policyImports.forEach(policyImport -> {
@@ -130,7 +132,7 @@ final class ImmutablePolicyImports implements PolicyImports {
 
     @Override
     public PolicyImports setPolicyImports(final PolicyImports policyImports) {
-        checkNotNull(policyImports, "policyImports");
+        checkNotNull(policyImports, POLICY_IMPORTS);
 
         PolicyImports result = this;
         for (PolicyImport policyImport : policyImports) {
@@ -143,7 +145,7 @@ final class ImmutablePolicyImports implements PolicyImports {
     private PolicyImports createNewPolicyImportsWithNewPolicyImport(final PolicyImport newPolicyImport) {
         final Map<CharSequence, PolicyImport> resourcesCopy = copyPolicyImports();
         resourcesCopy.put(newPolicyImport.getImportedPolicyId(), newPolicyImport);
-        if (resourcesCopy.size() > Integer.parseInt(System.getProperty("ditto.limits.policy.imports-limit", "10"))) {
+        if (resourcesCopy.size() > DITTO_LIMITS_POLICY_IMPORTS_LIMIT) {
             throw PolicyImportsTooLargeException.newBuilder(newPolicyImport.getImportedPolicyId()).build();
         }
         return new ImmutablePolicyImports(resourcesCopy);

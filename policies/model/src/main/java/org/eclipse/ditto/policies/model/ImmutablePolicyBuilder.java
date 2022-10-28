@@ -13,6 +13,7 @@
 package org.eclipse.ditto.policies.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.policies.model.PoliciesModelFactory.DITTO_LIMITS_POLICY_IMPORTS_LIMIT;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -166,7 +167,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     public ImmutablePolicyBuilder setPolicyImports(final PolicyImports policyImports) {
         checkNotNull(policyImports, "policyImports");
 
-        if (policyImports.getSize() > Integer.parseInt(System.getProperty("ditto.limits.policy.imports-limit", "10"))) {
+        if (policyImports.getSize() > DITTO_LIMITS_POLICY_IMPORTS_LIMIT) {
             throw PolicyImportsTooLargeException.newBuilder(policyImports.getSize()).build();
         }
         this.policyImports = policyImports;

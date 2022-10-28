@@ -14,6 +14,8 @@
 
 package org.eclipse.ditto.policies.model.signals.commands.exceptions;
 
+import static org.eclipse.ditto.policies.model.PoliciesModelFactory.DITTO_LIMITS_POLICY_IMPORTS_LIMIT;
+
 import java.net.URI;
 import java.text.MessageFormat;
 
@@ -47,7 +49,7 @@ public final class PolicyImportsTooLargeException extends DittoRuntimeException 
             "The Imports of the Policy with ID ''{0}'' could not be modified as they exceed the allowed number of ''{1}''.";
 
     private static final String MESSAGE_TEMPLATE_POLICY_IMPORTS =
-            "The number of Imports ''{0}'' for the Policy was exceeded the allowed maximum number of ''{1}''.";
+            "The number of ''{0}'' policy imports exceeds the allowed maximum number of ''{1}''.";
     private static final String DEFAULT_DESCRIPTION =
             "Please reduce the number of imports you're trying to add to ";
 
@@ -129,19 +131,19 @@ public final class PolicyImportsTooLargeException extends DittoRuntimeException 
     public static final class Builder extends DittoRuntimeExceptionBuilder<PolicyImportsTooLargeException> {
 
         private Builder() {
-            description(DEFAULT_DESCRIPTION + System.getProperty("ditto.limits.policy.imports-limit"));
+            description(DEFAULT_DESCRIPTION + DITTO_LIMITS_POLICY_IMPORTS_LIMIT);
         }
 
         private Builder(final PolicyId policyId) {
             this();
             message(MessageFormat.format(DEFAULT_MESSAGE_TEMPLATE, String.valueOf(policyId),
-                    System.getProperty("ditto.limits.policy.imports-limit")));
+                    DITTO_LIMITS_POLICY_IMPORTS_LIMIT));
         }
 
         private Builder(final int importsSize) {
             this();
             message(MessageFormat.format(MESSAGE_TEMPLATE_POLICY_IMPORTS, String.valueOf(importsSize),
-                    System.getProperty("ditto.limits.policy.imports-limit")));
+                    DITTO_LIMITS_POLICY_IMPORTS_LIMIT));
         }
 
         @Override

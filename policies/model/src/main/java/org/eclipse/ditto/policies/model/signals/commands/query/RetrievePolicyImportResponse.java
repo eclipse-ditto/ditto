@@ -53,12 +53,13 @@ public final class RetrievePolicyImportResponse extends AbstractCommandResponse<
      * Type of this response.
      */
     public static final String TYPE = TYPE_PREFIX + RetrievePolicyImport.NAME;
+    public static final String POLICY_IMPORT = "policyImport";
 
     static final JsonFieldDefinition<String> JSON_IMPORTED_POLICY_ID =
             JsonFactory.newStringFieldDefinition("importedPolicyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonObject> JSON_POLICY_IMPORT =
-            JsonFactory.newJsonObjectFieldDefinition("policyImport", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newJsonObjectFieldDefinition(POLICY_IMPORT, FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
 
@@ -88,7 +89,7 @@ public final class RetrievePolicyImportResponse extends AbstractCommandResponse<
         super(TYPE, statusCode, dittoHeaders);
         this.policyId = checkNotNull(policyId, "policyId");
         this.importedPolicyId = checkNotNull(importedPolicyId, "importedPolicyId");
-        this.policyImport = checkNotNull(policyImport, "policyImport");
+        this.policyImport = checkNotNull(policyImport, POLICY_IMPORT);
     }
 
     /**
@@ -104,7 +105,7 @@ public final class RetrievePolicyImportResponse extends AbstractCommandResponse<
             final DittoHeaders dittoHeaders) {
 
         return new RetrievePolicyImportResponse(policyId,policyImport.getImportedPolicyId(),
-                checkNotNull(policyImport, "policyImport")
+                checkNotNull(policyImport, POLICY_IMPORT)
                         .toJson(dittoHeaders.getSchemaVersion().orElse(policyImport.getLatestSchemaVersion())),
                 HTTP_STATUS,
                 dittoHeaders);

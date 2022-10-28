@@ -106,14 +106,14 @@ Deletes the policy import identified by the `<namespace>/<policyName>` pair in t
 | Field     | Value                                               |
 |-----------|-----------------------------------------------------|
 | **topic** | `<namespace>/<policyName>/policies/commands/delete` |
-| **path**  | `/imports/<importedPolicyId>`  |
+| **path**  | `/imports/<importedPolicyId>`                       |
 
 ### Response
 
-| Field      |        | Value                                                  |
-|------------|--------|--------------------------------------------------------|
-| **topic**  |        | `<namespace>/<policyName>/policies/commands/delete`    |
-| **path**   |        | `/imports/<importedPolicyId>`                          |
+| Field      |        | Value                                                 |
+|------------|--------|-------------------------------------------------------|
+| **topic**  |        | `<namespace>/<policyName>/policies/commands/delete`   |
+| **path**   |        | `/imports/<importedPolicyId>`                         |
 | **status** | _code_ |
 |            | `204`  | Success - The policy import was successfully deleted. |
 

@@ -184,7 +184,7 @@ Retrieve all policy imports of the policy identified by the `<namespace>/<policy
 | Field     | Value                                                 |
 |-----------|-------------------------------------------------------|
 | **topic** | `<namespace>/<policyName>/policies/commands/retrieve` |
-| **path**  | `/imports`                            |
+| **path**  | `/imports`                                            |
 
 ### Response
 
@@ -207,7 +207,7 @@ Retrieve a policy import identified by the `<namespace>/<policyName>` pair in th
 | Field     | Value                                                 |
 |-----------|-------------------------------------------------------|
 | **topic** | `<namespace>/<policyName>/policies/commands/retrieve` |
-| **path**  | `/imports/<importedPolicyId>`                   |
+| **path**  | `/imports/<importedPolicyId>`                         |
 
 ### Response
 

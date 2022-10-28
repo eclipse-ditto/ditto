@@ -43,6 +43,7 @@ import org.eclipse.ditto.json.JsonValue;
 @Immutable
 public final class PoliciesModelFactory {
 
+    public static final int DITTO_LIMITS_POLICY_IMPORTS_LIMIT = Integer.parseInt(System.getProperty("ditto.limits.policy.imports-limit", "10"));
     /*
      * Inhibit instantiation of this utility class.
      */
@@ -58,7 +59,7 @@ public final class PoliciesModelFactory {
      * @return a new Label with {@code labelValue} as its value.
      * @throws NullPointerException if {@code labelValue} is {@code null}.
      * @throws IllegalArgumentException if {@code labelValue} is empty.
-     * @throws LabelInvalidException if the {@code labelValue} can not be used to to blocklisted prefixes.
+     * @throws LabelInvalidException if the {@code labelValue} can not be used to blocklisted prefixes.
      */
     public static Label newLabel(final CharSequence labelValue) {
         if (labelValue instanceof Label) {
@@ -676,7 +677,8 @@ public final class PoliciesModelFactory {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static Policy newPolicy(final PolicyId id, final Iterable<PolicyEntry> entries) {
-        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null, null, emptyPolicyImports(), entries);
+        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1),
+                null, null, null, emptyPolicyImports(), entries);
     }
 
     /**

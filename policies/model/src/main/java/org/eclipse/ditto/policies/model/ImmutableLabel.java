@@ -41,7 +41,7 @@ final class ImmutableLabel implements Label {
      * @return a new Label.
      * @throws NullPointerException if {@code labelValue} is {@code null}.
      * @throws IllegalArgumentException if {@code labelValue} is empty.
-     * @throws LabelInvalidException of the {@code labelValue} can not be used to to blocklisted prefixes.
+     * @throws LabelInvalidException of the {@code labelValue} can not be used to blocklisted prefixes.
      */
     public static Label of(final CharSequence labelValue) {
         return of(labelValue, false);
@@ -55,7 +55,7 @@ final class ImmutableLabel implements Label {
      * @return a new Label.
      * @throws NullPointerException if {@code labelValue} is {@code null}.
      * @throws IllegalArgumentException if {@code labelValue} is empty.
-     * @throws LabelInvalidException of the {@code labelValue} can not be used to to blocklisted prefixes.
+     * @throws LabelInvalidException of the {@code labelValue} can not be used to blocklisted prefixes.
      */
     public static Label of(final CharSequence labelValue, final boolean importedLabel) {
         argumentNotEmpty(labelValue, "label value");
