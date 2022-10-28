@@ -117,7 +117,7 @@ public final class DefaultLimitsConfig implements LimitsConfig, WithConfigPath {
     @Override
     public int hashCode() {
         return Objects.hash(thingsMaxSize, policiesMaxSize, messagesMaxSize, thingsSearchDefaultPageSize,
-                thingsSearchMaxPageSize);
+                thingsSearchMaxPageSize, policyImportsLimit);
     }
 
     @Override
