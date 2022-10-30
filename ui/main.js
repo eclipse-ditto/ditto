@@ -20,6 +20,8 @@ import * as FeatureMessages from './modules/things/featureMessages.js';
 import * as Fields from './modules/things/fields.js';
 import * as SearchFilter from './modules/things/searchFilter.js';
 import * as Things from './modules/things/things.js';
+import * as ThingsSearch from './modules/things/thingsSearch.js';
+import * as ThingsCRUD from './modules/things/thingsCRUD.js';
 import * as Connections from './modules/connections/connections.js';
 import * as Policies from './modules/policies/policies.js';
 import * as API from './modules/api.js';
@@ -44,6 +46,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
   Utils.ready();
   await Things.ready();
+  ThingsSearch.ready();
+  ThingsCRUD.ready();
   Attributes.ready();
   await Fields.ready();
   await SearchFilter.ready();
