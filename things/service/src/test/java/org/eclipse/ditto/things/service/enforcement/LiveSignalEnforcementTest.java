@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
@@ -87,7 +88,8 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
 
         new TestKit(system) {{
             supervisor.tell(thingMessageCommand("abc"), getRef());
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrieveThingWithSpecificTimeout(sudoRetrieveThingResponse, FiniteDuration.apply(15,
+                    TimeUnit.SECONDS));
             TestSetup.fishForMsgClass(this, MessageSendNotAllowedException.class);
         }};
     }

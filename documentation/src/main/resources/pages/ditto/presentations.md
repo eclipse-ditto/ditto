@@ -7,6 +7,13 @@ topnav: topnav
 
 This page contains a collection of presentations, videos and workshops about Eclipse Ditto, sorted from most recent ones downwards.
 
+## 13.10.2022 Web of Things Community Meetup 1 - Digital Twins
+
+Topic: Eclipse Ditto and Web of Things
+
+The slides can be found here: [2022_10_ditto-and-wot](slides/2022_10_ditto-and-wot/index.html).
+
+
 ## 25.10.2021 EclipseCon Europe 2021 Community Day
 
 Topic: Project status update of Eclipse Ditto

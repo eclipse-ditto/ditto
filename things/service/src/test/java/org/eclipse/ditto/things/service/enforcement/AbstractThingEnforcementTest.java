@@ -20,6 +20,7 @@ import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
@@ -42,6 +43,7 @@ import akka.actor.ActorSystem;
 import akka.testkit.TestActorRef;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Abstract base class for all {@link org.eclipse.ditto.things.service.enforcement.ThingEnforcement} related unit tests.
@@ -125,10 +127,21 @@ abstract class AbstractThingEnforcementTest {
 
     protected void expectAndAnswerSudoRetrieveThing(final Object sudoRetrieveThingResponse) {
         final SudoRetrieveThing sudoRetrieveThing =
-                thingPersistenceActorProbe.expectMsgClass(SudoRetrieveThing.class);
+                thingPersistenceActorProbe.expectMsgClass(FiniteDuration.apply(15, TimeUnit.SECONDS),
+                        SudoRetrieveThing.class);
         assertThat((CharSequence) sudoRetrieveThing.getEntityId()).isEqualTo(THING_ID);
         thingPersistenceActorProbe.reply(sudoRetrieveThingResponse);
     }
+
+    protected void expectAndAnswerSudoRetrieveThingWithSpecificTimeout(final Object sudoRetrieveThingResponse,
+            final FiniteDuration timeout) {
+
+        final SudoRetrieveThing sudoRetrieveThing =
+                thingPersistenceActorProbe.expectMsgClass(timeout, SudoRetrieveThing.class);
+        assertThat((CharSequence) sudoRetrieveThing.getEntityId()).isEqualTo(THING_ID);
+        thingPersistenceActorProbe.reply(sudoRetrieveThingResponse);
+    }
+
 
     protected void expectAndAnswerRetrievePolicy(final PolicyId policyId, final Object retrievePolicyResponse) {
         final var retrievePolicy = policiesShardRegionProbe.expectMsgClass(RetrievePolicy.class);
