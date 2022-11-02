@@ -30,6 +30,8 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.KamonTagSetConverter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -44,25 +46,33 @@ import scala.jdk.javaapi.CollectionConverters;
  */
 public final class StartedKamonSpanTest {
 
-    private static final Identifier TRACE_ID = Kamon.identifierScheme().traceIdFactory().generate();
-
-    @Rule
-    public final KamonTracingInitResource kamonTracingInitResource = KamonTracingInitResource.newInstance(
+    @ClassRule
+    public static final KamonTracingInitResource KAMON_TRACING_INIT_RESOURCE = KamonTracingInitResource.newInstance(
             KamonTracingInitResource.KamonTracingConfig.defaultValues()
                     .withSamplerAlways()
                     .withTickInterval(Duration.ofMillis(100L))
     );
 
+    private static Identifier traceId;
+
     @Rule
     public final TestName testName = new TestName();
 
+    @Rule
+    public final KamonTestSpanReporterResource testSpanReporterResource = KamonTestSpanReporterResource.newInstance();
+
     private StartedSpan underTest;
+
+    @BeforeClass
+    public static void beforeClass() {
+        traceId = Kamon.identifierScheme().traceIdFactory().generate();
+    }
 
     @Before
     public void setup() {
         underTest = StartedKamonSpan.newInstance(
                 Kamon.spanBuilder(testName.getMethodName())
-                        .asChildOf(Kamon.spanBuilder("/").traceId(TRACE_ID).start())
+                        .asChildOf(Kamon.spanBuilder("/").traceId(traceId).start())
                         .start(),
                 KamonHttpContextPropagation.newInstanceForChannelName("default")
         );
@@ -110,9 +120,8 @@ public final class StartedKamonSpanTest {
     @Test
     public void markWithKeyAsOnlyArgumentCreatesMarkWithSpecifiedKeyCloseToCurrentInstant() {
         final var key = "successful";
-        final var testSpanReporter = TestSpanReporter.newInstance();
+        final var testSpanReporter = registerKamonTestSpanReporter();
         final var finishedSpanFuture = testSpanReporter.getFinishedSpanForSpanWithId(underTest.getSpanId());
-        Kamon.addReporter("mySpanReporter", testSpanReporter);
         final var nowInstant = Instant.now();
 
         underTest.mark(key);
@@ -128,6 +137,10 @@ public final class StartedKamonSpanTest {
                             assertThat(mark.instant())
                                     .isCloseTo(nowInstant, new TemporalUnitWithinOffset(500L, ChronoUnit.MILLIS));
                         }));
+    }
+
+    private TestSpanReporter registerKamonTestSpanReporter() {
+        return testSpanReporterResource.registerTestSpanReporter(testName.getMethodName());
     }
 
     @Test
@@ -149,9 +162,8 @@ public final class StartedKamonSpanTest {
     @Test
     public void markWithInstantProducesExpectedMark() {
         final var key = "successful";
-        final var testSpanReporter = TestSpanReporter.newInstance();
+        final var testSpanReporter = registerKamonTestSpanReporter();
         final var finishedSpanFuture = testSpanReporter.getFinishedSpanForSpanWithId(underTest.getSpanId());
-        Kamon.addReporter("mySpanReporter", testSpanReporter);
         final var mark = new Span.Mark(Instant.now(), key);
 
         underTest.mark(mark.key(), mark.instant());
@@ -177,9 +189,8 @@ public final class StartedKamonSpanTest {
     @Test
     public void tagAsFailedCreatesTagWithSpecifiedErrorMessage() {
         final var errorMessage = "A foo is not allowed to bar.";
-        final var testSpanReporter = TestSpanReporter.newInstance();
+        final var testSpanReporter = registerKamonTestSpanReporter();
         final var finishedSpanFuture = testSpanReporter.getFinishedSpanForSpanWithId(underTest.getSpanId());
-        Kamon.addReporter("mySpanReporter", testSpanReporter);
 
         underTest.tagAsFailed(errorMessage);
         underTest.finish();
@@ -205,9 +216,8 @@ public final class StartedKamonSpanTest {
     @Test
     public void tagAsFailedWithThrowableCreatesExpectedTags() {
         final var throwable = new NoSuchElementException("Hypermatter");
-        final var testSpanReporter = TestSpanReporter.newInstance();
+        final var testSpanReporter = registerKamonTestSpanReporter();
         final var finishedSpanFuture = testSpanReporter.getFinishedSpanForSpanWithId(underTest.getSpanId());
-        Kamon.addReporter("mySpanReporter", testSpanReporter);
 
         underTest.tagAsFailed(throwable);
         underTest.finish();
@@ -231,9 +241,8 @@ public final class StartedKamonSpanTest {
     public void tagAsFailedWithErrorMessageAndThrowableCreatesExpectedTags() {
         final var errorMessage = "Failed to fire tachyon pulses.";
         final var throwable = new NoSuchElementException("Tachyons");
-        final var testSpanReporter = TestSpanReporter.newInstance();
+        final var testSpanReporter = registerKamonTestSpanReporter();
         final var finishedSpanFuture = testSpanReporter.getFinishedSpanForSpanWithId(underTest.getSpanId());
-        Kamon.addReporter("mySpanReporter", testSpanReporter);
 
         underTest.tagAsFailed(errorMessage, throwable);
         underTest.finish();
@@ -276,7 +285,7 @@ public final class StartedKamonSpanTest {
     }
 
     private String getExpectedTraceparentValue() {
-        return MessageFormat.format("00-0000000000000000{0}-{1}-01", TRACE_ID.string(), underTest.getSpanId());
+        return MessageFormat.format("00-{0}-{1}-01", traceId.string(), underTest.getSpanId());
     }
 
     @Test

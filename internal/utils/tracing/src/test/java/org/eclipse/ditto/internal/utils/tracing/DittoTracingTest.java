@@ -33,10 +33,10 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.timer.Timers;
 import org.eclipse.ditto.internal.utils.tracing.config.DefaultTracingConfig;
 import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
 import org.eclipse.ditto.internal.utils.tracing.filter.AcceptAllTracingFilter;
+import org.eclipse.ditto.internal.utils.tracing.span.KamonTestSpanReporterResource;
 import org.eclipse.ditto.internal.utils.tracing.span.KamonTracingInitResource;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
-import org.eclipse.ditto.internal.utils.tracing.span.TestSpanReporter;
 import org.eclipse.ditto.internal.utils.tracing.span.TracingSpans;
 import org.junit.After;
 import org.junit.Before;
@@ -48,8 +48,6 @@ import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigFactory;
 
-import kamon.Kamon;
-
 /**
  * Unit test for {@link DittoTracing}.
  */
@@ -58,13 +56,15 @@ public final class DittoTracingTest {
     @ClassRule
     public static final KamonTracingInitResource KAMON_TRACING_INIT_RESOURCE = KamonTracingInitResource.newInstance(
             KamonTracingInitResource.KamonTracingConfig.defaultValues()
-                    .withIdentifierSchemeDouble()
                     .withSamplerAlways()
                     .withTickInterval(Duration.ofMillis(100L))
     );
 
     @Rule
     public final TestName testName = new TestName();
+
+    @Rule
+    public final KamonTestSpanReporterResource testSpanReporterResource = KamonTestSpanReporterResource.newInstance();
 
     private TracingConfig tracingConfigMock;
 
@@ -246,12 +246,12 @@ public final class DittoTracingTest {
     @Test
     public void newStartedSpanByTimerWhenTracingIsEnabledReturnsExpectedStartedSpan() {
         DittoTracing.init(tracingConfigMock);
-        final var operationName = SpanOperationName.of(testName.getMethodName());
+        final var testMethodName = testName.getMethodName();
+        final var operationName = SpanOperationName.of(testMethodName);
         final var timerTags = TagSet.ofTagCollection(List.of(Tag.of("foo", "bar"), Tag.of("marco", "polo")));
         final var startedTimer = Timers.newTimer(operationName.toString()).tags(timerTags).start();
         final var dittoHeaders = DittoHeaders.newBuilder().correlationId(operationName).build();
-        final var testSpanReporter = TestSpanReporter.newInstance();
-        Kamon.addReporter("mySpanReporter", testSpanReporter);
+        final var testSpanReporter = testSpanReporterResource.registerTestSpanReporter(testMethodName);
 
         final var startedSpan = DittoTracing.newStartedSpanByTimer(dittoHeaders, startedTimer);
 

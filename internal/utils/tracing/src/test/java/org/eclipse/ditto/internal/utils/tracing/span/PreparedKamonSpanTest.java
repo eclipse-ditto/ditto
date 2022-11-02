@@ -25,27 +25,28 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartInstant;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.Timers;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-
-import kamon.Kamon;
 
 /**
  * Unit test for {@link PreparedKamonSpan}.
  */
 public final class PreparedKamonSpanTest {
 
-    @Rule
-    public final KamonTracingInitResource kamonTracingInitResource = KamonTracingInitResource.newInstance(
+    @ClassRule
+    public static final KamonTracingInitResource KAMON_TRACING_INIT_RESOURCE = KamonTracingInitResource.newInstance(
             KamonTracingInitResource.KamonTracingConfig.defaultValues()
-                    .withIdentifierSchemeDouble()
                     .withSamplerAlways()
                     .withTickInterval(Duration.ofMillis(100L))
     );
 
     @Rule
     public final TestName testName = new TestName();
+
+    @Rule
+    public final KamonTestSpanReporterResource testSpanReporterResource = KamonTestSpanReporterResource.newInstance();
 
     private PreparedKamonSpan underTest;
 
@@ -135,8 +136,7 @@ public final class PreparedKamonSpanTest {
         underTest.tags(TagSet.ofTagCollection(
                 List.of(Tag.of("foo", "bar"), Tag.of("ping", "pong"), Tag.of("marco", "polo"))
         ));
-        final var testSpanReporter = TestSpanReporter.newInstance();
-        Kamon.addReporter("mySpanReporter", testSpanReporter);
+        final var testSpanReporter = testSpanReporterResource.registerTestSpanReporter(testName.getMethodName());
 
         final var startedSpan = underTest.start();
 
@@ -156,8 +156,7 @@ public final class PreparedKamonSpanTest {
         underTest.tags(TagSet.ofTagCollection(
                 List.of(Tag.of("foo", "bar"), Tag.of("ping", "pong"), Tag.of("marco", "polo"))
         ));
-        final var testSpanReporter = TestSpanReporter.newInstance();
-        Kamon.addReporter("mySpanReporter", testSpanReporter);
+        final var testSpanReporter = testSpanReporterResource.registerTestSpanReporter(testName.getMethodName());
         Thread.sleep(150L);
 
         final var startedSpan = underTest.startAt(startInstant);
@@ -177,9 +176,9 @@ public final class PreparedKamonSpanTest {
 
     @Test
     public void startByStartedTimerReturnsStartedSpanWithTagsOfTimer() {
-        final var testSpanReporter = TestSpanReporter.newInstance();
-        Kamon.addReporter("mySpanReporter", testSpanReporter);
-        final var startedTimer = Timers.newTimer(testName.getMethodName())
+        final var testMethodName = testName.getMethodName();
+        final var testSpanReporter = testSpanReporterResource.registerTestSpanReporter(testMethodName);
+        final var startedTimer = Timers.newTimer(testMethodName)
                 .tags(TagSet.ofTagCollection(
                         List.of(Tag.of("foo", "bar"), Tag.of("ping", "pong"), Tag.of("marco", "polo"))
                 ))

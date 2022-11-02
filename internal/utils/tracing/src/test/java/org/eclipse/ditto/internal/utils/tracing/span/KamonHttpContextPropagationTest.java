@@ -42,8 +42,8 @@ import kamon.trace.Span;
 public final class KamonHttpContextPropagationTest {
 
     @ClassRule
-    public static final KamonTracingInitResource KAMON_INIT_RESOURCE = KamonTracingInitResource.newInstance(
-            KamonTracingInitResource.KamonTracingConfig.defaultValues().withIdentifierSchemeDouble()
+    public static final KamonTracingInitResource KAMON_TRACING_INIT_RESOURCE = KamonTracingInitResource.newInstance(
+            KamonTracingInitResource.KamonTracingConfig.defaultValues()
     );
 
     private static final String DEFAULT_CHANNEL_NAME = "default";
