@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.tracing.span;
 
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -22,7 +21,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.KamonTagSetConverter;
-import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 
 import com.typesafe.config.Config;
 
@@ -30,37 +28,35 @@ import kamon.module.SpanReporter;
 import kamon.trace.Identifier;
 import kamon.trace.Span;
 import scala.collection.immutable.Seq;
+import scala.jdk.javaapi.CollectionConverters;
 
 /**
- * It is impossible to get the tags of a running {@code Span} directly.
+ * It is impossible to get certain information of a running {@code Span} directly.
  * Thus, it is necessary to make a detour via reporting the span first.
- * On a finished span it is possible to obtain the tags.
+ * For testing purposes a {@link Span.Finished} is much more valuable because it provides some interesting information.
+ * This span reporter allows to asynchronously obtain a finished span for a particular {@link SpanId}.
+ * <p>
+ * Some helpers might be required to make testing with AssertJ more enjoyable:
+ * {@link KamonTagSetConverter#getDittoTagSet(kamon.tag.TagSet)} and
+ * {@link CollectionConverters#asJava(scala.collection.Seq)}.
  */
 @NotThreadSafe
 public final class TestSpanReporter implements SpanReporter {
 
-    private final Map<SpanId, CompletableFuture<TagSet>> tagsOfSpanFutures;
-    private final Map<SpanId, CompletableFuture<Instant>> startInstantOfSpanFutures;
+    private final Map<SpanId, CompletableFuture<Span.Finished>> finishedSpanFutures;
 
     private TestSpanReporter() {
         super();
-        tagsOfSpanFutures = new HashMap<>();
-        startInstantOfSpanFutures = new HashMap<>();
+        finishedSpanFutures = new HashMap<>();
     }
 
     public static TestSpanReporter newInstance() {
         return new TestSpanReporter();
     }
 
-    public CompletionStage<TagSet> getTagsForSpanWithId(final SpanId spanId) {
-        final var result = new CompletableFuture<TagSet>();
-        tagsOfSpanFutures.put(spanId, result);
-        return result;
-    }
-
-    public CompletionStage<Instant> getStartInstantForSpanWithId(final SpanId spanId) {
-        final var result = new CompletableFuture<Instant>();
-        startInstantOfSpanFutures.put(spanId, result);
+    public CompletionStage<Span.Finished> getFinishedSpanForSpanWithId(final SpanId spanId) {
+        final var result = new CompletableFuture<Span.Finished>();
+        finishedSpanFutures.put(spanId, result);
         return result;
     }
 
@@ -77,9 +73,7 @@ public final class TestSpanReporter implements SpanReporter {
     @Override
     public void reportSpans(final Seq<Span.Finished> spans) {
         spans.foreach(span -> {
-            final var spanId = getAsSpanId(span.id());
-            completeTagsOfSpan(spanId, span.tags());
-            completeStartInstantOfSpan(spanId, span.from());
+            completeFinishedSpanFutureForSpan(getAsSpanId(span.id()), span);
             return span;
         });
     }
@@ -88,17 +82,10 @@ public final class TestSpanReporter implements SpanReporter {
         return SpanId.of(identifier.string());
     }
 
-    private void completeTagsOfSpan(final SpanId spanId, final kamon.tag.TagSet kamonTagSet) {
-        @Nullable final var tagsFuture = tagsOfSpanFutures.remove(spanId);
-        if (null != tagsFuture) {
-            tagsFuture.complete(KamonTagSetConverter.getDittoTagSet(kamonTagSet));
-        }
-    }
-
-    private void completeStartInstantOfSpan(final SpanId spanId, final Instant startInstant) {
-        @Nullable final var startInstantFuture = startInstantOfSpanFutures.remove(spanId);
-        if (null != startInstantFuture) {
-            startInstantFuture.complete(startInstant);
+    private void completeFinishedSpanFutureForSpan(final SpanId spanId, final Span.Finished finishedSpan) {
+        @Nullable final var finishedSpanFuture = finishedSpanFutures.remove(spanId);
+        if (null != finishedSpanFuture) {
+            finishedSpanFuture.complete(finishedSpan);
         }
     }
 

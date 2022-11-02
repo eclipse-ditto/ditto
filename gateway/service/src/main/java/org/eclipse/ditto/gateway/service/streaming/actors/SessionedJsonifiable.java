@@ -112,7 +112,7 @@ public interface SessionedJsonifiable {
                 SpanOperationName.of("gw_streaming_out_error")
         );
         final var startedSpan = preparedSpan.start();
-        startedSpan.fail(error);
+        startedSpan.tagAsFailed(error);
         return new SessionedResponseErrorOrAck(
                 error.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(error.getDittoHeaders()))),
                 error.getDittoHeaders(),

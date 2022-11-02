@@ -159,19 +159,18 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
                                             authorizedSignal.getType());
                             sender.tell(authorizedSignal, self);
                         } else if (null != throwable) {
-                            startedSpan.mark("enforce_failed").fail(throwable).finish();
+                            startedSpan.mark("enforce_failed").tagAsFailed(throwable).finish();
                             handleAuthorizationFailure(tracedSignal, throwable, sender);
                         } else {
-                            startedSpan.mark("enforce_error").fail("unknown-outcome").finish();
+                            startedSpan.mark("enforce_error").tagAsFailed("unknown-outcome").finish();
                             log.withCorrelationId(tracedSignal)
-                                    .warning(
-                                            "Neither authorizedSignal nor throwable were present during enforcement of signal: " +
-                                                    "<{}>",
+                                    .warning("Neither authorizedSignal nor throwable were present during enforcement" +
+                                                    " of signal: <{}>",
                                             tracedSignal);
                         }
                     });
         } catch (final DittoRuntimeException dittoRuntimeException) {
-            startedSpan.mark("enforce_failed").fail(dittoRuntimeException).finish();
+            startedSpan.mark("enforce_failed").tagAsFailed(dittoRuntimeException).finish();
             handleAuthorizationFailure(tracedSignal, dittoRuntimeException, sender);
         }
     }

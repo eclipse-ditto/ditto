@@ -26,6 +26,7 @@ import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.KamonTagSetConverter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.Timers;
@@ -249,34 +250,29 @@ public final class DittoTracingTest {
         final var timerTags = TagSet.ofTagCollection(List.of(Tag.of("foo", "bar"), Tag.of("marco", "polo")));
         final var startedTimer = Timers.newTimer(operationName.toString()).tags(timerTags).start();
         final var dittoHeaders = DittoHeaders.newBuilder().correlationId(operationName).build();
-        final var spanReporter = TestSpanReporter.newInstance();
-        Kamon.addReporter("mySpanReporter", spanReporter);
+        final var testSpanReporter = TestSpanReporter.newInstance();
+        Kamon.addReporter("mySpanReporter", testSpanReporter);
 
         final var startedSpan = DittoTracing.newStartedSpanByTimer(dittoHeaders, startedTimer);
 
-        final var tagsForSpanFuture = spanReporter.getTagsForSpanWithId(startedSpan.getSpanId());
-        final var startInstantForSpanFuture = spanReporter.getStartInstantForSpanWithId(startedSpan.getSpanId());
+        final var finishedSpanFuture = testSpanReporter.getFinishedSpanForSpanWithId(startedSpan.getSpanId());
         startedTimer.stop();
 
-        try (final var softly = new AutoCloseableSoftAssertions()) {
-            softly.assertThat((CharSequence) startedSpan.getOperationName())
-                    .as("operation name")
-                    .isEqualTo(operationName);
-            softly.assertThat(tagsForSpanFuture)
-                    .as("tags")
-                    .succeedsWithin(Duration.ofSeconds(2L))
-                    .satisfies(actualTags -> softly.assertThat(actualTags)
+        assertThat(finishedSpanFuture)
+                .succeedsWithin(Duration.ofSeconds(2L))
+                .satisfies(finishedSpan -> {
+                    assertThat(KamonTagSetConverter.getDittoTagSet(finishedSpan.tags()))
+                            .as("tags")
                             .containsAll(timerTags)
                             .contains(
                                     SpanTagKey.CORRELATION_ID.getTagForValue(
                                             dittoHeaders.getCorrelationId().orElseThrow()
                                     )
-                            ));
-            softly.assertThat(startInstantForSpanFuture)
-                    .as("start instant")
-                    .succeedsWithin(Duration.ofSeconds(2L))
-                    .isEqualTo(startedTimer.getStartInstant().toInstant());
-        }
+                            );
+                    assertThat(finishedSpan.from())
+                            .as("start instant")
+                            .isEqualTo(startedTimer.getStartInstant().toInstant());
+                });
     }
 
     @Test

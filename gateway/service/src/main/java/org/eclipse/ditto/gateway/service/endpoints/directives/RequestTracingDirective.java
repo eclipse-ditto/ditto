@@ -192,7 +192,7 @@ public final class RequestTracingDirective {
         try {
             handleRouteResult(routeResult, httpRequest, startedSpan, correlationId);
         } catch (final Exception e) {
-            startedSpan.fail(e);
+            startedSpan.tagAsFailed(e);
         } finally {
             startedSpan.finish();
         }
@@ -208,9 +208,9 @@ public final class RequestTracingDirective {
         if (routeResult instanceof Complete complete) {
             addRequestResponseTags(startedSpan, httpRequest, complete.getResponse(), correlationId);
         } else if (null != routeResult) {
-            startedSpan.fail("Request rejected: " + routeResult.getClass().getName());
+            startedSpan.tagAsFailed("Request rejected: " + routeResult.getClass().getName());
         } else {
-            startedSpan.fail("Request failed.");
+            startedSpan.tagAsFailed("Request failed.");
         }
     }
 

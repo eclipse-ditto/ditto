@@ -61,12 +61,17 @@ final class EmptyStartedSpan implements StartedSpan {
     }
 
     @Override
-    public StartedSpan fail(final String errorMessage) {
+    public StartedSpan tagAsFailed(final String errorMessage) {
         return this;
     }
 
     @Override
-    public StartedSpan fail(final String errorMessage, final Throwable throwable) {
+    public StartedSpan tagAsFailed(final Throwable throwable) {
+        return this;
+    }
+
+    @Override
+    public StartedSpan tagAsFailed(final String errorMessage, final Throwable throwable) {
         return this;
     }
 
@@ -88,11 +93,6 @@ final class EmptyStartedSpan implements StartedSpan {
     @Override
     public SpanOperationName getOperationName() {
         return operationName;
-    }
-
-    @Override
-    public StartedSpan fail(final Throwable throwable) {
-        return this;
     }
 
     @Override

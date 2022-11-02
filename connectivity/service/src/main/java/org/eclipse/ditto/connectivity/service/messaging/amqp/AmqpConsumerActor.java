@@ -381,7 +381,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
             logger.withCorrelationId(e)
                     .info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(),
                             e.getMessage());
-            startedSpan.fail(e);
+            startedSpan.tagAsFailed(e);
             if (headers != null) {
                 // forwarding to messageMappingProcessor only make sense if we were able to extract the headers,
                 // because we need a reply-to address to send the error response
@@ -396,7 +396,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
             } else {
                 inboundMonitor.exception(e);
             }
-            startedSpan.fail(e);
+            startedSpan.tagAsFailed(e);
             logger.withCorrelationId(correlationId)
                     .error(e, "Unexpected {}: {}", e.getClass().getName(), e.getMessage());
         } finally {

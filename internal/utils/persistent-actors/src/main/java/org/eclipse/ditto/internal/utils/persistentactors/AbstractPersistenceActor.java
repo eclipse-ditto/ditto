@@ -482,7 +482,7 @@ public abstract class AbstractPersistenceActor<
         try {
             result = strategy.apply(getStrategyContext(), entity, getNextRevisionNumber(), (T) tracedCommand);
         } catch (final DittoRuntimeException e) {
-            startedSpan.fail(e);
+            startedSpan.tagAsFailed(e);
             result = ResultFactory.newErrorResult(e, tracedCommand);
         } finally {
             startedSpan.finish();

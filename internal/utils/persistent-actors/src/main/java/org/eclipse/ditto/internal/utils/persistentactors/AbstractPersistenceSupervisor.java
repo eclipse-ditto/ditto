@@ -735,12 +735,12 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                                             error != null ? ENFORCEMENT_TIMER_TAG_OUTCOME_FAIL :
                                                     ENFORCEMENT_TIMER_TAG_OUTCOME_SUCCESS).stop();
                                     if (null != error) {
-                                        startedSpan.fail(error);
+                                        startedSpan.tagAsFailed(error);
                                     }
                                 });
                     }).whenComplete((result, error) -> {
                         if (null != error) {
-                            startedSpan.fail(error);
+                            startedSpan.tagAsFailed(error);
                         }
                         startedSpan.finish();
                         stopTimer(rootTimer).accept(result, error);

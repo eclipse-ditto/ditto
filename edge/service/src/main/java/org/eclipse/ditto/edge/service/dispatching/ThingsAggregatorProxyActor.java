@@ -33,7 +33,6 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
@@ -175,7 +174,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                     if (response instanceof SourceRef) {
                         handleSourceRef((SourceRef<?>) response, thingIds, command, sender, startedSpan);
                     } else if (response instanceof DittoRuntimeException dre) {
-                        startedSpan.fail(dre).finish();
+                        startedSpan.tagAsFailed(dre).finish();
                         sender.tell(response, getSelf());
                     } else {
                         log.error("Unexpected non-DittoRuntimeException error - responding with " +
@@ -185,7 +184,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                                 DittoInternalErrorException.newBuilder()
                                         .dittoHeaders(command.getDittoHeaders())
                                         .build();
-                        startedSpan.fail(responseEx).finish();
+                        startedSpan.tagAsFailed(responseEx).finish();
                         sender.tell(responseEx, getSelf());
                     }
                 });

@@ -41,37 +41,11 @@ public interface StartedSpan extends TaggableMetricsInstrument<StartedSpan>, Spa
     void finishAfter(Duration duration);
 
     /**
-     * Marks the current operation as failed and adds the provided error message as a tag.
-     *
-     * @param errorMessage message describing the error.
-     * @return this span.
-     */
-    StartedSpan fail(String errorMessage);
-
-    /**
-     * Marks the current operation as failed and optionally adds the provided error stack trace as a tag.
-     * See the "kamon.trace.include-error-stacktrace" setting for more information.
-     *
-     * @param throwable the throwable.
-     * @return this span.
-     */
-    StartedSpan fail(Throwable throwable);
-
-    /**
-     * Marks the current operation as failed and adds the provided error message as a tag and optionally adds the
-     * provided error stack trace as a tag.
-     *
-     * @param errorMessage message describing the error.
-     * @param throwable the throwable.
-     * @return this span.
-     */
-    StartedSpan fail(String errorMessage, Throwable throwable);
-
-    /**
      * Adds a new mark with the provided key using the current instant.
      *
      * @param key the key of the created mark.
      * @return this span.
+     * @throws NullPointerException if {@code key} is {@code null}.
      */
     StartedSpan mark(String key);
 
@@ -81,8 +55,39 @@ public interface StartedSpan extends TaggableMetricsInstrument<StartedSpan>, Spa
      * @param key the key of the created mark.
      * @param at the provided instant.
      * @return this span.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     StartedSpan mark(String key, Instant at);
+
+    /**
+     * Sets this span to failed state and adds a tag with key {@code "error.message"} and the provided error message as
+     * value.
+     *
+     * @param errorMessage message describing the error.
+     * @return this span.
+     * @throws NullPointerException if {@code errorMessage} is {@code null}.
+     */
+    StartedSpan tagAsFailed(String errorMessage);
+
+    /**
+     * Sets this span to failed state and optionally adds the provided error stack trace as a tag.
+     * See the "kamon.trace.include-error-stacktrace" setting for more information.
+     *
+     * @param throwable the throwable.
+     * @return this span.
+     * @throws NullPointerException if {@code throwable} is {@code null}.
+     */
+    StartedSpan tagAsFailed(Throwable throwable);
+
+    /**
+     * Sets this span to failed state and adds the provided error message as a tag and optionally adds the provided
+     * error stack trace as a tag.
+     *
+     * @param errorMessage message describing the error.
+     * @param throwable the throwable.
+     * @return this span.
+     */
+    StartedSpan tagAsFailed(String errorMessage, Throwable throwable);
 
     /**
      * Returns the identifier of this tracing span.

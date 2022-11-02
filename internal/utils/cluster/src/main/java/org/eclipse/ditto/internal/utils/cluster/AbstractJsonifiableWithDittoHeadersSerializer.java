@@ -162,7 +162,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
                         jsonObject
                 );
                 LOG.error(errorMessage, e);
-                startedSpan.fail(e);
+                startedSpan.tagAsFailed(e);
                 throw new IllegalArgumentException(errorMessage, e);
             } catch (final IOException e) {
                 final var errorMessage = MessageFormat.format(
@@ -171,7 +171,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
                         jsonObject
                 );
                 LOG.warn(errorMessage, e);
-                startedSpan.fail(e);
+                startedSpan.tagAsFailed(e);
                 throw new RuntimeException(errorMessage, e);
             } finally {
                 startedSpan.finish();

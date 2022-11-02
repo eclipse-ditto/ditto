@@ -19,7 +19,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
-import org.assertj.core.api.AutoCloseableSoftAssertions;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.KamonTagSetConverter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartInstant;
@@ -135,17 +135,18 @@ public final class PreparedKamonSpanTest {
         underTest.tags(TagSet.ofTagCollection(
                 List.of(Tag.of("foo", "bar"), Tag.of("ping", "pong"), Tag.of("marco", "polo"))
         ));
-        final var spanReporter = TestSpanReporter.newInstance();
-        Kamon.addReporter("mySpanReporter", spanReporter);
+        final var testSpanReporter = TestSpanReporter.newInstance();
+        Kamon.addReporter("mySpanReporter", testSpanReporter);
 
         final var startedSpan = underTest.start();
 
-        final var tagsForSpanFuture = spanReporter.getTagsForSpanWithId(startedSpan.getSpanId());
+        final var finishedSpanFuture = testSpanReporter.getFinishedSpanForSpanWithId(startedSpan.getSpanId());
         startedSpan.finish();
 
-        assertThat(tagsForSpanFuture)
+        assertThat(finishedSpanFuture)
                 .succeedsWithin(Duration.ofSeconds(1L))
-                .isEqualTo(underTest.getTagSet());
+                .satisfies(finishedSpan -> assertThat(KamonTagSetConverter.getDittoTagSet(finishedSpan.tags()))
+                        .isEqualTo(underTest.getTagSet()));
     }
 
     @SuppressWarnings("java:S2925")
@@ -155,32 +156,29 @@ public final class PreparedKamonSpanTest {
         underTest.tags(TagSet.ofTagCollection(
                 List.of(Tag.of("foo", "bar"), Tag.of("ping", "pong"), Tag.of("marco", "polo"))
         ));
-        final var spanReporter = TestSpanReporter.newInstance();
-        Kamon.addReporter("mySpanReporter", spanReporter);
+        final var testSpanReporter = TestSpanReporter.newInstance();
+        Kamon.addReporter("mySpanReporter", testSpanReporter);
         Thread.sleep(150L);
 
         final var startedSpan = underTest.startAt(startInstant);
 
-        final var tagsForSpanFuture = spanReporter.getTagsForSpanWithId(startedSpan.getSpanId());
-        final var startInstantForSpanFuture = spanReporter.getStartInstantForSpanWithId(startedSpan.getSpanId());
+        final var finishedSpanFuture = testSpanReporter.getFinishedSpanForSpanWithId(startedSpan.getSpanId());
         startedSpan.finish();
 
-        try (final var softly = new AutoCloseableSoftAssertions()) {
-            softly.assertThat(tagsForSpanFuture)
-                    .as("tags")
-                    .succeedsWithin(Duration.ofSeconds(2L))
-                    .isEqualTo(underTest.getTagSet());
-            softly.assertThat(startInstantForSpanFuture)
-                    .as("start instant")
-                    .succeedsWithin(Duration.ofSeconds(2L))
-                    .isEqualTo(startInstant.toInstant());
-        }
+        assertThat(finishedSpanFuture)
+                .succeedsWithin(Duration.ofSeconds(2L))
+                .satisfies(finishedSpan -> {
+                    assertThat(KamonTagSetConverter.getDittoTagSet(finishedSpan.tags()))
+                            .as("tags")
+                            .isEqualTo(underTest.getTagSet());
+                    assertThat(finishedSpan.from()).as("start instant").isEqualTo(startInstant.toInstant());
+                });
     }
 
     @Test
     public void startByStartedTimerReturnsStartedSpanWithTagsOfTimer() {
-        final var spanReporter = TestSpanReporter.newInstance();
-        Kamon.addReporter("mySpanReporter", spanReporter);
+        final var testSpanReporter = TestSpanReporter.newInstance();
+        Kamon.addReporter("mySpanReporter", testSpanReporter);
         final var startedTimer = Timers.newTimer(testName.getMethodName())
                 .tags(TagSet.ofTagCollection(
                         List.of(Tag.of("foo", "bar"), Tag.of("ping", "pong"), Tag.of("marco", "polo"))
@@ -189,12 +187,13 @@ public final class PreparedKamonSpanTest {
 
         final var startedSpan = underTest.startBy(startedTimer);
 
-        final var tagsForSpanFuture = spanReporter.getTagsForSpanWithId(startedSpan.getSpanId());
+        final var finishedSpanFuture = testSpanReporter.getFinishedSpanForSpanWithId(startedSpan.getSpanId());
         startedTimer.stop();
 
-        assertThat(tagsForSpanFuture)
-                .succeedsWithin(Duration.ofSeconds(1L))
-                .isEqualTo(startedTimer.getTagSet());
+        assertThat(finishedSpanFuture)
+                .succeedsWithin(Duration.ofSeconds(2L))
+                .satisfies(finishedSpan -> assertThat(KamonTagSetConverter.getDittoTagSet(finishedSpan.tags()))
+                        .isEqualTo(underTest.getTagSet()));
     }
 
 }

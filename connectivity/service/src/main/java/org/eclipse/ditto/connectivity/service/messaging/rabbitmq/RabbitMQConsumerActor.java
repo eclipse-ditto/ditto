@@ -203,7 +203,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
             } else {
                 inboundMonitor.failure(e);
             }
-            startedSpan.fail(e);
+            startedSpan.tagAsFailed(e);
         } catch (final Exception e) {
             logger.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage());
             if (headers != null) {
@@ -211,7 +211,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
             } else {
                 inboundMonitor.exception(e);
             }
-            startedSpan.fail(e);
+            startedSpan.tagAsFailed(e);
         } finally {
             startedSpan.finish();
         }

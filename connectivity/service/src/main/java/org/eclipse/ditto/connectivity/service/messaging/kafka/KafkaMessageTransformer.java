@@ -144,13 +144,13 @@ final class KafkaMessageTransformer {
                         "Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(),
                         e.getMessage());
             }
-            startedSpan.fail(e);
+            startedSpan.tagAsFailed(e);
             return TransformationResult.failed(e.setDittoHeaders(DittoHeaders.of(messageHeaders)));
         } catch (final Exception e) {
             inboundMonitor.exception(messageHeaders, e);
             LOGGER.withCorrelationId(correlationId)
                     .error(String.format("Unexpected {%s}: {%s}", e.getClass().getName(), e.getMessage()), e);
-            startedSpan.fail(e);
+            startedSpan.tagAsFailed(e);
             return null; // Drop message
         } finally {
             startedSpan.finish();

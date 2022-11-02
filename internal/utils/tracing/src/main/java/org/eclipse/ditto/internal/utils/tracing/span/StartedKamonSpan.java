@@ -72,20 +72,20 @@ final class StartedKamonSpan implements StartedSpan {
     }
 
     @Override
-    public StartedSpan fail(final String errorMessage) {
+    public StartedSpan tagAsFailed(final String errorMessage) {
         span.fail(checkNotNull(errorMessage, "errorMessage"));
         return this;
     }
 
     @Override
-    public StartedSpan fail(final Throwable throwable) {
+    public StartedSpan tagAsFailed(final Throwable throwable) {
         span.fail(checkNotNull(throwable, "throwable"));
         return this;
     }
 
     @Override
-    public StartedSpan fail(final String errorMessage, final Throwable throwable) {
-        span.fail(errorMessage, throwable);
+    public StartedSpan tagAsFailed(final String errorMessage, final Throwable throwable) {
+        span.fail(checkNotNull(errorMessage, "errorMessage"), checkNotNull(throwable, "throwable"));
         return this;
     }
 

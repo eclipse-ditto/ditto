@@ -18,13 +18,18 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName.of;
 
 import java.text.MessageFormat;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
+import org.assertj.core.data.TemporalUnitWithinOffset;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.KamonTagSetConverter;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -32,35 +37,33 @@ import org.junit.rules.TestName;
 import kamon.Kamon;
 import kamon.trace.Identifier;
 import kamon.trace.Span;
+import scala.jdk.javaapi.CollectionConverters;
 
 /**
  * Unit test for {@link StartedKamonSpan}.
  */
 public final class StartedKamonSpanTest {
 
-    @ClassRule
-    public static final KamonTracingInitResource KAMON_TRACING_INIT_RESOURCE = KamonTracingInitResource.newInstance(
-            KamonTracingInitResource.KamonTracingConfig.defaultValues()
-    );
-
     private static final Identifier TRACE_ID = Kamon.identifierScheme().traceIdFactory().generate();
 
-    private static Span rootSpan;
+    @Rule
+    public final KamonTracingInitResource kamonTracingInitResource = KamonTracingInitResource.newInstance(
+            KamonTracingInitResource.KamonTracingConfig.defaultValues()
+                    .withSamplerAlways()
+                    .withTickInterval(Duration.ofMillis(100L))
+    );
 
     @Rule
     public final TestName testName = new TestName();
 
     private StartedSpan underTest;
 
-    @BeforeClass
-    public static void beforeClass() {
-        rootSpan = Kamon.spanBuilder("/").traceId(TRACE_ID).start();
-    }
-
     @Before
     public void setup() {
         underTest = StartedKamonSpan.newInstance(
-                Kamon.spanBuilder(testName.getMethodName()).asChildOf(rootSpan).start(),
+                Kamon.spanBuilder(testName.getMethodName())
+                        .asChildOf(Kamon.spanBuilder("/").traceId(TRACE_ID).start())
+                        .start(),
                 KamonHttpContextPropagation.newInstanceForChannelName("default")
         );
     }
@@ -97,6 +100,160 @@ public final class StartedKamonSpanTest {
     }
 
     @Test
+    public void markWithNullKeyThrowsNullPointerException() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> underTest.mark(null))
+                .withMessage("The key must not be null!")
+                .withNoCause();
+    }
+
+    @Test
+    public void markWithKeyAsOnlyArgumentCreatesMarkWithSpecifiedKeyCloseToCurrentInstant() {
+        final var key = "successful";
+        final var testSpanReporter = TestSpanReporter.newInstance();
+        final var finishedSpanFuture = testSpanReporter.getFinishedSpanForSpanWithId(underTest.getSpanId());
+        Kamon.addReporter("mySpanReporter", testSpanReporter);
+        final var nowInstant = Instant.now();
+
+        underTest.mark(key);
+        underTest.finish();
+
+        assertThat(finishedSpanFuture)
+                .succeedsWithin(Duration.ofSeconds(1L))
+                .satisfies(finishedSpan -> assertThat(CollectionConverters.asJava(finishedSpan.marks()))
+                        .hasSize(1)
+                        .first()
+                        .satisfies(mark -> {
+                            assertThat(mark.key()).isEqualTo(key);
+                            assertThat(mark.instant())
+                                    .isCloseTo(nowInstant, new TemporalUnitWithinOffset(500L, ChronoUnit.MILLIS));
+                        }));
+    }
+
+    @Test
+    public void markWithNullKeyButWithInstantThrowsNullPointerException() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> underTest.mark(null, Instant.now()))
+                .withMessage("The key must not be null!")
+                .withNoCause();
+    }
+
+    @Test
+    public void markWithNullInstantThrowsNullPointerException() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> underTest.mark("myKey", null))
+                .withMessage("The at must not be null!")
+                .withNoCause();
+    }
+
+    @Test
+    public void markWithInstantProducesExpectedMark() {
+        final var key = "successful";
+        final var testSpanReporter = TestSpanReporter.newInstance();
+        final var finishedSpanFuture = testSpanReporter.getFinishedSpanForSpanWithId(underTest.getSpanId());
+        Kamon.addReporter("mySpanReporter", testSpanReporter);
+        final var mark = new Span.Mark(Instant.now(), key);
+
+        underTest.mark(mark.key(), mark.instant());
+        underTest.finish();
+
+        assertThat(finishedSpanFuture)
+                .succeedsWithin(Duration.ofSeconds(1L))
+                .satisfies(finishedSpan -> {
+                    assertThat(CollectionConverters.asJava(finishedSpan.marks())).containsOnly(mark);
+                    assertThat(finishedSpan.hasError()).isFalse();
+                    assertThat(KamonTagSetConverter.getDittoTagSet(finishedSpan.tags())).isEmpty();
+                });
+    }
+
+    @Test
+    public void tagAsFailedWithNullErrorMessageThrowsNullPointerException() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> underTest.tagAsFailed((String) null))
+                .withMessage("The errorMessage must not be null!")
+                .withNoCause();
+    }
+
+    @Test
+    public void tagAsFailedCreatesTagWithSpecifiedErrorMessage() {
+        final var errorMessage = "A foo is not allowed to bar.";
+        final var testSpanReporter = TestSpanReporter.newInstance();
+        final var finishedSpanFuture = testSpanReporter.getFinishedSpanForSpanWithId(underTest.getSpanId());
+        Kamon.addReporter("mySpanReporter", testSpanReporter);
+
+        underTest.tagAsFailed(errorMessage);
+        underTest.finish();
+
+        assertThat(finishedSpanFuture)
+                .succeedsWithin(Duration.ofSeconds(1L))
+                .satisfies(finishedSpan -> {
+                    assertThat(CollectionConverters.asJava(finishedSpan.marks())).isEmpty();
+                    assertThat(finishedSpan.hasError()).isTrue();
+                    assertThat(KamonTagSetConverter.getDittoTagSet(finishedSpan.tags()))
+                            .containsOnly(Tag.of("error.message", errorMessage));
+                });
+    }
+
+    @Test
+    public void tagAsFailedWithNullThrowableThrowsNullPointerException() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> underTest.tagAsFailed((Throwable) null))
+                .withMessage("The throwable must not be null!")
+                .withNoCause();
+    }
+
+    @Test
+    public void tagAsFailedWithThrowableCreatesExpectedTags() {
+        final var throwable = new NoSuchElementException("Hypermatter");
+        final var testSpanReporter = TestSpanReporter.newInstance();
+        final var finishedSpanFuture = testSpanReporter.getFinishedSpanForSpanWithId(underTest.getSpanId());
+        Kamon.addReporter("mySpanReporter", testSpanReporter);
+
+        underTest.tagAsFailed(throwable);
+        underTest.finish();
+
+        assertThat(finishedSpanFuture)
+                .succeedsWithin(Duration.ofSeconds(1L))
+                .satisfies(finishedSpan -> {
+                    assertThat(CollectionConverters.asJava(finishedSpan.marks())).isEmpty();
+                    assertThat(finishedSpan.hasError()).isTrue();
+                    assertThat(KamonTagSetConverter.getDittoTagSet(finishedSpan.tags()))
+                            .hasSize(3)
+                            .contains(
+                                    Tag.of("error.type", throwable.getClass().getName()),
+                                    Tag.of("error.message", throwable.getMessage())
+                            )
+                            .anyMatch(tag -> "error.stacktrace".equals(tag.getKey()));
+                });
+    }
+
+    @Test
+    public void tagAsFailedWithErrorMessageAndThrowableCreatesExpectedTags() {
+        final var errorMessage = "Failed to fire tachyon pulses.";
+        final var throwable = new NoSuchElementException("Tachyons");
+        final var testSpanReporter = TestSpanReporter.newInstance();
+        final var finishedSpanFuture = testSpanReporter.getFinishedSpanForSpanWithId(underTest.getSpanId());
+        Kamon.addReporter("mySpanReporter", testSpanReporter);
+
+        underTest.tagAsFailed(errorMessage, throwable);
+        underTest.finish();
+
+        assertThat(finishedSpanFuture)
+                .succeedsWithin(Duration.ofSeconds(1L))
+                .satisfies(finishedSpan -> {
+                    assertThat(CollectionConverters.asJava(finishedSpan.marks())).isEmpty();
+                    assertThat(finishedSpan.hasError()).isTrue();
+                    assertThat(KamonTagSetConverter.getDittoTagSet(finishedSpan.tags()))
+                            .hasSize(3)
+                            .contains(
+                                    Tag.of("error.type", throwable.getClass().getName()),
+                                    Tag.of("error.message", errorMessage)
+                            )
+                            .anyMatch(tag -> "error.stacktrace".equals(tag.getKey()));
+                });
+    }
+
+    @Test
     public void getSpanIdReturnsNonEmptySpanId() {
         assertThat((CharSequence) underTest.getSpanId()).isNotEmpty();
     }
@@ -119,7 +276,7 @@ public final class StartedKamonSpanTest {
     }
 
     private String getExpectedTraceparentValue() {
-        return MessageFormat.format("00-{0}-{1}-00", TRACE_ID.string(), underTest.getSpanId());
+        return MessageFormat.format("00-0000000000000000{0}-{1}-01", TRACE_ID.string(), underTest.getSpanId());
     }
 
     @Test
@@ -148,7 +305,6 @@ public final class StartedKamonSpanTest {
         final var childSpan = underTest.spawnChild(of("foo"));
 
         assertThat(childSpan).isNotNull();
-
     }
 
 }
