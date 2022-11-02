@@ -15,10 +15,6 @@ package org.eclipse.ditto.connectivity.model;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkArgument;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URLDecoder;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -193,7 +189,7 @@ final class ImmutableConnection implements Connection {
         return builder.build();
     }
 
-    private static ConnectionType getConnectionTypeOrThrow(final JsonObject jsonObject) {
+    static ConnectionType getConnectionTypeOrThrow(final JsonObject jsonObject) {
         final String readConnectionType = jsonObject.getValueOrThrow(JsonFields.CONNECTION_TYPE);
         return ConnectionType.forName(readConnectionType)
                 .orElseThrow(() -> JsonParseException.newBuilder()
@@ -201,7 +197,7 @@ final class ImmutableConnection implements Connection {
                         .build());
     }
 
-    private static ConnectivityStatus getConnectionStatusOrThrow(final JsonObject jsonObject) {
+    static ConnectivityStatus getConnectionStatusOrThrow(final JsonObject jsonObject) {
         final String readConnectionStatus = jsonObject.getValueOrThrow(JsonFields.CONNECTION_STATUS);
         return ConnectivityStatus.forName(readConnectionStatus)
                 .orElseThrow(() -> JsonParseException.newBuilder()
@@ -209,7 +205,7 @@ final class ImmutableConnection implements Connection {
                         .build());
     }
 
-    private static List<Source> getSources(final JsonObject jsonObject) {
+    static List<Source> getSources(final JsonObject jsonObject) {
         final Optional<JsonArray> sourcesArray = jsonObject.getValue(JsonFields.SOURCES);
         if (sourcesArray.isPresent()) {
             final JsonArray values = sourcesArray.get();
@@ -226,7 +222,7 @@ final class ImmutableConnection implements Connection {
         }
     }
 
-    private static List<Target> getTargets(final JsonObject jsonObject) {
+    static List<Target> getTargets(final JsonObject jsonObject) {
         return jsonObject.getValue(JsonFields.TARGETS)
                 .map(array -> array.stream()
                         .filter(JsonValue::isObject)
@@ -236,7 +232,7 @@ final class ImmutableConnection implements Connection {
                 .orElse(Collections.emptyList());
     }
 
-    private static Map<String, String> getSpecificConfiguration(final JsonObject jsonObject) {
+    static Map<String, String> getSpecificConfiguration(final JsonObject jsonObject) {
         return jsonObject.getValue(JsonFields.SPECIFIC_CONFIG)
                 .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
@@ -246,7 +242,7 @@ final class ImmutableConnection implements Connection {
                 .orElse(Collections.emptyMap());
     }
 
-    private static Set<String> getTags(final JsonObject jsonObject) {
+    static Set<String> getTags(final JsonObject jsonObject) {
         return jsonObject.getValue(JsonFields.TAGS)
                 .map(array -> array.stream()
                         .filter(JsonValue::isString)
@@ -540,7 +536,7 @@ final class ImmutableConnection implements Connection {
         }
 
         @Override
-        public ConnectionBuilder credentials(@Nullable Credentials credentials) {
+        public ConnectionBuilder credentials(@Nullable final Credentials credentials) {
             this.credentials = credentials;
             return this;
         }
@@ -783,158 +779,6 @@ final class ImmutableConnection implements Connection {
                     .flatMap(Set::stream)
                     .map(FilteredTopic::getTopic)
                     .anyMatch(Topic.CONNECTION_ANNOUNCEMENTS::equals);
-        }
-
-    }
-
-    @Immutable
-    static final class ConnectionUri {
-
-        private static final String MASKED_URI_PATTERN = "{0}://{1}{2}:{3,number,#}{4}";
-
-        @SuppressWarnings("squid:S2068") // S2068 tripped due to 'PASSWORD' in variable name
-        private static final String USERNAME_PASSWORD_SEPARATOR = ":";
-
-        private final String uriString;
-        private final String protocol;
-        private final String hostname;
-        private final int port;
-        private final String path;
-        @Nullable private final String userName;
-        @Nullable private final String password;
-        private final String uriStringWithMaskedPassword;
-
-        private ConnectionUri(final String theUriString) {
-            final URI uri;
-            try {
-                uri = new URI(theUriString).parseServerAuthority();
-            } catch (final URISyntaxException e) {
-                throw ConnectionUriInvalidException.newBuilder(theUriString).build();
-            }
-            // validate self
-            if (!isValid(uri)) {
-                throw ConnectionUriInvalidException.newBuilder(theUriString).build();
-            }
-
-            uriString = uri.toASCIIString();
-            protocol = uri.getScheme();
-            hostname = uri.getHost();
-            port = uri.getPort();
-            path = uri.getPath();
-
-            // initialize nullable fields
-            final String userInfo = uri.getUserInfo();
-            if (userInfo != null && userInfo.contains(USERNAME_PASSWORD_SEPARATOR)) {
-                final int separatorIndex = userInfo.indexOf(USERNAME_PASSWORD_SEPARATOR);
-                userName = userInfo.substring(0, separatorIndex);
-                password = userInfo.substring(separatorIndex + 1);
-            } else {
-                userName = null;
-                password = null;
-            }
-
-            // must be initialized after all else
-            uriStringWithMaskedPassword = createUriStringWithMaskedPassword();
-        }
-
-        private String createUriStringWithMaskedPassword() {
-            return MessageFormat.format(MASKED_URI_PATTERN, protocol, getUserCredentialsOrEmptyString(), hostname, port,
-                    getPathOrEmptyString());
-        }
-
-        private String getUserCredentialsOrEmptyString() {
-            if (null != userName && null != password) {
-                return userName + ":*****@";
-            }
-            return "";
-        }
-
-        private String getPathOrEmptyString() {
-            return getPath().orElse("");
-        }
-
-        /**
-         * Test validity of a connection URI. A connection URI is valid if it has an explicit port number ,has no query
-         * parameters, and has a nonempty password whenever it has a nonempty username.
-         *
-         * @param uri the URI object with which the connection URI is created.
-         * @return whether the connection URI is valid.
-         */
-        private static boolean isValid(final URI uri) {
-            return uri.getPort() > 0 && uri.getQuery() == null;
-        }
-
-        /**
-         * Returns a new instance of {@code ConnectionUri}. The is the reverse function of {@link #toString()}.
-         *
-         * @param uriString the string representation of the Connection URI.
-         * @return the instance.
-         * @throws NullPointerException if {@code uriString} is {@code null}.
-         * @throws ConnectionUriInvalidException if {@code uriString} is not a
-         * valid URI.
-         * @see #toString()
-         */
-        static ConnectionUri of(final String uriString) {
-            return new ConnectionUri(uriString);
-        }
-
-        String getProtocol() {
-            return protocol;
-        }
-
-        Optional<String> getUserName() {
-            return Optional.ofNullable(userName);
-        }
-
-        Optional<String> getPassword() {
-            return Optional.ofNullable(password);
-        }
-
-        String getHostname() {
-            return hostname;
-        }
-
-        int getPort() {
-            return port;
-        }
-
-        /**
-         * Returns the path or an empty string.
-         *
-         * @return the path or an empty string.
-         */
-        Optional<String> getPath() {
-            return path.isEmpty() ? Optional.empty() : Optional.of(path);
-        }
-
-        String getUriStringWithMaskedPassword() {
-            return uriStringWithMaskedPassword;
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            final ConnectionUri that = (ConnectionUri) o;
-            return Objects.equals(uriString, that.uriString);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(uriString);
-        }
-
-        /**
-         * @return the string representation of this ConnectionUri. This is the reverse function of {@link #of(String)}.
-         * @see #of(String)
-         */
-        @Override
-        public String toString() {
-            return uriString;
         }
 
     }

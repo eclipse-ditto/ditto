@@ -70,10 +70,13 @@ public final class ConnectivityModelFactory {
             final ConnectionType connectionType,
             final ConnectivityStatus connectionStatus,
             final String uri) {
+        final ConnectionBuilder builder;
         if (connectionType == ConnectionType.HONO) {
-            return HonoConnection.getBuilder(id, connectionType, connectionStatus, uri);
+            builder = HonoConnection.getBuilder(id, connectionType, connectionStatus, uri);
+        } else {
+            builder = ImmutableConnection.getBuilder(id, connectionType, connectionStatus, uri);
         }
-        return ImmutableConnection.getBuilder(id, connectionType, connectionStatus, uri);
+        return builder;
     }
 
     /**
@@ -85,10 +88,13 @@ public final class ConnectivityModelFactory {
      * @throws NullPointerException if {@code connection} is {@code null}.
      */
     public static ConnectionBuilder newConnectionBuilder(final Connection connection) {
+        final ConnectionBuilder builder;
         if (HonoConnection.isHonoConnectionType(connection)) {
-            return HonoConnection.getBuilder(connection);
+            builder = HonoConnection.getBuilder(connection);
+        } else {
+            builder = ImmutableConnection.getBuilder(connection);
         }
-        return ImmutableConnection.getBuilder(connection);
+        return builder;
     }
 
     /**
@@ -100,10 +106,13 @@ public final class ConnectivityModelFactory {
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static Connection connectionFromJson(final JsonObject jsonObject) {
+        final Connection connection;
         if (HonoConnection.isHonoConnectionType(jsonObject)) {
-            return HonoConnection.fromJson(jsonObject);
+            connection = HonoConnection.fromJson(jsonObject);
+        } else {
+            connection = ImmutableConnection.fromJson(jsonObject);
         }
-        return ImmutableConnection.fromJson(jsonObject);
+        return connection;
     }
 
     /**

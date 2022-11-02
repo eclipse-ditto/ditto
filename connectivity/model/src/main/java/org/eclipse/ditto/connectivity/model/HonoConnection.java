@@ -15,8 +15,6 @@ package org.eclipse.ditto.connectivity.model;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkArgument;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,34 +29,35 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.json.JsonArray;
+
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
+
+/**
+ * Immutable implementation of {@link Connection} of type
+ * {@link org.eclipse.ditto.connectivity.model.ConnectionType} HONO.
+ */
 @Immutable
-public class HonoConnection implements Connection {
+final class HonoConnection implements Connection {
 
     private final ConnectionId id;
     @Nullable private final String name;
     private final ConnectionType connectionType;
     private final ConnectivityStatus connectionStatus;
-    @Nullable private final HonoConnection.ConnectionUri uri;
+    private final ConnectionUri uri;
     @Nullable private final Credentials credentials;
     @Nullable private final String trustedCertificates;
     @Nullable private final ConnectionLifecycle lifecycle;
-
-
     private final List<Source> sources;
     private final List<Target> targets;
     private final int clientCount;
@@ -77,7 +76,7 @@ public class HonoConnection implements Connection {
         connectionStatus = checkNotNull(builder.connectionStatus, "connectionStatus");
         credentials = builder.credentials;
         trustedCertificates = builder.trustedCertificates;
-        uri = HonoConnection.ConnectionUri.of(builder.uri);
+        uri = ConnectionUri.of(builder.uri);
         sources = Collections.unmodifiableList(new ArrayList<>(builder.sources));
         targets = Collections.unmodifiableList(new ArrayList<>(builder.targets));
         clientCount = builder.clientCount;
@@ -104,7 +103,7 @@ public class HonoConnection implements Connection {
     public static ConnectionBuilder getBuilder(final ConnectionId id,
             final ConnectionType connectionType,
             final ConnectivityStatus connectionStatus,
-            final String uri) {
+            @Nullable final String uri) {
 
         return new HonoConnection.Builder(connectionType)
                 .id(id)
@@ -116,7 +115,7 @@ public class HonoConnection implements Connection {
      * Returns a new {@code ConnectionBuilder} object.
      *
      * @param connection the connection to use for initializing the builder.
-     * @return new instance of {@code ImmutableConnectionBuilder}.
+     * @return new instance of {@code ConnectionBuilder}.
      * @throws NullPointerException if {@code connection} is {@code null}.
      */
     public static ConnectionBuilder getBuilder(final Connection connection) {
@@ -149,9 +148,10 @@ public class HonoConnection implements Connection {
      * @return a new Connection which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} does not contain a value at the defined location.
      */
     public static Connection fromJson(final JsonObject jsonObject) {
-        final ConnectionType type = getConnectionTypeOrThrow(jsonObject);
+        final ConnectionType type = ImmutableConnection.getConnectionTypeOrThrow(jsonObject);
         final MappingContext mappingContext = jsonObject.getValue(JsonFields.MAPPING_CONTEXT)
                 .map(ConnectivityModelFactory::mappingContextFromJson)
                 .orElse(null);
@@ -163,15 +163,15 @@ public class HonoConnection implements Connection {
 
         final ConnectionBuilder builder = new HonoConnection.Builder(type)
                 .id(ConnectionId.of(jsonObject.getValueOrThrow(JsonFields.ID)))
-                .connectionStatus(getConnectionStatusOrThrow(jsonObject))
-                .uri(jsonObject.getValueOrThrow(JsonFields.URI))
-                .sources(getSources(jsonObject))
-                .targets(getTargets(jsonObject))
+                .connectionStatus(ImmutableConnection.getConnectionStatusOrThrow(jsonObject))
+                .uri(jsonObject.getValue(JsonFields.URI).orElse(""))
+                .sources(ImmutableConnection.getSources(jsonObject))
+                .targets(ImmutableConnection.getTargets(jsonObject))
                 .name(jsonObject.getValue(JsonFields.NAME).orElse(null))
                 .mappingContext(mappingContext)
                 .payloadMappingDefinition(payloadMappingDefinition)
-                .specificConfig(getSpecificConfiguration(jsonObject))
-                .tags(getTags(jsonObject));
+                .specificConfig(ImmutableConnection.getSpecificConfiguration(jsonObject))
+                .tags(ImmutableConnection.getTags(jsonObject));
 
         jsonObject.getValue(JsonFields.LIFECYCLE)
                 .flatMap(ConnectionLifecycle::forName).ifPresent(builder::lifecycle);
@@ -187,66 +187,15 @@ public class HonoConnection implements Connection {
         return builder.build();
     }
 
-    private static ConnectionType getConnectionTypeOrThrow(final JsonObject jsonObject) {
-        final String readConnectionType = jsonObject.getValueOrThrow(JsonFields.CONNECTION_TYPE);
-        return ConnectionType.forName(readConnectionType)
-                .orElseThrow(() -> JsonParseException.newBuilder()
-                        .message(MessageFormat.format("Connection type <{0}> is invalid!", readConnectionType))
-                        .build());
+    static boolean isHonoConnectionType(final JsonObject connectionJsonObject) {
+        return connectionJsonObject.getValue(Connection.JsonFields.CONNECTION_TYPE)
+                .flatMap(ConnectionType::forName)
+                .filter(ConnectionType.HONO::equals)
+                .isPresent();
     }
 
-    private static ConnectivityStatus getConnectionStatusOrThrow(final JsonObject jsonObject) {
-        final String readConnectionStatus = jsonObject.getValueOrThrow(JsonFields.CONNECTION_STATUS);
-        return ConnectivityStatus.forName(readConnectionStatus)
-                .orElseThrow(() -> JsonParseException.newBuilder()
-                        .message(MessageFormat.format("Connection status <{0}> is invalid!", readConnectionStatus))
-                        .build());
-    }
-
-    private static List<Source> getSources(final JsonObject jsonObject) {
-        final Optional<JsonArray> sourcesArray = jsonObject.getValue(JsonFields.SOURCES);
-        if (sourcesArray.isPresent()) {
-            final JsonArray values = sourcesArray.get();
-            return IntStream.range(0, values.getSize())
-                    .mapToObj(index -> values.get(index)
-                            .filter(JsonValue::isObject)
-                            .map(JsonValue::asObject)
-                            .map(valueAsObject -> ConnectivityModelFactory.sourceFromJson(valueAsObject, index)))
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .collect(Collectors.toList());
-        } else {
-            return Collections.emptyList();
-        }
-    }
-
-    private static List<Target> getTargets(final JsonObject jsonObject) {
-        return jsonObject.getValue(JsonFields.TARGETS)
-                .map(array -> array.stream()
-                        .filter(JsonValue::isObject)
-                        .map(JsonValue::asObject)
-                        .map(ConnectivityModelFactory::targetFromJson)
-                        .collect(Collectors.toList()))
-                .orElse(Collections.emptyList());
-    }
-
-    private static Map<String, String> getSpecificConfiguration(final JsonObject jsonObject) {
-        return jsonObject.getValue(JsonFields.SPECIFIC_CONFIG)
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .map(JsonObject::stream)
-                .map(jsonFields -> jsonFields.collect(Collectors.toMap(JsonField::getKeyName,
-                        f -> f.getValue().isString() ? f.getValue().asString() : f.getValue().toString())))
-                .orElse(Collections.emptyMap());
-    }
-
-    private static Set<String> getTags(final JsonObject jsonObject) {
-        return jsonObject.getValue(JsonFields.TAGS)
-                .map(array -> array.stream()
-                        .filter(JsonValue::isString)
-                        .map(JsonValue::asString)
-                        .collect(Collectors.toCollection(LinkedHashSet::new)))
-                .orElseGet(LinkedHashSet::new);
+    static boolean isHonoConnectionType(final Connection connection) {
+        return connection.getConnectionType() == ConnectionType.HONO;
     }
 
     @Override
@@ -465,7 +414,7 @@ public class HonoConnection implements Connection {
                 ", failoverEnabled=" + failOverEnabled +
                 ", credentials=" + credentials +
                 ", trustedCertificates=hash:" + Objects.hash(trustedCertificates) +
-                ", uri=" + uri.uriString +
+                ", uri=\"\"" +
                 ", sources=" + sources +
                 ", targets=" + targets +
                 ", sshTunnel=" + sshTunnel +
@@ -480,7 +429,7 @@ public class HonoConnection implements Connection {
     }
 
     /**
-     * Builder for {@code ImmutableConnection}.
+     * Builder for {@code HonoConnection}.
      */
     @NotThreadSafe
     private static final class Builder implements ConnectionBuilder {
@@ -514,16 +463,12 @@ public class HonoConnection implements Connection {
         private final Map<String, String> specificConfig = new HashMap<>();
 
         private Builder(final ConnectionType connectionType) {
-            this.connectionType = checkNotNull(connectionType, "Connection Type");
-        }
-
-        private static boolean isBlankOrNull(@Nullable final String toTest) {
-            return null == toTest || toTest.trim().isEmpty();
+            this.connectionType = checkNotNull(connectionType, "connectionType");
         }
 
         @Override
         public ConnectionBuilder id(final ConnectionId id) {
-            this.id = checkNotNull(id, "ID");
+            this.id = checkNotNull(id, "id");
             return this;
         }
 
@@ -534,9 +479,13 @@ public class HonoConnection implements Connection {
         }
 
         @Override
-        public ConnectionBuilder credentials(@Nullable Credentials credentials) {
+        public ConnectionBuilder credentials(@Nullable final Credentials credentials) {
             this.credentials = credentials;
             return this;
+        }
+
+        static boolean isBlankOrNull(@Nullable final String toTest) {
+            return null == toTest || toTest.trim().isEmpty();
         }
 
         @Override
@@ -550,14 +499,14 @@ public class HonoConnection implements Connection {
         }
 
         @Override
-        public ConnectionBuilder uri(final String uri) {
+        public ConnectionBuilder uri(@Nullable final String uri) {
             this.uri = uri;
             return this;
         }
 
         @Override
         public ConnectionBuilder connectionStatus(final ConnectivityStatus connectionStatus) {
-            this.connectionStatus = checkNotNull(connectionStatus, "ConnectionStatus");
+            this.connectionStatus = checkNotNull(connectionStatus, "connectionStatus");
             return this;
         }
 
@@ -606,14 +555,14 @@ public class HonoConnection implements Connection {
 
         @Override
         public ConnectionBuilder clientCount(final int clientCount) {
-            checkArgument(clientCount, ps -> ps > 0, () -> "The client count must be > 0!");
+            checkArgument(clientCount, ps -> ps > 0, () -> "The client count must be positive!");
             this.clientCount = clientCount;
             return this;
         }
 
         @Override
         public ConnectionBuilder specificConfig(final Map<String, String> specificConfig) {
-            this.specificConfig.putAll(checkNotNull(specificConfig, "Specific Config"));
+            this.specificConfig.putAll(checkNotNull(specificConfig, "specificConfig"));
             return this;
         }
 
@@ -625,13 +574,13 @@ public class HonoConnection implements Connection {
 
         @Override
         public ConnectionBuilder tags(final Collection<String> tags) {
-            this.tags = new LinkedHashSet<>(checkNotNull(tags, "tags to set"));
+            this.tags = new LinkedHashSet<>(checkNotNull(tags, "tags"));
             return this;
         }
 
         @Override
         public ConnectionBuilder tag(final String tag) {
-            tags.add(checkNotNull(tag, "tag to set"));
+            tags.add(checkNotNull(tag, "tag"));
             return this;
         }
 
@@ -704,17 +653,7 @@ public class HonoConnection implements Connection {
         }
 
         private boolean shouldAddDefaultHeaderMappingToTarget(final ConnectionType connectionType) {
-            switch (connectionType) {
-                case AMQP_091:
-                case AMQP_10:
-                case KAFKA:
-                case MQTT_5:
-                    return true;
-                case MQTT:
-                case HTTP_PUSH:
-                default:
-                    return false;
-            }
+            return connectionType == ConnectionType.HONO;
         }
 
 
@@ -779,180 +718,6 @@ public class HonoConnection implements Connection {
                     .anyMatch(Topic.CONNECTION_ANNOUNCEMENTS::equals);
         }
 
-    }
-
-    @Immutable
-    static final class ConnectionUri {
-
-        private static final String MASKED_URI_PATTERN = "{0}://{1}{2}:{3,number,#}{4}";
-
-        @SuppressWarnings("squid:S2068") // S2068 tripped due to 'PASSWORD' in variable name
-        private static final String USERNAME_PASSWORD_SEPARATOR = ":";
-
-        @Nullable private final String uriString;
-        @Nullable private final String protocol;
-        @Nullable private final String hostname;
-        @Nullable private final int port;
-        @Nullable private final String path;
-        @Nullable private final String userName;
-        @Nullable private final String password;
-        private final String uriStringWithMaskedPassword;
-
-        private ConnectionUri(final String theUriString) {
-            final URI uri;
-            if (theUriString != null) {
-                try {
-                    uri = new URI(theUriString).parseServerAuthority();
-                } catch (final URISyntaxException e) {
-                    throw ConnectionUriInvalidException.newBuilder(theUriString).build();
-                }
-                // validate self
-                if (!isValid(uri)) {
-                    throw ConnectionUriInvalidException.newBuilder(theUriString).build();
-                }
-
-                uriString = uri.toASCIIString();
-                protocol = uri.getScheme();
-                hostname = uri.getHost();
-                port = uri.getPort();
-                path = uri.getPath();
-
-                // initialize nullable fields
-                final String userInfo = uri.getUserInfo();
-                if (userInfo != null && userInfo.contains(USERNAME_PASSWORD_SEPARATOR)) {
-                    final int separatorIndex = userInfo.indexOf(USERNAME_PASSWORD_SEPARATOR);
-                    userName = userInfo.substring(0, separatorIndex);
-                    password = userInfo.substring(separatorIndex + 1);
-                } else {
-                    userName = null;
-                    password = null;
-                }
-
-                // must be initialized after all else
-                uriStringWithMaskedPassword = createUriStringWithMaskedPassword();
-            } else {
-                uriString = "";
-                protocol = "";
-                hostname = "";
-                port = 9999;
-                path = "";
-                userName = null;
-                password = null;
-                uriStringWithMaskedPassword = null;
-            }
-        }
-
-        private String createUriStringWithMaskedPassword() {
-            return MessageFormat.format(MASKED_URI_PATTERN, protocol, getUserCredentialsOrEmptyString(), hostname, port,
-                    getPathOrEmptyString());
-        }
-
-        private String getUserCredentialsOrEmptyString() {
-            if (null != userName && null != password) {
-                return userName + ":*****@";
-            }
-            return "";
-        }
-
-        private String getPathOrEmptyString() {
-            return getPath().orElse("");
-        }
-
-        /**
-         * Test validity of a connection URI. A connection URI is valid if it has an explicit port number ,has no query
-         * parameters, and has a nonempty password whenever it has a nonempty username.
-         *
-         * @param uri the URI object with which the connection URI is created.
-         * @return whether the connection URI is valid.
-         */
-        private static boolean isValid(final URI uri) {
-            return uri.getPort() > 0 && uri.getQuery() == null;
-        }
-
-        /**
-         * Returns a new instance of {@code ConnectionUri}. The is the reverse function of {@link #toString()}.
-         *
-         * @param uriString the string representation of the Connection URI.
-         * @return the instance.
-         * @throws NullPointerException if {@code uriString} is {@code null}.
-         * @throws ConnectionUriInvalidException if {@code uriString} is not a
-         * valid URI.
-         * @see #toString()
-         */
-        static ConnectionUri of(final String uriString) {
-            return new ConnectionUri(uriString);
-        }
-
-        String getProtocol() {
-            return protocol;
-        }
-
-        Optional<String> getUserName() {
-            return Optional.ofNullable(userName);
-        }
-
-        Optional<String> getPassword() {
-            return Optional.ofNullable(password);
-        }
-
-        String getHostname() {
-            return hostname;
-        }
-
-        int getPort() {
-            return port;
-        }
-
-        /**
-         * Returns the path or an empty string.
-         *
-         * @return the path or an empty string.
-         */
-        Optional<String> getPath() {
-            return path.isEmpty() ? Optional.empty() : Optional.of(path);
-        }
-
-        String getUriStringWithMaskedPassword() {
-            return uriStringWithMaskedPassword;
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            final ConnectionUri that = (ConnectionUri) o;
-            return Objects.equals(uriString, that.uriString);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(uriString);
-        }
-
-        /**
-         * @return the string representation of this ConnectionUri. This is the reverse function of {@link #of(String)}.
-         * @see #of(String)
-         */
-        @Override
-        public String toString() {
-            return uriString;
-        }
-
-    }
-
-    protected static boolean isHonoConnectionType(final JsonObject connectionJsonObject) {
-        return connectionJsonObject.getValue(Connection.JsonFields.CONNECTION_TYPE)
-                .flatMap(ConnectionType::forName)
-                .filter(ConnectionType.HONO::equals)
-                .isPresent();
-    }
-
-    protected static boolean isHonoConnectionType(final Connection connection) {
-        return connection.getConnectionType() == ConnectionType.HONO;
     }
 
 }

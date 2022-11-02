@@ -28,6 +28,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -43,15 +45,15 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ImmutableConnection}.
  */
-public final class ImmutableConnectionTest {
-
-    private static final ConnectionType TYPE = ConnectionType.AMQP_10;
+public final class HonoConnectionTest {
+    private static final ConnectionType TYPE = ConnectionType.HONO;
     private static final ConnectivityStatus STATUS = ConnectivityStatus.OPEN;
 
-    private static final ConnectionId ID = ConnectionId.of("myConnectionId");
-    private static final String NAME = "myConnection";
+    private static final ConnectionId ID = ConnectionId.of("myHonoConnectionId");
+    private static final String NAME = "myHonoConnection";
 
-    private static final String URI = "amqps://foo:bar@example.com:443";
+    @Nullable private static final String URI = null;
+    private static final String URI_EMPTY = "";
     private static final Credentials CREDENTIALS = ClientCertificateCredentials.newBuilder().build();
 
     private static final AuthorizationContext AUTHORIZATION_CONTEXT =
@@ -88,9 +90,6 @@ public final class ImmutableConnectionTest {
             .topics(Topic.LIVE_MESSAGES, Topic.LIVE_MESSAGES, Topic.LIVE_COMMANDS)
             .build();
     private static final List<Target> TARGETS = Arrays.asList(TARGET1, TARGET2, TARGET3);
-
-    private static final SshTunnel SSH_TUNNEL = ConnectivityModelFactory.newSshTunnel(true,
-            UserPasswordCredentials.newInstance("User", "Password"), false, Collections.emptyList(), URI);
 
     private static final JsonArray KNOWN_SOURCES_JSON =
             SOURCES.stream().map(Source::toJson).collect(JsonCollectors.valuesToArray());
@@ -179,13 +178,13 @@ public final class ImmutableConnectionTest {
 
     private static final Set<String> KNOWN_TAGS = Collections.singleton("HONO");
 
-    private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
+    private static final JsonObject KNOWN_JSON= JsonObject.newBuilder()
             .set(Connection.JsonFields.ID, ID.toString())
             .set(Connection.JsonFields.NAME, NAME)
             .set(Connection.JsonFields.CONNECTION_TYPE, TYPE.getName())
             .set(Connection.JsonFields.CONNECTION_STATUS, STATUS.getName())
             .set(Connection.JsonFields.CREDENTIALS, CREDENTIALS.toJson())
-            .set(Connection.JsonFields.URI, URI)
+            .set(Connection.JsonFields.URI, URI_EMPTY)
             .set(Connection.JsonFields.SOURCES, KNOWN_SOURCES_WITH_MAPPING_JSON)
             .set(Connection.JsonFields.TARGETS, KNOWN_TARGETS_WITH_MAPPING_JSON)
             .set(Connection.JsonFields.CLIENT_COUNT, 2)
@@ -200,8 +199,7 @@ public final class ImmutableConnectionTest {
             .set(Connection.JsonFields.TAGS, KNOWN_TAGS.stream()
                     .map(JsonFactory::newValue)
                     .collect(JsonCollectors.valuesToArray()))
-            .set(Connection.JsonFields.SSH_TUNNEL, SSH_TUNNEL.toJson())
-            .build();
+             .build();
 
     private static final JsonObject KNOWN_JSON_WITH_REPLY_TARGET = KNOWN_JSON
             .set(Connection.JsonFields.SOURCES, KNOWN_SOURCES_WITH_REPLY_TARGET)
@@ -212,7 +210,7 @@ public final class ImmutableConnectionTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ImmutableConnection.class)
+        EqualsVerifier.forClass(HonoConnection.class)
                 .usingGetClass()
                 .verify();
     }
@@ -232,10 +230,21 @@ public final class ImmutableConnectionTest {
                 .sources(SOURCES_WITH_REPLY_TARGET_DISABLED)
                 .targets(TARGETS)
                 .build();
-
         assertThat((CharSequence) connection.getId()).isEqualTo(ID);
         assertThat((Object) connection.getConnectionType()).isEqualTo(TYPE);
-        assertThat(connection.getUri()).isEqualTo(URI);
+        assertThat(connection.getUri()).isEqualTo(URI_EMPTY);
+        assertThat(connection.getSources()).isEqualTo(SOURCES_WITH_REPLY_TARGET_DISABLED);
+    }
+
+    @Test
+    public void createMinimalConnectionConfigurationInstanceWithEmptyUri() {
+        final Connection connection = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+                .sources(SOURCES_WITH_REPLY_TARGET_DISABLED)
+                .targets(TARGETS)
+                .build();
+        assertThat((CharSequence) connection.getId()).isEqualTo(ID);
+        assertThat((Object) connection.getConnectionType()).isEqualTo(TYPE);
+        assertThat(connection.getUri()).isEqualTo(URI_EMPTY);
         assertThat(connection.getSources()).isEqualTo(SOURCES_WITH_REPLY_TARGET_DISABLED);
     }
 
@@ -243,22 +252,40 @@ public final class ImmutableConnectionTest {
     public void createInstanceWithNullId() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(null, TYPE, STATUS, URI))
-                .withMessage("The %s must not be null!", "ID")
+                .withMessage("The %s must not be null!", "id")
+                .withNoCause();
+    }
+
+    @Test
+    public void createInstanceWithNullIdAndEmptyUri() {
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(null, TYPE, STATUS, URI_EMPTY))
+                .withMessage("The %s must not be null!", "id")
                 .withNoCause();
     }
 
     @Test
     public void createInstanceWithNullUri() {
-        assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, null))
-                .withMessage("The %s must not be null!", "URI")
-                .withNoCause();
+        final Connection connection = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+                .sources(SOURCES_WITH_REPLY_TARGET_DISABLED)
+                .targets(TARGETS)
+                .build();
+        assertThat(connection.getUri()).isEmpty();
+    }
+
+    @Test
+    public void createInstanceWithEmptyUri() {
+        final Connection connection = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI_EMPTY)
+                .sources(SOURCES_WITH_REPLY_TARGET_DISABLED)
+                .targets(TARGETS)
+                .build();
+        assertThat(connection.getUri()).isEmpty();
     }
 
     @Test
     public void getBuilderFromConnectionCoversAllFields() {
 
-        final Connection connection = ImmutableConnection.getBuilder(ID, TYPE, STATUS, URI)
+        final Connection connection = HonoConnection.getBuilder(ID, TYPE, STATUS, URI)
                 .sources(SOURCES)
                 .targets(TARGETS)
                 .connectionStatus(ConnectivityStatus.OPEN)
@@ -272,29 +299,18 @@ public final class ImmutableConnectionTest {
                         .clientCertificate("certificate")
                         .build())
                 .validateCertificate(true)
-                .uri("amqps://some.amqp.org:5672")
+                .uri(null)
                 .id(ID)
                 .payloadMappingDefinition(
                         ConnectivityModelFactory.newPayloadMappingDefinition("test", KNOWN_JAVA_MAPPING_CONTEXT))
-                .sshTunnel(SSH_TUNNEL)
                 .build();
-
-        assertThat(ImmutableConnection.getBuilder(connection).build()).isEqualTo(connection);
-    }
-
-    @Test
-    public void builderManagesSpecialConfig() {
-        final HashMap<String, String> specialFields = new HashMap<>();
-        specialFields.put("reconnectForRedelivery", String.valueOf(true));
-        final Connection connectionWithSpecialFields =
-                ImmutableConnection.fromJson(KNOWN_JSON).toBuilder().specificConfig(specialFields).build();
-
-        assertThat(connectionWithSpecialFields.getSpecificConfig()).containsOnlyKeys(specialFields.keySet());
+        assertThat(HonoConnection.getBuilder(connection).build()).isEqualTo(connection);
+        assertThat(HonoConnection.getBuilder(connection).build().getUri()).isEqualTo(URI_EMPTY);
     }
 
     @Test
     public void createInstanceWithNullSources() {
-        final ConnectionBuilder builder = ImmutableConnection.getBuilder(ID, TYPE, STATUS, URI);
+        final ConnectionBuilder builder = HonoConnection.getBuilder(ID, TYPE, STATUS, URI);
 
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> builder.sources(null))
@@ -304,7 +320,7 @@ public final class ImmutableConnectionTest {
 
     @Test
     public void createInstanceWithNullEventTarget() {
-        final ConnectionBuilder builder = ImmutableConnection.getBuilder(ID, TYPE, STATUS, URI);
+        final ConnectionBuilder builder = HonoConnection.getBuilder(ID, TYPE, STATUS, URI);
 
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> builder.targets(null))
@@ -313,19 +329,27 @@ public final class ImmutableConnectionTest {
     }
 
     @Test
-    public void createInstanceWithoutSourceAndEventTarget() {
-        final ConnectionBuilder builder = ImmutableConnection.getBuilder(ID, TYPE, STATUS, URI);
+    public void createInstanceWithNullSourcesAndEmptyUri() {
+        final ConnectionBuilder builder = HonoConnection.getBuilder(ID, TYPE, STATUS, URI_EMPTY);
 
-        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(builder::build)
-                .withMessageContaining("source")
-                .withMessageContaining("target")
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(() -> builder.sources(null))
+                .withMessage("The %s must not be null!", "sources")
+                .withNoCause();
+    }
+
+    @Test
+    public void createInstanceWithNullEventTargetAndEmptyUri() {
+        final ConnectionBuilder builder = HonoConnection.getBuilder(ID, TYPE, STATUS, URI_EMPTY);
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(() -> builder.targets(null))
+                .withMessage("The %s must not be null!", "targets")
                 .withNoCause();
     }
 
     @Test
     public void createInstanceWithConnectionAnnouncementsAndClientCountGreater1() {
-        final ConnectionBuilder builder = ImmutableConnection.getBuilder(ID, TYPE, STATUS, URI)
+        final ConnectionBuilder builder = HonoConnection.getBuilder(ID, TYPE, STATUS, URI)
                 .targets(Collections.singletonList(
                         ConnectivityModelFactory.newTargetBuilder(TARGET1)
                                 .topics(Topic.CONNECTION_ANNOUNCEMENTS).build())
@@ -336,24 +360,6 @@ public final class ImmutableConnectionTest {
                 .isThrownBy(builder::build)
                 .withMessageContaining(Topic.CONNECTION_ANNOUNCEMENTS.getName())
                 .withNoCause();
-    }
-
-    @Test
-    public void fromJsonReturnsExpected() {
-        final Connection expected = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
-                .credentials(CREDENTIALS)
-                .name(NAME)
-                .setSources(addSourceMapping(SOURCES, JAVA_SCRIPT_MAPPING))
-                .setTargets(addTargetMapping(TARGETS, STATUS_MAPPING))
-                .clientCount(2)
-                .payloadMappingDefinition(KNOWN_MAPPING_DEFINITIONS)
-                .tags(KNOWN_TAGS)
-                .sshTunnel(SSH_TUNNEL)
-                .build();
-
-        final Connection actual = ImmutableConnection.fromJson(KNOWN_JSON);
-
-        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -369,10 +375,9 @@ public final class ImmutableConnectionTest {
                 .clientCount(2)
                 .payloadMappingDefinition(ConnectivityModelFactory.newPayloadMappingDefinition(definitions))
                 .tags(KNOWN_TAGS)
-                .sshTunnel(SSH_TUNNEL)
                 .build();
 
-        final Connection actual = ImmutableConnection.fromJson(KNOWN_LEGACY_JSON);
+        final Connection actual = HonoConnection.fromJson(KNOWN_LEGACY_JSON);
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -382,10 +387,27 @@ public final class ImmutableConnectionTest {
                 .remove(Connection.JsonFields.TARGETS.getPointer());
 
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> ImmutableConnection.fromJson(INVALID_JSON))
+                .isThrownBy(() -> HonoConnection.fromJson(INVALID_JSON))
                 .withMessageContaining("source")
                 .withMessageContaining("target")
                 .withNoCause();
+    }
+
+    @Test
+    public void fromJsonReturnsExpected() {
+        final Connection expected = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+                .credentials(CREDENTIALS)
+                .name(NAME)
+                .setSources(addSourceMapping(SOURCES, JAVA_SCRIPT_MAPPING))
+                .setTargets(addTargetMapping(TARGETS, STATUS_MAPPING))
+                .clientCount(2)
+                .payloadMappingDefinition(KNOWN_MAPPING_DEFINITIONS)
+                .tags(KNOWN_TAGS)
+                .build();
+
+        final Connection actual = HonoConnection.fromJson(KNOWN_JSON);
+
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -399,11 +421,10 @@ public final class ImmutableConnectionTest {
                 .clientCount(2)
                 .payloadMappingDefinition(KNOWN_MAPPING_DEFINITIONS)
                 .tags(KNOWN_TAGS)
-                .sshTunnel(SSH_TUNNEL)
                 .build();
 
         final JsonObject actual = underTest.toJson();
-
+        System.out.println(underTest.getUri());
         assertThat(actual).isEqualTo(KNOWN_JSON_WITH_REPLY_TARGET);
     }
 
@@ -428,15 +449,18 @@ public final class ImmutableConnectionTest {
         assertThat(underTest.getTrustedCertificates()).isEmpty();
     }
 
-    @Test
-    public void nullSshTunnelLeadToEmptyOptional() {
-        final Connection underTest = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
-                .targets(TARGETS)
-                .validateCertificate(true)
-                .sshTunnel(null)
-                .build();
+    private List<Source> addSourceMapping(final List<Source> sources, final String... mapping) {
+        return sources.stream()
+                .map(s -> new ImmutableSource.Builder(s).payloadMapping(
+                        ConnectivityModelFactory.newPayloadMapping(mapping)).build())
+                .collect(Collectors.toList());
+    }
 
-        assertThat(underTest.getSshTunnel()).isEmpty();
+    private List<Target> addTargetMapping(final List<Target> targets, final String... mapping) {
+        return targets.stream()
+                .map(t -> new ImmutableTarget.Builder(t).payloadMapping(
+                        ConnectivityModelFactory.newPayloadMapping(mapping)).build())
+                .collect(Collectors.toList());
     }
 
     @Test
@@ -464,25 +488,11 @@ public final class ImmutableConnectionTest {
                         TARGET1.toJson()
                                 .remove(Target.JsonFields.HEADER_MAPPING.getPointer())));
         final Connection connectionWithoutHeaderMappingForTarget =
-                ImmutableConnection.fromJson(connectionJsonWithoutHeaderMappingForTarget);
+                HonoConnection.fromJson(connectionJsonWithoutHeaderMappingForTarget);
 
         connectionWithoutHeaderMappingForTarget.getTargets()
                 .forEach(target -> assertThat(target.getHeaderMapping())
                         .isEqualTo(ConnectivityModelFactory.emptyHeaderMapping()));
-    }
-
-    private List<Source> addSourceMapping(final List<Source> sources, final String... mapping) {
-        return sources.stream()
-                .map(s -> new ImmutableSource.Builder(s).payloadMapping(
-                        ConnectivityModelFactory.newPayloadMapping(mapping)).build())
-                .collect(Collectors.toList());
-    }
-
-    private List<Target> addTargetMapping(final List<Target> targets, final String... mapping) {
-        return targets.stream()
-                .map(t -> new ImmutableTarget.Builder(t).payloadMapping(
-                        ConnectivityModelFactory.newPayloadMapping(mapping)).build())
-                .collect(Collectors.toList());
     }
 
 }
