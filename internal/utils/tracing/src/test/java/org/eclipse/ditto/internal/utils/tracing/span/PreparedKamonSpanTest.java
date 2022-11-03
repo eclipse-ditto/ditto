@@ -55,7 +55,7 @@ public final class PreparedKamonSpanTest {
         underTest = PreparedKamonSpan.newInstance(
                 Map.of(),
                 SpanOperationName.of(testName.getMethodName()),
-                KamonHttpContextPropagation.newInstanceForChannelName("default")
+                KamonHttpContextPropagation.getInstanceForDefaultHttpChannel()
         );
     }
 

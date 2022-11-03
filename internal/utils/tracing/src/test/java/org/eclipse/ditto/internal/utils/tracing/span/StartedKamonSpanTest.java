@@ -74,7 +74,7 @@ public final class StartedKamonSpanTest {
                 Kamon.spanBuilder(testName.getMethodName())
                         .asChildOf(Kamon.spanBuilder("/").traceId(traceId).start())
                         .start(),
-                KamonHttpContextPropagation.newInstanceForChannelName("default")
+                KamonHttpContextPropagation.getInstanceForDefaultHttpChannel()
         );
     }
 

@@ -46,7 +46,6 @@ public final class KamonHttpContextPropagationTest {
             KamonTracingInitResource.KamonTracingConfig.defaultValues()
     );
 
-    private static final String DEFAULT_CHANNEL_NAME = "default";
     private static final String CONTEXT_TAGS_KEY = "context-tags";
     private static final String TRACEPARENT_KEY = DittoHeaderDefinition.W3C_TRACEPARENT.getKey();
 
@@ -70,23 +69,26 @@ public final class KamonHttpContextPropagationTest {
     @Test
     public void newInstanceForNullChannelNameThrowsNullPointerException() {
         assertThatNullPointerException()
-                .isThrownBy(() -> KamonHttpContextPropagation.newInstanceForChannelName(null))
+                .isThrownBy(() -> KamonHttpContextPropagation.tryNewInstanceForChannelName(null))
                 .withMessage("The propagationChannelName must not be null!")
                 .withNoCause();
     }
 
     @Test
-    public void newInstanceForUnknownChannelNameThrowsIllegalArgumentException() {
+    public void newInstanceForUnknownChannelNameReturnsFailedWithIllegalArgumentException() {
         final var channelName = "zoeglfrex";
+        final var kamonHttpContextPropagationTry =
+                KamonHttpContextPropagation.tryNewInstanceForChannelName(channelName);
+
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> KamonHttpContextPropagation.newInstanceForChannelName(channelName))
+                .isThrownBy(kamonHttpContextPropagationTry::get)
                 .withMessage("HTTP propagation for channel name <%s> is undefined.", channelName)
                 .withNoCause();
     }
 
     @Test
     public void getContextFromHeadersForNullHeadersThrowsNullPointerException() {
-        final var underTest = KamonHttpContextPropagation.newInstanceForChannelName(DEFAULT_CHANNEL_NAME);
+        final var underTest = KamonHttpContextPropagation.getInstanceForDefaultHttpChannel();
 
         assertThatNullPointerException()
                 .isThrownBy(() -> underTest.getContextFromHeaders(null))
@@ -96,7 +98,7 @@ public final class KamonHttpContextPropagationTest {
 
     @Test
     public void getContextFromEmptyMapReturnsEmptyContext() {
-        final var underTest = KamonHttpContextPropagation.newInstanceForChannelName(DEFAULT_CHANNEL_NAME);
+        final var underTest = KamonHttpContextPropagation.getInstanceForDefaultHttpChannel();
 
         final var context = underTest.getContextFromHeaders(Map.of());
 
@@ -111,7 +113,7 @@ public final class KamonHttpContextPropagationTest {
                 "marco", "polo"
         );
         final var spanId = spanIdFactory.generate();
-        final var underTest = KamonHttpContextPropagation.newInstanceForChannelName(DEFAULT_CHANNEL_NAME);
+        final var underTest = KamonHttpContextPropagation.getInstanceForDefaultHttpChannel();
 
         final var context = underTest.getContextFromHeaders(
                 Map.of(
@@ -143,7 +145,7 @@ public final class KamonHttpContextPropagationTest {
 
     @Test
     public void propagateContextToHeadersWithNullContextThrowsNullPointerException() {
-        final var underTest = KamonHttpContextPropagation.newInstanceForChannelName(DEFAULT_CHANNEL_NAME);
+        final var underTest = KamonHttpContextPropagation.getInstanceForDefaultHttpChannel();
 
         assertThatNullPointerException()
                 .isThrownBy(() -> underTest.propagateContextToHeaders(null, Map.of()))
@@ -153,7 +155,7 @@ public final class KamonHttpContextPropagationTest {
 
     @Test
     public void propagateContextToHeadersWithNullMapThrowsNullPointerException() {
-        final var underTest = KamonHttpContextPropagation.newInstanceForChannelName(DEFAULT_CHANNEL_NAME);
+        final var underTest = KamonHttpContextPropagation.getInstanceForDefaultHttpChannel();
 
         assertThatNullPointerException()
                 .isThrownBy(() -> underTest.propagateContextToHeaders(Context.Empty(), null))
@@ -170,7 +172,7 @@ public final class KamonHttpContextPropagationTest {
         );
         final var span = Kamon.spanBuilder(testName.getMethodName()).traceId(traceId).start();
         final var dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
-        final var underTest = KamonHttpContextPropagation.newInstanceForChannelName(DEFAULT_CHANNEL_NAME);
+        final var underTest = KamonHttpContextPropagation.getInstanceForDefaultHttpChannel();
 
         final var headersWithPropagatedContext = underTest.propagateContextToHeaders(
                 Context.of(Span.Key(), span, TagSet.from(contextTags)),

@@ -26,6 +26,7 @@ import kamon.context.HttpPropagation;
 import kamon.context.Propagation;
 import scala.Option;
 import scala.jdk.javaapi.CollectionConverters;
+import scala.util.Try;
 
 /**
  * This class provides the means to read {@link Context} from a Map of headers as well as propagating {@code Context}
@@ -47,13 +48,17 @@ public final class KamonHttpContextPropagation {
      * argument.
      *
      * @param propagationChannelName configured name of the HTTP propagation channel.
-     * @return the new instance.
+     * @return a {@code Try} with the new instance if successful or an {@code IllegalArgumentException} if
+     * {@code propagationChannelName} is undefined.
      * @throws NullPointerException if {@code propagationChannelName} is {@code null}.
-     * @throws IllegalArgumentException if {@code propagationChannelName} is undefined.
      */
-    public static KamonHttpContextPropagation newInstanceForChannelName(final CharSequence propagationChannelName) {
+    public static Try<KamonHttpContextPropagation> tryNewInstanceForChannelName(
+            final CharSequence propagationChannelName
+    ) {
         checkNotNull(propagationChannelName, "propagationChannelName");
-        return new KamonHttpContextPropagation(getHttpPropagationOrThrow(propagationChannelName.toString()));
+        return Try.apply(
+                () -> new KamonHttpContextPropagation(getHttpPropagationOrThrow(propagationChannelName.toString()))
+        );
     }
 
     private static Propagation<HttpPropagation.HeaderReader, HttpPropagation.HeaderWriter> getHttpPropagationOrThrow(
@@ -70,6 +75,15 @@ public final class KamonHttpContextPropagation {
                     )
             );
         }
+    }
+
+    /**
+     * Returns an instance of {@code KamonHttpContextPropagation} for the default HTTP propagation channel.
+     *
+     * @return the instance.
+     */
+    static KamonHttpContextPropagation getInstanceForDefaultHttpChannel() {
+        return new KamonHttpContextPropagation(Kamon.defaultHttpPropagation());
     }
 
     /**
