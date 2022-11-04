@@ -12,8 +12,8 @@ It is possible to combine both headers within one request. If you use both heade
 
 ## Defining conditions
 
-Ditto supports retrieving, modifying, and deleting things based on specific conditions of the current persisted twin state.
-Conditions are not intended to be used for message dispatching.
+Ditto supports retrieving, modifying, deleting and sending messages to/from things based on specific conditions of the 
+current persisted twin state.
 For example, if you want to update the value of an attribute, but only if the current attribute value is not already 42,
 you can specify a condition:
 

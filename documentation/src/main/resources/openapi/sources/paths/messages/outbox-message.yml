@@ -38,6 +38,7 @@ post:
     - $ref: '../../parameters/messageSubjectPathParam.yml'
     - $ref: '../../parameters/messageTimeoutParam.yml'
     - $ref: '../../parameters/liveMessageRequestedAcksParam.yml'
+    - $ref: '../../parameters/conditionParam.yml'
   responses:
     '202':
       description: The message was sent (fire and forget).
@@ -80,6 +81,8 @@ post:
         application/json:
           schema:
             $ref: '../../schemas/errors/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
     '413':
       $ref: '../../responses/messageTooLarge.yml'
     '424':
