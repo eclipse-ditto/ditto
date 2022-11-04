@@ -50,19 +50,14 @@ public final class DefaultTracingConfig implements TracingConfig {
         if (filterConfig.isEmpty()) {
             result = AcceptAllTracingFilter.getInstance();
         } else {
-            final var kamonTracingFilterTry = KamonTracingFilter.tryFromConfig(filterConfig);
-            if (kamonTracingFilterTry.isSuccess()) {
-                result = kamonTracingFilterTry.get();
-            } else {
-                final var failed = kamonTracingFilterTry.failed();
-                final var failure = failed.get();
-                throw new DittoConfigError(
-                        MessageFormat.format("Failed to get {0} from config: {1}",
-                                TracingFilter.class.getSimpleName(),
-                                failure.getMessage()),
-                        failure
-                );
-            }
+            result = KamonTracingFilter.fromConfig(filterConfig)
+                    .mapErr(throwable -> new DittoConfigError(
+                            MessageFormat.format("Failed to get {0} from config: {1}",
+                                    TracingFilter.class.getSimpleName(),
+                                    throwable.getMessage()),
+                            throwable
+                    ))
+                    .orElseThrow();
         }
         return result;
     }

@@ -62,17 +62,17 @@ public final class KamonTracingFilterTest {
     @Test
     public void fromConfigWithNullConfigThrowsNullPointerException() {
         Assertions.assertThatNullPointerException()
-                .isThrownBy(() -> KamonTracingFilter.tryFromConfig(null))
+                .isThrownBy(() -> KamonTracingFilter.fromConfig(null))
                 .withMessage("The config must not be null!")
                 .withNoCause();
     }
 
     @Test
     public void fromConfigWithEmptyConfigThrowsIllegalArgumentException() {
-        final var kamonTracingFilterTry = KamonTracingFilter.tryFromConfig(ConfigFactory.empty());
+        final var kamonTracingFilterResult = KamonTracingFilter.fromConfig(ConfigFactory.empty());
 
         Assertions.assertThatIllegalArgumentException()
-                .isThrownBy(kamonTracingFilterTry::get)
+                .isThrownBy(kamonTracingFilterResult::orElseThrow)
                 .withMessage("Configuration is missing <includes> and <excludes> paths.")
                 .withNoCause();
     }
@@ -80,9 +80,9 @@ public final class KamonTracingFilterTest {
     @Test
     public void fromConfigWithConfigContainingIncludesOnlyWorksAsExpected() {
         final var includedOperationNames = List.of("foo", "bar", "baz");
-        final var kamonTracingFilterTry =
-                KamonTracingFilter.tryFromConfig(ConfigFactory.parseMap(Map.of("includes", includedOperationNames)));
-        final var underTest = kamonTracingFilterTry.get();
+        final var kamonTracingFilterResult =
+                KamonTracingFilter.fromConfig(ConfigFactory.parseMap(Map.of("includes", includedOperationNames)));
+        final var underTest = kamonTracingFilterResult.orElseThrow();
 
         includedOperationNames.stream()
                 .map(SpanOperationName::of)
@@ -96,12 +96,11 @@ public final class KamonTracingFilterTest {
     public void fromConfigWithConfigContainingIncludesAndExcludesWorksAsExpected() {
         final var includes = List.of("foo", "bar", "baz", "c**");
         final var excludedOperationNames = List.of("bar", "baz", "chaos");
-        final var kamonTracingFilterTry =
-                KamonTracingFilter.tryFromConfig(ConfigFactory.parseMap(Map.of(
+        final var kamonTracingFilterResult = KamonTracingFilter.fromConfig(ConfigFactory.parseMap(Map.of(
                         "includes", includes,
                         "excludes", excludedOperationNames
                 )));
-        final var underTest = kamonTracingFilterTry.get();
+        final var underTest = kamonTracingFilterResult.orElseThrow();
 
         List.of("foo", "bar", "baz", "create", "chaos", "count").forEach(
                 operationName -> softly.assertThat(underTest.accept(SpanOperationName.of(operationName)))
@@ -115,12 +114,11 @@ public final class KamonTracingFilterTest {
     @Test
     public void fromConfigWithConfigContainingKleeneStarAsIncludesAndSomeExcludesWorksAsExpected() {
         final var excludes = List.of("evil", "war");
-        final var kamonTracingFilterTry =
-                KamonTracingFilter.tryFromConfig(ConfigFactory.parseMap(Map.of(
-                        "includes", List.of("*"),
-                        "excludes", excludes
-                )));
-        final var kamonTracingFilter = kamonTracingFilterTry.get();
+        final var kamonTracingFilterTry = KamonTracingFilter.fromConfig(ConfigFactory.parseMap(Map.of(
+                "includes", List.of("*"),
+                "excludes", excludes
+        )));
+        final var kamonTracingFilter = kamonTracingFilterTry.orElseThrow();
 
         excludes.forEach(
                 excluded -> softly.assertThat(kamonTracingFilter.accept(SpanOperationName.of(excluded)))

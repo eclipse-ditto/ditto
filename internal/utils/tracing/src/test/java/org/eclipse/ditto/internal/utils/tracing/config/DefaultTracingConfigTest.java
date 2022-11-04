@@ -75,7 +75,7 @@ public final class DefaultTracingConfigTest {
         )));
 
         assertThat(underTest.getTracingFilter())
-                .isEqualTo(KamonTracingFilter.tryFromConfig(ConfigFactory.parseMap(filterConfigMap)).get());
+                .isEqualTo(KamonTracingFilter.fromConfig(ConfigFactory.parseMap(filterConfigMap)).orElseThrow());
     }
 
     @Test

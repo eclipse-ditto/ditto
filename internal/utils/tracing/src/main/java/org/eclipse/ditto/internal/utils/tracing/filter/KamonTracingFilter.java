@@ -19,11 +19,11 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.utils.result.Result;
 
 import com.typesafe.config.Config;
 
 import kamon.util.Filter;
-import scala.util.Try;
 
 /**
  * This class wraps a Kamon {@link Filter} to implement {@link TracingFilter}.
@@ -41,30 +41,36 @@ public final class KamonTracingFilter implements TracingFilter {
     }
 
     /**
-     * Tries to return a new instance of {@code KamonTracingFilter} for the specified {@code Config} argument.
-     * If instantiation failed the returned {@code Try} is a failure.
+     * Creates an instance of {@code KamonTracingFilter} for the specified {@code Config} argument.
+     * If instantiation failed the returned {@code Result} is an Err.
      *
      * @param config the configuration which provides the includes and excludes of the returned filter.
      * The configuration is supposed to have the following structure:
      * <pre>
      * config { includes = [ "some/pattern", "regex:some[0-9]" ] excludes = [ ] }
      * </pre>
-     * @return a {@code Try} with the new KamonTracingFilter which is based on {@code config}.
+     * @return a {@code Result} with the new KamonTracingFilter which is based on {@code config}, if successful.
+     * Otherwise, an error result.
      * @throws NullPointerException if {@code config} is {@code null}.
      */
-    public static Try<KamonTracingFilter> tryFromConfig(final Config config) {
+    public static Result<KamonTracingFilter, Throwable> fromConfig(final Config config) {
 
-        // NPE should not lead to a Try failure because passing a null config
+        // NPE should not lead to an Err result because passing a null config
         // is a programming error.
         ConditionChecker.checkNotNull(config, "config");
-        return Try.apply(() -> new KamonTracingFilter(Filter.from(validateConfig(config)), config));
+        return validateConfig(config).map(Filter::from).map(filter -> new KamonTracingFilter(filter, config));
     }
 
-    private static Config validateConfig(final Config config) {
+    private static Result<Config, Throwable> validateConfig(final Config config) {
+        final Result<Config, Throwable> result;
         if (!config.hasPath("includes") && !config.hasPath("excludes")) {
-            throw new IllegalArgumentException("Configuration is missing <includes> and <excludes> paths.");
+            result = Result.err(
+                    new IllegalArgumentException("Configuration is missing <includes> and <excludes> paths.")
+            );
+        } else {
+            result = Result.ok(config);
         }
-        return config;
+        return result;
     }
 
     @Override

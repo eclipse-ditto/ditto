@@ -153,7 +153,7 @@ public final class DittoTracing {
                 final var propagationChannelName = tracingConfig.getPropagationChannel();
                 newStateConsumer.accept(
                         new TracingEnabledState(
-                                tryToGetKamonHttpContextPropagationOrThrow(propagationChannelName),
+                                getKamonHttpContextPropagationOrThrow(propagationChannelName),
                                 tracingConfig.getTracingFilter()
                         )
                 );
@@ -165,18 +165,12 @@ public final class DittoTracing {
             }
         }
 
-        private static KamonHttpContextPropagation tryToGetKamonHttpContextPropagationOrThrow(
+        private static KamonHttpContextPropagation getKamonHttpContextPropagationOrThrow(
                 final CharSequence propagationChannelName
         ) {
-            final var kamonHttpContextPropagationTry =
-                    KamonHttpContextPropagation.tryNewInstanceForChannelName(propagationChannelName);
-            if (kamonHttpContextPropagationTry.isSuccess()) {
-                return kamonHttpContextPropagationTry.get();
-            } else {
-                final var failed = kamonHttpContextPropagationTry.failed();
-                final var throwable = failed.get();
-                throw new DittoConfigError(throwable.getMessage(), throwable);
-            }
+            return KamonHttpContextPropagation.newInstanceForChannelName(propagationChannelName)
+                    .mapErr(throwable -> new DittoConfigError(throwable.getMessage(), throwable))
+                    .orElseThrow();
         }
 
         @Override
