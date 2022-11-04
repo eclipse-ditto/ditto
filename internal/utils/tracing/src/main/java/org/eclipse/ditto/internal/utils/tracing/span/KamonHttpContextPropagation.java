@@ -28,7 +28,6 @@ import kamon.context.HttpPropagation;
 import kamon.context.Propagation;
 import scala.Option;
 import scala.jdk.javaapi.CollectionConverters;
-import scala.util.Try;
 
 /**
  * This class provides the means to read {@link Context} from a Map of headers as well as propagating {@code Context}
@@ -45,6 +44,15 @@ public final class KamonHttpContextPropagation {
         this.propagation = propagation;
     }
 
+    /**
+     * Creates an instance of {@code KamonHttpContextPropagation} for the specified propagation channel name
+     * argument.
+     *
+     * @param propagationChannelName configured name of the HTTP propagation channel.
+     * @return {@code Ok} containing the new instance, if successful, otherwise an {@code Err} containing an
+     * {@code IllegalArgumentException} if {@code propagationChannelName} is undefined.
+     * @throws NullPointerException if {@code propagationChannelName} is {@code null}.
+     */
     public static Result<KamonHttpContextPropagation, Throwable> newInstanceForChannelName(
             final CharSequence propagationChannelName
     ) {
@@ -68,40 +76,6 @@ public final class KamonHttpContextPropagation {
             ));
         }
         return result;
-    }
-
-    /**
-     * Returns a new instance of {@code KamonHttpContextPropagation} for the specified propagation channel name
-     * argument.
-     *
-     * @param propagationChannelName configured name of the HTTP propagation channel.
-     * @return a {@code Try} with the new instance if successful or an {@code IllegalArgumentException} if
-     * {@code propagationChannelName} is undefined.
-     * @throws NullPointerException if {@code propagationChannelName} is {@code null}.
-     */
-    public static Try<KamonHttpContextPropagation> tryNewInstanceForChannelName(
-            final CharSequence propagationChannelName
-    ) {
-        checkNotNull(propagationChannelName, "propagationChannelName");
-        return Try.apply(
-                () -> new KamonHttpContextPropagation(getHttpPropagationOrThrow(propagationChannelName.toString()))
-        );
-    }
-
-    private static Propagation<HttpPropagation.HeaderReader, HttpPropagation.HeaderWriter> getHttpPropagationOrThrow(
-            final String propagationChannelName
-    ) {
-        final var contextPropagationOption = Kamon.httpPropagation(propagationChannelName);
-        if (contextPropagationOption.isDefined()) {
-            return contextPropagationOption.get();
-        } else {
-            throw new IllegalArgumentException(
-                    MessageFormat.format(
-                            "HTTP propagation for channel name <{0}> is undefined.",
-                            propagationChannelName
-                    )
-            );
-        }
     }
 
     /**

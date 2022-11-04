@@ -69,7 +69,7 @@ public final class KamonHttpContextPropagationTest {
     @Test
     public void newInstanceForNullChannelNameThrowsNullPointerException() {
         assertThatNullPointerException()
-                .isThrownBy(() -> KamonHttpContextPropagation.tryNewInstanceForChannelName(null))
+                .isThrownBy(() -> KamonHttpContextPropagation.newInstanceForChannelName(null))
                 .withMessage("The propagationChannelName must not be null!")
                 .withNoCause();
     }
@@ -77,11 +77,10 @@ public final class KamonHttpContextPropagationTest {
     @Test
     public void newInstanceForUnknownChannelNameReturnsFailedWithIllegalArgumentException() {
         final var channelName = "zoeglfrex";
-        final var kamonHttpContextPropagationTry =
-                KamonHttpContextPropagation.tryNewInstanceForChannelName(channelName);
+        final var kamonHttpContextPropagationTry = KamonHttpContextPropagation.newInstanceForChannelName(channelName);
 
         assertThatIllegalArgumentException()
-                .isThrownBy(kamonHttpContextPropagationTry::get)
+                .isThrownBy(kamonHttpContextPropagationTry::orElseThrow)
                 .withMessage("HTTP propagation for channel name <%s> is undefined.", channelName)
                 .withNoCause();
     }
