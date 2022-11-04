@@ -1,7 +1,7 @@
 ---
 title: "Support conditional requests for live messages"
 published: true
-permalink: 2022-10-30-live-message-conditions.html
+permalink: 2022-11-04-live-message-conditions.html
 layout: post
 author: aleksandar_stanchev
 tags: [blog, http, protocol, rql]
@@ -21,13 +21,14 @@ For all three ways there is an example provided in this blog post.
 
 This turns useful, if you want for example to send a message to your device, but only if its digital twin has a specific attribute set.
 
-To be more concrete let's say we have a thing with an attribute _temperature_, and we only want to
-send an alarm live message to the corresponding device, if the temperature of the thing is over 60 degrees.
+To be more concrete let's say we have a thing with a feature that is measuring carbon monoxide levels, and we only want to
+send an alarm live message to the corresponding device, if the particle level is over 10.
 To achieve this the following HTTP request can be used:
 
-```
-PUT /api/2/things/org.eclipse.ditto:coffeebrewer/inbox/mesages/tempreatureAlarm?condition=gt(attributes/temperature,60)
-alarm!
+```http request
+POST /api/2/things/org.eclipse.ditto:coffeebrewer/inbox/mesages/co-alarm?condition=gt(features/carbon-monoxide-level/properties/ppm,10)
+
+CO Level too high! Open your windows!
 ```
 
 Conditions can be specified using [RQL syntax](basic-rql.html) to check if a thing has a specific attribute
@@ -46,14 +47,14 @@ In order to execute a conditional request, the authorized subject needs to have 
 that should be changed by the request.
 
 Additionally, the authorized subject needs to have READ permission at the resource used in the specified condition.
-Given the condition from the introduction `condition=eq(attributes/location,"Wonderland")`,
+Given the condition from the introduction `gt(features/carbon-monoxide-level/properties/ppm,10)`,
 read access on the single attribute would be sufficient.
 However, the condition can also be more complex, or include other sub-structures of the thing.
 Then of course, the authorized subject needs READ permission on all parameters of the specified condition.
 
 ## Examples
-The following sub-sections will show how to use conditional requests via the HTTP API, the Ditto protocol,
-and the Ditto Java Client.
+The following subsections will show how to use conditional requests via the HTTP API, Ditto protocol,
+and Ditto Java Client.
 
 To demonstrate the new conditional request, we assume that the following thing already exists:
 
@@ -76,38 +77,59 @@ To demonstrate the new conditional request, we assume that the following thing a
       "properties": {
         "lastTriggered": "2021-09-23T07:01:56Z",
         "confirmed": false
-        }
+      }
+    }
+  },
+  "ConnectionStatus": {
+    "definition": [
+      "org.eclipse.ditto:ConnectionStatus:1.0.0"
+    ],
+    "properties": {
+      "status": {
+        "readySince": "2022-11-04T14:35:02.643Z",
+        "readyUntil": "2022-11-04T16:35:03.643Z"
       }
     }
   }
 }
+
 ```
 
 ### Condition based on alarm/confirmed
 In this example a live alarm message from the device should only be sent, if the alarm confirmed property is set to 
 false by the end user application. This is done to prevent duplicate received alarms by the customer.
+```http request
+POST /api/2/things/org.eclipse.ditto:carbon-monoxide-alarm/inbox/mesages/co-alarm?condition=and(gt(features/carbon-monoxide-level/properties/ppm,10),eq(features/alarm/properties/confirmed/,false))
+```
 
 Another use case could be to i.e. only send a message to a device when the device is connected:
-```
-POST /api/2/things/org.eclipse.ditto:my-thing-1/inbox/messages/doSomething?condition=gt(features/ConnectionStatus/properties/status/readyUntil,time:now)
+```http request
+POST /api/2/things/org.eclipse.ditto:carbon-monoxide-alarm/inbox/messages/doSomething?condition=gt(features/ConnectionStatus/properties/status/readyUntil,time:now)
 ```
 
 ### Permissions to execute the example
 For this example, the authorized subject could have READ and WRITE permissions on the complete thing resource.
-However, it is only necessary on the path _thing:/features/alarm/properties/confirmed_.
+However, it is only necessary on the path _thing:/features/alarm/properties/confirmed_ and _thing:features/carbon-monoxide-level/properties/ppm_.
 
 ## Conditional requests via HTTP API
 Using the HTTP API the condition can either be specified via HTTP Header or via HTTP query parameter.  
 In this section, we will show how to use both options.
 
 ### Conditional request with HTTP Header
-```
-curl -X PATCH -H 'Content-Type: application/json' -H 'condition: eq(features/alarm/properties/confirmed/,false)' /api/2/things/org.eclipse.ditto:carbon-monoxide-alarm/outbox/messages/co-alarm -d '{ "CO Level to high! Open your windows!" }'
+```http request
+POST /api/2/things/org.eclipse.ditto:carbon-monoxide-alarm/outbox/messages/co-alarm
+Content-Type: application/json
+condition: eq(features/alarm/properties/confirmed/,false)
+
+CO Level too high! Open your windows!
 ```
 
 ### Conditional request with HTTP query parameter
-```
-curl -X PATCH -H 'Content-Type: application/json' /api/2/things/org.eclipse.ditto:carbon-monoxide-alarm/outbox/messages/co-alarm?condition=eq(features/alarm/properties/confirmed/,false) -d '{ "CO Level to high! Open your windows!" }'
+```http request
+POST /api/2/things/org.eclipse.ditto:carbon-monoxide-alarm/outbox/messages/co-alarm?condition=eq(features/alarm/properties/confirmed/,false)
+Content-Type: application/json
+
+CO Level too high! Open your windows!
 ```
 
 ## Conditional request via Ditto protocol
@@ -116,7 +138,7 @@ Applying the following Ditto command to the existing thing will lead to the same
 
 ```json
 {
-  "topic": "org.eclipse.ditto:carbon-monoxide-alarm/things/live/messages/co-alarm",
+  "topic": "org.eclipse.ditto/carbon-monoxide-alarm/things/live/messages/co-alarm",
   "headers": {
     "content-type": "application/json",
     "condition": "eq(features/alarm/properties/confirmed/,false)"
