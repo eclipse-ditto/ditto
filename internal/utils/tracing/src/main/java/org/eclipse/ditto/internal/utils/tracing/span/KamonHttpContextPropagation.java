@@ -57,25 +57,15 @@ public final class KamonHttpContextPropagation {
             final CharSequence propagationChannelName
     ) {
         checkNotNull(propagationChannelName, "propagationChannelName");
-        return getHttpPropagation(propagationChannelName.toString()).map(KamonHttpContextPropagation::new);
-    }
-
-    private static Result<Propagation<HttpPropagation.HeaderReader, HttpPropagation.HeaderWriter>, Throwable> getHttpPropagation(
-            final String propagationChannelName
-    ) {
-        final Result<Propagation<HttpPropagation.HeaderReader, HttpPropagation.HeaderWriter>, Throwable> result;
-        final var contextPropagationOption = Kamon.httpPropagation(propagationChannelName);
-        if (contextPropagationOption.isDefined()) {
-            result = Result.ok(contextPropagationOption.get());
-        } else {
-            result = Result.err(new IllegalArgumentException(
+        return Kamon.httpPropagation(propagationChannelName.toString())
+                .map(KamonHttpContextPropagation::new)
+                .map(Result::ok)
+                .getOrElse(() -> Result.err(new IllegalArgumentException(
                     MessageFormat.format(
                             "HTTP propagation for channel name <{0}> is undefined.",
                             propagationChannelName
                     )
-            ));
-        }
-        return result;
+            )));
     }
 
     /**
