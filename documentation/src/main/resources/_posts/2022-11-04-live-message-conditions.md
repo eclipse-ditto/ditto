@@ -25,7 +25,7 @@ To be more concrete let's say we have a thing with a feature that is measuring c
 send an alarm live message to the corresponding device, if the particle level is over 10.
 To achieve this the following HTTP request can be used:
 
-```http request
+```
 POST /api/2/things/org.eclipse.ditto:coffeebrewer/inbox/mesages/co-alarm?condition=gt(features/carbon-monoxide-level/properties/ppm,10)
 
 CO Level too high! Open your windows!
@@ -98,12 +98,12 @@ To demonstrate the new conditional request, we assume that the following thing a
 ### Condition based on alarm/confirmed
 In this example a live alarm message from the device should only be sent, if the alarm confirmed property is set to 
 false by the end user application. This is done to prevent duplicate received alarms by the customer.
-```http request
-POST /api/2/things/org.eclipse.ditto:carbon-monoxide-alarm/inbox/mesages/co-alarm?condition=and(gt(features/carbon-monoxide-level/properties/ppm,10),eq(features/alarm/properties/confirmed/,false))
+```
+POST /api/2/things/org.eclipse.ditto:carbon-monoxide-alarm/inbox/mesages/co-alarm?condition=and(gt(features/carbon-monoxide-level/properties/ppm,10),eq(features/alarm/properties/confirmed,false))
 ```
 
 Another use case could be to i.e. only send a message to a device when the device is connected:
-```http request
+```
 POST /api/2/things/org.eclipse.ditto:carbon-monoxide-alarm/inbox/messages/doSomething?condition=gt(features/ConnectionStatus/properties/status/readyUntil,time:now)
 ```
 
@@ -116,17 +116,17 @@ Using the HTTP API the condition can either be specified via HTTP Header or via 
 In this section, we will show how to use both options.
 
 ### Conditional request with HTTP Header
-```http request
+```
 POST /api/2/things/org.eclipse.ditto:carbon-monoxide-alarm/outbox/messages/co-alarm
 Content-Type: application/json
-condition: eq(features/alarm/properties/confirmed/,false)
+condition: eq(features/alarm/properties/confirmed,false)
 
 CO Level too high! Open your windows!
 ```
 
 ### Conditional request with HTTP query parameter
-```http request
-POST /api/2/things/org.eclipse.ditto:carbon-monoxide-alarm/outbox/messages/co-alarm?condition=eq(features/alarm/properties/confirmed/,false)
+```
+POST /api/2/things/org.eclipse.ditto:carbon-monoxide-alarm/outbox/messages/co-alarm?condition=eq(features/alarm/properties/confirmed,false)
 Content-Type: application/json
 
 CO Level too high! Open your windows!
@@ -141,7 +141,7 @@ Applying the following Ditto command to the existing thing will lead to the same
   "topic": "org.eclipse.ditto/carbon-monoxide-alarm/things/live/messages/co-alarm",
   "headers": {
     "content-type": "application/json",
-    "condition": "eq(features/alarm/properties/confirmed/,false)"
+    "condition": "eq(features/alarm/properties/confirmed,false)"
   },
   "path": "/outbox/messages/co-alarm",
   "value": "CO Level to high! Open your windows!"
@@ -160,7 +160,7 @@ String thingId = "org.eclipse.ditto:carbon-monoxide-alarm";
 // initialize the ditto-client
 DittoClient dittoClient = ... ;
 
-dittoClient.live().message(Options.condition("eq(features/alarm/properties/confirmed/,false)"))
+dittoClient.live().message(Options.condition("eq(features/alarm/properties/confirmed,false)"))
         .from(thingId)
         .subject("co-alarm")
         .payload("CO Level to high! Open your windows!")
