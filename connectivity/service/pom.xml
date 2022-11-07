@@ -169,6 +169,14 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+        </dependency>
 
         <!-- ### Testing ### -->
         <dependency>
