@@ -151,3 +151,8 @@ h5, h6 {
 hr {
     margin: 0.25rem;
 }
+
+.dropdown-menu {
+    max-height: 80vh;
+    overflow-y: auto;
+}
