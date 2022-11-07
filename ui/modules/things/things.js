@@ -20,6 +20,8 @@ import * as ThingsSearch from './thingsSearch.js';
 
 export let theThing;
 
+let thingEventSource;
+
 const observers = [];
 
 const dom = {
@@ -67,8 +69,27 @@ export function refreshThing(thingId, successCallback) {
  * @param {Object} thingJson Thing json
  */
 export function setTheThing(thingJson) {
+  adjustEventSource(thingJson);
   theThing = thingJson;
   observers.forEach((observer) => observer.call(null, theThing));
+}
+
+function adjustEventSource(newThingJson) {
+  if (!newThingJson) {
+    thingEventSource && thingEventSource.close();
+  } else {
+    if (!theThing || theThing.thingId !== newThingJson.thingId) {
+      console.log('Start SSE: ' + newThingJson.thingId);
+      thingEventSource = API.getEventSource(newThingJson.thingId);
+      thingEventSource.onmessage = (event) => {
+        console.log(event);
+        if (event.data && event.data !== '') {
+          const merged = _.merge(theThing, JSON.parse(event.data));
+          setTheThing(merged);
+        }
+      };
+    }
+  }
 }
 
 let viewDirty = false;

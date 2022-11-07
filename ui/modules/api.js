@@ -333,6 +333,16 @@ export async function callDittoREST(method, path, body, additionalHeaders) {
   }
 }
 
+export function getEventSource(thingId) {
+  return new EventSourcePolyfill(
+      Environments.current().api_uri + '/api/2/things?ids=' + thingId, {
+        headers: {
+          [authHeaderKey]: authHeaderValue,
+        },
+      },
+  );
+}
+
 /**
  * Calls connections api. Uses devops api in case of Ditto and the solutions api in case of Things
  * @param {*} operation connections api operation
