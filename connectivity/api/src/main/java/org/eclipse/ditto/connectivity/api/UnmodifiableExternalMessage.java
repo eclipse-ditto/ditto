@@ -12,23 +12,25 @@
  */
 package org.eclipse.ditto.connectivity.api;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.model.EnforcementFilter;
 import org.eclipse.ditto.connectivity.model.HeaderMapping;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Implementation of {@link ExternalMessage} that SHOULD NOT be modified
@@ -53,35 +55,29 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
 
     private final DittoHeaders internalHeaders;
 
-    UnmodifiableExternalMessage(final Map<String, String> headers,
-            final boolean response,
-            final boolean error,
-            final PayloadType payloadType,
-            @Nullable final String textPayload,
-            @Nullable final ByteBuffer bytePayload,
-            @Nullable final AuthorizationContext authorizationContext,
-            @Nullable final TopicPath topicPath,
-            @Nullable final EnforcementFilter<Signal<?>> enforcementFilter,
-            @Nullable final HeaderMapping headerMapping,
-            @Nullable final PayloadMapping payloadMapping,
-            @Nullable final String sourceAddress,
-            @Nullable final Source source,
-            final DittoHeaders internalHeaders) {
+    private UnmodifiableExternalMessage(final Builder builder) {
+        headers = Map.copyOf(builder.headers);
+        response = builder.response;
+        error = builder.error;
+        payloadType = builder.payloadType;
+        textPayload = builder.textPayload;
+        bytePayload = builder.bytePayload;
+        authorizationContext = builder.authorizationContext;
+        topicPath = builder.topicPath;
+        enforcementFilter = builder.enforcementFilter;
+        headerMapping = builder.headerMapping;
+        payloadMapping = builder.payloadMapping;
+        sourceAddress = builder.sourceAddress;
+        source = builder.source;
+        internalHeaders = builder.internalHeaders;
+    }
 
-        this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
-        this.response = response;
-        this.error = error;
-        this.payloadType = payloadType;
-        this.textPayload = textPayload;
-        this.bytePayload = bytePayload;
-        this.authorizationContext = authorizationContext;
-        this.topicPath = topicPath;
-        this.enforcementFilter = enforcementFilter;
-        this.headerMapping = headerMapping;
-        this.payloadMapping = payloadMapping;
-        this.sourceAddress = sourceAddress;
-        this.source = source;
-        this.internalHeaders = internalHeaders;
+    static ExternalMessageBuilder newBuilder(final Map<String, String> headers) {
+        return new Builder(headers);
+    }
+
+    static ExternalMessageBuilder newBuilder(final ExternalMessage externalMessage) {
+        return new Builder(externalMessage);
     }
 
     @Override
@@ -91,19 +87,19 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
 
     @Override
     public ExternalMessage withHeader(final String key, final String value) {
-        return new UnmodifiableExternalMessageBuilder(this).withAdditionalHeaders(key, value).build();
+        return newBuilder(this).withAdditionalHeaders(key, value).build();
     }
 
     @Override
     public ExternalMessage withHeaders(final Map<String, String> additionalHeaders) {
-        return new UnmodifiableExternalMessageBuilder(this)
+        return newBuilder(this)
                 .withAdditionalHeaders(additionalHeaders)
                 .build();
     }
 
     @Override
     public ExternalMessage withTopicPath(final TopicPath topicPath) {
-        return new UnmodifiableExternalMessageBuilder(this).withTopicPath(topicPath).build();
+        return newBuilder(this).withTopicPath(topicPath).build();
     }
 
     @Override
@@ -113,7 +109,10 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
 
     @Override
     public Optional<String> findHeaderIgnoreCase(final String key) {
-        return headers.entrySet().stream().filter(e -> key.equalsIgnoreCase(e.getKey())).findFirst()
+        return headers.entrySet()
+                .stream()
+                .filter(e -> key.equalsIgnoreCase(e.getKey()))
+                .findFirst()
                 .map(Map.Entry::getValue);
     }
 
@@ -200,7 +199,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final UnmodifiableExternalMessage that = (UnmodifiableExternalMessage) o;
+        final var that = (UnmodifiableExternalMessage) o;
         return Objects.equals(headers, that.headers) &&
                 Objects.equals(textPayload, that.textPayload) &&
                 Objects.equals(bytePayload, that.bytePayload) &&
@@ -239,8 +238,204 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
                 ", payloadType=" + payloadType +
                 ", textPayload=" + textPayload +
                 ", bytePayload=" +
-                (bytePayload == null ? "null" : ("<binary> (" + bytePayload.remaining() + "bytes)")) + "'" +
+                (bytePayload == null ? "null" : "<binary> (" + bytePayload.remaining() + "bytes)") + "'" +
                 ", internalHeaders=" + internalHeaders +
                 "]";
     }
+
+    @NotThreadSafe
+    private static final class Builder implements ExternalMessageBuilder {
+
+        private Map<String, String> headers;
+        private boolean response;
+        private boolean error;
+        private ExternalMessage.PayloadType payloadType;
+        @Nullable private String textPayload;
+        @Nullable private ByteBuffer bytePayload;
+        @Nullable private AuthorizationContext authorizationContext;
+        @Nullable private TopicPath topicPath;
+        @Nullable private EnforcementFilter<Signal<?>> enforcementFilter;
+        @Nullable private HeaderMapping headerMapping;
+        @Nullable private PayloadMapping payloadMapping;
+        @Nullable private String sourceAddress;
+        @Nullable private Source source;
+        private DittoHeaders internalHeaders;
+
+        /**
+         * Constructs a new MutableExternalMessageBuilder initialized with the passed {@code message}.
+         *
+         * @param message the ExternalMessage to use for initialization.
+         */
+        Builder(final ExternalMessage message) {
+            checkNotNull(message, "message");
+            headers = new HashMap<>(message.getHeaders());
+            bytePayload = message.getBytePayload().orElse(null);
+            textPayload = message.getTextPayload().orElse(null);
+            payloadType = message.getPayloadType();
+            response = message.isResponse();
+            error = message.isError();
+            authorizationContext = message.getAuthorizationContext().orElse(null);
+            topicPath = message.getTopicPath().orElse(null);
+            enforcementFilter = message.getEnforcementFilter().orElse(null);
+            headerMapping = message.getHeaderMapping().orElse(null);
+            payloadMapping = message.getPayloadMapping().orElse(null);
+            sourceAddress = message.getSourceAddress().orElse(null);
+            source = message.getSource().orElse(null);
+            internalHeaders = message.getInternalHeaders();
+        }
+
+        /**
+         * Constructs a new MutableExternalMessageBuilder initialized with the passed {@code headers}.
+         *
+         * @param headers the headers to use for initialization.
+         */
+        Builder(final Map<String, String> headers) {
+            this.headers = new HashMap<>(checkNotNull(headers, "headers"));
+            response = false;
+            error = false;
+            payloadType = PayloadType.UNKNOWN;
+            textPayload = null;
+            bytePayload = null;
+            authorizationContext = null;
+            topicPath = null;
+            enforcementFilter = null;
+            headerMapping = null;
+            payloadMapping = null;
+            sourceAddress = null;
+            source = null;
+            internalHeaders = DittoHeaders.empty();
+        }
+
+        @Override
+        public Builder withAdditionalHeaders(final String key, final String value) {
+            headers.put(key, value);
+            return this;
+        }
+
+        @Override
+        public Builder withAdditionalHeaders(final Map<String, String> additionalHeaders) {
+            headers.putAll(checkNotNull(additionalHeaders, "additionalHeaders"));
+            return this;
+        }
+
+        @Override
+        public Builder withHeaders(final Map<String, String> headers) {
+            this.headers = new HashMap<>(checkNotNull(headers));
+            return this;
+        }
+
+        @Override
+        public Builder withText(@Nullable final String text) {
+            payloadType = ExternalMessage.PayloadType.TEXT;
+            textPayload = text;
+            bytePayload = null;
+            return this;
+        }
+
+        @Override
+        public Builder withBytes(@Nullable final byte[] bytes) {
+            if (null == bytes) {
+                return withBytes((ByteBuffer) null);
+            } else {
+                return withBytes(ByteBuffer.wrap(bytes));
+            }
+        }
+
+        @Override
+        public Builder withBytes(@Nullable final ByteBuffer bytes) {
+            payloadType = ExternalMessage.PayloadType.BYTES;
+            bytePayload = bytes;
+            textPayload = null;
+            return this;
+        }
+
+        @Override
+        public Builder withTextAndBytes(@Nullable final String text, @Nullable final byte[] bytes) {
+            payloadType = ExternalMessage.PayloadType.TEXT_AND_BYTES;
+            textPayload = text;
+            if (Objects.isNull(bytes)) {
+                bytePayload = null;
+            } else {
+                bytePayload = ByteBuffer.wrap(bytes);
+            }
+            return this;
+        }
+
+        @Override
+        public Builder withTextAndBytes(@Nullable final String text, @Nullable final ByteBuffer bytes) {
+            payloadType = ExternalMessage.PayloadType.TEXT_AND_BYTES;
+            textPayload = text;
+            bytePayload = bytes;
+            return this;
+        }
+
+        @Override
+        public Builder withAuthorizationContext(final AuthorizationContext authorizationContext) {
+            this.authorizationContext = authorizationContext;
+            return this;
+        }
+
+        @Override
+        public Builder withTopicPath(final TopicPath topicPath) {
+            this.topicPath = topicPath;
+            return this;
+        }
+
+        @Override
+        public <F extends EnforcementFilter<Signal<?>>> Builder withEnforcement(
+                @Nullable final F enforcementFilter
+        ) {
+            this.enforcementFilter = enforcementFilter;
+            return this;
+        }
+
+        @Override
+        public Builder withHeaderMapping(@Nullable final HeaderMapping headerMapping) {
+            this.headerMapping = headerMapping;
+            return this;
+        }
+
+        @Override
+        public Builder withPayloadMapping(final PayloadMapping payloadMapping) {
+            this.payloadMapping = payloadMapping;
+            return this;
+        }
+
+        @Override
+        public Builder withSourceAddress(@Nullable final String sourceAddress) {
+            this.sourceAddress = sourceAddress;
+            return this;
+        }
+
+        @Override
+        public Builder withSource(@Nullable final Source source) {
+            this.source = source;
+            return this;
+        }
+
+        @Override
+        public Builder asResponse(final boolean response) {
+            this.response = response;
+            return this;
+        }
+
+        @Override
+        public Builder asError(final boolean error) {
+            this.error = error;
+            return this;
+        }
+
+        @Override
+        public Builder withInternalHeaders(final DittoHeaders internalHeaders) {
+            this.internalHeaders = checkNotNull(internalHeaders, "internalHeaders");
+            return this;
+        }
+
+        @Override
+        public ExternalMessage build() {
+            return new UnmodifiableExternalMessage(this);
+        }
+
+    }
+
 }

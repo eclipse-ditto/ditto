@@ -28,6 +28,7 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
@@ -63,6 +64,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import akka.pattern.AskTimeoutException;
@@ -72,6 +74,10 @@ import akka.testkit.javadsl.TestKit;
  * Tests commands that triggers different or multiple commands internally.
  */
 public final class MultiStageCommandEnforcementTest extends AbstractThingEnforcementTest {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     private static final Subject DEFAULT_SUBJECT =
             Subject.newInstance(SubjectIssuer.GOOGLE, "defaultSubject");

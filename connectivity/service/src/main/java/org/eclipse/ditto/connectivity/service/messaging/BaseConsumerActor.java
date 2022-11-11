@@ -47,8 +47,9 @@ import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.TracingTags;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 
 import akka.NotUsed;
 import akka.actor.AbstractActorWithTimers;
@@ -56,7 +57,6 @@ import akka.actor.ActorRef;
 import akka.pattern.Patterns;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
-import kamon.context.Context;
 
 /**
  * Base class for consumer actors that holds common fields and handles the address status.
@@ -133,19 +133,20 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
             final ActorRef responseCollector) {
 
         final var ackTimer = DittoMetrics.timer(TIMER_ACK_HANDLING)
-                .tag(TracingTags.CONNECTION_ID, connectionId.toString())
-                .tag(TracingTags.CONNECTION_TYPE, connectionType.getName())
+                .tag(SpanTagKey.CONNECTION_ID.getTagForValue(connectionId.toString()))
+                .tag(SpanTagKey.CONNECTION_TYPE.getTagForValue(connectionType.getName()))
                 .start();
         final var ackCounter =
                 MetricAlertRegistry.getMetricsAlertGaugeOrDefault(CounterKey.of(connectionId, sourceAddress),
                                 MetricAlertRegistry.COUNTER_ACK_HANDLING,
                                 connectionType,
                                 connectivityConfig)
-                        .tag(TracingTags.CONNECTION_ID, connectionId.toString())
-                        .tag(TracingTags.CONNECTION_TYPE, connectionType.toString())
+                        .tag(SpanTagKey.CONNECTION_ID.getTagForValue(connectionId.toString()))
+                        .tag(SpanTagKey.CONNECTION_TYPE.getTagForValue(connectionType.toString()))
                         .increment();
-        final Context traceContext = DittoTracing.extractTraceContext(acknowledgeableMessage.getMessage().getHeaders());
-        DittoTracing.wrapTimer(traceContext, ackTimer);
+
+        final var acknowledgeableExternalMessage = acknowledgeableMessage.getMessage();
+        DittoTracing.newStartedSpanByTimer(acknowledgeableExternalMessage.getHeaders(), ackTimer);
 
         final Duration askTimeout = acknowledgementConfig.getCollectorFallbackAskTimeout();
         // Ask response collector actor to get the collected responses in a future
@@ -166,7 +167,8 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
             if (output != null) {
                 final List<CommandResponse<?>> failedResponses = output.getFailedResponses();
                 if (output.allExpectedResponsesArrived() && failedResponses.isEmpty()) {
-                    ackTimer.tag(TracingTags.ACK_SUCCESS, true).stop();
+                    ackTimer.tag(getAckSuccessTag(true));
+                    ackTimer.stop();
                     ackCounter.decrement();
                     acknowledgeableMessage.settle();
                 } else {
@@ -175,9 +177,9 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                             someFailedResponseRequiresRedelivery(failedResponses);
                     log().debug("Rejecting [redeliver={}] due to failed responses <{}>. " +
                             "ResponseCollector=<{}>", shouldRedeliver, failedResponses, responseCollector);
-                    ackTimer.tag(TracingTags.ACK_SUCCESS, false)
-                            .tag(TracingTags.ACK_REDELIVER, shouldRedeliver)
-                            .stop();
+                    ackTimer.tag(getAckSuccessTag(false));
+                    ackTimer.tag(getAckRedeliverTag(shouldRedeliver));
+                    ackTimer.stop();
                     ackCounter.decrement();
                     acknowledgeableMessage.reject(shouldRedeliver);
                 }
@@ -189,25 +191,26 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                     // Redeliver and pray this unexpected error goes away
                     log().debug("Rejecting [redeliver=true] due to error <{}>. " +
                             "ResponseCollector=<{}>", rootCause, responseCollector);
-                    ackTimer.tag(TracingTags.ACK_SUCCESS, false)
-                            .tag(TracingTags.ACK_REDELIVER, true)
-                            .stop();
+                    ackTimer.tag(getAckSuccessTag(false));
+                    ackTimer.tag(getAckRedeliverTag(true));
+                    ackTimer.stop();
                     ackCounter.decrement();
                     acknowledgeableMessage.reject(true);
                     return null;
                 });
                 if (dittoRuntimeException != null) {
                     if (isConsideredSuccess(dittoRuntimeException)) {
-                        ackTimer.tag(TracingTags.ACK_SUCCESS, true).stop();
+                        ackTimer.tag(getAckSuccessTag(true));
+                        ackTimer.stop();
                         ackCounter.decrement();
                         acknowledgeableMessage.settle();
                     } else {
                         final var shouldRedeliver = requiresRedelivery(dittoRuntimeException.getHttpStatus());
                         log().debug("Rejecting [redeliver={}] due to error <{}>. ResponseCollector=<{}>",
                                 shouldRedeliver, dittoRuntimeException, responseCollector);
-                        ackTimer.tag(TracingTags.ACK_SUCCESS, false)
-                                .tag(TracingTags.ACK_REDELIVER, shouldRedeliver)
-                                .stop();
+                        ackTimer.tag(getAckSuccessTag(false));
+                        ackTimer.tag(getAckRedeliverTag(shouldRedeliver));
+                        ackTimer.stop();
                         ackCounter.decrement();
                         acknowledgeableMessage.reject(shouldRedeliver);
                     }
@@ -218,6 +221,14 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
             log().error(e, "Unexpected error during manual acknowledgement. ResponseCollector=<{}>", responseCollector);
             return null;
         });
+    }
+
+    private static Tag getAckSuccessTag(final boolean success) {
+        return Tag.of("ditto.ack.success", success);
+    }
+
+    private static Tag getAckRedeliverTag(final boolean success) {
+        return Tag.of("ditto.ack.redeliver", success);
     }
 
     private ExternalMessage addSourceAndReplyTarget(final ExternalMessage message) {

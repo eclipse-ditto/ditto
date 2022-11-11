@@ -43,14 +43,12 @@ import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
-import kamon.context.Context;
 
 /**
  * Processes outgoing {@link Signal}s to {@link ExternalMessage}s.
@@ -160,27 +158,29 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
         return processMappableSignals(outboundSignal, mappableSignals);
     }
 
-    private List<MappingOutcome<OutboundSignal.Mapped>> processMappableSignals(final OutboundSignal outboundSignal,
-            final List<OutboundSignal.Mappable> mappableSignals) {
+    private List<MappingOutcome<OutboundSignal.Mapped>> processMappableSignals(
+            final OutboundSignal outboundSignal,
+            final List<OutboundSignal.Mappable> mappableSignals
+    ) {
+        final var outboundSignalSource = outboundSignal.getSource();
+        final var dittoHeaders = outboundSignalSource.getDittoHeaders();
 
-        final Context context = DittoTracing.extractTraceContext(outboundSignal.getSource().getDittoHeaders());
-        final MappingTimer timer = MappingTimer.outbound(connectionId, connectionType, context);
+        final var mappingTimer = MappingTimer.outbound(connectionId, connectionType, dittoHeaders);
 
-        final DittoHeaders dittoHeaders = outboundSignal.getSource().getDittoHeaders();
         final Signal<?> signalToMap;
         if (dittoHeaders.containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey())) {
             final Set<AcknowledgementRequest> publishedAckRequests = dittoHeaders.getAcknowledgementRequests()
                     .stream()
                     .filter(ackRequest -> isSourceDeclaredAck(ackRequest.getLabel()))
                     .collect(Collectors.toSet());
-            signalToMap = outboundSignal.getSource().setDittoHeaders(dittoHeaders.toBuilder()
+            signalToMap = outboundSignalSource.setDittoHeaders(dittoHeaders.toBuilder()
                     .acknowledgementRequests(publishedAckRequests)
                     .build());
         } else {
-            signalToMap = outboundSignal.getSource();
+            signalToMap = outboundSignalSource;
         }
 
-        final Adaptable adaptableWithoutExtra = timer.protocol(() -> protocolAdapter.toAdaptable(signalToMap));
+        final Adaptable adaptableWithoutExtra = mappingTimer.protocol(() -> protocolAdapter.toAdaptable(signalToMap));
         final Adaptable adaptable = outboundSignal.getExtra()
                 .map(extra -> ProtocolFactory.setExtra(adaptableWithoutExtra, extra))
                 .orElse(adaptableWithoutExtra);
@@ -190,7 +190,7 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                 .map(signal -> setInternalCorrelationIdToAdaptable(adaptable, signal.getSource()))
                 .orElse(adaptable);
 
-        return timer.overall(() -> mappableSignals.stream()
+        return mappingTimer.overall(() -> mappableSignals.stream()
                 .flatMap(mappableSignal -> {
                     final Signal<?> source = mappableSignal.getSource();
                     final List<Target> targets = mappableSignal.getTargets();
@@ -199,8 +199,12 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                             .debug("Resolved mappers for message {} to targets {}: {}", source, targets, mappers);
                     // convert messages in the order of payload mapping and forward to result handler
                     return mappers.stream()
-                            .flatMap(mapper -> runMapper(mappableSignal, adaptableWithInternalCorrelationId, mapper,
-                                    timer));
+                            .flatMap(mapper -> runMapper(
+                                    mappableSignal,
+                                    adaptableWithInternalCorrelationId,
+                                    mapper,
+                                    mappingTimer
+                            ));
                 })
                 .toList());
     }

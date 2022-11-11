@@ -12,71 +12,76 @@
  */
 package org.eclipse.ditto.edge.service.dispatching;
 
-import java.util.UUID;
-
+import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
 import akka.testkit.TestActor.AutoPilot;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link ThingsAggregatorProxyActor}.
  */
 public final class ThingsAggregatorProxyActorTest {
 
-    private static final DittoHeaders DITTO_HEADERS =
-            DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
-    private static final DittoRuntimeException DITTO_RUNTIME_EXCEPTION =
-            ThingIdInvalidException.newBuilder("invalidThingId")
-                    .dittoHeaders(DITTO_HEADERS)
-                    .build();
-    private static final DittoInternalErrorException INTERNAL_ERROR_EXCEPTION =
-            DittoInternalErrorException.newBuilder().dittoHeaders(DITTO_HEADERS).build();
-    private static final RetrieveThings RETRIEVE_THINGS_COMMAND =
-            RetrieveThings.getBuilder(ThingId.of("ditto", "thing"))
-                    .dittoHeaders(DITTO_HEADERS)
-                    .build();
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
-    private static ActorSystem actorSystem;
+    @ClassRule
+    public static final ActorSystemResource ACTOR_SYSTEM_RESOURCE = ActorSystemResource.newInstance();
+
+    @Rule
+    public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
 
     @Test
     public void testHandleDittoRuntimeException() {
-        new TestKit(actorSystem) {{
-            final TestProbe targetActor = new TestProbe(actorSystem);
-            targetActor.setAutoPilot(new AutoPilotAnsweringWithException(DITTO_RUNTIME_EXCEPTION));
+        final var dittoHeaders = getDittoHeadersWithCorrelationId();
+        final var thingIdInvalidException = ThingIdInvalidException.newBuilder("invalidThingId")
+                .dittoHeaders(dittoHeaders)
+                .build();
+        final var senderActor = ACTOR_SYSTEM_RESOURCE.newTestKit();
+        final var targetActor = ACTOR_SYSTEM_RESOURCE.newTestKit();
+        targetActor.setAutoPilot(new AutoPilotAnsweringWithException(thingIdInvalidException));
+        final var proxyActor = ACTOR_SYSTEM_RESOURCE.newActor(ThingsAggregatorProxyActor.props(targetActor.getRef()));
 
-            final Props props = ThingsAggregatorProxyActor.props(targetActor.ref());
-            final ActorRef proxyActor = actorSystem.actorOf(props);
+        proxyActor.tell(
+                RetrieveThings.getBuilder(ThingId.of("ditto", "thing")).dittoHeaders(dittoHeaders).build(),
+                senderActor.getRef()
+        );
 
-            proxyActor.tell(RETRIEVE_THINGS_COMMAND, getRef());
-            expectMsg(DITTO_RUNTIME_EXCEPTION);
-        }};
+        senderActor.expectMsg(thingIdInvalidException);
+    }
+
+    private DittoHeaders getDittoHeadersWithCorrelationId() {
+        return DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build();
     }
 
     @Test
     public void testHandleGenericException() {
-        new TestKit(actorSystem) {{
-            final TestProbe targetActor = new TestProbe(actorSystem);
-            targetActor.setAutoPilot(new AutoPilotAnsweringWithException(INTERNAL_ERROR_EXCEPTION));
+        final var dittoHeaders = getDittoHeadersWithCorrelationId();
+        final var dittoInternalErrorException = DittoInternalErrorException.newBuilder()
+                .dittoHeaders(dittoHeaders)
+                .build();
+        final var senderActor = ACTOR_SYSTEM_RESOURCE.newTestKit();
+        final var targetActor = ACTOR_SYSTEM_RESOURCE.newTestKit();
+        targetActor.setAutoPilot(new AutoPilotAnsweringWithException(dittoInternalErrorException));
+        final var proxyActor = ACTOR_SYSTEM_RESOURCE.newActor(ThingsAggregatorProxyActor.props(targetActor.getRef()));
 
-            final Props props = ThingsAggregatorProxyActor.props(targetActor.ref());
-            final ActorRef proxyActor = actorSystem.actorOf(props);
+        proxyActor.tell(
+                RetrieveThings.getBuilder(ThingId.of("ditto", "thing")).dittoHeaders(dittoHeaders).build(),
+                senderActor.getRef()
+        );
 
-            proxyActor.tell(RETRIEVE_THINGS_COMMAND, getRef());
-            expectMsg(INTERNAL_ERROR_EXCEPTION);
-        }};
+        senderActor.expectMsg(dittoInternalErrorException);
     }
 
     private static final class AutoPilotAnsweringWithException extends AutoPilot {
@@ -92,15 +97,7 @@ public final class ThingsAggregatorProxyActorTest {
             sender.tell(exceptionToRespond, ActorRef.noSender());
             return keepRunning();
         }
+
     }
 
-    @BeforeClass
-    public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem");
-    }
-
-    @AfterClass
-    public static void tearDown() {
-        TestKit.shutdownActorSystem(actorSystem);
-    }
 }

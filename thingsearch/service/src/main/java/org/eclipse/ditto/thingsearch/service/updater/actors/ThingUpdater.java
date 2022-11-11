@@ -492,15 +492,14 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             tickNow();
         }
 
-        final StartedTimer timer = DittoMetrics.timer(ConsistencyLag.TIMER_NAME)
+        final var startedTimer = DittoMetrics.timer(ConsistencyLag.TIMER_NAME)
                 .tag(ConsistencyLag.TAG_SHOULD_ACK, Boolean.toString(shouldAcknowledge))
-                .onExpiration(startedTimer ->
-                        l.warning("Timer measuring consistency lag timed out for event <{}>", thingEvent))
+                .onExpiration(t -> l.warning("Timer measuring consistency lag timed out for event <{}>", thingEvent))
                 .start();
-        DittoTracing.wrapTimer(DittoTracing.extractTraceContext(thingEvent), timer);
-        ConsistencyLag.startS1InUpdater(timer);
+        DittoTracing.newStartedSpanByTimer(thingEvent.getDittoHeaders(), startedTimer);
+        ConsistencyLag.startS1InUpdater(startedTimer);
         final var metadata = exportMetadataWithSender(shouldAcknowledge, thingEvent, getAckRecipient(
-                thingEvent.getDittoHeaders()), timer, data)
+                thingEvent.getDittoHeaders()), startedTimer, data)
                 .withUpdateReason(UpdateReason.THING_UPDATE);
 
         return Optional.of(metadata);

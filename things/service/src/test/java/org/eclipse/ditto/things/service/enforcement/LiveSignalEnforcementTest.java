@@ -28,6 +28,7 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -59,6 +60,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.events.AttributeModified;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import akka.cluster.pubsub.DistributedPubSubMediator;
@@ -73,6 +75,10 @@ import scala.concurrent.duration.FiniteDuration;
  */
 @SuppressWarnings({"squid:S3599", "squid:S1171"})
 public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTest {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     @Test
     public void rejectMessageCommandByPolicy() {

@@ -49,10 +49,12 @@ import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
+import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.protocol.DittoProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.protocol.config.ProtocolConfig;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.messages.model.Message;
@@ -65,20 +67,27 @@ import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import akka.actor.ActorSystem;
 import akka.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link OutboundMappingProcessor}.
  */
 public final class OutboundMappingProcessorTest {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
+
+    @ClassRule
+    public static final ActorSystemResource ACTOR_SYSTEM_RESOURCE =
+            ActorSystemResource.newInstance(TestConstants.CONFIG);
 
     private OutboundMappingProcessor underTest;
 
@@ -92,14 +101,11 @@ public final class OutboundMappingProcessorTest {
     private static final String FAILING_MAPPER = "faulty";
     private static final String DUPLICATING_MAPPER = "duplicating";
 
-    private static ActorSystem actorSystem;
     private static ProtocolAdapterProvider protocolAdapterProvider;
     private static ThreadSafeDittoLoggingAdapter logger;
 
     @BeforeClass
     public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
-
         logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
         when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
                 .thenReturn(logger);
@@ -109,13 +115,6 @@ public final class OutboundMappingProcessorTest {
         when(logger.withCorrelationId(Mockito.nullable(CharSequence.class))).thenReturn(logger);
 
         protocolAdapterProvider = new DittoProtocolAdapterProvider(Mockito.mock(ProtocolConfig.class));
-    }
-
-    @AfterClass
-    public static void tearDown() {
-        if (actorSystem != null) {
-            TestKit.shutdownActorSystem(actorSystem);
-        }
     }
 
     @Before
@@ -164,8 +163,11 @@ public final class OutboundMappingProcessorTest {
                                 .build()))
                         .build();
 
-        underTest = OutboundMappingProcessor.of(connection, TestConstants.CONNECTIVITY_CONFIG, actorSystem,
-                protocolAdapterProvider.getProtocolAdapter(null), logger);
+        underTest = OutboundMappingProcessor.of(connection,
+                TestConstants.CONNECTIVITY_CONFIG,
+                ACTOR_SYSTEM_RESOURCE.getActorSystem(),
+                protocolAdapterProvider.getProtocolAdapter(null),
+                logger);
     }
 
     @Test
@@ -199,7 +201,7 @@ public final class OutboundMappingProcessorTest {
     @Test
     @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     public void testOutboundMessageEnriched() {
-        new TestKit(actorSystem) {{
+        new TestKit(ACTOR_SYSTEM_RESOURCE.getActorSystem()) {{
             final ThingModifiedEvent signal = TestConstants.thingModified(Collections.emptyList());
             final JsonObject extra = JsonObject.newBuilder().set("x", 5).build();
             final OutboundSignal outboundSignal = Mockito.mock(OutboundSignal.class);
@@ -220,7 +222,7 @@ public final class OutboundMappingProcessorTest {
     @Test
     @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     public void testOutboundEventWithRequestedAcksWhichAreIssuedByTargetDontContainRequestedAcks() {
-        new TestKit(actorSystem) {{
+        new TestKit(ACTOR_SYSTEM_RESOURCE.getActorSystem()) {{
             ThingModifiedEvent signal = TestConstants.thingModified(Collections.emptyList());
             final AcknowledgementLabel customAckLabel = AcknowledgementLabel.of("custom:ack");
             final AcknowledgementLabel targetIssuedAckLabel = AcknowledgementLabel.of("issued:ack");
@@ -259,7 +261,7 @@ public final class OutboundMappingProcessorTest {
     @Test
     @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     public void testOutboundLiveMessageWithRequestedAcksWhichAreIssuedByTargetDontContainRequestedAcks() {
-        new TestKit(actorSystem) {{
+        new TestKit(ACTOR_SYSTEM_RESOURCE.getActorSystem()) {{
             final AcknowledgementLabel customAckLabel = AcknowledgementLabel.of("custom:ack");
             final AcknowledgementLabel targetIssuedAckLabel = AcknowledgementLabel.of("issued:ack");
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
@@ -340,9 +342,15 @@ public final class OutboundMappingProcessorTest {
     }
 
     @SuppressWarnings("unchecked")
-    private void testOutbound(final ThingModifiedEvent<?> signal, final int mapped, final int dropped, final int failed,
-            final boolean assertTargets, final Target... targets) {
-        new TestKit(actorSystem) {{
+    private void testOutbound(
+            final ThingModifiedEvent<?> signal,
+            final int mapped,
+            final int dropped,
+            final int failed,
+            final boolean assertTargets,
+            final Target... targets
+    ) {
+        new TestKit(ACTOR_SYSTEM_RESOURCE.getActorSystem()) {{
 
             // expect one message per mapper per target
             final List<Target> expectedTargets = Arrays.stream(targets)

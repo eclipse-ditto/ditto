@@ -21,12 +21,14 @@ import java.nio.ByteBuffer;
 import java.text.MessageFormat;
 import java.util.Map;
 
+import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 import org.eclipse.ditto.json.CborFactory;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.cbor.BinaryToHexConverter;
-import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -239,7 +241,10 @@ public final class CborJsonValueSerializer extends SerializerWithStringManifest 
         }
 
         private static Counter getCounter(final String metricDirection) {
-            return DittoMetrics.counter(SERIALIZER_NAME + "_serializer_messages", Map.of("direction", metricDirection));
+            return DittoMetrics.counter(
+                    SERIALIZER_NAME + "_serializer_messages",
+                    TagSet.ofTag(Tag.of("direction", metricDirection))
+            );
         }
 
     }

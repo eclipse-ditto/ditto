@@ -60,12 +60,14 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnec
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CancelSubscription;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -89,6 +91,10 @@ import akka.testkit.javadsl.TestKit;
  */
 @RunWith(MockitoJUnitRunner.class)
 public final class BaseClientActorTest {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     private static final Status.Success CONNECTED_STATUS = new Status.Success(BaseClientState.CONNECTED);
     private static final Status.Success DISCONNECTED_STATUS = new Status.Success(BaseClientState.DISCONNECTED);

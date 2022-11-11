@@ -51,6 +51,7 @@ import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
@@ -118,6 +119,7 @@ import org.eclipse.ditto.policies.service.common.config.PolicyAnnouncementConfig
 import org.eclipse.ditto.policies.service.persistence.TestConstants;
 import org.eclipse.ditto.policies.service.persistence.actors.announcements.PolicyAnnouncementManager;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -147,6 +149,10 @@ import scala.PartialFunction;
  * Unit test for the {@link PolicyPersistenceActor}.
  */
 public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PolicyPersistenceActorTest.class);
 

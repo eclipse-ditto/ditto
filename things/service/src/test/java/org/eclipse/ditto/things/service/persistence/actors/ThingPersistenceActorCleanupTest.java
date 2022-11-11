@@ -19,20 +19,22 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
+import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
-import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingResponse;
-import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestWatcher;
@@ -46,6 +48,10 @@ import akka.testkit.javadsl.TestKit;
  * Unit test for the cleanup of {@link ThingPersistenceActor}.
  */
 public final class ThingPersistenceActorCleanupTest extends PersistenceActorTestBaseWithSnapshotting {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ThingPersistenceActorCleanupTest.class);
 

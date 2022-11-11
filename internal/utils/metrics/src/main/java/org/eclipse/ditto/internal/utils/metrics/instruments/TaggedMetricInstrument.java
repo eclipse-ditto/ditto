@@ -12,9 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.metrics.instruments;
 
-import java.util.Map;
-
-import javax.annotation.Nullable;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 
 /**
  * {@link MetricInstrument} which is able to be tagged with keys and values and can the tags can be read from.
@@ -24,18 +22,10 @@ import javax.annotation.Nullable;
 public interface TaggedMetricInstrument<T extends MetricInstrument> extends TaggableMetricsInstrument<T> {
 
     /**
-     * Gets the value of the tag with the given key.
+     * Returns all tags of this TaggableMetricsInstrument.
      *
-     * @param key The key of the tag.
-     * @return The value of the tag with the given key.
+     * @return all tags.
      */
-    @Nullable
-    String getTag(String key);
+    TagSet getTagSet();
 
-    /**
-     * Gets the map containing all tags.
-     *
-     * @return All tags.
-     */
-    Map<String, String> getTags();
 }
