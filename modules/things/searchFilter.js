@@ -147,9 +147,9 @@ export function performLastSearch() {
 function updateFilterList() {
   dom.filterList.innerHTML = '';
   Utils.addDropDownEntries(dom.filterList, ['Favourite search filters'], true);
-  Utils.addDropDownEntries(dom.filterList, Environments.current().filterList);
+  Utils.addDropDownEntries(dom.filterList, Environments.current().filterList ?? []);
   Utils.addDropDownEntries(dom.filterList, ['Field search filters'], true);
-  Utils.addDropDownEntries(dom.filterList, Environments.current().fieldList
+  Utils.addDropDownEntries(dom.filterList, (Environments.current().fieldList ?? [])
       .map((f) => `eq(${f.path},${FILTER_PLACEHOLDER})`));
   Utils.addDropDownEntries(dom.filterList, ['Example search filters'], true);
   Utils.addDropDownEntries(dom.filterList, filterExamples);
