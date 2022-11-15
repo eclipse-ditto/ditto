@@ -20,7 +20,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.springframework.security.web.util.matcher.IpAddressMatcher;
 
 import akka.event.LoggingAdapter;
 
@@ -35,7 +34,7 @@ final class DefaultHostValidator implements HostValidator {
 
     private final Collection<String> allowedHostnames;
     private final Collection<InetAddress> blockedAddresses;
-    private final Collection<IpAddressMatcher> blockedSubnets;
+    private final Collection<String> blockedSubnets;
     private final AddressResolver resolver;
     private final Pattern hostRegexPattern;
 
@@ -63,7 +62,7 @@ final class DefaultHostValidator implements HostValidator {
         final Collection<String> blockedHostnames = connectivityConfig.getConnectionConfig().getBlockedHostnames();
         this.blockedAddresses = calculateBlockedAddresses(blockedHostnames, loggingAdapter);
         final Collection<String> blockedSubnetsList = connectivityConfig.getConnectionConfig().getBlockedSubnets();
-        this.blockedSubnets = calculateBlockedSubnets(blockedSubnetsList, loggingAdapter);
+        this.blockedSubnets = filterEmptyBlockedSubnets(blockedSubnetsList);
         final var regex = connectivityConfig.getConnectionConfig().getBlockedHostRegex();
         this.hostRegexPattern = Pattern.compile(regex);
     }
@@ -117,8 +116,8 @@ final class DefaultHostValidator implements HostValidator {
                     // host is contained in the block-list --> block
                     return HostValidationResult.blocked(host);
                 }
-                for (final IpAddressMatcher subnet : blockedSubnets) {
-                    if (subnet.matches(requestAddress.getHostAddress())) {
+                for (final String subnet : blockedSubnets) {
+                    if (SubnetValidator.matches(subnet, requestAddress.getHostAddress())) {
                         // ip is contained in the blocked-subnet --> block
                         return HostValidationResult.blocked(host, "the hostname resides in a blocked subnet.");
                     }
@@ -157,26 +156,15 @@ final class DefaultHostValidator implements HostValidator {
     }
 
     /**
-     * Calculate blocked subnets from cidr range strings that should not be accessed.
+     * Filters out empty blocked subnets.
      *
      * @param blockedSubnets blocked subnets.
-     * @param log the logger.
-     * @return info of blocked subnets.
+     * @return the blocked subnets.
      */
-    private Collection<IpAddressMatcher> calculateBlockedSubnets(final Collection<String> blockedSubnets,
-            final LoggingAdapter log) {
+    private Collection<String> filterEmptyBlockedSubnets(final Collection<String> blockedSubnets) {
 
         return blockedSubnets.stream()
                 .filter(blockedSubnet -> !blockedSubnet.isEmpty())
-                .flatMap(blockedSubnet -> {
-                    try {
-                        return Stream.of(new IpAddressMatcher(blockedSubnet));
-                    } catch (final IllegalArgumentException e) {
-                        log.error(e, "Could not create subnet info during building blocked subnets set: <{}>",
-                                blockedSubnet);
-                        return Stream.empty();
-                    }
-                })
                 .collect(Collectors.toSet());
     }
 

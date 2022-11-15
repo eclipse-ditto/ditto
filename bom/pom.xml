@@ -47,8 +47,6 @@
         <sshd.version>2.9.0</sshd.version>
         <eddsa.version>0.3.0</eddsa.version>
         <lz4-java.version>1.8.0</lz4-java.version>
-        <spring-security-web.version>5.7.3</spring-security-web.version>
-        <javax.servlet-api.version>4.0.1</javax.servlet-api.version>
 
         <!-- Keep these version consistent with akka-persistence-mongo.version's build.sbt -->
         <mongo-java-driver.version>4.3.4</mongo-java-driver.version>
@@ -358,16 +356,6 @@
                 <groupId>org.lz4</groupId>
                 <artifactId>lz4-java</artifactId>
                 <version>${lz4-java.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.security</groupId>
-                <artifactId>spring-security-web</artifactId>
-                <version>${spring-security-web.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>javax.servlet</groupId>
-                <artifactId>javax.servlet-api</artifactId>
-                <version>${javax.servlet-api.version}</version>
             </dependency>
 
             <dependency>
