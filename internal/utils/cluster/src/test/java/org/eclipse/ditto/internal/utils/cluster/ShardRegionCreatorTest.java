@@ -19,10 +19,12 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThing;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -44,6 +46,10 @@ import akka.testkit.javadsl.TestKit;
  * Tests {@link ShardRegionCreator}.
  */
 public final class ShardRegionCreatorTest {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     private static final Config CONFIG = ConfigFactory.load("shard-region-test");
 
