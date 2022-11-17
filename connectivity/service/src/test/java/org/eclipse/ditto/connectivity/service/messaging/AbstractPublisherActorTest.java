@@ -16,7 +16,6 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -34,6 +33,8 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.HeaderMapping;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
+import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocol.Adaptable;
@@ -42,8 +43,9 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThingResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
-import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -57,9 +59,19 @@ import akka.testkit.javadsl.TestKit;
 
 public abstract class AbstractPublisherActorTest {
 
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
+
     protected static final Config CONFIG = ConfigFactory.load("test");
     protected static final ThingId THING_ID = ThingId.of("thing", "id");
     protected static final String DEVICE_ID = "ditto:thing";
+
+    @Rule
+    public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance(
+            getClass().getSimpleName(),
+            CONFIG
+    );
 
     protected ActorSystem actorSystem;
     protected TestProbe proxyActorTestProbe;
@@ -67,17 +79,9 @@ public abstract class AbstractPublisherActorTest {
 
     @Before
     public void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", CONFIG);
+        actorSystem = actorSystemResource.getActorSystem();
         proxyActorTestProbe = TestProbe.apply("proxyActor", actorSystem);
         proxyActor = proxyActorTestProbe.ref();
-    }
-
-    @After
-    public void tearDown() {
-        if (actorSystem != null) {
-            TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
-                    false);
-        }
     }
 
     @Test
@@ -103,27 +107,25 @@ public abstract class AbstractPublisherActorTest {
 
     @Test
     public void testAutoAck() throws Exception {
-        new TestKit(actorSystem) {{
+        setupMocks(actorSystemResource.newTestProbe());
+        final var sender = actorSystemResource.newTestKit();
+        final var multiMapped = OutboundSignalFactory.newMultiMappedOutboundSignal(
+                List.of(
+                        getMockOutboundSignalWithAutoAck("please-verify",
+                                DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(),
+                                sender.getRef().path().toSerializationFormat())
+                ),
+                sender.getRef()
+        );
 
-            final TestProbe probe = new TestProbe(actorSystem);
-            setupMocks(probe);
-            final OutboundSignal.MultiMapped multiMapped = OutboundSignalFactory.newMultiMappedOutboundSignal(
-                    List.of(getMockOutboundSignalWithAutoAck("please-verify",
-                            DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat())),
-                    getRef()
-            );
+        final var publisherActor = sender.childActorOf(getPublisherActorProps());
 
-            final Props props = getPublisherActorProps();
-            final ActorRef publisherActor = childActorOf(props);
+        publisherCreated(sender, publisherActor);
 
-            publisherCreated(this, publisherActor);
-
-            verifyAcknowledgements(() -> {
-                publisherActor.tell(multiMapped, getRef());
-                return expectMsgClass(Acknowledgements.class);
-            });
-        }};
-
+        verifyAcknowledgements(() -> {
+            publisherActor.tell(multiMapped, sender.getRef());
+            return sender.expectMsgClass(Acknowledgements.class);
+        });
     }
 
     @Test

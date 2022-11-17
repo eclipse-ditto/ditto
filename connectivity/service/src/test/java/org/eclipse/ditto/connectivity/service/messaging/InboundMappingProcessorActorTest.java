@@ -31,11 +31,13 @@ import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
+import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -44,7 +46,7 @@ import com.typesafe.config.Config;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.stream.Materializer;
+import akka.dispatch.MessageDispatcher;
 import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.Sink;
 import akka.stream.scaladsl.Source;
@@ -53,25 +55,18 @@ import akka.testkit.javadsl.TestKit;
 
 public final class InboundMappingProcessorActorTest {
 
-    private ActorSystem system = null;
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
-    @Before
-    public void init() {
-        system = ActorSystem.create(getClass().getSimpleName(), TestConstants.CONFIG);
-    }
-
-    @After
-    public void cleanup() {
-        if (system != null) {
-            TestKit.shutdownActorSystem(system);
-        }
-    }
+    @Rule
+    public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance(TestConstants.CONFIG);
 
     @Test
     public void onError() {
-        new TestKit(system) {{
+        new TestKit(actorSystemResource.getActorSystem()) {{
             // GIVEN: InboundMappingProcessorActor is constructed with a processor that throws an exception always.
-            final TestProbe inboundDispatcher = TestProbe.apply("inboundDispatcher", system);
+            final TestProbe inboundDispatcher = actorSystemResource.newTestProbe("inboundDispatcher");
             final Sink<Object, ?> inboundSink =
                     Sink.foreach(x -> inboundDispatcher.ref().tell(x, ActorRef.noSender()));
             final InboundMappingProcessor throwingProcessor = createThrowingProcessor();
@@ -81,10 +76,10 @@ public final class InboundMappingProcessorActorTest {
                     inboundSink,
                     TestConstants.MAPPING_CONFIG,
                     null,
-                    system.dispatchers().defaultGlobalDispatcher());
+                    getDefaultGlobalDispatcher());
             final ActorRef underTest = Source.actorRef(1, OverflowStrategy.dropNew())
                     .to(inboundMappingSink)
-                    .run(Materializer.createMaterializer(system));
+                    .run(actorSystemResource.getMaterializer());
 
             // WHEN: InboundMappingProcessorActor receives a text message.
             final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(Map.of())
@@ -137,6 +132,12 @@ public final class InboundMappingProcessorActorTest {
                 logger,
                 Mockito.mock(ProtocolAdapter.class),
                 Mockito.mock(DittoHeadersValidator.class));
+    }
+
+    private MessageDispatcher getDefaultGlobalDispatcher() {
+        final var actorSystem = actorSystemResource.getActorSystem();
+        final var dispatchers = actorSystem.dispatchers();
+        return dispatchers.defaultGlobalDispatcher();
     }
 
 }

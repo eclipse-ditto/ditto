@@ -31,8 +31,8 @@ import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
@@ -41,7 +41,8 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingsResponse;
@@ -77,7 +78,8 @@ public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownB
      */
     public static final String ACTOR_NAME = "aggregatorProxy";
 
-    private static final String TRACE_AGGREGATOR_RETRIEVE_THINGS = "aggregatorproxy_retrievethings";
+    private static final SpanOperationName TRACE_AGGREGATOR_RETRIEVE_THINGS =
+            SpanOperationName.of("aggregatorproxy_retrievethings");
 
     private static final int ASK_TIMEOUT = 60;
 
@@ -143,18 +145,18 @@ public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownB
     private void askTargetActor(final Command<?> command, final List<ThingId> thingIds,
             final Object msgToAsk, final ActorRef sender) {
 
-        final StartedTrace trace;
         final Object tracedMsgToAsk;
-        if (msgToAsk instanceof Signal<?> signal) {
-            trace = DittoTracing.trace(signal, TRACE_AGGREGATOR_RETRIEVE_THINGS)
-                    .tag("size", Integer.toString(thingIds.size()))
-                    .start();
-            tracedMsgToAsk = DittoTracing.propagateContext(trace.getContext(), signal);
+        final var startedSpan = DittoTracing.newPreparedSpan(
+                        command.getDittoHeaders(),
+                        TRACE_AGGREGATOR_RETRIEVE_THINGS
+                )
+                .tag("size", Integer.toString(thingIds.size()))
+                .start();
+        if (msgToAsk instanceof DittoHeadersSettable<?> dittoHeadersSettable) {
+            tracedMsgToAsk = dittoHeadersSettable.setDittoHeaders(
+                    DittoHeaders.of(startedSpan.propagateContext(dittoHeadersSettable.getDittoHeaders()))
+            );
         } else {
-            trace = DittoTracing.trace(command, TRACE_AGGREGATOR_RETRIEVE_THINGS)
-                    .tag("size", Integer.toString(thingIds.size()))
-                    .start();
-            DittoTracing.propagateContext(trace.getContext());
             tracedMsgToAsk = msgToAsk;
         }
 
@@ -165,9 +167,9 @@ public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownB
                 Patterns.ask(pubSubMediator, pubSubMsg, Duration.ofSeconds(ASK_TIMEOUT))
                         .thenAccept(response -> {
                             if (response instanceof SourceRef) {
-                                handleSourceRef((SourceRef<?>) response, thingIds, command, sender, trace);
+                                handleSourceRef((SourceRef<?>) response, thingIds, command, sender, startedSpan);
                             } else if (response instanceof DittoRuntimeException dre) {
-                                trace.fail(dre).finish();
+                                startedSpan.tagAsFailed(dre).finish();
                                 sender.tell(response, getSelf());
                             } else {
                                 log.error("Unexpected non-DittoRuntimeException error - responding with " +
@@ -177,7 +179,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownB
                                         DittoInternalErrorException.newBuilder()
                                                 .dittoHeaders(command.getDittoHeaders())
                                                 .build();
-                                trace.fail(responseEx).finish();
+                                startedSpan.tagAsFailed(responseEx).finish();
                                 sender.tell(responseEx, getSelf());
                             }
                         })
@@ -185,7 +187,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownB
     }
 
     private void handleSourceRef(final SourceRef<?> sourceRef, final List<ThingId> thingIds,
-            final Command<?> originatingCommand, final ActorRef originatingSender, final StartedTrace trace) {
+            final Command<?> originatingCommand, final ActorRef originatingSender, final StartedSpan startedSpan) {
         final Function<Jsonifiable<?>, PlainJson> thingPlainJsonSupplier;
         final Function<List<PlainJson>, CommandResponse<?>> overallResponseSupplier;
         final UnaryOperator<List<PlainJson>> plainJsonSorter = supplyPlainJsonSorter(thingIds);
@@ -220,7 +222,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownB
                 .thenApply(plainJsonSorter)
                 .thenApply(overallResponseSupplier::apply)
                 .thenApply(list -> {
-                    trace.finish();
+                    startedSpan.finish();
                     return list;
                 });
 

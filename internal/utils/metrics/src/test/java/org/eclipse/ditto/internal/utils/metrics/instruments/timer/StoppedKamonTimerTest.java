@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -24,31 +25,31 @@ import kamon.metric.Timer;
 
 public class StoppedKamonTimerTest {
 
-    private StoppedTimer sut;
+    private StoppedTimer underTest;
 
     @Before
     public void setup() {
-        sut = PreparedKamonTimer.newTimer("TestTimer").start().stop();
+        underTest = PreparedKamonTimer.newTimer("TestTimer").start().stop();
     }
 
     @Test
     public void getName() {
-        assertThat(sut.getName()).isEqualTo("TestTimer");
+        assertThat(underTest.getName()).isEqualTo("TestTimer");
     }
 
     @Test
     public void getDuration() {
-        assertThat(sut.getDuration().toNanos()).isPositive();
+        assertThat(underTest.getDuration().toNanos()).isPositive();
     }
 
     @Test
-    public void getTag() {
-        assertThat(sut.getTag("segment")).isEqualTo("overall");
+    public void stoppedTimerHasOverallSegmentTagByDefault() {
+        assertThat(underTest.getTagSet()).contains(Tag.of("segment", "overall"));
     }
 
     @Test
     public void getTags() {
-        assertThat(sut.getTags().keySet()).hasSize(1);
+        assertThat(underTest.getTagSet()).hasSize(1);
     }
 
     @Test

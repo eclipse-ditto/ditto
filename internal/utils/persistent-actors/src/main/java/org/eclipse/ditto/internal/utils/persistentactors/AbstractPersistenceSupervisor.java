@@ -50,7 +50,7 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 
 import com.typesafe.config.Config;
 
@@ -768,18 +768,21 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      * cause
      */
     protected CompletionStage<Object> enforceSignalAndForwardToTargetActor(final S signal, final ActorRef sender) {
-
         if (null != enforcerChild) {
-            final StartedTrace trace = DittoTracing.trace(signal, signal.getType())
+            final var startedSpan = DittoTracing.newPreparedSpan(
+                            signal.getDittoHeaders(),
+                            SpanOperationName.of(signal.getType())
+                    )
                     .correlationId(signal.getDittoHeaders().getCorrelationId().orElse(null))
                     .start();
-            final S tracedSignal = DittoTracing.propagateContext(trace.getContext(), signal);
+            final var tracedSignal =
+                    signal.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(signal.getDittoHeaders())));
             final StartedTimer rootTimer = createTimer(tracedSignal);
             final StartedTimer enforcementTimer = rootTimer.startNewSegment(ENFORCEMENT_TIMER_SEGMENT_ENFORCEMENT);
             return askEnforcerChild(tracedSignal)
                     .thenCompose(this::modifyEnforcerActorEnforcedSignalResponse)
                     .whenComplete((result, error) -> {
-                        trace.mark("enforced");
+                        startedSpan.mark("enforced");
                         stopTimer(enforcementTimer).accept(result, error);
                     })
                     .thenCompose(enforcedCommand -> {
@@ -793,7 +796,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                         }
                         return enforcerResponseToTargetActor(dittoHeaders, enforcedCommand, sender)
                                 .whenComplete((result, error) -> {
-                                    trace.mark("processed");
+                                    startedSpan.mark("processed");
                                     stopTimer(processingTimer).accept(result, error);
                                 });
                     })
@@ -802,19 +805,19 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                                 rootTimer.startNewSegment(ENFORCEMENT_TIMER_SEGMENT_RESPONSE_FILTER);
                         return filterTargetActorResponseViaEnforcer(targetActorResponse)
                                 .whenComplete((result, error) -> {
-                                    trace.mark("response_filtered");
+                                    startedSpan.mark("response_filtered");
                                     responseFilterTimer.tag(ENFORCEMENT_TIMER_TAG_OUTCOME,
                                             error != null ? ENFORCEMENT_TIMER_TAG_OUTCOME_FAIL :
                                                     ENFORCEMENT_TIMER_TAG_OUTCOME_SUCCESS).stop();
                                     if (null != error) {
-                                        trace.fail(error);
+                                        startedSpan.tagAsFailed(error);
                                     }
                                 });
                     }).whenComplete((result, error) -> {
                         if (null != error) {
-                            trace.fail(error);
+                            startedSpan.tagAsFailed(error);
                         }
-                        trace.finish();
+                        startedSpan.finish();
                         stopTimer(rootTimer).accept(result, error);
                     });
         } else {

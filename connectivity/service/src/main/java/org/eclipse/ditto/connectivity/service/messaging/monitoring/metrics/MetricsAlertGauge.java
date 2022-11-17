@@ -15,13 +15,13 @@ package org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
-import java.util.Map;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.KamonGauge;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,26 +96,19 @@ public final class MetricsAlertGauge implements Gauge {
     }
 
     @Override
-    public Gauge tag(final String key, final String value) {
-        final var taggedDelegee = delegee.tag(key, value);
-        return new MetricsAlertGauge(taggedDelegee, metricsAlert, measurementWindow);
+    public MetricsAlertGauge tag(final Tag tag) {
+        return new MetricsAlertGauge(delegee.tag(tag), metricsAlert, measurementWindow);
     }
 
     @Override
-    public Gauge tags(final Map<String, String> tags) {
+    public MetricsAlertGauge tags(final TagSet tags) {
         final var taggedDelegee = delegee.tags(tags);
         return new MetricsAlertGauge(taggedDelegee, metricsAlert, measurementWindow);
     }
 
-    @Nullable
     @Override
-    public String getTag(final String key) {
-        return delegee.getTag(key);
-    }
-
-    @Override
-    public Map<String, String> getTags() {
-        return delegee.getTags();
+    public TagSet getTagSet() {
+        return delegee.getTagSet();
     }
 
     /**
@@ -128,7 +121,6 @@ public final class MetricsAlertGauge implements Gauge {
         delegee.reset();
         return true;
     }
-
 
     @Override
     public String toString() {

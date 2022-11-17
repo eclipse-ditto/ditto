@@ -34,10 +34,12 @@ import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionMongoSnapshotAdapter;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonValue;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigValueFactory;
@@ -57,6 +59,10 @@ import akka.testkit.javadsl.TestKit;
  * Unit test for {@link org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceActor}.
  */
 public final class ConnectionPersistenceActorRecoveryTest extends WithMockServers {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     private static final String PERSISTENCE_ID_PREFIX = "connection:";
     private static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-journal";

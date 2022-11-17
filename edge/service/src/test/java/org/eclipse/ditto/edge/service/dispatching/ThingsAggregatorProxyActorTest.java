@@ -15,11 +15,13 @@ package org.eclipse.ditto.edge.service.dispatching;
 import java.util.List;
 import java.util.UUID;
 
+import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
@@ -27,9 +29,8 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingRespon
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingsResponse;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
-
-import com.typesafe.config.ConfigFactory;
 
 import akka.Done;
 import akka.actor.ActorRef;
@@ -50,8 +51,14 @@ import akka.testkit.javadsl.TestKit;
 public final class ThingsAggregatorProxyActorTest {
 
     @ClassRule
-    public static final ActorSystemResource actorSystemResource =
-            ActorSystemResource.newInstance(ConfigFactory.load("test"));
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
+
+    @ClassRule
+    public static final ActorSystemResource ACTOR_SYSTEM_RESOURCE = ActorSystemResource.newInstance();
+
+    @Rule
+    public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
 
     private static final String NAMESPACE = "ditto";
     private static final ThingId THING_ID = ThingId.of(NAMESPACE, "thing");
@@ -77,9 +84,14 @@ public final class ThingsAggregatorProxyActorTest {
                     NAMESPACE,
                     DITTO_HEADERS);
 
+    private static SourceRef<Jsonifiable<?>> getSourceRef(final Iterable<Jsonifiable<?>> jsonValues) {
+        final var source = Source.from(jsonValues);
+        return source.runWith(StreamRefs.sourceRef(), Materializer.apply(ACTOR_SYSTEM_RESOURCE.getActorSystem()));
+    }
+
     @Test
     public void testHandleDittoRuntimeException() {
-        final ActorSystem actorSystem = actorSystemResource.getActorSystem();
+        final ActorSystem actorSystem = ACTOR_SYSTEM_RESOURCE.getActorSystem();
         new TestKit(actorSystem) {{
             final TestProbe targetActor = new TestProbe(actorSystem);
             targetActor.setAutoPilot(new AutoPilotAnsweringWithException(DITTO_RUNTIME_EXCEPTION));
@@ -94,7 +106,7 @@ public final class ThingsAggregatorProxyActorTest {
 
     @Test
     public void testHandleGenericException() {
-        final ActorSystem actorSystem = actorSystemResource.getActorSystem();
+        final ActorSystem actorSystem = ACTOR_SYSTEM_RESOURCE.getActorSystem();
         new TestKit(actorSystem) {{
             final TestProbe targetActor = new TestProbe(actorSystem);
             targetActor.setAutoPilot(new AutoPilotAnsweringWithException(INTERNAL_ERROR_EXCEPTION));
@@ -109,7 +121,7 @@ public final class ThingsAggregatorProxyActorTest {
 
     @Test
     public void shutdownWithoutTask() {
-        final ActorSystem actorSystem = actorSystemResource.getActorSystem();
+        final ActorSystem actorSystem = ACTOR_SYSTEM_RESOURCE.getActorSystem();
         new TestKit(actorSystem) {{
             final TestProbe pubSubMediator = new TestProbe(actorSystem);
             final Props props = ThingsAggregatorProxyActor.props(pubSubMediator.ref());
@@ -122,7 +134,7 @@ public final class ThingsAggregatorProxyActorTest {
 
     @Test
     public void shutdownWithTask() {
-        final ActorSystem actorSystem = actorSystemResource.getActorSystem();
+        final ActorSystem actorSystem = ACTOR_SYSTEM_RESOURCE.getActorSystem();
         new TestKit(actorSystem) {{
             final TestProbe pubSubMediator = new TestProbe(actorSystem);
             final Props props = ThingsAggregatorProxyActor.props(pubSubMediator.ref());
@@ -138,11 +150,6 @@ public final class ThingsAggregatorProxyActorTest {
             expectMsg(RETRIEVE_THINGS_RESPONSE);
             expectMsg(Done.getInstance());
         }};
-    }
-
-    private static SourceRef<Jsonifiable<?>> getSourceRef(final Iterable<Jsonifiable<?>> jsonValues) {
-        final var source = Source.from(jsonValues);
-        return source.runWith(StreamRefs.sourceRef(), Materializer.apply(actorSystemResource.getActorSystem()));
     }
 
     private static final class AutoPilotAnsweringWithException extends AutoPilot {

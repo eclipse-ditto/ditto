@@ -170,17 +170,6 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
                 .withDispatcher(SEARCH_DISPATCHER_ID);
     }
 
-    private static StartedTimer startNewTimer(final JsonSchemaVersion version, final String queryType,
-            final WithDittoHeaders withDittoHeaders) {
-        final StartedTimer startedTimer = DittoMetrics.timer(TRACING_THINGS_SEARCH)
-                .tag(QUERY_TYPE_TAG, queryType)
-                .tag(API_VERSION_TAG, version.toString())
-                .start();
-        DittoTracing.wrapTimer(DittoTracing.extractTraceContext(withDittoHeaders), startedTimer);
-
-        return startedTimer;
-    }
-
     @Override
     public Receive handleMessage() {
         return ReceiveBuilder.create()
@@ -556,6 +545,17 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
         } catch (final Throwable e) {
             return Source.failed(e);
         }
+    }
+
+    private static StartedTimer startNewTimer(final JsonSchemaVersion version, final String queryType,
+            final WithDittoHeaders withDittoHeaders) {
+        final StartedTimer startedTimer = DittoMetrics.timer(TRACING_THINGS_SEARCH)
+                .tag(QUERY_TYPE_TAG, queryType)
+                .tag(API_VERSION_TAG, version.toString())
+                .start();
+        DittoTracing.newStartedSpanByTimer(withDittoHeaders.getDittoHeaders(), startedTimer);
+
+        return startedTimer;
     }
 
     private static void stopTimer(final StartedTimer timer) {

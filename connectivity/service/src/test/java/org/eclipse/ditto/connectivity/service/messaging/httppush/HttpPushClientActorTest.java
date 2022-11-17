@@ -39,6 +39,7 @@ import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorT
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
@@ -46,6 +47,7 @@ import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -82,6 +84,14 @@ import akka.util.ByteString;
 public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
     private static final ProtocolAdapter ADAPTER = DittoProtocolAdapter.newInstance();
+
+    @Rule
+    public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance(
+            TestConstants.CONFIG.withValue(
+                    "ditto.connectivity.connection.http-push.blocked-hostnames",
+                    ConfigValueFactory.fromAnyRef("")
+            )
+    );
 
     private ActorSystem actorSystem;
     private Flow<HttpRequest, HttpResponse, NotUsed> handler;
@@ -132,7 +142,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
     @Override
     protected ActorSystem getActorSystem() {
-        return actorSystem;
+        return actorSystemResource.getActorSystem();
     }
 
     @Test

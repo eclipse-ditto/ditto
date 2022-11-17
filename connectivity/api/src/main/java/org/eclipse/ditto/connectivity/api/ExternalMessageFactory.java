@@ -28,9 +28,10 @@ public final class ExternalMessageFactory {
      *
      * @param headers the headers to initialize the builder with.
      * @return the builder.
+     * @throws NullPointerException if {@code headers} is {@code null}.
      */
     public static ExternalMessageBuilder newExternalMessageBuilder(final Map<String, String> headers) {
-        return new UnmodifiableExternalMessageBuilder(headers);
+        return UnmodifiableExternalMessage.newBuilder(headers);
     }
 
     /**
@@ -38,9 +39,10 @@ public final class ExternalMessageFactory {
      *
      * @param externalMessage the ExternalMessage initialize the builder with.
      * @return the builder.
+     * @throws NullPointerException if {@code externalMessage} is {@code null}.
      */
     public static ExternalMessageBuilder newExternalMessageBuilder(final ExternalMessage externalMessage) {
-        return new UnmodifiableExternalMessageBuilder(externalMessage);
+        return UnmodifiableExternalMessage.newBuilder(externalMessage);
     }
 
 }

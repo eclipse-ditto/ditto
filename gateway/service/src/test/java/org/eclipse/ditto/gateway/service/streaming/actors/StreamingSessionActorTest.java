@@ -54,6 +54,7 @@ import org.eclipse.ditto.gateway.service.util.config.streaming.DefaultStreamingC
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.jwt.model.JwtInvalidException;
@@ -63,6 +64,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingRespon
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -95,11 +97,14 @@ import akka.testkit.TestProbe;
 @RunWith(MockitoJUnitRunner.class)
 public final class StreamingSessionActorTest {
 
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
+
     private static AuthorizationContext authorizationContext;
 
     @Rule
-    public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance(
-            ConfigFactory.load("test"));
+    public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance(ConfigFactory.load("test"));
 
     @Rule
     public final TestName testName = new TestName();

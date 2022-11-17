@@ -57,12 +57,12 @@ For a full example of the different aspects of the WoT integration, please check
 
 To summarize:
 * "link" a Thing with a publicly available WoT Thing Model by specifying the URL in its [Thing Definition](basic-thing.html#definition).
-* creation of a new Thing can use a Thing Model (e.g. the example model [https://eclipse.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld](https://eclipse.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld)) in order to generate a JSON skeleton:
+* creation of a new Thing can use a Thing Model (e.g. the example model [https://eclipse-ditto.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld)) in order to generate a JSON skeleton:
     ```bash
     curl --location --request PUT -u ditto:ditto 'https://ditto.eclipseprojects.io/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815' \
     --header 'Content-Type: application/json' \
     --data-raw '{
-        "definition": "https://eclipse.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld"
+        "definition": "https://eclipse-ditto.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld"
     }'
     ```
 * which results in a Thing like this:
@@ -70,7 +70,7 @@ To summarize:
   {
     "thingId": "io.eclipseprojects.ditto:floor-lamp-0815",
     "policyId": "io.eclipseprojects.ditto:floor-lamp-0815",
-    "definition": "https://eclipse.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld",
+    "definition": "https://eclipse-ditto.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld",
     "attributes": {
       "manufacturer": "",
       "serialNo": ""
@@ -78,9 +78,9 @@ To summarize:
     "features": {
       "Spot1": {
         "definition": [
-          "https://eclipse.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld",
-          "https://eclipse.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
-          "https://eclipse.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
+          "https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld",
+          "https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
+          "https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
         ],
         "properties": {
           "dimmer-level": 0.0,
@@ -94,9 +94,9 @@ To summarize:
       },
       "Spot2": {
         "definition": [
-          "https://eclipse.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld",
-          "https://eclipse.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
-          "https://eclipse.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
+          "https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld",
+          "https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
+          "https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
         ],
         "properties": {
           "dimmer-level": 0.0,
@@ -110,9 +110,9 @@ To summarize:
       },
       "Spot3": {
         "definition": [
-          "https://eclipse.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld",
-          "https://eclipse.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
-          "https://eclipse.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
+          "https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld",
+          "https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
+          "https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
         ],
         "properties": {
           "dimmer-level": 0.0,
@@ -126,7 +126,7 @@ To summarize:
       },
       "ConnectionStatus": {
         "definition": [
-          "https://eclipse.github.io/ditto-examples/wot/models/connection-status-1.0.0.tm.jsonld"
+          "https://eclipse-ditto.github.io/ditto-examples/wot/models/connection-status-1.0.0.tm.jsonld"
         ],
         "properties": {
           "readySince": "",
@@ -135,7 +135,7 @@ To summarize:
       },
       "PowerConsumptionAwareness": {
         "definition": [
-          "https://eclipse.github.io/ditto-examples/wot/models/power-consumption-aware-1.0.0.tm.jsonld"
+          "https://eclipse-ditto.github.io/ditto-examples/wot/models/power-consumption-aware-1.0.0.tm.jsonld"
         ],
         "properties": {
           "reportPowerConsumption": {}
@@ -143,13 +143,13 @@ To summarize:
       },
       "SmokeDetection": {
         "definition": [
-          "https://eclipse.github.io/ditto-examples/wot/models/smoke-detector-1.0.0.tm.jsonld"
+          "https://eclipse-ditto.github.io/ditto-examples/wot/models/smoke-detector-1.0.0.tm.jsonld"
         ]
       },
       "Status-LED": {
         "definition": [
-          "https://eclipse.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
-          "https://eclipse.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
+          "https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
+          "https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
         ],
         "properties": {
           "color": {

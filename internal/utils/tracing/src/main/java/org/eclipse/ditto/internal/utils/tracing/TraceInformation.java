@@ -12,75 +12,70 @@
  */
 package org.eclipse.ditto.internal.utils.tracing;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
+import java.net.URI;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
+
 /**
- * This class provides as a wrapper for tracing information as it can hold the uri (name) of a trace and its tags.
+ * This class provides tracing information as it can hold the URI of a trace and its tags.
  */
+@Immutable
 public final class TraceInformation {
 
-    private final String traceUri;
-    private final Map<String, String> tags;
+    private final URI traceUri;
+    private final TagSet tagSet;
 
-    TraceInformation(final String traceUri, final Map<String, String> tags) {
+    private TraceInformation(final URI traceUri, final TagSet tagSet) {
         this.traceUri = traceUri;
-        this.tags = Collections.unmodifiableMap(tags);
+        this.tagSet = tagSet;
     }
 
-    public String getTraceUri() {
+    static TraceInformation newInstance(final URI traceUri, final TagSet tagSet) {
+        return new TraceInformation(checkNotNull(traceUri, "traceUri"), checkNotNull(tagSet, "tagSet"));
+    }
+
+    public URI getTraceUri() {
         return traceUri;
     }
 
-    public Map<String, String> getTags() {
-        return tags;
+    /**
+     * Returns an unmodifiable unsorted Set containing all tags of this TraceInformation.
+     *
+     * @return the tags of this TraceInformation.
+     */
+    public TagSet getTagSet() {
+        return tagSet;
     }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        final TraceInformation that = (TraceInformation) o;
-        return Objects.equals(traceUri, that.traceUri) &&
-                Objects.equals(tags, that.tags);
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final var that = (TraceInformation) o;
+        return Objects.equals(traceUri, that.traceUri) && Objects.equals(tagSet, that.tagSet);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(traceUri, tags);
+        return Objects.hash(traceUri, tagSet);
     }
 
     @Override
     public String toString() {
-        return "TraceInformation{" +
-                "traceUri='" + traceUri + '\'' +
-                ", tags=" + tags +
-                '}';
+        return getClass().getSimpleName() + " [" +
+                "traceUri=" + traceUri +
+                ", tagSet=" + tagSet +
+                "]";
     }
 
-    static final class Builder {
-
-        private final String traceUri;
-        private final Map<String, String> tags;
-
-        private Builder(final String traceUri) {
-            this.traceUri = traceUri;
-            this.tags = new HashMap<>();
-        }
-
-        static Builder forTraceUri(final String traceUri) {
-            return new Builder(traceUri);
-        }
-
-        Builder tag(final String key, final String value) {
-            this.tags.put(key, value);
-            return this;
-        }
-
-        TraceInformation build() {
-            return new TraceInformation(this.traceUri, this.tags);
-        }
-    }
 }

@@ -14,6 +14,7 @@
 package org.eclipse.ditto.things.service.persistence.actors;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
@@ -21,6 +22,9 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -29,20 +33,33 @@ import org.eclipse.ditto.base.model.signals.UnsupportedSignalException;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutException;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
+import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.DistributedPubWithMessage;
 import org.eclipse.ditto.internal.utils.persistentactors.TargetActorWithMessage;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsubthings.LiveSignalPub;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
+import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
 import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.ThingConditionValidator;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
+import akka.actor.ActorSystem;
 import akka.pattern.AskTimeoutException;
 
 /**
@@ -64,18 +81,32 @@ final class SupervisorLiveChannelDispatching {
     private final ResponseReceiverCache responseReceiverCache;
     private final LiveSignalPub liveSignalPub;
     private final ActorRefFactory actorRefFactory;
+    private final ActorRef thingsShardRegion;
+    private final ActorSystem actorSystem;
+    private final AskWithRetryConfig askWithRetryConfig;
 
     SupervisorLiveChannelDispatching(final ThreadSafeDittoLoggingAdapter log,
             final EnforcementConfig enforcementConfig,
             final ResponseReceiverCache responseReceiverCache,
             final LiveSignalPub liveSignalPub,
-            final ActorRefFactory actorRefFactory) {
+            final ActorRefFactory actorRefFactory,
+            final ActorRef thingsShardRegion,
+            final ActorSystem actorSystem) {
 
         this.log = log;
         this.enforcementConfig = enforcementConfig;
         this.responseReceiverCache = responseReceiverCache;
         this.liveSignalPub = liveSignalPub;
         this.actorRefFactory = actorRefFactory;
+        this.thingsShardRegion = thingsShardRegion;
+        this.actorSystem = actorSystem;
+        this.askWithRetryConfig = getAskWithRetryConfig(actorSystem);
+    }
+
+    private static AskWithRetryConfig getAskWithRetryConfig(final ActorSystem actorSystem) {
+        final DefaultScopedConfig dittoScoped = DefaultScopedConfig.dittoScoped(actorSystem.settings().config());
+        final var enforcementConfig = DefaultEnforcementConfig.of(dittoScoped);
+        return enforcementConfig.getAskWithRetryConfig();
     }
 
     /**
@@ -158,36 +189,112 @@ final class SupervisorLiveChannelDispatching {
      * @return a CompletionStage which will be completed with a target actor and a message to send to this target actor
      */
     CompletionStage<TargetActorWithMessage> dispatchLiveSignal(final Signal<?> signal, final ActorRef sender) {
-        final UnaryOperator<Object> errorHandler =
-                response -> handleEncounteredAskTimeoutsAsCommandTimeoutException(signal.getDittoHeaders(), response);
-        final DistributedPubWithMessage distributedPubWithMessage = selectLiveSignalPublisher(signal);
-        if (enforcementConfig.shouldDispatchGlobally(signal)) {
-            return responseReceiverCache.insertResponseReceiverConflictFree(signal,
-                            newSignal -> sender,
-                            (newSignal, receiver) -> {
-                                log.withCorrelationId(newSignal)
-                                        .info("Publishing message to pub-sub: <{}>", newSignal.getType());
-                                if (newSignal.equals(signal)) {
-                                    return distributedPubWithMessage;
-                                } else {
-                                    return selectLiveSignalPublisher(newSignal);
-                                }
-                            })
-                    .thenApply(distributedPub -> new TargetActorWithMessage(
-                            distributedPub.pub().getPublisher(),
-                            distributedPub.wrappedSignalForPublication(),
-                            calculateLiveChannelTimeout(distributedPub.signal().getDittoHeaders()),
-                            errorHandler
-                    ));
+
+        return evaluateCondition(signal).thenCompose(s -> {
+            final UnaryOperator<Object> errorHandler =
+                    response -> handleEncounteredAskTimeoutsAsCommandTimeoutException(signal.getDittoHeaders(),
+                            response);
+            final DistributedPubWithMessage distributedPubWithMessage = selectLiveSignalPublisher(signal);
+            if (enforcementConfig.shouldDispatchGlobally(signal)) {
+                return responseReceiverCache.insertResponseReceiverConflictFree(signal,
+                                newSignal -> sender,
+                                (newSignal, receiver) -> {
+                                    log.withCorrelationId(newSignal)
+                                            .info("Publishing message to pub-sub: <{}>", newSignal.getType());
+                                    if (newSignal.equals(signal)) {
+                                        return distributedPubWithMessage;
+                                    } else {
+                                        return selectLiveSignalPublisher(newSignal);
+                                    }
+                                })
+                        .thenApply(distributedPub -> new TargetActorWithMessage(
+                                distributedPub.pub().getPublisher(),
+                                distributedPub.wrappedSignalForPublication(),
+                                calculateLiveChannelTimeout(distributedPub.signal().getDittoHeaders()),
+                                errorHandler
+                        ));
+            } else {
+                log.withCorrelationId(signal)
+                        .debug("Publish message to pub-sub: <{}>", signal);
+                return CompletableFuture.completedStage(new TargetActorWithMessage(
+                        distributedPubWithMessage.pub().getPublisher(),
+                        distributedPubWithMessage.wrappedSignalForPublication(),
+                        calculateLiveChannelTimeout(signal.getDittoHeaders()),
+                        errorHandler
+                ));
+            }
+        });
+    }
+
+    private CompletionStage<Signal<?>> evaluateCondition(final Signal<?> signal) {
+        final var condition = signal.getDittoHeaders().getCondition();
+
+        if (condition.isPresent()) {
+            final var retrieveThing = getRetrieveThing(signal);
+            if (retrieveThing.isPresent()) {
+                final var thing = AskWithRetry.askWithRetry(thingsShardRegion, retrieveThing.get(), askWithRetryConfig,
+                        actorSystem,
+                        response -> handleRetrieveThingResponse(response, signal.getDittoHeaders())
+                );
+                return thing.thenApply(t -> {
+                    final var optionalException = ThingConditionValidator.validate(signal, condition.get(), t);
+                    if (optionalException.isPresent()) {
+                        log.withCorrelationId(signal).info("Live-message was filtered due to not matching condition.");
+                        throw optionalException.get();
+                    } else {
+                        return signal;
+                    }
+                });
+            }
+        }
+        return CompletableFuture.completedFuture(signal);
+    }
+
+    private Optional<SudoRetrieveThing> getRetrieveThing(final Signal<?> signal) {
+        final Optional<SudoRetrieveThing> result;
+        if (signal instanceof WithEntityId withEntityId) {
+            if (withEntityId.getEntityId() instanceof ThingId thingId) {
+                result = Optional.of(SudoRetrieveThing.of(thingId, signal.getDittoHeaders()));
+            } else {
+                result = Optional.empty();
+                log.withCorrelationId(signal).error("Skipping live-message condition validation, because entityId " +
+                        "is no thingId.");
+            }
         } else {
-            log.withCorrelationId(signal)
-                    .debug("Publish message to pub-sub: <{}>", signal);
-            return CompletableFuture.completedStage(new TargetActorWithMessage(
-                    distributedPubWithMessage.pub().getPublisher(),
-                    distributedPubWithMessage.wrappedSignalForPublication(),
-                    calculateLiveChannelTimeout(signal.getDittoHeaders()),
-                    errorHandler
-            ));
+            result = Optional.empty();
+            log.withCorrelationId(signal).error("Skipping live-message condition validation, because message " +
+                    "does not contain an entityId.");
+        }
+        return result;
+    }
+
+    private Thing handleRetrieveThingResponse(final Object response, final DittoHeaders dittoHeaders) {
+
+        if (response instanceof SudoRetrieveThingResponse retrieveThingResponse) {
+            final JsonValue entity = retrieveThingResponse.getEntity();
+            if (!entity.isObject()) {
+                log.withCorrelationId(dittoHeaders)
+                        .error("Expected SudoRetrieveThingResponse to contain a JsonObject as Entity but was: {}",
+                                entity);
+                throw DittoInternalErrorException.newBuilder().dittoHeaders(dittoHeaders).build();
+            }
+            return ThingsModelFactory.newThing(entity.asObject());
+
+        } else if (response instanceof ThingErrorResponse thingErrorResponse) {
+            log.withCorrelationId(dittoHeaders)
+                    .info("Got ThingErrorResponse when waiting on RetrieveThingResponse when validating live-message " +
+                            "condition.");
+            throw thingErrorResponse.getDittoRuntimeException();
+        } else if (response instanceof DittoRuntimeException dre) {
+            log.withCorrelationId(dittoHeaders)
+                    .info("Got Exception when waiting on RetrieveThingResponse when validating live-message condition: {}",
+                            dre.getMessage());
+            throw dre;
+        } else {
+            log.withCorrelationId(dittoHeaders)
+                    .error("Did not retrieve expected RetrieveThingResponse when validating live-message condition: {}",
+                            response);
+            throw DittoInternalErrorException.newBuilder().dittoHeaders(dittoHeaders).build();
         }
     }
 

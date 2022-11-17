@@ -31,6 +31,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoE
 import org.eclipse.ditto.internal.utils.persistence.operations.EntityPersistenceOperations;
 import org.eclipse.ditto.internal.utils.persistence.operations.NamespacePersistenceOperations;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyConstants;
@@ -45,6 +46,7 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -64,6 +66,10 @@ import akka.testkit.javadsl.TestKit;
  */
 @AllValuesAreNonnullByDefault
 public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceITAssertions<PolicyId> {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     private EntityPersistenceOperations entitiesOpsMock;
     private NamespacePersistenceOperations namespaceOpsMock;
