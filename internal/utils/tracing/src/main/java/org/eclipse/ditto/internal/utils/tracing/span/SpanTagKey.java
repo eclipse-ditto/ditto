@@ -49,7 +49,7 @@ public abstract class SpanTagKey<T> {
     public static final SpanTagKey<CharSequence> REQUEST_METHOD_NAME =
             new CharSequenceImplementation(KEY_PREFIX + "request.method");
 
-    public static final SpanTagKey<URI> REQUEST_URI = new URIImplementation(KEY_PREFIX + "request.method");
+    public static final SpanTagKey<URI> REQUEST_URI = new URIImplementation(KEY_PREFIX + "request.path");
 
     public static final SpanTagKey<Boolean> AUTH_SUCCESS = new BooleanImplementation(KEY_PREFIX + "auth.success");
 
