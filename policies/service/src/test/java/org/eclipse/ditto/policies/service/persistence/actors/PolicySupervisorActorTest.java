@@ -31,6 +31,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import akka.stream.Attributes;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
@@ -83,6 +84,7 @@ public final class PolicySupervisorActorTest extends PersistenceActorTestBase {
 
     @Test
     public void stopAfterRetrievingExistingPolicy() {
+        actorSystem.eventStream().setLogLevel(Attributes.LogLevels$.MODULE$.Debug());
         new TestKit(actorSystem) {{
             final var policy = createPolicyWithRandomId();
             final var policyId = policy.getEntityId().orElseThrow();
