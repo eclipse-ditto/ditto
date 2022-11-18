@@ -97,6 +97,9 @@ public final class PolicySupervisorActorTest extends PersistenceActorTestBase {
             final var response = probe.expectMsgClass(CreatePolicyResponse.class);
             assertThat(response.getPolicyCreated().orElseThrow().getEntriesSet()).isEqualTo(policy.getEntriesSet());
 
+            // Tolerate some delay between policy commands
+            expectNoMsg();
+
             final var retrievePolicy = RetrievePolicy.of(policyId, DittoHeaders.empty());
             underTest.tell(retrievePolicy, probe.ref());
             underTest.tell(new StopShardedActor(), getRef());
