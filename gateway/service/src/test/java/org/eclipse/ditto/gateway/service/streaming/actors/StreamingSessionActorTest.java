@@ -39,6 +39,7 @@ import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMissingException;
+import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionAbortedException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResult;
@@ -136,9 +137,10 @@ public final class StreamingSessionActorTest {
                 TestSink.probe(actorSystemResource.getActorSystem());
         final Source<SessionedJsonifiable, SourceQueueWithComplete<SessionedJsonifiable>> source =
                 Source.queue(100, OverflowStrategy.fail());
-        final var pair = source.viaMat(KillSwitches.single(), Keep.both())
-                .toMat(sink, Keep.both())
-                .run(actorSystemResource.getActorSystem());
+        final var pair =
+                source.viaMat(KillSwitches.single(), Keep.both())
+                        .toMat(sink, Keep.both())
+                        .run(actorSystemResource.getActorSystem());
         sourceQueue = pair.first().first();
         sinkProbe = pair.second();
         killSwitch = pair.first().second();
@@ -360,6 +362,19 @@ public final class StreamingSessionActorTest {
         commandRouterProbe.expectMsg(retrieveThingResponse);
     }
 
+    @Test
+    public void testGatewayWebsocketSessionAbortedExceptionIsThrownWhenServiceRequestDneIsReceived() {
+        final var testKit = actorSystemResource.newTestKit();
+        final var underTest = testKit.watch(actorSystemResource.newActor(getProps()));
+
+        underTest.tell(StreamingSessionActor.Control.SERVICE_REQUESTS_DONE, ActorRef.noSender());
+
+        sourceQueue.watchCompletion().whenComplete((done, throwable) -> {
+            assertThat(done).isNull();
+            assertThat(throwable).isInstanceOf(GatewayWebsocketSessionAbortedException.class);
+        });
+    }
+
     private static String getTokenString() {
         return getTokenString(Instant.now().plusSeconds(60L));
     }
@@ -417,7 +432,8 @@ public final class StreamingSessionActorTest {
                 JsonSchemaVersion.LATEST,
                 null,
                 declaredAcks,
-                authorizationContext);
+                authorizationContext,
+                killSwitch);
     }
 
     private static Set<AcknowledgementLabel> getAcknowledgementLabels(final String... ackLabelNames) {

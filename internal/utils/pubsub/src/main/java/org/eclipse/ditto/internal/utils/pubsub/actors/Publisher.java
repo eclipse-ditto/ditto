@@ -25,7 +25,7 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
@@ -100,11 +100,13 @@ public final class Publisher extends AbstractActor {
      *
      * @param topics the topics to publish at.
      * @param message the message to publish.
+     * @param groupIndexKey the group index key.
      * @return a publish message.
      */
-    public static Request publish(final Collection<String> topics, final SignalWithEntityId<?> message) {
+    public static Request publish(final Collection<String> topics, final Signal<?> message,
+            final CharSequence groupIndexKey) {
 
-        return new Publish(topics, message);
+        return new Publish(topics, message, groupIndexKey);
     }
 
     /**
@@ -118,7 +120,7 @@ public final class Publisher extends AbstractActor {
      * @return the request.
      */
     public static Request publishWithAck(final Collection<String> topics,
-            final SignalWithEntityId<?> message,
+            final Signal<?> message,
             final Set<AcknowledgementRequest> ackRequests,
             final EntityId entityId,
             final DittoHeaders dittoHeaders) {
@@ -138,12 +140,12 @@ public final class Publisher extends AbstractActor {
     }
 
     private void publish(final Publish publish) {
-        doPublish(publish.topics, publish.message);
+        doPublish(publish.topics(), publish.message(), publish.groupIndexKey());
     }
 
     private void publishWithAck(final PublishWithAck publishWithAck) {
         final List<Pair<ActorRef, PublishSignal>> subscribers =
-                doPublish(publishWithAck.topics, publishWithAck.message);
+                doPublish(publishWithAck.topics, publishWithAck.message, publishWithAck.entityId);
 
         final Set<String> subscriberDeclaredAcks = subscribers.stream()
                 .flatMap(pair -> {
@@ -176,14 +178,15 @@ public final class Publisher extends AbstractActor {
     }
 
     private List<Pair<ActorRef, PublishSignal>> doPublish(final Collection<String> topics,
-            final SignalWithEntityId<?> signal) {
+            final Signal<?> signal,
+            final CharSequence groupIndexKey) {
         messageCounter.increment();
         topicCounter.increment(topics.size());
         final List<Long> hashes = topics.stream().map(ddataReader::approximate).toList();
         final ActorRef sender = getSender();
 
         final List<Pair<ActorRef, PublishSignal>> subscribers =
-                publisherIndex.assignGroupsToSubscribers(signal, hashes);
+                publisherIndex.assignGroupsToSubscribers(signal, hashes, groupIndexKey);
         final ThreadSafeDittoLoggingAdapter l = log.withCorrelationId(signal);
         if (l.isDebugEnabled()) {
             l.debug("Calculated hashes for signal <{}>: <{}>", signal, hashes);
@@ -235,15 +238,8 @@ public final class Publisher extends AbstractActor {
      * Request for the publisher to publish a message.
      * Only the message is sent across the cluster.
      */
-    private static final class Publish implements Request {
-
-        private final Collection<String> topics;
-        private final SignalWithEntityId<?> message;
-
-        private Publish(final Collection<String> topics, final SignalWithEntityId<?> message) {
-            this.topics = topics;
-            this.message = message;
-        }
+    private record Publish(Collection<String> topics, Signal<?> message, CharSequence groupIndexKey)
+            implements Request {
 
         @Override
         public DittoHeaders getDittoHeaders() {
@@ -260,13 +256,13 @@ public final class Publisher extends AbstractActor {
                 AckExtractor.of(p -> p.entityId, p -> p.dittoHeaders);
 
         private final Collection<String> topics;
-        private final SignalWithEntityId<?> message;
+        private final Signal<?> message;
         private final Set<AcknowledgementRequest> ackRequests;
         private final EntityId entityId;
         private final DittoHeaders dittoHeaders;
 
         private PublishWithAck(final Collection<String> topics,
-                final SignalWithEntityId<?> message,
+                final Signal<?> message,
                 final Set<AcknowledgementRequest> ackRequests,
                 final EntityId entityId,
                 final DittoHeaders dittoHeaders) {

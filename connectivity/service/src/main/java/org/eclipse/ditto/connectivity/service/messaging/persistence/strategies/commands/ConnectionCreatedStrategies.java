@@ -64,12 +64,13 @@ public final class ConnectionCreatedStrategies
         strategies.addStrategy(new LoggingExpiredStrategy());
         strategies.addStrategy(new SudoRetrieveConnectionTagsStrategy());
         strategies.addStrategy(new SudoAddConnectionLogEntryStrategy());
+        strategies.addStrategy(new SudoRetrieveConnectionStatusStrategy());
         return strategies;
     }
 
     @Override
     public boolean isDefined(final Command<?> command) {
-        return command instanceof ConnectivityCommand ||command instanceof ConnectivitySudoCommand;
+        return command instanceof ConnectivityCommand || command instanceof ConnectivitySudoCommand;
     }
 
     @Override

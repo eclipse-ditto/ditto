@@ -17,12 +17,10 @@ import static org.eclipse.ditto.things.api.ThingsMessagingConstants.CLUSTER_ROLE
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
-import org.eclipse.ditto.things.service.aggregation.DefaultThingsAggregatorConfig;
-import org.eclipse.ditto.things.service.aggregation.ThingsAggregatorActor;
-import org.eclipse.ditto.things.service.aggregation.ThingsAggregatorConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
+import org.eclipse.ditto.internal.utils.cluster.ShardRegionCreator;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
@@ -41,6 +39,9 @@ import org.eclipse.ditto.internal.utils.pubsubthings.ThingEventPubSubFactory;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.service.aggregation.DefaultThingsAggregatorConfig;
+import org.eclipse.ditto.things.service.aggregation.ThingsAggregatorActor;
+import org.eclipse.ditto.things.service.aggregation.ThingsAggregatorConfig;
 import org.eclipse.ditto.things.service.common.config.ThingsConfig;
 import org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceActorPropsFactory;
 import org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceOperationsActor;
@@ -50,8 +51,6 @@ import org.eclipse.ditto.things.service.persistence.actors.ThingsPersistenceStre
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.cluster.sharding.ClusterSharding;
-import akka.cluster.sharding.ClusterShardingSettings;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
@@ -78,8 +77,8 @@ public final class ThingsRootActor extends DittoRootActor {
         final var actorSystem = getContext().system();
 
         final var clusterConfig = thingsConfig.getClusterConfig();
-        final var shardRegionExtractor =
-                ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem);
+        final int numberOfShards = clusterConfig.getNumberOfShards();
+        final var shardRegionExtractor = ShardRegionExtractor.of(numberOfShards, actorSystem);
         final var distributedAcks = DistributedAcks.lookup(actorSystem);
         final var pubSubFactory =
                 ThingEventPubSubFactory.of(getContext(), shardRegionExtractor, distributedAcks);
@@ -95,12 +94,10 @@ public final class ThingsRootActor extends DittoRootActor {
                 blockedNamespaces,
                 policyEnforcerProvider
         );
-        final ActorRef thingsShardRegion = ClusterSharding.get(actorSystem)
-                .start(ThingsMessagingConstants.SHARD_REGION,
-                        thingSupervisorActorProps,
-                        ClusterShardingSettings.create(actorSystem).withRole(CLUSTER_ROLE),
-                        shardRegionExtractor
-                );
+
+        final ActorRef thingsShardRegion =
+                ShardRegionCreator.start(actorSystem, ThingsMessagingConstants.SHARD_REGION, thingSupervisorActorProps,
+                        numberOfShards, CLUSTER_ROLE);
 
         startChildActor(ThingPersistenceOperationsActor.ACTOR_NAME,
                 ThingPersistenceOperationsActor.props(pubSubMediator, thingsConfig.getMongoDbConfig(),
@@ -109,8 +106,9 @@ public final class ThingsRootActor extends DittoRootActor {
         final ThingsAggregatorConfig thingsAggregatorConfig = DefaultThingsAggregatorConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
-        final Props props = ThingsAggregatorActor.props(thingsShardRegion, thingsAggregatorConfig);
-        final ActorRef thingsAggregatorActor = getContext().actorOf(props, ThingsAggregatorActor.ACTOR_NAME);
+
+        final Props props = ThingsAggregatorActor.props(thingsShardRegion, thingsAggregatorConfig, pubSubMediator);
+        startChildActor(ThingsAggregatorActor.ACTOR_NAME, props);
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(thingsShardRegion,
                 ThingsMessagingConstants.SHARD_REGION, log);
@@ -134,10 +132,9 @@ public final class ThingsRootActor extends DittoRootActor {
         final var cleanupConfig = thingsConfig.getThingConfig().getCleanupConfig();
         final var mongoReadJournal = newMongoReadJournal(thingsConfig.getMongoDbConfig(), actorSystem);
         final Props cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE);
-        startChildActor(PersistenceCleanupActor.NAME, cleanupActorProps);
+        startChildActor(PersistenceCleanupActor.ACTOR_NAME, cleanupActorProps);
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
-        pubSubMediator.tell(DistPubSubAccess.put(snapshotStreamingActor), getSelf());
 
         bindHttpStatusRoute(thingsConfig.getHttpConfig(), healthCheckingActor);
 
@@ -153,10 +150,8 @@ public final class ThingsRootActor extends DittoRootActor {
      * @param propsFactory factory of Props of thing-persistence-actor.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ThingsConfig thingsConfig,
-            final ActorRef pubSubMediator,
+    public static Props props(final ThingsConfig thingsConfig, final ActorRef pubSubMediator,
             final ThingPersistenceActorPropsFactory propsFactory) {
-
         return Props.create(ThingsRootActor.class, thingsConfig, pubSubMediator, propsFactory);
     }
 
@@ -179,16 +174,15 @@ public final class ThingsRootActor extends DittoRootActor {
             final ThingPersistenceActorPropsFactory propsFactory,
             final BlockedNamespaces blockedNamespaces,
             final PolicyEnforcerProvider policyEnforcerProvider) {
-
         return ThingSupervisorActor.props(pubSubMediator, distributedPubThingEventsForTwin,
                 liveSignalPub, propsFactory, blockedNamespaces, policyEnforcerProvider);
     }
 
     private static MongoReadJournal newMongoReadJournal(final MongoDbConfig mongoDbConfig,
             final ActorSystem actorSystem) {
-
         final var config = actorSystem.settings().config();
         final var mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
+
         return MongoReadJournal.newInstance(config, mongoClient, actorSystem);
     }
 

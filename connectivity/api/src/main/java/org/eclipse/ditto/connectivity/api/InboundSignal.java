@@ -18,19 +18,22 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
+import org.eclipse.ditto.internal.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.internal.utils.cluster.MappingStrategies;
-import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.json.JsonPointer;
 
 /**
  * Envelope of an incoming signal for client actors to inform each other.
@@ -38,12 +41,16 @@ import org.eclipse.ditto.base.model.signals.Signal;
  * @since 1.5.0
  */
 @Immutable
-public final class InboundSignal implements Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
+public final class InboundSignal implements Jsonifiable.WithFieldSelectorAndPredicate<JsonField>,
+        Signal<InboundSignal> {
 
+    private static final String TYPE = InboundSignal.class.getSimpleName();
     private final Signal<?> signal;
+    private final boolean dispatched;
 
-    private InboundSignal(final Signal<?> signal) {
+    private InboundSignal(final Signal<?> signal, final boolean dispatched) {
         this.signal = checkNotNull(signal, "signal");
+        this.dispatched = dispatched;
     }
 
     /**
@@ -53,7 +60,25 @@ public final class InboundSignal implements Jsonifiable.WithFieldSelectorAndPred
      * @return the envelope.
      */
     public static InboundSignal of(final Signal<?> signal) {
-        return new InboundSignal(signal);
+        return new InboundSignal(signal, false);
+    }
+
+    /**
+     * Return a copy of this object setting the {@code dispatched} flag to {@code true}.
+     *
+     * @return the copy.
+     */
+    public InboundSignal asDispatched() {
+        return new InboundSignal(signal, true);
+    }
+
+    /**
+     * Get the {@code dispatched} flag.
+     *
+     * @return The flag.
+     */
+    public boolean isDispatched() {
+        return dispatched;
     }
 
     /**
@@ -73,8 +98,9 @@ public final class InboundSignal implements Jsonifiable.WithFieldSelectorAndPred
                 .orElseThrow(() -> new NoSuchElementException("InboundSignal: No strategy found for signal type " +
                         signalType))
                 .parse(signalJson, dittoHeaders);
+        final boolean dispatched = jsonObject.getValue(JsonFields.DISPATCHED).orElse(true);
 
-        return InboundSignal.of((Signal<?>) signal);
+        return new InboundSignal((Signal<?>) signal, dispatched);
     }
 
     /**
@@ -88,8 +114,8 @@ public final class InboundSignal implements Jsonifiable.WithFieldSelectorAndPred
 
     @Override
     public boolean equals(final Object other) {
-        if (other instanceof InboundSignal) {
-            return Objects.equals(signal, ((InboundSignal) other).signal);
+        if (other instanceof InboundSignal that) {
+            return Objects.equals(signal, that.signal) && dispatched == that.dispatched;
         } else {
             return false;
         }
@@ -97,12 +123,15 @@ public final class InboundSignal implements Jsonifiable.WithFieldSelectorAndPred
 
     @Override
     public int hashCode() {
-        return Objects.hash(signal);
+        return Objects.hash(signal, dispatched);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[signal=" + signal + "]";
+        return getClass().getSimpleName() +
+                "[signal=" + signal +
+                ", dispatched=" + dispatched +
+                "]";
     }
 
     @Override
@@ -118,12 +147,44 @@ public final class InboundSignal implements Jsonifiable.WithFieldSelectorAndPred
                 .set(JsonFields.SIGNAL, signalJson)
                 .set(JsonFields.HEADERS, headers)
                 .set(JsonFields.SIGNAL_TYPE, signal.getType())
+                .set(JsonFields.DISPATCHED, dispatched)
                 .build();
     }
 
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final JsonFieldSelector fieldSelector) {
         return toJson(schemaVersion, field -> fieldSelector.getPointers().contains(field.getKey().asPointer()));
+    }
+
+    @Override
+    public InboundSignal setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new InboundSignal(signal.setDittoHeaders(dittoHeaders), dispatched);
+    }
+
+    @Override
+    public DittoHeaders getDittoHeaders() {
+        return signal.getDittoHeaders();
+    }
+
+    @Nonnull
+    @Override
+    public String getManifest() {
+        return TYPE;
+    }
+
+    @Override
+    public JsonPointer getResourcePath() {
+        return JsonPointer.empty();
+    }
+
+    @Override
+    public String getResourceType() {
+        return ConnectivityConstants.ENTITY_TYPE.toString();
+    }
+
+    @Override
+    public String getType() {
+        return TYPE;
     }
 
     private static final class JsonFields {
@@ -136,5 +197,8 @@ public final class InboundSignal implements Jsonifiable.WithFieldSelectorAndPred
 
         private static final JsonFieldDefinition<String> SIGNAL_TYPE =
                 JsonFactory.newStringFieldDefinition("signalType");
+
+        private static final JsonFieldDefinition<Boolean> DISPATCHED =
+                JsonFactory.newBooleanFieldDefinition("dispatched");
     }
 }

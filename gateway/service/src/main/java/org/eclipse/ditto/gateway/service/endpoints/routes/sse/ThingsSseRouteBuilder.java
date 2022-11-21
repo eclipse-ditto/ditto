@@ -350,7 +350,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                 final var authorizationContext = dittoHeaders.getAuthorizationContext();
                                 final var connect = new Connect(withQueue.getSourceQueue(), connectionCorrelationId,
                                         STREAMING_TYPE_SSE, jsonSchemaVersion, null, Set.of(),
-                                        authorizationContext);
+                                        authorizationContext, null);
                                 final var startStreaming =
                                         StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
                                                         authorizationContext)
@@ -420,7 +420,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                         final var connect =
                                                 new Connect(withQueue.getSourceQueue(), connectionCorrelationId,
                                                         STREAMING_TYPE_SSE, jsonSchemaVersion, null, Set.of(),
-                                                        authorizationContext);
+                                                        authorizationContext, null);
                                         final String resourcePathRqlStatement;
                                         if (INBOX_OUTBOX_WITH_SUBJECT_PATTERN.matcher(messagePath).matches()) {
                                             resourcePathRqlStatement = String.format(

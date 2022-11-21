@@ -98,7 +98,6 @@ public final class DistPubSubAccess {
      */
     public static DistributedPubSubMediator.Subscribe subscribeViaGroup(final String topic, final String group,
             final ActorRef subscriber) {
-
         return new DistributedPubSubMediator.Subscribe(getGroupTopic(topic), group, subscriber);
     }
 
@@ -112,7 +111,6 @@ public final class DistPubSubAccess {
      */
     public static DistributedPubSubMediator.Unsubscribe unsubscribeViaGroup(final String topic, final String group,
             final ActorRef subscriber) {
-
         return new DistributedPubSubMediator.Unsubscribe(getGroupTopic(topic), group, subscriber);
     }
 
@@ -151,7 +149,6 @@ public final class DistPubSubAccess {
      */
     public static DistributedPubSubMediator.Send send(final String path, final Object message,
             final boolean localAffinity) {
-
         return new DistributedPubSubMediator.Send(path, message, localAffinity);
     }
 
@@ -174,12 +171,22 @@ public final class DistPubSubAccess {
      *
      * @param path the ActorRef path to address.
      * @param message the message to send to the ActorRef.
-     * @param allButSelf whether or not a locally running actor should also get the message.
+     * @param allButSelf whether a locally running actor should also get the message.
      * @return the message to send the DistributedPubSubMediator
      */
     public static DistributedPubSubMediator.SendToAll sendToAll(final String path, final Object message,
             final boolean allButSelf) {
-
         return new DistributedPubSubMediator.SendToAll(path, message, allButSelf);
     }
+
+    /**
+     * Removes the passed {@code path} from cluster messaging.
+     *
+     * @param path the path of the Actor to remove.
+     * @return the message to send the DistributedPubSubMediator
+     */
+    public static DistributedPubSubMediator.Remove remove(final String path) {
+        return new DistributedPubSubMediator.Remove(path);
+    }
+
 }

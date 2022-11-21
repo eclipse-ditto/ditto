@@ -595,7 +595,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     ActorRef.noSender()
             );
 
-            final ModifyAttribute modifyAttribute = expectMsgClass(ModifyAttribute.class);
+            final ModifyAttribute modifyAttribute = fishForMsg(this, ModifyAttribute.class);
             assertThat(modifyAttribute.getDittoHeaders().getAcknowledgementRequests()).isEqualTo(validationSet);
         }};
     }

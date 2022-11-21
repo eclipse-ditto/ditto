@@ -17,7 +17,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotNu
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -32,10 +31,10 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.cluster.Cluster;
 import akka.stream.Materializer;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
-import scala.concurrent.duration.Duration;
 
 /**
  * Starts an {@link ActorSystem} for the test and stops it afterwards.
@@ -185,7 +184,12 @@ public final class ActorSystemResource extends ExternalResource {
 
     @Override
     protected void after() {
-        TestKit.shutdownActorSystem(actorSystem, Duration.apply(5, TimeUnit.SECONDS), false);
+        try {
+            Cluster.get(actorSystem).prepareForFullClusterShutdown();
+        } catch (final Exception e) {
+            // Ignore errors when the actorref-provider is not cluster
+        }
+        actorSystem.terminate();
         actorSystemName = null;
         super.after();
     }

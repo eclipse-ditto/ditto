@@ -63,8 +63,9 @@ public final class ConnectionPersistenceOperationsActor extends AbstractPersiste
 
         return Props.create(ConnectionPersistenceOperationsActor.class, () -> {
             final MongoEventSourceSettings eventSourceSettings =
-                    MongoEventSourceSettings.fromConfig(config, ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX, false,
-                            ConnectionPersistenceActor.JOURNAL_PLUGIN_ID, ConnectionPersistenceActor.SNAPSHOT_PLUGIN_ID);
+                    MongoEventSourceSettings.fromConfig(config, ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX,
+                            false, ConnectionPersistenceActor.JOURNAL_PLUGIN_ID,
+                            ConnectionPersistenceActor.SNAPSHOT_PLUGIN_ID);
 
             final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
             final MongoDatabase db = mongoClient.getDefaultDatabase();
@@ -75,6 +76,11 @@ public final class ConnectionPersistenceOperationsActor extends AbstractPersiste
             return new ConnectionPersistenceOperationsActor(pubSubMediator, entitiesOps, mongoClient,
                     persistenceOperationsConfig);
         });
+    }
+
+    @Override
+    public String getActorName() {
+        return ACTOR_NAME;
     }
 
 }

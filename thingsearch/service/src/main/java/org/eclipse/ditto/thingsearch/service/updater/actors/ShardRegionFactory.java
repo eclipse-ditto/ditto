@@ -19,6 +19,7 @@ import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.internal.utils.cluster.ShardRegionCreator;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
@@ -28,7 +29,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.cluster.sharding.ClusterSharding;
-import akka.cluster.sharding.ClusterShardingSettings;
 
 /**
  * Factory for Shard Region {@link ActorRef}s of different services.
@@ -114,12 +114,7 @@ public final class ShardRegionFactory {
      * @return the shard region.
      */
     public ActorRef createShardRegion(final int shards, final Props props, final String name, final String role) {
-        final ClusterSharding clusterSharding = ClusterSharding.get(actorSystem);
-        final ClusterShardingSettings shardingSettings =
-                ClusterShardingSettings.create(actorSystem).withRole(role);
-        final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(shards, actorSystem);
-
-        return clusterSharding.start(name, props, shardingSettings, shardRegionExtractor);
+        return ShardRegionCreator.start(actorSystem, name, props, shards, role);
     }
 
 }

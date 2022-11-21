@@ -69,6 +69,7 @@ import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.internal.utils.tracing.span.TracingSpans;
 
+import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
@@ -160,6 +161,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
                 .match(ResourceStatus.class, this::handleAddressStatus)
                 .match(RetrieveAddressStatus.class, ras -> getSender().tell(getCurrentSourceStatus(), getSelf()))
                 .matchEquals(Control.CREATE_CONSUMER, this::createMessageConsumer)
+                .matchEquals(Control.STOP_CONSUMER, this::stopConsumerOnRequest)
                 .match(ConsumerClosedStatusReport.class, this::matchesOwnConsumer, this::handleConsumerClosed)
                 .match(ConsumerClosedStatusReport.class, this::handleNonMatchingConsumerClosed)
                 .match(CreateMessageConsumerResponse.class, this::messageConsumerCreated)
@@ -191,6 +193,11 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
     @Override
     public void onMessage(final Message message) {
         getSelf().tell(message, ActorRef.noSender());
+    }
+
+    private void stopConsumerOnRequest(final Control stopConsumer) {
+        stopMessageConsumer();
+        getSender().tell(Done.getInstance(), getSelf());
     }
 
     private void stopMessageConsumer() {
@@ -531,10 +538,15 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
     /**
      * Actor control messages.
      */
-    private enum Control {
+    enum Control {
         /**
          * Triggers creation of a new message consumer.
          */
-        CREATE_CONSUMER
+        CREATE_CONSUMER,
+
+        /**
+         * Triggers stopping of the message consumer.
+         */
+        STOP_CONSUMER
     }
 }

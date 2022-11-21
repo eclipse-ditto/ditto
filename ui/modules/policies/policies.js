@@ -7,7 +7,6 @@ import * as API from '../api.js';
 import * as Environments from '../environments/environments.js';
 import * as Things from '../things/things.js';
 
-
 let thePolicy;
 let selectedEntry;
 let selectedSubject;

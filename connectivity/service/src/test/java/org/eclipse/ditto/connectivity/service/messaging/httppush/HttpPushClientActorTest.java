@@ -45,6 +45,7 @@ import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -60,6 +61,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.cluster.Cluster;
 import akka.http.javadsl.ConnectionContext;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.HttpsConnectionContext;
@@ -103,10 +105,9 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     @Before
     public void createActorSystem() {
         // create actor system with deactivated hostname blocklist to connect to localhost
-//        actorSystem = ActorSystem.create(getClass().getSimpleName(),
-//                TestConstants.CONFIG.withValue("ditto.connectivity.connection.http-push.blocked-hostnames",
-//                        ConfigValueFactory.fromAnyRef("")));
-        actorSystem = actorSystemResource.getActorSystem();
+        actorSystem = ActorSystem.create(getClass().getSimpleName(),
+                TestConstants.CONFIG.withValue("ditto.connectivity.connection.http-push.blocked-hostnames",
+                        ConfigValueFactory.fromAnyRef("")));
         requestQueue = new LinkedBlockingQueue<>();
         responseQueue = new LinkedBlockingQueue<>();
         handler = Flow.fromFunction(request -> {
@@ -121,12 +122,13 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
         connection = getHttpConnectionBuilderToLocalBinding(false, binding.localAddress().getPort()).build();
     }
 
-//    @After
-//    public void stopActorSystem() {
-//        if (actorSystem != null) {
-//            TestKit.shutdownActorSystem(actorSystem);
-//        }
-//    }
+    @After
+    public void stopActorSystem() {
+        if (actorSystem != null) {
+            Cluster.get(actorSystem).prepareForFullClusterShutdown();
+            actorSystem.terminate();
+        }
+    }
 
     @Override
     protected Connection getConnection(final boolean isSecure) {

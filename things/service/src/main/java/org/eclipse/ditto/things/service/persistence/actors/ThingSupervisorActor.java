@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.service.persistence.actors;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 
@@ -30,6 +31,7 @@ import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
+import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
@@ -50,12 +52,15 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.enforcement.ThingEnforcement;
 import org.eclipse.ditto.things.service.enforcement.ThingEnforcerActor;
+import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.japi.pf.FI;
+import akka.japi.pf.ReceiveBuilder;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
@@ -85,6 +90,9 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     private final SupervisorSmartChannelDispatching smartChannelDispatching;
 
     private final PolicyEnforcerProvider policyEnforcerProvider;
+    private final ActorRef searchShardRegionProxy;
+
+    private final Duration shutdownTimeout;
 
     @SuppressWarnings("unused")
     private ThingSupervisorActor(final ActorRef pubSubMediator,
@@ -104,10 +112,10 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         this.thingPersistenceActorPropsFactory = thingPersistenceActorPropsFactory;
         persistenceActorChild = thingPersistenceActorRef;
         final var system = getContext().getSystem();
-        final DefaultScopedConfig dittoScoped =
-                DefaultScopedConfig.dittoScoped(system.settings().config());
+        final var dittoScoped = DefaultScopedConfig.dittoScoped(system.settings().config());
         enforcementConfig = DefaultEnforcementConfig.of(dittoScoped);
-        final DittoThingsConfig thingsConfig = DittoThingsConfig.of(dittoScoped);
+        final var thingsConfig = DittoThingsConfig.of(dittoScoped);
+        shutdownTimeout = thingsConfig.getThingConfig().getShutdownTimeout();
 
         materializer = Materializer.createMaterializer(getContext());
         responseReceiverCache = ResponseReceiverCache.lookup(system);
@@ -137,6 +145,9 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                 ThingsMessagingConstants.CLUSTER_ROLE,
                 ThingsMessagingConstants.SHARD_REGION
         );
+        searchShardRegionProxy =
+                shardRegionProxyActorFactory.getShardRegionProxyActor(ThingsSearchConstants.CLUSTER_ROLE,
+                        ThingsSearchConstants.SHARD_REGION);
 
         try {
             inlinePolicyEnrichment = new SupervisorInlinePolicyEnrichment(system, log, getEntityId(),
@@ -256,9 +267,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
     @Override
     protected CompletionStage<TargetActorWithMessage> getTargetActorForSendingEnforcedMessageTo(final Object message,
-            final boolean shouldSendResponse,
-            final ActorRef sender) {
-
+            final boolean shouldSendResponse, final ActorRef sender) {
         if (message instanceof CommandResponse<?> commandResponse &&
                 CommandResponse.isLiveCommandResponse(commandResponse)) {
 
@@ -285,7 +294,6 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     @Override
     protected CompletionStage<Object> modifyTargetActorCommandResponse(final Signal<?> enforcedSignal,
             final Object persistenceCommandResponse) {
-
         return Source.single(new CommandResponsePair<Signal<?>, Object>(enforcedSignal, persistenceCommandResponse))
                 .flatMapConcat(pair -> {
                     if (pair.command() instanceof RetrieveThing retrieveThing &&
@@ -303,13 +311,14 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
     @Override
     protected ThingId getEntityId() throws Exception {
-        return ThingId.of(URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name()));
+        return ThingId.of(URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8));
     }
 
     @Override
     protected Props getPersistenceActorProps(final ThingId entityId) {
         assert thingPersistenceActorPropsFactory != null;
-        return thingPersistenceActorPropsFactory.props(entityId, distributedPubThingEventsForTwin);
+        return thingPersistenceActorPropsFactory.props(entityId, distributedPubThingEventsForTwin,
+                searchShardRegionProxy);
     }
 
     @Override
@@ -343,12 +352,39 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
     @Override
     protected ExponentialBackOffConfig getExponentialBackOffConfig() {
-
         return DittoThingsConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
                 .getThingConfig()
                 .getSupervisorConfig()
                 .getExponentialBackOffConfig();
     }
 
+    @Override
+    protected void stopShardedActor(final StopShardedActor trigger) {
+        super.stopShardedActor(trigger);
+        if (getOpCounter() > 0) {
+            getTimers().startSingleTimer(Control.SHUTDOWN_TIMEOUT, Control.SHUTDOWN_TIMEOUT, shutdownTimeout);
+        }
+    }
+
+    @Override
+    protected Receive activeBehaviour(final Runnable matchProcessNextTwinMessageBehavior,
+            final FI.UnitApply<Object> matchAnyBehavior) {
+        return ReceiveBuilder.create()
+                .matchEquals(Control.SHUTDOWN_TIMEOUT, this::shutdownActor)
+                .build()
+                .orElse(super.activeBehaviour(matchProcessNextTwinMessageBehavior, matchAnyBehavior));
+    }
+
+    private void shutdownActor(final Control shutdown) {
+        log.warning("Shutdown timeout <{}> reached; aborting <{}> ops and stopping myself", shutdownTimeout,
+                getOpCounter());
+        getContext().stop(getSelf());
+    }
+
     private record CommandResponsePair<C, R>(C command, R response) {}
+
+    private enum Control {
+        SHUTDOWN_TIMEOUT
+    }
+
 }

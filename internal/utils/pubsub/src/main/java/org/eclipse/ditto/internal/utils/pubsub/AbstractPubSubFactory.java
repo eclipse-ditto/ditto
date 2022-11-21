@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.pubsub;
 
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.ddata.DistributedData;
 import org.eclipse.ditto.internal.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.internal.utils.pubsub.actors.PubSupervisor;
@@ -21,7 +22,6 @@ import org.eclipse.ditto.internal.utils.pubsub.ddata.compressed.CompressedDData;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.compressed.CompressedDDataHandler;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
@@ -34,7 +34,7 @@ import akka.actor.Props;
  *
  * @param <T> type of messages.
  */
-public abstract class AbstractPubSubFactory<T extends SignalWithEntityId<?>> implements PubSubFactory<T> {
+public abstract class AbstractPubSubFactory<T extends Signal<?>> implements PubSubFactory<T> {
 
     protected final ActorRefFactory actorRefFactory;
     protected final Class<T> messageClass;

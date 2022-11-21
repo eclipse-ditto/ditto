@@ -19,8 +19,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
-import org.eclipse.ditto.internal.utils.tracing.filter.KamonTracingFilter;
 import org.eclipse.ditto.internal.utils.tracing.filter.AcceptAllTracingFilter;
+import org.eclipse.ditto.internal.utils.tracing.filter.KamonTracingFilter;
 import org.eclipse.ditto.internal.utils.tracing.filter.TracingFilter;
 
 import com.typesafe.config.Config;

@@ -67,7 +67,6 @@ import akka.pattern.AskTimeoutException;
  */
 final class SupervisorLiveChannelDispatching {
 
-    private static final Duration MIN_LIVE_TIMEOUT = Duration.ofSeconds(1L);
     private static final Duration DEFAULT_LIVE_TIMEOUT = Duration.ofSeconds(60L);
 
     private static final AckExtractor<ThingCommand<?>> THING_COMMAND_ACK_EXTRACTOR =
@@ -170,7 +169,8 @@ final class SupervisorLiveChannelDispatching {
 
         final var timeout = calculateLiveChannelTimeout(thingQueryCommand.getDittoHeaders());
         final var pub = liveSignalPub.command();
-        final var publish = pub.wrapForPublicationWithAcks(thingQueryCommand, THING_COMMAND_ACK_EXTRACTOR);
+        final var thingId = thingQueryCommand.getEntityId();
+        final var publish = pub.wrapForPublicationWithAcks(thingQueryCommand, thingId, THING_COMMAND_ACK_EXTRACTOR);
 
         return new TargetActorWithMessage(
                 receiver,
@@ -395,16 +395,6 @@ final class SupervisorLiveChannelDispatching {
         return actorRefFactory.actorOf(props);
     }
 
-    private static ThingCommand<?> adjustTimeout(final ThingCommand<?> signal, final Duration adjustedTimeout) {
-
-        return signal.setDittoHeaders(
-                signal.getDittoHeaders()
-                        .toBuilder()
-                        .timeout(adjustedTimeout)
-                        .build()
-        );
-    }
-
     private DistributedPubWithMessage selectLiveSignalPublisher(final Signal<?> enforcedSignal) {
 
         final var streamingType = StreamingType.fromSignal(enforcedSignal);
@@ -444,10 +434,10 @@ final class SupervisorLiveChannelDispatching {
                 .build();
     }
 
-    private <T extends Signal<?>, S extends T> Object wrapLiveSignal(final S signal,
+    private <T extends SignalWithEntityId<?>, S extends T> Object wrapLiveSignal(final S signal,
             final AckExtractor<S> ackExtractor, final DistributedPub<T> pub) {
 
-        return pub.wrapForPublicationWithAcks(signal, ackExtractor);
+        return pub.wrapForPublicationWithAcks(signal, signal.getEntityId(), ackExtractor);
     }
 
 }

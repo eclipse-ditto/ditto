@@ -194,7 +194,8 @@ public final class StreamingSessionActorHeaderInteractionTest {
     private ActorRef createStreamingSessionActor() {
         final Connect connect =
                 new Connect(sourceQueue, "connectionCorrelationId", "ws",
-                        JsonSchemaVersion.V_2, null, Set.of(), AuthorizationModelFactory.emptyAuthContext());
+                        JsonSchemaVersion.V_2, null, Set.of(), AuthorizationModelFactory.emptyAuthContext(),
+                        null);
         final Props props = StreamingSessionActor.props(connect, dittoProtocolSub, commandRouterProbe.ref(),
                 DefaultStreamingConfig.of(ConfigFactory.empty()), HeaderTranslator.empty(),
                 Props.create(TestProbeForwarder.class, subscriptionManagerProbe), Mockito.mock(JwtValidator.class),

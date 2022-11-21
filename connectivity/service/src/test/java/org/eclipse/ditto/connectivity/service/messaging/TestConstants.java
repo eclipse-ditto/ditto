@@ -108,6 +108,7 @@ import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionSu
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
@@ -147,6 +148,7 @@ import akka.actor.Props;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.pattern.Patterns;
+import akka.testkit.TestActor;
 import akka.testkit.TestProbe;
 
 public final class TestConstants {
@@ -916,6 +918,22 @@ public final class TestConstants {
                 TestProbe.apply(actorSystem).ref());
     }
 
+    public static ActorRef createClientActorShardRegion(final ActorSystem actorSystem,
+            final String connectionShardPath) {
+        final var selection = actorSystem.actorSelection("user/" + connectionShardPath);
+        final var probe = TestProbe.apply(actorSystem);
+        probe.setAutoPilot(new TestActor.AutoPilot() {
+            @Override
+            public TestActor.AutoPilot run(final ActorRef sender, final Object msg) {
+                selection.tell(msg, sender);
+                return this;
+            }
+        });
+        final var props = ClientSupervisor.propsForTest(Duration.ofHours(1), probe.ref());
+        final var mockShardProps = MockShardRegionActor.props(props, ShardRegionExtractor.of(1, actorSystem));
+        return actorSystem.actorOf(mockShardProps);
+    }
+
     public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
             final ActorRef commandForwarderActor,
@@ -923,8 +941,10 @@ public final class TestConstants {
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
         final var enforcerActorPropsFactory =
                 ConnectionEnforcerActorPropsFactory.get(actorSystem, dittoExtensionsConfig);
+        final String connectionShardName = "shardRegionMock-" + connectionId;
         final Props props =
-                ConnectionSupervisorActor.props(commandForwarderActor, pubSubMediator, enforcerActorPropsFactory);
+                ConnectionSupervisorActor.props(commandForwarderActor, pubSubMediator, enforcerActorPropsFactory,
+                        createClientActorShardRegion(actorSystem, connectionShardName));
 
         final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId.toString());
 
@@ -933,7 +953,7 @@ public final class TestConstants {
 
         for (int attempt = 1; ; ++attempt) {
             try {
-                return actorSystem.actorOf(shardRegionMockProps, "shardRegionMock-" + connectionId);
+                return actorSystem.actorOf(shardRegionMockProps, connectionShardName);
             } catch (final InvalidActorNameException invalidActorNameException) {
                 if (attempt >= maxAttempts) {
                     throw invalidActorNameException;

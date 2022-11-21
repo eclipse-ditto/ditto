@@ -16,12 +16,16 @@ import static org.apache.kafka.clients.consumer.ConsumerRecord.NULL_SIZE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.header;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Headers;
@@ -40,7 +44,9 @@ import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorTes
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.junit.Before;
+import org.junit.Test;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -50,6 +56,8 @@ import akka.stream.BoundedSourceQueue;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
+import akka.testkit.TestProbe;
+import akka.testkit.javadsl.TestKit;
 
 /**
  * Tests {@code KafkaConsumerActor}.
@@ -66,10 +74,11 @@ public final class KafkaConsumerActorTest extends AbstractConsumerActorTest<Cons
 
     private BoundedSourceQueue<ConsumerRecord<String, ByteBuffer>> sourceQueue;
     private Source<ConsumerRecord<String, ByteBuffer>, Consumer.Control> source;
+    private Consumer.Control control;
 
     @Before
     public void initKafka() {
-        final Consumer.Control control = mock(Consumer.Control.class);
+        control = mock(Consumer.Control.class);
         final Pair<BoundedSourceQueue<ConsumerRecord<String, ByteBuffer>>, Source<ConsumerRecord<String, ByteBuffer>, NotUsed>>
                 sourcePair = Source.<ConsumerRecord<String, ByteBuffer>>queue(20)
                 .preMaterialize(Materializer.createMaterializer(actorSystem));
@@ -77,9 +86,29 @@ public final class KafkaConsumerActorTest extends AbstractConsumerActorTest<Cons
         source = sourcePair.second().mapMaterializedValue(notused -> control);
     }
 
+    @Test
+    public void stopConsumingOnRequest() {
+        new TestKit(actorSystem) {{
+            final TestProbe proxyActor = TestProbe.apply(actorSystem);
+            final TestProbe clientActor = TestProbe.apply(actorSystem);
+            final Sink<Object, NotUsed> inboundMappingSink =
+                    setupInboundMappingSink(clientActor.ref(), proxyActor.ref());
+            final var payloadMapping = ConnectivityModelFactory.newPayloadMapping("ditto", "ditto");
+
+            final ActorRef underTest = actorSystem.actorOf(getConsumerActorProps(inboundMappingSink, payloadMapping));
+
+            doAnswer(inv -> CompletableFuture.completedStage(Done.getInstance())).when(control)
+                    .drainAndShutdown(any(), any());
+            underTest.tell(KafkaConsumerActor.GracefulStop.START, getRef());
+            expectMsg(Done.getInstance());
+            verify(control).drainAndShutdown(any(), any());
+        }};
+
+    }
+
     @Override
     protected void stopConsumerActor(final ActorRef underTest) {
-        underTest.tell(KafkaConsumerActor.GracefulStop.INSTANCE, ActorRef.noSender());
+        underTest.tell(KafkaConsumerActor.GracefulStop.START, ActorRef.noSender());
     }
 
     @Override

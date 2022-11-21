@@ -118,9 +118,9 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
     @Override
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
-
         final Props opsActorProps = ThingPersistenceOperationsActor.props(pubSubMediator, mongoDbConfig, config,
                 persistenceOperationsConfig);
+
         return actorSystem.actorOf(opsActorProps, ThingPersistenceOperationsActor.ACTOR_NAME);
     }
 
@@ -138,18 +138,19 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
                     }
 
                     @Override
-                    public Object wrapForPublication(final ThingEvent<?> message) {
+                    public Object wrapForPublication(final ThingEvent<?> message, final CharSequence groupIndexKey) {
                         return message;
                     }
 
                     @Override
                     public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
-                            final AckExtractor<S> ackExtractor) {
-                        return wrapForPublication(message);
+                            final CharSequence groupIndexKey, final AckExtractor<S> ackExtractor) {
+                        return wrapForPublication(message, groupIndexKey);
                     }
                 },
                 liveSignalPub,
-                ThingPersistenceActor::props,
+                (thingId, distributedPub, searchShardRegionProxy) -> ThingPersistenceActor.props(thingId,
+                        distributedPub, null),
                 null,
                 policyEnforcerProvider);
 

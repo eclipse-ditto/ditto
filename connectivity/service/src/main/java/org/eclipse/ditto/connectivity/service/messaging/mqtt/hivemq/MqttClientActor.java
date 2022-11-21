@@ -56,6 +56,7 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.
 import com.hivemq.client.mqtt.MqttClientConfig;
 import com.hivemq.client.mqtt.MqttClientState;
 import com.hivemq.client.mqtt.datatypes.MqttClientIdentifier;
+import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 import com.hivemq.client.mqtt.lifecycle.MqttDisconnectSource;
 import com.typesafe.config.Config;
 
@@ -89,10 +90,10 @@ public final class MqttClientActor extends BaseClientActor {
     private MqttClientActor(final Connection connection,
             final ActorRef commandForwarder,
             final ActorRef connectionActor,
-            final DittoHeaders dittoHeaders,
+            final boolean dryRun,
             final Config connectivityConfigOverwrites) {
 
-        super(connection, commandForwarder, connectionActor, dittoHeaders, connectivityConfigOverwrites);
+        super(connection, commandForwarder, connectionActor, dryRun, connectivityConfigOverwrites);
 
         final var connectivityConfig = connectivityConfig();
         final var connectionConfig = connectivityConfig.getConnectionConfig();
@@ -128,7 +129,7 @@ public final class MqttClientActor extends BaseClientActor {
                 ConditionChecker.checkNotNull(mqttConnection, "mqttConnection"),
                 ConditionChecker.checkNotNull(commandForwarder, "commandForwarder"),
                 ConditionChecker.checkNotNull(connectionActor, "connectionActor"),
-                ConditionChecker.checkNotNull(dittoHeaders, "dittoHeaders"),
+                ConditionChecker.checkNotNull(dittoHeaders, "dittoHeaders").isDryRun(),
                 ConditionChecker.checkNotNull(connectivityConfigOverwrites, "connectivityConfigOverwrites"));
     }
 
@@ -212,6 +213,17 @@ public final class MqttClientActor extends BaseClientActor {
                     return result;
                 })
                 .whenComplete((status, error) -> connectionTesterActorRef.tell(PoisonPill.getInstance(), getSelf()));
+    }
+
+    @Override
+    protected CompletionStage<Void> stopConsuming() {
+        if (genericMqttClient == null) {
+            return CompletableFuture.completedStage(null);
+        } else {
+            final var mqttTopicFilters =
+                    getSourceAddresses().map(MqttTopicFilter::of).toArray(MqttTopicFilter[]::new);
+            return genericMqttClient.unsubscribe(mqttTopicFilters);
+        }
     }
 
     @Override
@@ -319,12 +331,15 @@ public final class MqttClientActor extends BaseClientActor {
 
                     // This is sent because the status of the client isn't made explicit to the user.
                     getSelf().tell(new ReportConnectionStatusError(context.getCause()), ActorRef.noSender());
-                } else if (List.of(MqttDisconnectSource.CLIENT, MqttDisconnectSource.SERVER).contains(context.getSource())){
-                    logger.info("Not reconnecting client <{}> after disconnect caused by: {}.", clientId, context.getCause());
+                } else if (List.of(MqttDisconnectSource.CLIENT, MqttDisconnectSource.SERVER)
+                        .contains(context.getSource())) {
+                    logger.info("Not reconnecting client <{}> after disconnect caused by: {}.", clientId,
+                            context.getCause());
                     getSelf().tell(ConnectionFailure.of(null, context.getCause(), "MQTT client got disconnected."),
                             ActorRef.noSender());
-                } else if (MqttDisconnectSource.USER.equals(context.getSource())){
-                    logger.debug("Not reconnecting client <{}>, user initiated disconnect: {}.", clientId, context.getCause());
+                } else if (MqttDisconnectSource.USER.equals(context.getSource())) {
+                    logger.debug("Not reconnecting client <{}>, user initiated disconnect: {}.", clientId,
+                            context.getCause());
                 } else {
                     logger.info("Not reconnecting client <{}>: {}.", clientId, context.getCause());
                 }

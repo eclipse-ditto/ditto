@@ -19,6 +19,7 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.api.commands.sudo.SudoCommand;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -488,6 +489,7 @@ public abstract class AbstractPersistenceActor<
             startedSpan.finish();
         }
         result.accept(this);
+        reportSudoCommandDone(command);
     }
 
     @Override
@@ -650,6 +652,7 @@ public abstract class AbstractPersistenceActor<
         final DittoRuntimeExceptionBuilder<?> builder = newNotAccessibleExceptionBuilder()
                 .dittoHeaders(withDittoHeaders.getDittoHeaders());
         notifySender(builder.build());
+        reportSudoCommandDone(withDittoHeaders);
     }
 
     private void shutdown(final String shutdownLogTemplate, final I entityId) {
@@ -659,6 +662,21 @@ public abstract class AbstractPersistenceActor<
 
     private boolean isEntityActive() {
         return entity != null && !entityExistsAsDeleted();
+    }
+
+    private void reportSudoCommandDone(final WithDittoHeaders command) {
+        if (command instanceof SudoCommand || command.getDittoHeaders().isSudo()) {
+            getSudoCommandDoneRecipient().tell(AbstractPersistenceSupervisor.Control.SUDO_COMMAND_DONE, getSelf());
+        }
+    }
+
+    /**
+     * Return the recipient to notify after processing a sudo command.
+     *
+     * @return The recipient.
+     */
+    protected ActorRef getSudoCommandDoneRecipient() {
+        return getContext().getParent();
     }
 
     /**

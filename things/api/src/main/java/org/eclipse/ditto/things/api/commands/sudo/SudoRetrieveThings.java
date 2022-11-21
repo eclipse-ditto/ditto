@@ -42,7 +42,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
- * Command which retrieves several {@link org.eclipse.ditto.things.model.Thing}s based on the the passed in List of
+ * Command which retrieves several {@link org.eclipse.ditto.things.model.Thing}s based on the passed in List of
  * Thing IDs without authorization. This command is sent only internally by the Ditto services, e.g. eventing or search,
  * in order to synchronize their Things cache.
  */

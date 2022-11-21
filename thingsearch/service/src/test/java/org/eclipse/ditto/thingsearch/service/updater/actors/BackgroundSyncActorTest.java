@@ -344,8 +344,8 @@ public final class BackgroundSyncActorTest {
 
     private void expectSyncActorToStartStreaming(final TestKit pubSub, final Duration withinTimeout,
             final Consumer<SudoStreamSnapshots> msgAssertions) {
-        final DistributedPubSubMediator.Send startStream =
-                pubSub.expectMsgClass(withinTimeout, DistributedPubSubMediator.Send.class);
+        final DistributedPubSubMediator.Publish startStream =
+                pubSub.expectMsgClass(withinTimeout, DistributedPubSubMediator.Publish.class);
         assertThat(startStream.msg()).isInstanceOf(SudoStreamSnapshots.class);
         msgAssertions.accept(((SudoStreamSnapshots) startStream.msg()));
     }

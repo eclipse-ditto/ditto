@@ -109,14 +109,7 @@ public final class SearchActorIT {
 
     @BeforeClass
     public static void startMongoResource() {
-        final var dispatcherConfig = ConfigFactory.parseString("""
-                search-dispatcher {
-                  type = PinnedDispatcher
-                  executor = "thread-pool-executor"
-                }
-                """);
-        actorsTestConfig = ConfigFactory.load("actors-test.conf").withFallback(dispatcherConfig);
-
+        actorsTestConfig = ConfigFactory.load("actors-test.conf");
         queryParser = SearchRootActor.getQueryParser(
                 DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(actorsTestConfig)),
                 ActorSystem.create(SearchActorIT.class.getSimpleName(), actorsTestConfig));
@@ -178,7 +171,8 @@ public final class SearchActorIT {
     @Test
     public void testSearch() {
         new TestKit(actorSystem) {{
-            final ActorRef underTest = actorSystem.actorOf(SearchActor.props(queryParser, readPersistence));
+            final ActorRef underTest = actorSystem.actorOf(SearchActor.props(queryParser, readPersistence,
+                    actorSystem.deadLetters()));
 
             insertTestThings();
 
@@ -193,7 +187,8 @@ public final class SearchActorIT {
     @Test
     public void testStream() {
         new TestKit(actorSystem) {{
-            final ActorRef underTest = actorSystem.actorOf(SearchActor.props(queryParser, readPersistence));
+            final ActorRef underTest = actorSystem.actorOf(SearchActor.props(queryParser, readPersistence,
+                    actorSystem.deadLetters()));
 
             insertTestThings();
 
@@ -215,7 +210,8 @@ public final class SearchActorIT {
     @Test
     public void testCursorSearch() {
         new TestKit(actorSystem) {{
-            final ActorRef underTest = actorSystem.actorOf(SearchActor.props(queryParser, readPersistence));
+            final ActorRef underTest = actorSystem.actorOf(SearchActor.props(queryParser, readPersistence,
+                    actorSystem.deadLetters()));
             final Supplier<AssertionError> noCursor =
                     () -> new AssertionError("No cursor where a cursor is expected");
 

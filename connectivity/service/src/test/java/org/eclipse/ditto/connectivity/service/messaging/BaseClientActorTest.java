@@ -58,8 +58,10 @@ import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.connectivity.service.util.ConnectionPubSub;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.pubsub.PubSubFactory;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.TopicPath;
@@ -80,9 +82,12 @@ import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.CoordinatedShutdown;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.http.javadsl.model.Uri;
+import akka.http.scaladsl.model.IllegalUriException;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
@@ -118,8 +123,7 @@ public final class BaseClientActorTest {
     @AfterClass
     public static void tearDown() {
         if (null != actorSystem) {
-            TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
-                    false);
+            actorSystem.terminate();
         }
     }
 
@@ -203,49 +207,50 @@ public final class BaseClientActorTest {
 
     @Test
     public void ensureRecoveryStateIsExpectedAfterReconnectsAndBackoff() {
-        new TestKit(actorSystem) {{
-            final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
-            final Connection connection =
-                    TestConstants.createConnection(randomConnectionId, new Target[0]);
+        new TestKit(actorSystem) {
+            {
+                final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
+                final Connection connection =
+                        TestConstants.createConnection(randomConnectionId, new Target[0]);
 
-            final int connectingMaxTries = 5;
-            final long minBackOffAndTimeoutInMs = 50;
-            final Props props = DummyClientActor.props(connection, getRef(), getRef(), getRef(), delegate,
-                    ConfigFactory.empty()
-                            .withValue("ditto.connectivity.client.connecting-max-tries",
-                                    ConfigValueFactory.fromAnyRef(connectingMaxTries))
-                            .withValue("ditto.connectivity.client.connecting-min-timeout",
-                                    ConfigValueFactory.fromAnyRef(minBackOffAndTimeoutInMs + "ms"))
-                            .withValue("ditto.connectivity.client.min-backoff",
-                                    ConfigValueFactory.fromAnyRef(minBackOffAndTimeoutInMs + "ms"))
-            );
-            final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
+                final int connectingMaxTries = 5;
+                final long minBackOffAndTimeoutInMs = 50;
+                final Props props = DummyClientActor.props(connection, getRef(), getRef(), getRef(), delegate,
+                        ConfigFactory.empty()
+                                .withValue("ditto.connectivity.client.connecting-max-tries",
+                                        ConfigValueFactory.fromAnyRef(connectingMaxTries))
+                                .withValue("ditto.connectivity.client.connecting-min-timeout",
+                                        ConfigValueFactory.fromAnyRef(minBackOffAndTimeoutInMs + "ms"))
+                                .withValue("ditto.connectivity.client.min-backoff",
+                                        ConfigValueFactory.fromAnyRef(minBackOffAndTimeoutInMs + "ms"))
+                );
+                final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
-            whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()),
-                    getRef());
-            thenExpectConnectClientCalled();
+                whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()),
+                        getRef());
+                thenExpectConnectClientCalled();
 
-            ensureRecoveryStatus(dummyClientActor, randomConnectionId, RecoveryStatus.UNKNOWN);
+                ensureRecoveryStatus(dummyClientActor, randomConnectionId, RecoveryStatus.UNKNOWN);
 
-            andConnectionNotSuccessful(dummyClientActor);
-            thenExpectConnectClientCalledAfterTimeout(
-                    connectivityConfig.getClientConfig().getConnectingMinTimeout());
+                andConnectionNotSuccessful(dummyClientActor);
+                thenExpectConnectClientCalledAfterTimeout(
+                        connectivityConfig.getClientConfig().getConnectingMinTimeout());
 
-            long nextBackoffInMs = minBackOffAndTimeoutInMs;
-            final long staticWaitOverhead = 100;
-            for (int i = 0; i < connectingMaxTries; i++) {
-                ensureRecoveryStatus(dummyClientActor, randomConnectionId, RecoveryStatus.ONGOING);
+                long nextBackoffInMs = minBackOffAndTimeoutInMs;
+                final long staticWaitOverhead = 100;
+                for (int i = 0; i < connectingMaxTries; i++) {
+                    ensureRecoveryStatus(dummyClientActor, randomConnectionId, RecoveryStatus.ONGOING);
 
-                try {
-                    nextBackoffInMs = nextBackoffInMs * 2;
-                    TimeUnit.MILLISECONDS.sleep(staticWaitOverhead + nextBackoffInMs);
-                } catch (final InterruptedException e) {
-                    Thread.currentThread().interrupt();
+                    try {
+                        nextBackoffInMs = nextBackoffInMs * 2;
+                        TimeUnit.MILLISECONDS.sleep(staticWaitOverhead + nextBackoffInMs);
+                    } catch (final InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
                 }
-            }
 
-            ensureRecoveryStatus(dummyClientActor, randomConnectionId, RecoveryStatus.BACK_OFF_LIMIT_REACHED);
-        }
+                ensureRecoveryStatus(dummyClientActor, randomConnectionId, RecoveryStatus.BACK_OFF_LIMIT_REACHED);
+            }
 
             private void ensureRecoveryStatus(final ActorRef dummyClientActor, final ConnectionId randomConnectionId,
                     final RecoveryStatus unknown) {
@@ -485,7 +490,7 @@ public final class BaseClientActorTest {
     @Test
     public void dispatchesSearchCommandsAccordingToSubscriptionIdPrefix() {
         new TestKit(actorSystem) {{
-            final int clientCount = 12; // 12 clients fit inside 1 hexadecimal digit
+            final int clientCount = 12; // 12 clients fit inside 1 hexadecimal digit & divides first sub-ID '0' = 48
             final ConnectionId connectionId = TestConstants.createRandomConnectionId();
             final Connection connection = TestConstants.createConnection(connectionId).toBuilder()
                     .clientCount(clientCount)
@@ -493,21 +498,23 @@ public final class BaseClientActorTest {
             final Props props = DummyClientActor.props(connection, getRef(), getRef(), getRef(), delegate);
 
             final ActorRef underTest = watch(actorSystem.actorOf(props, "zToBeLargerThanTestProbeRefs"));
-            expectMsg(underTest);
 
+            final var pubsub = ConnectionPubSub.get(actorSystem);
             final List<TestProbe> probes = new ArrayList<>(clientCount - 1);
             for (int i = 0; i < clientCount - 1; ++i) {
                 final TestProbe ithProbe = TestProbe.apply("aProbe" + Integer.toHexString(i), actorSystem);
                 probes.add(ithProbe);
-                underTest.tell(ithProbe.ref(), ActorRef.noSender());
+                pubsub.subscribe(connectionId, ithProbe.ref(), false).toCompletableFuture().join();
             }
 
             for (int i = 0; i < probes.size(); ++i) {
                 final String prefix = Integer.toHexString(i);
                 final String subscriptionId = prefix + "-subscription-id";
                 final CancelSubscription command = CancelSubscription.of(subscriptionId, DittoHeaders.empty());
+                final int expectedIndex = PubSubFactory.hashForPubSub(prefix) % clientCount;
                 underTest.tell(InboundSignal.of(command), getRef());
-                probes.get(i).expectMsg(command);
+                final var receivedCommand = probes.get(expectedIndex).expectMsgClass(command.getClass());
+                assertThat(receivedCommand.getSubscriptionId()).isEqualTo(command.getSubscriptionId());
             }
         }};
     }
@@ -522,7 +529,6 @@ public final class BaseClientActorTest {
             final Props props = DummyClientActor.props(connection, getRef(), getRef(), getRef(), delegate);
 
             final ActorRef underTest = watch(actorSystem.actorOf(props, "underTest"));
-            expectMsg(underTest);
 
             final String prefix = Integer.toHexString(5); // out-of-bound
             final String subscriptionId = prefix + "-subscription-id";
@@ -624,7 +630,7 @@ public final class BaseClientActorTest {
             expectMsg(CONNECTED_STATUS);
             thenExpectConnectionOpenedAnnouncement(publisherActor, randomConnectionId);
 
-            getSystem().terminate();
+            CoordinatedShutdown.get(getSystem()).run();
             thenExpectConnectionClosedAnnouncement(publisherActor, randomConnectionId);
         }};
 
@@ -697,7 +703,7 @@ public final class BaseClientActorTest {
 
     private void thenExpectConnectClientCalledAfterTimeout(final int invocations,
             final Duration connectingTimeout) {
-        verify(delegate, timeout(connectingTimeout.toMillis() + 200).times(invocations))
+        verify(delegate, timeout(connectingTimeout.toMillis() + 3000).times(invocations))
                 .doConnectClient(any(Connection.class), nullable(ActorRef.class));
     }
 
@@ -761,7 +767,7 @@ public final class BaseClientActorTest {
                 final BaseClientActor delegate,
                 final Config config) {
 
-            super(connection, proxyActor, connectionActor, DittoHeaders.empty(), config);
+            super(connection, proxyActor, connectionActor, false, config);
             this.publisherActor = publisherActor;
             this.delegate = delegate;
         }
@@ -811,6 +817,13 @@ public final class BaseClientActorTest {
         }
 
         @Override
+        protected CompletionStage<Void> stopConsuming() {
+            logger.info("stopConsuming");
+            delegate.stopConsuming();
+            return CompletableFuture.completedStage(null);
+        }
+
+        @Override
         protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
             logger.info("allocateResourcesOnConnection");
             delegate.allocateResourcesOnConnection(clientConnected);
@@ -846,6 +859,15 @@ public final class BaseClientActorTest {
             return publisherActor;
         }
 
+        @Override
+        protected boolean canConnectViaSocket(final Connection connection) {
+            // port is considered reachable if the URI is valid
+            try {
+                Uri.create(connection.getUri());
+                return true;
+            } catch (final IllegalUriException e) {
+                return false;
+            }
+        }
     }
-
 }

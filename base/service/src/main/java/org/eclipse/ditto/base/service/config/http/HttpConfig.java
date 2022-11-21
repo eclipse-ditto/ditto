@@ -61,7 +61,7 @@ public interface HttpConfig {
          */
         PORT("port", 8080),
 
-        COORDINATED_SHUTDOWN_TIMEOUT("coordinated-shutdown-timeout", Duration.ofSeconds(1));
+        COORDINATED_SHUTDOWN_TIMEOUT("coordinated-shutdown-timeout", Duration.ofSeconds(65));
 
         private final String path;
         private final Object defaultValue;

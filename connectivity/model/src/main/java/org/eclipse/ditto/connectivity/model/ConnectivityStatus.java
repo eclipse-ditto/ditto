@@ -91,7 +91,7 @@ public enum ConnectivityStatus implements CharSequence, Jsonifiable<JsonObject> 
      */
     public static ConnectivityStatus fromJson(final JsonObject jsonObject) {
         final String name = checkNotNull(jsonObject, "jsonObject").getValueOrThrow(JSON_KEY_NAME);
-        return ConnectivityStatus.valueOf(name);
+        return ConnectivityStatus.valueOf(name.toUpperCase());
     }
 
     /**

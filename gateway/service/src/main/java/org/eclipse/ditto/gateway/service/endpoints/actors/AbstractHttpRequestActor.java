@@ -65,6 +65,7 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiResponse;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
+import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithShutdownBehavior;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.JsonValueSourceRef;
@@ -73,8 +74,11 @@ import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 
+import akka.Done;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.Cancellable;
+import akka.actor.CoordinatedShutdown;
 import akka.actor.ReceiveTimeout;
 import akka.actor.Status;
 import akka.http.javadsl.model.ContentTypes;
@@ -90,6 +94,7 @@ import akka.http.scaladsl.model.ContentType$;
 import akka.http.scaladsl.model.EntityStreamSizeException;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
+import akka.pattern.Patterns;
 import akka.util.ByteString;
 import scala.Option;
 import scala.util.Either;
@@ -99,7 +104,7 @@ import scala.util.Either;
  * it should fulfill. When it receives a command response, exception, status or timeout message, it renders the message
  * into an HTTP response and stops itself. Its behavior can be modified by overriding the protected instance methods.
  */
-public abstract class AbstractHttpRequestActor extends AbstractActor {
+public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdownBehavior {
 
     /**
      * Signals the completion of a stream request.
@@ -118,6 +123,10 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private Command<?> receivedCommand;
     private final DittoDiagnosticLoggingAdapter logger;
     private Supplier<DittoRuntimeException> timeoutExceptionSupplier;
+
+    private Cancellable cancellableShutdownTask;
+    private boolean inCoordinatedShutdown;
+    private ActorRef coordinatedShutdownSender;
 
     protected AbstractHttpRequestActor(final ActorRef proxyActor,
             final HeaderTranslator headerTranslator,
@@ -148,6 +157,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         responseLocationUri = null;
         receivedCommand = null;
         timeoutExceptionSupplier = null;
+        inCoordinatedShutdown = false;
         logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
         setReceiveTimeout(httpConfig.getRequestTimeout());
     }
@@ -181,7 +191,31 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     @Override
-    public AbstractActor.Receive createReceive() {
+    public void preStart() {
+        final var coordinatedShutdown = CoordinatedShutdown.get(getContext().getSystem());
+
+        final var serviceRequestsDoneTask = "service-requests-done-http-request-actor";
+        cancellableShutdownTask = coordinatedShutdown.addCancellableTask(CoordinatedShutdown.PhaseServiceRequestsDone(),
+                serviceRequestsDoneTask,
+                () -> Patterns.ask(getSelf(), Control.SERVICE_REQUESTS_DONE, SHUTDOWN_ASK_TIMEOUT)
+                        .thenApply(reply -> Done.done())
+        );
+    }
+
+    @Override
+    public void postStop() {
+        cancellableShutdownTask.cancel();
+    }
+
+    private static HttpResponse createHttpResponse(final HttpStatus httpStatus) {
+        final var statusCode = StatusCodes.lookup(httpStatus.getCode())
+                .orElse(StatusCodes.custom(httpStatus.getCode(), "custom", "custom"));
+
+        return HttpResponse.create().withStatus(statusCode);
+    }
+
+    @Override
+    public AbstractActor.Receive handleMessage() {
         return ReceiveBuilder.create()
                 .match(Status.Failure.class, failure -> {
                     Throwable cause = failure.cause();
@@ -211,6 +245,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                                     .build());
                         })
                 .match(Command.class, this::handleCommand)
+                .matchEquals(Control.SERVICE_REQUESTS_DONE, this::serviceRequestsDone)
                 .matchAny(m -> {
                     logger.warning("Got unknown message, expected a 'Command': {}", m);
                     completeWithResult(createHttpResponse(HttpStatus.INTERNAL_SERVER_ERROR));
@@ -218,11 +253,18 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 .build();
     }
 
-    private static HttpResponse createHttpResponse(final HttpStatus httpStatus) {
-        final var statusCode = StatusCodes.lookup(httpStatus.getCode())
-                .orElse(StatusCodes.custom(httpStatus.getCode(), "custom", "custom"));
-        return HttpResponse.create().withStatus(statusCode);
+    @Override
+    public void serviceUnbind(final Control serviceUnbind) {
+        // nothing to do
     }
+
+    @Override
+    public void serviceRequestsDone(final Control serviceRequestsDone) {
+        logger.info("{}: waiting to complete the request", serviceRequestsDone);
+        inCoordinatedShutdown = true;
+        coordinatedShutdownSender = getSender();
+    }
+
     private void handleCommand(final Command<?> command) {
         try {
             logger.setCorrelationId(command);
@@ -397,6 +439,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                             "Got <Status.Failure> when a command response was expected: <{}>!", cause.getMessage());
                     completeWithResult(createHttpResponse(HttpStatus.INTERNAL_SERVER_ERROR));
                 })
+                .matchEquals(Control.SERVICE_REQUESTS_DONE, this::serviceRequestsDone)
                 .matchAny(m -> {
                     logger.error("Got unknown message when a command response was expected: <{}>!", m);
                     completeWithResult(createHttpResponse(HttpStatus.INTERNAL_SERVER_ERROR));
@@ -487,19 +530,18 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
         logger.setCorrelationId(WithDittoHeaders.getCorrelationId(receivedCommand).orElse(null));
         logger.info("Got <{}> after <{}> before an appropriate response arrived.",
-                ReceiveTimeout.class.getSimpleName(),
-                receiveTimeout);
+                ReceiveTimeout.class.getSimpleName(), receiveTimeout);
+        actorContext.cancelReceiveTimeout();
 
         if (null != timeoutExceptionSupplier) {
             final var timeoutException = timeoutExceptionSupplier.get();
             handleDittoRuntimeException(timeoutException);
         } else {
-
             // This case is a programming error that should not happen at all.
             logger.error("Actor does not have a timeout exception supplier." +
                     " Thus, no DittoRuntimeException could be handled.");
+            stop();
         }
-        getContext().cancelReceiveTimeout();
     }
 
     private void handleDittoRuntimeException(final DittoRuntimeException exception) {
@@ -580,13 +622,18 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
     private void stop() {
         logger.clearMDC();
-        // destroy ourselves:
+        if (inCoordinatedShutdown) {
+            // complete coordinated shutdown phase - ServiceRequestsDone
+            coordinatedShutdownSender.tell(Done.getInstance(), ActorRef.noSender());
+        }
+
+        // destroy ourselves
         getContext().stop(getSelf());
+        inCoordinatedShutdown = false;
     }
 
     private static HttpResponse addEntityAccordingToContentType(final HttpResponse response, final String entityPlain,
             final ContentType contentType) {
-
         final ByteString byteString;
 
         if (contentType.isBinary()) {
@@ -741,13 +788,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         }
     }
 
-    private static final class HttpAcknowledgementConfig implements AcknowledgementConfig {
-
-        private final HttpConfig httpConfig;
-
-        private HttpAcknowledgementConfig(final HttpConfig httpConfig) {
-            this.httpConfig = httpConfig;
-        }
+    private record HttpAcknowledgementConfig(HttpConfig httpConfig) implements AcknowledgementConfig {
 
         private static AcknowledgementConfig of(final HttpConfig httpConfig) {
             return new HttpAcknowledgementConfig(httpConfig);
