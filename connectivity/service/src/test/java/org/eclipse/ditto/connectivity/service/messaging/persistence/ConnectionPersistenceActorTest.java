@@ -244,12 +244,13 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             }
         });
         final var testProbe = actorSystemResource1.newTestProbe();
+        final var clientShardRegion = TestConstants.createClientActorShardRegion(
+                actorSystemResource1.getActorSystem(), connectionId.toString());
         final var connectionActorProps = Props.create(ConnectionPersistenceActor.class,
                 () -> new ConnectionPersistenceActor(connectionId,
                         commandForwarderActor,
                         pubSubMediatorProbe.ref(),
-                        Trilean.TRUE,
-                        ConfigFactory.empty()));
+                        ConfigFactory.empty(), clientShardRegion));
 
         final var underTest = actorSystemResource1.newActor(connectionActorProps, connectionId.toString());
         underTest.tell(createConnection(honoConnection), testProbe.ref());
