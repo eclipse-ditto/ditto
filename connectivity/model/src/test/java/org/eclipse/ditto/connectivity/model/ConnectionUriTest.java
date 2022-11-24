@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
-public class ConnectionUriTest {
+public final class ConnectionUriTest {
 
     @Test
     public void parseUriAsExpected() {
@@ -64,7 +64,6 @@ public class ConnectionUriTest {
     @Test
     public void parseUriWithoutPath() {
         final ConnectionUri underTest = ConnectionUri.of("amqps://foo:bar@hono.eclipse.org:5671");
-
         assertThat(underTest.getPath()).isEmpty();
     }
 
@@ -107,99 +106,85 @@ public class ConnectionUriTest {
 
     @Test
     public void testPasswordFromUriWithNullValue() {
-        final ConnectionUri underTest =
-                ConnectionUri.of(null);
+        final ConnectionUri underTest = ConnectionUri.of(null);
         assertThat(underTest.getPassword()).isEmpty();
     }
 
     @Test
     public void testUserFromUriWithNullValue() {
-        final ConnectionUri underTest =
-                ConnectionUri.of(null);
+        final ConnectionUri underTest = ConnectionUri.of(null);
         assertThat(underTest.getUserName()).isEmpty();
     }
 
     @Test
     public void testPortFromUriWithNullValue() {
-        final ConnectionUri underTest =
-                ConnectionUri.of(null);
+        final ConnectionUri underTest = ConnectionUri.of(null);
         assertThat(underTest.getPort()).isEqualTo(9999);
     }
 
     @Test
     public void testHostFromUriWithNullValue() {
-        final ConnectionUri underTest =
-                ConnectionUri.of(null);
+        final ConnectionUri underTest = ConnectionUri.of(null);
         assertThat(underTest.getHostname()).isEmpty();
     }
 
     @Test
     public void testProtocolFromUriWithNullValue() {
-        final ConnectionUri underTest =
-                ConnectionUri.of(null);
+        final ConnectionUri underTest = ConnectionUri.of(null);
         assertThat(underTest.getPassword()).isEmpty();
     }
 
     @Test
     public void testPathFromUriWithNullValue() {
-        final ConnectionUri underTest =
-                ConnectionUri.of(null);
+        final ConnectionUri underTest = ConnectionUri.of(null);
         assertThat(underTest.getPath()).isEmpty();
     }
 
     @Test
     public void testUriStringWithMaskedPasswordFromUriWithNullValue() {
-        final ConnectionUri underTest =
-                ConnectionUri.of(null);
+        final ConnectionUri underTest = ConnectionUri.of(null);
         assertThat(underTest.getUriStringWithMaskedPassword()).isEmpty();
     }
 
     @Test
     public void testPasswordFromUriWithEmptyString() {
-        final ConnectionUri underTest =
-                ConnectionUri.of(null);
+        final ConnectionUri underTest = ConnectionUri.of(null);
         assertThat(underTest.getPassword()).isEmpty();
     }
 
     @Test
     public void testUserFromUriWithEmptyString() {
-        final ConnectionUri underTest =
-                ConnectionUri.of(null);
+        final ConnectionUri underTest = ConnectionUri.of(null);
         assertThat(underTest.getUserName()).isEmpty();
     }
 
     @Test
     public void testPortFromUriWithEmptyString() {
-        final ConnectionUri underTest =
-                ConnectionUri.of(null);
+        final ConnectionUri underTest = ConnectionUri.of(null);
         assertThat(underTest.getPort()).isEqualTo(9999);
     }
 
     @Test
     public void testHostFromUriWithEmptyString() {
-        final ConnectionUri underTest =
-                ConnectionUri.of(null);
+        final ConnectionUri underTest = ConnectionUri.of(null);
         assertThat(underTest.getHostname()).isEmpty();
     }
 
     @Test
     public void testProtocolFromUriWithEmptyString() {
-        final ConnectionUri underTest =
-                ConnectionUri.of(null);
+        final ConnectionUri underTest = ConnectionUri.of(null);
         assertThat(underTest.getPassword()).isEmpty();
     }
 
     @Test
     public void testPathFromUriWithEmptyString() {
-        final ConnectionUri underTest =
-                ConnectionUri.of(null);
+        final ConnectionUri underTest = ConnectionUri.of(null);
         assertThat(underTest.getPath()).isEmpty();
     }
 
     @Test
     public void testUriStringWithMaskedPasswordFromUriWithEmptyString() {
-        final ConnectionUri underTest =
-                ConnectionUri.of(null);
+        final ConnectionUri underTest = ConnectionUri.of(null);
         assertThat(underTest.getUriStringWithMaskedPassword()).isEmpty();
     }
 

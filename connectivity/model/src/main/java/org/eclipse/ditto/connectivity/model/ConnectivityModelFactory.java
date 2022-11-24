@@ -89,12 +89,16 @@ public final class ConnectivityModelFactory {
      */
     public static ConnectionBuilder newConnectionBuilder(final Connection connection) {
         final ConnectionBuilder builder;
-        if (HonoConnection.isHonoConnectionType(connection)) {
+        if (isHonoConnectionType(connection)) {
             builder = HonoConnection.getBuilder(connection);
         } else {
             builder = ImmutableConnection.getBuilder(connection);
         }
         return builder;
+    }
+
+    private static boolean isHonoConnectionType(final Connection connection) {
+        return connection.getConnectionType() == ConnectionType.HONO;
     }
 
     /**
@@ -107,12 +111,19 @@ public final class ConnectivityModelFactory {
      */
     public static Connection connectionFromJson(final JsonObject jsonObject) {
         final Connection connection;
-        if (HonoConnection.isHonoConnectionType(jsonObject)) {
+        if (isHonoConnectionType(jsonObject)) {
             connection = HonoConnection.fromJson(jsonObject);
         } else {
             connection = ImmutableConnection.fromJson(jsonObject);
         }
         return connection;
+    }
+
+    private static boolean isHonoConnectionType(final JsonObject connectionJsonObject) {
+        return connectionJsonObject.getValue(Connection.JsonFields.CONNECTION_TYPE)
+                .flatMap(ConnectionType::forName)
+                .filter(ConnectionType.HONO::equals)
+                .isPresent();
     }
 
     /**

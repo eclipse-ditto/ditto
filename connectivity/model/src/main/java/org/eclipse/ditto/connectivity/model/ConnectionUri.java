@@ -117,8 +117,7 @@ final class ConnectionUri {
      * @param uriString the string representation of the Connection URI.
      * @return the instance.
      * @throws NullPointerException if {@code uriString} is {@code null}.
-     * @throws ConnectionUriInvalidException if {@code uriString} is not a
-     * valid URI.
+     * @throws ConnectionUriInvalidException if {@code uriString} is not a valid URI.
      * @see #toString()
      */
     static ConnectionUri of( @Nullable final String uriString) {

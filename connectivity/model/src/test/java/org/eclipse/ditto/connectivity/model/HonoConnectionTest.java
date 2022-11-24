@@ -28,8 +28,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -43,7 +41,7 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link ImmutableConnection}.
+ * Unit test for {@link org.eclipse.ditto.connectivity.model.HonoConnection}.
  */
 public final class HonoConnectionTest {
     private static final ConnectionType TYPE = ConnectionType.HONO;
@@ -52,7 +50,6 @@ public final class HonoConnectionTest {
     private static final ConnectionId ID = ConnectionId.of("myHonoConnectionId");
     private static final String NAME = "myHonoConnection";
 
-    @Nullable private static final String URI = null;
     private static final String URI_EMPTY = "";
     private static final Credentials CREDENTIALS = ClientCertificateCredentials.newBuilder().build();
 
@@ -64,27 +61,27 @@ public final class HonoConnectionTest {
     private static final String JAVA_SCRIPT_MAPPING = "JavaScript";
     private static final String MIGRATED_MAPPER_ID = "javascript";
 
-    private static final Source SOURCE1 = ConnectivityModelFactory.newSource(AUTHORIZATION_CONTEXT, "amqp/source1");
-    private static final Source SOURCE2 = ConnectivityModelFactory.newSource(AUTHORIZATION_CONTEXT, "amqp/source2", 1);
+    private static final Source SOURCE1 = ConnectivityModelFactory.newSource(AUTHORIZATION_CONTEXT, "source");
+    private static final Source SOURCE2 = ConnectivityModelFactory.newSource(AUTHORIZATION_CONTEXT, "source", 1);
     private static final List<Source> SOURCES = Arrays.asList(SOURCE1, SOURCE2);
     private static final List<Source> SOURCES_WITH_REPLY_TARGET_DISABLED = SOURCES.stream()
             .map(s -> ConnectivityModelFactory.newSourceBuilder(s).replyTargetEnabled(false).build())
             .collect(Collectors.toList());
     private static final HeaderMapping HEADER_MAPPING = ConnectivityModelFactory.emptyHeaderMapping();
     private static final Target TARGET1 = ConnectivityModelFactory.newTargetBuilder()
-            .address("amqp/target1")
+            .address("target")
             .authorizationContext(AUTHORIZATION_CONTEXT)
             .headerMapping(HEADER_MAPPING)
             .topics(Topic.TWIN_EVENTS, Topic.LIVE_EVENTS)
             .build();
     private static final Target TARGET2 = ConnectivityModelFactory.newTargetBuilder()
-            .address("amqp/target2")
+            .address("target")
             .authorizationContext(AUTHORIZATION_CONTEXT)
             .headerMapping(HEADER_MAPPING)
             .topics(Topic.LIVE_MESSAGES, Topic.LIVE_MESSAGES, Topic.LIVE_EVENTS)
             .build();
     private static final Target TARGET3 = ConnectivityModelFactory.newTargetBuilder()
-            .address("amqp/target3")
+            .address("target")
             .authorizationContext(AUTHORIZATION_CONTEXT)
             .headerMapping(HEADER_MAPPING)
             .topics(Topic.LIVE_MESSAGES, Topic.LIVE_MESSAGES, Topic.LIVE_COMMANDS)
@@ -178,13 +175,12 @@ public final class HonoConnectionTest {
 
     private static final Set<String> KNOWN_TAGS = Collections.singleton("HONO");
 
-    private static final JsonObject KNOWN_JSON= JsonObject.newBuilder()
+    private static final JsonObject KNOWN_JSON_WITHOUT_URI= JsonObject.newBuilder()
             .set(Connection.JsonFields.ID, ID.toString())
             .set(Connection.JsonFields.NAME, NAME)
             .set(Connection.JsonFields.CONNECTION_TYPE, TYPE.getName())
             .set(Connection.JsonFields.CONNECTION_STATUS, STATUS.getName())
             .set(Connection.JsonFields.CREDENTIALS, CREDENTIALS.toJson())
-            .set(Connection.JsonFields.URI, URI_EMPTY)
             .set(Connection.JsonFields.SOURCES, KNOWN_SOURCES_WITH_MAPPING_JSON)
             .set(Connection.JsonFields.TARGETS, KNOWN_TARGETS_WITH_MAPPING_JSON)
             .set(Connection.JsonFields.CLIENT_COUNT, 2)
@@ -201,11 +197,15 @@ public final class HonoConnectionTest {
                     .collect(JsonCollectors.valuesToArray()))
              .build();
 
-    private static final JsonObject KNOWN_JSON_WITH_REPLY_TARGET = KNOWN_JSON
+    private final static JsonObject KNOWN_JSON_WITH_EMPTY_URI = KNOWN_JSON_WITHOUT_URI.set(Connection.JsonFields.URI, "");
+
+    private final static JsonObject KNOWN_JSON_WITH_NULL_URI = KNOWN_JSON_WITHOUT_URI.set(Connection.JsonFields.URI, null);
+
+    private static final JsonObject KNOWN_JSON_WITH_REPLY_TARGET = KNOWN_JSON_WITH_EMPTY_URI
             .set(Connection.JsonFields.SOURCES, KNOWN_SOURCES_WITH_REPLY_TARGET)
             .set(Connection.JsonFields.TARGETS, KNOWN_TARGETS_WITH_HEADER_MAPPING);
 
-    private static final JsonObject KNOWN_LEGACY_JSON = KNOWN_JSON
+    private static final JsonObject KNOWN_LEGACY_JSON = KNOWN_JSON_WITH_EMPTY_URI
             .set(Connection.JsonFields.MAPPING_CONTEXT, KNOWN_MAPPING_CONTEXT.toJson());
 
     @Test
@@ -226,10 +226,8 @@ public final class HonoConnectionTest {
 
     @Test
     public void createMinimalConnectionConfigurationInstance() {
-        final Connection connection = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
-                .sources(SOURCES_WITH_REPLY_TARGET_DISABLED)
-                .targets(TARGETS)
-                .build();
+        Connection connection = HonoConnection.fromJson(KNOWN_JSON_WITHOUT_URI);
+        connection = connection.toBuilder().setSources(SOURCES_WITH_REPLY_TARGET_DISABLED).build();
         assertThat((CharSequence) connection.getId()).isEqualTo(ID);
         assertThat((Object) connection.getConnectionType()).isEqualTo(TYPE);
         assertThat(connection.getUri()).isEqualTo(URI_EMPTY);
@@ -238,10 +236,8 @@ public final class HonoConnectionTest {
 
     @Test
     public void createMinimalConnectionConfigurationInstanceWithEmptyUri() {
-        final Connection connection = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
-                .sources(SOURCES_WITH_REPLY_TARGET_DISABLED)
-                .targets(TARGETS)
-                .build();
+        Connection connection = HonoConnection.fromJson(KNOWN_JSON_WITH_EMPTY_URI);
+        connection = connection.toBuilder().setSources(SOURCES_WITH_REPLY_TARGET_DISABLED).build();
         assertThat((CharSequence) connection.getId()).isEqualTo(ID);
         assertThat((Object) connection.getConnectionType()).isEqualTo(TYPE);
         assertThat(connection.getUri()).isEqualTo(URI_EMPTY);
@@ -251,14 +247,6 @@ public final class HonoConnectionTest {
     @Test
     public void createInstanceWithNullId() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(null, TYPE, STATUS, URI))
-                .withMessage("The %s must not be null!", "id")
-                .withNoCause();
-    }
-
-    @Test
-    public void createInstanceWithNullIdAndEmptyUri() {
-        assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(null, TYPE, STATUS, URI_EMPTY))
                 .withMessage("The %s must not be null!", "id")
                 .withNoCause();
@@ -266,26 +254,21 @@ public final class HonoConnectionTest {
 
     @Test
     public void createInstanceWithNullUri() {
-        final Connection connection = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
-                .sources(SOURCES_WITH_REPLY_TARGET_DISABLED)
-                .targets(TARGETS)
-                .build();
+        Connection connection = HonoConnection.fromJson(KNOWN_JSON_WITH_NULL_URI);
+        connection = connection.toBuilder().setSources(SOURCES_WITH_REPLY_TARGET_DISABLED).build();
         assertThat(connection.getUri()).isEmpty();
     }
 
     @Test
     public void createInstanceWithEmptyUri() {
-        final Connection connection = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI_EMPTY)
-                .sources(SOURCES_WITH_REPLY_TARGET_DISABLED)
-                .targets(TARGETS)
-                .build();
+        Connection connection = HonoConnection.fromJson(KNOWN_JSON_WITH_EMPTY_URI);
         assertThat(connection.getUri()).isEmpty();
     }
 
     @Test
     public void getBuilderFromConnectionCoversAllFields() {
 
-        final Connection connection = HonoConnection.getBuilder(ID, TYPE, STATUS, URI)
+        final Connection connection = HonoConnection.getBuilder(ID, TYPE, STATUS, URI_EMPTY)
                 .sources(SOURCES)
                 .targets(TARGETS)
                 .connectionStatus(ConnectivityStatus.OPEN)
@@ -299,7 +282,7 @@ public final class HonoConnectionTest {
                         .clientCertificate("certificate")
                         .build())
                 .validateCertificate(true)
-                .uri(null)
+                //.uri(null)
                 .id(ID)
                 .payloadMappingDefinition(
                         ConnectivityModelFactory.newPayloadMappingDefinition("test", KNOWN_JAVA_MAPPING_CONTEXT))
@@ -310,7 +293,7 @@ public final class HonoConnectionTest {
 
     @Test
     public void createInstanceWithNullSources() {
-        final ConnectionBuilder builder = HonoConnection.getBuilder(ID, TYPE, STATUS, URI);
+        final ConnectionBuilder builder = HonoConnection.getBuilder(ID, TYPE, STATUS, URI_EMPTY);
 
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> builder.sources(null))
@@ -320,7 +303,7 @@ public final class HonoConnectionTest {
 
     @Test
     public void createInstanceWithNullEventTarget() {
-        final ConnectionBuilder builder = HonoConnection.getBuilder(ID, TYPE, STATUS, URI);
+        final ConnectionBuilder builder = HonoConnection.getBuilder(ID, TYPE, STATUS, URI_EMPTY);
 
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> builder.targets(null))
@@ -349,13 +332,12 @@ public final class HonoConnectionTest {
 
     @Test
     public void createInstanceWithConnectionAnnouncementsAndClientCountGreater1() {
-        final ConnectionBuilder builder = HonoConnection.getBuilder(ID, TYPE, STATUS, URI)
+        final ConnectionBuilder builder = HonoConnection.getBuilder(ID, TYPE, STATUS, URI_EMPTY)
                 .targets(Collections.singletonList(
                         ConnectivityModelFactory.newTargetBuilder(TARGET1)
                                 .topics(Topic.CONNECTION_ANNOUNCEMENTS).build())
                 )
                 .clientCount(2);
-
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(builder::build)
                 .withMessageContaining(Topic.CONNECTION_ANNOUNCEMENTS.getName())
@@ -364,10 +346,9 @@ public final class HonoConnectionTest {
 
     @Test
     public void fromJsonWithLegacyMappingContextReturnsExpected() {
-
         final Map<String, MappingContext> definitions = new HashMap<>(KNOWN_MAPPING_DEFINITIONS.getDefinitions());
         definitions.putAll(LEGACY_MAPPINGS.getDefinitions());
-        final Connection expected = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+        final Connection expected = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI_EMPTY)
                 .credentials(CREDENTIALS)
                 .name(NAME)
                 .setSources(addSourceMapping(SOURCES, JAVA_SCRIPT_MAPPING, "javascript"))
@@ -383,7 +364,7 @@ public final class HonoConnectionTest {
 
     @Test
     public void fromInvalidJsonFails() {
-        final JsonObject INVALID_JSON = KNOWN_JSON.remove(Connection.JsonFields.SOURCES.getPointer())
+        final JsonObject INVALID_JSON = KNOWN_JSON_WITHOUT_URI.remove(Connection.JsonFields.SOURCES.getPointer())
                 .remove(Connection.JsonFields.TARGETS.getPointer());
 
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
@@ -395,7 +376,7 @@ public final class HonoConnectionTest {
 
     @Test
     public void fromJsonReturnsExpected() {
-        final Connection expected = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+        final Connection expected = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI_EMPTY)
                 .credentials(CREDENTIALS)
                 .name(NAME)
                 .setSources(addSourceMapping(SOURCES, JAVA_SCRIPT_MAPPING))
@@ -405,14 +386,13 @@ public final class HonoConnectionTest {
                 .tags(KNOWN_TAGS)
                 .build();
 
-        final Connection actual = HonoConnection.fromJson(KNOWN_JSON);
-
+        final Connection actual = HonoConnection.fromJson(KNOWN_JSON_WITHOUT_URI);
         assertThat(actual).isEqualTo(expected);
     }
 
     @Test
     public void toJsonReturnsExpected() {
-        final Connection underTest = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+        final Connection underTest = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI_EMPTY)
                 .credentials(CREDENTIALS)
                 .name(NAME)
                 .sources(addSourceMapping(Arrays.asList(SOURCE2, SOURCE1),
@@ -424,13 +404,12 @@ public final class HonoConnectionTest {
                 .build();
 
         final JsonObject actual = underTest.toJson();
-        System.out.println(underTest.getUri());
         assertThat(actual).isEqualTo(KNOWN_JSON_WITH_REPLY_TARGET);
     }
 
     @Test
     public void emptyCertificatesLeadToEmptyOptional() {
-        final Connection underTest = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+        final Connection underTest = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI_EMPTY)
                 .targets(TARGETS)
                 .validateCertificate(true)
                 .trustedCertificates("")
@@ -441,7 +420,7 @@ public final class HonoConnectionTest {
 
     @Test
     public void emptyCertificatesFromJsonLeadToEmptyOptional() {
-        final JsonObject connectionJsonWithEmptyCa = KNOWN_JSON
+        final JsonObject connectionJsonWithEmptyCa = KNOWN_JSON_WITHOUT_URI
                 .set(Connection.JsonFields.VALIDATE_CERTIFICATES, true)
                 .set(Connection.JsonFields.TRUSTED_CERTIFICATES, "");
         final Connection underTest = ConnectivityModelFactory.connectionFromJson(connectionJsonWithEmptyCa);
@@ -472,7 +451,7 @@ public final class HonoConnectionTest {
                 .topics(Topic.TWIN_EVENTS)
                 .build();
         final Connection connectionWithoutHeaderMappingForTarget =
-                ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+                ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI_EMPTY)
                         .targets(Collections.singletonList(targetWithoutHeaderMapping))
                         .build();
 
@@ -483,7 +462,7 @@ public final class HonoConnectionTest {
 
     @Test
     public void providesDefaultHeaderMappingsFromJson() {
-        final JsonObject connectionJsonWithoutHeaderMappingForTarget = KNOWN_JSON
+        final JsonObject connectionJsonWithoutHeaderMappingForTarget = KNOWN_JSON_WITHOUT_URI
                 .set(Connection.JsonFields.TARGETS, JsonArray.of(
                         TARGET1.toJson()
                                 .remove(Target.JsonFields.HEADER_MAPPING.getPointer())));

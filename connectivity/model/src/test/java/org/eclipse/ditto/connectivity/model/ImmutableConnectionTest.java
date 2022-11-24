@@ -243,7 +243,7 @@ public final class ImmutableConnectionTest {
     public void createInstanceWithNullId() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(null, TYPE, STATUS, URI))
-                .withMessage("The %s must not be null!", "ID")
+                .withMessage("The %s must not be null!", "id")
                 .withNoCause();
     }
 
@@ -251,7 +251,7 @@ public final class ImmutableConnectionTest {
     public void createInstanceWithNullUri() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, null))
-                .withMessage("The %s must not be null!", "URI")
+                .withMessage("The %s must not be null!", "uri")
                 .withNoCause();
     }
 
