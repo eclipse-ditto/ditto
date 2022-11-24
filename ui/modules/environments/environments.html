@@ -14,6 +14,10 @@
 <hr />
 <div class="row resizable_pane" style="height: 80vh">
     <div class="col-md-4 resizable_flex_column">
+        <div class="input-group has-validation">
+            <input class="form-control" id="tableValidationEnvironments" hidden="true"></input>
+            <div class="invalid-feedback"></div>
+        </div>
         <div class="table-wrap">
             <table class="table table-striped table-hover table-sm">
                 <tbody id="tbodyEnvironments"></tbody>
@@ -50,6 +54,11 @@
                     <label class="input-group-text" data-bs-toggle="tooltip"
                         title="URI including protocol, host and port (e.g. http://localhost:8080)">API URI</label>
                     <input type="text" class="form-control form-control-sm" id="inputApiUri"></input>
+                </div>
+                <div class="input-group input-group-sm mt-1">
+                    <label class="input-group-text" data-bs-toggle="tooltip"
+                        title="A comma-separated list of namespaces (e.g. com.example.namespace). The given namespaces are used as a parameter for the Things search">Search Namespaces</label>
+                    <input type="text" class="form-control form-control-sm" spellcheck="false" id="inputSearchNamespaces"></input>
                 </div>
                 <div class="input-group input-group-sm mt-1">
                     <label class="input-group-text">Ditto Version</label>

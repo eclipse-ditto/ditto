@@ -15,18 +15,15 @@ package org.eclipse.ditto.internal.utils.metrics.instruments.counter;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.KamonTagSetConverter;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kamon.Kamon;
-import kamon.tag.TagSet;
 
 /**
  * Kamon based implementation of {@link Counter}.
@@ -37,15 +34,15 @@ public final class KamonCounter implements Counter {
     private static final Logger LOGGER = LoggerFactory.getLogger(KamonCounter.class);
 
     private final String name;
-    private final Map<String, String> tags;
+    private final TagSet tags;
 
-    private KamonCounter(final String name, final Map<String, String> tags) {
+    private KamonCounter(final String name, final TagSet tags) {
         this.name = argumentNotEmpty(name, "name");
-        this.tags = Collections.unmodifiableMap(new HashMap<>(checkNotNull(tags, "tags")));
+        this.tags = checkNotNull(tags, "tags");
     }
 
     public static KamonCounter newCounter(final String name) {
-        return newCounter(name, Collections.emptyMap());
+        return newCounter(name, TagSet.empty());
     }
 
     /**
@@ -57,32 +54,22 @@ public final class KamonCounter implements Counter {
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code name} is empty.
      */
-    public static KamonCounter newCounter(final String name, final Map<String, String> tags) {
+    public static KamonCounter newCounter(final String name, final TagSet tags) {
         return new KamonCounter(name, tags);
     }
 
     @Override
-    public KamonCounter tag(final String key, final String value) {
-        final HashMap<String, String> newMap = new HashMap<>(tags);
-        newMap.put(key, value);
-        return new KamonCounter(name, newMap);
+    public KamonCounter tag(final Tag tag) {
+        return new KamonCounter(name, tags.putTag(tag));
     }
 
     @Override
-    public KamonCounter tags(final Map<String, String> tags) {
-        final HashMap<String, String> newMap = new HashMap<>(this.tags);
-        newMap.putAll(tags);
-        return new KamonCounter(name, newMap);
-    }
-
-    @Nullable
-    @Override
-    public String getTag(final String key) {
-        return tags.get(key);
+    public KamonCounter tags(final TagSet tags) {
+        return new KamonCounter(name, this.tags.putAllTags(tags));
     }
 
     @Override
-    public Map<String, String> getTags() {
+    public TagSet getTagSet() {
         return tags;
     }
 
@@ -113,7 +100,7 @@ public final class KamonCounter implements Counter {
     }
 
     private kamon.metric.Counter getKamonInternalCounter() {
-        return Kamon.counter(name).withTags(TagSet.from(new HashMap<>(tags)));
+        return Kamon.counter(name).withTags(KamonTagSetConverter.getKamonTagSet(tags));
     }
 
     @Override

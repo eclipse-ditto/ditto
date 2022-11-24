@@ -17,6 +17,8 @@ import org.eclipse.ditto.things.api.ThingSnapshotTaken;
 import org.eclipse.ditto.internal.utils.persistentactors.EmptyEvent;
 import org.eclipse.ditto.internal.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.things.model.signals.events.FeatureDeleted;
+import org.eclipse.ditto.thingsearch.api.events.ThingsOutOfSync;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionCreated;
 
 public final class ThingsServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
 
@@ -25,7 +27,9 @@ public final class ThingsServiceGlobalEventRegistryTest extends GlobalEventRegis
                 FeatureDeleted.class,
                 ThingSnapshotTaken.class,
                 EmptyEvent.class,
-                PolicyModified.class
+                PolicyModified.class,
+                SubscriptionCreated.class,
+                ThingsOutOfSync.class
         );
     }
 

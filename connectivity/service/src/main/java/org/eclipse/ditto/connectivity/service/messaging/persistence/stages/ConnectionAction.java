@@ -73,9 +73,9 @@ public enum ConnectionAction {
     BECOME_DELETED,
 
     /**
-     * Update pubsub topics.
+     * Check that connection logging is enabled if needed.
      */
-    UPDATE_SUBSCRIPTIONS,
+    CHECK_LOGGING_ENABLED,
 
     /**
      * Forward command to client actors without waiting for reply.

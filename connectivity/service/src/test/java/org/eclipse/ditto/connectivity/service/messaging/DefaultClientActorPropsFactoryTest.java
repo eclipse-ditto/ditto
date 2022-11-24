@@ -20,15 +20,16 @@ import static org.eclipse.ditto.connectivity.model.ConnectionType.KAFKA;
 import static org.eclipse.ditto.connectivity.model.ConnectionType.MQTT;
 import static org.eclipse.ditto.connectivity.model.ConnectionType.MQTT_5;
 
-import java.util.concurrent.TimeUnit;
-
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
-import org.junit.After;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
@@ -38,12 +39,18 @@ import akka.actor.Props;
 import akka.remote.DaemonMsgCreate;
 import akka.serialization.Serialization;
 import akka.serialization.SerializationExtension;
-import akka.testkit.javadsl.TestKit;
 
 /**
  * Unit tests for {@link DefaultClientActorPropsFactory}.
  */
 public final class DefaultClientActorPropsFactoryTest extends WithMockServers {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
+
+    @Rule
+    public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance(TestConstants.CONFIG);
 
     private ActorSystem actorSystem;
     private Serialization serialization;
@@ -51,18 +58,10 @@ public final class DefaultClientActorPropsFactoryTest extends WithMockServers {
 
     @Before
     public void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        actorSystem = actorSystemResource.getActorSystem();
         serialization = SerializationExtension.get(actorSystem);
         underTest =
                 ClientActorPropsFactory.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config()));
-    }
-
-    @After
-    public void tearDown() {
-        if (actorSystem != null) {
-            TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
-                    false);
-        }
     }
 
     /**

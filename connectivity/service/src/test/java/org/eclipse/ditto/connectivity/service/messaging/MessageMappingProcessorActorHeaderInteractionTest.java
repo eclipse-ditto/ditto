@@ -96,7 +96,8 @@ public final class MessageMappingProcessorActorHeaderInteractionTest extends Abs
 
             // transport-layer settlement based on requested-acks alone
             if (settleImmediately && !isBadRequest) {
-                collectorProbe.expectMsg(FiniteDuration.apply(20l, TimeUnit.SECONDS), ResponseCollectorActor.setCount(0));
+                collectorProbe.expectMsg(FiniteDuration.apply(20L, TimeUnit.SECONDS),
+                        ResponseCollectorActor.setCount(0));
             } else if (isBadRequest) {
                 // bad requests should settle immediately because no command is forwarded
                 collectorProbe.expectMsgClass(DittoHeaderInvalidException.class);
@@ -108,7 +109,7 @@ public final class MessageMappingProcessorActorHeaderInteractionTest extends Abs
 
             if (!isBadRequest) {
                 // command forwarded for non-bad requests.
-                final ModifyThing forwardedModifyThing = expectMsgClass(ModifyThing.class);
+                final ModifyThing forwardedModifyThing = fishForMsg(this, ModifyThing.class);
 
                 // send a response always - MessageMappingProcessorActor should drop it if not wanted.
                 final Object response = getModifyThingResponse(forwardedModifyThing);
@@ -123,13 +124,10 @@ public final class MessageMappingProcessorActorHeaderInteractionTest extends Abs
             if (expectedStatusCode.isPresent()) {
                 // check published response for expected status
                 final BaseClientActor.PublishMappedMessage publish =
-                        expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+                        fishForMsg(this, BaseClientActor.PublishMappedMessage.class);
                 final HttpStatus publishedStatusCode =
                         ((CommandResponse<?>) publish.getOutboundSignal().getSource()).getHttpStatus();
                 assertThat(publishedStatusCode).isEqualTo(expectedStatusCode.get());
-            } else {
-                // check that no response is published
-                expectNoMessage(Duration.ofMillis(250L));
             }
         }};
     }

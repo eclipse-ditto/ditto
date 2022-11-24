@@ -110,8 +110,8 @@ final class SupervisorSmartChannelDispatching {
 
     private CompletionStage<ThingQueryCommandResponse<?>> initSmartChannelSelection(
             final ThingQueryCommand<?> thingQueryCommand) {
-
         final ThingQueryCommand<?> twinQueryCommand = ensureTwinChannel(thingQueryCommand);
+
         return Patterns.ask(thingsPersistenceActor, twinQueryCommand, DEFAULT_LOCAL_ASK_TIMEOUT)
                 .thenApply(response -> handleSmartChannelTwinResponse(thingQueryCommand, response));
     }
@@ -122,6 +122,7 @@ final class SupervisorSmartChannelDispatching {
 
         if (response instanceof ThingQueryCommandResponse<?> thingQueryCommandResponse) {
             final ThingQueryCommandResponse<?> twinResponseWithTwinChannel = setTwinChannel(thingQueryCommandResponse);
+
             return CommandHeaderRestoration.restoreCommandConnectivityHeaders(
                     twinResponseWithTwinChannel, enforcedThingQueryCommand.getDittoHeaders()
             );
@@ -171,6 +172,7 @@ final class SupervisorSmartChannelDispatching {
 
     private static boolean shouldAttemptLiveChannel(final ThingQueryCommand<?> command,
             final ThingQueryCommandResponse<?> twinResponse) {
+
         return isLiveChannelConditionMatched(command, twinResponse) || isLiveQueryCommandWithTimeoutStrategy(command);
     }
 
@@ -226,6 +228,7 @@ final class SupervisorSmartChannelDispatching {
                 .toBuilder()
                 .putHeaders(getAdditionalLiveResponseHeaders(dittoHeaders))
                 .build());
+
         return (T) CommandHeaderRestoration.restoreCommandConnectivityHeaders(theSettable, commandHeaders);
     }
 
@@ -244,6 +247,7 @@ final class SupervisorSmartChannelDispatching {
                             .putHeaders(getAdditionalLiveResponseHeaders(twinResponse.getDittoHeaders()))
                             .build())
                     .build();
+
             throw CommandHeaderRestoration.restoreCommandConnectivityHeaders(timeoutException,
                     command.getDittoHeaders());
         }
@@ -257,6 +261,7 @@ final class SupervisorSmartChannelDispatching {
 
         final var liveChannelFallbackStrategy =
                 signal.getDittoHeaders().getLiveChannelTimeoutStrategy().orElse(LiveChannelTimeoutStrategy.FAIL);
+
         return LiveChannelTimeoutStrategy.USE_TWIN == liveChannelFallbackStrategy;
     }
 
@@ -267,6 +272,7 @@ final class SupervisorSmartChannelDispatching {
         final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = DittoHeaders.newBuilder()
                 .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(), liveChannelConditionMatched)
                 .responseRequired(false);
+
         return dittoHeadersBuilder.build();
     }
 

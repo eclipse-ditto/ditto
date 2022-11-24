@@ -11,7 +11,7 @@
 name: condition
 in: query
 description: >-
-  Defines that the request should only be applied to a thing if the given condition is met.
+  Defines that the request should only be processed if the given condition is met.
   The condition can be specified using RQL syntax. 
 
   #### Examples

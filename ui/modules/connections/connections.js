@@ -264,9 +264,9 @@ function loadConnections() {
       row.id = id;
       if (API.env() === 'ditto_2') {
         API.callConnectionsAPI('retrieveConnection', (dittoConnection) => {
-         row.insertCell(0).innerHTML = dittoConnection.name;
-       },
-       id);
+          row.insertCell(0).innerHTML = dittoConnection.name;
+        },
+        id);
       } else {
         row.insertCell(0).innerHTML = connection.name;
       }

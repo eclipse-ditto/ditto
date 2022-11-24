@@ -17,26 +17,28 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Map;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
 import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandRegistry;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandResponseRegistry;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
@@ -87,6 +89,10 @@ public final class SharedJsonifiableSerializerTest {
 
     @RunWith(Parameterized.class)
     public static final class ThingCommandsStrategyTest {
+
+        @ClassRule
+        public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+                DittoTracingInitResource.disableDittoTracing();
 
         private static ThingId thingId;
         private static Thing thing;
@@ -193,6 +199,10 @@ public final class SharedJsonifiableSerializerTest {
 
     @RunWith(Parameterized.class)
     public static final class DittoHeadersStrategyTest {
+
+        @ClassRule
+        public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+                DittoTracingInitResource.disableDittoTracing();
 
         private static ExtendedActorSystem actorSystem;
 

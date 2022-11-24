@@ -14,6 +14,8 @@ package org.eclipse.ditto.things.api;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.internal.utils.persistence.mongo.SnapshotStreamingActor;
+
 /**
  * Constants for the Things messaging.
  */
@@ -28,15 +30,8 @@ public final class ThingsMessagingConstants {
 
     /**
      * Name of the actor created by ThingsPersistenceStreamingActorCreator.
-     * To query this actor use the {@link #THINGS_SNAPSHOT_STREAMING_ACTOR_PATH actor path}.
      */
-    public static final String THINGS_PERSISTENCE_STREAMING_ACTOR_NAME = "snapshotStreamingActor";
-
-    /**
-     * Path of the actor that streams from the snapshot store.
-     */
-    public static final String THINGS_SNAPSHOT_STREAMING_ACTOR_PATH =
-            ROOT_ACTOR_PATH + THINGS_PERSISTENCE_STREAMING_ACTOR_NAME;
+    public static final String THINGS_PERSISTENCE_STREAMING_ACTOR_NAME = SnapshotStreamingActor.ACTOR_NAME;
 
     /**
      * Name of ThingsAggregatorActor. To query this actor use the the {@link #THINGS_AGGREGATOR_ACTOR_PATH actor path}.

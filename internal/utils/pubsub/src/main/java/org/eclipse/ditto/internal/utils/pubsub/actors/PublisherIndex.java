@@ -25,7 +25,7 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.pubsub.PubSubFactory;
 import org.eclipse.ditto.internal.utils.pubsub.api.PublishSignal;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.SubscriptionsReader;
@@ -94,15 +94,16 @@ final class PublisherIndex<T> {
         return new PublisherIndex<>(index, filterMap);
     }
 
-    List<Pair<ActorRef, PublishSignal>> assignGroupsToSubscribers(final SignalWithEntityId<?> signal,
-            final Collection<T> topics) {
+    List<Pair<ActorRef, PublishSignal>> assignGroupsToSubscribers(final Signal<?> signal,
+            final Collection<T> topics, final CharSequence groupIndexKey) {
 
-        return assignGroupsToSubscribers(signal, topics, null);
+        return assignGroupsToSubscribers(signal, topics, null, groupIndexKey);
     }
 
-    List<Pair<ActorRef, PublishSignal>> assignGroupsToSubscribers(final SignalWithEntityId<?> signal,
+    List<Pair<ActorRef, PublishSignal>> assignGroupsToSubscribers(final Signal<?> signal,
             final Collection<T> topics,
-            @Nullable final Map<String, Integer> chosenGroups) {
+            @Nullable final Map<String, Integer> chosenGroups,
+            final CharSequence groupIndexKey) {
         final Map<String, List<ActorRef>> groupToSubscribers = new HashMap<>();
         final Map<ActorRef, Map<String, Integer>> subscriberToChosenGroups = new HashMap<>();
         // compute groupToSubscribers and allot subscribers with the empty group
@@ -123,12 +124,12 @@ final class PublisherIndex<T> {
                 }
             });
         }
-        // choose a subscriber for each group consistently according to the entity ID of the signal
-        final int entityIdHash = PubSubFactory.hashForPubSub(signal.getEntityId());
+        // choose a subscriber for each group consistently according to the group index key
+        final int groupIndexKeyHash = PubSubFactory.hashForPubSub(groupIndexKey);
         groupToSubscribers.forEach((group, subscribers) -> {
             subscribers.sort(ActorRef::compareTo);
             final int groupDivisor = chosenGroups == null ? 1 : Math.max(1, chosenGroups.get(group));
-            final ActorRef chosenSubscriber = subscribers.get((entityIdHash / groupDivisor) % subscribers.size());
+            final ActorRef chosenSubscriber = subscribers.get((groupIndexKeyHash / groupDivisor) % subscribers.size());
             subscriberToChosenGroups.compute(chosenSubscriber, (s, groups) -> {
                 final Map<String, Integer> nonNullGroups = groups == null ? new HashMap<>() : groups;
                 nonNullGroups.put(group, subscribers.size());
@@ -138,7 +139,7 @@ final class PublisherIndex<T> {
 
         return subscriberToChosenGroups.entrySet()
                 .stream()
-                .map(entry -> Pair.create(entry.getKey(), PublishSignal.of(signal, entry.getValue())))
+                .map(entry -> Pair.create(entry.getKey(), PublishSignal.of(signal, entry.getValue(), groupIndexKey)))
                 .toList();
     }
 

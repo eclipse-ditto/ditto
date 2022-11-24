@@ -93,15 +93,17 @@ public final class ConnectionSupervisorActor
     private boolean isRegisteredForConnectivityConfigChanges = false;
 
     private final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory;
+    private final ActorRef clientShardRegion;
 
     @SuppressWarnings("unused")
     private ConnectionSupervisorActor(final ActorRef commandForwarderActor, final ActorRef pubSubMediator,
-            final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory) {
+            final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory, final ActorRef clientShardRegion) {
 
         super(null, CONNECTIVITY_DEFAULT_LOCAL_ASK_TIMEOUT);
         this.commandForwarderActor = commandForwarderActor;
         this.pubSubMediator = pubSubMediator;
         this.enforcerActorPropsFactory = enforcerActorPropsFactory;
+        this.clientShardRegion = clientShardRegion;
     }
 
     /**
@@ -114,14 +116,16 @@ public final class ConnectionSupervisorActor
      * @param commandForwarder the actor used to send signals into the ditto cluster.
      * @param pubSubMediator pub-sub-mediator for the shutdown behavior.
      * @param enforcerActorPropsFactory used to create the enforcer actor.
+     * @param clientShardRegion the client shard region.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef commandForwarder,
             final ActorRef pubSubMediator,
-            final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory) {
+            final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory,
+            final ActorRef clientShardRegion) {
 
         return Props.create(ConnectionSupervisorActor.class, commandForwarder, pubSubMediator,
-                enforcerActorPropsFactory);
+                enforcerActorPropsFactory, clientShardRegion);
     }
 
     @Override
@@ -141,8 +145,7 @@ public final class ConnectionSupervisorActor
     }
 
     @Override
-    protected Receive activeBehaviour(
-            final FI.UnitApply<AbstractPersistenceSupervisor.Control> matchProcessNextTwinMessageBehavior,
+    protected Receive activeBehaviour(final Runnable matchProcessNextTwinMessageBehavior,
             final FI.UnitApply<Object> matchAnyBehavior) {
         return ReceiveBuilder.create()
                 .match(Config.class, this::onConnectivityConfigModified)
@@ -185,7 +188,7 @@ public final class ConnectionSupervisorActor
     @Override
     protected Props getPersistenceActorProps(final ConnectionId entityId) {
         return ConnectionPersistenceActor.props(entityId, commandForwarderActor, pubSubMediator,
-                connectivityConfigOverwrites);
+                connectivityConfigOverwrites, clientShardRegion);
     }
 
     @Override

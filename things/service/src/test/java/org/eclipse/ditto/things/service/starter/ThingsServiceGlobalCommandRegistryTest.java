@@ -30,6 +30,9 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
+import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
+import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
 
 public final class ThingsServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
 
@@ -51,7 +54,10 @@ public final class ThingsServiceGlobalCommandRegistryTest extends GlobalCommandR
                 RetrieveHealth.class,
                 PurgeEntities.class,
                 ModifySplitBrainResolver.class,
-                PublishSignal.class
+                PublishSignal.class,
+                CreateSubscription.class,
+                QueryThings.class,
+                SudoCountThings.class
         );
     }
 

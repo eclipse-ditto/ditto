@@ -123,7 +123,7 @@ public final class SubjectExpiryActorTest {
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             final var announcement = announcementCaptor.getValue();
 
             assertThat(announcement).isInstanceOf(SubjectDeletionAnnouncement.class);
@@ -185,7 +185,7 @@ public final class SubjectExpiryActorTest {
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
@@ -224,7 +224,7 @@ public final class SubjectExpiryActorTest {
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             var announcement = announcementCaptor.getValue();
             var sender = senderCaptor.getValue();
 
@@ -233,7 +233,7 @@ public final class SubjectExpiryActorTest {
                     announcement.getDittoHeaders()), getTestActor());
 
             verify(policiesPub, timeout(30_000).times(2))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             announcement = announcementCaptor.getValue();
             sender = senderCaptor.getValue();
 
@@ -272,7 +272,7 @@ public final class SubjectExpiryActorTest {
 
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
-            verify(policiesPub, timeout(30_000)).publishWithAcks(any(), any(), any());
+            verify(policiesPub, timeout(30_000)).publishWithAcks(any(), any(), any(), any());
 
             expectTerminated(Duration.ofSeconds(10), underTest);
             expectNoMessage();
@@ -331,7 +331,7 @@ public final class SubjectExpiryActorTest {
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             final var announcement = announcementCaptor.getValue();
 
             assertThat(announcement).isInstanceOf(SubjectDeletionAnnouncement.class);
@@ -369,7 +369,7 @@ public final class SubjectExpiryActorTest {
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
@@ -411,7 +411,7 @@ public final class SubjectExpiryActorTest {
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
@@ -466,7 +466,7 @@ public final class SubjectExpiryActorTest {
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), any());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), any());
             final var announcement = announcementCaptor.getValue();
 
             assertThat(announcement).isInstanceOf(SubjectDeletionAnnouncement.class);
@@ -500,7 +500,7 @@ public final class SubjectExpiryActorTest {
 
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
-            verify(policiesPub, timeout(30_000)).publishWithAcks(any(), any(), any());
+            verify(policiesPub, timeout(30_000)).publishWithAcks(any(), any(), any(), any());
 
             // no need for expectNoMsg because extraneous SudoDeleteExpiredSubject will cause expectTerminated to fail
             expectTerminated(underTest);
@@ -522,7 +522,7 @@ public final class SubjectExpiryActorTest {
                     maxTimeout, getTestActor(), config);
             final ActorRef underTest = watch(childActorOf(props));
 
-            verify(policiesPub, timeout(30_000)).publishWithAcks(any(), any(), any());
+            verify(policiesPub, timeout(30_000)).publishWithAcks(any(), any(), any(), any());
 
             var deleteCommand = expectMsgClass(SudoDeleteExpiredSubject.class);
             assertThat(deleteCommand.getSubject()).isEqualTo(subject);
@@ -550,7 +550,7 @@ public final class SubjectExpiryActorTest {
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), any());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), any());
             final var announcement = announcementCaptor.getValue();
 
             assertThat(announcement).isInstanceOf(SubjectDeletionAnnouncement.class);
@@ -588,7 +588,7 @@ public final class SubjectExpiryActorTest {
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
@@ -628,7 +628,7 @@ public final class SubjectExpiryActorTest {
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
@@ -656,7 +656,7 @@ public final class SubjectExpiryActorTest {
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
@@ -686,7 +686,7 @@ public final class SubjectExpiryActorTest {
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
@@ -716,7 +716,7 @@ public final class SubjectExpiryActorTest {
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             var announcement = announcementCaptor.getValue();
             var sender = senderCaptor.getValue();
 
@@ -724,7 +724,7 @@ public final class SubjectExpiryActorTest {
                     HttpStatus.INTERNAL_SERVER_ERROR, announcement.getDittoHeaders()), getTestActor());
 
             verify(policiesPub, timeout(30_000).times(2))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             announcement = announcementCaptor.getValue();
             sender = senderCaptor.getValue();
 
@@ -755,7 +755,7 @@ public final class SubjectExpiryActorTest {
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             var announcement = announcementCaptor.getValue();
             var sender = senderCaptor.getValue();
 
@@ -786,7 +786,7 @@ public final class SubjectExpiryActorTest {
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             final var announcement = announcementCaptor.getValue();
 
             assertThat(announcement).isInstanceOf(SubjectDeletionAnnouncement.class);
@@ -820,7 +820,7 @@ public final class SubjectExpiryActorTest {
 
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
 
             expectTerminated(underTest);
             verifyNoMoreInteractions(policiesPub);
@@ -841,7 +841,7 @@ public final class SubjectExpiryActorTest {
                     maxTimeout, getTestActor(), config);
             final ActorRef underTest = watch(childActorOf(props));
 
-            verify(policiesPub, timeout(30_000)).publishWithAcks(any(), any(), any());
+            verify(policiesPub, timeout(30_000)).publishWithAcks(any(), any(), any(), any());
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
             expectTerminated(underTest);
@@ -864,7 +864,7 @@ public final class SubjectExpiryActorTest {
                             maxTimeout, getTestActor(), config);
             final ActorRef underTest = watch(childActorOf(props));
 
-            verify(policiesPub, timeout(30_000)).publishWithAcks(any(), any(), any());
+            verify(policiesPub, timeout(30_000)).publishWithAcks(any(), any(), any(), any());
 
             expectMsgClass(SudoDeleteExpiredSubject.class);
             underTest.tell(FSM.StateTimeout$.MODULE$, ActorRef.noSender());
@@ -891,7 +891,7 @@ public final class SubjectExpiryActorTest {
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
@@ -931,7 +931,7 @@ public final class SubjectExpiryActorTest {
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
@@ -959,7 +959,7 @@ public final class SubjectExpiryActorTest {
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
@@ -989,7 +989,7 @@ public final class SubjectExpiryActorTest {
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
@@ -1021,7 +1021,7 @@ public final class SubjectExpiryActorTest {
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             var announcement = announcementCaptor.getValue();
             var sender = senderCaptor.getValue();
 
@@ -1029,7 +1029,7 @@ public final class SubjectExpiryActorTest {
                     HttpStatus.REQUEST_TIMEOUT, announcement.getDittoHeaders()), getTestActor());
 
             verify(policiesPub, timeout(30_000).times(2))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             announcement = announcementCaptor.getValue();
             sender = senderCaptor.getValue();
 
@@ -1060,7 +1060,7 @@ public final class SubjectExpiryActorTest {
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
@@ -1088,7 +1088,7 @@ public final class SubjectExpiryActorTest {
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             var announcement = announcementCaptor.getValue();
             var sender = senderCaptor.getValue();
 
@@ -1098,7 +1098,7 @@ public final class SubjectExpiryActorTest {
                     HttpStatus.INTERNAL_SERVER_ERROR, announcement.getDittoHeaders()), getTestActor());
 
             verify(policiesPub, timeout(30_000).times(2))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             announcement = announcementCaptor.getValue();
             sender = senderCaptor.getValue();
 
@@ -1127,7 +1127,7 @@ public final class SubjectExpiryActorTest {
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             var announcement = announcementCaptor.getValue();
             var sender = senderCaptor.getValue();
 
@@ -1158,7 +1158,7 @@ public final class SubjectExpiryActorTest {
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             var announcement = announcementCaptor.getValue();
             var sender = senderCaptor.getValue();
 
@@ -1169,7 +1169,7 @@ public final class SubjectExpiryActorTest {
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
             verify(policiesPub, timeout(30_000).times(2))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             announcement = announcementCaptor.getValue();
             sender = senderCaptor.getValue();
 
@@ -1198,7 +1198,7 @@ public final class SubjectExpiryActorTest {
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             var announcement = announcementCaptor.getValue();
             var sender = senderCaptor.getValue();
 
@@ -1209,7 +1209,7 @@ public final class SubjectExpiryActorTest {
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
             verify(policiesPub, timeout(30_000).times(2))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             announcement = announcementCaptor.getValue();
             sender = senderCaptor.getValue();
 
@@ -1237,7 +1237,7 @@ public final class SubjectExpiryActorTest {
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             var announcement = announcementCaptor.getValue();
             var sender = senderCaptor.getValue();
 
@@ -1245,7 +1245,7 @@ public final class SubjectExpiryActorTest {
                     HttpStatus.REQUEST_TIMEOUT, announcement.getDittoHeaders()), getTestActor());
 
             verify(policiesPub, timeout(30_000).times(2))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             announcement = announcementCaptor.getValue();
             sender = senderCaptor.getValue();
 
@@ -1275,7 +1275,7 @@ public final class SubjectExpiryActorTest {
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             var announcement = announcementCaptor.getValue();
             var sender = senderCaptor.getValue();
 
@@ -1307,7 +1307,7 @@ public final class SubjectExpiryActorTest {
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
             verify(policiesPub, timeout(4_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             final var announcement = announcementCaptor.getValue();
 
             assertThat(announcement).isInstanceOf(SubjectDeletionAnnouncement.class);
@@ -1359,7 +1359,7 @@ public final class SubjectExpiryActorTest {
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
             verify(policiesPub, timeout(4_000))
-                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+                    .publishWithAcks(announcementCaptor.capture(), any(), any(), senderCaptor.capture());
             final var announcement = announcementCaptor.getValue();
 
             assertThat(announcement).isInstanceOf(SubjectDeletionAnnouncement.class);

@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.connect.GenericMqttConnect;
@@ -28,9 +29,12 @@ import com.hivemq.client.mqtt.MqttGlobalPublishFilter;
 import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3RxClient;
 import com.hivemq.client.mqtt.mqtt3.exceptions.Mqtt3SubAckException;
+import com.hivemq.client.mqtt.mqtt3.message.unsubscribe.Mqtt3Unsubscribe;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5RxClient;
 import com.hivemq.client.mqtt.mqtt5.exceptions.Mqtt5SubAckException;
+import com.hivemq.client.mqtt.mqtt5.message.unsubscribe.Mqtt5Unsubscribe;
 
+import io.reactivex.Completable;
 import io.reactivex.Flowable;
 import io.reactivex.Single;
 import io.reactivex.SingleTransformer;
@@ -91,13 +95,23 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
 
     @Override
     public Single<GenericMqttSubAck> subscribe(final GenericMqttSubscribe genericMqttSubscribe) {
-
         // Error handling is already done by implementations of BaseGenericMqttConnectingClient.
         return sendSubscribe(mqttClient, checkNotNull(genericMqttSubscribe, "genericMqttSubscribe"))
                 .compose(handleFailedSubscriptions(genericMqttSubscribe));
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    @Override
+    public CompletionStage<Void> unsubscribe(final MqttTopicFilter... mqttTopicFilters) {
+        final var completable = sendUnsubscribe(mqttClient, mqttTopicFilters);
+        final CompletableFuture<Void> result = new CompletableFuture<>();
+        completable.subscribe(() -> result.complete(null), result::completeExceptionally);
+        return result;
+    }
+
     protected abstract Single<GenericMqttSubAck> sendSubscribe(C mqttClient, GenericMqttSubscribe genericMqttSubscribe);
+
+    abstract Completable sendUnsubscribe(C mqtt3RxClient, MqttTopicFilter... mqttTopicFilters);
 
     private static SingleTransformer<GenericMqttSubAck, GenericMqttSubAck> handleFailedSubscriptions(
             final GenericMqttSubscribe genericMqttSubscribe
@@ -209,6 +223,14 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
                     });
         }
 
+
+        @Override
+        Completable sendUnsubscribe(final Mqtt3RxClient mqtt3RxClient, final MqttTopicFilter... mqttTopicFilters) {
+            final var unsubscribe =
+                    Mqtt3Unsubscribe.builder().addTopicFilters(mqttTopicFilters).build();
+            return mqtt3RxClient.unsubscribe(unsubscribe);
+        }
+
         @Override
         protected Flowable<GenericMqttPublish> consumeIncomingPublishes(final Mqtt3RxClient mqtt3RxClient,
                 final MqttGlobalPublishFilter filter,
@@ -249,6 +271,13 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
                         }
                         return result;
                     });
+        }
+
+        @Override
+        Completable sendUnsubscribe(final Mqtt5RxClient mqtt5RxClient, final MqttTopicFilter... mqttTopicFilters) {
+            final var unsubscribe =
+                    Mqtt5Unsubscribe.builder().addTopicFilters(mqttTopicFilters).build();
+            return mqtt5RxClient.unsubscribe(unsubscribe).ignoreElement();
         }
 
         @Override

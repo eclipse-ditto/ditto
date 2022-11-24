@@ -24,7 +24,7 @@ import org.apache.qpid.jms.message.facade.JmsMessageFacade;
 
 /**
  * Fake JMS message to defeat the Qpid client when it tries to set AMQP properties willy-nilly.
- * Override all the setters to do nothing of already set.
+ * Override all the setters to do nothing if already set.
  */
 public final class JMSMessageWorkaround extends JmsMessage {
 

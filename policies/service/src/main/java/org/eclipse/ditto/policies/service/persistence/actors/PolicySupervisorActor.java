@@ -39,11 +39,12 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 
 /**
- * Supervisor for {@link org.eclipse.ditto.policies.service.persistence.actors.PolicyPersistenceActor} which means it will create, start and watch it as child actor.
+ * Supervisor for {@link org.eclipse.ditto.policies.service.persistence.actors.PolicyPersistenceActor} which means
+ * it will create, start and watch it as child actor.
  * <p>
  * If the child terminates, it will wait for the calculated exponential back-off time and restart it afterwards.
- * Between the termination of the child and the restart, this actor answers to all requests with a {@link
- * PolicyUnavailableException} as fail fast strategy.
+ * Between the termination of the child and the restart, this actor answers to all requests with a
+ * {@link PolicyUnavailableException} as fail fast strategy.
  */
 public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<PolicyId, PolicyCommand<?>> {
 
@@ -87,14 +88,13 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
     public static Props props(final ActorRef pubSubMediator,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
             @Nullable final BlockedNamespaces blockedNamespaces) {
-
         return Props.create(PolicySupervisorActor.class, () -> new PolicySupervisorActor(pubSubMediator,
                 policyAnnouncementPub, blockedNamespaces));
     }
 
     @Override
     protected PolicyId getEntityId() throws Exception {
-        return PolicyId.of(URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name()));
+        return PolicyId.of(URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8));
     }
 
     @Override
@@ -112,6 +112,7 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
         final DittoPoliciesConfig policiesConfig = DittoPoliciesConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
+
         return policiesConfig.getPolicyConfig().getSupervisorConfig().getExponentialBackOffConfig();
     }
 
@@ -123,6 +124,7 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
     @Override
     protected DittoRuntimeExceptionBuilder<?> getUnavailableExceptionBuilder(@Nullable final PolicyId entityId) {
         final PolicyId policyId = entityId != null ? entityId : PolicyId.of("UNKNOWN:ID");
+
         return PolicyUnavailableException.newBuilder(policyId);
     }
 
@@ -135,6 +137,7 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
         } catch (final Exception e) {
             log.error(e, "Failed to determine entity ID; becoming corrupted.");
             becomeCorrupted();
+
             return null;
         }
     }

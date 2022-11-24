@@ -12,11 +12,16 @@
  */
 package org.eclipse.ditto.gateway.service.proxy.actors;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
+import org.eclipse.ditto.gateway.service.util.config.GatewayConfig;
+import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -29,12 +34,15 @@ import org.eclipse.ditto.thingsearch.api.events.ThingsOutOfSync;
 import org.eclipse.ditto.thingsearch.model.SearchResult;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
-import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
+
+import akka.Done;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -44,28 +52,31 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class QueryThingsPerRequestActorTest {
 
-    private ActorSystem actorSystem;
+    @ClassRule
+    public static final ActorSystemResource ACTOR_SYSTEM_RESOURCE =
+            ActorSystemResource.newInstance(ConfigFactory.load("test"));
+
+    private static GatewayConfig gatewayConfig;
+
     private TestProbe aggregatorProbe;
     private TestProbe originalSenderProbe;
     private TestProbe pubSubMediatorProbe;
     private DittoHeaders dittoHeaders;
     private DittoHeaders responseHeaders;
 
-    @Before
-    public void startActorSystem() {
-        actorSystem = ActorSystem.create();
-        aggregatorProbe = TestProbe.apply("aggregator", actorSystem);
-        originalSenderProbe = TestProbe.apply("originalSender", actorSystem);
-        pubSubMediatorProbe = TestProbe.apply("pubSubMediator", actorSystem);
-        dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().responseRequired(true).build();
-        responseHeaders = dittoHeaders.toBuilder().responseRequired(false).build();
+    @BeforeClass
+    public static void beforeClass() {
+        gatewayConfig = DittoGatewayConfig.of(
+                DefaultScopedConfig.dittoScoped(ConfigFactory.load("test.conf")));
     }
 
-    @After
-    public void shutdownActorSystem() {
-        if (actorSystem != null) {
-            TestKit.shutdownActorSystem(actorSystem);
-        }
+    @Before
+    public void startActorSystem() {
+        aggregatorProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe("aggregator");
+        originalSenderProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe("originalSender");
+        pubSubMediatorProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe("pubSubMediator");
+        dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().responseRequired(true).build();
+        responseHeaders = dittoHeaders.toBuilder().responseRequired(false).build();
     }
 
     @Test
@@ -92,7 +103,7 @@ public final class QueryThingsPerRequestActorTest {
         // WHEN: QueryThingsResponse has items
         underTest.tell(queryThingsResponse, ActorRef.noSender());
 
-        // THEN: aggregator is a asked to retrieve things
+        // THEN: aggregator is asked to retrieve things
         aggregatorProbe.expectMsg(RetrieveThings.getBuilder(thingId1, thingId2)
                 .dittoHeaders(dittoHeaders)
                 .build());
@@ -180,14 +191,40 @@ public final class QueryThingsPerRequestActorTest {
         );
     }
 
+    @Test
+    public void actorShutsDownAfterServiceRequestDoneMessageWasReceived() {
+        new TestKit(ACTOR_SYSTEM_RESOURCE.getActorSystem()) {{
+            final ActorRef underTest = createQueryThingsPerRequestActor(QueryThings.of(dittoHeaders));
+            final ThingId thingId1 = ThingId.of("thing:1");
+            final ThingId thingId2 = ThingId.of("thing:2");
+            final SearchResult searchResult = forIdItems(thingId1, thingId2);
+            final QueryThingsResponse queryThingsResponse = QueryThingsResponse.of(searchResult, responseHeaders);
+
+            watch(underTest);
+            underTest.tell(queryThingsResponse, ActorRef.noSender());
+
+            aggregatorProbe.expectMsg(
+                    RetrieveThings.getBuilder(thingId1, thingId2)
+                    .dittoHeaders(dittoHeaders)
+                    .build());
+
+            underTest.tell(QueryThingsPerRequestActor.Control.SERVICE_REQUESTS_DONE, getRef());
+
+            expectMsgClass(Duration.ofSeconds(6), Done.class);
+            expectTerminated(underTest);
+        }};
+    }
+
     private ActorRef createQueryThingsPerRequestActor(final QueryThings queryThings) {
         final Props props = QueryThingsPerRequestActor.props(
                 queryThings,
                 aggregatorProbe.ref(),
                 originalSenderProbe.ref(),
-                pubSubMediatorProbe.ref()
+                pubSubMediatorProbe.ref(),
+                gatewayConfig.getHttpConfig()
         );
-        return actorSystem.actorOf(props);
+
+        return ACTOR_SYSTEM_RESOURCE.newActor(props);
     }
 
     private static SearchResult forIdItems(final ThingId... thingIds) {

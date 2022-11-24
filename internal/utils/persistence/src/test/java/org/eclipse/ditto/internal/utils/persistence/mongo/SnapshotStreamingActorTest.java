@@ -36,13 +36,16 @@ import org.mockito.Mockito;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.stream.SourceRef;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
+import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -54,6 +57,7 @@ public final class SnapshotStreamingActorTest {
     private ActorSystem actorSystem;
     private DittoMongoClient mockClient;
     private MongoReadJournal mockReadJournal;
+    private TestProbe pubSubMediatorTestProbe;
 
     @Before
     public void initActorSystem() {
@@ -61,7 +65,7 @@ public final class SnapshotStreamingActorTest {
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
         mockClient = Mockito.mock(DittoMongoClient.class);
         mockReadJournal = Mockito.mock(MongoReadJournal.class);
-
+        pubSubMediatorTestProbe = TestProbe.apply("pubSubMediator", actorSystem);
     }
 
     @After
@@ -93,21 +97,48 @@ public final class SnapshotStreamingActorTest {
 
     @Test
     public void streamNonemptySnapshotCollection() {
-        streamNonemptySnapshotCollection(SudoStreamSnapshots.of(100, 10_000L, List.of(), DittoHeaders.empty(), THING_TYPE), SnapshotFilter.of("",""));
+        streamNonemptySnapshotCollection(
+                SudoStreamSnapshots.of(100, 10_000L, List.of(), DittoHeaders.empty(), THING_TYPE),
+                SnapshotFilter.of("", ""));
     }
 
     @Test
     public void streamNonemptyFilteredSnapshotCollection() {
-        streamNonemptySnapshotCollection(SudoStreamSnapshots.of(100, 10_000L, List.of(), DittoHeaders.empty(), THING_TYPE).withNamespacesFilter(List.of("eclipse", "ditto")),
-                SnapshotFilter.of("","^thing:(eclipse|ditto):.*"));
+        streamNonemptySnapshotCollection(
+                SudoStreamSnapshots.of(100, 10_000L, List.of(), DittoHeaders.empty(), THING_TYPE)
+                        .withNamespacesFilter(List.of("eclipse", "ditto")),
+                SnapshotFilter.of("", "^thing:(eclipse|ditto):.*"));
     }
+
     @Test
     public void streamNonemptySnapshotCollectionFromLowerBound() {
-        streamNonemptySnapshotCollection(SudoStreamSnapshots.of(100, 10_000L, List.of(), DittoHeaders.empty(), THING_TYPE).withLowerBound(EntityId.of(THING_TYPE, "snap:1")),
+        streamNonemptySnapshotCollection(
+                SudoStreamSnapshots.of(100, 10_000L, List.of(), DittoHeaders.empty(), THING_TYPE)
+                        .withLowerBound(EntityId.of(THING_TYPE, "snap:1")),
                 SnapshotFilter.of("thing:snap:1", ""));
     }
 
-    private void streamNonemptySnapshotCollection(final SudoStreamSnapshots sudoStreamSnapshots, final SnapshotFilter expectedFilter) {
+    @Test
+    public void testServiceUnbindAndServiceRequestsDone() {
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = createSnapshotStreamingActor();
+            pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Subscribe.class);
+
+            underTest.tell(SnapshotStreamingActor.Control.SERVICE_UNBIND, getRef());
+
+            final var unsub1 =
+                    pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Unsubscribe.class);
+            pubSubMediatorTestProbe.reply(new DistributedPubSubMediator.UnsubscribeAck(unsub1));
+            expectMsg(Done.getInstance());
+
+            underTest.tell(SnapshotStreamingActor.Control.SERVICE_REQUESTS_DONE, getRef());
+
+            expectMsg(Done.getInstance());
+        }};
+    }
+
+    private void streamNonemptySnapshotCollection(final SudoStreamSnapshots sudoStreamSnapshots,
+            final SnapshotFilter expectedFilter) {
         new TestKit(actorSystem) {{
             final ActorRef underTest = createSnapshotStreamingActor();
 
@@ -145,6 +176,7 @@ public final class SnapshotStreamingActorTest {
 
     }
 
+
     private void setSnapshotStore(final Source<Document, NotUsed> mockSource) {
         Mockito.when(mockReadJournal.getNewestSnapshotsAbove(any(SnapshotFilter.class), anyInt(), any(), any()))
                 .thenReturn(mockSource);
@@ -161,8 +193,10 @@ public final class SnapshotStreamingActorTest {
                         pid.substring(pid.indexOf(':') + 1)),
                 entityId -> THING_TYPE + ":" + entityId.toString(),
                 mockClient,
-                mockReadJournal
+                mockReadJournal,
+                pubSubMediatorTestProbe.ref()
         );
+
         return actorSystem.actorOf(props);
     }
 }

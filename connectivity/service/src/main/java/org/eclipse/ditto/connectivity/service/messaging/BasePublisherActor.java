@@ -77,7 +77,8 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
@@ -89,7 +90,6 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.japi.pf.ReceiveBuilder;
-import kamon.context.Context;
 
 /**
  * Base class for publisher actors. Holds the map of configured targets.
@@ -462,21 +462,24 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             final Object entityId = outboundSource instanceof WithEntityId wEntityId ? wEntityId.getEntityId() : "?";
             l.info("Publishing mapped message of type <{}> for id <{}> to PublishTarget <{}>",
                     outboundSource.getType(), entityId, publishTarget);
-            l.debug("Publishing mapped message of type <{}> for id <{}> to PublishTarget <{}>: {}", outboundSource.getType(),
-                    entityId, publishTarget, sendingContext.getExternalMessage());
+            l.debug("Publishing mapped message of type <{}> for id <{}> to PublishTarget <{}>: {}",
+                    outboundSource.getType(),
+                    entityId,
+                    publishTarget,
+                    sendingContext.getExternalMessage());
             @Nullable final Target autoAckTarget = sendingContext.getAutoAckTarget().orElse(null);
 
             final HeaderMapping headerMapping = genericTarget.getHeaderMapping();
             final ExternalMessage mappedMessage = applyHeaderMapping(resolver, outbound, headerMapping);
-            final Context context = DittoTracing.extractTraceContext(mappedMessage.getHeaders());
-            final StartedTrace trace = DittoTracing
-                    .trace(context, connection.getConnectionType() + "_publish")
+            final var startedSpan = DittoTracing.newPreparedSpan(
+                            mappedMessage.getHeaders(),
+                            SpanOperationName.of(connection.getConnectionType() + "_publish")
+                    )
                     .connectionId(connection.getId())
-                    .connectionType(connection.getConnectionType())
+                    .tag(SpanTagKey.CONNECTION_TYPE.getTagForValue(connection.getConnectionType()))
                     .start();
-            final ExternalMessage mappedMessageWithTraceContext =
-                    DittoTracing.propagateContext(trace.getContext(), mappedMessage,
-                            (msg, entry) -> msg.withHeader(entry.getKey(), entry.getValue()));
+            final var mappedMessageWithTraceContext =
+                    mappedMessage.withHeaders(startedSpan.propagateContext(mappedMessage.getHeaders()));
 
             final CompletionStage<SendResult> responsesFuture = publishMessage(outboundSource,
                     autoAckTarget,
@@ -486,7 +489,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     quota,
                     sendingContext.getTargetAuthorizationContext().orElse(null)
             );
-            responsesFuture.whenComplete((sr, throwable) -> trace.finish());
+            responsesFuture.whenComplete((sr, throwable) -> startedSpan.finish());
             // set the external message after header mapping for the result of header mapping to show up in log
             result = new Sending(sendingContext.setExternalMessage(mappedMessageWithTraceContext), responsesFuture,
                     connectionIdResolver, l);
@@ -654,4 +657,5 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     Instant.now());
         }
     }
+
 }

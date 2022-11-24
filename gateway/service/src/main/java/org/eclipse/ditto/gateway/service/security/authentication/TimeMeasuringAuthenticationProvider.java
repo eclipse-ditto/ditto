@@ -28,7 +28,7 @@ import org.eclipse.ditto.gateway.api.GatewayAuthenticationProviderUnavailableExc
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.TraceUtils;
-import org.eclipse.ditto.internal.utils.tracing.TracingTags;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 
 import akka.http.javadsl.server.RequestContext;
 
@@ -40,9 +40,6 @@ import akka.http.javadsl.server.RequestContext;
 @Immutable
 public abstract class TimeMeasuringAuthenticationProvider<R extends AuthenticationResult>
         implements AuthenticationProvider<R> {
-
-    private static final String AUTH_ERROR_TAG = TracingTags.AUTH_ERROR;
-    private static final String AUTH_SUCCESS_TAG = TracingTags.AUTH_SUCCESS;
 
     private final ThreadSafeDittoLogger logger;
 
@@ -68,23 +65,24 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
             resultFuture = CompletableFuture.failedFuture(e);
         }
         resultFuture = resultFuture.thenApply(
-                authenticationResult -> {
-                    timer.tag(AUTH_SUCCESS_TAG, authenticationResult.isSuccess());
-                    return authenticationResult;
-                })
+                        authenticationResult -> {
+                            timer.tag(SpanTagKey.AUTH_SUCCESS.getTagForValue(authenticationResult.isSuccess()));
+                            return authenticationResult;
+                        })
                 .exceptionally(error -> {
                     final Throwable rootCause = getRootCause(error);
                     if (rootCause instanceof DittoRuntimeException dittoRuntimeException) {
-                        timer.tag(AUTH_SUCCESS_TAG, false);
+                        timer.tag(SpanTagKey.AUTH_SUCCESS.getTagForValue(false));
                         if (isInternalError(dittoRuntimeException.getHttpStatus())) {
                             logger.withCorrelationId(dittoHeaders)
                                     .warn("An unexpected error occurred during authentication of type <{}>.",
                                             authorizationContextType, dittoRuntimeException);
-                            timer.tag(AUTH_ERROR_TAG, true);
+                            timer.tag(SpanTagKey.AUTH_ERROR.getTagForValue(true));
                         }
                         return toFailedAuthenticationResult(dittoRuntimeException, dittoHeaders);
                     } else {
-                        timer.tag(AUTH_SUCCESS_TAG, false).tag(AUTH_ERROR_TAG, true);
+                        timer.tag(SpanTagKey.AUTH_SUCCESS.getTagForValue(false));
+                        timer.tag(SpanTagKey.AUTH_ERROR.getTagForValue(true));
                         return toFailedAuthenticationResult(rootCause, dittoHeaders);
                     }
                 });

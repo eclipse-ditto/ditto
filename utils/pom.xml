@@ -28,6 +28,7 @@
 
     <modules>
         <module>jsr305</module>
+        <module>result</module>
     </modules>
 
     <properties>

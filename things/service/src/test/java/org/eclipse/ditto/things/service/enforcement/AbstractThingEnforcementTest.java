@@ -105,14 +105,14 @@ abstract class AbstractThingEnforcementTest {
                     }
 
                     @Override
-                    public Object wrapForPublication(final ThingEvent<?> message) {
+                    public Object wrapForPublication(final ThingEvent<?> message, final CharSequence groupIndexKey) {
                         return message;
                     }
 
                     @Override
                     public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
-                            final AckExtractor<S> ackExtractor) {
-                        return wrapForPublication(message);
+                            final CharSequence groupIndexKey, final AckExtractor<S> ackExtractor) {
+                        return wrapForPublication(message, groupIndexKey);
                     }
                 },
                 new TestSetup.DummyLiveSignalPub(pubSubMediatorProbe.ref()),

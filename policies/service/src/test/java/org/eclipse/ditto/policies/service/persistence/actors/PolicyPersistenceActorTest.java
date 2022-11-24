@@ -51,6 +51,7 @@ import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
@@ -118,6 +119,7 @@ import org.eclipse.ditto.policies.service.common.config.PolicyAnnouncementConfig
 import org.eclipse.ditto.policies.service.persistence.TestConstants;
 import org.eclipse.ditto.policies.service.persistence.actors.announcements.PolicyAnnouncementManager;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -147,6 +149,10 @@ import scala.PartialFunction;
  * Unit test for the {@link PolicyPersistenceActor}.
  */
 public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PolicyPersistenceActorTest.class);
 
@@ -826,7 +832,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
                 // THEN: a SubjectDeletionAnnouncement should have been published
                 final var announcementCaptor = ArgumentCaptor.forClass(SubjectDeletionAnnouncement.class);
-                verify(policyAnnouncementPub).publishWithAcks(announcementCaptor.capture(), any(), any());
+                verify(policyAnnouncementPub).publishWithAcks(announcementCaptor.capture(), any(), any(), any());
                 final SubjectDeletionAnnouncement announcement = announcementCaptor.getValue();
                 Assertions.assertThat(announcement.getSubjectIds()).containsExactly(subjectToAdd.getId());
                 Assertions.assertThat(announcement.getDeleteAt()).isEqualTo(expectedRoundedExpiryInstant);
@@ -883,7 +889,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
                 // THEN: announcement is published for subject2
                 final var captor = ArgumentCaptor.forClass(SubjectDeletionAnnouncement.class);
-                verify(policyAnnouncementPub, timeout(5000)).publishWithAcks(captor.capture(), any(), any());
+                verify(policyAnnouncementPub, timeout(5000)).publishWithAcks(captor.capture(), any(), any(), any());
                 final SubjectDeletionAnnouncement announcement2 = captor.getValue();
                 Assertions.assertThat(announcement2.getSubjectIds()).containsExactly(subject2.getId());
 
@@ -894,7 +900,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
                 // THEN: announcement is published for subject1
                 verify(policyAnnouncementPub, timeout(5000).times(2))
-                        .publishWithAcks(captor.capture(), any(), any());
+                        .publishWithAcks(captor.capture(), any(), any(), any());
                 final SubjectDeletionAnnouncement announcement1 = captor.getValue();
                 Assertions.assertThat(announcement1.getSubjectIds()).containsExactly(subject1.getId());
 
@@ -944,7 +950,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 // THEN: announcements are published
                 final var captor = ArgumentCaptor.forClass(SubjectDeletionAnnouncement.class);
                 verify(policyAnnouncementPub, timeout(5000).times(2))
-                        .publishWithAcks(captor.capture(), any(), any());
+                        .publishWithAcks(captor.capture(), any(), any(), any());
                 for (final var announcement : captor.getAllValues()) {
                     if (announcement.getSubjectIds().contains(subject1.getId())) {
                         Assertions.assertThat(announcement.getDeleteAt())
@@ -1380,7 +1386,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         ClusterShardingSettings.apply(actorSystem).withRole("policies");
                 final var box = new AtomicReference<ActorRef>();
                 final ActorRef announcementManager = createAnnouncementManager(policyId, box::get);
-                final Props props = PolicyPersistenceActor.propsForTests(policyId, pubSubMediator, announcementManager);
+                final Props props = PolicyPersistenceActor.propsForTests(policyId, pubSubMediator, announcementManager,
+                        actorSystem);
                 final Cluster cluster = Cluster.get(actorSystem);
                 cluster.join(cluster.selfAddress());
                 final ActorRef underTest = ClusterSharding.get(actorSystem)
@@ -1453,7 +1460,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 // THEN: SubjectDeletionAnnouncement is published
                 final var announcementCaptor = ArgumentCaptor.forClass(SubjectDeletionAnnouncement.class);
                 verify(policyAnnouncementPub, timeout(5000))
-                        .publishWithAcks(announcementCaptor.capture(), any(), any());
+                        .publishWithAcks(announcementCaptor.capture(), any(), any(), any());
                 final var announcement = announcementCaptor.getValue();
                 Assertions.assertThat(announcement.getSubjectIds()).containsExactly(expiringSubject.getId());
 
@@ -1630,7 +1637,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final var box = new AtomicReference<ActorRef>();
                 final ActorRef announcementManager = createAnnouncementManager(policyId, box::get);
                 final Props persistentActorProps =
-                        PolicyPersistenceActor.propsForTests(policyId, pubSubMediator, announcementManager);
+                        PolicyPersistenceActor.propsForTests(policyId, pubSubMediator, announcementManager, actorSystem);
 
                 final TestProbe errorsProbe = TestProbe.apply(actorSystem);
 
@@ -1745,7 +1752,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     private ActorRef createPersistenceActorFor(final TestKit testKit, final PolicyId policyId) {
         final var box = new AtomicReference<ActorRef>();
         final ActorRef announcementManager = createAnnouncementManager(policyId, box::get);
-        final Props props = PolicyPersistenceActor.propsForTests(policyId, pubSubMediator, announcementManager);
+        final Props props = PolicyPersistenceActor.propsForTests(policyId, pubSubMediator, announcementManager,
+                actorSystem);
         final var persistenceActor = testKit.watch(testKit.childActorOf(props));
         box.set(persistenceActor);
         return persistenceActor;

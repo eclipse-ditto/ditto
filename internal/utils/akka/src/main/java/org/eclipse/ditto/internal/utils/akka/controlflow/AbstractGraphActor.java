@@ -14,8 +14,6 @@ package org.eclipse.ditto.internal.utils.akka.controlflow;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.Collections;
-import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
@@ -28,6 +26,8 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 
 import akka.actor.AbstractActor;
 import akka.japi.pf.ReceiveBuilder;
@@ -75,12 +75,12 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
             final UnaryOperator<ThreadSafeDittoLoggingAdapter> loggerEnhancer) {
         this.matchClass = checkNotNull((Class<M>) matchClass, "matchClass");
 
-        final Map<String, String> tags = Collections.singletonMap("class", getClass().getSimpleName());
-        receiveCounter = DittoMetrics.counter("graph_actor_receive", tags);
-        enqueueSuccessCounter = DittoMetrics.counter("graph_actor_enqueue_success", tags);
-        enqueueDroppedCounter = DittoMetrics.counter("graph_actor_enqueue_dropped", tags);
-        enqueueFailureCounter = DittoMetrics.counter("graph_actor_enqueue_failure", tags);
-        dequeueCounter = DittoMetrics.counter("graph_actor_dequeue", tags);
+        final var tagSet = TagSet.ofTag(Tag.of("class", getClass().getSimpleName()));
+        receiveCounter = DittoMetrics.counter("graph_actor_receive", tagSet);
+        enqueueSuccessCounter = DittoMetrics.counter("graph_actor_enqueue_success", tagSet);
+        enqueueDroppedCounter = DittoMetrics.counter("graph_actor_enqueue_dropped", tagSet);
+        enqueueFailureCounter = DittoMetrics.counter("graph_actor_enqueue_failure", tagSet);
+        dequeueCounter = DittoMetrics.counter("graph_actor_dequeue", tagSet);
 
         this.logger = loggerEnhancer.apply(DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this));
         materializer = Materializer.createMaterializer(this::getContext);

@@ -187,10 +187,12 @@ public final class RootRoute extends AllDirectives {
                         CorrelationIdEnsuringDirective.ensureCorrelationId(
                                 correlationId -> requestTimeoutHandlingDirective
                                         .handleRequestTimeout(correlationId, () ->
-                                                RequestTracingDirective.traceRequest(correlationId, () ->
-                                                        RequestResultLoggingDirective.logRequestResult(correlationId,
+                                                RequestTracingDirective.traceRequest(
+                                                        () -> RequestResultLoggingDirective.logRequestResult(
+                                                                correlationId,
                                                                 () -> innerRouteProvider.apply(correlationId)
-                                                        )
+                                                        ),
+                                                        correlationId
                                                 )
                                         )
                         )
@@ -228,19 +230,22 @@ public final class RootRoute extends AllDirectives {
 
         return rawPathPrefix(PathMatchers.slash().concat(HTTP_PATH_API_PREFIX), () -> // /api
                 ensureSchemaVersion(apiVersion ->  // /api/<apiVersion>
-                        rawPathPrefixTest(PathMatchers.slash().concat(ConnectionsRoute.PATH_CONNECTIONS), () -> // /api/<apiVersion>/connections
-                                withDittoHeaders(rootRouteHeadersStepBuilder.withInitialDittoHeadersBuilder(
-                                                DittoHeaders.newBuilder()
-                                                        .schemaVersion(apiVersion)
-                                                        .correlationId(correlationId)
-                                                        .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(),
-                                                                Boolean.TRUE.toString())
-                                        )
-                                        .withRequestContext(ctx)
-                                        .withQueryParameters(queryParameters)
-                                        .build(CustomHeadersHandler.RequestType.API),
-                                        dittoHeaders -> connectionsRoute.buildConnectionsRoute(ctx, dittoHeaders)
-                                ).seal() // sealing here is important as we don't want to fall back to other routes if devops auth failed
+                        rawPathPrefixTest(PathMatchers.slash().concat(ConnectionsRoute.PATH_CONNECTIONS),
+                                () -> // /api/<apiVersion>/connections
+                                        withDittoHeaders(rootRouteHeadersStepBuilder.withInitialDittoHeadersBuilder(
+                                                                DittoHeaders.newBuilder()
+                                                                        .schemaVersion(apiVersion)
+                                                                        .correlationId(correlationId)
+                                                                        .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(),
+                                                                                Boolean.TRUE.toString())
+                                                        )
+                                                        .withRequestContext(ctx)
+                                                        .withQueryParameters(queryParameters)
+                                                        .build(CustomHeadersHandler.RequestType.API),
+                                                dittoHeaders -> connectionsRoute.buildConnectionsRoute(ctx,
+                                                        dittoHeaders)
+                                        ).seal()
+                                // sealing here is important as we don't want to fall back to other routes if devops auth failed
                         )
                 )
         );
@@ -259,15 +264,15 @@ public final class RootRoute extends AllDirectives {
                         customApiRoutesProvider
                                 .unauthorized(routeBaseProperties, apiVersion, correlationId)
                                 .orElse(apiAuthentication(apiVersion, correlationId, auth ->
-                                            withDittoHeaders(
-                                                    rootRouteHeadersStepBuilder.withInitialDittoHeadersBuilder(
-                                                                    auth.getDittoHeaders().toBuilder()
-                                                            )
-                                                            .withRequestContext(ctx)
-                                                            .withQueryParameters(queryParameters)
-                                                            .build(CustomHeadersHandler.RequestType.API),
-                                                    dittoHeaders -> buildApiSubRoutes(ctx, dittoHeaders, auth)
-                                            )
+                                        withDittoHeaders(
+                                                rootRouteHeadersStepBuilder.withInitialDittoHeadersBuilder(
+                                                                auth.getDittoHeaders().toBuilder()
+                                                        )
+                                                        .withRequestContext(ctx)
+                                                        .withQueryParameters(queryParameters)
+                                                        .build(CustomHeadersHandler.RequestType.API),
+                                                dittoHeaders -> buildApiSubRoutes(ctx, dittoHeaders, auth)
+                                        )
                                 ))
                 )
         );

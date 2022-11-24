@@ -26,6 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -125,9 +126,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
             final Config connectivityConfigOverwrites,
-            final DittoHeaders dittoHeaders) {
+            final boolean dryRun) {
 
-        super(connection, commandForwarderActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
+        super(connection, commandForwarderActor, connectionActor, dryRun, connectivityConfigOverwrites);
         final ConnectionConfig connectionConfig = connectivityConfig().getConnectionConfig();
         final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
         jmsConnectionFactory =
@@ -153,9 +154,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private AmqpClientActor(final Connection connection,
             final JmsConnectionFactory jmsConnectionFactory,
             final ActorRef commandForwarderActor,
-            final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
+            final ActorRef connectionActor,
+            final boolean dryRun) {
 
-        super(connection, commandForwarderActor, connectionActor, dittoHeaders, ConfigFactory.empty());
+        super(connection, commandForwarderActor, connectionActor, dryRun, ConfigFactory.empty());
 
         this.jmsConnectionFactory = jmsConnectionFactory;
         connectionListener = new StatusReportingListener(getSelf(), logger, connectionLogger);
@@ -182,7 +184,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final ActorRef connectionActor, final Config configOverwrites, final ActorSystem actorSystem,
             final DittoHeaders dittoHeaders) {
         return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem),
-                commandForwarderActor, connectionActor, configOverwrites, dittoHeaders);
+                commandForwarderActor, connectionActor, configOverwrites, dittoHeaders.isDryRun());
     }
 
     /**
@@ -199,7 +201,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final ActorRef connectionActor, final JmsConnectionFactory jmsConnectionFactory,
             final ActorSystem actorSystem) {
         return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem),
-                jmsConnectionFactory, commandForwarderActor, connectionActor, DittoHeaders.empty());
+                jmsConnectionFactory, commandForwarderActor, connectionActor, false);
     }
 
     private static Connection validateConnection(final Connection connection, final ActorSystem actorSystem) {
@@ -226,8 +228,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     @Override
     public void postStop() {
-        ensureJmsConnectionClosed();
         super.postStop();
+        ensureJmsConnectionClosed();
     }
 
     @Override
@@ -297,6 +299,16 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                         return new Status.Success(response);
                     }
                 });
+    }
+
+    @Override
+    protected CompletionStage<Void> stopConsuming() {
+        final var timeout = Duration.ofMinutes(2L);
+        final CompletableFuture<?>[] futures = streamConsumerActors()
+                .map(consumer -> Patterns.ask(consumer, AmqpConsumerActor.Control.STOP_CONSUMER, timeout))
+                .map(CompletionStage::toCompletableFuture)
+                .toArray(CompletableFuture[]::new);
+        return CompletableFuture.allOf(futures);
     }
 
     @Override
@@ -437,12 +449,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     private void stopCommandConsumers() {
-        consumerByNamePrefix.forEach((namePrefix, child) -> {
-            final String actorName = child.path().name();
-            if (actorName.startsWith(AmqpConsumerActor.ACTOR_NAME_PREFIX)) {
-                stopChildActor(child);
-            }
-        });
+        streamConsumerActors().forEach(this::stopChildActor);
         consumerByNamePrefix.clear();
     }
 
@@ -609,6 +616,12 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     private JmsConnect jmsConnect(@Nullable final ActorRef sender, final Connection connection) {
         return new JmsConnect(sender, getClientId(connection.getId()));
+    }
+
+    private Stream<ActorRef> streamConsumerActors() {
+        return consumerByNamePrefix.values()
+                .stream()
+                .filter(child -> child.path().name().startsWith(AmqpConsumerActor.ACTOR_NAME_PREFIX));
     }
 
     /**

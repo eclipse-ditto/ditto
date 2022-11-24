@@ -12,12 +12,12 @@ There is a browser based user interface to explore things, policies and connecti
 The UI can be used to access the REST API of any Ditto instance.
 Several Ditto instances can be configured as "Environments"
 
-{% include image.html file="pages/ui/screenshot_introduction.png" alt="UI example screenshot" caption="Ditto Explorer UI" max-width=800 url="https://eclipse.github.io/ditto/index.html?primaryEnvironmentName=ditto_sandbox" %}
+{% include image.html file="pages/ui/screenshot_introduction.png" alt="UI example screenshot" caption="Ditto Explorer UI" max-width=800 url="https://eclipse-ditto.github.io/ditto/index.html?primaryEnvironmentName=ditto_sandbox" %}
 
 
 ## How to use
 
-The latest version of the Explorer UI is available online [here](https://eclipse.github.io/ditto/index.html?primaryEnvironmentName=ditto_sandbox){:target="_blank"}
+The latest version of the Explorer UI is available online [here](https://eclipse-ditto.github.io/ditto/index.html?primaryEnvironmentName=ditto_sandbox){:target="_blank"}
 
 There is also a Docker image prepared to server the latest version by docker:
 ```bash

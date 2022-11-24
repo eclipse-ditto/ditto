@@ -18,7 +18,7 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 /**
  * A supervisor internal message which contains the {@link org.eclipse.ditto.internal.utils.pubsub.DistributedPub} to publish the
  * {@code wrappedSignalForPublication} to - which is the also passed in {@code signal} wrapped using
- * {@link org.eclipse.ditto.internal.utils.pubsub.DistributedPub#wrapForPublicationWithAcks(Object, org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor)}
+ * {@link org.eclipse.ditto.internal.utils.pubsub.DistributedPub#wrapForPublicationWithAcks(Object, CharSequence, org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor)}
  * with the specific ack extractor for that signal type.
  *
  * @param pub the DistributedPub to use for publishing the message

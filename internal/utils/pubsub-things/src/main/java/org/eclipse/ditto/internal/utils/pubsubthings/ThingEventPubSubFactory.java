@@ -76,22 +76,6 @@ public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEv
         return new ThingEventPubSubFactory(system, system, readSubjectOnlyExtractor(), distributedAcks);
     }
 
-    /**
-     * Create a pubsub factory for thing events ignoring read subject topics.
-     *
-     * @param context context of the actor under which publisher and subscriber actors are created.
-     * @param numberOfShards the number of shards---must be identical between things and thing-updaters.
-     * @param distributedAcks the distributed acks interface.
-     * @return the thing event pug-sub factory.
-     */
-    public static ThingEventPubSubFactory shardIdOnly(final ActorContext context, final int numberOfShards,
-            final DistributedAcks distributedAcks) {
-
-        final PubSubTopicExtractor<ThingEvent<?>> topicExtractor =
-                shardIdOnlyExtractor(ShardRegionExtractor.of(numberOfShards, context.system()));
-        return new ThingEventPubSubFactory(context, context.system(), topicExtractor, distributedAcks);
-    }
-
     private static PubSubTopicExtractor<ThingEvent<?>> readSubjectOnlyExtractor() {
         return ReadSubjectExtractor.<ThingEvent<?>>of().with(ConstantTopics.of(ThingEvent.TYPE_PREFIX));
     }

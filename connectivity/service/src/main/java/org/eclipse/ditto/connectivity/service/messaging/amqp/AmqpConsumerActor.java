@@ -66,9 +66,10 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProv
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.Traces;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.TracingSpans;
 
+import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
@@ -160,6 +161,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
                 .match(ResourceStatus.class, this::handleAddressStatus)
                 .match(RetrieveAddressStatus.class, ras -> getSender().tell(getCurrentSourceStatus(), getSelf()))
                 .matchEquals(Control.CREATE_CONSUMER, this::createMessageConsumer)
+                .matchEquals(Control.STOP_CONSUMER, this::stopConsumerOnRequest)
                 .match(ConsumerClosedStatusReport.class, this::matchesOwnConsumer, this::handleConsumerClosed)
                 .match(ConsumerClosedStatusReport.class, this::handleNonMatchingConsumerClosed)
                 .match(CreateMessageConsumerResponse.class, this::messageConsumerCreated)
@@ -191,6 +193,11 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
     @Override
     public void onMessage(final Message message) {
         getSelf().tell(message, ActorRef.noSender());
+    }
+
+    private void stopConsumerOnRequest(final Control stopConsumer) {
+        stopMessageConsumer();
+        getSender().tell(Done.getInstance(), getSelf());
     }
 
     private void stopMessageConsumer() {
@@ -338,7 +345,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
     private void handleJmsMessage(final JmsMessage message) {
         Map<String, String> headers = null;
         String correlationId = null;
-        StartedTrace trace = Traces.emptyStartedTrace();
+        var startedSpan = TracingSpans.emptyStartedSpan(SpanOperationName.of("amqp_consume"));
         try {
             recordIncomingForRateLimit(message.getJMSMessageID());
             if (logger.isDebugEnabled()) {
@@ -352,11 +359,11 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
             }
             headers = extractHeadersMapFromJmsMessage(message);
             correlationId = headers.get(DittoHeaderDefinition.CORRELATION_ID.getKey());
-            trace = DittoTracing.trace(DittoTracing.extractTraceContext(headers), "amqp_consume")
+            startedSpan = DittoTracing.newPreparedSpan(headers, startedSpan.getOperationName())
                     .correlationId(correlationId)
                     .connectionId(connectionId)
                     .start();
-            headers = trace.propagateContext(headers);
+            headers = startedSpan.propagateContext(headers);
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
             final ExternalMessage externalMessage = extractPayloadFromMessage(message, builder, correlationId)
                     .withAuthorizationContext(source.getAuthorizationContext())
@@ -381,7 +388,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
             logger.withCorrelationId(e)
                     .info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(),
                             e.getMessage());
-            trace.fail(e);
+            startedSpan.tagAsFailed(e);
             if (headers != null) {
                 // forwarding to messageMappingProcessor only make sense if we were able to extract the headers,
                 // because we need a reply-to address to send the error response
@@ -396,11 +403,11 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
             } else {
                 inboundMonitor.exception(e);
             }
-            trace.fail(e);
+            startedSpan.tagAsFailed(e);
             logger.withCorrelationId(correlationId)
                     .error(e, "Unexpected {}: {}", e.getClass().getName(), e.getMessage());
         } finally {
-            trace.finish();
+            startedSpan.finish();
         }
     }
 
@@ -531,10 +538,15 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
     /**
      * Actor control messages.
      */
-    private enum Control {
+    enum Control {
         /**
          * Triggers creation of a new message consumer.
          */
-        CREATE_CONSUMER
+        CREATE_CONSUMER,
+
+        /**
+         * Triggers stopping of the message consumer.
+         */
+        STOP_CONSUMER
     }
 }

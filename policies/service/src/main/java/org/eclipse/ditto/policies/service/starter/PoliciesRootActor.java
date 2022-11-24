@@ -21,7 +21,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
-import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
+import org.eclipse.ditto.internal.utils.cluster.ShardRegionCreator;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
@@ -42,7 +42,6 @@ import org.eclipse.ditto.policies.service.persistence.actors.PolicySupervisorAct
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
@@ -89,16 +88,9 @@ public final class PoliciesRootActor extends DittoRootActor {
         final var policySupervisorProps =
                 getPolicySupervisorActorProps(pubSubMediator, policyAnnouncementPub, blockedNamespaces);
 
-        final var clusterConfig = policiesConfig.getClusterConfig();
-        final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(clusterConfig.getNumberOfShards(),
-                actorSystem);
-
-        final ActorRef policiesShardRegion = ClusterSharding.get(actorSystem)
-                .start(PoliciesMessagingConstants.SHARD_REGION,
-                        policySupervisorProps,
-                        shardingSettings,
-                        shardRegionExtractor
-                );
+        final ActorRef policiesShardRegion =
+                ShardRegionCreator.start(actorSystem, PoliciesMessagingConstants.SHARD_REGION, policySupervisorProps,
+                        policiesConfig.getClusterConfig().getNumberOfShards(), CLUSTER_ROLE);
 
         final var mongoReadJournal = MongoReadJournal.newInstance(actorSystem);
         startClusterSingletonActor(
@@ -114,7 +106,7 @@ public final class PoliciesRootActor extends DittoRootActor {
 
         final var cleanupConfig = policiesConfig.getPolicyConfig().getCleanupConfig();
         final var cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE);
-        startChildActor(PersistenceCleanupActor.NAME, cleanupActorProps);
+        startChildActor(PersistenceCleanupActor.ACTOR_NAME, cleanupActorProps);
 
         final var healthCheckConfig = policiesConfig.getHealthCheckConfig();
         final var hcBuilder =

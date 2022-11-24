@@ -12,10 +12,13 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
 
 /**
@@ -29,7 +32,9 @@ public interface ThingPersistenceActorPropsFactory {
      *
      * @param thingId the thing ID.
      * @param distributedPub the distributed-pub access.
+     * @param searchShardRegionProxy the proxy of the shard region of search updaters.
      * @return Props of the thing-persistence-actor.
      */
-    Props props(ThingId thingId, DistributedPub<ThingEvent<?>> distributedPub);
+    Props props(ThingId thingId, DistributedPub<ThingEvent<?>> distributedPub,
+            @Nullable final ActorRef searchShardRegionProxy);
 }

@@ -820,7 +820,7 @@ Set the special key `last-pid` to set the lower bound of PIDs to clean up in the
   "targetActorSelection": "/user/<SERVICE_NAME>Root/persistenceCleanup",
   "headers": {
     "aggregate": false,
-    "is-grouped-topic": true
+    "is-group-topic": true
   },
   "piggybackCommand": {
     "type": "common.commands:modifyConfig",
@@ -899,7 +899,7 @@ the same commands.
   "targetActorSelection": "/user/thingsWildcardSearchRoot/searchUpdaterRoot/backgroundSync/singleton",
   "headers": {
     "aggregate": false,
-    "is-grouped-topic": true
+    "is-group-topic": false
   },
   "piggybackCommand": {
     "type": "<COMMAND-TYPE>"
@@ -931,7 +931,7 @@ will trigger an update of the search index for all things. After the iteration o
   "targetActorSelection": "/user/thingsWildcardSearchRoot/searchUpdaterRoot/backgroundSyncProxy",
   "headers": {
     "aggregate": false,
-    "is-grouped-topic": false,
+    "is-group-topic": false,
     "force-update": true
   },
   "piggybackCommand": {
@@ -957,7 +957,7 @@ the background sync will continue its normal operation.
   "targetActorSelection": "/user/thingsWildcardSearchRoot/searchUpdaterRoot/backgroundSyncProxy",
   "headers": {
     "aggregate": false,
-    "is-grouped-topic": false,
+    "is-group-topic": false,
     "force-update": true,
     "namespaces": ["namespace1", "namespace2"]
   },
@@ -982,7 +982,7 @@ for a particular thing by a DevOps-command and bring the entry up-to-date immedi
   "targetActorSelection": "/user/thingsWildcardSearchRoot/searchUpdaterRoot/thingsUpdater",
   "headers": {
     "aggregate": false,
-    "is-grouped-topic": true
+    "is-group-topic": true
   },
   "piggybackCommand": {
     "type": "thing-search.sudo.commands:sudoUpdateThing",

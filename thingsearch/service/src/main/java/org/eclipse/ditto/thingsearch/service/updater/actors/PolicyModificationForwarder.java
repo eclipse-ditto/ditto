@@ -32,9 +32,11 @@ import org.eclipse.ditto.thingsearch.api.PolicyReferenceTag;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.ThingsSearchUpdaterPersistence;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
@@ -58,6 +60,7 @@ final class PolicyModificationForwarder extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
+    private final ActorRef pubSubMediator;
     private final ActorRef thingsUpdater;
     private final ThingsSearchUpdaterPersistence persistence;
     private final BlockNamespaceBehavior blockNamespaceBehavior;
@@ -72,6 +75,7 @@ final class PolicyModificationForwarder extends AbstractActor {
             final BlockedNamespaces blockedNamespaces,
             final ThingsSearchUpdaterPersistence persistence) {
 
+        this.pubSubMediator = pubSubMediator;
         this.thingsUpdater = thingsUpdater;
         this.persistence = persistence;
         blockNamespaceBehavior = BlockNamespaceBehavior.of(blockedNamespaces);
@@ -97,13 +101,25 @@ final class PolicyModificationForwarder extends AbstractActor {
             final BlockedNamespaces blockedNamespaces,
             final ThingsSearchUpdaterPersistence persistence) {
 
-        return Props.create(PolicyModificationForwarder.class, pubSubMediator, thingsUpdater, blockedNamespaces, persistence);
+        return Props.create(PolicyModificationForwarder.class, pubSubMediator, thingsUpdater, blockedNamespaces,
+                persistence);
     }
 
     @Override
-    public void postStop() throws Exception {
+    public void preStart() {
+        CoordinatedShutdown.get(getContext().getSystem())
+                .addTask(CoordinatedShutdown.PhaseServiceUnbind(), "service-unbind-" + ACTOR_NAME, () -> {
+                    final var unsub =
+                            DistPubSubAccess.unsubscribeViaGroup(PolicyTag.PUB_SUB_TOPIC_MODIFIED, ACTOR_NAME, getSelf());
+                    final var shutdownAskTimeout = Duration.ofMinutes(1); // does not matter as phase will timeout
+
+                    return Patterns.ask(pubSubMediator, unsub, shutdownAskTimeout).thenApply(reply -> Done.done());
+                });
+    }
+
+    @Override
+    public void postStop() {
         terminateStream();
-        super.postStop();
     }
 
     @Override
@@ -163,7 +179,8 @@ final class PolicyModificationForwarder extends AbstractActor {
 
     private void streamTerminated(final Object streamTerminated) {
         if (streamTerminated instanceof Status.Failure failure) {
-            final String errorMessage = "PolicyModificationForwarder stream terminated (should NEVER happen!), restarting";
+            final String errorMessage =
+                    "PolicyModificationForwarder stream terminated (should NEVER happen!), restarting";
             log.error(failure.cause(), errorMessage);
         } else {
             log.info("PolicyModificationForwarder stream completed; restarting");

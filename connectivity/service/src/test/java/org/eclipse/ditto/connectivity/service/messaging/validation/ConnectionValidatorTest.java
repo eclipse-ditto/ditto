@@ -572,6 +572,21 @@ public class ConnectionValidatorTest {
     }
 
     @Test
+    public void acceptHttpConnectionWithValidClientCredentialsWithAudience() {
+        final Connection connection = createHttpConnection().toBuilder()
+                .credentials(OAuthClientCredentials.newBuilder()
+                        .clientId("id")
+                        .clientSecret("secret")
+                        .scope("scope")
+                        .tokenEndpoint("https://8.8.4.4/token")
+                        .audience("audience")
+                        .build())
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
     public void rejectInvalidTokenEndpointForOauthClientCredentials() {
         final Connection connection = createHttpConnection().toBuilder()
                 .credentials(OAuthClientCredentials.newBuilder()

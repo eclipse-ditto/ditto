@@ -44,6 +44,7 @@ import org.eclipse.ditto.policies.service.persistence.actors.strategies.commands
 import org.eclipse.ditto.policies.service.persistence.actors.strategies.events.PolicyEventStrategies;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.persistence.RecoveryCompleted;
 
@@ -71,6 +72,7 @@ public final class PolicyPersistenceActor
     private final ActorRef pubSubMediator;
     private final PolicyConfig policyConfig;
     private final ActorRef announcementManager;
+    private final ActorRef supervisor;
 
     @SuppressWarnings("unused")
     private PolicyPersistenceActor(final PolicyId policyId,
@@ -82,16 +84,19 @@ public final class PolicyPersistenceActor
         this.pubSubMediator = pubSubMediator;
         this.announcementManager = announcementManager;
         this.policyConfig = policyConfig;
+        this.supervisor = getContext().getParent();
     }
 
     private PolicyPersistenceActor(final PolicyId policyId,
             final ActorRef pubSubMediator,
-            final ActorRef announcementManager) {
+            final ActorRef announcementManager,
+            final ActorRef supervisor) {
 
         // not possible to call other constructor because "getContext()" is not available as argument of "this()"
         super(policyId);
         this.pubSubMediator = pubSubMediator;
         this.announcementManager = announcementManager;
+        this.supervisor = supervisor;
         final DittoPoliciesConfig policiesConfig = DittoPoliciesConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
@@ -117,9 +122,11 @@ public final class PolicyPersistenceActor
 
     static Props propsForTests(final PolicyId policyId,
             final ActorRef pubSubMediator,
-            final ActorRef announcementManager) {
+            final ActorRef announcementManager,
+            final ActorSystem actorSystem) {
 
-        return Props.create(PolicyPersistenceActor.class, policyId, pubSubMediator, announcementManager);
+        return Props.create(PolicyPersistenceActor.class, policyId, pubSubMediator, announcementManager,
+                actorSystem.deadLetters());
     }
 
     @Override
@@ -277,6 +284,11 @@ public final class PolicyPersistenceActor
         if (entity != null) {
             announcementManager.tell(entity, ActorRef.noSender());
         }
+    }
+
+    @Override
+    protected ActorRef getSudoCommandDoneRecipient() {
+        return supervisor;
     }
 
     private boolean willEntityBeAlwaysAlive(final PolicyEvent<?> policyEvent) {
