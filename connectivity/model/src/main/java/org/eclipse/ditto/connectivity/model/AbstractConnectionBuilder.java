@@ -31,7 +31,6 @@ import javax.annotation.concurrent.Immutable;
 /**
  * Abstract implementation for common aspects of
  * {@link org.eclipse.ditto.connectivity.model.ConnectionBuilder}.
- *
  */
 
 @Immutable
@@ -40,29 +39,29 @@ abstract class AbstractConnectionBuilder implements ConnectionBuilder {
     private static final String MIGRATED_MAPPER_ID = "javascript";
 
     // required but changeable:
-    @Nullable  ConnectionId id;
-    @Nullable  ConnectivityStatus connectionStatus;
+    @Nullable ConnectionId id;
+    @Nullable ConnectivityStatus connectionStatus;
     String uri;
     // optional:
-    @Nullable  String name = null;
-    @Nullable  Credentials credentials;
-    @Nullable  MappingContext mappingContext = null;
-    @Nullable  String trustedCertificates;
-    @Nullable  ConnectionLifecycle lifecycle = null;
-    @Nullable  SshTunnel sshTunnel = null;
+    @Nullable String name = null;
+    @Nullable Credentials credentials;
+    @Nullable MappingContext mappingContext = null;
+    @Nullable String trustedCertificates;
+    @Nullable ConnectionLifecycle lifecycle = null;
+    @Nullable SshTunnel sshTunnel = null;
 
     // optional with default:
-     Set<String> tags = new LinkedHashSet<>();
-     boolean failOverEnabled = true;
-     boolean validateCertificate = true;
-     final List<Source> sources = new ArrayList<>();
-     final List<Target> targets = new ArrayList<>();
-     int clientCount = 1;
-     int processorPoolSize = 1;
-     PayloadMappingDefinition payloadMappingDefinition =
+    Set<String> tags = new LinkedHashSet<>();
+    boolean failOverEnabled = true;
+    boolean validateCertificate = true;
+    final List<Source> sources = new ArrayList<>();
+    final List<Target> targets = new ArrayList<>();
+    int clientCount = 1;
+    int processorPoolSize = 1;
+    PayloadMappingDefinition payloadMappingDefinition =
             ConnectivityModelFactory.emptyPayloadMappingDefinition();
-     final Map<String, String> specificConfig = new HashMap<>();
-     ConnectionType connectionType;
+    final Map<String, String> specificConfig = new HashMap<>();
+    ConnectionType connectionType;
 
     AbstractConnectionBuilder(final ConnectionType connectionType) {
         this.connectionType = connectionType;
@@ -277,7 +276,7 @@ abstract class AbstractConnectionBuilder implements ConnectionBuilder {
     /**
      * If no context is set on connection level each target and source must have its own context.
      */
-     void checkAuthorizationContextsAreValid() {
+    void checkAuthorizationContextsAreValid() {
         // if the auth context on connection level is empty,
         // an auth context is required to be set on each source/target
         final Set<String> sourcesWithoutAuthContext = sources.stream()

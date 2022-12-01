@@ -13,17 +13,12 @@
 package org.eclipse.ditto.connectivity.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
-
 import java.text.MessageFormat;
-
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
-
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
-
-
 
 /**
  * Immutable implementation of {@link org.eclipse.ditto.connectivity.model.AbstractConnection} of type
@@ -37,16 +32,16 @@ final class HonoConnection extends AbstractConnection {
     }
 
     @Override
-    ConnectionUri getConnectionUri(@Nullable String builderConnectionUri){
+    ConnectionUri getConnectionUri(@Nullable String builderConnectionUri) {
         return ConnectionUri.of(builderConnectionUri);
     }
 
-
     static ConnectionType getConnectionTypeOrThrow(final JsonObject jsonObject) {
         final String readConnectionType = jsonObject.getValueOrThrow(JsonFields.CONNECTION_TYPE);
-        return ConnectionType.forName(readConnectionType)
+        return ConnectionType.forName(readConnectionType).filter(type -> type == ConnectionType.HONO)
                 .orElseThrow(() -> JsonParseException.newBuilder()
-                        .message(MessageFormat.format("Connection type <{0}> is invalid!", readConnectionType))
+                        .message(MessageFormat.format("Connection type <{0}> is invalid! Connection type must be of" +
+                                " type <{1}>.", readConnectionType, ConnectionType.HONO))
                         .build());
     }
 
@@ -95,9 +90,9 @@ final class HonoConnection extends AbstractConnection {
      */
     public static Connection fromJson(final JsonObject jsonObject) {
         final ConnectionType type = getConnectionTypeOrThrow(jsonObject);
-         final HonoConnection.Builder builder = new HonoConnection.Builder(type);
-         fromJson(getJsonObjectWithEmptyUri(jsonObject), builder);
-         return builder.build();
+        final HonoConnection.Builder builder = new HonoConnection.Builder(type);
+        buildFromJson(getJsonObjectWithEmptyUri(jsonObject), builder);
+        return builder.build();
     }
 
     private static JsonObject getJsonObjectWithEmptyUri(final JsonObject jsonObject) {
@@ -109,7 +104,6 @@ final class HonoConnection extends AbstractConnection {
         }
         return jsonObject;
     }
-
 
     /**
      * Builder for {@code AbstractConnectionBuilder}.

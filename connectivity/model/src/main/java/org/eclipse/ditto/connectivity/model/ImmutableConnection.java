@@ -19,6 +19,7 @@ import java.text.MessageFormat;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
+
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 
@@ -29,7 +30,7 @@ import org.eclipse.ditto.json.JsonParseException;
 final class ImmutableConnection extends AbstractConnection {
 
     private ImmutableConnection(final ImmutableConnection.Builder builder) {
-      super(builder);
+        super(builder);
     }
 
     /**
@@ -83,9 +84,9 @@ final class ImmutableConnection extends AbstractConnection {
         final ConnectionType type = getConnectionTypeOrThrow(jsonObject);
 
         final ImmutableConnection.Builder builder = new Builder(type);
-        fromJson(jsonObject, builder);
+        buildFromJson(jsonObject, builder);
         return builder.build();
-   }
+    }
 
     static ConnectionType getConnectionTypeOrThrow(final JsonObject jsonObject) {
         final String readConnectionType = jsonObject.getValueOrThrow(JsonFields.CONNECTION_TYPE);
@@ -100,8 +101,8 @@ final class ImmutableConnection extends AbstractConnection {
      */
     @NotThreadSafe
     private static final class Builder extends AbstractConnectionBuilder {
-         Builder(final ConnectionType connectionType) {
-             super(connectionType);
+        Builder(final ConnectionType connectionType) {
+            super(connectionType);
             this.connectionType = checkNotNull(connectionType, "connectionType");
         }
 

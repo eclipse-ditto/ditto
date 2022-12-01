@@ -35,6 +35,7 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 import org.junit.Test;
 
@@ -308,6 +309,26 @@ public final class HonoConnectionTest {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> builder.targets(null))
                 .withMessage("The %s must not be null!", "targets")
+                .withNoCause();
+    }
+
+    @Test
+    public void createHonoWhitInvalidConnectionType() {
+       final Connection connection = HonoConnection.getBuilder(ID, ConnectionType.AMQP_10, STATUS, URI_EMPTY)
+                .sources(SOURCES)
+                .targets(TARGETS)
+                .connectionStatus(ConnectivityStatus.OPEN)
+                .name("connection")
+                .clientCount(5)
+                .trustedCertificates("certs")
+                .processorPoolSize(8)
+                .id(ID)
+                .build();
+
+        assertThatExceptionOfType(JsonParseException.class)
+                .isThrownBy(() -> HonoConnection.getConnectionTypeOrThrow(connection.toJson()))
+                .withMessage("Connection type <%s> is invalid! Connection type must be of type <%s>.",
+                        ConnectionType.AMQP_10.getName(), ConnectionType.HONO.getName())
                 .withNoCause();
     }
 

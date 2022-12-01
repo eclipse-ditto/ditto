@@ -41,6 +41,10 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 
+/**
+ * Abstract implementation for common aspects of
+ * {@link org.eclipse.ditto.connectivity.model.Connection}.
+ */
 abstract class AbstractConnection implements Connection {
 
     private final ConnectionId id;
@@ -85,7 +89,7 @@ abstract class AbstractConnection implements Connection {
 
     abstract ConnectionUri getConnectionUri(@Nullable String builderConnectionUri);
 
-    static void fromJson(final JsonObject jsonObject, final AbstractConnectionBuilder builder) {
+    static void buildFromJson (final JsonObject jsonObject, final AbstractConnectionBuilder builder) {
         final MappingContext mappingContext = jsonObject.getValue(JsonFields.MAPPING_CONTEXT)
                 .map(ConnectivityModelFactory::mappingContextFromJson)
                 .orElse(null);
@@ -152,7 +156,7 @@ abstract class AbstractConnection implements Connection {
                 .orElse(Collections.emptyList());
     }
 
-   private static Map<String, String> getSpecificConfiguration(final JsonObject jsonObject) {
+    private static Map<String, String> getSpecificConfiguration(final JsonObject jsonObject) {
         return jsonObject.getValue(JsonFields.SPECIFIC_CONFIG)
                 .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
