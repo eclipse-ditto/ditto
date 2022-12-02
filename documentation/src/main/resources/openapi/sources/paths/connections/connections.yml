@@ -65,7 +65,7 @@ post:
     Creates the connection defined in the JSON body.
     The ID of the connection will be **generated** by the backend. Any `ID` specified in the request body is therefore
     prohibited.
-    Supported connection types are `amqp-091`, `amqp-10`, `mqtt`, `mqtt-5`, `kafka` and `http-push`.
+    Supported connection types are `amqp-091`, `amqp-10`, `mqtt`, `mqtt-5`, `kafka`, `hono` and `http-push`.
   security:
     - DevOpsBasic: [ ]
   tags:
