@@ -30,7 +30,6 @@ spec:
       - name: connectivity
         image: docker.io/eclipse/ditto-connectivity:latest
         imagePullPolicy: IfNotPresent
-        args: ["java", "-jar", "starter.jar"]
         # Resource can be managed by setting the following resource config.
         #resources:
         #  requests:
@@ -79,7 +78,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: JAVA_TOOL_OPTIONS
-          value: "-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s"
+          value: "-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=30s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
         # in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
@@ -132,7 +131,6 @@ spec:
       - name: things
         image: docker.io/eclipse/ditto-things:latest
         imagePullPolicy: IfNotPresent
-        args: ["java", "-jar", "starter.jar"]
         # Resource can be managed by setting the following resource config.
         #resources:
         #  requests:
@@ -181,7 +179,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: JAVA_TOOL_OPTIONS
-          value: "-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s"
+          value: "-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=30s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
         # in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
@@ -234,7 +232,6 @@ spec:
       - name: things-search
         image: docker.io/eclipse/ditto-things-search:latest
         imagePullPolicy: IfNotPresent
-        args: ["java", "-jar", "starter.jar"]
         # Resource can be managed by setting the following resource config.
         #resources:
         #  requests:
@@ -283,7 +280,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: JAVA_TOOL_OPTIONS
-          value: "-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s"
+          value: "-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=30s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
         # in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
@@ -336,7 +333,6 @@ spec:
       - name: policies
         image: docker.io/eclipse/ditto-policies:latest
         imagePullPolicy: IfNotPresent
-        args: ["java", "-jar", "starter.jar"]
         # Resource can be managed by setting the following resource config.
         #resources:
         #  requests:
@@ -385,7 +381,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: JAVA_TOOL_OPTIONS
-          value: "-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s"
+          value: "-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=30s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
         # in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
@@ -437,7 +433,6 @@ spec:
       - name: gateway
         image: docker.io/eclipse/ditto-gateway:latest
         imagePullPolicy: IfNotPresent
-        args: ["java", "-jar", "starter.jar"]
         # Resource can be managed by setting the following resource config.
         #resources:
         #  requests:
@@ -488,7 +483,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: JAVA_TOOL_OPTIONS
-          value: "-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s"
+          value: "-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=30s"
         # in order to write logs into a file you can enable this by setting the following env variable
         # the log file(s) can be found in /var/log/ditto directory on the host machine
         #- name: DITTO_LOGGING_FILE_APPENDER
