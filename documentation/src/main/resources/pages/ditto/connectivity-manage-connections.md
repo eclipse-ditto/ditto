@@ -1,14 +1,14 @@
 ---
-title: Manage connections 
+title: Manage connections via HTTP API
 keywords:
 tags: [connectivity]
 permalink: connectivity-manage-connections.html
 ---
 
 In order to manage (CRUD) connections in Ditto, a separate [HTTP API](http-api-doc.html#/Connections)
-can be used. As this is not a task for a developer
-but more for a "DevOps engineer", creating new connections to external systems the endpoint 
-is authenticated using the ["devops"](installation-operating.html#devops-user) user.
+is recommended to be used instead of the old fashion way through [DevOps commands](installation-operating.html#devops-commands). 
+As this is not a task for a developer, but more for a "DevOps engineer", the endpoint for creating new connections 
+to external systems is authenticated using the ["devops"](installation-operating.html#devops-user) user.
 
 ## Authorization
 
@@ -45,9 +45,13 @@ Create a new connection by sending an HTTP `POST` request:
 ```
 
 The content of the connection configuration object is specified in the [Connections section](basic-connections.html).
-For protocol specific examples, consult the [AMQP-0.9.1 binding](connectivity-protocol-bindings-amqp091.html),
-[AMQP-1.0 binding](connectivity-protocol-bindings-amqp10.html) or
-[MQTT-3.1.1 binding](connectivity-protocol-bindings-mqtt.html) respectively.
+For protocol specific examples, consult the specific connection type binding respectively:
+* [AMQP-0.9.1 binding](connectivity-protocol-bindings-amqp091.html),
+* [AMQP-1.0 binding](connectivity-protocol-bindings-amqp10.html),
+* [MQTT-3.1.1 binding](connectivity-protocol-bindings-mqtt.html),
+* [MQTT-5 binding](connectivity-protocol-bindings-mqtt5.html),
+* [HTTP 1.1 binding](connectivity-protocol-bindings-http.html),
+* [Apache Kafka 2.x binding](connectivity-protocol-bindings-kafka2.html)
 
 Additionally, you can test a connection before creating it:
 
