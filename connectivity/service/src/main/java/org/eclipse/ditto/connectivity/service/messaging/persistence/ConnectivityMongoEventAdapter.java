@@ -12,22 +12,25 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.annotation.Nullable;
-
-import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoEventAdapter;
+import akka.actor.ActorSystem;
+import akka.actor.ExtendedActorSystem;
 import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.base.model.signals.events.EventJsonDeserializer;
 import org.eclipse.ditto.base.model.signals.events.EventRegistry;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionModified;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
+import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.FieldsEncryptionConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoEventAdapter;
+import org.eclipse.ditto.json.JsonObject;
 
-import akka.actor.ExtendedActorSystem;
+import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * EventAdapter for {@link ConnectivityEvent}s persisted into
@@ -35,8 +38,28 @@ import akka.actor.ExtendedActorSystem;
  */
 public final class ConnectivityMongoEventAdapter extends AbstractMongoEventAdapter<ConnectivityEvent<?>> {
 
+    private final FieldsEncryptionConfig encryptionConfig;
+
     public ConnectivityMongoEventAdapter(@Nullable final ExtendedActorSystem system) {
         super(system, createEventRegistry());
+        final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(system.settings().config()));
+        encryptionConfig = connectivityConfig.getConnectionConfig().getFieldsEncryptionConfig();
+    }
+
+    @Override
+    protected JsonObject performToJournalMigration(final JsonObject jsonObject) {
+        if (encryptionConfig.isEnabled()) {
+            return JsonFieldsEncryptor.encrypt(jsonObject, encryptionConfig.getJsonPointers(),
+                    encryptionConfig.getSymmetricalKey());
+        }
+        return jsonObject;
+    }
+
+    @Override
+    protected JsonObject performFromJournalMigration(final JsonObject jsonObject) {
+        return JsonFieldsEncryptor.decrypt(jsonObject, encryptionConfig.getJsonPointers(),
+                encryptionConfig.getSymmetricalKey());
     }
 
     private static EventRegistry<ConnectivityEvent<?>> createEventRegistry() {
