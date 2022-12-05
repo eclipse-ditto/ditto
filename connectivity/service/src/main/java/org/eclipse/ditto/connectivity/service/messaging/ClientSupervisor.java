@@ -58,6 +58,7 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
     private final ActorRef connectionShardRegion;
     private final ClientActorPropsFactory propsFactory;
     private Props props;
+    private ClientActorPropsArgs clientActorPropsArgs;
     private ActorRef clientActor;
 
     @SuppressWarnings({"unused"})
@@ -158,6 +159,7 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
                 getContext().stop(oldClientActor);
             }
             this.props = actorProps;
+            this.clientActorPropsArgs = propsArgs;
             clientActor = getContext().watch(getContext().actorOf(actorProps));
             logger.debug("New actorProps received; stopped client actor <{}> and started <{}>", oldClientActor,
                     clientActor);
@@ -207,9 +209,9 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
     }
 
     private void restartIfOpen(final StopShardedActor stopShardedActor) {
-        if (props != null) {
+        if (clientActorPropsArgs != null) {
             logger.debug("Restarting connected client actor.");
-            final var envelope = new ShardedBinaryEnvelope(props, clientActorId.toString());
+            final var envelope = new ShardedBinaryEnvelope(clientActorPropsArgs, clientActorId.toString());
             ClusterSharding.get(getContext().getSystem())
                     .shardRegion(ConnectivityMessagingConstants.CLIENT_SHARD_REGION)
                     .tell(envelope, ActorRef.noSender());
