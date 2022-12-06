@@ -17,4 +17,10 @@ package org.eclipse.ditto.rql.model.predicates.ast;
  */
 public final class RootNode extends SuperNode {
 
+    /**
+     * {@inheritDoc}
+     */
+    public void accept(final PredicateVisitor predicateVisitor) {
+        predicateVisitor.visit(this);
+    }
 }

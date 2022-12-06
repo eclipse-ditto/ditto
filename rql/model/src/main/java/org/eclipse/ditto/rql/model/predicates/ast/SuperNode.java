@@ -38,13 +38,6 @@ public abstract class SuperNode implements Node {
         return children;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public void accept(final PredicateVisitor predicateVisitor) {
-        predicateVisitor.visit(this);
-    }
-
     @Override
     public String toString() {
         return "SuperNode [children=" + children + "]";
