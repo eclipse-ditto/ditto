@@ -59,7 +59,7 @@
         <reactive-streams.version>1.0.4</reactive-streams.version>
         <netty-bom.version>4.1.82.Final</netty-bom.version>
         <cloudevents.version>2.3.0</cloudevents.version>
-        <commons-net.version>3.8.0</commons-net.version>
+        <commons-net.version>3.9.0</commons-net.version>
 
         <slf4j.version>1.7.36</slf4j.version>
         <logback.version>1.2.11</logback.version>
