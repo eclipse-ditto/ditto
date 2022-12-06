@@ -20,24 +20,28 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 
 import com.typesafe.config.Config;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 
 /**
  * Default implementation of {@link FieldsEncryptionConfig}.
  */
 @Immutable
-public class DefaultFieldsEncryptionConfig implements FieldsEncryptionConfig {
+public final class DefaultFieldsEncryptionConfig implements FieldsEncryptionConfig {
 
     private static final String CONFIG_PATH = "encryption";
-    private final boolean enabled;
+    private final boolean isEncryptionEnabled;
     private final String symmetricalKey;
     private final List<String> jsonPointers;
 
 
     private DefaultFieldsEncryptionConfig(final ConfigWithFallback config) {
-        this.enabled = config.getBoolean(ConfigValue.ENABLED.getConfigPath());
+        this.isEncryptionEnabled = config.getBoolean(ConfigValue.ENCRYPTION_ENABLED.getConfigPath());
         this.symmetricalKey = config.getString(ConfigValue.SYMMETRICAL_KEY.getConfigPath());
         this.jsonPointers = Collections.unmodifiableList(
                 new ArrayList<>(config.getStringList(ConfigValue.JSON_POINTERS.getConfigPath())));
+        if (isEncryptionEnabled && symmetricalKey.trim().isEmpty()) {
+            throw new DittoConfigError("Missing Symmetric key. It is mandatory when encryption is enabled for connections!");
+        }
     }
 
     public static DefaultFieldsEncryptionConfig of(final Config config) {
@@ -48,8 +52,8 @@ public class DefaultFieldsEncryptionConfig implements FieldsEncryptionConfig {
     }
 
     @Override
-    public boolean isEnabled() {
-        return this.enabled;
+    public boolean isEncryptionEnabled() {
+        return this.isEncryptionEnabled;
     }
 
     @Override
@@ -58,8 +62,8 @@ public class DefaultFieldsEncryptionConfig implements FieldsEncryptionConfig {
     }
 
     @Override
-    public Collection<String> getJsonPointers() {
-        return Collections.unmodifiableList(new ArrayList<>(this.jsonPointers));
+    public List<String> getJsonPointers() {
+        return this.jsonPointers;
     }
 
     @Override
@@ -71,21 +75,21 @@ public class DefaultFieldsEncryptionConfig implements FieldsEncryptionConfig {
             return false;
         }
         final DefaultFieldsEncryptionConfig that = (DefaultFieldsEncryptionConfig) o;
-        return enabled == that.enabled &&
+        return isEncryptionEnabled == that.isEncryptionEnabled &&
                 Objects.equals(symmetricalKey, that.symmetricalKey) &&
                 Objects.equals(jsonPointers, that.jsonPointers);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(enabled, symmetricalKey, jsonPointers);
+        return Objects.hash(isEncryptionEnabled, symmetricalKey, jsonPointers);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" +
-                "enabled=" + enabled +
-                ", symmetricalKey='" + symmetricalKey + '\'' +
+                "enabled=" + isEncryptionEnabled +
+                ", symmetricalKey='***'" +
                 ", jsonPointers=" + jsonPointers +
                 ']';
     }

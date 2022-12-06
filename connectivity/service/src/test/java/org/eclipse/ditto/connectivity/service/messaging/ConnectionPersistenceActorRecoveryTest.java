@@ -23,6 +23,8 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
@@ -32,6 +34,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnecti
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
+import org.eclipse.ditto.connectivity.service.config.DefaultFieldsEncryptionConfig;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionMongoSnapshotAdapter;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
@@ -75,8 +78,9 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
 
     private ConnectionCreated connectionCreated;
     private ConnectionDeleted connectionDeleted;
-
-    private static final ConnectionMongoSnapshotAdapter SNAPSHOT_ADAPTER = new ConnectionMongoSnapshotAdapter();
+    private static final Config config = ConfigFactory.load("connection-fields-encryption-test");
+    private static final ConnectionMongoSnapshotAdapter SNAPSHOT_ADAPTER =
+            new ConnectionMongoSnapshotAdapter(DefaultFieldsEncryptionConfig.of(config.getConfig("connection")));
 
     @BeforeClass
     public static void setUp() {

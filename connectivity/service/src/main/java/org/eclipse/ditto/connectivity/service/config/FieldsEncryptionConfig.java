@@ -15,7 +15,6 @@ package org.eclipse.ditto.connectivity.service.config;
 
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
-import java.util.Collection;
 import java.util.List;
 
 /**
@@ -29,7 +28,7 @@ public interface FieldsEncryptionConfig {
      *
      * @return {@code true} if connection fields encryption should be enabled.
      */
-    boolean isEnabled();
+    boolean isEncryptionEnabled();
 
 
     /**
@@ -45,7 +44,7 @@ public interface FieldsEncryptionConfig {
      *
      * @return pointers list
      */
-    Collection<String> getJsonPointers();
+    List<String> getJsonPointers();
 
 
 
@@ -57,7 +56,7 @@ public interface FieldsEncryptionConfig {
         /**
          * Determines whether json value encryption is enabled.
          */
-        ENABLED("enabled", false),
+        ENCRYPTION_ENABLED("encryption-enabled", false),
         /**
          * The symmetrical key used for encryption.
          */

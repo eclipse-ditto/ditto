@@ -16,8 +16,7 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence;
 import static org.junit.Assert.*;
 
 import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
-import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -43,30 +42,55 @@ public class JsonFieldsEncryptorTest {
 
     @BeforeClass
     public static void initTestFixture() throws NoSuchAlgorithmException {
-        Config config = ConfigFactory.load("connection-fields-encryption-test");
+        final Config config = ConfigFactory.load("connection-fields-encryption-test");
         testConfig = DefaultFieldsEncryptionConfig.of(config.getConfig("connection"));
-        SYMMETRICAL_KEY =  Base64.getUrlEncoder().encodeToString(EncryptorAesGcm.getAESKey().getEncoded());
+        SYMMETRICAL_KEY =  EncryptorAesGcm.generateAESKeyAsString();
     }
 
     @Test
     public void encryptConnectionFieldsPreservesData() {
-        Collection<String> jsonPointers = testConfig.getJsonPointers();
-
-        JsonObject plainConnection = JsonObject.of(connJson);
-        JsonObject encrypted = JsonFieldsEncryptor.encrypt(plainConnection, jsonPointers, SYMMETRICAL_KEY);
-        jsonPointers.forEach(pointer -> {
+        final List<String> jsonPointers = testConfig.getJsonPointers();
+        final List<String> willNotBeEncrypted = List.of("/uriWithoutUserInfo", "/uriWithoutPassword");
+        final JsonObject plainConnection = JsonObject.of(connJson);
+        final JsonObject encrypted = JsonFieldsEncryptor.encrypt(plainConnection, "", jsonPointers, SYMMETRICAL_KEY);
+        jsonPointers.stream().filter(p -> !willNotBeEncrypted.contains(p)).forEach(pointer -> {
             Optional<JsonValue> value = encrypted.getValue(pointer);
             assertTrue("missing " + pointer + " after encryption", value.isPresent());
             softly.assertThat(value.get()).isNotEqualTo(plainConnection.getValue(pointer).get());
         });
 
-        JsonObject decryptedConnection = JsonFieldsEncryptor.decrypt(encrypted, jsonPointers, SYMMETRICAL_KEY);
+        final JsonObject decryptedConnection = JsonFieldsEncryptor.decrypt(encrypted, "", jsonPointers, SYMMETRICAL_KEY);
         jsonPointers.forEach(pointer -> {
             Optional<JsonValue> value = decryptedConnection.getValue(pointer);
             assertTrue("missing " + pointer + " after encryption", value.isPresent());
             softly.assertThat(value.get()).isEqualTo(plainConnection.getValue(pointer).get());
         });
 
+    }
+
+    @Test
+    public void replacePasswordInUriUserInfo() {
+        final String uri = "amqps://user:passwordValue@hono.eclipseprojects.io:5671";
+        final String patchedPwd = "passwordValuePatched";
+        final String expectedUri = "amqps://user:" + patchedPwd + "@hono.eclipseprojects.io:5671";
+        final String patchedUri = JsonFieldsEncryptor.replaceUriPassword(uri, patchedPwd);
+        assertEquals(expectedUri, patchedUri);
+    }
+    @Test
+    public void replacePasswordInUriUserInfoPasswordIsTheSameAsUser() {
+        final String uri = "amqps://user:user@hono.eclipseprojects.io:5671";
+        final String patchedPwd = "passwordValuePatched";
+        final String expectedUri = "amqps://user:"+ patchedPwd +"@hono.eclipseprojects.io:5671";
+        final String patchedUri = JsonFieldsEncryptor.replaceUriPassword(uri, patchedPwd);
+        assertEquals(expectedUri, patchedUri);
+    }
+    @Test
+    public void replacePasswordInUriUserInfoWithQueryParamSameAaPwd() {
+        final String uri = "amqps://user:passwordValue@hono.eclipseprojects.io:5671?queryParam=passwordValue";
+        final String patchedPwd = "passwordValuePatched";
+        final String expectedUri = "amqps://user:" + patchedPwd + "@hono.eclipseprojects.io:5671?queryParam=passwordValue";
+        final String patchedUri = JsonFieldsEncryptor.replaceUriPassword(uri, patchedPwd);
+        assertEquals(expectedUri , patchedUri);
     }
 
     /**
@@ -136,6 +160,8 @@ public class JsonFieldsEncryptorTest {
                     "failoverEnabled": true,
                     "validateCertificates": true,
                     "processorPoolSize": 1,
+                    "uriWithoutPassword": "amqps://user@hono.eclipseprojects.io:5671",
+                    "uriWithoutUserInfo": "amqps://hono.eclipseprojects.io:5671",
                     "credentials": {
                         "key": "someKey",
                         "clientSecret": "someClientSecret",

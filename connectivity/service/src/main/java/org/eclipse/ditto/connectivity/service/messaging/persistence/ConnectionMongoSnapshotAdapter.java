@@ -16,10 +16,14 @@ import java.util.Optional;
 
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionLifecycle;
+import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.FieldsEncryptionConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoSnapshotAdapter;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
@@ -31,17 +35,27 @@ import akka.actor.ActorSystem;
  */
 public final class ConnectionMongoSnapshotAdapter extends AbstractMongoSnapshotAdapter<Connection> {
 
+    public static final Logger LOGGER = LoggerFactory.getLogger(ConnectionMongoSnapshotAdapter.class);
+    private final FieldsEncryptionConfig encryptionConfig;
+
     /**
      * @param actorSystem the actor system in which to load the extension
      * @param config the config of the extension.
      */
     @SuppressWarnings("unused")
     public ConnectionMongoSnapshotAdapter(final ActorSystem actorSystem, final Config config) {
-        this();
+        this(DittoConnectivityConfig.of(
+                        DefaultScopedConfig.dittoScoped(actorSystem.settings().config()))
+                .getConnectionConfig().getFieldsEncryptionConfig());
     }
 
-    public ConnectionMongoSnapshotAdapter() {
-        super(LoggerFactory.getLogger(ConnectionMongoSnapshotAdapter.class));
+    public ConnectionMongoSnapshotAdapter(FieldsEncryptionConfig encryptionConfig) {
+        super(LOGGER);
+        this.encryptionConfig = encryptionConfig;
+        LOGGER.info("Connections fields encryption: {}", encryptionConfig.isEncryptionEnabled());
+        if (encryptionConfig.isEncryptionEnabled()) {
+            LOGGER.debug("Connections fields that will be encryption: {}", encryptionConfig.getJsonPointers());
+        }
     }
 
     @Override
@@ -63,7 +77,25 @@ public final class ConnectionMongoSnapshotAdapter extends AbstractMongoSnapshotA
 
     @Override
     protected Connection createJsonifiableFrom(final JsonObject jsonObject) {
-        return ConnectionMigrationUtil.connectionFromJsonWithMigration(jsonObject);
+        if (encryptionConfig.getSymmetricalKey().isEmpty()) {
+            if(jsonObject.asString().contains(JsonFieldsEncryptor.ENCRYPTED_PREFIX)){
+                LOGGER.warn("Encrypted fields will not be decrypted. Missing symmetrical key. " +
+                        "Either configure the one used for encryption or edit connections and update encrypted fields");
+            }
+            return ConnectionMigrationUtil.connectionFromJsonWithMigration(jsonObject);
+        }
+        final JsonObject decrypted = JsonFieldsEncryptor.decrypt(jsonObject, "", encryptionConfig.getJsonPointers(),
+                encryptionConfig.getSymmetricalKey());
+        return ConnectionMigrationUtil.connectionFromJsonWithMigration(decrypted);
     }
 
+    @Override
+    protected JsonObject convertToJson(final Connection snapshotEntity) {
+        if (encryptionConfig.isEncryptionEnabled()) {
+            final JsonObject jsonObject = super.convertToJson(snapshotEntity);
+            return JsonFieldsEncryptor.encrypt(jsonObject, "", encryptionConfig.getJsonPointers(),
+                    encryptionConfig.getSymmetricalKey());
+        }
+        return super.convertToJson(snapshotEntity);
+    }
 }

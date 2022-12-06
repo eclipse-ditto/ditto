@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.util.List;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -57,7 +58,7 @@ public class DefaultFieldsEncryptionConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final FieldsEncryptionConfig underTest = DefaultFieldsEncryptionConfig.of(config.getConfig("connection"));
 
-        softly.assertThat(underTest.isEnabled()).isTrue();
+        softly.assertThat(underTest.isEncryptionEnabled()).isTrue();
         softly.assertThat(underTest.getJsonPointers()).containsAll(List.of(
                 "/uri",
                 "/credentials/key",
@@ -68,7 +69,12 @@ public class DefaultFieldsEncryptionConfigTest {
                 "/credentials/parameters/sharedKey",
                 "/credentials/clientSecret"));
 
-        softly.assertThat(underTest.getSymmetricalKey()).isEqualTo("dUHYs0YRphpLRnrge5W4ldskE7rI7ntU+x7csfyFWAM=");
+        softly.assertThat(underTest.getSymmetricalKey()).isEqualTo("vJFSTPE9PO2BtZlcMAwNjs8jdFvQCk0Ya9MVdYjRJUU=");
 
+    }
+
+    @Test(expected = DittoConfigError.class)
+    public void missingSymmetricalKeyShouldThrow() {
+        DefaultFieldsEncryptionConfig.of(config.getConfig("wrong-connection-config"));
     }
 }

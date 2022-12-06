@@ -35,31 +35,31 @@ public class EncryptorAesGcmTest {
 
     @Test
     public void toBase64PreservesSecretKeySpec() throws Exception {
-        SecretKey key = EncryptorAesGcm.getAESKey();
-        String toBase64Key = EncryptorAesGcm.toBase64String(key.getEncoded());
-        SecretKeySpec key2 = new SecretKeySpec(EncryptorAesGcm.fromBase64String(toBase64Key), "AES");
+        final SecretKey key = EncryptorAesGcm.generateAESKey();
+        final String toBase64Key = EncryptorAesGcm.toBase64String(key.getEncoded());
+        final SecretKeySpec key2 = new SecretKeySpec(EncryptorAesGcm.fromBase64String(toBase64Key), "AES");
         assertEquals(key, key2);
     }
 
     @Test
     public void dataIsPreservedOnEncryptWithPrefixIV() throws Exception {
-        String input = "This is a plain text which need to be encrypted by Java AES 256 GCM Encryption Algorithm";
-        String key = EncryptorAesGcm.toBase64String(EncryptorAesGcm.getAESKey(EncryptorAesGcm.AES_KEY_SIZE).getEncoded());
-        String encryptedWithPrefixIV = EncryptorAesGcm.encryptWithPrefixIV(input, key);
-        String plainText = EncryptorAesGcm.decryptWithPrefixIV(encryptedWithPrefixIV, key);
+        final String input = "This is a plain text which need to be encrypted by Java AES 256 GCM Encryption Algorithm";
+        final String key = EncryptorAesGcm.toBase64String(EncryptorAesGcm.generateAESKey(EncryptorAesGcm.AES_KEY_SIZE).getEncoded());
+        final String encryptedWithPrefixIV = EncryptorAesGcm.encryptWithPrefixIV(input, key);
+        final String plainText = EncryptorAesGcm.decryptWithPrefixIV(encryptedWithPrefixIV, key);
         assertEquals(input, plainText);
     }
 
     @Test
     public void keyLengthVerify() throws NoSuchAlgorithmException {
-        String aesKey = EncryptorAesGcm.toBase64String(EncryptorAesGcm.getAESKey().getEncoded());
+        final String aesKey = EncryptorAesGcm.toBase64String(EncryptorAesGcm.generateAESKey().getEncoded());
 
-        SecretKey secretKey = EncryptorAesGcm.toSecretKey(aesKey);
-        assertTrue(secretKey.getEncoded().length == 32);
+        final SecretKey secretKey = EncryptorAesGcm.toSecretKey(aesKey);
+        assertEquals(32, secretKey.getEncoded().length);
     }
-    @Test(expected = DittoConfigError.class)
+    @Test(expected = IllegalStateException.class)
     public void keyLengthVerifyThrowsOnIllegalLength() throws NoSuchAlgorithmException {
-        String aesKey = EncryptorAesGcm.toBase64String(EncryptorAesGcm.getAESKey(128).getEncoded());
+        final String aesKey = EncryptorAesGcm.toBase64String(EncryptorAesGcm.generateAESKey(128).getEncoded());
         EncryptorAesGcm.toSecretKey(aesKey);
     }
 
