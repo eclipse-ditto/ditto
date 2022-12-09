@@ -35,7 +35,7 @@ import com.typesafe.config.ConfigFactory;
 public class JsonFieldsEncryptorTest {
 
     public static String SYMMETRICAL_KEY;
-    private static FieldsEncryptionConfig testConfig;
+    private static FieldsEncryptionConfig TEST_CONFIG;
 
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
@@ -43,13 +43,13 @@ public class JsonFieldsEncryptorTest {
     @BeforeClass
     public static void initTestFixture() throws NoSuchAlgorithmException {
         final Config config = ConfigFactory.load("connection-fields-encryption-test");
-        testConfig = DefaultFieldsEncryptionConfig.of(config.getConfig("connection"));
-        SYMMETRICAL_KEY =  EncryptorAesGcm.generateAESKeyAsString();
+        TEST_CONFIG = DefaultFieldsEncryptionConfig.of(config.getConfig("connection"));
+        SYMMETRICAL_KEY = TEST_CONFIG.getSymmetricalKey();
     }
 
     @Test
     public void encryptConnectionFieldsPreservesData() {
-        final List<String> jsonPointers = testConfig.getJsonPointers();
+        final List<String> jsonPointers = TEST_CONFIG.getJsonPointers();
         final List<String> willNotBeEncrypted = List.of("/uriWithoutUserInfo", "/uriWithoutPassword");
         final JsonObject plainConnection = JsonObject.of(connJson);
         final JsonObject encrypted = JsonFieldsEncryptor.encrypt(plainConnection, "", jsonPointers, SYMMETRICAL_KEY);

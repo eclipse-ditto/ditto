@@ -18,6 +18,11 @@ a Thing). If you want to use a user for the basic auth (from the [HTTP API](conn
 use the prefix `nginx:`, e.g. `nginx:ditto`.
 See [Basic Authentication](basic-auth.html#authorization-context-in-devops-commands) for more information.
 
+## Encryption sensitive configuration data
+There is an option to enable encryption of credentials or other sensitive fields of the connection entities before they are 
+persisted in the database on global service configuration level.
+For more details refer to [Connections sensitive data encryption](installation-operating.html#connections-sensitive-data-encryption)
+
 ## CRUD endpoints
 
 The following commands are available in order to manage connections:
