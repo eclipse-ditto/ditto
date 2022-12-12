@@ -648,7 +648,12 @@ public abstract class AbstractPersistenceActor<
         return confirmedSnapshotRevision;
     }
 
-    private void notAccessible(final WithDittoHeaders withDittoHeaders) {
+    /**
+     * Reply a not-accessible exception using the Ditto headers of a message.
+     *
+     * @param withDittoHeaders The message with Ditto headers.
+     */
+    protected void notAccessible(final WithDittoHeaders withDittoHeaders) {
         final DittoRuntimeExceptionBuilder<?> builder = newNotAccessibleExceptionBuilder()
                 .dittoHeaders(withDittoHeaders.getDittoHeaders());
         notifySender(builder.build());

@@ -17,6 +17,7 @@ import java.util.Optional;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
+import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveClientActorProps;
 import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionStatus;
 import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionStatusResponse;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
@@ -104,7 +105,7 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
 
     @Override
     public void preStart() {
-        scheduleNextStatusCheck();
+        startStatusCheck(Control.STATUS_CHECK);
     }
 
     @Override
@@ -190,7 +191,10 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
                 clientActorId.clientNumber() >= response.getClientCount()) {
             connectionNotAccessible(response);
         } else if (clientActor == null) {
-            logger.error("Client actor <{}> of open connection did not start", clientActorId);
+            logger.info("Client actor <{}> of open connection did not start. Requesting props.", clientActorId);
+            final var command = SudoRetrieveClientActorProps.of(clientActorId.connectionId(),
+                    clientActorId.clientNumber(), DittoHeaders.empty());
+            connectionShardRegion.tell(command, getSelf());
         }
     }
 
