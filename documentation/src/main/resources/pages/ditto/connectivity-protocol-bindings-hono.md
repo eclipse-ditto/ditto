@@ -1,7 +1,7 @@
 ---
 title: Eclipse Hono binding
 keywords: binding, protocol, hono, kafka, kafka2
-tags: [hono, connectivity]
+tags: [connectivity]
 permalink: connectivity-protocol-bindings-hono.html
 ---
 
@@ -24,7 +24,7 @@ The connection URI and credentials are common for all Hono connections and are d
 `uri` will be automatically generated, based on values of 3 configuration properties of connectivity service - 
 `ditto.connectivity.hono.base-uri`, `ditto.connectivity.hono.username` and `ditto.connectivity.hono.password`.
 Property `base-uri` must specify protocol, host and port number 
-(see the [example below](connectivity-protocol-bindings-hono.html#configuration-example)). 
+(see the [example below](#configuration-example)). 
 In order to connect to Kafka brokers, at runtime `username` and `password` values will be inserted between 
 protocol identifier and the host name of `base-uri` to form the connection URI like this `tcp://username:password@host.name:port`
 
@@ -50,13 +50,13 @@ no need to specify them in the connection definition. Any of the following speci
 Actually the `headerMapping` subsection is not required and could be omitted at all (in the context of `replyTarget`).
 
 For addresses `telemetry` and `event`, the following header mappings will be automatically applied:
-* `device_id`: {%raw%}{{ thing:id }}{%endraw%}
-* `subject`: {%raw%}{{ header:subject \| fn:default(topic:action-subject) \| fn:default(topic:criterion) }}{%endraw%}-response
-* `correlation-id`: {%raw%}{{ header:correlation-id }}{%endraw%}
+* `device_id`: `{%raw%}{{ thing:id }}{%endraw%}`
+* `subject`: `{%raw%}{{ header:subject \| fn:default(topic:action-subject) \| fn:default(topic:criterion) }}{%endraw%}-response`
+* `correlation-id`: `{%raw%}{{ header:correlation-id }}{%endraw%}`
 
 For address `command_response`, the following header mappings will be automatically applied:
-* `correlation-id`: {%raw%}{{ header:correlation-id }}{%endraw%}
-* `status`: {%raw%}{{ header:status }}{%endraw%}
+* `correlation-id`: `{%raw%}{{ header:correlation-id }}{%endraw%}`
+* `status`: `{%raw%}{{ header:status }}{%endraw%}`
 
 Note: Any other header mappings defined manually will be merged with the auto-generated ones.
 
@@ -101,10 +101,10 @@ It is automatically resolved at runtime to the following Kafka topic/key:
 The target `headerMapping` section is also populated automatically at runtime and there is
 no need to specify it the connection definitionm i.e. could be omitted.   
 If any of the following keys are specified in the connection will be ignored and automatically substituted as follows:
-* `device_id`: {%raw%}{{ thing:id }}{%endraw%}
-* `subject`: {%raw%}{{ header:subject \| fn:default(topic:action-subject) }}{%endraw%}
-* `response-required`: {%raw%}{{ header:response-required }}{%endraw%}
-* `correlation-id`: {%raw%}{{ header:correlation-id }}{%endraw%}
+* `device_id`: `{%raw%}{{ thing:id }}{%endraw%}`
+* `subject`: `{%raw%}{{ header:subject \| fn:default(topic:action-subject) }}{%endraw%}`
+* `response-required`: `{%raw%}{{ header:response-required }}{%endraw%}`
+* `correlation-id`: `{%raw%}{{ header:correlation-id }}{%endraw%}`
 
 Note: Any other header mappings defined manually will be merged with the auto-generated ones.
 
@@ -156,8 +156,8 @@ For more details see [Connection configuration](connectivity-tls-certificates.ht
         "qos": 1,
         "authorizationContext": ["ditto:inbound-auth-subject"],
         "enforcement": {
-          "input": "{{ header:device_id }}",
-          "filters": ["{{ entity:id }}"]
+          "input": "{%raw%}{{ header:device_id }}{%endraw%}",
+          "filters": ["{%raw%}{{ entity:id }}{%endraw%}"]
         },
         "headerMapping": {},
         "payloadMapping": ["Ditto"],
