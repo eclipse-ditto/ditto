@@ -477,13 +477,14 @@ public abstract class AbstractPersistenceActor<
         Result<E> result;
         try {
             result = strategy.apply(getStrategyContext(), entity, getNextRevisionNumber(), tracedCommand);
+            result.accept(this);
         } catch (final DittoRuntimeException e) {
             trace.fail(e);
             result = ResultFactory.newErrorResult(e, tracedCommand);
+            result.accept(this);
         } finally {
             trace.finish();
         }
-        result.accept(this);
     }
 
     @Override
