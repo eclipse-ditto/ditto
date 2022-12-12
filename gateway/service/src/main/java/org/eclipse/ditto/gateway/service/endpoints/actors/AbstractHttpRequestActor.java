@@ -531,12 +531,13 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
         logger.setCorrelationId(WithDittoHeaders.getCorrelationId(receivedCommand).orElse(null));
         logger.info("Got <{}> after <{}> before an appropriate response arrived.",
                 ReceiveTimeout.class.getSimpleName(), receiveTimeout);
-        actorContext.cancelReceiveTimeout();
 
         if (null != timeoutExceptionSupplier) {
             final var timeoutException = timeoutExceptionSupplier.get();
+            actorContext.cancelReceiveTimeout();
             handleDittoRuntimeException(timeoutException);
         } else {
+            actorContext.cancelReceiveTimeout();
             // This case is a programming error that should not happen at all.
             logger.error("Actor does not have a timeout exception supplier." +
                     " Thus, no DittoRuntimeException could be handled.");

@@ -71,11 +71,6 @@ public final class ConnectionCreatedStrategies
     }
 
     @Override
-    public boolean isDefined(final Command<?> command) {
-        return command instanceof ConnectivityCommand || command instanceof ConnectivitySudoCommand;
-    }
-
-    @Override
     public Result<ConnectivityEvent<?>> unhandled(final Context<ConnectionState> context,
             @Nullable final Connection entity,
             final long nextRevision,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2017-2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -47,6 +47,8 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
+import org.eclipse.ditto.connectivity.api.commands.sudo.ConnectivitySudoCommand;
+import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveClientActorProps;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionLifecycle;
@@ -54,6 +56,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
@@ -681,6 +684,10 @@ public final class ConnectionPersistenceActor
                 .matchEquals(Control.TRIGGER_UPDATE_PRIORITY, this::triggerUpdatePriority)
                 .match(UpdatePriority.class, this::updatePriority)
                 .match(StopShardedActor.class, this::stopShardedActor)
+                .match(SudoRetrieveClientActorProps.class, this::retrieveClientActorProps)
+                // Respond with not-accessible-exception for unhandled connectivity commands
+                .match(ConnectivitySudoCommand.class, this::notAccessible)
+                .match(ConnectivityCommand.class, this::notAccessible)
                 .match(ConnectionSupervisorActor.RestartByConnectionType.class, this::initiateRestartByConnectionType)
                 .build()
                 .orElse(super.matchAnyAfterInitialization());
@@ -943,6 +950,20 @@ public final class ConnectionPersistenceActor
                 command.getDittoHeaders()
         );
         origin.tell(logsResponse, getSelf());
+    }
+
+    private void retrieveClientActorProps(final SudoRetrieveClientActorProps command) {
+        if (entity != null) {
+            log.info("Sending client actor props for <{}>", getSender());
+            final var args = new ClientActorPropsArgs(entity, commandForwarderActor, getSelf(),
+                    command.getDittoHeaders(), connectivityConfigOverwrites);
+            final var clientActorId = new ClientActorId(entityId, command.getClientActorNumber());
+            final var envelope = shardedBinaryEnvelope(args, clientActorId);
+            getSender().tell(envelope, getSelf());
+        } else {
+            log.info("Received request for client actor props of nonexistent connection from <{}>", getSender());
+            notAccessible(command);
+        }
     }
 
     private CompletionStage<Object> startAndAskClientActorForTest(final TestConnection cmd) {

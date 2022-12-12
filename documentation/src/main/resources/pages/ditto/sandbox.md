@@ -11,10 +11,6 @@ try out Ditto without starting it locally.
 {% include warning.html content="The Ditto sandbox is not set up in a highly available manner and may experience
    downtimes. Also, the sandbox will be reset from time to time without prior notice." %}
 
-In addition, the following vendors offer free trial accounts for their Eclipse Ditto compatible products:
-
-* [Bosch IoT Things](https://developer.bosch-iot-suite.com/service/things/) by [Bosch.IO](https://bosch.io)
-
 
 ## Instructions
 
