@@ -53,7 +53,7 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
      * @return the new {@code PolicyEntry}.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code label} is empty.
-     * @since 3.x.0 TODO ditto#298
+     * @since 3.1.0
      */
     static PolicyEntry newInstance(final CharSequence label, final Iterable<Subject> subjects,
             final Iterable<Resource> resources, final ImportableType importableType) {
@@ -95,7 +95,7 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
      * Returns whether/how this Policy Entry is allowed to be imported by others.
      *
      * @return whether/how this entry is importable.
-     * @since 3.x.0 TODO ditto#298
+     * @since 3.1.0
      */
     ImportableType getImportableType();
 
@@ -144,7 +144,7 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
 
         /**
          * JSON field containing the PolicyEntry's importable type.
-         * @since 3.x.0 TODO ditto#298
+         * @since 3.1.0
          */
         public static final JsonFieldDefinition<String> IMPORTABLE_TYPE = JsonFactory
                 .newStringFieldDefinition("importable", FieldType.REGULAR, JsonSchemaVersion.V_2);

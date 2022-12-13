@@ -42,7 +42,7 @@ import org.eclipse.ditto.policies.model.PolicyImports;
 /**
  * This event is emitted after all {@link PolicyImports} were modified at once.
  *
- * @since 3.x.0 TODO ditto#298
+ * @since 3.1.0
  */
 @Immutable
 @JsonParsableEvent(name = PolicyImportsModified.NAME, typePrefix = PolicyEvent.TYPE_PREFIX)

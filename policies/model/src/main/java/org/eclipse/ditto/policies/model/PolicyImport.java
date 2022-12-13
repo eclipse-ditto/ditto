@@ -25,7 +25,7 @@ import org.eclipse.ditto.json.JsonObject;
  * Represents a single import of another {@link Policy} based on its {@code policyId} and {@link EffectedImports}
  * containing optional includes and excludes.
  *
- * @since 3.x.0 TODO ditto#298
+ * @since 3.1.0
  */
 public interface PolicyImport extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 

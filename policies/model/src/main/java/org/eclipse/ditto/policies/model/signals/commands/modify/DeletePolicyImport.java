@@ -38,7 +38,7 @@ import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 /**
  * This command deletes a {@link org.eclipse.ditto.policies.model.PolicyImport}.
  *
- * @since 3.x.0 TODO ditto#298
+ * @since 3.1.0
  */
 @Immutable
 @JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = DeletePolicyImport.NAME)

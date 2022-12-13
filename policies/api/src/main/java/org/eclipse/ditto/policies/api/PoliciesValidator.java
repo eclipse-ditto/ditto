@@ -77,7 +77,6 @@ public final class PoliciesValidator implements Validator {
     @Override
     public boolean isValid() {
         if (containsPolicyImport) {
-            // TODO ditto#298 check whether we cannot do any other validation
             return true;
         } else {
             // Disregard expiring subjects when testing for permissions granted because those are deleted after some time.

@@ -72,7 +72,7 @@ final class ImmutablePolicyEntry implements PolicyEntry {
      * @param importableType specifies whether and how this entry is allowed to be imported by others
      * @return a new {@code PolicyEntry} object.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 3.x.0 TODO ditto#298
+    * @since 3.1.0
      */
     public static PolicyEntry of(final Label label, final Subjects subjects, final Resources resources,
             final ImportableType importableType) {

@@ -44,7 +44,7 @@ import org.eclipse.ditto.policies.model.signals.commands.PolicyImportsValidator;
 /**
  * This command modifies a {@link PolicyImport}.
  *
- * @since 3.x.0 TODO ditto#298
+ * @since 3.1.0
  */
 @Immutable
 @JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = ModifyPolicyImport.NAME)

@@ -26,7 +26,7 @@ import java.util.stream.Stream;
  * Policy model functionality used in order to perform the importing/merging of imported {@link PolicyEntry}s into the
  * importing Policy.
  *
- * @since 3.x.0 TODO ditto#298
+ * @since 3.1.0
  */
 public final class PolicyImporter {
 

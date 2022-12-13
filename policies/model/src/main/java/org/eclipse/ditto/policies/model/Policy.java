@@ -169,7 +169,7 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
      * @return a copy of this Policy which does not contain the identified entries anymore.
      * @throws NullPointerException if {@code labels} is {@code null}.
      * @throws IllegalArgumentException if {@code labels} is empty.
-     * @since 3.x.0 TODO ditto#298
+     * @since 3.1.0
      */
     Policy removeEntries(Iterable<CharSequence> labels);
 
@@ -359,7 +359,7 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
      * @return a copy of this Policy with the changed state.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code label} is empty.
-     * @since 3.x.0 TODO ditto#298
+     * @since 3.1.0
      */
     Policy setImportableFor(CharSequence label, ImportableType importableType);
 
@@ -381,7 +381,7 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
      * Returns the PolicyImports this Policy has.
      *
      * @return the PolicyImports of this Policy.
-     * @since 3.x.0 TODO ditto#298
+     * @since 3.1.0
      */
     PolicyImports getPolicyImports();
 
@@ -508,7 +508,7 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
         /**
          * JSON field containing the Policy's imports.
          *
-         * @since 3.x.0 TODO ditto#298
+         * @since 3.1.0
          */
         public static final JsonFieldDefinition<JsonObject> IMPORTS =
                 JsonFactory.newJsonObjectFieldDefinition("imports", FieldType.REGULAR, JsonSchemaVersion.V_2);

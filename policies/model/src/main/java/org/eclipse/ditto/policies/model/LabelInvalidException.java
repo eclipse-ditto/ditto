@@ -30,7 +30,7 @@ import org.eclipse.ditto.json.JsonObject;
 /**
  * Thrown if a Policy Label is not valid.
  *
- * @since 3.x.0 TODO ditto#298
+ * @since 3.1.0
  */
 @Immutable
 @JsonParsableException(errorCode = SubjectExpiryInvalidException.ERROR_CODE)

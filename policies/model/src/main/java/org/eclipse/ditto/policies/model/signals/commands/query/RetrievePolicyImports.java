@@ -36,7 +36,7 @@ import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 /**
  * Command which retrieves the Policy imports of a {@code Policy} based on the passed in Policy ID.
  *
- * @since 3.x.0 TODO ditto#298
+ * @since 3.1.0
  */
 @Immutable
 @JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = RetrievePolicyImports.NAME)

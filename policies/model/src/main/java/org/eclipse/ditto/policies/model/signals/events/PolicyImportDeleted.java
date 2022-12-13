@@ -38,7 +38,7 @@ import org.eclipse.ditto.policies.model.PolicyId;
 /**
  * This event is emitted after a {@link org.eclipse.ditto.policies.model.PolicyImport} was deleted.
  *
- * @since 3.x.0 TODO ditto#298
+ * @since 3.1.0
  */
 @Immutable
 @JsonParsableEvent(name = PolicyImportDeleted.NAME, typePrefix = PolicyEvent.TYPE_PREFIX)

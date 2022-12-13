@@ -20,7 +20,7 @@ import java.util.Optional;
 /**
  * Determines whether and how a policy entry can be imported by other policies.
  *
- * @since 3.x.0 TODO ditto#298
+ * @since 3.1.0
  */
 public enum ImportableType {
 

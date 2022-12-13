@@ -28,7 +28,7 @@ import org.eclipse.ditto.json.JsonObject;
 /**
  * Holds imported {@link ImportedLabels} for {@link EffectedImports}s.
  *
- * @since 3.x.0 TODO ditto#298
+ * @since 3.1.0
  */
 public interface EffectedImports extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 

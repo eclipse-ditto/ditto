@@ -444,7 +444,7 @@ public interface PolicyBuilder {
          * @param importableType the importable type.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
-         * @since 3.x.0 TODO ditto#298
+         * @since 3.1.0
          */
         default LabelScoped setImportable(final ImportableType importableType) {
             setImportableFor(getLabel(), importableType);
@@ -543,7 +543,7 @@ public interface PolicyBuilder {
      *
      * @param policyImport the PolicyImport to be set.
      * @return this builder to allow method chaining.
-     * @since 3.x.0 TODO ditto#298
+     * @since 3.1.0
      */
     PolicyBuilder setPolicyImport(PolicyImport policyImport);
 
@@ -553,7 +553,7 @@ public interface PolicyBuilder {
      *
      * @param imports the PolicyImports to be set.
      * @return this builder to allow method chaining.
-     * @since 3.x.0 TODO ditto#298
+     * @since 3.1.0
      */
     PolicyBuilder setPolicyImports(PolicyImports imports);
 
@@ -931,7 +931,7 @@ public interface PolicyBuilder {
      * @return this builder to allow method chaining.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code label} is empty.
-     * @since 3.x.0 TODO ditto#298
+     * @since 3.1.0
      */
     PolicyBuilder setImportableFor(CharSequence label, ImportableType importableType);
 

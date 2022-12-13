@@ -47,7 +47,7 @@ import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 /**
  * Response to a {@link ModifyPolicyImport} command.
  *
- * @since 3.x.0 TODO ditto#298
+ * @since 3.1.0
  */
 @Immutable
 @JsonParsableCommandResponse(type = ModifyPolicyImportResponse.TYPE)

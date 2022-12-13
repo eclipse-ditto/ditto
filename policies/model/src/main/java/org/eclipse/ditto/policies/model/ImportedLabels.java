@@ -21,7 +21,7 @@ import org.eclipse.ditto.json.JsonArray;
 /**
  * This Set contains the imported Policy {@link Label}s.
  *
- * @since 3.x.0 TODO ditto#298
+ * @since 3.1.0
  */
 public interface ImportedLabels extends Set<Label>, Jsonifiable<JsonArray> {
 
