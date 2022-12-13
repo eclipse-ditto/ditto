@@ -14,11 +14,11 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.
 
 import static org.eclipse.ditto.connectivity.model.ConnectionLifecycle.ACTIVE;
 import static org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction.BECOME_CREATED;
+import static org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction.CHECK_LOGGING_ENABLED;
 import static org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction.ENABLE_LOGGING;
 import static org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction.OPEN_CONNECTION_IGNORE_ERRORS;
 import static org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction.PERSIST_AND_APPLY_EVENT;
 import static org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction.SEND_RESPONSE;
-import static org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction.UPDATE_SUBSCRIPTIONS;
 import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory.newErrorResult;
 import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory.newMutationResult;
 
@@ -32,14 +32,14 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.StagedCommand;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.StagedCommand;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 
 /**
  * This strategy handles the {@link CreateConnection} command.
@@ -71,8 +71,8 @@ final class CreateConnectionStrategy extends AbstractConnectivityCommandStrategy
                     .debug("Connection <{}> has status <{}> and will therefore be opened.",
                             connection.getId(), connection.getConnectionStatus());
             final List<ConnectionAction> actions =
-                    List.of(ENABLE_LOGGING, PERSIST_AND_APPLY_EVENT, BECOME_CREATED, UPDATE_SUBSCRIPTIONS,
-                            SEND_RESPONSE, OPEN_CONNECTION_IGNORE_ERRORS);
+                    List.of(ENABLE_LOGGING, PERSIST_AND_APPLY_EVENT, BECOME_CREATED, SEND_RESPONSE,
+                            OPEN_CONNECTION_IGNORE_ERRORS);
             return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
         } else {
             return newMutationResult(command, event, response, true, false);

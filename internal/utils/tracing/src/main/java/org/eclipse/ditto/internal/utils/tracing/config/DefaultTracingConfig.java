@@ -12,11 +12,16 @@
  */
 package org.eclipse.ditto.internal.utils.tracing.config;
 
+import java.text.MessageFormat;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
+import org.eclipse.ditto.internal.utils.tracing.filter.AcceptAllTracingFilter;
+import org.eclipse.ditto.internal.utils.tracing.filter.KamonTracingFilter;
+import org.eclipse.ditto.internal.utils.tracing.filter.TracingFilter;
 
 import com.typesafe.config.Config;
 
@@ -30,11 +35,31 @@ public final class DefaultTracingConfig implements TracingConfig {
 
     private final boolean tracingEnabled;
     private final String propagationChannel;
+    private final TracingFilter tracingFilter;
 
     private DefaultTracingConfig(final ConfigWithFallback tracingScopedConfig) {
         tracingEnabled = tracingScopedConfig.getBoolean(TracingConfigValue.TRACING_ENABLED.getConfigPath());
         propagationChannel =
                 tracingScopedConfig.getString(TracingConfigValue.TRACING_PROPAGATION_CHANNEL.getConfigPath());
+        tracingFilter = getConfigBasedTracingFilterOrThrow(tracingScopedConfig);
+    }
+
+    private static TracingFilter getConfigBasedTracingFilterOrThrow(final ConfigWithFallback tracingScopedConfig) {
+        final TracingFilter result;
+        final var filterConfig = tracingScopedConfig.getConfig(TracingConfigValue.FILTER.getConfigPath());
+        if (filterConfig.isEmpty()) {
+            result = AcceptAllTracingFilter.getInstance();
+        } else {
+            result = KamonTracingFilter.fromConfig(filterConfig)
+                    .mapErr(throwable -> new DittoConfigError(
+                            MessageFormat.format("Failed to get {0} from config: {1}",
+                                    TracingFilter.class.getSimpleName(),
+                                    throwable.getMessage()),
+                            throwable
+                    ))
+                    .orElseThrow();
+        }
+        return result;
     }
 
     /**
@@ -46,7 +71,8 @@ public final class DefaultTracingConfig implements TracingConfig {
      */
     public static DefaultTracingConfig of(final Config config) {
         return new DefaultTracingConfig(
-                ConfigWithFallback.newInstance(config, CONFIG_PATH, TracingConfigValue.values()));
+                ConfigWithFallback.newInstance(config, CONFIG_PATH, TracingConfigValue.values())
+        );
     }
 
     @Override
@@ -60,6 +86,11 @@ public final class DefaultTracingConfig implements TracingConfig {
     }
 
     @Override
+    public TracingFilter getTracingFilter() {
+        return tracingFilter;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -67,14 +98,15 @@ public final class DefaultTracingConfig implements TracingConfig {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final DefaultTracingConfig that = (DefaultTracingConfig) o;
+        final var that = (DefaultTracingConfig) o;
         return tracingEnabled == that.tracingEnabled &&
-                Objects.equals(propagationChannel, that.propagationChannel);
+                Objects.equals(propagationChannel, that.propagationChannel) &&
+                Objects.equals(tracingFilter, that.tracingFilter);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(tracingEnabled, propagationChannel);
+        return Objects.hash(tracingEnabled, propagationChannel, tracingFilter);
     }
 
     @Override
@@ -82,6 +114,8 @@ public final class DefaultTracingConfig implements TracingConfig {
         return getClass().getSimpleName() + " [" +
                 "tracingEnabled=" + tracingEnabled +
                 ", propagationChannel=" + propagationChannel +
+                ", tracingFilter=" + tracingFilter +
                 "]";
     }
+
 }

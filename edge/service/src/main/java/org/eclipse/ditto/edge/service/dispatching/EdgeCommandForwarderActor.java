@@ -147,10 +147,6 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 .match(ThingSearchCommand.class, this::forwardToThingSearch)
                 .match(ThingSearchSudoCommand.class, this::forwardToThingSearch)
                 .match(Signal.class, this::handleUnknownSignal)
-                .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck ->
-                        log.debug("Successfully subscribed to distributed pub/sub on topic '{}'",
-                                subscribeAck.subscribe().topic())
-                )
                 .matchAny(m -> log.warning("Got unknown message: {}", m))
                 .build();
 
@@ -164,8 +160,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
         scheduleTask(thingSignal, () -> signalTransformationCs.thenAccept(transformed -> {
             log.withCorrelationId(transformed)
                     .info("Forwarding thing signal with ID <{}> and type <{}> to 'things' shard region",
-                            transformed instanceof WithEntityId withEntityId ? withEntityId.getEntityId() :
-                                    null,
+                            transformed instanceof WithEntityId withEntityId ? withEntityId.getEntityId() : null,
                             transformed.getType());
 
             if (!Signal.isChannelLive(transformed) &&
@@ -276,9 +271,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
     private void forwardToThingSearch(final Command<?> command) {
         // don't use "ask with retry" as the search could take some time and we don't want to stress the search
         // by retrying a query several times if it took long
-        pubSubMediator.tell(
-                DistPubSubAccess.send(ThingsSearchConstants.SEARCH_ACTOR_PATH, command),
-                getSender());
+        pubSubMediator.tell(DistPubSubAccess.send(ThingsSearchConstants.SEARCH_ACTOR_PATH, command), getSender());
     }
 
     private void handleUnknownSignal(final Signal<?> signal) {

@@ -177,7 +177,7 @@ retrieve metrics and connection logs via HTTP endpoints.
 
 We received several contributions by [Thomas Fries](https://github.com/thfries), who contributed the Ditto explorer UI.  
 The latest live version of the UI can be found here:  
-[https://eclipse.github.io/ditto/](https://eclipse.github.io/ditto/)
+[https://eclipse-ditto.github.io/ditto/](https://eclipse-ditto.github.io/ditto/)
 
 You can use it in order to e.g. connect to your Ditto installation to manage things, policies and even connections.
 

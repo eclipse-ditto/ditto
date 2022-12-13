@@ -18,23 +18,23 @@ For this example, Ditto added a model into its `ditto-examples` GitHub Repo:
 [floor-lamp-1.0.0.tm.jsonld](https://github.com/eclipse/ditto-examples/blob/master/wot/models/floor-lamp-1.0.0.tm.jsonld)
 
 This file is available as HTTP served file at:  
-[https://eclipse.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld](https://eclipse.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld)
+[https://eclipse-ditto.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld)
 
 The example model is composed of the following submodels:
-* [dimmable-colored-lamp-1.0.0.tm.jsonld](https://eclipse.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld), instanceName: "Spot1"
-    * which `tm:extends` [colored-lamp-1.0.0.tm.jsonld](https://eclipse.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld)
-        * which `tm:extends` [switchable-1.0.0.tm.jsonld](https://eclipse.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld)
-* [dimmable-colored-lamp-1.0.0.tm.jsonld](https://eclipse.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld), instanceName: "Spot2"
-    * which `tm:extends` [colored-lamp-1.0.0.tm.jsonld](https://eclipse.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld)
-        * which `tm:extends` [switchable-1.0.0.tm.jsonld](https://eclipse.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld)
-* [dimmable-colored-lamp-1.0.0.tm.jsonld](https://eclipse.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld), instanceName: "Spot3"
-    * which `tm:extends` [colored-lamp-1.0.0.tm.jsonld](https://eclipse.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld)
-        * which `tm:extends` [switchable-1.0.0.tm.jsonld](https://eclipse.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld)
-* [connection-status-1.0.0.tm.jsonld](https://eclipse.github.io/ditto-examples/wot/models/connection-status-1.0.0.tm.jsonld), instanceName: "ConnectionStatus"
-* [power-consumption-aware-1.0.0.tm.jsonld](https://eclipse.github.io/ditto-examples/wot/models/power-consumption-aware-1.0.0.tm.jsonld), instanceName: "PowerConsumptionAwareness"
-* [smoke-detector-1.0.0.tm.jsonld](https://eclipse.github.io/ditto-examples/wot/models/smoke-detector-1.0.0.tm.jsonld), instanceName: "SmokeDetection"
-* [colored-lamp-1.0.0.tm.jsonld](https://eclipse.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld), instanceName: "Status-LED"
-    * which `tm:extends` [switchable-1.0.0.tm.jsonld](https://eclipse.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld)
+* [dimmable-colored-lamp-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld), instanceName: "Spot1"
+    * which `tm:extends` [colored-lamp-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld)
+        * which `tm:extends` [switchable-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld)
+* [dimmable-colored-lamp-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld), instanceName: "Spot2"
+    * which `tm:extends` [colored-lamp-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld)
+        * which `tm:extends` [switchable-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld)
+* [dimmable-colored-lamp-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld), instanceName: "Spot3"
+    * which `tm:extends` [colored-lamp-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld)
+        * which `tm:extends` [switchable-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld)
+* [connection-status-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/connection-status-1.0.0.tm.jsonld), instanceName: "ConnectionStatus"
+* [power-consumption-aware-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/power-consumption-aware-1.0.0.tm.jsonld), instanceName: "PowerConsumptionAwareness"
+* [smoke-detector-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/smoke-detector-1.0.0.tm.jsonld), instanceName: "SmokeDetection"
+* [colored-lamp-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld), instanceName: "Status-LED"
+    * which `tm:extends` [switchable-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld)
 
 Summarizing, our example model is the model of a "Floor Lamp" with:
 * 3 (dimmable, colored, switchable) Spots
@@ -53,7 +53,7 @@ a Thing via the Ditto HTTP API (e.g. `PUT /api/2/things/<thingId>`):
 curl --location --request PUT -u ditto:ditto 'https://ditto.eclipseprojects.io/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815' \
 --header 'Content-Type: application/json' \
 --data-raw '{
-    "definition": "https://eclipse.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld"
+    "definition": "https://eclipse-ditto.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld"
 }'
 ```
 
@@ -62,7 +62,7 @@ That should result in an HTTP status code `201` (Created) and return the followi
 {
   "thingId": "io.eclipseprojects.ditto:floor-lamp-0815",
   "policyId": "io.eclipseprojects.ditto:floor-lamp-0815",
-  "definition": "https://eclipse.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld",
+  "definition": "https://eclipse-ditto.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld",
   "attributes": {
     "manufacturer": "",
     "serialNo": ""
@@ -70,9 +70,9 @@ That should result in an HTTP status code `201` (Created) and return the followi
   "features": {
     "Spot1": {
       "definition": [
-        "https://eclipse.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld",
-        "https://eclipse.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
-        "https://eclipse.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld",
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
       ],
       "properties": {
         "dimmer-level": 0.0,
@@ -86,9 +86,9 @@ That should result in an HTTP status code `201` (Created) and return the followi
     },
     "Spot2": {
       "definition": [
-        "https://eclipse.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld",
-        "https://eclipse.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
-        "https://eclipse.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld",
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
       ],
       "properties": {
         "dimmer-level": 0.0,
@@ -102,9 +102,9 @@ That should result in an HTTP status code `201` (Created) and return the followi
     },
     "Spot3": {
       "definition": [
-        "https://eclipse.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld",
-        "https://eclipse.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
-        "https://eclipse.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld",
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
       ],
       "properties": {
         "dimmer-level": 0.0,
@@ -118,7 +118,7 @@ That should result in an HTTP status code `201` (Created) and return the followi
     },
     "ConnectionStatus": {
       "definition": [
-        "https://eclipse.github.io/ditto-examples/wot/models/connection-status-1.0.0.tm.jsonld"
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/connection-status-1.0.0.tm.jsonld"
       ],
       "properties": {
         "readySince": "",
@@ -127,7 +127,7 @@ That should result in an HTTP status code `201` (Created) and return the followi
     },
     "PowerConsumptionAwareness": {
       "definition": [
-        "https://eclipse.github.io/ditto-examples/wot/models/power-consumption-aware-1.0.0.tm.jsonld"
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/power-consumption-aware-1.0.0.tm.jsonld"
       ],
       "properties": {
         "reportPowerConsumption": {}
@@ -135,13 +135,13 @@ That should result in an HTTP status code `201` (Created) and return the followi
     },
     "SmokeDetection": {
       "definition": [
-        "https://eclipse.github.io/ditto-examples/wot/models/smoke-detector-1.0.0.tm.jsonld"
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/smoke-detector-1.0.0.tm.jsonld"
       ]
     },
     "Status-LED": {
       "definition": [
-        "https://eclipse.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
-        "https://eclipse.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
       ],
       "properties": {
         "color": {
@@ -193,7 +193,7 @@ That should result in an HTTP status code `200` (OK) and return the following bo
   "links": [
     {
       "rel": "type",
-      "href": "https://eclipse.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld",
+      "href": "https://eclipse-ditto.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld",
       "type": "application/tm+json"
     },
     {
@@ -559,7 +559,7 @@ That should result in an HTTP status code `200` (OK) and return the following bo
     },
     {
       "rel": "type",
-      "href": "https://eclipse.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld",
+      "href": "https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld",
       "type": "application/tm+json"
     }
   ],

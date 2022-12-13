@@ -49,6 +49,7 @@ import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.gateway.api.GatewayInternalErrorException;
+import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionAbortedException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
@@ -74,8 +75,9 @@ import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.TracingTags;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -116,7 +118,9 @@ import akka.stream.Attributes;
 import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
+import akka.stream.KillSwitches;
 import akka.stream.Materializer;
+import akka.stream.SharedKillSwitch;
 import akka.stream.SinkShape;
 import akka.stream.UniformFanInShape;
 import akka.stream.javadsl.Flow;
@@ -166,6 +170,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             .tag(DIRECTION, "dropped");
     private static final String MDC_CONNECTION_CORRELATION_ID = "connection-correlation-id";
 
+    private final SharedKillSwitch wsKillSwitch = KillSwitches.shared(WebSocketRoute.class.getSimpleName());
+
     private final ActorRef streamingActor;
     private final StreamingConfig streamingConfig;
     private final Materializer materializer;
@@ -177,6 +183,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     @Nullable private GatewaySignalEnrichmentProvider signalEnrichmentProvider;
     private HeaderTranslator headerTranslator;
     private WebSocketConfigProvider webSocketConfigProvider;
+
 
     private WebSocketRoute(final ActorSystem actorSystem,
             final ActorRef streamingActor,
@@ -308,15 +315,14 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 .thenApply(websocketConfig -> {
                     final Pair<Connect, Flow<DittoRuntimeException, Message, NotUsed>> outgoing =
                             createOutgoing(version, connectionCorrelationId, authContext, dittoHeaders, adapter,
-                                    request,
-                                    websocketConfig, signalEnrichmentFacade, logger);
+                                    request, websocketConfig, signalEnrichmentFacade, logger);
 
                     final Flow<Message, DittoRuntimeException, NotUsed> incoming =
                             createIncoming(version, connectionCorrelationId, authContext, dittoHeaders, adapter,
-                                    request,
-                                    websocketConfig, outgoing.first(), logger);
+                                    request, websocketConfig, outgoing.first(), logger);
 
-                    return upgradeToWebSocket.handleMessagesWith(incoming.via(outgoing.second()));
+                    return upgradeToWebSocket.handleMessagesWith(
+                            incoming.via(wsKillSwitch.flow()).via(outgoing.second()));
                 }));
     }
 
@@ -408,8 +414,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 Patterns.ask(streamingActor, connect, LOCAL_ASK_TIMEOUT)
                         .thenApply(result -> Source.repeat((ActorRef) result))
         );
-
         final var noOpStreamControlMessage = NoOp.getInstance();
+
         return setAckRequestThenMergeLeftAndRight.zipWith(sessionActorSource, Pair::create)
                 .to(Sink.foreach(pair -> {
                     final var actorRef = pair.second();
@@ -419,7 +425,6 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     }
                 }));
     }
-
 
     private Flow<Message, String, NotUsed> getStrictifyFlow(final HttpRequest request, final Logger logger) {
         return Flow.<Message>create()
@@ -444,7 +449,6 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 }))
                 .withAttributes(Attributes.createLogLevels(Logging.DebugLevel(), Logging.DebugLevel(),
                         Logging.WarningLevel()));
-
     }
 
     private Graph<FanOutShape2<String, Either<StreamControlMessage, Signal<?>>, DittoRuntimeException>, NotUsed>
@@ -456,14 +460,13 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final ProtocolAdapter adapter,
             final ThreadSafeDittoLogger logger) {
 
-        final ProtocolMessageExtractor protocolMessageExtractor =
-                new ProtocolMessageExtractor(connectionAuthContext, connectionCorrelationId);
+        final var protocolMsgExtractor = new ProtocolMessageExtractor(connectionAuthContext, connectionCorrelationId);
 
         return Filter.multiplexByEither(
                 cmdString -> {
                     final Optional<StreamControlMessage> streamControlMessage;
                     try {
-                        streamControlMessage = protocolMessageExtractor.apply(cmdString);
+                        streamControlMessage = protocolMsgExtractor.apply(cmdString);
                     } catch (final DittoRuntimeException dre) {
                         return Left.apply(dre);
                     }
@@ -474,19 +477,27 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                         final var initialInternalHeaders =
                                 getInitialInternalHeaders(version, connectionAuthContext, connectionCorrelationId);
                         try {
-                            final Signal<?> signal = buildSignal(connectionCorrelationId,
+                            final var signal = buildSignal(connectionCorrelationId,
                                     initialInternalHeaders,
                                     getJsonifiableAdaptableOrThrow(cmdString, initialInternalHeaders),
                                     additionalHeaders,
                                     adapter,
                                     headerTranslator,
                                     logger);
-                            final StartedTrace trace = DittoTracing.trace(signal, "gw_streaming_in_signal")
-                                    .tag(TracingTags.SIGNAL_TYPE, signal.getType())
+                            final var startedSpan = DittoTracing.newPreparedSpan(
+                                            signal.getDittoHeaders(),
+                                            SpanOperationName.of("gw_streaming_in_signal")
+                                    )
+                                    .tag(SpanTagKey.SIGNAL_TYPE.getTagForValue(signal.getType()))
                                     .start();
-                            final Signal<?> tracedSignal = DittoTracing.propagateContext(trace.getContext(), signal);
-                            result = Right.apply(Right.apply(tracedSignal));
-                            trace.finish();
+                            result = Right.apply(
+                                    Right.apply(
+                                            signal.setDittoHeaders(DittoHeaders.of(
+                                                    startedSpan.propagateContext(signal.getDittoHeaders())
+                                            ))
+                                    )
+                            );
+                            startedSpan.finish();
                         } catch (final IllegalAdaptableException e) {
                             logSignalBuildingFailure(logger.withCorrelationId(e)::info, e, cmdString);
                             final var failure = e.setDittoHeaders(DittoHeaders.newBuilder(e.getDittoHeaders())
@@ -527,18 +538,18 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     }
 
     private static DittoRuntimeException traceSignalBuildingFailure(final DittoRuntimeException failure) {
-        final var trace = startTrace(failure, "gw.streaming.in.error");
-        trace.fail(failure);
+        final var startedSpan = startTraceSpan(failure, SpanOperationName.of("gw.streaming.in.error"));
+        startedSpan.tagAsFailed(failure);
         try {
-            return DittoTracing.propagateContext(trace.getContext(), failure);
+            return failure.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(failure.getDittoHeaders())));
         } finally {
-            trace.finish();
+            startedSpan.finish();
         }
     }
 
-    private static StartedTrace startTrace(final WithDittoHeaders withDittoHeaders, final String name) {
-        final var trace = DittoTracing.trace(withDittoHeaders, name);
-        return trace.start();
+    private static StartedSpan startTraceSpan(final WithDittoHeaders withDittoHeaders, final SpanOperationName name) {
+        final var preparedSpan = DittoTracing.newPreparedSpan(withDittoHeaders.getDittoHeaders(), name);
+        return preparedSpan.start();
     }
 
     private Pair<Connect, Flow<DittoRuntimeException, Message, NotUsed>> createOutgoing(
@@ -561,11 +572,17 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                         withQueue -> {
                             webSocketSupervisor.supervise(withQueue.getSupervisedStream(), connectionCorrelationId,
                                     additionalHeaders);
-                            return new Connect(withQueue.getSourceQueue(), connectionCorrelationId, STREAMING_TYPE_WS, version,
-                                    optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null),
-                                    readDeclaredAcknowledgementLabels(additionalHeaders), connectionAuthContext);
+                            return new Connect(withQueue.getSourceQueue(), connectionCorrelationId, STREAMING_TYPE_WS,
+                                    version, optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null),
+                                    readDeclaredAcknowledgementLabels(additionalHeaders), connectionAuthContext,
+                                    wsKillSwitch);
                         })
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<SessionedJsonifiable, NotUsed>>()
+                        .match(GatewayWebsocketSessionAbortedException.class,
+                                ex -> {
+                                    logger.info("WebSocket connection aborted because of service restart!");
+                                    return Source.empty();
+                                })
                         .match(GatewayWebsocketSessionExpiredException.class,
                                 ex -> {
                                     logger.info("WebSocket connection terminated because JWT expired!");
@@ -751,10 +768,10 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     return Collections.singletonList(toJsonStringWithExtra(adaptable, extra));
                 }
                 issuePotentialWeakAcknowledgements(sessionedJsonifiable);
-                sessionedJsonifiable.finishTrace();
+                sessionedJsonifiable.finishSpan();
                 return Collections.emptyList();
             }).exceptionally(error -> {
-                sessionedJsonifiable.finishTrace();
+                sessionedJsonifiable.finishSpan();
                 return WebSocketRoute.reportEnrichmentError(error, adapter, adaptable, logger);
             });
         };

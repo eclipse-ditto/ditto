@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -53,6 +54,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.pf.FSMStateFunctionBuilder;
+import akka.pattern.Patterns;
 
 /**
  * Actor which handles connection to Kafka server.
@@ -72,10 +74,10 @@ public final class KafkaClientActor extends BaseClientActor {
             final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
             final KafkaPublisherActorFactory publisherActorFactory,
-            final DittoHeaders dittoHeaders,
+            final boolean dryRun,
             final Config connectivityConfigOverwrites) {
 
-        super(connection, commandForwarderActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
+        super(connection, commandForwarderActor, connectionActor, dryRun, connectivityConfigOverwrites);
         kafkaConfig = connectivityConfig().getConnectionConfig().getKafkaConfig();
         kafkaConsumerActors = new ArrayList<>();
         propertiesFactory = PropertiesFactory.newInstance(connection, kafkaConfig, getClientId(connection.getId()));
@@ -87,11 +89,11 @@ public final class KafkaClientActor extends BaseClientActor {
     private KafkaClientActor(final Connection connection,
             final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
-            final DittoHeaders dittoHeaders,
+            final boolean dryRun,
             final Config connectivityConfigOverwrites) {
 
-        this(connection, commandForwarderActor, connectionActor, DefaultKafkaPublisherActorFactory.getInstance(), dittoHeaders,
-                connectivityConfigOverwrites);
+        this(connection, commandForwarderActor, connectionActor, DefaultKafkaPublisherActorFactory.getInstance(),
+                dryRun, connectivityConfigOverwrites);
 
         connectionCounterRegistry.registerAlertFactory(ConnectionType.KAFKA, MetricType.THROTTLED,
                 MetricDirection.INBOUND,
@@ -116,7 +118,7 @@ public final class KafkaClientActor extends BaseClientActor {
             final Config connectivityConfigOverwrites) {
 
         return Props.create(KafkaClientActor.class, validateConnection(connection), commandForwarderActor,
-                connectionActor, dittoHeaders, connectivityConfigOverwrites);
+                connectionActor, dittoHeaders.isDryRun(), connectivityConfigOverwrites);
     }
 
     static Props propsForTests(final Connection connection,
@@ -126,7 +128,7 @@ public final class KafkaClientActor extends BaseClientActor {
             final DittoHeaders dittoHeaders) {
 
         return Props.create(KafkaClientActor.class, validateConnection(connection), proxyActor, connectionActor,
-                factory, dittoHeaders, ConfigFactory.empty());
+                factory, dittoHeaders.isDryRun(), ConfigFactory.empty());
     }
 
     private static Connection validateConnection(final Connection connection) {
@@ -169,6 +171,16 @@ public final class KafkaClientActor extends BaseClientActor {
         final String correlationId = dittoHeaders.getCorrelationId().orElse(null);
         connectClient(true, testConnectionCommand.getEntityId(), correlationId);
         return testConnectionFuture;
+    }
+
+    @Override
+    protected CompletionStage<Void> stopConsuming() {
+        final var timeout = Duration.ofMinutes(2L);
+        final CompletableFuture<?>[] futures = kafkaConsumerActors.stream()
+                .map(consumer -> Patterns.ask(consumer, KafkaConsumerActor.GracefulStop.START, timeout))
+                .map(CompletionStage::toCompletableFuture)
+                .toArray(CompletableFuture[]::new);
+        return CompletableFuture.allOf(futures);
     }
 
     @Override
@@ -261,7 +273,7 @@ public final class KafkaClientActor extends BaseClientActor {
         kafkaConsumerActors.forEach(consumerActor -> {
             logger.debug("Stopping child actor <{}>.", consumerActor.path());
             // shutdown using a message, so the actor can clean up first
-            consumerActor.tell(KafkaConsumerActor.GracefulStop.INSTANCE, getSelf());
+            consumerActor.tell(KafkaConsumerActor.GracefulStop.START, ActorRef.noSender());
         });
         kafkaConsumerActors.clear();
     }

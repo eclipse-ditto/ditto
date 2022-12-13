@@ -38,7 +38,7 @@ public final class OAuthClientCredentialsTest {
     @Test
     public void testJsonSerialization() {
         final Credentials original = OAuthClientCredentials.newBuilder().clientId("clientId").clientSecret(
-                "clientSecret").scope("scope").tokenEndpoint("http://localhost/token").build();
+                "clientSecret").scope("scope").tokenEndpoint("http://localhost/token").audience("audience").build();
         final Credentials deserialized = Credentials.fromJson(original.toJson());
         assertThat(deserialized).isEqualTo(original);
     }

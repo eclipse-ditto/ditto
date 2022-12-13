@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors;
 
-import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceSettings;
@@ -20,6 +19,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoN
 import org.eclipse.ditto.internal.utils.persistence.operations.AbstractPersistenceOperationsActor;
 import org.eclipse.ditto.internal.utils.persistence.operations.NamespacePersistenceOperations;
 import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
+import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
@@ -65,8 +65,9 @@ public final class ThingPersistenceOperationsActor extends AbstractPersistenceOp
 
         return Props.create(ThingPersistenceOperationsActor.class, () -> {
             final MongoEventSourceSettings eventSourceSettings =
-                    MongoEventSourceSettings.fromConfig(config, ThingPersistenceActor.PERSISTENCE_ID_PREFIX, true,
-                            ThingPersistenceActor.JOURNAL_PLUGIN_ID, ThingPersistenceActor.SNAPSHOT_PLUGIN_ID);
+                    MongoEventSourceSettings.fromConfig(config, ThingPersistenceActor.PERSISTENCE_ID_PREFIX,
+                            true, ThingPersistenceActor.JOURNAL_PLUGIN_ID,
+                            ThingPersistenceActor.SNAPSHOT_PLUGIN_ID);
 
             final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
             final MongoDatabase db = mongoClient.getDefaultDatabase();
@@ -77,6 +78,11 @@ public final class ThingPersistenceOperationsActor extends AbstractPersistenceOp
             return new ThingPersistenceOperationsActor(pubSubMediator, namespaceOps, mongoClient,
                     persistenceOperationsConfig);
         });
+    }
+
+    @Override
+    public String getActorName() {
+        return ACTOR_NAME;
     }
 
 }

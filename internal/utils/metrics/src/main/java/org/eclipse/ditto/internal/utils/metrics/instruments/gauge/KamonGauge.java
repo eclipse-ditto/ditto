@@ -12,18 +12,15 @@
  */
 package org.eclipse.ditto.internal.utils.metrics.instruments.gauge;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.KamonTagSetConverter;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kamon.Kamon;
-import kamon.tag.TagSet;
 
 /**
  * Kamon based implementation of {@link Gauge}.
@@ -34,15 +31,15 @@ public final class KamonGauge implements Gauge {
     private static final Logger LOGGER = LoggerFactory.getLogger(KamonGauge.class);
 
     private final String name;
-    private final Map<String, String> tags;
+    private final TagSet tags;
 
-    private KamonGauge(final String name, final Map<String, String> tags) {
+    private KamonGauge(final String name, final TagSet tags) {
         this.name = name;
-        this.tags = Collections.unmodifiableMap(new HashMap<>(tags));
+        this.tags = tags;
     }
 
     public static Gauge newGauge(final String name) {
-        return new KamonGauge(name, Collections.emptyMap());
+        return new KamonGauge(name, TagSet.empty());
     }
 
     @Override
@@ -69,36 +66,29 @@ public final class KamonGauge implements Gauge {
 
     @Override
     public Long get() {
+        final long result;
         final kamon.metric.Gauge kamonInternalGauge = getKamonInternalGauge();
-        if (kamonInternalGauge instanceof kamon.metric.Gauge.Volatile) {
-            return (long) ((kamon.metric.Gauge.Volatile) kamonInternalGauge).snapshot(false);
+        if (kamonInternalGauge instanceof kamon.metric.Gauge.Volatile volatileGauge) {
+            result = (long) volatileGauge.snapshot(false);
+        } else {
+            LOGGER.warn("Could not get value from kamon gauge");
+            result = 0L;
         }
-        LOGGER.warn("Could not get value from kamon gauge");
-        return 0L;
+        return result;
     }
 
     @Override
-    public Gauge tag(final String key, final String value) {
-        final HashMap<String, String> newMap = new HashMap<>(tags);
-        newMap.put(key, value);
-        return new KamonGauge(name, newMap);
+    public KamonGauge tag(final Tag tag) {
+        return new KamonGauge(name, tags.putTag(tag));
     }
 
     @Override
-    public Gauge tags(final Map<String, String> tags) {
-        final HashMap<String, String> newMap = new HashMap<>(this.tags);
-        newMap.putAll(tags);
-        return new KamonGauge(name, newMap);
-    }
-
-    @Nullable
-    @Override
-    public String getTag(final String key) {
-        return this.tags.get(key);
+    public KamonGauge tags(final TagSet tags) {
+        return new KamonGauge(name, this.tags.putAllTags(tags));
     }
 
     @Override
-    public Map<String, String> getTags() {
+    public TagSet getTagSet() {
         return tags;
     }
 
@@ -115,9 +105,8 @@ public final class KamonGauge implements Gauge {
     }
 
     private kamon.metric.Gauge getKamonInternalGauge() {
-        return Kamon.gauge(name).withTags(TagSet.from(new HashMap<>(tags)));
+        return Kamon.gauge(name).withTags(KamonTagSetConverter.getKamonTagSet(tags));
     }
-
 
     @Override
     public String toString() {
@@ -126,4 +115,5 @@ public final class KamonGauge implements Gauge {
                 ", tags=" + tags +
                 "]";
     }
+
 }

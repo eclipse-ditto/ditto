@@ -45,6 +45,7 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.test.Retry;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -111,6 +112,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingCreated;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestWatcher;
@@ -137,6 +139,10 @@ import scala.runtime.BoxedUnit;
  * Unit test for the {@link ThingPersistenceActor}.
  */
 public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     private static final JsonParseOptions JSON_PARSE_OPTIONS =
             JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build();
@@ -298,7 +304,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final Thing thing = createThingV2WithRandomId();
         final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
 
-        final Props props = ThingPersistenceActor.props(thingIdOfActor, getDistributedPub());
+        final Props props = ThingPersistenceActor.props(thingIdOfActor, getDistributedPub(), null);
         final TestActorRef<ThingPersistenceActor> underTest = TestActorRef.create(actorSystem, props);
         final ThingPersistenceActor thingPersistenceActor = underTest.underlyingActor();
         final PartialFunction<Object, BoxedUnit> receiveCommand = thingPersistenceActor.receiveCommand();

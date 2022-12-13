@@ -32,7 +32,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.policies.enforcement.pre.PreEnforcerProvider;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
@@ -130,19 +130,19 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
     @SuppressWarnings("unchecked")
     private void doEnforceSignal(final S signal, final ActorRef sender) {
 
-        final StartedTrace trace = DittoTracing
-                .trace(signal, "enforce")
+        final var startedSpan = DittoTracing.newPreparedSpan(signal.getDittoHeaders(), SpanOperationName.of("enforce"))
                 .start();
-        final S tracedSignal = DittoTracing.propagateContext(trace.getContext(), signal);
+        final var tracedSignal =
+                signal.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(signal.getDittoHeaders())));
         final ActorRef self = getSelf();
 
         try {
             preEnforcer.apply(tracedSignal)
                     .thenApply(preEnforcedSignal -> (S) preEnforcedSignal)
                     .thenCompose(preEnforcedSignal -> {
-                        trace.mark("pre_enforced");
+                        startedSpan.mark("pre_enforced");
                         return loadPolicyEnforcer(preEnforcedSignal).thenCompose(optionalPolicyEnforcer -> {
-                                    trace.mark("enforcer_loaded");
+                                    startedSpan.mark("enforcer_loaded");
                                     return optionalPolicyEnforcer
                                             .map(policyEnforcer -> enforcement.authorizeSignal(preEnforcedSignal,
                                                     policyEnforcer))
@@ -153,24 +153,24 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
                     })
                     .whenComplete((authorizedSignal, throwable) -> {
                         if (null != authorizedSignal) {
-                            trace.mark("enforce_success").finish();
+                            startedSpan.mark("enforce_success").finish();
                             log.withCorrelationId(authorizedSignal)
                                     .info("Completed enforcement of message type <{}> with outcome 'success'",
                                             authorizedSignal.getType());
                             sender.tell(authorizedSignal, self);
                         } else if (null != throwable) {
-                            trace.mark("enforce_failed").fail(throwable).finish();
+                            startedSpan.mark("enforce_failed").tagAsFailed(throwable).finish();
                             handleAuthorizationFailure(tracedSignal, throwable, sender);
                         } else {
-                            trace.mark("enforce_error").fail("unknown-outcome").finish();
+                            startedSpan.mark("enforce_error").tagAsFailed("unknown-outcome").finish();
                             log.withCorrelationId(tracedSignal)
-                                    .warning(
-                                            "Neither authorizedSignal nor throwable were present during enforcement of signal: " +
-                                                    "<{}>", tracedSignal);
+                                    .warning("Neither authorizedSignal nor throwable were present during enforcement" +
+                                                    " of signal: <{}>",
+                                            tracedSignal);
                         }
                     });
         } catch (final DittoRuntimeException dittoRuntimeException) {
-            trace.mark("enforce_failed").fail(dittoRuntimeException).finish();
+            startedSpan.mark("enforce_failed").tagAsFailed(dittoRuntimeException).finish();
             handleAuthorizationFailure(tracedSignal, dittoRuntimeException, sender);
         }
     }

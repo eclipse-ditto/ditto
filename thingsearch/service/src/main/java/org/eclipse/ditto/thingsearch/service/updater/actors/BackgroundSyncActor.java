@@ -347,4 +347,5 @@ public final class BackgroundSyncActor
     private enum Control {
         BOOKMARK_THING_ID
     }
+
 }

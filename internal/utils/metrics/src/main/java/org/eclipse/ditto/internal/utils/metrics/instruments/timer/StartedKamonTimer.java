@@ -12,7 +12,8 @@
  */
 package org.eclipse.ditto.internal.utils.metrics.instruments.timer;
 
-import java.time.Instant;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,87 +21,88 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import kamon.Kamon;
 
 /**
  * Kamon based implementation of {@link StartedTimer}.
  */
 final class StartedKamonTimer implements StartedTimer {
 
-    private static final String SEGMENT_TAG = "segment";
     private static final Logger LOGGER = LoggerFactory.getLogger(StartedKamonTimer.class);
 
-    private final String name;
-    private final Map<String, String> tags;
-    private final List<OnStopHandler> onStopHandlers;
-    private final Map<String, StartedTimer> segments;
-    private final long startNanoTime;
-    private final Instant startInstant;
+    private static final String SEGMENT_TAG_KEY = "segment";
 
+    private final String name;
+    private final Map<String, StartedTimer> segments;
+    private final List<OnStopHandler> onStopHandlers;
+    private final StartInstant startInstant;
+
+    private TagSet tags;
     @Nullable private StoppedTimer stoppedTimer;
 
-    private StartedKamonTimer(final String name, final Map<String, String> tags) {
+    private StartedKamonTimer(final String name, final TagSet tags) {
         this.name = name;
-        this.tags = new HashMap<>(tags);
-        this.segments = new HashMap<>();
-        this.onStopHandlers = new ArrayList<>();
-        this.stoppedTimer = null;
-        this.startNanoTime = System.nanoTime();
-        this.startInstant = Kamon.clock().toInstant(startNanoTime);
-
-        if (!this.tags.containsKey(SEGMENT_TAG)) {
-            tag(SEGMENT_TAG, "overall");
-        }
+        segments = new HashMap<>();
+        onStopHandlers = new ArrayList<>();
+        startInstant = StartInstant.now();
+        this.tags = tags;
+        stoppedTimer = null;
     }
 
     static StartedTimer fromPreparedTimer(final PreparedTimer preparedTimer) {
-        return new StartedKamonTimer(preparedTimer.getName(), preparedTimer.getTags());
+        final var result = new StartedKamonTimer(preparedTimer.getName(), preparedTimer.getTagSet());
+        result.addOverallSegmentTagIfNoOtherSegmentTagExists();
+        return result;
+    }
+
+    private void addOverallSegmentTagIfNoOtherSegmentTagExists() {
+        if (!hasSegmentTag()) {
+            tag(SEGMENT_TAG_KEY, "overall");
+        }
+    }
+
+    private boolean hasSegmentTag() {
+        return tags.containsKey(SEGMENT_TAG_KEY);
     }
 
     @Override
-    public StartedTimer tags(final Map<String, String> tags) {
+    public StartedTimer tags(final TagSet tags) {
         if (isStopped()) {
             LOGGER.warn("Tried to append multiple tags to the stopped timer with name <{}>. Tags are ineffective.",
                     name);
         } else {
-            this.tags.putAll(tags);
+            this.tags = tags.putAllTags(tags);
         }
         return this;
     }
 
-    @Nullable
     @Override
-    public String getTag(final String key) {
-        return tags.get(key);
+    public TagSet getTagSet() {
+        return tags;
     }
 
     @Override
-    public Map<String, String> getTags() {
-        return new HashMap<>(tags);
-    }
-
-    @Override
-    public StartedTimer tag(final String key, final String value) {
+    public StartedTimer tag(final Tag tag) {
+        checkNotNull(tag, "tag");
         if (isStopped()) {
-            LOGGER.warn(
-                    "Tried to append tag <{}> with value <{}> to the stopped timer with name <{}>. Tag is ineffective.",
-                    key, value, name);
+            LOGGER.warn("Tried to append tag <{}> to the stopped timer with name <{}>. Tag is ineffective.", tag, name);
         } else {
-            this.tags.put(key, value);
+            tags = tags.putTag(tag);
         }
         return this;
     }
 
     @Override
     public StoppedTimer stop() {
-
         if (isRunning()) {
             stoppedTimer = StoppedKamonTimer.fromStartedTimer(this);
-        }else {
-            LOGGER.warn("Tried to stop the already stopped timer <{}> with segment <{}>.", name, getTag(SEGMENT_TAG));
+        } else if (LOGGER.isWarnEnabled()) {
+            LOGGER.warn("Tried to stop the already stopped timer <{}> with segment <{}>.",
+                    name,
+                    tags.getTagValue(SEGMENT_TAG_KEY).orElse(null));
         }
         return stoppedTimer;
     }
@@ -116,18 +118,25 @@ final class StartedKamonTimer implements StartedTimer {
 
     @Override
     public StartedTimer startNewSegment(final String segmentName) {
+        final StartedTimer result;
         if (isRunning()) {
-            final StartedTimer segment = PreparedKamonTimer.newTimer(name)
+            result = PreparedKamonTimer.newTimer(name)
                     .tags(tags)
-                    .tag(SEGMENT_TAG, segmentName)
+                    .tag(SEGMENT_TAG_KEY, segmentName)
                     .start();
-            this.segments.put(segmentName, segment);
-            return segment;
+            segments.put(segmentName, result);
         } else {
-            LOGGER.warn("Tried to start a new segment <{}> on a already stopped timer <{}> with segment <{}>.",
-                    segmentName, name, getTag(SEGMENT_TAG));
-            return this;
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Tried to start a new segment <{}> on a already stopped timer <{}> with segment <{}>.",
+                        segmentName,
+                        name,
+                        tags.getTagValue(SEGMENT_TAG_KEY).orElse(null)
+                );
+            }
+            result = this;
         }
+        return result;
     }
 
     @Override
@@ -138,17 +147,12 @@ final class StartedKamonTimer implements StartedTimer {
 
     @Override
     public String getName() {
-        return this.name;
+        return name;
     }
 
     @Override
-    public Instant getStartInstant() {
+    public StartInstant getStartInstant() {
         return startInstant;
-    }
-
-    @Override
-    public Long getStartNanoTime() {
-        return startNanoTime;
     }
 
     @Override
@@ -168,8 +172,8 @@ final class StartedKamonTimer implements StartedTimer {
                 ", tags=" + tags +
                 ", onStopHandlers=" + onStopHandlers +
                 ", segments=" + segments +
-                ", startNanoTime=" + startNanoTime +
-                ", startInstant=" + startInstant +
+                ", startNanoTime=" + startInstant.toNanos() +
+                ", startInstant=" + startInstant.toInstant() +
                 ", stoppedTimer=" + stoppedTimer +
                 "]";
     }

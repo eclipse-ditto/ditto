@@ -481,7 +481,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
                 announcement.setDittoHeaders(announcement.getDittoHeaders().toBuilder()
                         .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), addressSerializationFormat)
                         .build());
-        policyAnnouncementPub.publishWithAcks(adjustedSignal, ACK_EXTRACTOR, aggregatorActor);
+        policyAnnouncementPub.publishWithAcks(adjustedSignal, policyId, ACK_EXTRACTOR, aggregatorActor);
 
         return false;
     }
@@ -500,7 +500,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
                 .info("Publishing PolicyAnnouncement: <{}>", signalWithoutAckregator.getType());
         log.withCorrelationId(signalWithoutAckregator)
                 .debug("Publishing PolicyAnnouncement: <{}>", signalWithoutAckregator);
-        policyAnnouncementPub.publishWithAcks((PolicyAnnouncement<?>) signalWithoutAckregator, ACK_EXTRACTOR,
+        policyAnnouncementPub.publishWithAcks((PolicyAnnouncement<?>) signalWithoutAckregator, policyId, ACK_EXTRACTOR,
                 ActorRef.noSender());
         return true;
     }

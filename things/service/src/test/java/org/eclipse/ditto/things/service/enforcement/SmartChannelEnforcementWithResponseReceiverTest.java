@@ -32,6 +32,7 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
@@ -49,6 +50,7 @@ import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -65,6 +67,10 @@ import scala.concurrent.duration.FiniteDuration;
  * selection where live responses come from a different channel than where the command is published.
  */
 public final class SmartChannelEnforcementWithResponseReceiverTest extends AbstractThingEnforcementTest {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     public static final PolicyId POLICY_ID = PolicyId.of("policy:id");
 

@@ -59,6 +59,7 @@ import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -74,6 +75,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributeRes
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.mockito.Mockito;
 
@@ -94,6 +96,10 @@ import akka.testkit.javadsl.TestKit;
  * Abstract class to setup the infrastructure to test MessageMappingProcessorActor.
  */
 public abstract class AbstractMessageMappingProcessorActorTest {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     static final ThingId KNOWN_THING_ID = ThingId.of("my:thing");
 
@@ -216,7 +222,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                     ActorRef.noSender());
 
             if (expectSuccess) {
-                final ModifyAttribute modifyAttribute = expectMsgClass(ModifyAttribute.class);
+                final ModifyAttribute modifyAttribute = fishForMsg(this, ModifyAttribute.class);
                 assertThat(modifyAttribute.getType()).isEqualTo(ModifyAttribute.TYPE);
                 assertThat(modifyAttribute.getDittoHeaders().getCorrelationId()).contains(
                         modifyCommand.getDittoHeaders().getCorrelationId().orElse(null));
@@ -288,7 +294,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                     new ExternalMessageWithSender(externalMessage, collectorProbe.ref()),
                     ActorRef.noSender());
 
-            final T received = expectMsgClass(expectedMessageClass);
+            final T received = fishForMsg(this, expectedMessageClass);
             verifyReceivedMessage.accept(received);
         }};
     }
@@ -322,7 +328,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                     new ExternalMessageWithSender(externalMessage, collectorProbe.ref()),
                     ActorRef.noSender());
 
-            final T received = expectMsgClass(expectedMessageClass);
+            final T received = fishForMsg(this, expectedMessageClass);
             verifyReceivedMessage.accept(received);
         }};
     }
@@ -446,6 +452,10 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                         .correlationId(testNameCorrelationId.getCorrelationId())
                         .contentType(ContentType.APPLICATION_JSON)
                         .build());
+    }
+
+    static <T> T fishForMsg(final TestKit testKit, final Class<T> clazz) {
+        return clazz.cast(testKit.fishForMessage(Duration.ofSeconds(3L), clazz.getSimpleName(), clazz::isInstance));
     }
 
     static ThreadSafeDittoLoggingAdapter mockLoggingAdapter() {

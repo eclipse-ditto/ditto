@@ -127,6 +127,7 @@ import akka.actor.ActorSystem;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.cluster.Cluster;
 import akka.pattern.AskTimeoutException;
 import akka.testkit.TestActorRef;
 import akka.testkit.TestProbe;
@@ -173,8 +174,10 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
     @After
     public void tearDown() {
-        TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
-                false);
+        if (actorSystem != null) {
+            Cluster.get(actorSystem).prepareForFullClusterShutdown();
+            actorSystem.terminate();
+        }
     }
 
     @AfterClass
@@ -255,6 +258,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             assertThat(failure.cause()).isInstanceOf(ConnectionFailedException.class)
                     .hasMessage("Failed to %s:%s", "create JMS connection", JMS_EXCEPTION.getMessage())
                     .hasCause(JMS_EXCEPTION);
+            getActorSystem().stop(connectionActor);
         }};
     }
 
@@ -280,6 +284,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
             amqpClientActor.tell(RetrieveConnectionStatus.of(CONNECTION_ID, DittoHeaders.empty()), aggregator.ref());
             aggregator.expectMsgClass(ResourceStatus.class);
+            getActorSystem().stop(amqpClientActor);
         }};
     }
 
@@ -306,6 +311,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
             amqpClientActor.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
+            getActorSystem().stop(amqpClientActor);
         }};
     }
 
@@ -336,6 +342,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
             amqpClientActor.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
+            getActorSystem().stop(amqpClientActor);
         }};
     }
 
@@ -398,6 +405,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             amqpClientActor.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
             Mockito.verifyNoInteractions(mockConnection);
+            getActorSystem().stop(amqpClientActor);
         }};
     }
 
@@ -417,6 +425,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             assertThat(failure.cause()).isInstanceOf(ConnectionFailedException.class)
                     .hasMessage("Failed to %s:%s", "connect JMS client", JMS_EXCEPTION.getMessage())
                     .hasCause(JMS_EXCEPTION);
+            getActorSystem().stop(amqpClientActor);
         }};
     }
 
@@ -436,6 +445,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             assertThat(failure.cause()).isInstanceOf(ConnectionFailedException.class)
                     .hasMessage("Failed to %s:%s", "create session", JMS_EXCEPTION.getMessage())
                     .hasCause(JMS_EXCEPTION);
+            getActorSystem().stop(amqpClientActor);
         }};
     }
 
@@ -451,6 +461,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
             amqpClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
             expectMsgClass(Status.Failure.class);
+            getActorSystem().stop(amqpClientActor);
         }};
     }
 
@@ -489,6 +500,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                             return false;
                         });
                     });
+
+            getActorSystem().stop(amqpClientActor);
         }};
     }
 
@@ -506,6 +519,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
             amqpClientActor.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
+            getActorSystem().stop(amqpClientActor);
         }};
     }
 
@@ -640,6 +654,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             if (postStep != null) {
                 postStep.accept(amqpClientActor);
             }
+            getActorSystem().stop(amqpClientActor);
         }};
     }
 
@@ -811,6 +826,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             // THEN: recreated connection is working
             messageListener.onMessage(mockMessage());
             expectMsgClass(Command.class);
+            getActorSystem().stop(amqpClientActorRef);
         }};
     }
 
@@ -899,6 +915,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
             amqpClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
             expectMsgClass(Status.Success.class);
+            getActorSystem().stop(amqpClientActor);
         }};
     }
 
@@ -917,6 +934,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                 amqpClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
                 amqpClientActor.tell(FSM.StateTimeout$.MODULE$, amqpClientActor);
                 expectMsgClass(Status.Failure.class);
+                getActorSystem().stop(amqpClientActor);
             }};
         } finally {
             latch.countDown();

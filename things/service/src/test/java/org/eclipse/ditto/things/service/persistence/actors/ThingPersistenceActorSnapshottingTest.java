@@ -19,6 +19,7 @@ import java.util.Collections;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.internal.utils.test.Retry;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonValue;
@@ -35,6 +36,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestWatcher;
@@ -52,6 +54,10 @@ import akka.testkit.javadsl.TestKit;
  * Unit test for the snapshotting functionality of {@link ThingPersistenceActor}.
  */
 public final class ThingPersistenceActorSnapshottingTest extends PersistenceActorTestBaseWithSnapshotting {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ThingPersistenceActorSnapshottingTest.class);
 

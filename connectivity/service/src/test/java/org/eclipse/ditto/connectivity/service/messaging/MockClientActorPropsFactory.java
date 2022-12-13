@@ -47,15 +47,14 @@ public final class MockClientActorPropsFactory implements ClientActorPropsFactor
         if (shouldThrowException) {
             throw ConnectionConfigurationInvalidException.newBuilder("validation failed...").build();
         }
-        return Props.create(MockClientActor.class, dittoHeaders, connectionActor);
+        return Props.create(MockClientActor.class, dittoHeaders);
     }
 
     public static class MockClientActor extends AbstractActor {
-        private int current = 0;
-        private final ActorRef connectionActor;
 
-        public MockClientActor(final DittoHeaders dittoHeaders, final ActorRef connectionActor) {
-            this.connectionActor = connectionActor;
+        private int current = 0;
+
+        public MockClientActor(final DittoHeaders dittoHeaders) {
             final int numberOfFailures = Optional.ofNullable(dittoHeaders.get("number-of-instantiation-failures"))
                     .map(Integer::parseInt)
                     .orElse(0);
@@ -69,7 +68,6 @@ public final class MockClientActorPropsFactory implements ClientActorPropsFactor
 
         @Override
         public void preStart() {
-            connectionActor.tell(self(), self());
             gossipProbe.ref().tell(self(), self());
         }
 

@@ -43,6 +43,7 @@ import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
@@ -86,6 +87,7 @@ import org.eclipse.ditto.policies.service.common.config.DittoPoliciesConfig;
 import org.eclipse.ditto.policies.service.persistence.actors.PolicyEnforcerActor;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -102,6 +104,10 @@ import akka.testkit.javadsl.TestKit;
  * Tests {@link PolicyCommandEnforcement} in context of a {@link PolicyEnforcerActor}.
  */
 public final class PolicyCommandEnforcementTest {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     private static final SubjectId AUTH_SUBJECT_ID = SubjectId.newInstance(SubjectIssuer.GOOGLE, "someId");
     private static final Subject AUTH_SUBJECT = Subject.newInstance(AUTH_SUBJECT_ID);

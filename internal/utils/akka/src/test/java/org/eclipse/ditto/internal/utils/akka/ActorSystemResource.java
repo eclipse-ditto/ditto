@@ -14,13 +14,13 @@ package org.eclipse.ditto.internal.utils.akka;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
-import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -31,10 +31,10 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.cluster.Cluster;
 import akka.stream.Materializer;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
-import scala.concurrent.duration.Duration;
 
 /**
  * Starts an {@link ActorSystem} for the test and stops it afterwards.
@@ -47,9 +47,9 @@ public final class ActorSystemResource extends ExternalResource {
     private ActorSystem actorSystem;
     private Materializer materializer;
 
-    private ActorSystemResource(final Config config) {
+    private ActorSystemResource(@Nullable final CharSequence actorSystemName, final Config config) {
         this.config = config;
-        actorSystemName = null;
+        this.actorSystemName = null != actorSystemName ? actorSystemName.toString() : null;
         actorSystem = null;
         materializer = null;
     }
@@ -60,7 +60,21 @@ public final class ActorSystemResource extends ExternalResource {
      * @return the instance.
      */
     public static ActorSystemResource newInstance() {
-        return new ActorSystemResource(ConfigFactory.empty());
+        return new ActorSystemResource(null, ConfigFactory.empty());
+    }
+
+    /**
+     * Returns a new instance of {@code ActorSystemResource}.
+     *
+     * @param actorSystemName the name of the actor system.
+     * @return the instance.
+     * @throws NullPointerException if {@code actorSystemName} is {@code null}.
+     */
+    public static ActorSystemResource newInstance(final CharSequence actorSystemName) {
+        return new ActorSystemResource(
+                checkNotNull(actorSystemName, "actorSystemName"),
+                ConfigFactory.empty()
+        );
     }
 
     /**
@@ -71,7 +85,21 @@ public final class ActorSystemResource extends ExternalResource {
      * @throws NullPointerException if {@code config} is {@code null}.
      */
     public static ActorSystemResource newInstance(final Config config) {
-        return new ActorSystemResource(ConditionChecker.checkNotNull(config, "config"));
+        return new ActorSystemResource(null, checkNotNull(config, "config"));
+    }
+
+    /**
+     * Returns a new instance of {@code ActorSystemResource}.
+     *
+     * @param config the config to be used for creating the {@code ActorSystem}.
+     * @return the instance.
+     * @throws NullPointerException if {@code config} is {@code null}.
+     */
+    public static ActorSystemResource newInstance(final CharSequence actorSystemName, final Config config) {
+        return new ActorSystemResource(
+                checkNotNull(actorSystemName, "actorSystemName"),
+                checkNotNull(config, "config")
+        );
     }
 
     @Override
@@ -81,16 +109,19 @@ public final class ActorSystemResource extends ExternalResource {
         return super.apply(base, description);
     }
 
-    private static String getActorSystemName(final Description description) {
+    private String getActorSystemName(final Description description) {
         final String result;
-        final var className = description.getTestClass().getSimpleName();
-        final var methodName = description.getMethodName();
-        if (null != methodName) {
-            result = MessageFormat.format("{0}_{1}", className, methodName);
+        if (null != actorSystemName) {
+            result = actorSystemName;
         } else {
-            result = className;
+            final var className = description.getTestClass().getSimpleName();
+            final var methodName = description.getMethodName();
+            if (null != methodName) {
+                result = MessageFormat.format("{0}_{1}", className, methodName);
+            } else {
+                result = className;
+            }
         }
-
         return result;
     }
 
@@ -133,14 +164,14 @@ public final class ActorSystemResource extends ExternalResource {
 
     public ActorRef newActor(final Props props) {
         final var actorSystem = getActorSystem();
-        ConditionChecker.checkNotNull(props, "props");
+        checkNotNull(props, "props");
 
         return actorSystem.actorOf(props);
     }
 
     public ActorRef newActor(final Props props, final CharSequence actorName) {
         final var actorSystem = getActorSystem();
-        ConditionChecker.checkNotNull(props, "props");
+        checkNotNull(props, "props");
         argumentNotEmpty(actorName, "actorName");
 
         return actorSystem.actorOf(props, actorName.toString());
@@ -148,12 +179,17 @@ public final class ActorSystemResource extends ExternalResource {
 
     public void stopActor(final ActorRef actorRef) {
         final var actorSystem = getActorSystem();
-        actorSystem.stop(ConditionChecker.checkNotNull(actorRef, "actorRef"));
+        actorSystem.stop(checkNotNull(actorRef, "actorRef"));
     }
 
     @Override
     protected void after() {
-        TestKit.shutdownActorSystem(actorSystem, Duration.apply(5, TimeUnit.SECONDS), false);
+        try {
+            Cluster.get(actorSystem).prepareForFullClusterShutdown();
+        } catch (final Exception e) {
+            // Ignore errors when the actorref-provider is not cluster
+        }
+        actorSystem.terminate();
         actorSystemName = null;
         super.after();
     }

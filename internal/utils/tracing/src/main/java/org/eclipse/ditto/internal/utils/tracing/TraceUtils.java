@@ -12,15 +12,20 @@
  */
 package org.eclipse.ditto.internal.utils.tracing;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import akka.http.javadsl.model.HttpRequest;
 
@@ -30,6 +35,8 @@ import akka.http.javadsl.model.HttpRequest;
 @Immutable
 public final class TraceUtils {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(TraceUtils.class);
+
     private static final String TRACING_FILTER_DELIMITER = "_";
     private static final String SLASH = "/";
     private static final Pattern DUPLICATE_SLASH_PATTERN = Pattern.compile("\\/+");
@@ -38,7 +45,7 @@ public final class TraceUtils {
     private static final String FILTER_AUTH_METRIC_NAME = "filter_auth";
     private static final String LIVE_CHANNEL_NAME = "live";
     private static final String TWIN_CHANNEL_NAME = "twin";
-    private static final Pattern messagePattern = Pattern.compile("(.*/(inbox|outbox)/messages/.*)|(.*/inbox/claim)");
+    private static final Pattern MESSAGE_PATTERN = Pattern.compile("(.*/(inbox|outbox)/messages/.*)|(.*/inbox/claim)");
 
     private TraceUtils() {
         throw new AssertionError();
@@ -51,68 +58,76 @@ public final class TraceUtils {
      * @return The prepared {@link PreparedTimer}
      */
     public static PreparedTimer newHttpRoundTripTimer(final HttpRequest request) {
-        final String requestMethod = request.method().name();
-        final String requestPath = request.getUri().toRelative().path();
-        final String channel = determineChannel(request);
-
-        final TraceInformation traceInformation = determineTraceInformation(requestPath);
-
         return newExpiringTimer(HTTP_ROUNDTRIP_METRIC_NAME)
-                .tags(traceInformation.getTags())
-                .tag(TracingTags.REQUEST_METHOD, requestMethod)
-                .tag(TracingTags.CHANNEL, channel);
+                .tags(getTraceInformationTags(request))
+                .tag(SpanTagKey.REQUEST_METHOD_NAME.getTagForValue(request.method().name()))
+                .tag(SpanTagKey.CHANNEL.getTagForValue(determineChannel(request)));
+    }
+
+    private static TagSet getTraceInformationTags(final HttpRequest httpRequest) {
+        final TagSet result;
+        @Nullable final var traceInformation = tryToDetermineTraceInformation(getRelativeUriPath(httpRequest));
+        if (null == traceInformation) {
+            result = TagSet.empty();
+        } else {
+            result = traceInformation.getTagSet();
+        }
+        return result;
+    }
+
+    @Nullable
+    private static TraceInformation tryToDetermineTraceInformation(final String requestPath) {
+        try {
+            return determineTraceInformation(requestPath);
+        } catch (final IllegalArgumentException e) {
+            LOGGER.warn("Failed to determine trace information for request path <{}>: {}", requestPath, e.getMessage());
+            return null;
+        }
+    }
+
+    private static TraceInformation determineTraceInformation(final String requestPath) {
+        final var traceInformationGenerator = TraceInformationGenerator.getInstance();
+        return traceInformationGenerator.apply(requestPath);
+    }
+
+    private static String getRelativeUriPath(final HttpRequest httpRequest) {
+        final var uri = httpRequest.getUri();
+        final var relativeUri = uri.toRelative();
+        return relativeUri.path();
     }
 
     /**
      * Prepares an {@link PreparedTimer} with default {@link #FILTER_AUTH_METRIC_NAME} and tags.
      *
-     * @param authenticationType The name of the authentication type (i.e. jwt, ...)
-     * @return The prepared {@link PreparedTimer}
+     * @param authorizationContextType the authorization context type (i.e. JWT, ...).
+     * @return the prepared {@link PreparedTimer}.
+     * @throws NullPointerException if {@code authorizationContextType} is {@code null}.
      */
-    public static PreparedTimer newAuthFilterTimer(final CharSequence authenticationType) {
-        return newAuthFilterTimer(authenticationType, new HashMap<>());
+    public static PreparedTimer newAuthFilterTimer(final AuthorizationContextType authorizationContextType) {
+        return newAuthFilterTimer(authorizationContextType, TagSet.empty());
     }
 
-    /**
-     * Prepares an {@link PreparedTimer} with default {@link #FILTER_AUTH_METRIC_NAME} and tags.
-     *
-     * @param authenticationType The name of the authentication type (i.e. jwt, ...)
-     * @param request The HttpRequest used to extract required tags.
-     * @return The prepared {@link PreparedTimer}
-     */
-    public static PreparedTimer newAuthFilterTimer(final CharSequence authenticationType,
-            final HttpRequest request) {
-        final String requestPath = request.getUri().toRelative().path();
-
-        final TraceInformation traceInformation = determineTraceInformation(requestPath);
-
-        return newAuthFilterTimer(authenticationType, traceInformation.getTags());
-    }
-
-    private static PreparedTimer newAuthFilterTimer(final CharSequence authenticationType,
-            final Map<String, String> requestTags) {
-
-        Map<String, String> defaultTags = new HashMap<>();
-        defaultTags.put(TracingTags.AUTH_SUCCESS, Boolean.toString(false));
-        defaultTags.put(TracingTags.AUTH_ERROR, Boolean.toString(false));
-
+    private static PreparedTimer newAuthFilterTimer(
+            final AuthorizationContextType authorizationContextType,
+            final TagSet requestTags
+    ) {
         return newExpiringTimer(FILTER_AUTH_METRIC_NAME)
                 .tags(requestTags)
-                .tags(defaultTags)
-                .tag(TracingTags.AUTH_TYPE, authenticationType.toString())
+                .tag(SpanTagKey.AUTH_SUCCESS.getTagForValue(false))
+                .tag(SpanTagKey.AUTH_ERROR.getTagForValue(false))
+                .tag(getAuthTypeMetricsTag(authorizationContextType))
                 .onExpiration(expiredTimer ->
                         expiredTimer
-                                .tag(TracingTags.AUTH_SUCCESS, false)
-                                .tag(TracingTags.AUTH_ERROR, true));
+                                .tag(SpanTagKey.AUTH_SUCCESS.getTagForValue(false))
+                                .tag(SpanTagKey.AUTH_ERROR.getTagForValue(true)));
     }
 
     private static PreparedTimer newExpiringTimer(final String tracingFilter) {
         return DittoMetrics.timer(metricizeTraceUri(tracingFilter));
     }
 
-    private static TraceInformation determineTraceInformation(final String requestPath) {
-        final TraceUriGenerator traceUriGenerator = TraceUriGenerator.getInstance();
-        return traceUriGenerator.apply(requestPath);
+    private static Tag getAuthTypeMetricsTag(final AuthorizationContextType authorizationContextType) {
+        return Tag.of(SpanTagKey.KEY_PREFIX + "auth.type", authorizationContextType.toString());
     }
 
     private static String determineChannel(final HttpRequest request) {
@@ -125,9 +140,9 @@ public final class TraceUtils {
                 .isPresent();
         // messages are always live commands
         final String normalizePath = normalizePath(request.getUri().path());
-        final boolean messageRequest = messagePattern.matcher(normalizePath).matches();
+        final boolean messageRequest = MESSAGE_PATTERN.matcher(normalizePath).matches();
 
-        return (liveHeaderPresent || liveQueryPresent || messageRequest) ? LIVE_CHANNEL_NAME : TWIN_CHANNEL_NAME;
+        return liveHeaderPresent || liveQueryPresent || messageRequest ? LIVE_CHANNEL_NAME : TWIN_CHANNEL_NAME;
     }
 
     /**

@@ -113,10 +113,6 @@
             <artifactId>qpid-jms-client</artifactId>
         </dependency>
         <dependency>
-            <groupId>commons-net</groupId>
-            <artifactId>commons-net</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.hivemq</groupId>
             <artifactId>hivemq-mqtt-client</artifactId>
         </dependency>
@@ -209,10 +205,15 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
             <scope>test</scope>
             <type>test-jar</type>
         </dependency>
-
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-test</artifactId>
+            <scope>test</scope>
+            <type>test-jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-tracing</artifactId>
             <scope>test</scope>
             <type>test-jar</type>
         </dependency>

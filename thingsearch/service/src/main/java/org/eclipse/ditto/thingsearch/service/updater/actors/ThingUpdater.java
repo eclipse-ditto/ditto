@@ -36,6 +36,7 @@ import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
@@ -227,6 +228,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     private FSMStateFunctionBuilder<State, Data> recovering() {
         return matchEvent(AbstractWriteModel.class, this::recoveryComplete)
                 .event(Throwable.class, this::recoveryFailed)
+                .event(StopShardedActor.class, this::shutdown)
                 .event(ShutdownTrigger.class, this::shutdown)
                 .event(SHUTDOWN_CLASS, this::shutdownNow)
                 .event(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
@@ -243,6 +245,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                 .event(PolicyReferenceTag.class, this::onPolicyReferenceTag)
                 .event(SudoUpdateThing.class, this::updateThing)
                 .eventEquals(Control.TICK, this::tick)
+                .event(StopShardedActor.class, this::shutdown)
                 .event(ShutdownTrigger.class, this::shutdown)
                 .event(SHUTDOWN_CLASS, this::shutdownNow)
                 .event(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck);
@@ -251,6 +254,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     private FSMStateFunctionBuilder<State, Data> persisting() {
         return matchEvent(Result.class, this::onResult)
                 .event(Done.class, this::onDone)
+                .event(StopShardedActor.class, this::shutdown)
                 .event(ShutdownTrigger.class, this::shutdown)
                 .event(SHUTDOWN_CLASS, this::shutdownNow)
                 .event(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
@@ -537,15 +541,14 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             tickNow();
         }
 
-        final StartedTimer timer = DittoMetrics.timer(ConsistencyLag.TIMER_NAME)
+        final var startedTimer = DittoMetrics.timer(ConsistencyLag.TIMER_NAME)
                 .tag(ConsistencyLag.TAG_SHOULD_ACK, Boolean.toString(shouldAcknowledge))
-                .onExpiration(startedTimer ->
-                        l.warning("Timer measuring consistency lag timed out for event <{}>", thingEvent))
+                .onExpiration(t -> l.warning("Timer measuring consistency lag timed out for event <{}>", thingEvent))
                 .start();
-        DittoTracing.wrapTimer(DittoTracing.extractTraceContext(thingEvent), timer);
-        ConsistencyLag.startS1InUpdater(timer);
+        DittoTracing.newStartedSpanByTimer(thingEvent.getDittoHeaders(), startedTimer);
+        ConsistencyLag.startS1InUpdater(startedTimer);
         final var metadata = exportMetadataWithSender(shouldAcknowledge, thingEvent, getAckRecipient(
-                thingEvent.getDittoHeaders()), timer, data)
+                thingEvent.getDittoHeaders()), startedTimer, data)
                 .withUpdateReason(UpdateReason.THING_UPDATE);
 
         return Optional.of(metadata);

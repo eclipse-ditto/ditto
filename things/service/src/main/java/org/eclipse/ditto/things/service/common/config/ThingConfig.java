@@ -12,9 +12,12 @@
  */
 package org.eclipse.ditto.things.service.common.config;
 
+import java.time.Duration;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.supervision.WithSupervisorConfig;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithSnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.WithCleanupConfig;
@@ -25,4 +28,41 @@ import org.eclipse.ditto.internal.utils.persistentactors.cleanup.WithCleanupConf
 @Immutable
 public interface ThingConfig extends WithSupervisorConfig, WithActivityCheckConfig, WithSnapshotConfig,
         WithCleanupConfig {
+
+    /**
+     * Get the timeout waiting for responses and acknowledgements during coordinated shutdown.
+     *
+     * @return The timeout.
+     */
+    Duration getShutdownTimeout();
+
+    /**
+     * An enumeration of the known config path expressions and their associated default values for {@code ThingConfig}.
+     */
+    enum ConfigValue implements KnownConfigValue {
+
+        /**
+         * Timeout waiting for responses and acknowledgements during coordinated shutdown.
+         */
+        SHUTDOWN_TIMEOUT("shutdown-timeout", Duration.ofSeconds(3));
+
+        private final String path;
+        private final Object defaultValue;
+
+        ConfigValue(final String thePath, final Object theDefaultValue) {
+            path = thePath;
+            defaultValue = theDefaultValue;
+        }
+
+        @Override
+        public Object getDefaultValue() {
+            return defaultValue;
+        }
+
+        @Override
+        public String getConfigPath() {
+            return path;
+        }
+
+    }
 }

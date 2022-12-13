@@ -35,7 +35,7 @@ import org.eclipse.ditto.edge.service.placeholders.FeaturePlaceholder;
 import org.eclipse.ditto.edge.service.placeholders.RequestPlaceholder;
 import org.eclipse.ditto.edge.service.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -61,14 +61,14 @@ final class SessionedSignal implements SessionedJsonifiable {
     private final Signal<?> signal;
     private final DittoHeaders sessionHeaders;
     private final StreamingSession session;
-    private final StartedTrace trace;
+    private final StartedSpan startedSpan;
 
     SessionedSignal(final Signal<?> signal, final DittoHeaders sessionHeaders, final StreamingSession session,
-            final StartedTrace trace) {
+            final StartedSpan startedSpan) {
         this.signal = signal;
         this.sessionHeaders = sessionHeaders;
         this.session = session;
-        this.trace = trace;
+        this.startedSpan = startedSpan;
     }
 
     @Override
@@ -137,8 +137,8 @@ final class SessionedSignal implements SessionedJsonifiable {
     }
 
     @Override
-    public void finishTrace() {
-        trace.finish();
+    public void finishSpan() {
+        startedSpan.finish();
     }
 
 }

@@ -12,13 +12,14 @@
  */
 package org.eclipse.ditto.things.service.common.config;
 
+import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.supervision.DefaultSupervisorConfig;
 import org.eclipse.ditto.base.service.config.supervision.SupervisorConfig;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultActivityCheckConfig;
@@ -36,12 +37,14 @@ public final class DefaultThingConfig implements ThingConfig {
 
     private static final String CONFIG_PATH = "thing";
 
+    private final Duration shutdownTimeout;
     private final SupervisorConfig supervisorConfig;
     private final ActivityCheckConfig activityCheckConfig;
     private final SnapshotConfig snapshotConfig;
     private final CleanupConfig cleanupConfig;
 
     private DefaultThingConfig(final ScopedConfig scopedConfig) {
+        shutdownTimeout = scopedConfig.getDuration(ConfigValue.SHUTDOWN_TIMEOUT.getConfigPath());
         supervisorConfig = DefaultSupervisorConfig.of(scopedConfig);
         activityCheckConfig = DefaultActivityCheckConfig.of(scopedConfig);
         snapshotConfig = DefaultSnapshotConfig.of(scopedConfig);
@@ -56,7 +59,7 @@ public final class DefaultThingConfig implements ThingConfig {
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultThingConfig of(final Config config) {
-        return new DefaultThingConfig(DefaultScopedConfig.newInstance(config, CONFIG_PATH));
+        return new DefaultThingConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values()));
     }
 
     @Override
@@ -75,6 +78,16 @@ public final class DefaultThingConfig implements ThingConfig {
     }
 
     @Override
+    public CleanupConfig getCleanupConfig() {
+        return cleanupConfig;
+    }
+
+    @Override
+    public Duration getShutdownTimeout() {
+        return shutdownTimeout;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -86,12 +99,13 @@ public final class DefaultThingConfig implements ThingConfig {
         return Objects.equals(supervisorConfig, that.supervisorConfig) &&
                 Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
-                Objects.equals(cleanupConfig, that.cleanupConfig);
+                Objects.equals(cleanupConfig, that.cleanupConfig) &&
+                Objects.equals(shutdownTimeout, that.shutdownTimeout);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig, cleanupConfig);
+        return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig, cleanupConfig, shutdownTimeout);
     }
 
     @Override
@@ -101,11 +115,7 @@ public final class DefaultThingConfig implements ThingConfig {
                 ", activityCheckConfig=" + activityCheckConfig +
                 ", snapshotConfig=" + snapshotConfig +
                 ", cleanupConfig=" + cleanupConfig +
+                ", shutdownTimeout=" + shutdownTimeout +
                 "]";
-    }
-
-    @Override
-    public CleanupConfig getCleanupConfig() {
-        return cleanupConfig;
     }
 }

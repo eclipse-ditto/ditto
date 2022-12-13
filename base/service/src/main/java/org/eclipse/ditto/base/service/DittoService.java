@@ -241,7 +241,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
             startPrometheusReporter();
         }
 
-        DittoTracing.initialize(tracingConfig);
+        DittoTracing.init(tracingConfig);
     }
 
     private void startPrometheusReporter() {

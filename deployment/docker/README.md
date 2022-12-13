@@ -31,13 +31,14 @@ ditto:A6BgmB8IEtPTs
 
 ## Configuration of the services
 
-You may configure each service via passing variables to the java VM in the entrypoint section for each
-service.
+You may configure each service via passing system properties via the `JAVA_TOOL_OPTIONS` environment variable in the 
+entrypoint section for each service.
 
 ```yml
 ...
 # Alternative approach for configuration of the service
-command: java -Dditto.gateway.authentication.devops.password=foobar -jar ${JVM_CMD_ARGS_ENV} starter.jar
+environment:
+  - JAVA_TOOL_OPTIONS=-Dditto.gateway.authentication.devops.password=foobar
 ```
 
 To get a list of available configuration options you may retrieve them from a running instance via:

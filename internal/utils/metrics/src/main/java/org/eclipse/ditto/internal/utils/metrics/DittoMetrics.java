@@ -12,14 +12,13 @@
  */
 package org.eclipse.ditto.internal.utils.metrics;
 
-import java.util.Map;
-
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.KamonCounter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.KamonGauge;
 import org.eclipse.ditto.internal.utils.metrics.instruments.histogram.Histogram;
 import org.eclipse.ditto.internal.utils.metrics.instruments.histogram.KamonHistogram;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.Timers;
 
@@ -63,7 +62,7 @@ public final class DittoMetrics {
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code name} is empty.
      */
-    public static Counter counter(final String name, final Map<String, String> tags) {
+    public static Counter counter(final String name, final TagSet tags) {
         return KamonCounter.newCounter(name, tags);
     }
 

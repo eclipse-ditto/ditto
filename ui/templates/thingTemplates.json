@@ -1,7 +1,7 @@
 {
   "(empty thing)": {},
   "WoT ThingModel 'floor-lamp' 1.0.0": {
-    "definition": "https://eclipse.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld"
+    "definition": "https://eclipse-ditto.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld"
   },
   "com.acme:coffeebrewer:0.1.0": {
     "definition": "com.acme:coffeebrewer:0.1.0",

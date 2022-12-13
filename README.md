@@ -24,13 +24,13 @@ Find the documentation on the project site: [https://www.eclipse.org/ditto/](htt
 
 ## Eclipse Ditto™ explorer UI
 
-Find a live version of the latest explorer UI: [https://eclipse.github.io/ditto/](https://eclipse.github.io/ditto/?primaryEnvironmentName=ditto_sandbox)
+Find a live version of the latest explorer UI: [https://eclipse-ditto.github.io/ditto/](https://eclipse-ditto.github.io/ditto/?primaryEnvironmentName=ditto_sandbox)
 
 You should be able to work with your locally running default using the `local_ditto` environment - and you can add additional environments to also work with e.g. with a deployed installation of Ditto.
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=eclipse/ditto&type=Date)](https://star-history.com/?secret=Z2hwXzJERUNBUmFRa09KM3BvdTFMUkJ1Y3VnY25FV3hxVjNBM3hEVQ==#eclipse/ditto&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=eclipse-ditto/ditto&type=Date)](https://star-history.com/?secret=Z2hwXzJERUNBUmFRa09KM3BvdTFMUkJ1Y3VnY25FV3hxVjNBM3hEVQ==#eclipse-ditto/ditto&Date)
 
 ## Getting started
 

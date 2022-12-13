@@ -51,4 +51,5 @@ public interface EntityPersistenceOperations {
 
         return result;
     }
+
 }
