@@ -190,7 +190,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final ActorRef connectionActor;
     private final ActorSelection commandForwarderActorSelection;
     private final Gauge clientGauge;
+    private boolean clientGaugeFlag = false; // set if clientGauge is incremented
     private final Gauge clientConnectingGauge;
+    private boolean clientConnectingGaugeFlag = false; // set if clientConnectingGauge is incremented
     private final ReconnectTimeoutStrategy reconnectTimeoutStrategy;
     private final SupervisorStrategy supervisorStrategy;
     private final ConnectionPubSub connectionPubSub;
@@ -369,8 +371,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     @Override
     public void postStop() {
         cancelOnStopTasks.forEach(Cancellable::cancel);
-        clientGauge.reset();
-        clientConnectingGauge.reset();
+        if (clientGaugeFlag) {
+            clientGauge.decrement();
+        }
+        if (clientConnectingGaugeFlag) {
+            clientConnectingGauge.decrement();
+        }
         stopChildActor(tunnelActor);
         logger.debug("Stopped client with id - <{}>", getDefaultClientId());
         try {
@@ -613,19 +619,23 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private void onTransition(final BaseClientState from, final BaseClientState to) {
         logger.debug("Transition: {} -> {}", from, to);
         if (to == CONNECTED) {
-            clientGauge.set(1L);
+            clientGauge.increment();
+            clientGaugeFlag = true;
             reconnectTimeoutStrategy.reset();
             publishConnectionOpenedAnnouncement();
         }
         if (to == DISCONNECTED) {
-            clientGauge.reset();
+            clientGauge.decrement();
+            clientGaugeFlag = false;
         }
         if (to == CONNECTING) {
-            clientConnectingGauge.set(1L);
+            clientConnectingGauge.increment();
+            clientConnectingGaugeFlag = true;
         }
         // do not use else if since we might use goTo(CONNECTING) if in CONNECTING state. This will cause another onTransition.
         if (from == CONNECTING) {
-            clientConnectingGauge.reset();
+            clientConnectingGauge.decrement();
+            clientConnectingGaugeFlag = false;
         }
         // cancel our own state timeout if target state is stable
         if (to == CONNECTED || to == DISCONNECTED || to == INITIALIZED) {

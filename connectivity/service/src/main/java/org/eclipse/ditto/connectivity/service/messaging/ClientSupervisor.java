@@ -17,6 +17,7 @@ import java.util.Optional;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
+import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveClientActorProps;
 import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionStatus;
 import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionStatusResponse;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
@@ -58,6 +59,7 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
     private final ActorRef connectionShardRegion;
     private final ClientActorPropsFactory propsFactory;
     private Props props;
+    private ClientActorPropsArgs clientActorPropsArgs;
     private ActorRef clientActor;
 
     @SuppressWarnings({"unused"})
@@ -103,7 +105,7 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
 
     @Override
     public void preStart() {
-        scheduleNextStatusCheck();
+        startStatusCheck(Control.STATUS_CHECK);
     }
 
     @Override
@@ -158,6 +160,7 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
                 getContext().stop(oldClientActor);
             }
             this.props = actorProps;
+            this.clientActorPropsArgs = propsArgs;
             clientActor = getContext().watch(getContext().actorOf(actorProps));
             logger.debug("New actorProps received; stopped client actor <{}> and started <{}>", oldClientActor,
                     clientActor);
@@ -188,7 +191,10 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
                 clientActorId.clientNumber() >= response.getClientCount()) {
             connectionNotAccessible(response);
         } else if (clientActor == null) {
-            logger.error("Client actor <{}> of open connection did not start", clientActorId);
+            logger.info("Client actor <{}> of open connection did not start. Requesting props.", clientActorId);
+            final var command = SudoRetrieveClientActorProps.of(clientActorId.connectionId(),
+                    clientActorId.clientNumber(), DittoHeaders.empty());
+            connectionShardRegion.tell(command, getSelf());
         }
     }
 
@@ -207,9 +213,9 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
     }
 
     private void restartIfOpen(final StopShardedActor stopShardedActor) {
-        if (props != null) {
+        if (clientActorPropsArgs != null) {
             logger.debug("Restarting connected client actor.");
-            final var envelope = new ShardedBinaryEnvelope(props, clientActorId.toString());
+            final var envelope = new ShardedBinaryEnvelope(clientActorPropsArgs, clientActorId.toString());
             ClusterSharding.get(getContext().getSystem())
                     .shardRegion(ConnectivityMessagingConstants.CLIENT_SHARD_REGION)
                     .tell(envelope, ActorRef.noSender());
