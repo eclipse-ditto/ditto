@@ -720,9 +720,9 @@ Example piggyback for
 ```
 
 #### Managing connections
-The recommended way to manage (CRUD) connections in Ditto is by using the [Manage connections HTTP API](connectivity-manage-connections.html).
+The recommended way to manage (CRUD) connections in Ditto is by using the [Manage connections via HTTP API](connectivity-manage-connections.html).
 
-However, [Piggyback commands](connectivity-manage-connections-piggyback.html) are still available to do this.
+However, [Manage connections via Piggyback commands](connectivity-manage-connections-piggyback.html) is still available to do this.
 
 #### Managing background cleanup
 

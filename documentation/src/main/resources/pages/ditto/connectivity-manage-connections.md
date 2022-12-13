@@ -6,7 +6,7 @@ permalink: connectivity-manage-connections.html
 ---
 
 In order to manage (CRUD) connections in Ditto, the [HTTP API](http-api-doc.html#/Connections)
-is recommended to be used instead of the old fashion way using [Piggyback commands](connectivity-manage-connections-piggyback.html). 
+is recommended to be used instead of the old fashion [Manage connections via Piggyback commands](connectivity-manage-connections-piggyback.html). 
 As this is not a task for a developer, but more for a "DevOps engineer", the endpoint for creating new connections 
 to external systems is authenticated using the ["devops"](installation-operating.html#devops-user) user.
 
