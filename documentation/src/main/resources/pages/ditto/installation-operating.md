@@ -174,6 +174,68 @@ ssl-config {
 }
 ```
 
+### Encrypt sensitive data in Connections 
+
+Since Ditto 3.1.0 there is the option to enable encryption on some connection fields before they are written to the
+database.
+This mechanism is transparent for the user and when data is retrieved by the standard connectivity managing endpoints
+no encryption will be visible. It is applied on the db layer before data is written to the database.
+Since ditto is using the event sourcing mechanism, if encryption is enabled on a system that have existing connections,
+encryption will only be applied on events written to the database after it was enabled.
+So for some time there will be events in the database that have the plain data until the background cleaner deletes the
+old events that are no longer needed for the event sourcing.
+
+Encryption is done using a 256-bit AES symmetrical key and the AES/GCM/NoPadding transformation.
+
+#### Symmetric key
+
+To generate it you can use a convenience method already available
+at [EncryptorAesGcm.generateAESKeyAsString()](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/util/EncryptorAesGcm.java#L89)
+
+or you can use the java standard library
+
+```java
+        javax.crypto.KeyGenerator keyGen=KeyGenerator.getInstance("AES");
+        keyGen.init(256);
+        javax.crypto.SecretKey aes256SymetricKey = keyGen.generateKey();
+```
+
+or with a terminal command.
+
+```shell
+$ openssl rand 32 | basenc --base64url
+```
+
+The key must be **256-bit Base64 urlEncoded using the UTF-8** charset.
+This is done already by the convenience method mentioned
+above ([EncryptorAesGcm.generateAESKeyAsString()](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/util/EncryptorAesGcm.java#L89)
+
+#### Fields config
+The fields to be encrypted are configurable as json pointers and the default ones are:
+
+```
+        /uri
+        /credentials/key
+        /sshTunnel/credentials/password
+        /sshTunnel/credentials/privateKey
+        /credentials/parameters/accessKey
+        /credentials/parameters/secretKey
+        /credentials/parameters/sharedKey
+        /credentials/clientSecret
+```
+
+Only string values are supported. If a configured pointer is pointing at an object it will be ignored.
+Values that are valid URIs are treated specially and only the password of the user info part of that URI will be
+encrypted.
+
+Configuration can be seen at [Ditto service configuration files](#ditto-configuration) in
+the [connectivity.conf](https://github.com/eclipse/ditto/blob/master/connectivity/service/src/main/resources/connectivity.conf)
+at "ditto.connectivity.connection.encryption" section of the config.
+
+If at some point encryption is decided to be disabled the symmetric key is important to be kept in the 
+configuration otherwise the encrypted values will not be decrypted and the only way to fix the connections will be to edit
+the encrypted parts and save them.
+
 ### Rate limiting
 
 Since Ditto *2.4.0* , by default [connections](basic-connections.html) and [websockets](httpapi-protocol-bindings-websocket.html)
@@ -591,7 +653,7 @@ A piggyback command must conform to the following schema:
 {% include docson.html schema="jsonschema/piggyback-command.json" %}
 
 Piggyback commands can be sent to only one actor in the cluster or to a group of actors.   
-To have control this there are two headers which can be used for piggyback commands:
+To have control over this there are two headers which can be used for piggyback commands:
 * `"is-group-topic"`: `true`|`false` - Default: `false`
 * `"aggregate"`: `true`|`false` - Default: `true` 
 
