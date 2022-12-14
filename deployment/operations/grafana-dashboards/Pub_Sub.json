@@ -3,7 +3,10 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": "-- Grafana --",
+        "datasource": {
+          "type": "datasource",
+          "uid": "grafana"
+        },
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -20,9 +23,8 @@
   },
   "editable": true,
   "fiscalYearStartMonth": 0,
-  "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1638366900595,
+  "iteration": 1653646424601,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -31,7 +33,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -63,7 +68,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.1",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -81,9 +86,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "messages published per sec",
       "tooltip": {
         "shared": true,
@@ -92,33 +95,24 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -126,7 +120,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -158,7 +155,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.1",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -189,9 +186,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "topics ddata size in bytes",
       "tooltip": {
         "shared": true,
@@ -200,9 +195,7 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
@@ -210,25 +203,18 @@
         {
           "$$hashKey": "object:38",
           "format": "decbytes",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "$$hashKey": "object:39",
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -236,7 +222,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -268,7 +257,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.1",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -286,9 +275,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "messages received by subscribers per sec",
       "tooltip": {
         "shared": true,
@@ -297,37 +284,31 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
-      "datasource": "elasticsearch",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "PAE1B8C8635429669"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -336,7 +317,8 @@
           "custom": {
             "align": "right",
             "displayMode": "basic",
-            "filterable": false
+            "filterable": false,
+            "inspect": false
           },
           "decimals": 0,
           "mappings": [],
@@ -457,6 +439,13 @@
       "id": 13,
       "links": [],
       "options": {
+        "footer": {
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
         "showHeader": true,
         "sortBy": [
           {
@@ -465,7 +454,7 @@
           }
         ]
       },
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.1",
       "targets": [
         {
           "alias": "",
@@ -486,7 +475,6 @@
         }
       ],
       "timeFrom": "24h",
-      "timeShift": null,
       "title": "topics ddata size in bytes exact",
       "transformations": [
         {
@@ -567,7 +555,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -599,7 +590,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.1",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -617,9 +608,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "wasted bandwidth",
       "tooltip": {
         "shared": true,
@@ -628,9 +617,7 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
@@ -638,7 +625,6 @@
         {
           "decimals": 1,
           "format": "percent",
-          "label": null,
           "logBase": 1,
           "max": "100",
           "min": "0",
@@ -646,16 +632,12 @@
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -663,7 +645,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "description": "",
       "fill": 1,
       "fillGradient": 0,
@@ -692,7 +677,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.1",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -717,9 +702,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "acks ddata size in bytes",
       "tooltip": {
         "shared": true,
@@ -728,9 +711,7 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
@@ -740,23 +721,17 @@
           "format": "decbytes",
           "label": "",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "$$hashKey": "object:116",
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -766,7 +741,7 @@
           {
             "evaluator": {
               "params": [
-                2
+                0
               ],
               "type": "gt"
             },
@@ -776,26 +751,29 @@
             "query": {
               "params": [
                 "A",
-                "10m",
+                "5m",
                 "now"
               ]
             },
             "reducer": {
               "params": [],
-              "type": "sum"
+              "type": "avg"
             },
             "type": "query"
           }
         ],
         "executionErrorState": "alerting",
-        "for": "0m",
+        "for": "10m",
         "frequency": "1m",
         "handler": 1,
         "name": "Published to dead letter queue alert",
         "noDataState": "no_data",
         "notifications": []
       },
-      "datasource": "elasticsearch",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "PAE1B8C8635429669"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -860,7 +838,8 @@
           "placement": "bottom"
         },
         "tooltip": {
-          "mode": "single"
+          "mode": "single",
+          "sort": "none"
         }
       },
       "targets": [
@@ -891,7 +870,7 @@
         {
           "colorMode": "critical",
           "op": "gt",
-          "value": 2,
+          "value": 0,
           "visible": true
         }
       ],
@@ -903,7 +882,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -935,7 +917,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.1",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -960,9 +942,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "queued topics",
       "tooltip": {
         "shared": true,
@@ -971,49 +951,42 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     }
   ],
   "refresh": "30s",
-  "schemaVersion": 31,
+  "schemaVersion": 36,
   "style": "dark",
-  "tags": [],
+  "tags": [
+    "beeper"
+  ],
   "templating": {
     "list": [
       {
-        "datasource": "elasticsearch",
-        "description": null,
-        "error": null,
+        "datasource": {
+          "type": "elasticsearch",
+          "uid": "PAE1B8C8635429669"
+        },
         "filters": [],
         "hide": 0,
-        "label": null,
         "name": "Filters",
         "skipUrlSync": false,
         "type": "adhoc"
@@ -1052,5 +1025,6 @@
   "timezone": "",
   "title": "Pub-sub",
   "uid": "MTg1WJFZz",
-  "version": 1
+  "version": 1,
+  "weekStart": ""
 }

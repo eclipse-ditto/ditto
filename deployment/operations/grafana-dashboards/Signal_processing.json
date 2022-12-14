@@ -24,7 +24,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
-  "iteration": 1657876307593,
+  "iteration": 1660056598350,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -79,6 +79,7 @@
               "mode": "off"
             }
           },
+          "decimals": 0,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -191,6 +192,7 @@
               "mode": "off"
             }
           },
+          "decimals": 0,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -635,7 +637,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "avg((idelta(enforcement_seconds_sum{job=~\"$Application\",instance=~\"$Instance\",outcome=~\"$Outcome\",segment=\"pre_enf\",channel=\"live\"}[$__rate_interval]) / idelta(enforcement_seconds_count{job=~\"$Application\",instance=~\"$Instance\",outcome=~\"$Outcome\",segment=\"pre_enf\",channel=\"live\"}[$__rate_interval])) > 0) by (resource, category, outcome)",
+          "expr": "avg((idelta(pre_enforcement_seconds_sum{job=~\"$Application\",instance=~\"$Instance\",outcome=~\"$Outcome\",channel=\"live\"}[$__rate_interval]) / idelta(pre_enforcement_seconds_count{job=~\"$Application\",instance=~\"$Instance\",outcome=~\"$Outcome\",channel=\"live\"}[$__rate_interval])) > 0) by (resource, category, outcome)",
           "instant": false,
           "legendFormat": "{{category}} {{resource}} | {{outcome}}",
           "range": true,
@@ -1379,6 +1381,6 @@
   "timezone": "",
   "title": "Signal processing",
   "uid": "AzXUJce7z",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }

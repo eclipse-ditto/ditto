@@ -471,7 +471,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "ceil(avg(hotSearchUpdaters))",
+          "expr": "ceil(avg(hotSearchWildcardUpdaters))",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "Hot Search Updaters",

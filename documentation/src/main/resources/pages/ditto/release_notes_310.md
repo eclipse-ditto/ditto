@@ -22,16 +22,17 @@ Eclipse Ditto 3.1.0 focuses on the following areas:
 * Support for **reading/writing AMQP 1.0 "Message annotations"** in Ditto managed connections
 * **Policy imports**: Reference other policies from policies, enabling reuse of policy entries
 * Several Ditto explorer UI enhancements
-* Support for configuring an **audience** for Ditto managed HTTP connections performing OAuth2.0 based authentication
+* Support for configuring an **audience** for Ditto managed **HTTP connections** performing 
+  **OAuth2.0 based authentication**
 
-The following non-functional enhancements are also included:
+The following non-functional work is also included:
 
 * End-2-End **graceful shutdown support**, enabling a smoother restart of Ditto services with less user impact
 * Support for **encryption/decryption of secrets** (e.g. passwords) part of the Ditto managed connections before 
   persisting to the database
 * IPv6 support for blocked subnet validation
 
-We want to especially highlight the following bugfixes also included:
+The following notable fixes are included:
 
 * Fixing that known connections were not immediately started after connectivity service restart
 

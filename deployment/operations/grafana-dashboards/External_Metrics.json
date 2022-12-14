@@ -108,7 +108,7 @@
           "textEditor": true
         },
         {
-          "expr": "histogram_quantile(0.95, sum(irate(akka_persistence_mongo_journal_scala_official_write_append_seconds_bucket{job=\"things\"}[5m]) > 0) by (le)) or vector(0)",
+          "expr": "histogram_quantile(0.5, sum(irate(akka_persistence_mongo_journal_scala_official_write_append_seconds_bucket{job=\"things\"}[5m]) > 0) by (le)) or vector(0)",
           "format": "time_series",
           "hide": true,
           "intervalFactor": 1,
@@ -607,12 +607,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "(\nsum(idelta({__name__=~\"things_search_thing_.*_seconds_sum\"}[1m])) by (update_type)\n/\nsum(idelta({__name__=~\"things_search_thing_.*_seconds_count\"}[1m])) by (update_type)\n)",
+          "expr": "(\nsum(idelta({__name__=~\"things_wildcard_search_thing_.*_seconds_sum\"}[1m])) by (update_type)\n/\nsum(idelta({__name__=~\"things_wildcard_search_thing_.*_seconds_count\"}[1m])) by (update_type)\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{update_type}}",
           "refId": "A",
-          "target": "aliasByNode(stats.timers.ThingsSearch.$Host.trace.things_thing_*.elapsed-time.median, 5,3,7)",
           "textEditor": true
         }
       ],
@@ -709,13 +708,12 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(idelta({__name__=~\"things_search_thing_.*_seconds_count\"}[1m])) by (instance, update_type)",
+          "expr": "sum(idelta({__name__=~\"things_wildcard_search_thing_.*_seconds_count\"}[1m])) by (instance, update_type)",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
           "legendFormat": "{{update_type}} ({{instance}})",
           "refId": "A",
-          "target": "alias(sumSeries(stats.timers.ThingsSearch.$Host.trace.thing_*.elapsed-time.count), 'count')",
           "textEditor": true
         }
       ],
@@ -871,5 +869,5 @@
   "timezone": "browser",
   "title": "External Metrics",
   "uid": "5xA0BNmiz",
-  "version": 1
+  "version": 2
 }
