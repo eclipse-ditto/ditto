@@ -78,7 +78,7 @@ public final class ConnectionMongoSnapshotAdapter extends AbstractMongoSnapshotA
     @Override
     protected Connection createJsonifiableFrom(final JsonObject jsonObject) {
         if (encryptionConfig.getSymmetricalKey().isEmpty()) {
-            if(jsonObject.asString().contains(JsonFieldsEncryptor.ENCRYPTED_PREFIX)){
+            if(jsonObject.formatAsString().contains(JsonFieldsEncryptor.ENCRYPTED_PREFIX)){
                 LOGGER.warn("Encrypted fields will not be decrypted. Missing symmetrical key. " +
                         "Either configure the one used for encryption or edit connections and update encrypted fields");
             }
