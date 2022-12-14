@@ -6146,7 +6146,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Policy/properties/imports'
+                $ref: '#/components/schemas/PolicyImports'
         '304':
           $ref: '#/components/responses/NotModified'
         '400':
@@ -6257,7 +6257,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Policy/properties/imports'
+              $ref: '#/components/schemas/PolicyImports'
             example:
               'com.acme:imported1':
                 entries:
@@ -6275,16 +6275,7 @@ paths:
         - Policies
       parameters:
         - $ref: '#/components/parameters/PolicyIdPathParam'
-        - name: importedPolicyId
-          in: path
-          description: |-
-            The ID of the imported policy needs to follow the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
-
-            The namespace needs to:
-            * conform to the reverse domain name notation
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/ImportedPolicyIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
@@ -6301,7 +6292,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/paths/~1policies~1%7BpolicyId%7D~1imports~1%7BimportedPolicyId%7D/put/requestBody/content/application~1json/schema'
+                $ref: '#/components/schemas/PolicyImport'
         '304':
           $ref: '#/components/responses/NotModified'
         '400':
@@ -6354,7 +6345,7 @@ paths:
         - Policies
       parameters:
         - $ref: '#/components/parameters/PolicyIdPathParam'
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D~1imports~1%7BimportedPolicyId%7D/get/parameters/1'
+        - $ref: '#/components/parameters/ImportedPolicyIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
@@ -6376,7 +6367,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/paths/~1policies~1%7BpolicyId%7D~1imports~1%7BimportedPolicyId%7D/put/requestBody/content/application~1json/schema'
+                $ref: '#/components/schemas/PolicyImport'
         '204':
           description: The policy import was successfully updated.
           headers:
@@ -6437,23 +6428,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              description: Single policy import defining which policy entries of the referenced policy are imported.
-              properties:
-                entries:
-                  type: array
-                  default: []
-                  description: |-
-                    The policy entries to import from the referenced policy identified by their labels. 
-                    In case the field is omitted or an empty array is provided, 
-                    all policy entries defined as implicit ("importable": "implicit") are imported.
-                  items:
-                    type: string
-                    description: Label of a policy entry to import from the referenced policy.
-              example:
-                entries:
-                  - default
-                  - import
+              $ref: '#/components/schemas/PolicyImport'
             example:
               entries:
                 - IMPORTED
@@ -6468,7 +6443,7 @@ paths:
         - Policies
       parameters:
         - $ref: '#/components/parameters/PolicyIdPathParam'
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D~1imports~1%7BimportedPolicyId%7D/get/parameters/1'
+        - $ref: '#/components/parameters/ImportedPolicyIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
@@ -7761,6 +7736,17 @@ components:
       required: false
       schema:
         type: string
+    ImportedPolicyIdPathParam:
+      name: importedPolicyId
+      in: path
+      description: |-
+        The ID of the imported policy needs to follow the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+
+        The namespace needs to:
+        * conform to the reverse domain name notation
+      required: true
+      schema:
+        type: string
     LabelPathParam:
       name: label
       in: path
@@ -8381,25 +8367,60 @@ components:
         entries:
           $ref: '#/components/schemas/PolicyEntries'
         imports:
-          type: object
-          description: Policy imports containing one policy import for each key. The key is the policy ID of the referenced policy.
-          properties:
-            policyImport1:
-              $ref: '#/paths/~1policies~1%7BpolicyId%7D~1imports~1%7BimportedPolicyId%7D/put/requestBody/content/application~1json/schema'
-            policyImportN:
-              $ref: '#/paths/~1policies~1%7BpolicyId%7D~1imports~1%7BimportedPolicyId%7D/put/requestBody/content/application~1json/schema'
-          example:
-            'com.acme:policyId1':
-              entries:
-                - label1
-                - label2
-            'com.acme:policyId2':
-              entries:
-                - import
-            'com.acme:policyId3': {}
+          $ref: '#/components/schemas/PolicyImports'
       required:
         - policyId
         - entries
+    PolicyImports:
+      type: object
+      description: Policy imports containing one policy import for each key. The key is the policy ID of the referenced policy.
+      properties:
+        policyImport1:
+          $ref: '#/components/schemas/PolicyImport'
+        policyImportN:
+          $ref: '#/components/schemas/PolicyImport'
+      example:
+        'com.acme:policyId1':
+          entries:
+            - label1
+            - label2
+        'com.acme:policyId2':
+          entries:
+            - import
+        'com.acme:policyId3': {}
+    PolicyImport:
+      type: object
+      description: Single policy import defining which policy entries of the referenced policy are imported.
+      properties:
+        entries:
+          type: array
+          default: []
+          description: |-
+            The policy entries to import from the referenced policy identified by their labels. 
+            In case the field is omitted or an empty array is provided, 
+            all policy entries defined as implicit ("importable": "implicit") are imported.
+          items:
+            type: string
+            description: Label of a policy entry to import from the referenced policy.
+      example:
+        entries:
+          - default
+          - import
+    Importable:
+      type: string
+      description: |-
+        Controls the import behavior of this policy entry i.e. whether this policy entry is implicitly, 
+        explicitly or never imported when referenced from another policy.
+        * `implicit` (default): the policy entry is imported without being listed in the importing policy individually
+        * `explicit`: the policy entry is only imported if it is listed in the importing policy
+        * `never`: the policy entry is not imported, regardless of being listed in the importing policy
+        If the field is not specified, default value is `implicit`.
+      enum:
+        - implicit
+        - explicit
+        - never
+      default: implicit
+      example: explicit
     PolicyEntries:
       type: object
       description: Policy entries containing one policy entry for each arbitrary `label` key
@@ -8417,20 +8438,7 @@ components:
         resources:
           $ref: '#/components/schemas/Resources'
         importable:
-          type: string
-          description: |-
-            Controls the import behavior of this policy entry i.e. whether this policy entry is implicitly, 
-            explicitly or never imported when referenced from another policy.
-            * `implicit` (default): the policy entry is imported without being listed in the importing policy individually
-            * `explicit`: the policy entry is only imported if it is listed in the importing policy
-            * `never`: the policy entry is not imported, regardless of being listed in the importing policy
-            If the field is not specified, default value is `implicit`.
-          enum:
-            - implicit
-            - explicit
-            - never
-          default: implicit
-          example: explicit
+          $ref: '#/components/schemas/Importable'
       required:
         - subjects
         - resources
@@ -8541,7 +8549,7 @@ components:
         randomizationInterval:
           type: string
           default: 5m
-          description: 'Interval in which the announcement can be sent earlier in effort to prevent announcement peaks. If omitted, the default value will be applied. If set to minimum, no randomization will be applied.'
+          description: 'Interval in which the announcement can be sent earlier than the configured `beforeExpiry`. The actual point in time when the announcement will be sent is `beforeExpire` plus a randomly chosen time within the `randomizationInterval`. E.g assuming `beforeExpiry` is set to 5m and `randomizationInterval` is set to 1m, the announcements will be sent between 5 and 6 minutes before the subject expires. If omitted, the default value will be applied. If set to minimum, no randomization will be applied.'
       example:
         beforeExpiry: 5m
         whenDeleted: true

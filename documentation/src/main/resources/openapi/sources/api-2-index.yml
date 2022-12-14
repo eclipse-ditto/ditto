@@ -225,6 +225,8 @@ components:
       $ref: "./parameters/ifMatchHeaderParamHash.yml"
     IfNoneMatchHeaderParam:
       $ref: "./parameters/ifNoneMatchHeaderParam.yml"
+    ImportedPolicyIdPathParam:
+      $ref: "./parameters/importedPolicyIdPathParam.yml"
     LabelPathParam:
       $ref: "./parameters/labelPathParam.yml"
     LiveMessageRequestedAcksParam:
@@ -303,6 +305,12 @@ components:
       $ref: "./schemas/policies/newPolicy.yml"
     Policy:
       $ref: "./schemas/policies/policy.yml"
+    PolicyImports:
+      $ref: "./schemas/policies/policyImports.yml"
+    PolicyImport:
+      $ref: "./schemas/policies/policyImport.yml"
+    Importable:
+      $ref: "./schemas/policies/importable.yml"
     PolicyEntries:
       $ref: "./schemas/policies/policyEntries.yml"
     PolicyEntry:
