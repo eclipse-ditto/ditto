@@ -24,7 +24,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
-  "iteration": 1671099501777,
+  "iteration": 1671099501797,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -1075,7 +1075,7 @@
             "uid": "P1809F7CD0C75ACF3"
           },
           "exemplar": true,
-          "expr": "count(rate(connection_messages_total{category=\"throttled\", direction=\"inbound\"}[5m]) > 0) by (id)",
+          "expr": "count(rate(connection_messages_total{category=\"throttled\", direction=\"inbound\", id=~\"$Connection\"}[5m]) > 0) by (id)",
           "hide": false,
           "instant": false,
           "interval": "5m",
@@ -2163,7 +2163,7 @@
     ]
   },
   "time": {
-    "from": "now-30m",
+    "from": "now-3h",
     "to": "now"
   },
   "timepicker": {
