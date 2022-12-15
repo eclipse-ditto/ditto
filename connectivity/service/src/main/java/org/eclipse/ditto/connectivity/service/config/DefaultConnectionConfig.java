@@ -55,6 +55,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final KafkaConfig kafkaConfig;
     private final HttpPushConfig httpPushConfig;
     private final ActivityCheckConfig activityCheckConfig;
+    private final FieldsEncryptionConfig fieldsEncryptionConfig;
     private final Integer maxNumberOfTargets;
     private final Integer maxNumberOfSources;
     private final Duration ackLabelDeclareInterval;
@@ -80,6 +81,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         kafkaConfig = DefaultKafkaConfig.of(config);
         httpPushConfig = DefaultHttpPushConfig.of(config);
         activityCheckConfig = DefaultActivityCheckConfig.of(config);
+        fieldsEncryptionConfig = DefaultFieldsEncryptionConfig.of(config);
         maxNumberOfTargets = config.getNonNegativeIntOrThrow(ConnectionConfigValue.MAX_TARGET_NUMBER);
         maxNumberOfSources = config.getNonNegativeIntOrThrow(ConnectionConfigValue.MAX_SOURCE_NUMBER);
         ackLabelDeclareInterval =
@@ -212,6 +214,11 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     public CleanupConfig getCleanupConfig() {
         return cleanupConfig;
     }
+    @Override
+    public FieldsEncryptionConfig getFieldsEncryptionConfig(){
+        return fieldsEncryptionConfig;
+    }
+
 
     @Override
     public boolean equals(final Object o) {
@@ -238,6 +245,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 Objects.equals(kafkaConfig, that.kafkaConfig) &&
                 Objects.equals(httpPushConfig, that.httpPushConfig) &&
                 Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
+                Objects.equals(fieldsEncryptionConfig, that.fieldsEncryptionConfig) &&
                 Objects.equals(maxNumberOfTargets, that.maxNumberOfTargets) &&
                 Objects.equals(maxNumberOfSources, that.maxNumberOfSources) &&
                 Objects.equals(ackLabelDeclareInterval, that.ackLabelDeclareInterval) &&
@@ -250,8 +258,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         return Objects.hash(clientActorAskTimeout, clientActorRestartsBeforeEscalation, allowedHostnames,
                 blockedHostnames, blockedSubnets, blockedHostRegex, supervisorConfig, snapshotConfig,
                 acknowledgementConfig, cleanupConfig, maxNumberOfTargets, maxNumberOfSources, activityCheckConfig,
-                amqp10Config, amqp091Config, mqttConfig, kafkaConfig, httpPushConfig, ackLabelDeclareInterval,
-                priorityUpdateInterval, shutdownTimeout);
+                fieldsEncryptionConfig, amqp10Config, amqp091Config, mqttConfig, kafkaConfig, httpPushConfig,
+                ackLabelDeclareInterval, priorityUpdateInterval, shutdownTimeout);
     }
 
     @Override
@@ -273,6 +281,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 ", kafkaConfig=" + kafkaConfig +
                 ", httpPushConfig=" + httpPushConfig +
                 ", activityCheckConfig=" + activityCheckConfig +
+                ", fieldsEncryptionConfig=" + fieldsEncryptionConfig +
                 ", maxNumberOfTargets=" + maxNumberOfTargets +
                 ", maxNumberOfSources=" + maxNumberOfSources +
                 ", ackLabelDeclareInterval=" + ackLabelDeclareInterval +

@@ -23,6 +23,9 @@ entries:
       - title: Release Notes
         output: web
         folderitems:
+          - title: 3.1.0
+            url: /release_notes_310.html
+            output: web
           - title: 3.0.0
             url: /release_notes_300.html
             output: web
@@ -340,9 +343,16 @@ entries:
           - title: Overview
             url: /connectivity-overview.html
             output: web
-          - title: Manage connections
-            url: /connectivity-manage-connections.html
-            output: web
+            subfolders:
+              - title: Manage connections
+                output: web
+                subfolderitems:
+                  - title: via HTTP API
+                    url: /connectivity-manage-connections.html
+                    output: web
+                  - title: via Piggyback commands
+                    url: /connectivity-manage-connections-piggyback.html
+                    output: web
           - title: AMQP 0.9.1 protocol binding
             url: /connectivity-protocol-bindings-amqp091.html
             output: web

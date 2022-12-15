@@ -12,22 +12,27 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.annotation.Nullable;
-
-import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoEventAdapter;
+import akka.actor.ExtendedActorSystem;
 import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.base.model.signals.events.EventJsonDeserializer;
 import org.eclipse.ditto.base.model.signals.events.EventRegistry;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
+import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionModified;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
+import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.FieldsEncryptionConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoEventAdapter;
+import org.eclipse.ditto.json.JsonObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import akka.actor.ExtendedActorSystem;
+import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * EventAdapter for {@link ConnectivityEvent}s persisted into
@@ -35,8 +40,33 @@ import akka.actor.ExtendedActorSystem;
  */
 public final class ConnectivityMongoEventAdapter extends AbstractMongoEventAdapter<ConnectivityEvent<?>> {
 
+    private final FieldsEncryptionConfig encryptionConfig;
+    private final Logger logger;
+
     public ConnectivityMongoEventAdapter(@Nullable final ExtendedActorSystem system) {
         super(system, createEventRegistry());
+        logger = LoggerFactory.getLogger(ConnectivityMongoEventAdapter.class);
+        final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(system.settings().config()));
+        encryptionConfig = connectivityConfig.getConnectionConfig().getFieldsEncryptionConfig();
+        logger.info("Connections fields encryption: {}", encryptionConfig.isEncryptionEnabled());
+        if (encryptionConfig.isEncryptionEnabled()) {
+            logger.debug("Connections fields that will be encryption: {}", encryptionConfig.getJsonPointers());
+        }
+    }
+
+    @Override
+    protected JsonObject performToJournalMigration(final JsonObject jsonObject) {
+        if (encryptionConfig.isEncryptionEnabled()) {
+            return JsonFieldsEncryptor.encrypt(jsonObject, ConnectivityConstants.ENTITY_TYPE.toString(), encryptionConfig.getJsonPointers(), encryptionConfig.getSymmetricalKey());
+        }
+        return jsonObject;
+    }
+
+    @Override
+    protected JsonObject performFromJournalMigration(final JsonObject jsonObject) {
+        return JsonFieldsEncryptor.decrypt(jsonObject, ConnectivityConstants.ENTITY_TYPE.toString(),
+                encryptionConfig.getJsonPointers(), encryptionConfig.getSymmetricalKey());
     }
 
     private static EventRegistry<ConnectivityEvent<?>> createEventRegistry() {

@@ -154,6 +154,13 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
     Duration getShutdownTimeout();
 
     /**
+     * Returns the configuration for connection fields encryption.
+     *
+     * @return the config.
+     */
+    FieldsEncryptionConfig getFieldsEncryptionConfig();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code ConnectionConfig}.
      */

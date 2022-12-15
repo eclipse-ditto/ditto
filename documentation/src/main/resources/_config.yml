@@ -114,6 +114,8 @@ plugins:
 docVersions:
   - label: "development"
     basePath: ""
+  - label: "3.1"
+    basePath: "3.1"
   - label: "3.0"
     basePath: "3.0"
   - label: "2.4"

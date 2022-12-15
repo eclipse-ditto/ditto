@@ -3,7 +3,10 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": "-- Grafana --",
+        "datasource": {
+          "type": "datasource",
+          "uid": "grafana"
+        },
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -20,9 +23,9 @@
   },
   "editable": true,
   "fiscalYearStartMonth": 0,
-  "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1643702329063,
+  "id": 31,
+  "iteration": 1652097714023,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -32,7 +35,10 @@
       "cacheTimeout": "0",
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "description": "Positive Y axis: stacked search queries\nNegative Y axis: stacked search counts",
       "editable": true,
       "error": false,
@@ -67,7 +73,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -102,9 +108,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "# of Processed Search Requests / second",
       "tooltip": {
         "shared": true,
@@ -113,9 +117,7 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
@@ -123,22 +125,17 @@
         {
           "format": "short",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
           "label": "",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -146,7 +143,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "editable": true,
       "error": false,
       "fieldConfig": {
@@ -162,7 +162,7 @@
         "h": 7,
         "w": 16,
         "x": 0,
-        "y": 7
+        "y": 14
       },
       "hiddenSeries": false,
       "id": 6,
@@ -187,7 +187,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -207,9 +207,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "Search (v2) internal roundtrip times",
       "tooltip": {
         "shared": true,
@@ -218,9 +216,7 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
@@ -228,21 +224,16 @@
         {
           "format": "s",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -251,7 +242,10 @@
       "cacheTimeout": "0",
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "editable": true,
       "error": false,
       "fieldConfig": {
@@ -267,7 +261,7 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 7
+        "y": 14
       },
       "hiddenSeries": false,
       "id": 13,
@@ -288,7 +282,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -314,9 +308,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "# of search consistency lag measurements",
       "tooltip": {
         "shared": true,
@@ -325,9 +317,7 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
@@ -335,21 +325,16 @@
         {
           "format": "none",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -358,7 +343,10 @@
       "cacheTimeout": "0",
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "description": "Percentiles are capped to max. 10s",
       "editable": true,
       "error": false,
@@ -375,7 +363,7 @@
         "h": 7,
         "w": 16,
         "x": 0,
-        "y": 14
+        "y": 21
       },
       "hiddenSeries": false,
       "id": 12,
@@ -402,7 +390,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -453,9 +441,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "Search consistency lag",
       "tooltip": {
         "shared": true,
@@ -464,9 +450,7 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
@@ -474,21 +458,16 @@
         {
           "format": "s",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -496,7 +475,10 @@
       "bars": true,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fieldConfig": {
         "defaults": {
           "links": []
@@ -509,7 +491,7 @@
         "h": 7,
         "w": 8,
         "x": 16,
-        "y": 14
+        "y": 21
       },
       "hiddenSeries": false,
       "id": 4,
@@ -530,7 +512,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -550,9 +532,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "Bulk Update Counts / second",
       "tooltip": {
         "shared": true,
@@ -561,9 +541,7 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
@@ -571,25 +549,18 @@
         {
           "decimals": 0,
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
-          "decimals": null,
           "format": "short",
           "label": "",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -597,7 +568,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fieldConfig": {
         "defaults": {
           "links": []
@@ -610,7 +584,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 21
+        "y": 28
       },
       "hiddenSeries": false,
       "id": 5,
@@ -635,7 +609,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -667,9 +641,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "Bulk Update Times",
       "tooltip": {
         "shared": true,
@@ -678,33 +650,24 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
           "format": "s",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -712,14 +675,17 @@
       "bars": true,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 21
+        "y": 28
       },
       "hiddenSeries": false,
       "id": 15,
@@ -739,7 +705,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.1",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -764,9 +730,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "Relative duration per segment (median)",
       "tooltip": {
         "shared": true,
@@ -775,33 +739,24 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -809,7 +764,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fieldConfig": {
         "defaults": {
           "links": []
@@ -822,7 +780,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 29
+        "y": 36
       },
       "hiddenSeries": false,
       "id": 7,
@@ -843,7 +801,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -863,9 +821,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "Updates per Bulk",
       "tooltip": {
         "shared": true,
@@ -874,9 +830,7 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
@@ -884,25 +838,18 @@
         {
           "decimals": 0,
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
-          "decimals": null,
           "format": "short",
           "label": "",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -910,7 +857,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fieldConfig": {
         "defaults": {
           "links": []
@@ -923,7 +873,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 29
+        "y": 36
       },
       "hiddenSeries": false,
       "id": 11,
@@ -944,7 +894,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -974,7 +924,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(irate(search_update_failures_total[5m]))",
+          "expr": "sum(irate(wildcard_search_update_failures_total[5m]))",
           "hide": false,
           "interval": "",
           "legendFormat": "Retries",
@@ -982,7 +932,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(irate(search_patch_updates_total[5m]))",
+          "expr": "sum(irate(wildcard_search_patch_updates_total[5m]))",
           "hide": false,
           "interval": "",
           "legendFormat": "Patch updates",
@@ -990,7 +940,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(irate(search_patch_skips_total[5m]))",
+          "expr": "sum(irate(wildcard_search_patch_skips_total[5m]))",
           "hide": false,
           "interval": "",
           "legendFormat": "Skipped patch updates",
@@ -998,7 +948,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(irate(search_incorrect_patch_updates_total[5m]))",
+          "expr": "sum(irate(wildcard_search_incorrect_patch_updates_total[5m]))",
           "hide": false,
           "interval": "",
           "legendFormat": "Incorrect patch updates",
@@ -1006,9 +956,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "Updater metric (per second)",
       "tooltip": {
         "shared": true,
@@ -1017,9 +965,7 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
@@ -1028,30 +974,26 @@
           "$$hashKey": "object:87",
           "decimals": 0,
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "$$hashKey": "object:88",
-          "decimals": null,
           "format": "short",
           "label": "",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1090,8 +1032,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1106,7 +1047,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 37
+        "y": 44
       },
       "id": 17,
       "options": {
@@ -1116,7 +1057,8 @@
           "placement": "bottom"
         },
         "tooltip": {
-          "mode": "single"
+          "mode": "single",
+          "sort": "none"
         }
       },
       "targets": [
@@ -1145,7 +1087,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fieldConfig": {
         "defaults": {
           "links": []
@@ -1158,7 +1103,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 37
+        "y": 44
       },
       "hiddenSeries": false,
       "id": 10,
@@ -1179,7 +1124,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.4.4",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1199,9 +1144,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "MongoDB Search Connection Pool",
       "tooltip": {
         "shared": true,
@@ -1210,9 +1153,7 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
@@ -1220,25 +1161,18 @@
         {
           "decimals": 0,
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
-          "decimals": null,
           "format": "short",
           "label": "",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -1246,7 +1180,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fieldConfig": {
         "defaults": {
           "links": []
@@ -1259,7 +1196,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 45
+        "y": 52
       },
       "hiddenSeries": false,
       "id": 8,
@@ -1280,7 +1217,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.4.4",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1290,7 +1227,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "idelta({__name__=~\"wildcard_search_mongodb_seconds_sum\", instance=~\"$Instance\"}[5m]) / idelta({__name__=~\"search_mongodb_seconds_count\", instance=~\"$Instance\"}[5m])",
+          "expr": "idelta({__name__=~\"wildcard_search_mongodb_seconds_sum\", instance=~\"$Instance\"}[5m]) / idelta({__name__=~\"wildcard_search_mongodb_seconds_count\", instance=~\"$Instance\"}[5m])",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
@@ -1300,9 +1237,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "MongoDB Search Roundtrips (by MongoClient)",
       "tooltip": {
         "shared": true,
@@ -1311,9 +1246,7 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
@@ -1321,25 +1254,18 @@
         {
           "decimals": 0,
           "format": "s",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
-          "decimals": null,
           "format": "short",
           "label": "",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -1347,7 +1273,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fieldConfig": {
         "defaults": {
           "links": []
@@ -1360,7 +1289,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 45
+        "y": 52
       },
       "hiddenSeries": false,
       "id": 9,
@@ -1381,7 +1310,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.4.4",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1391,7 +1320,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg(\nidelta({__name__=~\"search_mongodb_seconds_sum\", instance=~\"$Instance\", command_name=\"find\"}[5m]) \n/ \nidelta({__name__=~\"search_mongodb_seconds_count\", instance=~\"$Instance\", command_name=\"find\"}[5m])\n)",
+          "expr": "avg(\nidelta({__name__=~\"wildcard_search_mongodb_seconds_sum\", instance=~\"$Instance\", command_name=\"find\"}[5m]) \n/ \nidelta({__name__=~\"wildcard_search_mongodb_seconds_count\", instance=~\"$Instance\", command_name=\"find\"}[5m])\n)",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
@@ -1408,9 +1337,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "Search Roundtrip Comparison - Search Persistence vs. Mongo Client",
       "tooltip": {
         "shared": true,
@@ -1419,9 +1346,7 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
@@ -1429,30 +1354,23 @@
         {
           "decimals": 0,
           "format": "s",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
-          "decimals": null,
           "format": "short",
           "label": "",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     }
   ],
   "refresh": "30s",
-  "schemaVersion": 31,
+  "schemaVersion": 36,
   "style": "dark",
   "tags": [],
   "templating": {
@@ -1465,19 +1383,19 @@
           "text": "All",
           "value": "$__all"
         },
-        "datasource": "prometheus",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "P1809F7CD0C75ACF3"
+        },
         "definition": "",
-        "description": null,
-        "error": null,
         "hide": 0,
         "includeAll": true,
-        "label": null,
         "multi": false,
         "multiFormat": "glob",
         "name": "Instance",
         "options": [],
         "query": {
-          "query": "label_values({__name__=~\"things_search.*\"}, instance)",
+          "query": "label_values({__name__=~\"things_wildcard_search.*\"}, instance)",
           "refId": "prometheus-Instance-Variable-Query"
         },
         "refresh": 1,
@@ -1522,7 +1440,8 @@
     ]
   },
   "timezone": "browser",
-  "title": "[things-search] Performance Metrics",
-  "uid": "5CJ1fNmiz",
-  "version": 1
+  "title": "Search Performance Metrics",
+  "uid": "5CJ1fOmiz",
+  "version": 5,
+  "weekStart": ""
 }
