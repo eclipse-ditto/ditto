@@ -24,7 +24,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
-  "iteration": 1671099501797,
+  "iteration": 1671121526780,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -1062,7 +1062,7 @@
           },
           "exemplar": true,
           "expr": "count(rate(connection_messages_total{instance=~\"$Host\", id=~\"$Connection\", type=~\"$ConnectionType\", category=\"throttled\", direction=\"inbound\"}[5m])>0) by (type)",
-          "hide": true,
+          "hide": false,
           "instant": false,
           "interval": "5m",
           "intervalFactor": 1,
@@ -1075,8 +1075,8 @@
             "uid": "P1809F7CD0C75ACF3"
           },
           "exemplar": true,
-          "expr": "count(rate(connection_messages_total{category=\"throttled\", direction=\"inbound\", id=~\"$Connection\"}[5m]) > 0) by (id)",
-          "hide": false,
+          "expr": "count(rate(connection_messages_total{category=\"throttled\", direction=\"inbound\"}[5m]) > 0) by (id)",
+          "hide": true,
           "instant": false,
           "interval": "5m",
           "intervalFactor": 1,
@@ -2069,7 +2069,7 @@
       {
         "allValue": ".*",
         "current": {
-          "selected": true,
+          "selected": false,
           "text": "All",
           "value": "$__all"
         },
@@ -2133,7 +2133,7 @@
       {
         "allValue": ".*",
         "current": {
-          "selected": true,
+          "selected": false,
           "text": "All",
           "value": "$__all"
         },
@@ -2163,7 +2163,7 @@
     ]
   },
   "time": {
-    "from": "now-3h",
+    "from": "now-30m",
     "to": "now"
   },
   "timepicker": {
