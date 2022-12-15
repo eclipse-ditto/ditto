@@ -93,4 +93,5 @@ public final class DefaultFieldsEncryptionConfig implements FieldsEncryptionConf
                 ", jsonPointers=" + jsonPointers +
                 ']';
     }
+
 }
