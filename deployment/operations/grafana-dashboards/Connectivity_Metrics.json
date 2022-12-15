@@ -3,7 +3,10 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": "-- Grafana --",
+        "datasource": {
+          "type": "datasource",
+          "uid": "grafana"
+        },
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -20,15 +23,17 @@
   },
   "editable": true,
   "fiscalYearStartMonth": 0,
-  "gnetId": null,
   "graphTooltip": 1,
-  "iteration": 1643641289478,
+  "iteration": 1671099501777,
   "links": [],
   "liveNow": false,
   "panels": [
     {
       "collapsed": false,
-      "datasource": null,
+      "datasource": {
+        "type": "datasource",
+        "uid": "grafana"
+      },
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -45,11 +50,14 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
-      "decimals": null,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fieldConfig": {
         "defaults": {
-          "links": []
+          "links": [],
+          "unit": "none"
         },
         "overrides": []
       },
@@ -84,7 +92,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.6",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -94,7 +102,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(connection_client{instance=~\"$Host\", type=~\"$ConnectionType\"}) by (type)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "expr": "sum(connection_client{instance=~\"$Host\", type=~\"$ConnectionType\", id=~\"$Connection\"}) by (type)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -103,9 +115,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "open connections",
       "tooltip": {
         "shared": true,
@@ -114,34 +124,24 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "decimals": null,
-          "format": "short",
-          "label": null,
+          "format": "none",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -149,11 +149,14 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
-      "decimals": null,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fieldConfig": {
         "defaults": {
-          "links": []
+          "links": [],
+          "unit": "none"
         },
         "overrides": []
       },
@@ -188,7 +191,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.6",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -198,7 +201,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(connection_client{instance=~\"$Host\", type=~\"$ConnectionType\"}) by (instance, type)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "expr": "sum(connection_client{instance=~\"$Host\", type=~\"$ConnectionType\", id=~\"$Connection\"}) by (instance, type)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -207,9 +214,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "open connections per instance",
       "tooltip": {
         "shared": true,
@@ -218,33 +223,24 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "format": "short",
-          "label": null,
+          "format": "none",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -252,12 +248,15 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
-      "decimals": null,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "description": "Connections which delivered metrics in the last 7 days",
       "fieldConfig": {
         "defaults": {
-          "links": []
+          "links": [],
+          "unit": "none"
         },
         "overrides": []
       },
@@ -292,7 +291,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.6",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -302,7 +301,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "count by (ditto_connection_type) (count by (instance, ditto_connection_id, ditto_connection_type) (increase(connectivity_message_mapping_seconds_count{instance=~\"$Host\", ditto_connection_type=~\"$ConnectionType\"}[5m]) > 0))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "expr": "count by (ditto_connection_type) (count by (instance, ditto_connection_id, ditto_connection_type) (increase(connectivity_message_mapping_seconds_count{instance=~\"$Host\", ditto_connection_type=~\"$ConnectionType\", ditto_connection_id=~\"$Connection\"}[5m]) > 0))",
           "format": "time_series",
           "hide": false,
           "interval": "",
@@ -312,9 +315,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "active connections over the last 5 minutes",
       "tooltip": {
         "shared": true,
@@ -323,33 +324,24 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "format": "short",
-          "label": null,
+          "format": "none",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -357,12 +349,15 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
-      "decimals": null,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "description": "Connections which delivered metrics in the last 7 days",
       "fieldConfig": {
         "defaults": {
-          "links": []
+          "links": [],
+          "unit": "none"
         },
         "overrides": []
       },
@@ -397,7 +392,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.6",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -407,7 +402,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "count by (instance, ditto_connection_type) (count by (instance, ditto_connection_id, ditto_connection_type) (increase (connectivity_message_mapping_seconds_count{instance=~\"$Host\", ditto_connection_type=~\"$ConnectionType\"}[5m]) > 0))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "expr": "count by (instance, ditto_connection_type) (count by (instance, ditto_connection_id, ditto_connection_type) (increase (connectivity_message_mapping_seconds_count{instance=~\"$Host\", ditto_connection_type=~\"$ConnectionType\", ditto_connection_id=~\"$Connection\"}[5m]) > 0))",
           "format": "time_series",
           "hide": false,
           "instant": false,
@@ -417,9 +416,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "active connections over the last 5 minutes per instance",
       "tooltip": {
         "shared": true,
@@ -428,38 +425,32 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "format": "short",
-          "label": null,
+          "format": "none",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
       "collapsed": false,
-      "datasource": null,
+      "datasource": {
+        "type": "datasource",
+        "uid": "grafana"
+      },
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -476,10 +467,14 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fieldConfig": {
         "defaults": {
-          "links": []
+          "links": [],
+          "unit": "none"
         },
         "overrides": []
       },
@@ -511,7 +506,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.6",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -537,9 +532,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "#consumed messages per second",
       "tooltip": {
         "shared": true,
@@ -548,33 +541,24 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "format": "short",
-          "label": null,
+          "format": "none",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -582,11 +566,15 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "description": "This number reflects the number of messages that resulted out of payload mappings per second.",
       "fieldConfig": {
         "defaults": {
-          "links": []
+          "links": [],
+          "unit": "none"
         },
         "overrides": []
       },
@@ -618,7 +606,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.6",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -644,9 +632,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "#mapped messages per second",
       "tooltip": {
         "shared": true,
@@ -655,33 +641,24 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "format": "short",
-          "label": null,
+          "format": "none",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -689,11 +666,15 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "links": []
+          "links": [],
+          "unit": "none"
         },
         "overrides": []
       },
@@ -725,7 +706,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.6",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -751,9 +732,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "#dropped messages per second",
       "tooltip": {
         "shared": true,
@@ -762,33 +741,24 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "format": "short",
-          "label": null,
+          "format": "none",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -796,11 +766,15 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "links": []
+          "links": [],
+          "unit": "none"
         },
         "overrides": []
       },
@@ -832,7 +806,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.6",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -861,9 +835,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "#currently inflight messages waiting for acknowledgements",
       "tooltip": {
         "shared": true,
@@ -872,35 +844,26 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
           "$$hashKey": "object:127",
-          "format": "short",
-          "label": null,
+          "format": "none",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "$$hashKey": "object:128",
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -908,11 +871,15 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "links": []
+          "links": [],
+          "unit": "none"
         },
         "overrides": []
       },
@@ -944,7 +911,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.6",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -970,9 +937,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "#acknowledged messages per second",
       "tooltip": {
         "shared": true,
@@ -981,33 +946,24 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "format": "short",
-          "label": null,
+          "format": "none",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -1050,7 +1006,10 @@
       "bars": true,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
@@ -1086,7 +1045,7 @@
         "alertThreshold": false
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.6",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1097,6 +1056,10 @@
       "steppedLine": false,
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
           "exemplar": true,
           "expr": "count(rate(connection_messages_total{instance=~\"$Host\", id=~\"$Connection\", type=~\"$ConnectionType\", category=\"throttled\", direction=\"inbound\"}[5m])>0) by (type)",
           "hide": true,
@@ -1107,6 +1070,10 @@
           "refId": "B"
         },
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
           "exemplar": true,
           "expr": "count(rate(connection_messages_total{category=\"throttled\", direction=\"inbound\"}[5m]) > 0) by (id)",
           "hide": false,
@@ -1127,9 +1094,7 @@
           "visible": true
         }
       ],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "#throttled connections",
       "tooltip": {
         "shared": true,
@@ -1138,9 +1103,7 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
@@ -1148,25 +1111,18 @@
         {
           "$$hashKey": "object:331",
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "$$hashKey": "object:332",
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -1174,11 +1130,15 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "links": []
+          "links": [],
+          "unit": "none"
         },
         "overrides": []
       },
@@ -1210,7 +1170,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.6",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1236,9 +1196,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "#enforced messages per second",
       "tooltip": {
         "shared": true,
@@ -1247,38 +1205,32 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "format": "short",
-          "label": null,
+          "format": "none",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
       "collapsed": false,
-      "datasource": null,
+      "datasource": {
+        "type": "datasource",
+        "uid": "grafana"
+      },
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -1295,10 +1247,14 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fieldConfig": {
         "defaults": {
-          "links": []
+          "links": [],
+          "unit": "none"
         },
         "overrides": []
       },
@@ -1330,7 +1286,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.6",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1357,9 +1313,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "#dispatched messages per second",
       "tooltip": {
         "shared": true,
@@ -1368,33 +1322,24 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "format": "short",
-          "label": null,
+          "format": "none",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -1402,10 +1347,14 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fieldConfig": {
         "defaults": {
-          "links": []
+          "links": [],
+          "unit": "none"
         },
         "overrides": []
       },
@@ -1437,7 +1386,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.6",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1463,9 +1412,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "#filtered per second",
       "tooltip": {
         "shared": true,
@@ -1474,33 +1421,24 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "format": "short",
-          "label": null,
+          "format": "none",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -1508,11 +1446,15 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "description": "This number reflects the number of messages that resulted out of payload mappings per second.",
       "fieldConfig": {
         "defaults": {
-          "links": []
+          "links": [],
+          "unit": "none"
         },
         "overrides": []
       },
@@ -1544,7 +1486,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.6",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1570,9 +1512,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "#mapped messages per second",
       "tooltip": {
         "shared": true,
@@ -1581,33 +1521,24 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "format": "short",
-          "label": null,
+          "format": "none",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -1615,10 +1546,14 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fieldConfig": {
         "defaults": {
-          "links": []
+          "links": [],
+          "unit": "none"
         },
         "overrides": []
       },
@@ -1650,7 +1585,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.6",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1676,9 +1611,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "#dropped messages per second",
       "tooltip": {
         "shared": true,
@@ -1687,33 +1620,24 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "format": "short",
-          "label": null,
+          "format": "none",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -1721,10 +1645,14 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fieldConfig": {
         "defaults": {
-          "links": []
+          "links": [],
+          "unit": "none"
         },
         "overrides": []
       },
@@ -1756,7 +1684,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.6",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1782,9 +1710,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "#published messages per second",
       "tooltip": {
         "shared": true,
@@ -1793,33 +1719,24 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "format": "short",
-          "label": null,
+          "format": "none",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -1827,10 +1744,14 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fieldConfig": {
         "defaults": {
-          "links": []
+          "links": [],
+          "unit": "none"
         },
         "overrides": []
       },
@@ -1862,7 +1783,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.6",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1888,9 +1809,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "#acknowledged messages per second",
       "tooltip": {
         "shared": true,
@@ -1899,33 +1818,24 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -1933,7 +1843,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fieldConfig": {
         "defaults": {
           "links": []
@@ -1967,7 +1880,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.6",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -2014,9 +1927,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "mapping times",
       "tooltip": {
         "shared": true,
@@ -2025,33 +1936,24 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
           "format": "s",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -2059,7 +1961,10 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P1809F7CD0C75ACF3"
+      },
       "fieldConfig": {
         "defaults": {
           "links": []
@@ -2093,7 +1998,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.3",
+      "pluginVersion": "8.5.6",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -2123,9 +2028,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "HTTP push request times",
       "tooltip": {
         "shared": true,
@@ -2134,38 +2037,29 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
           "format": "s",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     }
   ],
   "refresh": "30s",
-  "schemaVersion": 31,
+  "schemaVersion": 36,
   "style": "dark",
   "tags": [
     "email"
@@ -2175,17 +2069,17 @@
       {
         "allValue": ".*",
         "current": {
-          "selected": false,
+          "selected": true,
           "text": "All",
           "value": "$__all"
         },
-        "datasource": "prometheus",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "P1809F7CD0C75ACF3"
+        },
         "definition": "",
-        "description": null,
-        "error": null,
         "hide": 0,
         "includeAll": true,
-        "label": null,
         "multi": false,
         "name": "Host",
         "options": [],
@@ -2205,7 +2099,7 @@
       {
         "allValue": ".*",
         "current": {
-          "selected": false,
+          "selected": true,
           "text": [
             "All"
           ],
@@ -2213,13 +2107,13 @@
             "$__all"
           ]
         },
-        "datasource": "prometheus",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "P1809F7CD0C75ACF3"
+        },
         "definition": "label_values(connectivity_message_mapping_seconds_count,ditto_connection_id)",
-        "description": null,
-        "error": null,
         "hide": 0,
         "includeAll": true,
-        "label": null,
         "multi": true,
         "name": "Connection",
         "options": [],
@@ -2239,17 +2133,17 @@
       {
         "allValue": ".*",
         "current": {
-          "selected": false,
+          "selected": true,
           "text": "All",
           "value": "$__all"
         },
-        "datasource": "prometheus",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "P1809F7CD0C75ACF3"
+        },
         "definition": "label_values(connectivity_message_mapping_seconds_count,ditto_connection_type)",
-        "description": null,
-        "error": null,
         "hide": 0,
         "includeAll": true,
-        "label": null,
         "multi": false,
         "name": "ConnectionType",
         "options": [],
@@ -2300,5 +2194,6 @@
   "timezone": "",
   "title": "Connectivity Metrics",
   "uid": "uaDIn_kZk",
-  "version": 1
+  "version": 1,
+  "weekStart": ""
 }
