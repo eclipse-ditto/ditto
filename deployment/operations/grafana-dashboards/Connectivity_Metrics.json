@@ -24,7 +24,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
-  "iteration": 1671121526780,
+  "iteration": 1671122496613,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -1060,13 +1060,14 @@
             "type": "prometheus",
             "uid": "P1809F7CD0C75ACF3"
           },
+          "editorMode": "code",
           "exemplar": true,
-          "expr": "count(rate(connection_messages_total{instance=~\"$Host\", id=~\"$Connection\", type=~\"$ConnectionType\", category=\"throttled\", direction=\"inbound\"}[5m])>0) by (type)",
+          "expr": "count(rate(connection_messages_total{instance=~\"$Host\", id=~\"$Connection\", type=~\"$ConnectionType\", category=\"throttled\", direction=\"inbound\"}[5m])>0) by (type, id)",
           "hide": false,
           "instant": false,
           "interval": "5m",
           "intervalFactor": 1,
-          "legendFormat": "{{type}}",
+          "legendFormat": "{{type}} - {{id}}",
           "refId": "B"
         },
         {
@@ -1824,7 +1825,7 @@
       },
       "yaxes": [
         {
-          "format": "short",
+          "format": "none",
           "logBase": 1,
           "show": true
         },
