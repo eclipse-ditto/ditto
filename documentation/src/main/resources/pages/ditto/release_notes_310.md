@@ -3,7 +3,7 @@ title: Release notes 3.1.0
 tags: [release_notes]
 published: true
 keywords: release notes, announcements, changelog
-summary: "Version 3.1.0 of Eclipse Ditto, released on 15.12.2022"
+summary: "Version 3.1.0 of Eclipse Ditto, released on 16.12.2022"
 permalink: release_notes_310.html
 ---
 

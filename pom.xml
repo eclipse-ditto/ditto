@@ -184,6 +184,17 @@
                 <role>Committer</role>
             </roles>
         </developer>
+        <developer>
+            <id>dschwilk</id>
+            <name>David Schwilk</name>
+            <email>david.schwilk@bosch.io</email>
+            <url>https://github.com/DerSchwilk</url>
+            <organization>Bosch.IO GmbH</organization>
+            <organizationUrl>https://www.bosch.io</organizationUrl>
+            <roles>
+                <role>Committer</role>
+            </roles>
+        </developer>
     </developers>
 
     <modules>
@@ -570,6 +581,7 @@
                         <header>${project.basedir}/src/license-header-2019.txt</header>
                         <header>${project.basedir}/src/license-header-2020.txt</header>
                         <header>${project.basedir}/src/license-header-2021.txt</header>
+                        <header>${project.basedir}/src/license-header-2022.txt</header>
                     </validHeaders>
                     <aggregate>true</aggregate>
                     <quiet>false</quiet>

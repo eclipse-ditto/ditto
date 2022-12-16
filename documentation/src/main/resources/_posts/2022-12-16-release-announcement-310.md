@@ -1,7 +1,7 @@
 ---
 title: "Announcing Eclipse Ditto Release 3.1.0"
 published: true
-permalink: 2022-12-15-release-announcement-310.html
+permalink: 2022-12-16-release-announcement-310.html
 layout: post
 author: thomas_jaeckle
 tags: [blog]
