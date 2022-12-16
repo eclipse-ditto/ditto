@@ -15,6 +15,8 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.mapping;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.policies.model.PoliciesResourceType.THING;
 
+import java.util.Set;
+
 import org.bson.BsonDocument;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -71,6 +73,7 @@ public final class EnforcedThingMapperTest {
                   "_revision": 1024,
                   "policyId": "hello:world",
                   "__policyRev": 56,
+                  "__referencedPolicies": [{"type":"policy","id":"hello:world","revision":56}],
                   "t": {
                     "thingId": "hello:world",
                     "_namespace": "hello",
@@ -103,7 +106,8 @@ public final class EnforcedThingMapperTest {
                 }
                 """);
 
-        final BsonDocument result = EnforcedThingMapper.mapThing(thing, policy, policyRevision);
+        final BsonDocument result =
+                EnforcedThingMapper.toWriteModel(thing, policy, Set.of(), policyRevision, null, -1).getThingDocument();
 
         assertThat(JsonFactory.newObject(result.toJson())).isEqualTo(expectedJson);
     }
@@ -197,6 +201,7 @@ public final class EnforcedThingMapperTest {
                   "_revision": 111,
                   "policyId": "bosch:device-policy",
                   "__policyRev": 2,
+                  "__referencedPolicies": [{"type":"policy","id":"bosch:device-policy","revision":2}],
                   "t": {
                     "thingId": "bosch:device",
                     "_created": "2000-01-01T00:00:00Z",
@@ -282,7 +287,8 @@ public final class EnforcedThingMapperTest {
                 }
                 """);
 
-        final BsonDocument result = EnforcedThingMapper.mapThing(thing, policy, policyRevision);
+        final BsonDocument result =
+                EnforcedThingMapper.toWriteModel(thing, policy, Set.of(), policyRevision, null, -1).getThingDocument();
 
         assertThat(JsonFactory.newObject(result.toJson())).isEqualTo(expectedJson);
     }

@@ -13,6 +13,8 @@
 package org.eclipse.ditto.policies.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.policies.model.PoliciesModelFactory.DITTO_LIMITS_POLICY_IMPORTS_LIMIT;
+import static org.eclipse.ditto.policies.model.PoliciesModelFactory.emptyPolicyImports;
 import static org.eclipse.ditto.policies.model.PoliciesModelFactory.emptyResources;
 import static org.eclipse.ditto.policies.model.PoliciesModelFactory.newPolicyEntry;
 import static org.eclipse.ditto.policies.model.PoliciesModelFactory.newResources;
@@ -34,6 +36,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -50,6 +53,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyImportsValidator;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImportsTooLargeException;
 
 /**
  * Immutable implementation of {@link Policy}.
@@ -58,6 +63,7 @@ import org.eclipse.ditto.json.JsonValue;
 final class ImmutablePolicy implements Policy {
 
     @Nullable private final PolicyId policyId;
+    private final PolicyImports imports;
     private final Map<Label, PolicyEntry> entries;
     @Nullable private final String namespace;
     @Nullable private final PolicyLifecycle lifecycle;
@@ -67,6 +73,7 @@ final class ImmutablePolicy implements Policy {
     @Nullable private final Metadata metadata;
 
     private ImmutablePolicy(@Nullable final PolicyId policyId,
+            final PolicyImports theImports,
             final Map<Label, PolicyEntry> theEntries,
             @Nullable final PolicyLifecycle lifecycle,
             @Nullable final PolicyRevision revision,
@@ -75,6 +82,7 @@ final class ImmutablePolicy implements Policy {
             @Nullable final Metadata metadata) {
 
         this.policyId = policyId;
+        imports = PolicyImportsValidator.validatePolicyImports(policyId, theImports);
         entries = Collections.unmodifiableMap(new LinkedHashMap<>(theEntries));
         namespace = policyId == null ? null : policyId.getNamespace();
         this.lifecycle = lifecycle;
@@ -93,6 +101,7 @@ final class ImmutablePolicy implements Policy {
      * @param modified the modified timestamp of the Policy to be created.
      * @param created the created timestamp of the Policy to be created.
      * @param metadata the metadata of the Thing to be created.
+     * @param policyImports the PolicyImports of the Policy to be created.
      * @param entries the entries of the Policy to be created.
      * @return a new initialised Policy.
      * @throws NullPointerException if {@code entries} is {@code null}.
@@ -103,14 +112,22 @@ final class ImmutablePolicy implements Policy {
             @Nullable final Instant modified,
             @Nullable final Instant created,
             @Nullable final Metadata metadata,
+            final PolicyImports policyImports,
             final Iterable<PolicyEntry> entries) {
 
+        checkNotNull(policyImports, "policyImports");
         checkNotNull(entries, "Policy entries");
 
         final Map<Label, PolicyEntry> entryMap = new LinkedHashMap<>();
         entries.forEach(policyEntry -> entryMap.put(policyEntry.getLabel(), policyEntry));
 
-        return new ImmutablePolicy(policyId, entryMap, lifecycle, revision, modified, created, metadata);
+        if (policyImports.getSize() <= DITTO_LIMITS_POLICY_IMPORTS_LIMIT) {
+            return new ImmutablePolicy(policyId, policyImports, entryMap, lifecycle, revision, modified, created,
+                    metadata);
+        } else {
+            throw PolicyImportsTooLargeException.newBuilder(checkNotNull(policyId, "policyId")).build();
+        }
+
     }
 
     /**
@@ -119,7 +136,7 @@ final class ImmutablePolicy implements Policy {
      * @param jsonObject a JSON object which provides the data for the Policy to be created.
      * @return a new Policy which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws PolicyEntryInvalidException if an Policy entry does not contain any known permission which evaluates to
+     * @throws PolicyEntryInvalidException if a Policy entry does not contain any known permission which evaluates to
      * {@code true} or {@code false}.
      * @throws PolicyIdInvalidException if the parsed policy ID did not comply to
      * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#ID_REGEX}.
@@ -138,6 +155,10 @@ final class ImmutablePolicy implements Policy {
         final Instant readModified = jsonObject.getValue(JsonFields.MODIFIED)
                 .map(ImmutablePolicy::tryToParseModified)
                 .orElse(null);
+
+        final PolicyImports readImports = jsonObject.getValue(JsonFields.IMPORTS)
+                .map(PoliciesModelFactory::newPolicyImports)
+                .orElse(emptyPolicyImports());
 
         final Instant readCreated = jsonObject.getValue(JsonFields.CREATED)
                 .map(ImmutablePolicy::tryToParseModified)
@@ -164,7 +185,8 @@ final class ImmutablePolicy implements Policy {
                 .map(MetadataModelFactory::newMetadata)
                 .orElse(null);
 
-        return of(policyId, readLifecycle, readRevision, readModified, readCreated, readMetadata, policyEntries);
+        return of(policyId, readLifecycle, readRevision, readModified, readCreated, readMetadata, readImports,
+                policyEntries);
     }
 
     private static Instant tryToParseModified(final CharSequence dateTime) {
@@ -229,12 +251,14 @@ final class ImmutablePolicy implements Policy {
             } else {
                 final Map<Label, PolicyEntry> entriesCopy = copyEntries();
                 entriesCopy.put(policyEntry.getLabel(), policyEntry);
-                result = new ImmutablePolicy(policyId, entriesCopy, lifecycle, revision, modified, created, metadata);
+                result = new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created,
+                        metadata);
             }
         } else {
             final Map<Label, PolicyEntry> entriesCopy = copyEntries();
             entriesCopy.put(policyEntry.getLabel(), policyEntry);
-            result = new ImmutablePolicy(policyId, entriesCopy, lifecycle, revision, modified, created, metadata);
+            result = new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created,
+                    metadata);
         }
 
         return result;
@@ -266,7 +290,18 @@ final class ImmutablePolicy implements Policy {
         final Map<Label, PolicyEntry> entriesCopy = copyEntries();
         entriesCopy.remove(lbl);
 
-        return new ImmutablePolicy(policyId, entriesCopy, lifecycle, revision, modified, created, metadata);
+        return new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created, metadata);
+    }
+
+    @Override
+    public Policy removeEntries(final Iterable<CharSequence> labels) {
+
+        final Map<Label, PolicyEntry> entriesCopy = copyEntries();
+        StreamSupport.stream(labels.spliterator(), false)
+                .map(Label::of)
+                .forEach(entriesCopy::remove);
+
+        return new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created, metadata);
     }
 
     @Override
@@ -288,11 +323,11 @@ final class ImmutablePolicy implements Policy {
             modifiedEntry = newPolicyEntry(lbl, subjects, emptyResources());
         } else {
             final PolicyEntry policyEntry = entriesCopy.get(lbl);
-            modifiedEntry = newPolicyEntry(lbl, subjects, policyEntry.getResources());
+            modifiedEntry = newPolicyEntry(lbl, subjects, policyEntry.getResources(), policyEntry.getImportableType());
         }
 
         entriesCopy.put(lbl, modifiedEntry);
-        return new ImmutablePolicy(policyId, entriesCopy, lifecycle, revision, modified, created, metadata);
+        return new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created, metadata);
     }
 
     @Override
@@ -308,7 +343,8 @@ final class ImmutablePolicy implements Policy {
             if (!Objects.equals(existingSubjects, newSubjects)) {
                 final Map<Label, PolicyEntry> entriesCopy = copyEntries();
                 entriesCopy.put(lbl, newPolicyEntry(lbl, newSubjects, existingPolicyEntry.getResources()));
-                result = new ImmutablePolicy(policyId, entriesCopy, lifecycle, revision, modified, created, metadata);
+                result = new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created,
+                        metadata);
             } else {
                 result = this;
             }
@@ -331,7 +367,8 @@ final class ImmutablePolicy implements Policy {
             if (!Objects.equals(existingSubjects, newSubjects)) {
                 final Map<Label, PolicyEntry> entriesCopy = copyEntries();
                 entriesCopy.put(lbl, newPolicyEntry(lbl, newSubjects, existingPolicyEntry.getResources()));
-                result = new ImmutablePolicy(policyId, entriesCopy, lifecycle, revision, modified, created, metadata);
+                result = new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created,
+                        metadata);
             }
         }
 
@@ -349,11 +386,12 @@ final class ImmutablePolicy implements Policy {
         if (null == policyEntry) {
             modifiedEntry = newPolicyEntry(lbl, PoliciesModelFactory.emptySubjects(), resources);
         } else {
-            modifiedEntry = newPolicyEntry(lbl, policyEntry.getSubjects(), resources);
+            modifiedEntry = newPolicyEntry(lbl, policyEntry.getSubjects(), resources,
+                    policyEntry.getImportableType());
         }
         entriesCopy.put(lbl, modifiedEntry);
 
-        return new ImmutablePolicy(policyId, entriesCopy, lifecycle, revision, modified, created, metadata);
+        return new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created, metadata);
     }
 
     @Override
@@ -369,11 +407,12 @@ final class ImmutablePolicy implements Policy {
         } else {
             final PolicyEntry policyEntry = entriesCopy.get(lbl);
             final Resources modifiedResources = policyEntry.getResources().setResource(resource);
-            modifiedEntry = newPolicyEntry(label, policyEntry.getSubjects(), modifiedResources);
+            modifiedEntry = newPolicyEntry(label, policyEntry.getSubjects(), modifiedResources,
+                    policyEntry.getImportableType());
         }
 
         entriesCopy.put(lbl, modifiedEntry);
-        return new ImmutablePolicy(policyId, entriesCopy, lifecycle, revision, modified, created, metadata);
+        return new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created, metadata);
     }
 
     @Override
@@ -389,11 +428,32 @@ final class ImmutablePolicy implements Policy {
             if (!Objects.equals(existingResources, newResources)) {
                 final Map<Label, PolicyEntry> entriesCopy = copyEntries();
                 entriesCopy.put(lbl, newPolicyEntry(lbl, existingEntry.getSubjects(), newResources));
-                result = new ImmutablePolicy(policyId, entriesCopy, lifecycle, revision, modified, created, metadata);
+                result = new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created,
+                        metadata);
             }
         }
 
         return result;
+    }
+
+    @Override
+    public Policy setImportableFor(final CharSequence label, final ImportableType importableType) {
+        final Label lbl = Label.of(label);
+
+        final Map<Label, PolicyEntry> entriesCopy = copyEntries();
+        final PolicyEntry modifiedEntry;
+
+        if (!entriesCopy.containsKey(lbl)) {
+            modifiedEntry =
+                    newPolicyEntry(label, PoliciesModelFactory.emptySubjects(), emptyResources(), importableType);
+        } else {
+            final PolicyEntry policyEntry = entriesCopy.get(lbl);
+            modifiedEntry = newPolicyEntry(label, policyEntry.getSubjects(),
+                    policyEntry.getResources(), importableType);
+        }
+
+        entriesCopy.put(lbl, modifiedEntry);
+        return new ImmutablePolicy(policyId, imports, entriesCopy, lifecycle, revision, modified, created, metadata);
     }
 
     @Override
@@ -428,6 +488,11 @@ final class ImmutablePolicy implements Policy {
     }
 
     @Override
+    public PolicyImports getPolicyImports() {
+        return imports;
+    }
+
+    @Override
     public Set<PolicyEntry> getEntriesSet() {
         return stream().collect(Collectors.toCollection(LinkedHashSet::new));
     }
@@ -450,11 +515,11 @@ final class ImmutablePolicy implements Policy {
                 .collect(Collectors.toCollection(LinkedHashSet::new))
                 .iterator();
         boolean semanticallyTheSame = true;
-        while(others.hasNext() && owns.hasNext()) {
+        while (others.hasNext() && owns.hasNext()) {
             semanticallyTheSame &= others.next().isSemanticallySameAs(owns.next());
         }
         semanticallyTheSame &= !others.hasNext() && !owns.hasNext();
-        return semanticallyTheSame;
+        return semanticallyTheSame && getPolicyImports().equals(otherPolicy.getPolicyImports());
     }
 
     @Override
@@ -486,6 +551,9 @@ final class ImmutablePolicy implements Policy {
         if (null != policyId) {
             jsonObjectBuilder.set(JsonFields.NAMESPACE, namespace, predicate);
             jsonObjectBuilder.set(JsonFields.ID, String.valueOf(policyId), predicate);
+        }
+        if (null != imports) {
+            jsonObjectBuilder.set(JsonFields.IMPORTS, imports.toJson(schemaVersion, thePredicate), predicate);
         }
         jsonObjectBuilder.set(JsonFields.ENTRIES, stream()
                 .map(policyEntry -> JsonFactory.newObjectBuilder()
@@ -521,12 +589,13 @@ final class ImmutablePolicy implements Policy {
                 Objects.equals(modified, that.modified) &&
                 Objects.equals(created, that.created) &&
                 Objects.equals(metadata, that.metadata) &&
+                Objects.equals(imports, that.imports) &&
                 Objects.equals(entries, that.entries);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(policyId, namespace, lifecycle, revision, modified, created, metadata, entries);
+        return Objects.hash(policyId, namespace, lifecycle, revision, modified, created, metadata, imports, entries);
     }
 
     @Override
@@ -539,6 +608,7 @@ final class ImmutablePolicy implements Policy {
                 ", modified=" + modified +
                 ", created=" + created +
                 ", metadata=" + metadata +
+                ", imports=" + imports +
                 ", entries=" + entries +
                 "]";
     }

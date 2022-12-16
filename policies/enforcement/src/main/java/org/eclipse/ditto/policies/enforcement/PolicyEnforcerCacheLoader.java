@@ -12,20 +12,19 @@
  */
 package org.eclipse.ditto.policies.enforcement;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.function.Function;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
-import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
-
-import akka.actor.ActorRef;
-import akka.actor.Scheduler;
 
 /**
  * Loads a policy-enforcer by asking the policies shard-region-proxy.
@@ -40,30 +39,32 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<PolicyI
     /**
      * Constructor.
      *
-     * @param askWithRetryConfig the configuration for the "ask with retry" pattern applied for the cache loader.
-     * @param scheduler the scheduler to use for the "ask with retry" for retries.
-     * @param policiesShardRegionProxy the shard-region-proxy.
+     * @param policyCacheLoader used to load the policies which should be transformed to a {@link PolicyEnforcer}.
      */
-    public PolicyEnforcerCacheLoader(final AskWithRetryConfig askWithRetryConfig,
-            final Scheduler scheduler,
-            final ActorRef policiesShardRegionProxy) {
+    public PolicyEnforcerCacheLoader(final PolicyCacheLoader policyCacheLoader) {
 
-        delegate = new PolicyCacheLoader(askWithRetryConfig, scheduler, policiesShardRegionProxy);
+        delegate = policyCacheLoader;
     }
 
     @Override
-    public CompletableFuture<Entry<PolicyEnforcer>> asyncLoad(final PolicyId policyId,
-            final Executor executor) {
-        return delegate.asyncLoad(policyId, executor).thenApply(PolicyEnforcerCacheLoader::evaluatePolicy);
+    public CompletableFuture<Entry<PolicyEnforcer>> asyncLoad(final PolicyId policyId, final Executor executor) {
+
+        final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver =
+                policyIdToResolve -> delegate.asyncLoad(policyIdToResolve, executor).thenApply(Entry::get);
+
+        return delegate.asyncLoad(policyId, executor)
+                .thenCompose(policyEntry -> evaluatePolicy(policyEntry, policyResolver));
     }
 
-    private static Entry<PolicyEnforcer> evaluatePolicy(final Entry<Policy> entry) {
+    private CompletionStage<Entry<PolicyEnforcer>> evaluatePolicy(final Entry<Policy> entry,
+            final Function<PolicyId, CompletionStage<Optional<Policy>>> policyResolver) {
         if (entry.exists()) {
             final var revision = entry.getRevision();
             final var policy = entry.getValueOrThrow();
-            return Entry.of(revision, PolicyEnforcer.of(policy));
+            return PolicyEnforcer.withResolvedImports(policy, policyResolver)
+                    .thenApply(enforcer -> Entry.of(revision, enforcer));
         } else {
-            return Entry.nonexistent();
+            return CompletableFuture.completedStage(Entry.nonexistent());
         }
     }
 

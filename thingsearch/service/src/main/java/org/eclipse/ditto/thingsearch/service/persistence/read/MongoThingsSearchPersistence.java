@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -32,9 +33,11 @@ import org.bson.conversions.Bson;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.internal.models.streaming.LowerBound;
 import org.eclipse.ditto.internal.utils.persistence.mongo.BsonUtil;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.rql.query.SortOption;
@@ -381,7 +384,18 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
                 document.getEmbedded(List.of(PersistenceConstants.FIELD_THING, PersistenceConstants.FIELD_MODIFIED),
                         String.class);
         final Instant modified = Optional.ofNullable(nullableTimestamp).map(Instant::parse).orElse(null);
-        return Metadata.of(thingId, thingRevision, policyId, policyRevision, modified, null);
+        final PolicyTag thingPolicyTag =
+                Optional.ofNullable(policyId).map(id -> PolicyTag.of(id, policyRevision)).orElse(null);
+        final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
+        final Set<PolicyTag> referencedPolicies =
+                Optional.ofNullable(document.getList(PersistenceConstants.FIELD_REFERENCED_POLICIES, Document.class))
+                        .orElseGet(List::of)
+                        .stream()
+                        .map(Bson::toBsonDocument)
+                        .map(dittoBsonJson::serialize)
+                        .map(PolicyTag::fromJson)
+                        .collect(Collectors.toSet());
+        return Metadata.of(thingId, thingRevision, thingPolicyTag, referencedPolicies, modified, null);
     }
 
     private static AbstractWriteModel documentToWriteModel(final Document document) {

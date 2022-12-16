@@ -38,6 +38,7 @@ import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
 import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyImportsValidator;
 
 /**
  * This command modifies a {@link org.eclipse.ditto.policies.model.Policy}.
@@ -68,6 +69,8 @@ public final class ModifyPolicy extends AbstractCommand<ModifyPolicy> implements
         this.policy = policy;
 
         final JsonObject policyJsonObject = policy.toJson();
+
+        PolicyImportsValidator.validatePolicyImports(policyId, policy.getPolicyImports());
 
         PolicyCommandSizeValidator.getInstance().ensureValidSize(
                 policyJsonObject::getUpperBoundForStringSize,

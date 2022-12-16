@@ -1,0 +1,24 @@
+# Copyright (c) 2022 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: string
+description: |-
+  Controls the import behavior of this policy entry i.e. whether this policy entry is implicitly, 
+  explicitly or never imported when referenced from another policy.
+  * `implicit` (default): the policy entry is imported without being listed in the importing policy individually
+  * `explicit`: the policy entry is only imported if it is listed in the importing policy
+  * `never`: the policy entry is not imported, regardless of being listed in the importing policy
+  If the field is not specified, default value is `implicit`.
+enum:
+  - implicit
+  - explicit
+  - never
+default: implicit
+example: explicit

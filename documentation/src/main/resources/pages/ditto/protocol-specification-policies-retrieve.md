@@ -174,3 +174,49 @@ Retrieve a resource identified by the `<namespace>/<policyName>` pair in the `to
 |            | `200`  | Success. |
 
 **Example:** [Retrieve a single resource](protocol-examples-policies-retrieveresource.html)
+
+## Retrieve Policy imports
+
+Retrieve all policy imports of the policy identified by the `<namespace>/<policyName>` pair in the `topic` field.
+
+### Command
+
+| Field     | Value                                                 |
+|-----------|-------------------------------------------------------|
+| **topic** | `<namespace>/<policyName>/policies/commands/retrieve` |
+| **path**  | `/imports`                                            |
+
+### Response
+
+| Field      |        | Value                                                                                                                                            |
+|------------|--------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| **topic**  |        | `<namespace>/<policyName>/policies/commands/retrieve`                                                                                            |
+| **path**   |        | `/imports`                                                                                                                                       |
+| **value**  |        | The policy imports of the Policy as JSON object, see [Policy representation (JSON)](protocol-specification-policies.html#policy-representation). |
+| **status** | _code_ |
+|            | `200`  | Success.                                                                                                                                         |
+
+**Example:** [Retrieve all policy imports](protocol-examples-policies-retrieveimports.html)
+
+## Retrieve a single Policy import
+
+Retrieve a policy import identified by the `<namespace>/<policyName>` pair in the `topic` field and the `<importedPolicyId>` in the `path`field.
+
+### Command
+
+| Field     | Value                                                 |
+|-----------|-------------------------------------------------------|
+| **topic** | `<namespace>/<policyName>/policies/commands/retrieve` |
+| **path**  | `/imports/<importedPolicyId>`                         |
+
+### Response
+
+| Field      |        | Value                                                                                                                                           |
+|------------|--------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| **topic**  |        | `<namespace>/<policyName>/policies/commands/retrieve`                                                                                           |
+| **path**   |        | `/imports/<importedPolicyId>`                                                                                                                   |
+| **value**  |        | The policy import of the policy as JSON object, see [Policy representation (JSON)](protocol-specification-policies.html#policy-representation). |
+| **status** | _code_ |
+|            | `200`  | Success.                                                                                                                                        |
+
+**Example:** [Retrieve a single policy import](protocol-examples-policies-retrieveimport.html)

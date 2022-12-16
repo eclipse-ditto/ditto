@@ -25,11 +25,15 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.policies.model.EffectedImports;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
+import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImport;
+import org.eclipse.ditto.policies.model.PolicyImports;
 import org.eclipse.ditto.policies.model.PolicyRevision;
 import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.policies.model.ResourceKey;
@@ -94,24 +98,6 @@ public final class TestConstants {
      */
     public static final JsonParseOptions JSON_PARSE_OPTIONS =
             JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build();
-
-    /**
-     * A known JSON field selector.
-     */
-    public static final JsonFieldSelector JSON_FIELD_SELECTOR_ATTRIBUTES =
-            JsonFactory.newFieldSelector("attributes(location,maker)", JSON_PARSE_OPTIONS);
-
-    /**
-     * A known JSON field selector.
-     */
-    public static final JsonFieldSelector JSON_FIELD_SELECTOR_ATTRIBUTES_WITH_THING_ID =
-            JsonFactory.newFieldSelector("thingId,attributes(location,maker)", JSON_PARSE_OPTIONS);
-
-    /**
-     * A known JSON field selector.
-     */
-    public static final JsonFieldSelector JSON_FIELD_SELECTOR_FEATURE_PROPERTIES =
-            JsonFactory.newFieldSelector("properties/target_year_1", JSON_PARSE_OPTIONS);
 
     private TestConstants() {
         throw new AssertionError();
@@ -179,15 +165,15 @@ public final class TestConstants {
         /**
          * A known {@code PolicyEntry} for a {@code Policy}.
          */
-        public static final PolicyEntry POLICY_ENTRY = PoliciesModelFactory.newPolicyEntry(LABEL, SUBJECTS, RESOURCES);
+        public static final PolicyEntry POLICY_ENTRY = PoliciesModelFactory.newPolicyEntry(LABEL, SUBJECTS, RESOURCES, ImportableType.NEVER);
 
         /**
          * known {@code PolicyEntry}s for a {@code Policy}.
          */
         public static final Iterable<PolicyEntry> POLICY_ENTRIES =
-                new HashSet<>(Arrays.asList(PoliciesModelFactory.newPolicyEntry(LABEL, SUBJECTS, RESOURCES),
-                        PoliciesModelFactory.newPolicyEntry(Label.of("foo"), SUBJECTS, RESOURCES),
-                        PoliciesModelFactory.newPolicyEntry(Label.of("bar"), SUBJECTS, RESOURCES)));
+                new HashSet<>(Arrays.asList(PoliciesModelFactory.newPolicyEntry(LABEL, SUBJECTS, RESOURCES, ImportableType.NEVER),
+                        PoliciesModelFactory.newPolicyEntry(Label.of("foo"), SUBJECTS, RESOURCES, ImportableType.NEVER),
+                        PoliciesModelFactory.newPolicyEntry(Label.of("bar"), SUBJECTS, RESOURCES, ImportableType.NEVER)));
 
         /**
          * A known identifier for a {@code Policy}.
@@ -332,6 +318,37 @@ public final class TestConstants {
          */
         public static final SubjectNotModifiableException SUBJECT_NOT_MODIFIABLE_EXCEPTION =
                 SubjectNotModifiableException.newBuilder(POLICY_ID, LABEL.toString(), SUBJECT_ID.toString()).build();
+
+        /**
+         * A known identifier for a {@code Policy}.
+         */
+        public static final PolicyId IMPORTED_POLICY_ID = PolicyId.of("org.eclipse.ditto.example", "mySupportPolicy");
+
+        /**
+         * A known {@code PolicyImport} for a {@code Policy}.
+         */
+        public static final PolicyImport
+                POLICY_IMPORT = PolicyImport.newInstance(IMPORTED_POLICY_ID, EffectedImports.newInstance(null));
+
+        /**
+         * A known {@code PolicyImports} for a {@code Policy}.
+         */
+
+        public static final PolicyImports POLICY_IMPORTS = PolicyImports.newInstance(POLICY_IMPORT);
+
+        /**
+         * A {@code PolicyImports} instance with the given imported policy.
+         */
+        public static PolicyImports getPolicyImports(final PolicyId importedPolicyId) {
+            return PolicyImports.newInstance(getPolicyImport(importedPolicyId));
+        };
+
+        /**
+         * A {@code PolicyImport} instance with the given imported policy.
+         */
+        public static PolicyImport getPolicyImport(final PolicyId importedPolicyId) {
+            return PolicyImport.newInstance(importedPolicyId, EffectedImports.newInstance(null));
+        };
 
         private Policy() {
             throw new AssertionError();

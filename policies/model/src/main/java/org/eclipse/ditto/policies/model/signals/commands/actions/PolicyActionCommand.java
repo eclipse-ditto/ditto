@@ -33,7 +33,7 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyAction
 public interface PolicyActionCommand<T extends PolicyActionCommand<T>> extends PolicyCommand<T>, WithOptionalEntity {
 
     /**
-     * Path of Policy actions as part of the the {@link #getResourcePath()}.
+     * Path of Policy actions as part of the {@link #getResourcePath()}.
      */
     JsonPointer RESOURCE_PATH_ACTIONS = JsonPointer.of("actions");
 

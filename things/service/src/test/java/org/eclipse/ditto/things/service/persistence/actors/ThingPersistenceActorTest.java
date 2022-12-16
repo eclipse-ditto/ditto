@@ -189,6 +189,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 .build();
         final CreatePolicyResponse createPolicyResponse = CreatePolicyResponse.of(POLICY_ID, inlinePolicy,
                 DittoHeaders.empty());
+        when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
+                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(inlinePolicy))));
 
         new TestKit(actorSystem) {
             {

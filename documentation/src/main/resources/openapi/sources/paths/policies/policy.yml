@@ -122,6 +122,11 @@ put:
             }
           }
         }
+      },
+      "imports": {
+        "com.acme:importedPolicy" : {
+          "entries": [ "IMPORTED" ]
+        }
       }
     }
     ```
@@ -200,7 +205,7 @@ put:
             $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
-        The request could not be completed. The policy with the given ID was
+        The request could not be completed. The policy with the given ID or policy referenced in a policy import was
         not found in the context of the authenticated user.
       content:
         application/json:
@@ -303,7 +308,7 @@ delete:
             $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
-        The request could not be completed. The policy with the given ID was
+        The request could not be completed. The policy with the given ID or policy referenced in a policy import was
         not found in the context of the authenticated user.
       content:
         application/json:

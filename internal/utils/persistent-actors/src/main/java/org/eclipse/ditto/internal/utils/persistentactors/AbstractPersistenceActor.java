@@ -194,7 +194,7 @@ public abstract class AbstractPersistenceActor<
      * Publish an event.
      *
      * @param previousEntity the previous state of the entity before the event was applied.
-     * @param event the event which was applied.
+     * @param event          the event which was applied.
      */
     protected abstract void publishEvent(@Nullable S previousEntity, E event);
 
@@ -340,7 +340,7 @@ public abstract class AbstractPersistenceActor<
     /**
      * Persist an event, modify actor state by the event strategy, then invoke the handler.
      *
-     * @param event the event to persist and apply.
+     * @param event   the event to persist and apply.
      * @param handler what happens afterwards.
      */
     protected void persistAndApplyEvent(final E event, final BiConsumer<E, S> handler) {
@@ -482,19 +482,20 @@ public abstract class AbstractPersistenceActor<
         Result<E> result;
         try {
             result = strategy.apply(getStrategyContext(), entity, getNextRevisionNumber(), (T) tracedCommand);
+            result.accept(this);
         } catch (final DittoRuntimeException e) {
             startedSpan.tagAsFailed(e);
             result = ResultFactory.newErrorResult(e, tracedCommand);
+            result.accept(this);
         } finally {
             startedSpan.finish();
         }
-        result.accept(this);
         reportSudoCommandDone(command);
     }
 
     @Override
     public void onMutation(final Command<?> command, final E event, final WithDittoHeaders response,
-            final boolean becomeCreated, final boolean becomeDeleted) {
+                           final boolean becomeCreated, final boolean becomeDeleted) {
 
         persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
             if (shouldSendResponse(command.getDittoHeaders())) {
@@ -526,7 +527,7 @@ public abstract class AbstractPersistenceActor<
     /**
      * Send a reply and increment access counter.
      *
-     * @param sender recipient of the message.
+     * @param sender  recipient of the message.
      * @param message the message.
      */
     protected void notifySender(final ActorRef sender, final WithDittoHeaders message) {

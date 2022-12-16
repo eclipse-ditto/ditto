@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
@@ -26,6 +27,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.model.Policy;
@@ -102,7 +104,8 @@ public final class EnforcementFlowTest {
             final long policyRev2 = 98L;
             final ThingId thingId = ThingId.of("thing:id");
             final PolicyId policyId = PolicyId.of("policy:id");
-            final Metadata metadata = Metadata.of(thingId, thingRev1, policyId, policyRev1, null);
+            final Metadata metadata =
+                    Metadata.of(thingId, thingRev1, PolicyTag.of(policyId, policyRev1), Set.of(), null);
             final Collection<Metadata> input = List.of(metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
@@ -154,7 +157,7 @@ public final class EnforcementFlowTest {
         final long policyRev2 = 98L;
         final ThingId thingId = ThingId.of("thing:id");
         final PolicyId policyId = PolicyId.of("policy:id");
-        final Metadata metadata1 = Metadata.of(thingId, thingRev1, policyId, policyRev1, null);
+        final Metadata metadata1 = Metadata.of(thingId, thingRev1, PolicyTag.of(policyId, policyRev1), Set.of(), null);
 
         final TestProbe thingsProbe = TestProbe.apply(system);
         final TestProbe policiesProbe = TestProbe.apply(system);
@@ -229,7 +232,8 @@ public final class EnforcementFlowTest {
                     AttributeDeleted.of(thingId, JsonPointer.of("w"), 6, null, headers, null)
             );
 
-            final Metadata metadata = Metadata.of(thingId, 5L, policyId, 1L, events, null, null);
+            final Metadata metadata =
+                    Metadata.of(thingId, 5L, PolicyTag.of(policyId, 1L), Set.of(), events, null, null);
             final List<Metadata> inputMap = List.of(metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
@@ -294,7 +298,8 @@ public final class EnforcementFlowTest {
                     AttributeDeleted.of(thingId, JsonPointer.of("w"), 6, deletedTime.minusSeconds(2), headers, null)
             );
 
-            final Metadata metadata = Metadata.of(thingId, 5L, policyId, 1L, events, null, null);
+            final Metadata metadata =
+                    Metadata.of(thingId, 5L, PolicyTag.of(policyId, 1L), Set.of(), events, null, null);
             final List<Metadata> inputMap = List.of(metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
@@ -346,7 +351,7 @@ public final class EnforcementFlowTest {
                     AttributeDeleted.of(thingId, JsonPointer.of("w"), 6, null, headers, null)
             );
 
-            final Metadata metadata = Metadata.of(thingId, 6L, policyId, 1L, events, null, null)
+            final Metadata metadata = Metadata.of(thingId, 6L, PolicyTag.of(policyId, 1L), Set.of(), events, null, null)
                     .invalidateCaches(true, true);
             final List<Metadata> inputMap = List.of(metadata);
 
@@ -392,7 +397,8 @@ public final class EnforcementFlowTest {
                     AttributeDeleted.of(thingId, JsonPointer.of("w"), 6, null, headers, null)
             );
 
-            final Metadata metadata = Metadata.of(thingId, 7L, policyId, 1L, events, null, null);
+            final Metadata metadata =
+                    Metadata.of(thingId, 7L, PolicyTag.of(policyId, 1L), Set.of(), events, null, null);
             final List<Metadata> inputMap = List.of(metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
@@ -436,7 +442,8 @@ public final class EnforcementFlowTest {
                     AttributeDeleted.of(thingId, JsonPointer.of("w"), 6, null, headers, null)
             );
 
-            final Metadata metadata = Metadata.of(thingId, 6L, policyId, 1L, events, null, null);
+            final Metadata metadata =
+                    Metadata.of(thingId, 6L, PolicyTag.of(policyId, 1L), Set.of(), events, null, null);
             final List<Metadata> inputMap = List.of(metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
@@ -479,7 +486,8 @@ public final class EnforcementFlowTest {
                     AttributeDeleted.of(thingId, JsonPointer.of("w"), 6, null, headers, null)
             );
 
-            final Metadata metadata = Metadata.of(thingId, 6L, policyId, 1L, events, null, null);
+            final Metadata metadata =
+                    Metadata.of(thingId, 6L, PolicyTag.of(policyId, 1L), Set.of(), events, null, null);
             final List<Metadata> inputMap = List.of(metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
@@ -546,7 +554,8 @@ public final class EnforcementFlowTest {
                     AttributeDeleted.of(thingId, JsonPointer.of("w"), 6, null, headers, null)
             );
 
-            final Metadata metadata = Metadata.of(thingId, 6L, policyId, 1L, events, null, null);
+            final Metadata metadata =
+                    Metadata.of(thingId, 6L, PolicyTag.of(policyId, 1L), Set.of(), events, null, null);
             final List<Metadata> inputMap = List.of(metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
@@ -603,7 +612,7 @@ public final class EnforcementFlowTest {
                 final ThingId thingId = ThingId.of("thing:" + i);
                 final Thing ithThing = thing.toBuilder().setId(thingId).setRevision(i).build();
                 final List<ThingEvent<?>> events = List.of(ThingModified.of(ithThing, i, null, headers, null));
-                return Metadata.of(thingId, i, policyId, 1L, events, null, null);
+                return Metadata.of(thingId, i, PolicyTag.of(policyId, 1L), Set.of(), events, null, null);
             }).toList());
 
             final TestProbe thingsProbe = TestProbe.apply(system);

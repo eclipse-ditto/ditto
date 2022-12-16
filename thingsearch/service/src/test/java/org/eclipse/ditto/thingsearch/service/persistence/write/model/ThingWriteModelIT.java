@@ -16,6 +16,7 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.model;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
+import java.util.Set;
 
 import org.bson.BsonDocument;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
@@ -110,7 +111,7 @@ public final class ThingWriteModelIT extends AbstractThingSearchPersistenceITBas
     }
 
     private static ThingWriteModel getWriteModel(final long sn, final int counterValue) {
-        final Metadata metadata = Metadata.of(ThingId.of("thing:id"), sn, null, null, null);
+        final Metadata metadata = Metadata.of(ThingId.of("thing:id"), sn, null, Set.of(), null);
         final BsonDocument thingDocument = new BsonDocument()
                 .append("_revision", BsonNumber.apply(sn))
                 .append("counter", BsonNumber.apply(counterValue));

@@ -16,20 +16,23 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashSet;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonParseOptions;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonParseOptions;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.policies.model.EffectedImports;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImport;
+import org.eclipse.ditto.policies.model.PolicyImports;
 import org.eclipse.ditto.policies.model.PolicyRevision;
 import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.policies.model.ResourceKey;
@@ -83,23 +86,6 @@ final class TestConstants {
     public static final JsonParseOptions JSON_PARSE_OPTIONS =
             JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build();
 
-    /**
-     * A known JSON field selector.
-     */
-    public static final JsonFieldSelector JSON_FIELD_SELECTOR_ATTRIBUTES =
-            JsonFactory.newFieldSelector("attributes(location,maker)", JSON_PARSE_OPTIONS);
-
-    /**
-     * A known JSON field selector.
-     */
-    public static final JsonFieldSelector JSON_FIELD_SELECTOR_ATTRIBUTES_WITH_THING_ID =
-            JsonFactory.newFieldSelector("thingId,attributes(location,maker)", JSON_PARSE_OPTIONS);
-
-    /**
-     * A known JSON field selector.
-     */
-    public static final JsonFieldSelector JSON_FIELD_SELECTOR_FEATURE_PROPERTIES =
-            JsonFactory.newFieldSelector("properties/target_year_1", JSON_PARSE_OPTIONS);
 
     private TestConstants() {
         throw new AssertionError();
@@ -182,6 +168,22 @@ final class TestConstants {
          * A known identifier for a {@code Policy}.
          */
         public static final PolicyId POLICY_ID = PolicyId.of("org.eclipse.ditto.example", "myPolicy");
+
+        /**
+         * A known identifier for a {@code Policy}.
+         */
+        public static final PolicyId IMPORTED_POLICY_ID = PolicyId.of("org.eclipse.ditto.example", "mySupportPolicy");
+
+        /**
+         * A known {@code PolicyImport} for a {@code Policy}.
+         */
+        public static final PolicyImport
+                POLICY_IMPORT = PolicyImport.newInstance(IMPORTED_POLICY_ID, EffectedImports.newInstance(null));
+
+        /**
+         * A known {@code PolicyImports} for a {@code Policy}.
+         */
+        public static final PolicyImports POLICY_IMPORTS = PolicyImports.newInstance(POLICY_IMPORT);
 
         /**
          * A known revision number of a Policy.

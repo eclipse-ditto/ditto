@@ -21,8 +21,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.cache.Cache;
-import org.eclipse.ditto.internal.utils.cache.CacheFactory;
+import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
@@ -56,28 +55,24 @@ final class CachingPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider
     private final ActorRef cachingPolicyEnforcerProviderActor;
 
     CachingPolicyEnforcerProvider(final ActorSystem actorSystem) {
-        this(actorSystem, policyEnforcerCacheLoader(actorSystem), enforcementCacheDispatcher(actorSystem));
+        this(actorSystem, policyEnforcerCacheLoader(actorSystem), enforcementCacheDispatcher(actorSystem),
+                DefaultCacheConfig.of(actorSystem.settings().config(),
+                        PolicyEnforcerProvider.ENFORCER_CACHE_CONFIG_KEY));
     }
 
     private CachingPolicyEnforcerProvider(final ActorSystem actorSystem,
             final AsyncCacheLoader<PolicyId, Entry<PolicyEnforcer>> policyEnforcerCacheLoader,
-            final MessageDispatcher cacheDispatcher) {
+            final MessageDispatcher cacheDispatcher,
+            final CacheConfig cacheConfig) {
 
-        this(actorSystem,
-                CacheFactory.createCache(
-                        policyEnforcerCacheLoader,
-                        DefaultCacheConfig.of(actorSystem.settings().config(),
-                                PolicyEnforcerProvider.ENFORCER_CACHE_CONFIG_KEY),
-                        "policy_enforcer_cache",
-                        cacheDispatcher
-                ),
+        this(actorSystem, new PolicyEnforcerCache(policyEnforcerCacheLoader, cacheDispatcher, cacheConfig),
                 BlockedNamespaces.of(actorSystem),
                 DistributedPubSub.get(actorSystem).mediator()
         );
     }
 
     CachingPolicyEnforcerProvider(final ActorSystem actorSystem,
-            final Cache<PolicyId, Entry<PolicyEnforcer>> policyEnforcerCache,
+            final PolicyEnforcerCache policyEnforcerCache,
             final BlockedNamespaces blockedNamespaces,
             final ActorRef pubSubMediator) {
 
@@ -119,9 +114,9 @@ final class CachingPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider
     private static final class CachingPolicyEnforcerProviderActor extends AbstractActor {
 
         private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-        private final Cache<PolicyId, Entry<PolicyEnforcer>> policyEnforcerCache;
+        private final PolicyEnforcerCache policyEnforcerCache;
 
-        CachingPolicyEnforcerProviderActor(final Cache<PolicyId, Entry<PolicyEnforcer>> policyEnforcerCache,
+        CachingPolicyEnforcerProviderActor(final PolicyEnforcerCache policyEnforcerCache,
                 @Nullable final BlockedNamespaces blockedNamespaces,
                 final ActorRef pubSubMediator) {
 
@@ -136,7 +131,7 @@ final class CachingPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider
                     getSelf());
         }
 
-        private static Props props(final Cache<PolicyId, Entry<PolicyEnforcer>> policyEnforcerCache,
+        private static Props props(final PolicyEnforcerCache policyEnforcerCache,
                 @Nullable final BlockedNamespaces blockedNamespaces,
                 final ActorRef pubSubMediator) {
 

@@ -178,7 +178,7 @@ public abstract class DittoRuntimeExceptionBuilder<T extends DittoRuntimeExcepti
 
     /**
      * This method must be implemented by subclasses. It is responsible for actually building the exception object.
-     * Therefore it receives the data which was provided during the building process.
+     * Therefore, it receives the data which was provided during the building process.
      *
      * @param dittoHeaders the command headers with which this Exception should be reported back to the user.
      * @param message the detail message or {@code null}.

@@ -32,6 +32,7 @@ import org.eclipse.ditto.internal.utils.persistence.operations.EntityPersistence
 import org.eclipse.ditto.internal.utils.persistence.operations.NamespacePersistenceOperations;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyConstants;
@@ -219,6 +220,7 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
     @Override
     protected ActorRef startActorUnderTest(final ActorSystem actorSystem, final ActorRef pubSubMediator,
             final Config config) {
+
         final Props opsActorProps = PolicyPersistenceOperationsActor.props(pubSubMediator, mongoDbConfig, config,
                 persistenceOperationsConfig);
 
@@ -233,7 +235,9 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
 
     @Override
     protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final PolicyId id) {
-        final Props props = PolicySupervisorActor.props(pubSubMediator, Mockito.mock(DistributedPub.class), null);
+        final Props props =
+                PolicySupervisorActor.props(pubSubMediator, Mockito.mock(DistributedPub.class), null, Mockito.mock(
+                        PolicyEnforcerProvider.class));
 
         return system.actorOf(props, id.toString());
     }

@@ -27,6 +27,8 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntries;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntry;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImport;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResources;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
@@ -112,6 +114,15 @@ public final class PolicyCommandToModifyExceptionRegistry
         mappingStrategies.put(ModifySubjects.TYPE,
                 command -> SubjectsNotModifiableException.newBuilder(command.getEntityId(),
                         ((ModifySubjects) command).getLabel())
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
+        mappingStrategies.put(ModifyPolicyImports.TYPE,
+                command -> PolicyImportsNotModifiableException.newBuilder(command.getEntityId())
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
+        mappingStrategies.put(ModifyPolicyImport.TYPE,
+                command -> PolicyImportNotModifiableException.newBuilder(command.getEntityId(),
+                        ((ModifyPolicyImport) command).getPolicyImport().getImportedPolicyId())
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
 

@@ -19,8 +19,8 @@ import java.time.Instant;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.json.JsonPointer;
 
 /**
  * A mutable builder for a {@link Policy} with a fluent API.
@@ -439,6 +439,19 @@ public interface PolicyBuilder {
         }
 
         /**
+         * Set the importable flag on this builder.
+         *
+         * @param importableType the importable type.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if any argument is {@code null}.
+         * @since 3.1.0
+         */
+        default LabelScoped setImportable(final ImportableType importableType) {
+            setImportableFor(getLabel(), importableType);
+            return this;
+        }
+
+        /**
          * Exits the currently provided {@link Label} to the {@link PolicyBuilder} level again where a new
          * {@link #forLabel(Label)} can be done.
          *
@@ -524,6 +537,25 @@ public interface PolicyBuilder {
      * @since 2.0.0
      */
     PolicyBuilder setMetadata(@Nullable Metadata metadata);
+
+    /**
+     * Sets the PolicyImport to this builder.
+     *
+     * @param policyImport the PolicyImport to be set.
+     * @return this builder to allow method chaining.
+     * @since 3.1.0
+     */
+    PolicyBuilder setPolicyImport(PolicyImport policyImport);
+
+
+    /**
+     * Sets the PolicyImports to this builder.
+     *
+     * @param imports the PolicyImports to be set.
+     * @return this builder to allow method chaining.
+     * @since 3.1.0
+     */
+    PolicyBuilder setPolicyImports(PolicyImports imports);
 
     /**
      * Sets the given entry to this builder. A previous entry with the same {@link Label} as the one of the
@@ -890,6 +922,18 @@ public interface PolicyBuilder {
         return setRevokedPermissionsFor(label, resourceKey,
                 Permissions.newInstance(revokedPermission, furtherRevokedPermissions));
     }
+
+    /**
+     * Sets the importable flag for the entry specified by {@code label} to this builder.
+     *
+     * @param label the label identifying the PolicyEntry to modify.
+     * @param importableType whether/how the entry is importable by others.
+     * @return this builder to allow method chaining.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code label} is empty.
+     * @since 3.1.0
+     */
+    PolicyBuilder setImportableFor(CharSequence label, ImportableType importableType);
 
     /**
      * Returns a new immutable {@link Policy} which contains all the entries which were set to this builder beforehand.

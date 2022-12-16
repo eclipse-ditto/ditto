@@ -17,6 +17,7 @@ import static org.eclipse.ditto.things.service.enforcement.TestSetup.THING_ID;
 
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -38,8 +39,10 @@ import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigFactory;
 
+import akka.actor.ActorIdentity;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.Identify;
 import akka.testkit.TestActorRef;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -68,6 +71,12 @@ abstract class AbstractThingEnforcementTest {
         thingPersistenceActorProbe = createThingPersistenceActorProbe();
         policiesShardRegionProbe = getTestProbe(createUniqueName("policiesShardRegionProbe-"));
         supervisor = createThingPersistenceSupervisor();
+
+        new TestKit(system) {{
+            // wait for supervisor actor to be ready
+            supervisor.tell(new Identify(getClass().getName()), getRef());
+            expectMsgClass(Duration.ofSeconds(15), ActorIdentity.class);
+        }};
     }
 
     @After

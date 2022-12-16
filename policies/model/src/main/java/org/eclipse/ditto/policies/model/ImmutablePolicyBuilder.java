@@ -13,19 +13,21 @@
 package org.eclipse.ditto.policies.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.policies.model.PoliciesModelFactory.DITTO_LIMITS_POLICY_IMPORTS_LIMIT;
 
 import java.time.Instant;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImportsTooLargeException;
 
 /**
  * A mutable builder for a {@link ImmutablePolicy} with a fluent API.
@@ -36,6 +38,8 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     private final Map<Label, Map<SubjectId, Subject>> subjects;
     private final Map<Label, Map<ResourceKey, Permissions>> grantedPermissions;
     private final Map<Label, Map<ResourceKey, Permissions>> revokedPermissions;
+    private final Map<Label, ImportableType> importableTypes;
+    private PolicyImports policyImports;
     @Nullable private PolicyId id;
     @Nullable private PolicyLifecycle lifecycle;
     @Nullable private PolicyRevision revision;
@@ -47,6 +51,8 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         subjects = new LinkedHashMap<>();
         grantedPermissions = new LinkedHashMap<>();
         revokedPermissions = new LinkedHashMap<>();
+        importableTypes = new LinkedHashMap<>();
+        policyImports = PolicyImports.emptyInstance();
         id = null;
         lifecycle = null;
         revision = null;
@@ -112,7 +118,8 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         final ImmutablePolicyBuilder result = new ImmutablePolicyBuilder()
                 .setLifecycle(existingPolicy.getLifecycle().orElse(null))
                 .setRevision(existingPolicy.getRevision().orElse(null))
-                .setModified(existingPolicy.getModified().orElse(null));
+                .setModified(existingPolicy.getModified().orElse(null))
+                .setPolicyImports(existingPolicy.getPolicyImports());
 
         existingPolicy.getEntityId().ifPresent(result::setId);
         existingPolicy.forEach(result::set);
@@ -150,6 +157,24 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     }
 
     @Override
+    public ImmutablePolicyBuilder setPolicyImport(final PolicyImport policyImport) {
+        checkNotNull(policyImport, "policyImport");
+        this.policyImports = this.policyImports.setPolicyImport(policyImport);
+        return this;
+    }
+
+    @Override
+    public ImmutablePolicyBuilder setPolicyImports(final PolicyImports policyImports) {
+        checkNotNull(policyImports, "policyImports");
+
+        if (policyImports.getSize() > DITTO_LIMITS_POLICY_IMPORTS_LIMIT) {
+            throw PolicyImportsTooLargeException.newBuilder(policyImports.getSize()).build();
+        }
+        this.policyImports = policyImports;
+        return this;
+    }
+
+    @Override
     public ImmutablePolicyBuilder setCreated(@Nullable final Instant created) {
         this.created = created;
         return this;
@@ -175,6 +200,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         revokedPermissions.put(label, new LinkedHashMap<>());
 
         setResourcesFor(entry.getLabel(), entry.getResources());
+        setImportableFor(label, entry.getImportableType());
     }
 
     private void putAllSubjects(final PolicyEntry policyEntry) {
@@ -269,6 +295,13 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         return this;
     }
 
+    @Override
+    public ImmutablePolicyBuilder setImportableFor(final CharSequence label, final ImportableType importableType) {
+        checkNotNull(importableType, "importableType");
+        importableTypes.put(Label.of(label), importableType);
+        return this;
+    }
+
     private Map<ResourceKey, Permissions> retrieveGrantedPermissions(final CharSequence label) {
         return getPermissions(label, grantedPermissions);
     }
@@ -343,13 +376,16 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         final Collection<Label> allLabels = getAllLabels();
 
         final Collection<PolicyEntry> policyEntries = allLabels.stream()
-                .map(lbl -> PoliciesModelFactory.newPolicyEntry(lbl, getFinalSubjects(lbl), getFinalResources(lbl)))
+                .map(lbl -> getImportableType(lbl).map(
+                                importableType -> PoliciesModelFactory.newPolicyEntry(lbl, getSubjectsForLabel(lbl),
+                                        getResourcesForLabel(lbl), importableType))
+                        .orElseGet(() -> PoliciesModelFactory.newPolicyEntry(lbl, getSubjectsForLabel(lbl),
+                                getResourcesForLabel(lbl))))
                 .collect(Collectors.toList());
 
-        return ImmutablePolicy.of(id, lifecycle, revision, modified, created, metadata, policyEntries);
+        return ImmutablePolicy.of(id, lifecycle, revision, modified, created, metadata, policyImports, policyEntries);
     }
 
-    @Nonnull
     private Collection<Label> getAllLabels() {
         final Collection<Label> result = new LinkedHashSet<>(subjects.keySet());
         result.addAll(grantedPermissions.keySet());
@@ -357,13 +393,15 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         return result;
     }
 
-    @Nonnull
-    private Subjects getFinalSubjects(final CharSequence label) {
+    private Subjects getSubjectsForLabel(final CharSequence label) {
         return PoliciesModelFactory.newSubjects(retrieveExistingSubjects(label).values());
     }
 
-    @Nonnull
-    private Resources getFinalResources(final CharSequence label) {
+    private Optional<ImportableType> getImportableType(final CharSequence label) {
+        return Optional.ofNullable(importableTypes.get(Label.of(label)));
+    }
+
+    private Resources getResourcesForLabel(final CharSequence label) {
         final Map<ResourceKey, Permissions> grantedMap = retrieveGrantedPermissions(label);
         final Map<ResourceKey, Permissions> revokedMap = retrieveRevokedPermissions(label);
 

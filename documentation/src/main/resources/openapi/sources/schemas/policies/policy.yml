@@ -16,6 +16,8 @@ properties:
     description: Unique identifier representing the policy
   entries:
     $ref: 'policyEntries.yml'
+  imports:
+    $ref: 'policyImports.yml'
 required:
   - policyId
   - entries

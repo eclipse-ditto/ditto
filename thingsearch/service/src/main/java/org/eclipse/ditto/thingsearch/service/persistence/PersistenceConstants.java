@@ -57,9 +57,20 @@ public final class PersistenceConstants {
     public static final String FIELD_POLICY_ID = "policyId";
 
     /**
+     * Field name for policy id in referenced policy tag.
+     */
+    public static final String FIELD_REFERENCED_POLICY_ID = "id";
+
+    /**
      * Field name for policy revision.
      */
     public static final String FIELD_POLICY_REVISION = "__policyRev";
+
+    /**
+     * Field name for the array of all referenced policies. This field includes the actual thing policy as well as all
+     * policies that are imported by the thing policy.
+     */
+    public static final String FIELD_REFERENCED_POLICIES = "__referencedPolicies";
 
     /**
      * Field name for count.

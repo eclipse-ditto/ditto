@@ -111,7 +111,10 @@ public class CreateThingSubstitutionStrategyTest {
     @Test
     public void applyReturnsTheSameCommandInstanceWhenEmptyInlinePolicyIsSpecified() {
         final CreateThing commandWithoutInlinePolicy =
-                CreateThing.of(THING, JsonObject.newBuilder().set("entries", JsonObject.empty()).build(),
+                CreateThing.of(THING, JsonObject.newBuilder()
+                                .set("imports", JsonObject.empty())
+                                .set("entries", JsonObject.empty())
+                                .build(),
                         DITTO_HEADERS);
 
         final WithDittoHeaders response = applyBlocking(commandWithoutInlinePolicy);

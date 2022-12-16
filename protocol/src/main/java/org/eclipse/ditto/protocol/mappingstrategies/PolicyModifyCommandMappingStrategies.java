@@ -15,20 +15,23 @@ package org.eclipse.ditto.protocol.mappingstrategies;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.ditto.protocol.JsonifiableMapper;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntry;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntries;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntry;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImport;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResources;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjects;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
+import org.eclipse.ditto.protocol.JsonifiableMapper;
 
 /**
  * Defines mapping strategies (map from signal type to JsonifiableMapper) for policy modify commands.
@@ -108,6 +111,18 @@ final class PolicyModifyCommandMappingStrategies extends AbstractPolicyMappingSt
                 entrySubjectIdFromPath(adaptable.getPayload().getPath()),
                 dittoHeadersFrom(adaptable)));
 
+        mappingStrategies.put(ModifyPolicyImports.TYPE,
+                adaptable -> ModifyPolicyImports.of(policyIdFromTopicPath(adaptable.getTopicPath()),
+                        policyImportsFrom(adaptable), dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(ModifyPolicyImport.TYPE,
+                adaptable -> ModifyPolicyImport.of(policyIdFromTopicPath(adaptable.getTopicPath()),
+                        policyImportFrom(adaptable), dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(DeletePolicyImport.TYPE,
+                adaptable -> DeletePolicyImport.of(policyIdFromTopicPath(adaptable.getTopicPath()),
+                        importedPolicyIdFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
         return mappingStrategies;
     }
 

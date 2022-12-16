@@ -77,6 +77,19 @@ public final class ImmutablePolicyEntryTest {
         ImmutablePolicyEntry.fromJson(LABEL_END_USER, jsonObject);
     }
 
+    @Test(expected = PolicyEntryInvalidException.class)
+    public void testFromJsonWithInvalidImportableType() {
+        ImmutablePolicyEntry.fromJson("DEFAULT", JsonObject.of(
+                "{ \"subjects\": {}, \"resources\": {}, \"importable\": \"invalid\" }"));
+    }
+
+    @Test
+    public void testFromJsonWithoutImportableType() {
+        final PolicyEntry entry = ImmutablePolicyEntry.fromJson("DEFAULT", JsonObject.of(
+                "{ \"subjects\": {}, \"resources\": {} }"));
+        assertThat(entry.getImportableType()).isEqualTo(ImportableType.IMPLICIT);
+    }
+
     @Test(expected = DittoJsonException.class)
     public void testFromJsonOnlySchemaVersion() {
         final JsonObject jsonObject = JsonFactory.newObjectBuilder()
@@ -148,6 +161,25 @@ public final class ImmutablePolicyEntryTest {
         final PolicyEntry entry2 = PolicyEntry.newInstance("foo",
                 Collections.singleton(Subject.newInstance(subjectId2, SubjectType.GENERATED)),
                 Collections.singleton(resource)
+        );
+        assertThat(entry1.isSemanticallySameAs(entry2)).isFalse();
+    }
+
+    @Test
+    public void ensureTwoPolicyEntriesAreSemanticallyDifferentIfImportableTypeDiffers() {
+        final SubjectId subjectId = SubjectId.newInstance("the:subject");
+        final Resource resource = Resource.newInstance("thing", "/",
+                EffectedPermissions.newInstance(Collections.singleton("READ"), null));
+
+        final PolicyEntry entry1 = PolicyEntry.newInstance("foo",
+                Collections.singleton(Subject.newInstance(subjectId, SubjectType.UNKNOWN)),
+                Collections.singleton(resource),
+                ImportableType.IMPLICIT
+        );
+        final PolicyEntry entry2 = PolicyEntry.newInstance("foo",
+                Collections.singleton(Subject.newInstance(subjectId, SubjectType.UNKNOWN)), // only difference is the subjectType!
+                Collections.singleton(resource),
+                ImportableType.NEVER
         );
         assertThat(entry1.isSemanticallySameAs(entry2)).isFalse();
     }

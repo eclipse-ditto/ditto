@@ -25,6 +25,7 @@ import org.eclipse.ditto.internal.utils.test.GlobalCommandRegistryTestCases;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
 import org.eclipse.ditto.policies.service.persistence.actors.strategies.commands.SudoDeleteExpiredSubject;
 
@@ -45,6 +46,7 @@ public final class PoliciesServiceGlobalCommandRegistryTest extends GlobalComman
                 RetrieveHealth.class,
                 PurgeEntities.class,
                 PublishSignal.class,
+                ModifyPolicyImports.class,
                 ModifySplitBrainResolver.class
         );
     }

@@ -14,6 +14,7 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.policies;
 
 import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
+import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -27,6 +28,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.policies.model.ImportableType;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyEntry;
@@ -181,7 +183,12 @@ final class PolicyEntriesRoute extends AbstractRoute {
         final Resources resources =
                 PoliciesModelFactory.newResources(jsonObject.getValueOrThrow(PolicyEntry.JsonFields.RESOURCES));
 
-        return PoliciesModelFactory.newPolicyEntry(Label.of(labelString), subjects, resources);
+        final Optional<ImportableType> importableOpt = jsonObject.getValue(PolicyEntry.JsonFields.IMPORTABLE_TYPE)
+                .flatMap(ImportableType::forName);
+        return importableOpt
+                .map(importableType -> PoliciesModelFactory.newPolicyEntry(Label.of(labelString), subjects, resources,
+                        importableType))
+                .orElseGet(() -> PoliciesModelFactory.newPolicyEntry(Label.of(labelString), subjects, resources));
     }
 
     /*

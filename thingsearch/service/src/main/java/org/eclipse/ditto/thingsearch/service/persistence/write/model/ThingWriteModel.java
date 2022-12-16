@@ -34,6 +34,7 @@ import org.bson.BsonInt64;
 import org.bson.BsonInvalidOperationException;
 import org.bson.BsonString;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.internal.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -106,7 +107,8 @@ public final class ThingWriteModel extends AbstractWriteModel {
                 .append(FIELD_GLOBAL_READ, new BsonArray())
                 .append(FIELD_REVISION, new BsonInt64(metadata.getThingRevision()))
                 .append(FIELD_POLICY_ID, new BsonString(metadata.getPolicyIdInPersistence()))
-                .append(FIELD_POLICY_REVISION, new BsonInt64(metadata.getPolicyRevision().orElse(0L)))
+                .append(FIELD_POLICY_REVISION, new BsonInt64(metadata.getThingPolicyTag()
+                        .map(AbstractEntityIdWithRevision::getRevision).orElse(0L)))
                 .append(FIELD_THING, new BsonDocument())
                 .append(FIELD_POLICY, new BsonDocument())
                 .append(FIELD_F_ARRAY, new BsonArray());
@@ -258,13 +260,29 @@ public final class ThingWriteModel extends AbstractWriteModel {
         final var nextMetadata = nextWriteModel.getMetadata();
         final boolean isStrictlyOlder = nextMetadata.getThingRevision() < lastMetadata.getThingRevision() ||
                 nextMetadata.getThingRevision() == lastMetadata.getThingRevision() &&
-                        nextMetadata.getPolicyRevision().flatMap(nextPolicyRevision ->
-                                        lastMetadata.getPolicyRevision().map(lastPolicyRevision ->
-                                                nextPolicyRevision < lastPolicyRevision))
-                                .orElse(false);
+                        anyPolicyRevisionIsOutDated(lastMetadata, nextMetadata);
         final boolean hasSameRevisions = nextMetadata.getThingRevision() == lastMetadata.getThingRevision() &&
-                nextMetadata.getPolicyRevision().equals(lastMetadata.getPolicyRevision());
+                allPolicyRevisionsStayedTheSame(lastMetadata, nextMetadata);
 
         return isStrictlyOlder || hasSameRevisions;
     }
+
+    private static boolean anyPolicyRevisionIsOutDated(final Metadata lastMetadata, final Metadata nextMetadata) {
+        return nextMetadata.getAllReferencedPolicyTags().stream()
+                .anyMatch(policyTag -> lastMetadata.getAllReferencedPolicyTags().stream()
+                        .filter(oldPolicyTag -> oldPolicyTag.getEntityId().equals(policyTag.getEntityId()))
+                        .findAny()
+                        .map(oldPolicyTag -> policyTag.getRevision() < oldPolicyTag.getRevision())
+                        .orElse(false));
+    }
+
+    private static boolean allPolicyRevisionsStayedTheSame(final Metadata lastMetadata, final Metadata nextMetadata) {
+        return nextMetadata.getAllReferencedPolicyTags().stream()
+                .allMatch(policyTag -> lastMetadata.getAllReferencedPolicyTags().stream()
+                        .filter(oldPolicyTag -> oldPolicyTag.getEntityId().equals(policyTag.getEntityId()))
+                        .findAny()
+                        .map(oldPolicyTag -> policyTag.getRevision() == oldPolicyTag.getRevision())
+                        .orElse(true));
+    }
+
 }

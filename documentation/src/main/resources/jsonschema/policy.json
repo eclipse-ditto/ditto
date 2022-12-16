@@ -100,12 +100,43 @@
                   "revoke"
                 ]
               }
+            },
+            "importable": {
+              "title": "Importable type",
+              "type": "string",
+              "description": "Controls the import behavior of this policy entry i.e. whether this policy entry is implicitly, explicitly or never imported when referenced from another policy. (`implicit` (default): the policy entry is imported without being listed in the importing policy individually, `explicit`: the policy entry is only imported if it is listed in the importing policy, `never`: the policy entry is not imported, regardless of being listed in the importing policy. If the field is not specified, default value is `implicit`.",
+              "enum": ["implicit", "explicit", "never"],
+              "default": "implicit"
             }
           },
           "required": [
             "subjects",
             "resources"
           ]
+        }
+      }
+    },
+    "imports": {
+      "title": "PolicyImports",
+      "type": "object",
+      "description": "Policy imports containing one policy import for each key. The key is the policy ID of the referenced policy.",
+      "properties": {
+        "additionalProperties": {
+          "title": "PolicyImport",
+          "type": "object",
+          "description": "Single policy import defining which policy entries of the referenced policy are imported.",
+          "properties": {
+            "entries" : {
+              "title": "ImportedEntries",
+              "type": "array",
+              "description": "The policy entries to import from the referenced policy identified by their labels. In case the field is omitted or an empty array is provided, all policy entries defined as implicit (\"importable\": \"implicit\") are imported.",
+              "items": {
+                "type": "string",
+                "description": "Label of a policy entry to import from the referenced policy."
+              },
+              "maxItems": 10
+            }
+          }
         }
       }
     }

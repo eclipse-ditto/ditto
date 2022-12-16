@@ -73,7 +73,7 @@ put:
     `policyId` path parameter and with the label identified by the `label`
     path parameter.
     * If you specify a new label, the respective policy entry will be created
-    * If you specify an existig label, the respective policy entry will be updated
+    * If you specify an existing label, the respective policy entry will be updated
   tags:
     - Policies
   parameters:
