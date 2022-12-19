@@ -29,8 +29,9 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Abstract implementation for common aspects of
- * {@link org.eclipse.ditto.connectivity.model.ConnectionBuilder}.
+ * Abstract implementation for common aspects of {@link ConnectionBuilder}.
+ *
+ * @since 3.2.0
  */
 
 @Immutable

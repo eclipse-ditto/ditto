@@ -22,8 +22,9 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 /**
- * Possible address aliases used by connections of type 'Hono'
- * @since 3.1.0
+ * Possible address aliases used by connections of type 'Hono'.
+ *
+ * @since 3.2.0
  */
 public enum HonoAddressAlias {
 
@@ -55,7 +56,7 @@ public enum HonoAddressAlias {
 
     private final String value;
 
-    private HonoAddressAlias(final String value) {
+    HonoAddressAlias(final String value) {
         this.value = value;
     }
 

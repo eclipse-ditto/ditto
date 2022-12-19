@@ -42,8 +42,9 @@ import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 
 /**
- * Abstract implementation for common aspects of
- * {@link org.eclipse.ditto.connectivity.model.Connection}.
+ * Abstract implementation for common aspects of {@link Connection}.
+ *
+ * @since 3.2.0
  */
 abstract class AbstractConnection implements Connection {
 

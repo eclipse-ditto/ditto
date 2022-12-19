@@ -22,7 +22,9 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Represents a uri within the Connectivity service.
+ * Represents an uri within the Connectivity service.
+ *
+ * @since 3.2.0
  */
 @Immutable
 final class ConnectionUri {

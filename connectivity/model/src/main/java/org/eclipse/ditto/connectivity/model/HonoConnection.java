@@ -24,8 +24,9 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 
 /**
- * Immutable implementation of {@link org.eclipse.ditto.connectivity.model.AbstractConnection} of type
- * {@link org.eclipse.ditto.connectivity.model.ConnectionType} HONO.
+ * Immutable implementation of {@link AbstractConnection} of {@link ConnectionType} HONO.
+ *
+ * @since 3.2.0
  */
 @Immutable
 final class HonoConnection extends AbstractConnection {

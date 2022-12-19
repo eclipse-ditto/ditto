@@ -28,7 +28,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import akka.actor.ActorSystem;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveResolvedHonoConnection} command.
+ * This strategy handles the {@link RetrieveResolvedHonoConnection} command.
  */
 final class RetrieveResolvedHonoConnectionStrategy
         extends AbstractConnectivityCommandStrategy<RetrieveResolvedHonoConnection> {

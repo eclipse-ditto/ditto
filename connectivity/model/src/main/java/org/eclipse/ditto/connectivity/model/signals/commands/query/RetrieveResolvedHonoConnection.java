@@ -38,7 +38,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
  * Command which retrieves a {@link org.eclipse.ditto.connectivity.model.Connection} of type 'hono'
  * after resolving its aliases and with its additional properties like header mappings and specific config.
  *
- * @since 3.1.0
+ * @since 3.2.0
  */
 @Immutable
 @JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = RetrieveResolvedHonoConnection.NAME)
