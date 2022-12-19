@@ -6935,12 +6935,12 @@ paths:
               $ref: '#/components/schemas/NewConnection'
             example:
               name: hono-example-connection-123
-              connectionType: amqp-10
+              connectionType: hono
               connectionStatus: open
-              uri: 'amqps://user:password@hono.eclipseprojects.io:5671'
               sources:
                 - addresses:
-                    - telemetry/FOO
+                    - telemetry
+                    - event
                     - ...
                   authorizationContext:
                     - 'ditto:inbound-auth-subject'
@@ -6952,17 +6952,15 @@ paths:
                       - '{{ thing:id }}'
                   payloadMapping:
                     - Ditto
-                    - ...
+                    - status
               targets:
-                - address: events/twin
+                - address: command
                   topics:
                     - _/_/things/twin/events
                   authorizationContext:
                     - 'ditto:outbound-auth-subject'
                     - ...
-                  headerMapping:
-                    message-id: '{{ header:correlation-id }}'
-                    content-type: application/vnd.eclipse.ditto+json
+                  headerMapping: {}
         description: The example below shows a connection to Eclipse Hono.
         required: true
   '/connections/{connectionId}':
@@ -7053,12 +7051,12 @@ paths:
               $ref: '#/components/schemas/NewConnection'
             example:
               name: hono-example-connection-123
-              connectionType: amqp-10
+              connectionType: hono
               connectionStatus: open
-              uri: 'amqps://user:password@hono.eclipseprojects.io:5671'
               sources:
                 - addresses:
-                    - telemetry/FOO
+                    - telemetry
+                    - event
                     - ...
                   authorizationContext:
                     - 'ditto:inbound-auth-subject'
@@ -7072,15 +7070,13 @@ paths:
                     - Ditto
                     - status
               targets:
-                - address: events/twin
+                - address: command
                   topics:
                     - _/_/things/twin/events
                   authorizationContext:
                     - 'ditto:outbound-auth-subject'
                     - ...
-                  headerMapping:
-                    message-id: '{{ header:correlation-id }}'
-                    content-type: application/vnd.eclipse.ditto+json
+                  headerMapping: {}
         required: true
     delete:
       summary: Delete a specific Connection
@@ -8702,7 +8698,9 @@ components:
           type: array
           uniqueItems: true
           title: Array of source addresses
-          description: The source addresses this connection consumes messages from
+          description: |
+            The source addresses this connection consumes messages from. The "telemetry", "events",
+            "command_response" aliases should be used for connections of type "hono".
           items:
             type: string
             title: Source address
@@ -8827,6 +8825,7 @@ components:
                 * Ditto protocol header value: `{{ header:[any-header-name] }}`
 
                 If placeholder resolution fails for a response, then the response is dropped.
+                NOTE Use "command" alias for connections of type "hono".
               example:
                 - '{{ header:device_id }}'
                 - '{{ source:address }}'
@@ -8872,6 +8871,7 @@ components:
             * Thing Namespace: `{{ thing:namespace }}`
 
             * Thing Name: `{{ thing:name }}` (the part of the ID without the namespace)
+            NOTE Use "command" alias for connections of type "hono".
         topics:
           type: array
           title: Topics
@@ -8943,7 +8943,7 @@ components:
         - http-push
         - mqtt
         - mqtt-5
-        - kafka
+        - 'kafka,'
         - hono
     ConnectivityStatus:
       type: string

@@ -16,8 +16,9 @@ properties:
     type: array
     uniqueItems: true
     title: Array of source addresses
-    description: The source addresses this connection consumes messages from. The "telemetry", "events",
-    "command_response" aliases should be used for connections of type "hono".
+    description: |
+      The source addresses this connection consumes messages from. The "telemetry", "events",
+      "command_response" aliases should be used for connections of type "hono".
     items:
       type: string
       title: Source address
