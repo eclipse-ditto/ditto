@@ -20,8 +20,6 @@ import * as ThingsSearch from './thingsSearch.js';
 
 export let theThing;
 
-let thingEventSource;
-
 const observers = [];
 
 const dom = {
@@ -54,6 +52,7 @@ export async function ready() {
  * @param {function} successCallback callback function that is called after refresh is finished
  */
 export function refreshThing(thingId, successCallback) {
+  console.assert(thingId && thingId !== '', 'thingId expected');
   API.callDittoREST('GET',
       `/things/${thingId}?` +
       'fields=thingId%2CpolicyId%2Cdefinition%2Cattributes%2Cfeatures%2C_created%2C_modified%2C_revision')
@@ -69,27 +68,9 @@ export function refreshThing(thingId, successCallback) {
  * @param {Object} thingJson Thing json
  */
 export function setTheThing(thingJson) {
-  adjustEventSource(thingJson);
+  const isNewThingId = thingJson && (!theThing || theThing.thingId !== thingJson.thingId);
   theThing = thingJson;
-  observers.forEach((observer) => observer.call(null, theThing));
-}
-
-function adjustEventSource(newThingJson) {
-  if (!newThingJson) {
-    thingEventSource && thingEventSource.close();
-  } else {
-    if (!theThing || theThing.thingId !== newThingJson.thingId) {
-      console.log('Start SSE: ' + newThingJson.thingId);
-      thingEventSource = API.getEventSource(newThingJson.thingId);
-      thingEventSource.onmessage = (event) => {
-        console.log(event);
-        if (event.data && event.data !== '') {
-          const merged = _.merge(theThing, JSON.parse(event.data));
-          setTheThing(merged);
-        }
-      };
-    }
-  }
+  observers.forEach((observer) => observer.call(null, theThing, isNewThingId));
 }
 
 let viewDirty = false;
@@ -115,5 +96,4 @@ function onEnvironmentChanged(modifiedField) {
 function refreshView() {
   ThingsSearch.performLastSearch();
 }
-
 

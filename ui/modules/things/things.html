@@ -59,7 +59,8 @@
                             Details</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" data-bs-toggle="tab" data-bs-target="#tabModifyThing">CRUD Thing</a>
+                            <a class="nav-link" data-bs-toggle="tab" data-bs-target="#tabModifyThing">
+                                CRUD Thing<span class="badge badge-warn" id="thingsCrudWaring">!</span></a>
                         </li>
                     </ul>
                     <div id="tabContentThing" class="tab-content" style="flex-grow:1; overflow:hidden;">
@@ -71,18 +72,22 @@
                             </div>
                     </div>
                     <div class="tab-pane fade container no-margin" style="height:100%;" id="tabModifyThing">
-                        <div class="resizable_flex_column">
+                        <div id="divThingsCRUD" class="resizable_flex_column px-1">
                             <div class="input-group input-group-sm mb-1 mt-1 has-validation">
                                 <label class="input-group-text">Thing ID</label>
-                                <input type="text" class="form-control" id="thingId">
-                                <button class="btn btn-outline-secondary btn-sm" id="buttonCreateThing"
+                                <input type="text" class="form-control" disabled id="thingId">
+                                <button class="btn btn-secondary btn-sm" id="buttonEditThing"
+                                    data-bs-toggle="tooltip" title="Enable fields for editing">
+                                    <i id="iThingsEdit" class="bi bi-pencil-square"></i>
+                                </button>
+                                <button class="btn btn-secondary btn-sm" disabled id="buttonCreateThing"
                                     data-bs-toggle="tooltip" title="Create an empty thing with a default policy">
                                     <i class="bi bi-plus-circle"></i>
                                 </button>
-                                <button class="btn btn-outline-secondary btn-sm" id="buttonSaveThing">
+                                <button class="btn btn-secondary btn-sm" disabled id="buttonSaveThing">
                                     <i class="bi bi-save"></i>
                                 </button>
-                                <button class="btn btn-outline-secondary btn-sm" id="buttonDeleteThing">
+                                <button class="btn btn-secondary btn-sm" disabled id="buttonDeleteThing">
                                     <i class="bi bi-trash3"></i>
                                 </button>
                                 <div class="invalid-feedback"></div>
@@ -91,12 +96,12 @@
                                 <label class="input-group-text">Definition</label>
                                 <div class="btn-group dropend">
                                     <button class="btn btn-outline-secondary btn-sm dropdown-toggle"
-                                    data-bs-toggle="dropdown"></button>
+                                    data-bs-toggle="dropdown" disabled id="buttonThingDefinitions"></button>
                                     <ul id="ulThingDefinitions" class="dropdown-menu" style="position: fixed; top: auto;"></ul>                                    
                                 </div>
-                                <input type="text" class="form-control" id="inputThingDefinition"></input>
+                                <input type="text" class="form-control" id="inputThingDefinition" disabled></input>
                             </div>
-                            <div class="ace_container" style="flex-grow: 1;">
+                            <div class="ace_container mb-1" style="flex-grow: 1;">
                                 <div class="script_editor" id="thingJsonEditor"></div>
                             </div>
                         </div>

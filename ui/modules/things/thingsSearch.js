@@ -54,6 +54,7 @@ function onThingsTableClicked(event) {
       searchThings(dom.searchFilterEdit.value, true);
     } else {
       if (Things.theThing && Things.theThing.thingId === row.id) {
+        event.stopImmediatePropagation();
         Things.setTheThing(null);
       } else {
         Things.refreshThing(row.id, null);

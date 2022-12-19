@@ -22,6 +22,7 @@ import * as SearchFilter from './modules/things/searchFilter.js';
 import * as Things from './modules/things/things.js';
 import * as ThingsSearch from './modules/things/thingsSearch.js';
 import * as ThingsCRUD from './modules/things/thingsCRUD.js';
+import * as ThingsSSE from './modules/things/thingsSSE.js';
 import * as Connections from './modules/connections/connections.js';
 import * as Policies from './modules/policies/policies.js';
 import * as API from './modules/api.js';
@@ -48,6 +49,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   await Things.ready();
   ThingsSearch.ready();
   ThingsCRUD.ready();
+  ThingsSSE.ready();
   Attributes.ready();
   await Fields.ready();
   await SearchFilter.ready();

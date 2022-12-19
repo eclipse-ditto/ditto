@@ -20,14 +20,21 @@ import * as Things from './things.js';
 
 let thingJsonEditor;
 
+let isEditing = false;
+
 let thingTemplates;
 
 const dom = {
   thingDetails: null,
   thingId: null,
+  modalThingsEdit: null,
+  iThingsEdit: null,
+  divThingsCRUD: null,
+  buttonEditThing: null,
   buttonCreateThing: null,
   buttonSaveThing: null,
   buttonDeleteThing: null,
+  buttonThingDefinitions: null,
   inputThingDefinition: null,
   ulThingDefinitions: null,
 };
@@ -40,7 +47,7 @@ export async function ready() {
 
   Utils.getAllElementsById(dom);
 
-  thingJsonEditor = Utils.createAceEditor('thingJsonEditor', 'ace/mode/json');
+  thingJsonEditor = Utils.createAceEditor('thingJsonEditor', 'ace/mode/json', true);
 
   loadThingTemplates();
 
@@ -48,6 +55,7 @@ export async function ready() {
   dom.buttonCreateThing.onclick = onCreateThingClick;
   dom.buttonSaveThing.onclick = onSaveThingClick;
   dom.buttonDeleteThing.onclick = onDeleteThingClick;
+  dom.buttonEditThing.onclick = toggleEdit;
 
   document.querySelector('a[data-bs-target="#tabModifyThing"]').addEventListener('shown.bs.tab', (event) => {
     thingJsonEditor.renderer.updateFull();
@@ -55,17 +63,28 @@ export async function ready() {
 }
 
 function onDeleteThingClick() {
-  return () => {
-    Utils.assert(dom.thingId.value, 'Thing ID is empty', dom.thingId);
-    Utils.confirm(`Are you sure you want to delete thing<br>'${dom.thingId.value}'?`, 'Delete', () => {
-      deleteThing(dom.thingId.value);
+  Utils.assert(dom.thingId.value, 'Thing ID is empty', dom.thingId);
+  Utils.confirm(`Are you sure you want to delete thing<br>'${dom.thingId.value}'?`, 'Delete', () => {
+    API.callDittoREST('DELETE', `/things/${dom.thingId.value}`, null,
+        {
+          'if-match': '*',
+        },
+    ).then(() => {
+      ThingsSearch.performLastSearch();
     });
-  };
+  });
 }
 
 function onSaveThingClick() {
   Utils.assert(dom.thingId.value, 'Thing ID is empty', dom.thingId);
-  putThing(dom.thingId.value, JSON.parse(thingJsonEditor.getValue()));
+  API.callDittoREST('PUT', `/things/${dom.thingId.value}`, JSON.parse(thingJsonEditor.getValue()),
+      {
+        'if-match': '*',
+      },
+  ).then(() => {
+    toggleEdit();
+    Things.refreshThing(dom.thingId.value, null);
+  });
 }
 
 async function onCreateThingClick() {
@@ -78,6 +97,7 @@ async function onCreateThingClick() {
           'if-none-match': '*',
         },
     ).then((data) => {
+      toggleEdit();
       Things.refreshThing(data.thingId, () => {
         ThingsSearch.getThings([data.thingId]);
       });
@@ -85,6 +105,7 @@ async function onCreateThingClick() {
   } else {
     API.callDittoREST('POST', '/things', editorValue === '' ? {} : JSON.parse(editorValue))
         .then((data) => {
+          toggleEdit();
           Things.refreshThing(data.thingId, () => {
             ThingsSearch.getThings([data.thingId]);
           });
@@ -94,6 +115,7 @@ async function onCreateThingClick() {
 
 function onThingDefinitionsClick(event) {
   Things.setTheThing(null);
+  isEditing = true;
   dom.inputThingDefinition.value = event.target.textContent;
   thingJsonEditor.setValue(JSON.stringify(thingTemplates[event.target.textContent], null, 2), -1);
 }
@@ -108,31 +130,15 @@ function loadThingTemplates() {
       });
 }
 
-function putThing(thingId, thingJson) {
-  API.callDittoREST('PUT', `/things/${thingId}`, thingJson,
-      {
-        'if-match': '*',
-      },
-  ).then(() => {
-    Things.refreshThing(thingId, null);
-  });
-}
-
-function deleteThing(thingId) {
-  API.callDittoREST('DELETE', `/things/${thingId}`, null,
-      {
-        'if-match': '*',
-      },
-  ).then(() => {
-    ThingsSearch.performLastSearch();
-  });
-}
-
 /**
  * Update UI components for the given Thing
  * @param {Object} thingJson Thing json
  */
 function onThingChanged(thingJson) {
+  if (isEditing) {
+    return;
+  }
+
   updateThingDetailsTable();
   updateThingJsonEditor();
 
@@ -151,6 +157,7 @@ function onThingChanged(thingJson) {
   function updateThingJsonEditor() {
     if (thingJson) {
       dom.thingId.value = thingJson.thingId;
+      dom.buttonDeleteThing.disabled = false;
       dom.inputThingDefinition.value = thingJson.definition ?? '';
       const thingCopy = JSON.parse(JSON.stringify(thingJson));
       delete thingCopy['_revision'];
@@ -159,6 +166,37 @@ function onThingChanged(thingJson) {
       thingJsonEditor.setValue(JSON.stringify(thingCopy, null, 2), -1);
     } else {
       dom.thingId.value = null;
+      dom.buttonDeleteThing.disabled = true;
+      dom.inputThingDefinition.value = null;
+      thingJsonEditor.setValue('');
+    }
+  }
+}
+
+function toggleEdit() {
+  isEditing = !isEditing;
+  dom.modalThingsEdit.classList.toggle('editBackground');
+  dom.divThingsCRUD.classList.toggle('editForground');
+  dom.iThingsEdit.classList.toggle('bi-pencil-square');
+  dom.iThingsEdit.classList.toggle('bi-x-square');
+  dom.buttonThingDefinitions.disabled = !dom.buttonThingDefinitions.disabled;
+  dom.inputThingDefinition.disabled = !dom.inputThingDefinition.disabled;
+  thingJsonEditor.setReadOnly(!isEditing);
+  thingJsonEditor.renderer.setShowGutter(isEditing);
+  if (dom.thingId.value) {
+    dom.buttonSaveThing.disabled = !dom.buttonSaveThing.disabled;
+  } else {
+    dom.buttonCreateThing.disabled = !dom.buttonCreateThing.disabled;
+    dom.thingId.disabled = !dom.thingId.disabled;
+  }
+  if (!isEditing) {
+    clearEditorsAfterCancel();
+  }
+
+  function clearEditorsAfterCancel() {
+    if (dom.thingId.value && dom.thingId.value !== '') {
+      Things.refreshThing(dom.thingId.value, null);
+    } else {
       dom.inputThingDefinition.value = null;
       thingJsonEditor.setValue('');
     }
