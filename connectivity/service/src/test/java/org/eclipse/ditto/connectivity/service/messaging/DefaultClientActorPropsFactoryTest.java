@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.connectivity.model.ConnectionType.AMQP_091;
 import static org.eclipse.ditto.connectivity.model.ConnectionType.AMQP_10;
+import static org.eclipse.ditto.connectivity.model.ConnectionType.HONO;
 import static org.eclipse.ditto.connectivity.model.ConnectionType.KAFKA;
 import static org.eclipse.ditto.connectivity.model.ConnectionType.MQTT;
 import static org.eclipse.ditto.connectivity.model.ConnectionType.MQTT_5;
@@ -109,6 +110,16 @@ public final class DefaultClientActorPropsFactoryTest extends WithMockServers {
     @SuppressWarnings("squid:S2699")
     public void kafkaActorPropsIsSerializable() {
         actorPropsIsSerializable(KAFKA);
+    }
+
+    /**
+     * Tests serialization of props of Hono client actor. The props needs to be serializable because client actors
+     * may be created on a different connectivity service instance using a local connection object.
+     */
+    @Test
+    @SuppressWarnings("squid:S2699")
+    public void honoActorPropsIsSerializable() {
+        actorPropsIsSerializable(HONO);
     }
 
     private void actorPropsIsSerializable(final ConnectionType connectionType) {

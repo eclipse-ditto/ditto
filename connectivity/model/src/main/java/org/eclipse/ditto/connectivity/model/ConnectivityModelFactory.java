@@ -70,8 +70,13 @@ public final class ConnectivityModelFactory {
             final ConnectionType connectionType,
             final ConnectivityStatus connectionStatus,
             final String uri) {
-
-        return ImmutableConnection.getBuilder(id, connectionType, connectionStatus, uri);
+        final ConnectionBuilder builder;
+        if (connectionType == ConnectionType.HONO) {
+            builder = HonoConnection.getBuilder(id, connectionType, connectionStatus, uri);
+        } else {
+            builder = ImmutableConnection.getBuilder(id, connectionType, connectionStatus, uri);
+        }
+        return builder;
     }
 
     /**
@@ -83,7 +88,17 @@ public final class ConnectivityModelFactory {
      * @throws NullPointerException if {@code connection} is {@code null}.
      */
     public static ConnectionBuilder newConnectionBuilder(final Connection connection) {
-        return ImmutableConnection.getBuilder(connection);
+        final ConnectionBuilder builder;
+        if (isHonoConnectionType(connection)) {
+            builder = HonoConnection.getBuilder(connection);
+        } else {
+            builder = ImmutableConnection.getBuilder(connection);
+        }
+        return builder;
+    }
+
+    private static boolean isHonoConnectionType(final Connection connection) {
+        return connection.getConnectionType() == ConnectionType.HONO;
     }
 
     /**
@@ -95,7 +110,20 @@ public final class ConnectivityModelFactory {
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static Connection connectionFromJson(final JsonObject jsonObject) {
-        return ImmutableConnection.fromJson(jsonObject);
+        final Connection connection;
+        if (isHonoConnectionType(jsonObject)) {
+            connection = HonoConnection.fromJson(jsonObject);
+        } else {
+            connection = ImmutableConnection.fromJson(jsonObject);
+        }
+        return connection;
+    }
+
+    private static boolean isHonoConnectionType(final JsonObject connectionJsonObject) {
+        return connectionJsonObject.getValue(Connection.JsonFields.CONNECTION_TYPE)
+                .flatMap(ConnectionType::forName)
+                .filter(ConnectionType.HONO::equals)
+                .isPresent();
     }
 
     /**

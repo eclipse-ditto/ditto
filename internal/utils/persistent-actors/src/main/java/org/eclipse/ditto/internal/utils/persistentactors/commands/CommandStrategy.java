@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -16,10 +16,12 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+
+import akka.actor.ActorSystem;
 
 /**
  * The CommandStrategy interface.
@@ -107,6 +109,11 @@ public interface CommandStrategy<C extends Command<?>, S, K, E extends Event<?>>
          * @return the log.
          */
         DittoDiagnosticLoggingAdapter getLog();
+
+        /**
+         * @return reference to actorSystem
+         */
+        ActorSystem getActorSystem();
 
     }
 

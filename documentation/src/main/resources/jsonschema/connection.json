@@ -30,6 +30,7 @@
         "mqtt",
         "mqtt-5",
         "kafka",
+        "hono",
         "http-push"
       ],
       "title": "Connection type",

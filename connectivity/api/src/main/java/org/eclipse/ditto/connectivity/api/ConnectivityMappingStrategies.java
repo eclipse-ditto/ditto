@@ -78,6 +78,7 @@ public final class ConnectivityMappingStrategies extends MappingStrategies {
                 .add(GlobalErrorRegistry.getInstance())
                 .add(Connection.class, ConnectivityModelFactory::connectionFromJson)
                 .add("ImmutableConnection", ConnectivityModelFactory::connectionFromJson)
+                .add("HonoConnection", ConnectivityModelFactory::connectionFromJson)
                 .add(ResourceStatus.class, ConnectivityModelFactory::resourceStatusFromJson)
                 .add("ImmutableResourceStatus", ConnectivityModelFactory::resourceStatusFromJson)
                 .add(ConnectivityStatus.class, ConnectivityStatus::fromJson)

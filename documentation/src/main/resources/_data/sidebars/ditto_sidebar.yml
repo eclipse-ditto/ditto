@@ -371,6 +371,9 @@ entries:
           - title: Kafka 2.x protocol binding
             url: /connectivity-protocol-bindings-kafka2.html
             output: web
+          - title: Hono connection binding
+            url: /connectivity-protocol-bindings-hono.html
+            output: web
           - title: Payload mapping
             url: /connectivity-mapping.html
             output: web
@@ -755,9 +758,6 @@ entries:
                     output: web
                   - title: Retrieve policy imports
                     url: /protocol-examples-policies-retrieveimports.html
-                    output: web
-                  - title: Create a single policy import
-                    url: /protocol-examples-policies-createimport.html
                     output: web
                   - title: Delete a single policy import
                     url: /protocol-examples-policies-deleteimport.html

@@ -14,13 +14,14 @@ package org.eclipse.ditto.connectivity.service.messaging;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpClientActor;
+import org.eclipse.ditto.connectivity.service.messaging.hono.HonoConnectionFactory;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.MqttClientActor;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClientFactory;
 import org.eclipse.ditto.connectivity.service.messaging.rabbitmq.RabbitMQClientActor;
 
 import com.typesafe.config.Config;
@@ -36,7 +37,10 @@ import akka.actor.Props;
 @Immutable
 public final class DefaultClientActorPropsFactory implements ClientActorPropsFactory {
 
+    private final HonoConnectionFactory honoConnectionFactory;
+
     public DefaultClientActorPropsFactory(final ActorSystem actorSystem, final Config config) {
+        honoConnectionFactory = HonoConnectionFactory.get(actorSystem, config);
     }
 
     @Override
@@ -74,7 +78,20 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                     connectionActor,
                     dittoHeaders,
                     connectivityConfigOverwrites);
+            case HONO -> KafkaClientActor.props(getResolvedHonoConnectionOrThrow(connection, dittoHeaders),
+                    commandForwarderActor,
+                    connectionActor,
+                    dittoHeaders,
+                    connectivityConfigOverwrites);
         };
+    }
+
+    private Connection getResolvedHonoConnectionOrThrow(final Connection connection, final DittoHeaders dittoHeaders) {
+        try {
+            return honoConnectionFactory.getHonoConnection(connection);
+        } catch (final DittoRuntimeException e) {
+            throw e.setDittoHeaders(dittoHeaders);
+        }
     }
 
 }

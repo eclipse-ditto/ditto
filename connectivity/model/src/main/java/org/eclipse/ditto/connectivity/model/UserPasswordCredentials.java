@@ -102,10 +102,23 @@ public final class UserPasswordCredentials implements Credentials {
     /**
      * Create credentials with username and password.
      *
+     * @param username the username
+     * @param password the password
      * @return credentials.
      */
     public static UserPasswordCredentials newInstance(final String username, final String password) {
         return new UserPasswordCredentials(username, password);
+    }
+
+    /**
+     * Create credentials from JsonObject
+     *
+     * @param jsonObject the jsonObject
+     * @return credentials.
+     * @since 3.2.0
+     */
+    public static UserPasswordCredentials newInstance(final JsonObject jsonObject) {
+        return UserPasswordCredentials.fromJson(jsonObject);
     }
 
     /**

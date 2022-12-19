@@ -53,6 +53,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionLifecycle;
 import org.eclipse.ditto.connectivity.model.ConnectionMetrics;
+import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
@@ -86,6 +87,8 @@ import org.eclipse.ditto.connectivity.service.messaging.ClientActorId;
 import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsArgs;
 import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpValidator;
+import org.eclipse.ditto.connectivity.service.messaging.hono.HonoConnectionFactory;
+import org.eclipse.ditto.connectivity.service.messaging.hono.HonoValidator;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushValidator;
 import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaValidator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
@@ -173,6 +176,7 @@ public final class ConnectionPersistenceActor
     // never retry, just escalate. ConnectionSupervisorActor will handle restarting this actor
     private static final SupervisorStrategy ESCALATE_ALWAYS_STRATEGY = OneForOneEscalateStrategy.escalateStrategy();
 
+    private final ActorSystem actorSystem;
     private final Cluster cluster;
     private final ActorRef commandForwarderActor;
     private final ClientActorPropsFactory propsFactory;
@@ -187,6 +191,7 @@ public final class ConnectionPersistenceActor
     private final ConnectionPriorityProvider connectionPriorityProvider;
     private final ConnectivityCommandInterceptor commandValidator;
     private final ConnectionPubSub connectionPubSub;
+    private final HonoConnectionFactory honoConnectionFactory;
     private final ActorRef clientShardRegion;
     private int subscriptionCounter = 0;
     private int ongoingStagedCommands = 0;
@@ -204,7 +209,7 @@ public final class ConnectionPersistenceActor
             final ActorRef clientShardRegion) {
 
         super(connectionId);
-        final ActorSystem actorSystem = context().system();
+        this.actorSystem = context().system();
         cluster = Cluster.get(actorSystem);
         final Config dittoExtensionConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
         this.commandForwarderActor = commandForwarderActor;
@@ -224,6 +229,7 @@ public final class ConnectionPersistenceActor
         loggingEnabledDuration = monitoringConfig.logger().logDuration();
         checkLoggingActiveInterval = monitoringConfig.logger().loggingActiveCheckInterval();
         connectionPubSub = ConnectionPubSub.get(actorSystem);
+        honoConnectionFactory = HonoConnectionFactory.get(actorSystem, actorSystem.settings().config());
         // Make duration fuzzy to avoid all connections getting updated at once.
         final Duration fuzzyPriorityUpdateInterval =
                 makeFuzzy(connectivityConfig.getConnectionConfig().getPriorityUpdateInterval());
@@ -262,6 +268,7 @@ public final class ConnectionPersistenceActor
      *
      * @param connectionId the connection ID.
      * @param commandForwarderActor the actor used to send signals into the ditto cluster..
+     * @param pubSubMediator the pubSubMediator
      * @param connectivityConfigOverwrites the overwrites for the connectivity config for the given connection.
      * @return the Akka configuration Props object.
      */
@@ -307,12 +314,13 @@ public final class ConnectionPersistenceActor
     @Override
     protected CommandStrategy.Context<ConnectionState> getStrategyContext() {
         return DefaultContext.getInstance(
-                ConnectionState.of(entityId, connectionLoggerRegistry, connectionLogger, commandValidator), log);
+                ConnectionState.of(entityId, connectionLoggerRegistry, connectionLogger, commandValidator),
+                log, getContext().getSystem());
     }
 
     @Override
     protected ConnectionCreatedStrategies getCreatedStrategy() {
-        return ConnectionCreatedStrategies.getInstance();
+        return ConnectionCreatedStrategies.getInstance(actorSystem);
     }
 
     @Override
@@ -680,8 +688,24 @@ public final class ConnectionPersistenceActor
                 // Respond with not-accessible-exception for unhandled connectivity commands
                 .match(ConnectivitySudoCommand.class, this::notAccessible)
                 .match(ConnectivityCommand.class, this::notAccessible)
+                .match(ConnectionSupervisorActor.RestartByConnectionType.class, this::initiateRestartByConnectionType)
                 .build()
                 .orElse(super.matchAnyAfterInitialization());
+    }
+
+    private void initiateRestartByConnectionType(
+            final ConnectionSupervisorActor.RestartByConnectionType restartByConnectionType) {
+        if (entity != null) {
+            if (entity.getConnectionType().equals(restartByConnectionType.getConnectionType())) {
+                sender().tell(ConnectionSupervisorActor.RestartConnection.of(null), self());
+                log.info("Restart command sent to ConnectionSupervisorActor {}.", sender());
+            } else {
+                log.info("Skipping restart of non-{} connection {}.",
+                        restartByConnectionType.getConnectionType(), entityId);
+            }
+        } else {
+            log.info("Skipping restart of connection {} due to unexpected null-entity.", entityId);
+        }
     }
 
     @Override
@@ -785,7 +809,6 @@ public final class ConnectionPersistenceActor
                 .toBuilder()
                 .dryRun(true)
                 .build();
-        final TestConnection testConnection = (TestConnection) command.getCommand().setDittoHeaders(headersWithDryRun);
 
         if (connectionOpened) {
             // connection is open, so either another TestConnection command is currently executed or the
@@ -793,6 +816,17 @@ public final class ConnectionPersistenceActor
             // prevent strange behavior.
             origin.tell(TestConnectionResponse.alreadyCreated(entityId, command.getDittoHeaders()), self);
         } else {
+            final TestConnection testConnection;
+            final TestConnection testConnectionUnresolved =
+                    (TestConnection) command.getCommand().setDittoHeaders(headersWithDryRun);
+            if (testConnectionUnresolved.getConnection().getConnectionType() == ConnectionType.HONO) {
+                testConnection = TestConnection.of(
+                        honoConnectionFactory.getHonoConnection(testConnectionUnresolved.getConnection()),
+                        headersWithDryRun);
+            } else {
+                testConnection = testConnectionUnresolved;
+            }
+
             connectionOpened = true;
             // no need to start more than 1 client for tests
             // set connection status to CLOSED so that client actors will not try to connect on startup
@@ -1124,7 +1158,6 @@ public final class ConnectionPersistenceActor
 
     private ConnectivityCommandInterceptor getCommandValidator() {
 
-        final var actorSystem = getContext().getSystem();
         final MqttConfig mqttConfig = connectivityConfig.getConnectionConfig().getMqttConfig();
         final ConnectionValidator connectionValidator =
                 ConnectionValidator.of(actorSystem.log(),
@@ -1133,6 +1166,7 @@ public final class ConnectionPersistenceActor
                         AmqpValidator.newInstance(),
                         Mqtt3Validator.newInstance(mqttConfig),
                         Mqtt5Validator.newInstance(mqttConfig),
+                        HonoValidator.getInstance(),
                         KafkaValidator.getInstance(),
                         HttpPushValidator.newInstance(connectivityConfig.getConnectionConfig().getHttpPushConfig()));
 
@@ -1198,7 +1232,7 @@ public final class ConnectionPersistenceActor
     }
 
     /**
-     * Local message this actor may sent to itself in order to update the priority of the connection.
+     * Local message this actor may send to itself in order to update the priority of the connection.
      */
     @Immutable
     static final class UpdatePriority implements WithDittoHeaders {

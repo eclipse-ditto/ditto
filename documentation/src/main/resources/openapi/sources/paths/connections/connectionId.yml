@@ -100,13 +100,13 @@ put:
           $ref: '../../schemas/connections/newConnection.yml'
         example: {
           "name": "hono-example-connection-123",
-          "connectionType": "amqp-10",
+          "connectionType": "hono",
           "connectionStatus": "open",
-          "uri": "amqps://user:password@hono.eclipseprojects.io:5671",
           "sources": [
             {
               "addresses": [
-                "telemetry/FOO",
+                "telemetry",
+                "event",
                 "..."
               ],
               "authorizationContext": [
@@ -128,7 +128,7 @@ put:
           ],
           "targets": [
             {
-              "address": "events/twin",
+              "address": "command",
               "topics": [
                 "_/_/things/twin/events"
               ],
@@ -136,12 +136,8 @@ put:
                 "ditto:outbound-auth-subject",
                 "..."
               ],
-              "headerMapping": {
-                "message-id": "{{ header:correlation-id }}",
-                "content-type": "application/vnd.eclipse.ditto+json"
-              }
+              "headerMapping": { }
             }
-
           ]
         }
     required: true
