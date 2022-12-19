@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -58,8 +57,9 @@ public class DittoConnectionConfigProvider implements ConnectionConfigProvider {
     }
 
     @Override
-    public Optional<Config> handleEvent(final Event<?> event) {
-        return Optional.empty();
+    public void handleEvent(final Event<?> event, final ActorRef supervisorActor,
+            @Nullable final ActorRef persistenceActor) {
+        // By default not handled in Ditto
     }
 
 }

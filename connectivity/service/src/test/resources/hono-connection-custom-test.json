@@ -1,0 +1,256 @@
+{
+  "id": "test-connection-id",
+  "name": "Things-Hono Test 1",
+  "connectionType": "hono",
+  "connectionStatus": "open",
+  "uri": "ssl://hono-endpoint:1",
+  "sources": [
+    {
+      "addresses": [
+        "telemetry"
+      ],
+      "consumerCount": 1,
+      "qos": 0,
+      "authorizationContext": [
+        "nginx:ditto"
+      ],
+      "enforcement": {
+        "input": "{{ header:device_id }}",
+        "filters": [
+          "{{ entity:id }}"
+        ]
+      },
+      "acknowledgementRequests": {
+        "includes": [],
+        "filter": "fn:delete()"
+      },
+      "headerMapping": {},
+      "payloadMapping": [
+        "Ditto",
+        "status",
+        "implicitEdgeThingCreation",
+        "implicitStandaloneThingCreation"
+      ],
+      "replyTarget": {
+        "address": "command",
+        "headerMapping": {
+          "user_key1": "user_value1",
+          "device_id": "custom_value1"
+        },
+        "expectedResponseTypes": [
+          "response",
+          "error"
+        ],
+        "enabled": true
+      }
+    },
+    {
+      "addresses": [
+        "event"
+      ],
+      "consumerCount": 1,
+      "qos": 1,
+      "authorizationContext": [
+        "nginx:ditto"
+      ],
+      "enforcement": {
+        "input": "{{ header:device_id }}",
+        "filters": [
+          "{{ entity:id }}"
+        ]
+      },
+      "acknowledgementRequests": {
+        "includes": []
+      },
+      "headerMapping": {},
+      "payloadMapping": [
+        "Ditto",
+        "status",
+        "implicitEdgeThingCreation",
+        "implicitStandaloneThingCreation"
+      ],
+      "replyTarget": {
+        "address": "command",
+        "headerMapping": {
+          "user_key2": "user_value2",
+          "subject": "custom_value2"
+        },
+        "expectedResponseTypes": [
+          "response",
+          "error"
+        ],
+        "enabled": true
+      }
+    },
+    {
+      "addresses": [
+        "command_response"
+      ],
+      "consumerCount": 1,
+      "qos": 0,
+      "authorizationContext": [
+        "nginx:ditto"
+      ],
+      "enforcement": {
+        "input": "{{ header:device_id }}",
+        "filters": [
+          "{{ entity:id }}"
+        ]
+      },
+      "acknowledgementRequests": {
+        "includes": [],
+        "filter": "fn:delete()"
+      },
+      "headerMapping": {
+        "user_key3": "user_value3",
+        "status": "custom_value3"
+      },
+      "payloadMapping": [
+        "Ditto"
+      ],
+      "replyTarget": {
+        "enabled": false
+      }
+    }
+  ],
+  "targets": [
+    {
+      "address": "command",
+      "topics": [
+        "_/_/things/live/messages",
+        "_/_/things/live/commands"
+      ],
+      "authorizationContext": [
+        "nginx:ditto"
+      ],
+      "headerMapping": {
+        "user_key4": "user_value4",
+        "response-required": "custom_value4"
+      }
+    },
+    {
+      "address": "command",
+      "topics": [
+        "_/_/things/twin/events",
+        "_/_/things/live/events"
+      ],
+      "authorizationContext": [
+        "nginx:ditto"
+      ],
+      "headerMapping": {
+        "user_key5": "user_value5",
+        "correlation-id": "custom_value5"
+      }
+    }
+  ],
+  "clientCount": 1,
+  "failoverEnabled": true,
+  "validateCertificates": true,
+  "processorPoolSize": 5,
+  "specificConfig": {
+    "groupId": "custom_groupId"
+  },
+  "mappingDefinitions": {
+    "implicitEdgeThingCreation": {
+      "mappingEngine": "ImplicitThingCreation",
+      "options": {
+        "thing": {
+          "thingId": "{{ header:device_id }}",
+          "_copyPolicyFrom": "{{ header:gateway_id }}",
+          "attributes": {
+            "Info": {
+              "gatewayId": "{{ header:gateway_id }}"
+            }
+          }
+        },
+        "commandHeaders": {}
+      },
+      "incomingConditions": {
+        "behindGateway": "fn:filter(header:gateway_id, 'exists')",
+        "honoRegistration": "fn:filter(header:hono_registration_status, 'eq', 'NEW')"
+      }
+    },
+    "implicitStandaloneThingCreation": {
+      "mappingEngine": "ImplicitThingCreation",
+      "options": {
+        "thing": {
+          "thingId": "{{ header:device_id }}",
+          "_policy": {
+            "entries": {
+              "DEVICE": {
+                "subjects": {
+                  "integration:hono": {
+                    "type": "hono-integration"
+                  }
+                },
+                "resources": {
+                  "policy:/": {
+                    "revoke": [],
+                    "grant": [
+                      "READ"
+                    ]
+                  },
+                  "thing:/": {
+                    "revoke": [],
+                    "grant": [
+                      "READ",
+                      "WRITE"
+                    ]
+                  },
+                  "message:/": {
+                    "revoke": [],
+                    "grant": [
+                      "READ",
+                      "WRITE"
+                    ]
+                  }
+                }
+              },
+              "DEFAULT": {
+                "subjects": {
+                  "integration:hono": {
+                    "type": "generated"
+                  }
+                },
+                "resources": {
+                  "policy:/": {
+                    "revoke": [],
+                    "grant": [
+                      "READ",
+                      "WRITE"
+                    ]
+                  },
+                  "thing:/": {
+                    "revoke": [],
+                    "grant": [
+                      "READ",
+                      "WRITE"
+                    ]
+                  },
+                  "message:/": {
+                    "revoke": [],
+                    "grant": [
+                      "READ",
+                      "WRITE"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "commandHeaders": {}
+      },
+      "incomingConditions": {
+        "honoRegistration": "fn:filter(header:hono_registration_status, 'eq', 'NEW')",
+        "notBehindGateway": "fn:filter(header:gateway_id, 'exists', 'false')"
+      }
+    },
+    "status": {
+      "mappingEngine": "ConnectionStatus",
+      "options": {
+        "thingId": "{{ header:device_id }}"
+      }
+    }
+  }
+}

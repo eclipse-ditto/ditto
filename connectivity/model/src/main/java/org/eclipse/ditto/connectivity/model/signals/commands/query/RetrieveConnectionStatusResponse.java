@@ -444,6 +444,8 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                 case SSH_TUNNEL:
                     sshTunnelStatus = addToList(sshTunnelStatus, resourceStatus);
                     break;
+                default:
+                    // Do nothing
             }
             return this;
         }

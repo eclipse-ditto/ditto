@@ -26,7 +26,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
 
 /**
- * Thrown if the the configuration of a {@link Connection} was invalid.
+ * Thrown if the configuration of a {@link Connection} was invalid.
  */
 @Immutable
 @JsonParsableException(errorCode = ConnectionConfigurationInvalidException.ERROR_CODE)

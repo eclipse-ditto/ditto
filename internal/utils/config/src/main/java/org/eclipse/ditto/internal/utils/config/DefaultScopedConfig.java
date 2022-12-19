@@ -316,7 +316,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
     public <T extends Enum<T>> T getEnum(final Class<T> enumClass, final String path) {
         try {
             return config.getEnum(enumClass, path);
-        } catch (final ConfigException.Missing | ConfigException.WrongType e) {
+        } catch (final ConfigException.Missing | ConfigException.WrongType | ConfigException.BadValue e) {
             final var msgPattern = "Failed to get Enum for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }

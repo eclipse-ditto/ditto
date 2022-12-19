@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -65,6 +65,7 @@ public final class TestConstants {
     public static final String TIMESTAMP = "2019-05-21T11:06:54.210Z";
 
     public static final ConnectionType TYPE = ConnectionType.AMQP_10;
+    public static final ConnectionType HONO_TYPE = ConnectionType.HONO;
     public static final ConnectivityStatus STATUS = ConnectivityStatus.OPEN;
 
     private static final String URI = "amqps://username:password@my.endpoint:443";
@@ -130,6 +131,13 @@ public final class TestConstants {
 
     public static final Connection CONNECTION =
             ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+                    .sources(SOURCES)
+                    .targets(TARGETS)
+                    .mappingContext(MAPPING_CONTEXT)
+                    .build();
+
+    public static final Connection HONO_CONNECTION =
+            ConnectivityModelFactory.newConnectionBuilder(ID, HONO_TYPE, STATUS, URI)
                     .sources(SOURCES)
                     .targets(TARGETS)
                     .mappingContext(MAPPING_CONTEXT)

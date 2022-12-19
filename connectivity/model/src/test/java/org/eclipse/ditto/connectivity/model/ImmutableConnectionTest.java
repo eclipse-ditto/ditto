@@ -243,7 +243,7 @@ public final class ImmutableConnectionTest {
     public void createInstanceWithNullId() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(null, TYPE, STATUS, URI))
-                .withMessage("The %s must not be null!", "ID")
+                .withMessage("The %s must not be null!", "id")
                 .withNoCause();
     }
 
@@ -251,7 +251,7 @@ public final class ImmutableConnectionTest {
     public void createInstanceWithNullUri() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, null))
-                .withMessage("The %s must not be null!", "URI")
+                .withMessage("The %s must not be null!", "uri")
                 .withNoCause();
     }
 
@@ -437,107 +437,6 @@ public final class ImmutableConnectionTest {
                 .build();
 
         assertThat(underTest.getSshTunnel()).isEmpty();
-    }
-
-    @Test
-    public void parseUriAsExpected() {
-        final ImmutableConnection.ConnectionUri underTest =
-                ImmutableConnection.ConnectionUri.of("amqps://foo:bar@hono.eclipse.org:5671/vhost");
-
-        assertThat(underTest.getProtocol()).isEqualTo("amqps");
-        assertThat(underTest.getUserName()).contains("foo");
-        assertThat(underTest.getPassword()).contains("bar");
-        assertThat(underTest.getHostname()).isEqualTo("hono.eclipse.org");
-        assertThat(underTest.getPort()).isEqualTo(5671);
-        assertThat(underTest.getPath()).contains("/vhost");
-    }
-
-    @Test
-    public void parsePasswordWithPlusSign() {
-        final ImmutableConnection.ConnectionUri underTest =
-                ImmutableConnection.ConnectionUri.of("amqps://foo:bar+baz@hono.eclipse.org:5671/vhost");
-        assertThat(underTest.getPassword()).contains("bar+baz");
-    }
-
-    @Test
-    public void parsePasswordWithPlusSignEncoded() {
-        final ImmutableConnection.ConnectionUri underTest =
-                ImmutableConnection.ConnectionUri.of("amqps://foo:bar%2Bbaz@hono.eclipse.org:5671/vhost");
-        assertThat(underTest.getPassword()).contains("bar+baz");
-    }
-
-    @Test
-    public void parsePasswordWithPlusSignDoubleEncoded() {
-        final ImmutableConnection.ConnectionUri underTest =
-                ImmutableConnection.ConnectionUri.of("amqps://foo:bar%252Bbaz@hono.eclipse.org:5671/vhost");
-        assertThat(underTest.getPassword()).contains("bar%2Bbaz");
-    }
-
-    @Test
-    public void parseUriWithoutCredentials() {
-        final ImmutableConnection.ConnectionUri underTest =
-                ImmutableConnection.ConnectionUri.of("amqps://hono.eclipse.org:5671");
-
-        assertThat(underTest.getUserName()).isEmpty();
-        assertThat(underTest.getPassword()).isEmpty();
-    }
-
-    @Test
-    public void parseUriWithoutPath() {
-        final ImmutableConnection.ConnectionUri underTest =
-                ImmutableConnection.ConnectionUri.of("amqps://foo:bar@hono.eclipse.org:5671");
-
-        assertThat(underTest.getPath()).isEmpty();
-    }
-
-    @Test(expected = ConnectionUriInvalidException.class)
-    public void cannotParseUriWithoutPort() {
-        ImmutableConnection.ConnectionUri.of("amqps://foo:bar@hono.eclipse.org");
-    }
-
-    @Test(expected = ConnectionUriInvalidException.class)
-    public void cannotParseUriWithoutHost() {
-        ImmutableConnection.ConnectionUri.of("amqps://foo:bar@:5671");
-    }
-
-
-    /**
-     * Permit construction of connection URIs with username and without password because RFC-3986 permits it.
-     */
-    @Test
-    public void canParseUriWithUsernameWithoutPassword() {
-        final ImmutableConnection.ConnectionUri underTest =
-                ImmutableConnection.ConnectionUri.of("amqps://foo:@hono.eclipse.org:5671");
-
-        assertThat(underTest.getUserName()).contains("foo");
-        assertThat(underTest.getPassword()).contains("");
-    }
-
-    @Test
-    public void canParseUriWithoutUsernameWithPassword() {
-        final ImmutableConnection.ConnectionUri underTest =
-                ImmutableConnection.ConnectionUri.of("amqps://:bar@hono.eclipse.org:5671");
-
-        assertThat(underTest.getUserName()).contains("");
-        assertThat(underTest.getPassword()).contains("bar");
-    }
-
-    @Test(expected = ConnectionUriInvalidException.class)
-    public void uriRegexFailsWithoutProtocol() {
-        ImmutableConnection.ConnectionUri.of("://foo:bar@hono.eclipse.org:5671");
-    }
-
-    @Test
-    public void toStringDoesNotContainPassword() {
-        final String password = "thePassword";
-
-        final String uri = "amqps://foo:" + password + "@host.com:5671";
-
-        final Connection connection = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, uri)
-                .sources(Collections.singletonList(SOURCE1))
-                .build();
-
-        assertThat(connection.toString()).doesNotContain(password);
     }
 
     @Test

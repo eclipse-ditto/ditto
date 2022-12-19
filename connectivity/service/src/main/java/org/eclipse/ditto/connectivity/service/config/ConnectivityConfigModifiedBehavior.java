@@ -12,12 +12,19 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
+import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.signals.events.Event;
 
 import com.typesafe.config.Config;
 
 import akka.actor.AbstractActor;
 import akka.actor.Actor;
+import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -27,23 +34,32 @@ public interface ConnectivityConfigModifiedBehavior extends Actor {
 
     /**
      * Injectable behavior to handle an {@code Event} that transports config changes.
+     * This involves modified credentials for Hono-connections as well.
      *
+     * @param supervisorActor the actor that potentially will receive a command message after handling the event.
+     * @param persistenceActorSupplier a supplier of the actor that potentially will receive a command message after
+     * handling the event.
      * @return behavior to handle an {@code Event} that transports config changes.
      */
-    default AbstractActor.Receive connectivityConfigModifiedBehavior() {
+    default AbstractActor.Receive connectivityConfigModifiedBehavior(final ActorRef supervisorActor,
+            final Supplier<ActorRef> persistenceActorSupplier) {
+        checkNotNull(persistenceActorSupplier);
         return ReceiveBuilder.create()
-                .match(Event.class, event -> getConnectivityConfigProvider().canHandle(event), this::handleEvent)
+                .match(Event.class, getConnectivityConfigProvider()::canHandle,
+                        event -> handleEvent(event, supervisorActor, persistenceActorSupplier.get()))
                 .build();
     }
 
     /**
-     * Handles the received event by converting it to a {@link Config} and passing it to
-     * {@link #onConnectivityConfigModified(Config)}.
+     * Handles the received event by converting it to a {@link Config}.
      *
+     * @param supervisorActor the connection supervisor actor reference
+     * @param persistenceActor the connection persistence actor reference
      * @param event the received event
      */
-    default void handleEvent(final Event<?> event) {
-        getConnectivityConfigProvider().handleEvent(event).ifPresent(this::onConnectivityConfigModified);
+    default void handleEvent(final Event<?> event, final ActorRef supervisorActor,
+            @Nullable final ActorRef persistenceActor) {
+        getConnectivityConfigProvider().handleEvent(event, supervisorActor, persistenceActor);
     }
 
     /**
@@ -53,11 +69,4 @@ public interface ConnectivityConfigModifiedBehavior extends Actor {
         return ConnectionConfigProviderFactory.getInstance(context().system());
     }
 
-    /**
-     * This method is called when a config modification is received. Implementations must handle the modified config
-     * appropriately i.e. check if any relevant config has changed and re-initialize state if necessary.
-     *
-     * @param connectivityConfigOverwrites the modified config
-     */
-    void onConnectivityConfigModified(Config connectivityConfigOverwrites);
 }

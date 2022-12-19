@@ -12,10 +12,13 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
@@ -29,6 +32,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionUnavailableException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.LoggingExpired;
@@ -147,12 +151,14 @@ public final class ConnectionSupervisorActor
                 .match(Config.class, this::onConnectivityConfigModified)
                 .match(CheckForOverwritesConfig.class,
                         checkForOverwrites -> initConfigOverwrites(getEntityId(), checkForOverwrites.dittoHeaders))
+                .match(RestartConnection.class, restartConnection -> restartConnection.getModifiedConfig()
+                        .ifPresentOrElse(this::onConnectivityConfigModified, this::restartChild))
                 .matchEquals(Control.REGISTRATION_FOR_CONFIG_CHANGES_SUCCESSFUL, c -> {
                     log.debug("Successfully registered for connectivity config changes.");
                     isRegisteredForConnectivityConfigChanges = true;
                 })
                 .build()
-                .orElse(connectivityConfigModifiedBehavior())
+                .orElse(connectivityConfigModifiedBehavior(getSelf(), () -> persistenceActorChild))
                 .orElse(super.activeBehaviour(matchProcessNextTwinMessageBehavior, matchAnyBehavior));
     }
 
@@ -214,8 +220,11 @@ public final class ConnectionSupervisorActor
         return SUPERVISOR_STRATEGY;
     }
 
-    @Override
-    public void onConnectivityConfigModified(final Config modifiedConfig) {
+    /*
+     * This method is called when a config modification is received. Implementations must handle the modified config
+     * appropriately i.e. check if any relevant config has changed and re-initialize state if necessary.
+     */
+    private void onConnectivityConfigModified(final Config modifiedConfig) {
         if (Objects.equals(connectivityConfigOverwrites, modifiedConfig)) {
             log.debug("Received modified config is unchanged, not restarting persistence actor.");
         } else {
@@ -301,6 +310,85 @@ public final class ConnectionSupervisorActor
 
         private CheckForOverwritesConfig(@Nullable final DittoHeaders dittoHeaders) {
             this.dittoHeaders = dittoHeaders;
+        }
+    }
+
+    /**
+     * Command to restart the connection with a modified Config (provided in the command) or unconditional restart if modifiedConfig is null.
+     */
+    public static final class RestartConnection {
+
+        @Nullable
+        private final Config modifiedConfig;
+
+        private RestartConnection(@Nullable final Config modifiedConfig) {
+            this.modifiedConfig = modifiedConfig;
+        }
+
+        /**
+         *
+         * @param modifiedConfig a new config to restart connection if changed or {@code null} to restart it unconditionally
+         * @return {@link RestartConnection} command class
+         */
+        public static RestartConnection of(@Nullable final Config modifiedConfig) {
+            return new RestartConnection(modifiedConfig);
+        }
+
+        /**
+         * Getter
+         * @return the modified config
+         */
+        public Optional<Config> getModifiedConfig() {
+            return Optional.ofNullable(modifiedConfig);
+        }
+
+        @Override
+        public boolean equals(@Nullable final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            final RestartConnection that = (RestartConnection) o;
+            return Objects.equals(modifiedConfig, that.modifiedConfig);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(modifiedConfig);
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" +
+                    ", modifiedConfig=" + modifiedConfig +
+                    "]";
+        }
+    }
+
+    /**
+     * Signals the persistence actor to initiate restart of itself if its type is equal to the specified connectionType.
+     */
+    public static final class RestartByConnectionType {
+
+        private final ConnectionType connectionType;
+
+        /**
+         * Constructor
+         * @param connectionType the desired connection type to filter by
+         */
+        public RestartByConnectionType(final ConnectionType connectionType) {
+            this.connectionType = checkNotNull(connectionType, "connectionType");
+        }
+
+        /**
+         * Getter
+         * @return the connection type
+         */
+        public ConnectionType getConnectionType() {
+            return connectionType;
         }
     }
 }

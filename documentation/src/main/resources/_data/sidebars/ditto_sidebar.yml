@@ -371,6 +371,9 @@ entries:
           - title: Kafka 2.x protocol binding
             url: /connectivity-protocol-bindings-kafka2.html
             output: web
+          - title: Hono connection binding
+            url: /connectivity-protocol-bindings-hono.html
+            output: web
           - title: Payload mapping
             url: /connectivity-mapping.html
             output: web

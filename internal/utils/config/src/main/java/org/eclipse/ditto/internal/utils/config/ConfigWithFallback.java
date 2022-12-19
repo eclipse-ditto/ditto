@@ -142,6 +142,10 @@ public final class ConfigWithFallback implements ScopedConfig, ConfigMergeable {
         return ConfigFactory.parseMap(fallbackValues);
     }
 
+    private static Map<String, JsonValue> getJsonObjectAsMap(final JsonObject jsonObject) {
+        return jsonObject.stream().collect(Collectors.toMap(JsonField::getKeyName, JsonField::getValue));
+    }
+
     @Override
     public ConfigObject root() {
         return baseConfig.root();

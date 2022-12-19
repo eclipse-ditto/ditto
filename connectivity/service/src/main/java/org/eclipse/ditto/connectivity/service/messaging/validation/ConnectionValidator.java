@@ -199,13 +199,16 @@ public final class ConnectionValidator {
         final ConnectionLogger connectionLogger = ConnectionLogger.getInstance(connection.getId(),
                 connectivityConfig.getMonitoringConfig().logger());
         validateFormatOfCertificates(connection, dittoHeaders, connectionLogger);
-
+        final ConnectionType connectionType = connection.getConnectionType();
         // validate configured host
         final HostValidator hostValidator = new DefaultHostValidator(connectivityConfig, loggingAdapter);
-        hostValidator.validateHostname(connection.getHostname(), dittoHeaders);
+
+        if(connectionType != ConnectionType.HONO) {
+            hostValidator.validateHostname(connection.getHostname(), dittoHeaders);
+        }
 
         // tunneling not supported for kafka
-        if (ConnectionType.KAFKA == connection.getConnectionType() && connection.getSshTunnel().isPresent()) {
+        if (ConnectionType.KAFKA == connectionType && connection.getSshTunnel().isPresent()) {
             throw ConnectionConfigurationInvalidException
                     .newBuilder("SSH tunneling not supported.")
                     .description(

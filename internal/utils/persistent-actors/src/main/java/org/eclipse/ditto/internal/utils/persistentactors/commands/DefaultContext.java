@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -20,6 +20,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 
+import akka.actor.ActorSystem;
+
 /**
  * Holds the context required to execute the
  * {@link CommandStrategy}s.
@@ -32,10 +34,13 @@ public final class DefaultContext<K> implements CommandStrategy.Context<K> {
     private final K state;
     private final DittoDiagnosticLoggingAdapter log;
 
-    private DefaultContext(final K state, final DittoDiagnosticLoggingAdapter log) {
+    private final ActorSystem actorSystem;
+
+    private DefaultContext(final K state, final DittoDiagnosticLoggingAdapter log, final ActorSystem actorSystem) {
 
         this.state = checkNotNull(state, "state");
         this.log = checkNotNull(log, "log");
+        this.actorSystem = checkNotNull(actorSystem, "actorSystem");
     }
 
     /**
@@ -46,8 +51,9 @@ public final class DefaultContext<K> implements CommandStrategy.Context<K> {
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static <K> DefaultContext<K> getInstance(final K state, final DittoDiagnosticLoggingAdapter log) {
-        return new DefaultContext<>(state, log);
+    public static <K> DefaultContext<K> getInstance(final K state, final DittoDiagnosticLoggingAdapter log,
+            final ActorSystem actorSystem) {
+        return new DefaultContext<>(state, log, actorSystem);
     }
 
     @Override
@@ -61,6 +67,11 @@ public final class DefaultContext<K> implements CommandStrategy.Context<K> {
     }
 
     @Override
+    public ActorSystem getActorSystem() {
+        return actorSystem;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -69,12 +80,14 @@ public final class DefaultContext<K> implements CommandStrategy.Context<K> {
             return false;
         }
         final DefaultContext<?> that = (DefaultContext<?>) o;
-        return Objects.equals(state, that.state) && Objects.equals(log, that.log);
+        return Objects.equals(state, that.state)
+                && Objects.equals(log, that.log)
+                && Objects.equals(actorSystem, that.actorSystem);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(state, log);
+        return Objects.hash(state, log, actorSystem);
     }
 
     @Override
@@ -82,6 +95,7 @@ public final class DefaultContext<K> implements CommandStrategy.Context<K> {
         return getClass().getSimpleName() + " [" +
                 "state=" + state +
                 ", log=" + log +
+                ", actorSystem=" + actorSystem +
                 "]";
     }
 
