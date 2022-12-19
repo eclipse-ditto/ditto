@@ -759,9 +759,6 @@ entries:
                   - title: Retrieve policy imports
                     url: /protocol-examples-policies-retrieveimports.html
                     output: web
-                  - title: Create a single policy import
-                    url: /protocol-examples-policies-createimport.html
-                    output: web
                   - title: Delete a single policy import
                     url: /protocol-examples-policies-deleteimport.html
                     output: web
