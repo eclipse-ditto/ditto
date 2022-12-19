@@ -1,3 +1,4 @@
+/* eslint-disable require-jsdoc */
 /*
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
@@ -30,8 +31,6 @@ const filterHistory = [];
 
 let keyStrokeTimeout;
 
-let lastSearch = '';
-
 const FILTER_PLACEHOLDER = '*****';
 
 const dom = {
@@ -61,12 +60,13 @@ export async function ready() {
       checkIfFavourite();
       const filterEditNeeded = checkAndMarkParameter();
       if (!filterEditNeeded) {
-        Things.searchThings(event.target.textContent);
+        ThingsSearch.searchThings(event.target.textContent);
       }
     }
   });
 
   dom.searchThings.onclick = () => {
+    fillHistory(dom.searchFilterEdit.value);
     ThingsSearch.searchTriggered(dom.searchFilterEdit.value);
   };
 
@@ -79,6 +79,7 @@ export async function ready() {
 
   dom.searchFilterEdit.onkeyup = (event) => {
     if (event.key === 'Enter' || event.code === 13) {
+      fillHistory(dom.searchFilterEdit.value);
       ThingsSearch.searchTriggered(dom.searchFilterEdit.value);
     } else {
       clearTimeout(keyStrokeTimeout);
@@ -108,43 +109,6 @@ function onEnvironmentChanged() {
     Environments.current().pinnedThings = [];
   }
   updateFilterList();
-}
-
-/**
- * Tests if the search filter is an RQL. If yes, things search is called otherwise just things get
- * @param {String} filter search filter string containing an RQL or a thingId
- */
-function searchTriggered(filter) {
-  lastSearch = filter;
-  fillHistory(filter);
-  const regex = /^(eq\(|ne\(|gt\(|ge\(|lt\(|le\(|in\(|like\(|exists\(|and\(|or\(|not\().*/;
-  if (filter === '' || regex.test(filter)) {
-    Things.searchThings(filter);
-  } else {
-    Things.getThings([filter]);
-  }
-}
-
-/**
- * Gets the list of pinned things
- */
-function pinnedTriggered() {
-  lastSearch = 'pinned';
-  dom.searchFilterEdit.value = null;
-  dom.favIcon.classList.replace('bi-star-fill', 'bi-star');
-  Things.getThings(Environments.current()['pinnedThings']);
-}
-
-/**
- * Performs the last search by the user using the last used filter.
- * If the user used pinned things last time, the pinned things are reloaded
- */
-export function performLastSearch() {
-  if (lastSearch === 'pinned') {
-    pinnedTriggered();
-  } else {
-    searchTriggered(lastSearch);
-  }
 }
 
 /**
