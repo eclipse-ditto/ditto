@@ -23,6 +23,9 @@ entries:
       - title: Release Notes
         output: web
         folderitems:
+          - title: 3.1.0
+            url: /release_notes_310.html
+            output: web
           - title: 3.0.0
             url: /release_notes_300.html
             output: web
@@ -340,9 +343,16 @@ entries:
           - title: Overview
             url: /connectivity-overview.html
             output: web
-          - title: Manage connections
-            url: /connectivity-manage-connections.html
-            output: web
+            subfolders:
+              - title: Manage connections
+                output: web
+                subfolderitems:
+                  - title: via HTTP API
+                    url: /connectivity-manage-connections.html
+                    output: web
+                  - title: via Piggyback commands
+                    url: /connectivity-manage-connections-piggyback.html
+                    output: web
           - title: AMQP 0.9.1 protocol binding
             url: /connectivity-protocol-bindings-amqp091.html
             output: web
@@ -739,6 +749,24 @@ entries:
                     output: web
                   - title: Retrieve a single resource
                     url: /protocol-examples-policies-retrieveresource.html
+                    output: web
+                  - title: Modify policy imports
+                    url: /protocol-examples-policies-modifyimports.html
+                    output: web
+                  - title: Retrieve policy imports
+                    url: /protocol-examples-policies-retrieveimports.html
+                    output: web
+                  - title: Create a single policy import
+                    url: /protocol-examples-policies-createimport.html
+                    output: web
+                  - title: Delete a single policy import
+                    url: /protocol-examples-policies-deleteimport.html
+                    output: web
+                  - title: Modify a single policy import
+                    url: /protocol-examples-policies-modifyimport.html
+                    output: web
+                  - title: Retrieve a single policy import
+                    url: /protocol-examples-policies-retrieveimport.html
                     output: web
                   - title: Error responses
                     url: /protocol-examples-policies-errorresponses.html

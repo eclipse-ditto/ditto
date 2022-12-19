@@ -19,8 +19,6 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.policies.model.PolicyId;
 
-import akka.actor.ActorSystem;
-
 /**
  * Provides instances of {@link PolicyEnforcer} based on a given {@link PolicyId}.
  * Implementations may choose to apply caching.
@@ -41,20 +39,5 @@ public interface PolicyEnforcerProvider {
      * be retrieved.
      */
     CompletionStage<Optional<PolicyEnforcer>> getPolicyEnforcer(@Nullable PolicyId policyId);
-
-    /**
-     * Creates a new instance of this policy enforcer provider based on the configuration in the actor system
-     *
-     * @param actorSystem used to initialize all dependencies of the policy enforcer provider
-     * @return the new instance.
-     */
-    static PolicyEnforcerProvider getInstance(final ActorSystem actorSystem) {
-        final boolean withCaching = actorSystem.settings().config().getBoolean(ENFORCER_CACHE_CONFIG_KEY + ".enabled");
-        if (withCaching) {
-            return new CachingPolicyEnforcerProvider(actorSystem);
-        } else {
-            return new DefaultPolicyEnforcerProvider(actorSystem);
-        }
-    }
 
 }

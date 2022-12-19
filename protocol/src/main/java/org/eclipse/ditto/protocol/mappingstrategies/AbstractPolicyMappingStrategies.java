@@ -28,6 +28,8 @@ import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImport;
+import org.eclipse.ditto.policies.model.PolicyImports;
 import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Resources;
@@ -109,6 +111,30 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
     }
 
     /**
+     * Policy imports from policy imports.
+     *
+     * @param adaptable the adaptable
+     * @return the policy imports
+     * @since 3.1.0
+     */
+    protected static PolicyImports policyImportsFrom(final Adaptable adaptable) {
+        final JsonObject value = getValueFromPayload(adaptable);
+        return PoliciesModelFactory.newPolicyImports(value);
+    }
+
+    /**
+     * Policy entry from policy entry.
+     *
+     * @param adaptable the adaptable
+     * @return the policy entry
+    * @since 3.1.0
+     */
+    protected static PolicyImport policyImportFrom(final Adaptable adaptable) {
+        final JsonObject value = getValueFromPayload(adaptable);
+        return PoliciesModelFactory.newPolicyImport(importedPolicyIdFrom(adaptable), value);
+    }
+
+    /**
      * Resource from resource.
      *
      * @param adaptable the adaptable
@@ -143,6 +169,24 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
                 .flatMap(JsonPointer::getRoot)
                 .map(JsonKey::toString)
                 .map(Label::of)
+                .orElseThrow(() -> JsonParseException.newBuilder().build());
+    }
+
+    /**
+     * Imported PolicyId.
+     *
+     * @param adaptable the adaptable
+     * @return the imported policyId.
+    * @since 3.1.0
+     */
+    protected static PolicyId importedPolicyIdFrom(final Adaptable adaptable) {
+        final MessagePath path = adaptable.getPayload().getPath();
+        return path.getRoot()
+                .filter(entries -> Policy.JsonFields.IMPORTS.getPointer().equals(entries.asPointer()))
+                .map(entries -> path.nextLevel())
+                .flatMap(JsonPointer::getRoot)
+                .map(JsonKey::toString)
+                .map(PolicyId::of)
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 

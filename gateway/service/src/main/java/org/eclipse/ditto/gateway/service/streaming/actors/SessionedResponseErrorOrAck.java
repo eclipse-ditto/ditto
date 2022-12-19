@@ -22,7 +22,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 
@@ -34,15 +34,16 @@ final class SessionedResponseErrorOrAck implements SessionedJsonifiable {
 
     private final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable;
     private final DittoHeaders dittoHeaders;
-    @Nullable private final StartedTrace trace;
+    @Nullable private final StartedSpan startedSpan;
 
     SessionedResponseErrorOrAck(
             final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable,
             final DittoHeaders dittoHeaders,
-            @Nullable final StartedTrace trace) {
+            @Nullable final StartedSpan startedSpan
+    ) {
         this.jsonifiable = jsonifiable;
         this.dittoHeaders = dittoHeaders;
-        this.trace = trace;
+        this.startedSpan = startedSpan;
     }
 
     @Override
@@ -66,9 +67,9 @@ final class SessionedResponseErrorOrAck implements SessionedJsonifiable {
     }
 
     @Override
-    public void finishTrace() {
-        if (null != trace) {
-            trace.finish();
+    public void finishSpan() {
+        if (null != startedSpan) {
+            startedSpan.finish();
         }
     }
 }

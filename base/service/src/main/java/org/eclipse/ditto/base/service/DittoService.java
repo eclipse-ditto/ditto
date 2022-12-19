@@ -241,7 +241,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
             startPrometheusReporter();
         }
 
-        DittoTracing.initialize(tracingConfig);
+        DittoTracing.init(tracingConfig);
     }
 
     private void startPrometheusReporter() {
@@ -416,6 +416,8 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
                 Long.toString(limitsConfig.getMessagesMaxSize()));
         System.setProperty(FeatureToggle.MERGE_THINGS_ENABLED,
                 Boolean.toString(rawConfig.getBoolean(FeatureToggle.MERGE_THINGS_ENABLED)));
+        System.setProperty(DittoSystemProperties.DITTO_LIMITS_POLICY_IMPORTS_LIMIT,
+                Integer.toString(limitsConfig.getPolicyImportsLimit()));
     }
 
     private static ActorRef getDistributedPubSubMediatorActor(final ActorSystem actorSystem) {

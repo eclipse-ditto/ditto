@@ -38,7 +38,6 @@ public final class Assertions {
      * @param <T> the type of the list elements
      * @return an instance of {@link ListAssert}
      */
-    @SuppressWarnings("unchecked")
     public static <T> ListAssert<T> assertListWithIndexInfo(final List<T> actual, final BiConsumer<T, T> elementAssert) {
         return new ListAssert<>(actual).usingComparator((actualList, expectedList) -> {
             assertThat(actualList).hasSize(expectedList.size());

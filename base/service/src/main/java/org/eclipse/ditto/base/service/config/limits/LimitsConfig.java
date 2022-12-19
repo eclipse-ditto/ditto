@@ -58,6 +58,13 @@ public interface LimitsConfig {
     int getThingsSearchMaxPageSize();
 
     /**
+     * Return the number of allowed policy imports currently configured.
+     *
+     * @return the number of allowed policy imports.
+     */
+    int getPolicyImportsLimit();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code LimitsConfig}.
      */
@@ -86,7 +93,12 @@ public interface LimitsConfig {
         /**
          * The maximum pagination size to apply when searching for "Things" via "things-search".
          */
-        THINGS_SEARCH_MAX_PAGE_SIZE(Constants.THINGS_SEARCH_PATH + "." + "max-page-size", 200);
+        THINGS_SEARCH_MAX_PAGE_SIZE(Constants.THINGS_SEARCH_PATH + "." + "max-page-size", 200),
+
+        /**
+         * The number of imports that a policy may contain.
+         */
+        POLICY_IMPORTS_LIMIT("imports-limit", 10);
 
         private final String path;
         private final Object defaultValue;

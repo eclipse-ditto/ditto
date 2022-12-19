@@ -64,6 +64,7 @@ public final class PoliciesRoute extends AbstractRoute {
     private static final String PATH_ACTIONS = "actions";
 
     public static final String PATH_POLICIES = "policies";
+    private static final String PATH_IMPORTS = "imports";
     private static final String PATH_ENTRIES = "entries";
 
     private static final Label DUMMY_LABEL = Label.of("-");
@@ -72,6 +73,8 @@ public final class PoliciesRoute extends AbstractRoute {
             Subject.JsonFields.ANNOUNCEMENT;
 
     private final PolicyEntriesRoute policyEntriesRoute;
+    private final PolicyImportsRoute policyImportsRoute;
+
     private final TokenIntegrationSubjectIdFactory tokenIntegrationSubjectIdFactory;
 
     /**
@@ -86,6 +89,7 @@ public final class PoliciesRoute extends AbstractRoute {
 
         super(routeBaseProperties);
         policyEntriesRoute = new PolicyEntriesRoute(routeBaseProperties, tokenIntegrationSubjectIdFactory);
+        policyImportsRoute = new PolicyImportsRoute(routeBaseProperties);
         this.tokenIntegrationSubjectIdFactory = tokenIntegrationSubjectIdFactory;
     }
 
@@ -132,6 +136,7 @@ public final class PoliciesRoute extends AbstractRoute {
             final AuthenticationResult authenticationResult) {
         return concat(
                 policyId(ctx, dittoHeaders, policyId),
+                policyImports(ctx, dittoHeaders, policyId),
                 policyEntries(ctx, dittoHeaders, policyId, authenticationResult),
                 policyActions(ctx, dittoHeaders, policyId, authenticationResult)
         );
@@ -189,6 +194,17 @@ public final class PoliciesRoute extends AbstractRoute {
                     }
                 });
         return policyJsonObject.setValue(Policy.JsonFields.ID.getPointer(), JsonValue.of(policyId));
+    }
+
+    /*
+     * Describes {@code /policies/<policyId>/imports} route.
+     *
+     * @return {@code /policies/<policyId>/imports} route.
+     */
+    private Route policyImports(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId) {
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_IMPORTS), () -> // /policies/<policyId>/imports
+                policyImportsRoute.buildPolicyImportsRoute(ctx, dittoHeaders, policyId)
+        );
     }
 
     /*

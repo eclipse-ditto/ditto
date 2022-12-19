@@ -13,9 +13,8 @@
 package org.eclipse.ditto.internal.utils.metrics.instruments.timer;
 
 import java.time.Duration;
-import java.util.Map;
 
-import javax.annotation.Nullable;
+import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 
 /**
  * A stopped Timer metric.
@@ -33,16 +32,8 @@ public interface StoppedTimer extends Timer {
     /**
      * Gets all tags of this timer.
      *
-     * @return All tags of this timer.
+     * @return all tags of this timer.
      */
-    Map<String, String> getTags();
+    TagSet getTagSet();
 
-    /**
-     * Gets the tag with the given key.
-     *
-     * @param key the key of the tag.
-     * @return The value of the tag with the given key.
-     */
-    @Nullable
-    String getTag(String key);
 }

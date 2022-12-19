@@ -96,10 +96,10 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private RabbitMQClientActor(final Connection connection,
             final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
-            final DittoHeaders dittoHeaders,
+            final boolean dryRun,
             final Config connectivityOverwritesConfig) {
 
-        super(connection, commandForwarderActor, connectionActor, dittoHeaders, connectivityOverwritesConfig);
+        super(connection, commandForwarderActor, connectionActor, dryRun, connectivityOverwritesConfig);
 
         rabbitConnectionFactoryFactory =
                 ConnectionBasedRabbitConnectionFactoryFactory.getInstance(this::getSshTunnelState);
@@ -116,10 +116,10 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private RabbitMQClientActor(final Connection connection, final ActorRef proxyActor,
             final ActorRef connectionActor,
             final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory,
-            final DittoHeaders dittoHeaders,
+            final boolean dryRun,
             final Config connectivityOverwritesConfig) {
 
-        super(connection, proxyActor, connectionActor, dittoHeaders, connectivityOverwritesConfig);
+        super(connection, proxyActor, connectionActor, dryRun, connectivityOverwritesConfig);
         this.rabbitConnectionFactoryFactory = rabbitConnectionFactoryFactory;
         consumedTagsToAddresses = new HashMap<>();
         consumerByAddressWithIndex = new HashMap<>();
@@ -143,7 +143,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             final Config connectivityOverwritesConfig) {
 
         return Props.create(RabbitMQClientActor.class, validateConnection(connection), commandForwarderActor,
-                connectionActor, dittoHeaders, connectivityOverwritesConfig);
+                connectionActor, dittoHeaders.isDryRun(), connectivityOverwritesConfig);
     }
 
     @Override
@@ -167,7 +167,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             final ActorRef connectionActor, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
 
         return Props.create(RabbitMQClientActor.class, validateConnection(connection), proxyActor, connectionActor,
-                rabbitConnectionFactoryFactory, DittoHeaders.empty(), ConfigFactory.empty());
+                rabbitConnectionFactoryFactory, false, ConfigFactory.empty());
     }
 
     private static Connection validateConnection(final Connection connection) {
@@ -203,6 +203,17 @@ public final class RabbitMQClientActor extends BaseClientActor {
         final String correlationId = dittoHeaders.getCorrelationId().orElse(null);
         return connect(testConnectionCommand.getConnection(), correlationId, createChannelTimeout,
                 internalReconnectTimeout);
+    }
+
+    @Override
+    protected CompletionStage<Void> stopConsuming() {
+        final var timeout = Duration.ofMinutes(2L);
+        final CompletableFuture<?>[] futures = consumerByAddressWithIndex.values()
+                .stream()
+                .map(child -> Patterns.ask(child, RabbitMQConsumerActor.Control.STOP_CONSUMER, timeout))
+                .map(CompletionStage::toCompletableFuture)
+                .toArray(CompletableFuture[]::new);
+        return CompletableFuture.allOf(futures);
     }
 
     @Override

@@ -607,8 +607,11 @@ public final class InboundDispatchingSink
                     if (sender != null) {
                         sender.tell(responseSignal, ActorRef.noSender());
                     }
+
+                    clientActor.tell(BaseClientActor.Control.ACKREGATOR_STOPPED, ActorRef.noSender());
                 },
                 (ackregator, adjustedSignal) -> {
+                    clientActor.tell(BaseClientActor.Control.ACKREGATOR_STARTED, ActorRef.noSender());
                     proxyActor.tell(adjustedSignal, ackregator);
                     return null;
                 });

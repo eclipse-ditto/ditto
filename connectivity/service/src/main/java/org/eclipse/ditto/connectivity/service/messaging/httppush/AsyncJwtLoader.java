@@ -15,6 +15,8 @@ package org.eclipse.ditto.connectivity.service.messaging.httppush;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.service.UriEncoding;
@@ -48,8 +50,6 @@ import akka.util.ByteString;
 import scala.util.Failure;
 import scala.util.Success;
 import scala.util.Try;
-
-import javax.annotation.Nullable;
 
 /**
  * Implementation of AsyncCacheLoader for loading {@code JsonWebToken}s.

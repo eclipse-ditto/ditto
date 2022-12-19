@@ -111,7 +111,7 @@ export async function ready() {
  * Calls Ditto to send a message with the parameters of the fields in the UI
  */
 function messageFeature() {
-  const payload = acePayload.getValue();
+  const payload = JSON.parse(acePayload.getValue());
   aceResponse.setValue('');
   API.callDittoREST('POST', '/things/' + Things.theThing.thingId +
       '/features/' + dom.theFeatureId.value +

@@ -163,10 +163,15 @@ hr {
     overflow: auto;
     background-color: rgb(0,0,0);
     background-color: rgba(0,0,0,0.4);
-  }
+}
 
-  .editForground {
-      z-index: 1200;
-      position: relative;
-      background-color: white;
-  }
+.editForground {
+    z-index: 1200;
+    position: relative;
+    background-color: white;
+}
+
+.dropdown-menu {
+    max-height: 80vh;
+    overflow-y: auto;
+}

@@ -29,6 +29,8 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.DeleteConnec
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
@@ -42,6 +44,10 @@ import akka.testkit.javadsl.TestKit;
  * Tests error handling behaviour of {@link org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceActor}.
  */
 public class ErrorHandlingActorTest extends WithMockServers {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     private static ActorSystem actorSystem;
     private static ActorRef proxyActor;
@@ -93,11 +99,6 @@ public class ErrorHandlingActorTest extends WithMockServers {
     @Test
     public void tryOpenConnectionExpectErrorResponse() {
         tryModifyConnectionExpectErrorResponse("open");
-    }
-
-    @Test
-    public void tryCloseConnectionExpectErrorResponse() {
-        tryModifyConnectionExpectErrorResponse("close");
     }
 
     @Test

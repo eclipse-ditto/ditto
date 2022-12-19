@@ -34,6 +34,11 @@ public final class DittoSystemProperties {
      */
     public static final String DITTO_LIMITS_MESSAGES_MAX_SIZE_BYTES = "ditto.limits.messages.max-size";
 
+    /**
+     * System property name of the property defining the import limits of a given Policy.
+     */
+    public static final String DITTO_LIMITS_POLICY_IMPORTS_LIMIT = "ditto.limits.policy.imports-limit";
+
     private DittoSystemProperties() {
         throw new AssertionError();
     }

@@ -23,11 +23,14 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImportResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResourceResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntriesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportsResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResourceResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResourcesResponse;
@@ -61,6 +64,8 @@ final class PolicyModifyCommandResponseMappingStrategies implements MappingStrat
         addPolicyEntryResourceResponses(streamBuilder);
 
         addPolicyEntrySubjectResponses(streamBuilder);
+
+        addPolicyImportResponses(streamBuilder);
 
         final Stream<AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> mappers = streamBuilder.build();
         return mappers.collect(Collectors.toMap(AdaptableToSignalMapper::getSignalType, Function.identity()));
@@ -109,6 +114,29 @@ final class PolicyModifyCommandResponseMappingStrategies implements MappingStrat
 
         streamBuilder.accept(AdaptableToSignalMapper.of(ModifyPolicyEntriesResponse.TYPE,
                 mappingContext -> ModifyPolicyEntriesResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
+    }
+
+    private static void addPolicyImportResponses(
+            final Consumer<AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> streamBuilder) {
+
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyPolicyImportsResponse.TYPE,
+                mappingContext -> ModifyPolicyImportsResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getPolicyImports().orElse(null),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
+
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyPolicyImportResponse.TYPE,
+                mappingContext -> ModifyPolicyImportResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getImportedPolicyId(),
+                        mappingContext.getPolicyImport().orElse(null),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
+
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeletePolicyImportResponse.TYPE,
+                mappingContext -> DeletePolicyImportResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getImportedPolicyId(),
                         mappingContext.getHttpStatusOrThrow(),
                         mappingContext.getDittoHeaders())));
     }
@@ -165,6 +193,7 @@ final class PolicyModifyCommandResponseMappingStrategies implements MappingStrat
 
     @Nullable
     @Override
+    @SuppressWarnings("unchecked")
     public JsonifiableMapper<PolicyModifyCommandResponse<?>> find(final String type) {
         return (JsonifiableMapper<PolicyModifyCommandResponse<?>>) mappingStrategies.get(type);
     }

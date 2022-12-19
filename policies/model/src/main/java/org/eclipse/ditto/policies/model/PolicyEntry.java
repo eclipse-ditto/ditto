@@ -40,8 +40,24 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
      */
     static PolicyEntry newInstance(final CharSequence label, final Iterable<Subject> subjects,
             final Iterable<Resource> resources) {
-
         return PoliciesModelFactory.newPolicyEntry(label, subjects, resources);
+    }
+
+    /**
+     * Returns a new {@code PolicyEntry} with the specified {@code label}, {@code subjects} and {@code resources}.
+     *
+     * @param label the Label of the PolicyEntry to create.
+     * @param subjects the Subjects contained in the PolicyEntry to create.
+     * @param resources the Resources of the PolicyEntry to create.
+     * @param importableType whether the entry is importable by othersa.
+     * @return the new {@code PolicyEntry}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code label} is empty.
+     * @since 3.1.0
+     */
+    static PolicyEntry newInstance(final CharSequence label, final Iterable<Subject> subjects,
+            final Iterable<Resource> resources, final ImportableType importableType) {
+        return PoliciesModelFactory.newPolicyEntry(label, subjects, resources, importableType);
     }
 
     /**
@@ -74,6 +90,14 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
      * @return the Resources of this Policy Entry.
      */
     Resources getResources();
+
+    /**
+     * Returns whether/how this Policy Entry is allowed to be imported by others.
+     *
+     * @return whether/how this entry is importable.
+     * @since 3.1.0
+     */
+    ImportableType getImportableType();
 
     /**
      * Checks if the passed {@code otherPolicyEntry} is semantically the same as this entry.
@@ -117,6 +141,13 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
          */
         public static final JsonFieldDefinition<JsonObject> RESOURCES =
                 JsonFactory.newJsonObjectFieldDefinition("resources", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the PolicyEntry's importable type.
+         * @since 3.1.0
+         */
+        public static final JsonFieldDefinition<String> IMPORTABLE_TYPE = JsonFactory
+                .newStringFieldDefinition("importable", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

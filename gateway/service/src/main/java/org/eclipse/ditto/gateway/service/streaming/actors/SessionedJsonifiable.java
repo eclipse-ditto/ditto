@@ -26,8 +26,8 @@ import org.eclipse.ditto.gateway.service.streaming.signals.StreamingAck;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.TracingTags;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
@@ -69,9 +69,9 @@ public interface SessionedJsonifiable {
     Optional<StreamingSession> getSession();
 
     /**
-     * Finish a started trace.
+     * Finish a started tracing span.
      */
-    void finishTrace();
+    void finishSpan();
 
     /**
      * Create a sessioned Jsonifiable for a signal.
@@ -81,13 +81,23 @@ public interface SessionedJsonifiable {
      * @param session session information for the signal's streaming type.
      * @return the sessioned Jsonifiable.
      */
-    static SessionedJsonifiable signal(final Signal<?> signal, final DittoHeaders sessionHeaders,
-            final StreamingSession session) {
-        final StartedTrace trace = DittoTracing.trace(signal, "gw_streaming_out_signal")
-                .tag(TracingTags.SIGNAL_TYPE, signal.getType())
+    static SessionedJsonifiable signal(
+            final Signal<?> signal,
+            final DittoHeaders sessionHeaders,
+            final StreamingSession session
+    ) {
+        final var startedSpan = DittoTracing.newPreparedSpan(
+                        signal.getDittoHeaders(),
+                        SpanOperationName.of("gw_streaming_out_signal")
+                )
+                .tag(SpanTagKey.SIGNAL_TYPE.getTagForValue(signal.getType()))
                 .start();
-        final Signal<?> tracedSignal = DittoTracing.propagateContext(trace.getContext(), signal);
-        return new SessionedSignal(tracedSignal, sessionHeaders, session, trace);
+        return new SessionedSignal(
+                signal.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(signal.getDittoHeaders()))),
+                sessionHeaders,
+                session,
+                startedSpan
+        );
     }
 
     /**
@@ -97,11 +107,17 @@ public interface SessionedJsonifiable {
      * @return the sessioned Jsonifiable.
      */
     static SessionedJsonifiable error(final DittoRuntimeException error) {
-        final StartedTrace trace = DittoTracing.trace(error, "gw_streaming_out_error")
-                .start();
-        trace.fail(error);
-        final DittoRuntimeException tracedError = DittoTracing.propagateContext(trace.getContext(), error);
-        return new SessionedResponseErrorOrAck(tracedError, error.getDittoHeaders(), trace);
+        final var preparedSpan = DittoTracing.newPreparedSpan(
+                error.getDittoHeaders(),
+                SpanOperationName.of("gw_streaming_out_error")
+        );
+        final var startedSpan = preparedSpan.start();
+        startedSpan.tagAsFailed(error);
+        return new SessionedResponseErrorOrAck(
+                error.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(error.getDittoHeaders()))),
+                error.getDittoHeaders(),
+                startedSpan
+        );
     }
 
     /**
@@ -111,11 +127,17 @@ public interface SessionedJsonifiable {
      * @return the sessioned Jsonifiable.
      */
     static SessionedJsonifiable response(final CommandResponse<?> response) {
-        final StartedTrace trace = DittoTracing.trace(response, "gw_streaming_out_response")
-                .tag(TracingTags.SIGNAL_TYPE, response.getType())
+        final var startedSpan = DittoTracing.newPreparedSpan(
+                        response.getDittoHeaders(),
+                        SpanOperationName.of("gw_streaming_out_response")
+                )
+                .tag(SpanTagKey.SIGNAL_TYPE.getTagForValue(response.getType()))
                 .start();
-        final CommandResponse<?> tracedResponse = DittoTracing.propagateContext(trace.getContext(), response);
-        return new SessionedResponseErrorOrAck(tracedResponse, response.getDittoHeaders(), trace);
+        return new SessionedResponseErrorOrAck(
+                response.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(response.getDittoHeaders()))),
+                response.getDittoHeaders(),
+                startedSpan
+        );
     }
 
     /**

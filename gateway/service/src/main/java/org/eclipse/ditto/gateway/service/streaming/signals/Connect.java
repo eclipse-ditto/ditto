@@ -26,6 +26,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
 
+import akka.stream.KillSwitch;
 import akka.stream.javadsl.SourceQueueWithComplete;
 
 /**
@@ -40,6 +41,7 @@ public final class Connect {
     @Nullable private final Instant sessionExpirationTime;
     private final Set<AcknowledgementLabel> declaredAcknowledgementLabels;
     private final AuthorizationContext connectionAuthContext;
+    @Nullable private final KillSwitch killSwitch;
 
     /**
      * Constructs a new {@link Connect} instance.
@@ -50,6 +52,8 @@ public final class Connect {
      * @param jsonSchemaVersion schema version of the request for the streaming session.
      * @param sessionExpirationTime how long to keep the session alive when idling.
      * @param declaredAcknowledgementLabels labels of acknowledgements this session may send.
+     * @param connectionAuthContext the authorizationContext of the streaming session.
+     * @param killSwitch the kill switch to terminate the streaming session.
      */
     public Connect(final SourceQueueWithComplete<SessionedJsonifiable> eventAndResponsePublisher,
             final CharSequence connectionCorrelationId,
@@ -57,7 +61,8 @@ public final class Connect {
             final JsonSchemaVersion jsonSchemaVersion,
             @Nullable final Instant sessionExpirationTime,
             final Set<AcknowledgementLabel> declaredAcknowledgementLabels,
-            final AuthorizationContext connectionAuthContext) {
+            final AuthorizationContext connectionAuthContext,
+            @Nullable final KillSwitch killSwitch) {
         this.eventAndResponsePublisher = eventAndResponsePublisher;
         this.connectionCorrelationId = checkNotNull(connectionCorrelationId, "connectionCorrelationId")
                 .toString();
@@ -66,6 +71,7 @@ public final class Connect {
         this.sessionExpirationTime = sessionExpirationTime;
         this.declaredAcknowledgementLabels = declaredAcknowledgementLabels;
         this.connectionAuthContext = connectionAuthContext;
+        this.killSwitch = killSwitch;
     }
 
     public SourceQueueWithComplete<SessionedJsonifiable> getEventAndResponsePublisher() {
@@ -96,6 +102,10 @@ public final class Connect {
         return connectionAuthContext;
     }
 
+    public Optional<KillSwitch> getKillSwitch() {
+        return Optional.ofNullable(killSwitch);
+    }
+
     @Override
     public boolean equals(final Object o) {
         if (this == o) {
@@ -110,13 +120,14 @@ public final class Connect {
                 Objects.equals(type, connect.type) &&
                 Objects.equals(sessionExpirationTime, connect.sessionExpirationTime) &&
                 Objects.equals(declaredAcknowledgementLabels, connect.declaredAcknowledgementLabels) &&
-                Objects.equals(connectionAuthContext, connect.connectionAuthContext);
+                Objects.equals(connectionAuthContext, connect.connectionAuthContext) &&
+                Objects.equals(killSwitch, connect.killSwitch);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(eventAndResponsePublisher, connectionCorrelationId, type, sessionExpirationTime,
-                declaredAcknowledgementLabels, connectionAuthContext);
+                declaredAcknowledgementLabels, connectionAuthContext, killSwitch);
     }
 
     @Override
@@ -126,8 +137,10 @@ public final class Connect {
                 ", connectionCorrelationId=" + connectionCorrelationId +
                 ", type=" + type +
                 ", sessionExpirationTime=" + sessionExpirationTime +
-                ", declaredAcknowledgementLabels" + declaredAcknowledgementLabels +
-                ", connectionAuthContext" + connectionAuthContext +
+                ", declaredAcknowledgementLabels=" + declaredAcknowledgementLabels +
+                ", connectionAuthContext=" + connectionAuthContext +
+                ", killSwitch=" + killSwitch +
                 "]";
     }
+
 }

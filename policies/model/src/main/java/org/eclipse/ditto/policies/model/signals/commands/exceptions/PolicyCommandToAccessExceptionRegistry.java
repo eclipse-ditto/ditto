@@ -22,6 +22,8 @@ import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntries;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntry;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImport;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResources;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubject;
@@ -85,6 +87,15 @@ public final class PolicyCommandToAccessExceptionRegistry
         mappingStrategies.put(RetrieveSubjects.TYPE,
                 command -> SubjectsNotAccessibleException.newBuilder(command.getEntityId(),
                         ((RetrieveSubjects) command).getLabel())
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
+        mappingStrategies.put(RetrievePolicyImports.TYPE,
+                command -> PolicyImportsNotAccessibleException.newBuilder(command.getEntityId())
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
+        mappingStrategies.put(RetrievePolicyImport.TYPE,
+                command -> PolicyImportNotAccessibleException.newBuilder(command.getEntityId(),
+                        ((RetrievePolicyImport) command).getImportedPolicyId())
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
 

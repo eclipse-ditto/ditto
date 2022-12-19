@@ -15,9 +15,11 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.model;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -27,8 +29,10 @@ import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.internal.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
@@ -44,8 +48,8 @@ public final class Metadata {
 
     private final ThingId thingId;
     private final long thingRevision;
-    @Nullable private final PolicyId policyId;
-    @Nullable private final Long policyRevision;
+    @Nullable private final PolicyTag thingPolicy;
+    private final Set<PolicyTag> allReferencedPolicies;
     @Nullable private final Instant modified;
     private final List<ThingEvent<?>> events;
     private final List<StartedTimer> timers;
@@ -56,8 +60,8 @@ public final class Metadata {
 
     private Metadata(final ThingId thingId,
             final long thingRevision,
-            @Nullable final PolicyId policyId,
-            @Nullable final Long policyRevision,
+            @Nullable final PolicyTag thingPolicy,
+            final Collection<PolicyTag> allReferencedPolicies,
             @Nullable final Instant modified,
             final List<ThingEvent<?>> events,
             final Collection<StartedTimer> timers,
@@ -68,8 +72,12 @@ public final class Metadata {
 
         this.thingId = thingId;
         this.thingRevision = thingRevision;
-        this.policyId = policyId;
-        this.policyRevision = policyRevision;
+        this.thingPolicy = thingPolicy;
+        final HashSet<PolicyTag> policyTags = new HashSet<>(allReferencedPolicies);
+        if (thingPolicy != null) {
+            policyTags.add(thingPolicy);
+        }
+        this.allReferencedPolicies = Set.copyOf(policyTags);
         this.modified = modified;
         this.events = events;
         this.timers = List.copyOf(timers);
@@ -84,53 +92,53 @@ public final class Metadata {
      *
      * @param thingId the Thing ID.
      * @param thingRevision the Thing revision.
-     * @param policyId the Policy ID if the Thing has one.
-     * @param policyRevision the Policy revision if the Thing has a policy, or null if it does not.
+     * @param thingPolicy the policy directly referenced by the thing.
+     * @param allReferencedPolicies the policy directly and indirectly (via policy import) referenced by the thing.
      * @param timer an optional timer measuring the search updater's consistency lag.
      * @return the new Metadata object.
      */
     public static Metadata of(final ThingId thingId,
             final long thingRevision,
-            @Nullable final PolicyId policyId,
-            @Nullable final Long policyRevision,
+            @Nullable final PolicyTag thingPolicy,
+            final Collection<PolicyTag> allReferencedPolicies,
             @Nullable final StartedTimer timer) {
 
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, null,
+        return new Metadata(thingId, thingRevision, thingPolicy, allReferencedPolicies, null,
                 List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, false,
                 List.of(UpdateReason.UNKNOWN));
     }
 
     /**
-     * Create an Metadata object retaining the original ackRecipient of an event.
+     * Create a Metadata object retaining the original ackRecipient of an event.
      *
      * @param thingId the Thing ID.
      * @param thingRevision the Thing revision.
-     * @param policyId the Policy ID if the Thing has one.
-     * @param policyRevision the Policy revision if the Thing has a policy, or null if it does not.
+     * @param thingPolicy the policy directly referenced by the thing.
+     * @param allReferencedPolicies the policy directly and indirectly (via policy import) referenced by the thing.
      * @param timer an optional timer measuring the search updater's consistency lag.
      * @param ackRecipient the ackRecipient.
      * @return the new Metadata object.
      */
     public static Metadata of(final ThingId thingId,
             final long thingRevision,
-            @Nullable final PolicyId policyId,
-            @Nullable final Long policyRevision,
+            @Nullable final PolicyTag thingPolicy,
+            final Collection<PolicyTag> allReferencedPolicies,
             final List<ThingEvent<?>> events,
             @Nullable final StartedTimer timer,
             @Nullable final ActorSelection ackRecipient) {
 
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, null, events,
+        return new Metadata(thingId, thingRevision, thingPolicy, allReferencedPolicies, null, events,
                 null != timer ? List.of(timer) : List.of(),
                 null != ackRecipient ? List.of(ackRecipient) : List.of(), false, false, List.of(UpdateReason.UNKNOWN));
     }
 
     /**
-     * Create an Metadata object retaining the original ackRecipient of an event.
+     * Create a Metadata object retaining the original ackRecipient of an event.
      *
      * @param thingId the Thing ID.
      * @param thingRevision the Thing revision.
-     * @param policyId the Policy ID if the Thing has one.
-     * @param policyRevision the Policy revision if the Thing has a policy, or null if it does not.
+     * @param thingPolicy the policy directly referenced by the thing.
+     * @param allReferencedPolicies the policy directly and indirectly (via policy import) referenced by the thing.
      * @param modified the timestamp of the last change incorporated into the search index, or null if not known.
      * @param events the events included in the metadata causing the search update.
      * @param timers the timers measuring the search updater's consistency lag.
@@ -140,37 +148,37 @@ public final class Metadata {
      */
     public static Metadata of(final ThingId thingId,
             final long thingRevision,
-            @Nullable final PolicyId policyId,
-            @Nullable final Long policyRevision,
+            @Nullable final PolicyTag thingPolicy,
+            final Collection<PolicyTag> allReferencedPolicies,
             @Nullable final Instant modified,
             final List<ThingEvent<?>> events,
             final Collection<StartedTimer> timers,
             final Collection<ActorSelection> ackRecipient,
             final Collection<UpdateReason> updateReasons) {
 
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, ackRecipient,
-                false, false, updateReasons);
+        return new Metadata(thingId, thingRevision, thingPolicy, allReferencedPolicies, modified, events, timers,
+                ackRecipient, false, false, updateReasons);
     }
 
     /**
-     * Create an Metadata object with timestamp for the last modification.
+     * Create a Metadata object with timestamp for the last modification.
      *
      * @param thingId the Thing ID.
      * @param thingRevision the Thing revision.
-     * @param policyId the Policy ID if the Thing has one.
-     * @param policyRevision the Policy revision if the Thing has a policy, or null if it does not.
+     * @param thingPolicy the policy directly referenced by the thing.
+     * @param allReferencedPolicies the policy directly and indirectly (via policy import) referenced by the thing.
      * @param modified the timestamp of the last change incorporated into the search index, or null if not known.
      * @param timer an optional timer measuring the search updater's consistency lag.
      * @return the new Metadata object.
      */
     public static Metadata of(final ThingId thingId,
             final long thingRevision,
-            @Nullable final PolicyId policyId,
-            @Nullable final Long policyRevision,
+            @Nullable final PolicyTag thingPolicy,
+            final Collection<PolicyTag> allReferencedPolicies,
             @Nullable final Instant modified,
             @Nullable final StartedTimer timer) {
 
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified,
+        return new Metadata(thingId, thingRevision, thingPolicy, allReferencedPolicies, modified,
                 List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, false,
                 List.of(UpdateReason.UNKNOWN));
     }
@@ -182,7 +190,7 @@ public final class Metadata {
      * @return the Metadata object.
      */
     public static Metadata ofDeleted(final ThingId thingId) {
-        return Metadata.of(thingId, -1, null, null, null);
+        return Metadata.of(thingId, -1, null, Set.of(), null);
     }
 
     /**
@@ -191,7 +199,7 @@ public final class Metadata {
      * @return the exported metadata.
      */
     public Metadata export() {
-        return Metadata.of(thingId, thingRevision, policyId, policyRevision, null);
+        return Metadata.of(thingId, thingRevision, thingPolicy, allReferencedPolicies, null);
     }
 
     /**
@@ -202,8 +210,8 @@ public final class Metadata {
      * @return the copy.
      */
     public Metadata invalidateCaches(final boolean invalidateThing, final boolean invalidatePolicy) {
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, ackRecipients,
-                invalidateThing, invalidatePolicy, updateReasons);
+        return new Metadata(thingId, thingRevision, thingPolicy, allReferencedPolicies, modified, events, timers,
+                ackRecipients, invalidateThing, invalidatePolicy, updateReasons);
     }
 
     /**
@@ -212,7 +220,8 @@ public final class Metadata {
      * @return the copy.
      */
     public Metadata withAckRecipient(final ActorSelection ackRecipient) {
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, List.of(ackRecipient),
+        return new Metadata(thingId, thingRevision, thingPolicy, allReferencedPolicies, modified, events, timers,
+                List.of(ackRecipient),
                 invalidateThing, invalidatePolicy, updateReasons);
     }
 
@@ -222,8 +231,8 @@ public final class Metadata {
      * @return the copy.
      */
     public Metadata withUpdateReason(final UpdateReason reason) {
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, ackRecipients,
-                invalidateThing, invalidatePolicy, List.of(reason));
+        return new Metadata(thingId, thingRevision, thingPolicy, allReferencedPolicies, modified, events, timers,
+                ackRecipients, invalidateThing, invalidatePolicy, List.of(reason));
     }
 
     /**
@@ -243,13 +252,6 @@ public final class Metadata {
     }
 
     /**
-     * @return the policyId of the Thing according to the search index.
-     */
-    public Optional<PolicyId> getPolicyId() {
-        return Optional.ofNullable(policyId);
-    }
-
-    /**
      * @return namespace field as to be written in the persistence.
      */
     public String getNamespaceInPersistence() {
@@ -260,16 +262,27 @@ public final class Metadata {
      * @return the policyId-field as to be written in the persistence.
      */
     public String getPolicyIdInPersistence() {
-        return getPolicyId().map(PolicyId::toString).orElse("");
+        return getThingPolicyTag()
+                .map(AbstractEntityIdWithRevision::getEntityId)
+                .map(PolicyId::toString)
+                .orElse("");
     }
 
     /**
-     * Returns the revision of the Policy according to the search index.
+     * Returns the thing policy tag according to the search index.
      *
-     * @return the revision of the Policy according to the search index.
+     * @return the ID and revision of the Policy according to the search index.
      */
-    public Optional<Long> getPolicyRevision() {
-        return Optional.ofNullable(policyRevision);
+    public Optional<PolicyTag> getThingPolicyTag() {
+        return Optional.ofNullable(thingPolicy);
+    }
+
+    /**
+     * @return all referenced policy tags. This includes the thing policy as well as all policies imported by the
+     * thing policy.
+     */
+    public Set<PolicyTag> getAllReferencedPolicyTags() {
+        return allReferencedPolicies;
     }
 
     /**
@@ -366,11 +379,12 @@ public final class Metadata {
     public Metadata append(final Metadata newMetadata) {
         final List<ThingEvent<?>> newEvents = Stream.concat(events.stream(), newMetadata.events.stream()).toList();
         final List<StartedTimer> newTimers = Stream.concat(timers.stream(), newMetadata.timers.stream()).toList();
-        final List<ActorSelection> newAckRecipients = Stream.concat(ackRecipients.stream(), newMetadata.ackRecipients.stream()).toList();
+        final List<ActorSelection> newAckRecipients =
+                Stream.concat(ackRecipients.stream(), newMetadata.ackRecipients.stream()).toList();
         final List<UpdateReason> newReasons = Stream.concat(updateReasons.stream(), newMetadata.updateReasons.stream())
                 .toList();
-        return new Metadata(newMetadata.thingId, newMetadata.thingRevision, newMetadata.policyId,
-                newMetadata.policyRevision, newMetadata.modified, newEvents, newTimers, newAckRecipients,
+        return new Metadata(newMetadata.thingId, newMetadata.thingRevision, newMetadata.thingPolicy,
+                newMetadata.allReferencedPolicies, newMetadata.modified, newEvents, newTimers, newAckRecipients,
                 invalidateThing || newMetadata.invalidateThing,
                 invalidatePolicy || newMetadata.invalidatePolicy,
                 newReasons);
@@ -420,9 +434,9 @@ public final class Metadata {
         }
         final Metadata that = (Metadata) o;
         return thingRevision == that.thingRevision &&
-                Objects.equals(policyRevision, that.policyRevision) &&
+                Objects.equals(thingPolicy, that.thingPolicy) &&
                 Objects.equals(thingId, that.thingId) &&
-                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(allReferencedPolicies, that.allReferencedPolicies) &&
                 Objects.equals(modified, that.modified) &&
                 Objects.equals(events, that.events) &&
                 Objects.equals(timers, that.timers) &&
@@ -434,8 +448,8 @@ public final class Metadata {
 
     @Override
     public int hashCode() {
-        return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified, events, timers, ackRecipients,
-                invalidateThing, invalidatePolicy, updateReasons);
+        return Objects.hash(thingId, thingRevision, thingPolicy, allReferencedPolicies, modified, events, timers,
+                ackRecipients, invalidateThing, invalidatePolicy, updateReasons);
     }
 
     @Override
@@ -443,8 +457,8 @@ public final class Metadata {
         return getClass().getSimpleName() + " [" +
                 "thingId=" + thingId +
                 ", thingRevision=" + thingRevision +
-                ", policyId=" + policyId +
-                ", policyRevision=" + policyRevision +
+                ", thingPolicy=" + thingPolicy +
+                ", allReferencedPolicies=" + allReferencedPolicies +
                 ", modified=" + modified +
                 ", events=" + events +
                 ", timers=[" + timers.size() + " timers]" +

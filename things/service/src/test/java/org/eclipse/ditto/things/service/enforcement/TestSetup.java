@@ -109,14 +109,14 @@ public final class TestSetup {
                 }
 
                 @Override
-                public Object wrapForPublication(final ThingCommand<?> message) {
+                public Object wrapForPublication(final ThingCommand<?> message, final CharSequence groupIndexKey) {
                     return DistPubSubAccess.publish(StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic(), message);
                 }
 
                 @Override
                 public <S extends ThingCommand<?>> Object wrapForPublicationWithAcks(final S message,
-                        final AckExtractor<S> ackExtractor) {
-                    return wrapForPublication(message);
+                        final CharSequence groupIndexKey, final AckExtractor<S> ackExtractor) {
+                    return wrapForPublication(message, groupIndexKey);
                 }
             };
         }
@@ -130,14 +130,14 @@ public final class TestSetup {
                 }
 
                 @Override
-                public Object wrapForPublication(final ThingEvent<?> message) {
+                public Object wrapForPublication(final ThingEvent<?> message, final CharSequence groupIndexKey) {
                     return DistPubSubAccess.publish(StreamingType.LIVE_EVENTS.getDistributedPubSubTopic(), message);
                 }
 
                 @Override
                 public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
-                        final AckExtractor<S> ackExtractor) {
-                    return wrapForPublication(message);
+                        final CharSequence groupIndexKey, final AckExtractor<S> ackExtractor) {
+                    return wrapForPublication(message, groupIndexKey);
                 }
             };
         }
@@ -152,14 +152,14 @@ public final class TestSetup {
                 }
 
                 @Override
-                public Object wrapForPublication(final SignalWithEntityId<?> message) {
+                public Object wrapForPublication(final SignalWithEntityId<?> message, final CharSequence groupIndexKey) {
                     return DistPubSubAccess.publish(StreamingType.MESSAGES.getDistributedPubSubTopic(), message);
                 }
 
                 @Override
                 public <S extends SignalWithEntityId<?>> Object wrapForPublicationWithAcks(final S message,
-                        final AckExtractor<S> ackExtractor) {
-                    return wrapForPublication(message);
+                        final CharSequence groupIndexKey, final AckExtractor<S> ackExtractor) {
+                    return wrapForPublication(message, groupIndexKey);
                 }
             };
         }

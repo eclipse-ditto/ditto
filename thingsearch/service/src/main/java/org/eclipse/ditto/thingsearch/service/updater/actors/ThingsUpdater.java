@@ -12,10 +12,7 @@
  */
 package org.eclipse.ditto.thingsearch.service.updater.actors;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Function;
 
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
@@ -32,7 +29,6 @@ import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.internal.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
-import org.eclipse.ditto.internal.utils.pubsub.DistributedSub;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
@@ -66,18 +62,13 @@ final class ThingsUpdater extends AbstractActorWithTimers {
     private final ActorRef shardRegion;
     private final BlockNamespaceBehavior namespaceBlockingBehavior;
     private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
-    private final DistributedSub thingEventSub;
-
-    private Set<String> previousShardIds = Collections.emptySet();
 
     @SuppressWarnings("unused")
-    private ThingsUpdater(final DistributedSub thingEventSub,
+    private ThingsUpdater(
             final ActorRef thingUpdaterShardRegion,
             final UpdaterConfig updaterConfig,
             final BlockedNamespaces blockedNamespaces,
             final ActorRef pubSubMediator) {
-
-        this.thingEventSub = thingEventSub;
 
         shardRegion = thingUpdaterShardRegion;
 
@@ -86,21 +77,12 @@ final class ThingsUpdater extends AbstractActorWithTimers {
         retrieveStatisticsDetailsResponseSupplier =
                 RetrieveStatisticsDetailsResponseSupplier.of(shardRegion, ShardRegionFactory.UPDATER_SHARD_REGION, log);
 
-        if (updaterConfig.isEventProcessingActive()) {
-            // schedule regular updates of subscriptions
-            getTimers().startTimerAtFixedRate(Clock.REBALANCE_TICK, Clock.REBALANCE_TICK,
-                    updaterConfig.getShardingStatePollInterval());
-            // subscribe for thing events immediately
-            getSelf().tell(Clock.REBALANCE_TICK, getSelf());
-        }
-
         pubSubMediator.tell(DistPubSubAccess.subscribeViaGroup(ThingsOutOfSync.TYPE, ACTOR_NAME, getSelf()), getSelf());
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param thingEventSub Ditto distributed-sub access for thing events.
      * @param thingUpdaterShardRegion shard region of thing-updaters
      * @param updaterConfig configuration for updaters.
      * @param blockedNamespaces cache of namespaces to block.
@@ -108,13 +90,12 @@ final class ThingsUpdater extends AbstractActorWithTimers {
      * the subscription is not wanted.
      * @return the Akka configuration Props object
      */
-    static Props props(final DistributedSub thingEventSub,
-            final ActorRef thingUpdaterShardRegion,
+    static Props props(final ActorRef thingUpdaterShardRegion,
             final UpdaterConfig updaterConfig,
             final BlockedNamespaces blockedNamespaces,
             final ActorRef pubSubMediator) {
-        return Props.create(ThingsUpdater.class, thingEventSub, thingUpdaterShardRegion, updaterConfig,
-                blockedNamespaces, pubSubMediator);
+        return Props.create(ThingsUpdater.class, thingUpdaterShardRegion, updaterConfig, blockedNamespaces,
+                pubSubMediator);
     }
 
     @Override
@@ -125,8 +106,6 @@ final class ThingsUpdater extends AbstractActorWithTimers {
                 .matchEquals(ShardRegion.getShardRegionStateInstance(), getShardRegionState ->
                         shardRegion.forward(getShardRegionState, getContext()))
                 .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
-                .matchEquals(Clock.REBALANCE_TICK, this::retrieveShardIds)
-                .match(ShardRegion.ShardRegionStats.class, this::updateSubscriptions)
                 .match(ThingsOutOfSync.class, this::updateThings)
                 .match(SudoUpdateThing.class, this::updateThing)
                 .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck ->
@@ -135,22 +114,6 @@ final class ThingsUpdater extends AbstractActorWithTimers {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
-    }
-
-    private void retrieveShardIds(final Clock rebalanceTick) {
-        shardRegion.tell(ShardRegion.getRegionStatsInstance(), getSelf());
-    }
-
-    private void updateSubscriptions(final ShardRegion.ShardRegionStats stats) {
-        final Set<String> currentShardIds = stats.getStats().keySet();
-        log.debug("Updating event subscriptions: <{}> -> <{}>", previousShardIds, currentShardIds);
-        final List<String> toSubscribe =
-                currentShardIds.stream().filter(s -> !previousShardIds.contains(s)).toList();
-        final List<String> toUnsubscribe =
-                previousShardIds.stream().filter(s -> !currentShardIds.contains(s)).toList();
-        thingEventSub.subscribeWithoutAck(toSubscribe, getSelf());
-        thingEventSub.unsubscribeWithoutAck(toUnsubscribe, getSelf());
-        previousShardIds = currentShardIds;
     }
 
     private void handleRetrieveStatisticsDetails(final RetrieveStatisticsDetails command) {
@@ -244,10 +207,6 @@ final class ThingsUpdater extends AbstractActorWithTimers {
                     }
                     return null;
                 });
-    }
-
-    private enum Clock {
-        REBALANCE_TICK
     }
 
 }

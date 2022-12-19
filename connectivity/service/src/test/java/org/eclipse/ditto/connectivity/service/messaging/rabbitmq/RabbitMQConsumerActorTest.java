@@ -18,6 +18,7 @@ import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.hea
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -36,6 +37,7 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorWithAcknowledgementsTest;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.rabbitmq.client.AMQP;
@@ -43,9 +45,12 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 
+import akka.Done;
 import akka.NotUsed;
+import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.stream.javadsl.Sink;
+import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -57,6 +62,25 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorWithAc
     private static final Envelope ENVELOPE = new Envelope(1, false, "inbound", "ditto");
 
     private final Channel channel = Mockito.mock(Channel.class);
+
+
+    @Test
+    public void stopConsumingOnRequest() throws Exception {
+        new TestKit(actorSystem) {{
+            final TestProbe proxyActor = TestProbe.apply(actorSystem);
+            final TestProbe clientActor = TestProbe.apply(actorSystem);
+            final Sink<Object, NotUsed> inboundMappingSink =
+                    setupInboundMappingSink(clientActor.ref(), proxyActor.ref());
+            final var payloadMapping = ConnectivityModelFactory.newPayloadMapping("ditto", "ditto");
+
+            final ActorRef underTest = actorSystem.actorOf(getConsumerActorProps(inboundMappingSink, payloadMapping));
+
+            underTest.tell(RabbitMQConsumerActor.Control.STOP_CONSUMER, getRef());
+            expectMsg(Done.getInstance());
+            verify(channel).close();
+        }};
+
+    }
 
     @Override
     protected Props getConsumerActorProps(final Sink<Object, NotUsed> inboundMappingSink,

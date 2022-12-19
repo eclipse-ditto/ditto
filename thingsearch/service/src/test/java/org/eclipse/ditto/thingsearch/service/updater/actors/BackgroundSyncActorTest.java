@@ -51,6 +51,7 @@ import org.eclipse.ditto.internal.utils.health.StatusInfo;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.things.model.Thing;
@@ -103,7 +104,8 @@ public final class BackgroundSyncActorTest {
     );
     private static final List<Metadata> THINGS_INDEXED =
             KNOWN_IDs.stream()
-                    .map(id -> Metadata.of(ThingId.of(id), REVISION_INDEXED, PolicyId.of(id), REVISION_INDEXED, null))
+                    .map(id -> Metadata.of(ThingId.of(id), REVISION_INDEXED,
+                            PolicyTag.of(PolicyId.of(id), REVISION_INDEXED), Set.of(), null))
                     .toList();
     private static final List<StreamedSnapshot> THINGS_PERSISTED = KNOWN_IDs.stream()
             .map(id -> createStreamedSnapshot(id, REVISION_PERSISTED))
@@ -217,7 +219,7 @@ public final class BackgroundSyncActorTest {
 
     @Test
     public void resettingHealthEventsAfterSyncStreamFailureClearsErrors() {
-        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, null, null);
+        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, Set.of(), null);
         final long persistedRevision = indexedThingMetadata.getThingRevision() + 1;
 
         new TestKit(actorSystem) {{
@@ -244,9 +246,9 @@ public final class BackgroundSyncActorTest {
 
     @Test
     public void noHealthWarningAfterSuccessfulStream() {
-        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, null, null);
+        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, Set.of(), null);
         final long persistedRevision = indexedThingMetadata.getThingRevision() + 1;
-        final Metadata persistedThingMetadata = Metadata.of(THING_ID, persistedRevision, null, null, null);
+        final Metadata persistedThingMetadata = Metadata.of(THING_ID, persistedRevision, null, Set.of(), null);
         final var streamedSnapshots = List.of(createStreamedSnapshot(THING_ID, persistedRevision));
         final var streamedSnapshotsWithoutPolicyId =
                 List.of(createStreamedSnapshotWithoutPolicyId(THING_ID, persistedRevision));
@@ -289,9 +291,9 @@ public final class BackgroundSyncActorTest {
 
     @Test
     public void staysHealthyWhenSameThingIsSynchronizedWithOtherRevision() {
-        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, null, null);
+        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, Set.of(), null);
         final long persistedRevision = indexedThingMetadata.getThingRevision() + 1;
-        final Metadata nextThingMetadata = Metadata.of(THING_ID, persistedRevision, null, null, null);
+        final Metadata nextThingMetadata = Metadata.of(THING_ID, persistedRevision, null, Set.of(), null);
         final long nextRevision = nextThingMetadata.getThingRevision() + 1;
 
         new TestKit(actorSystem) {{
@@ -344,8 +346,8 @@ public final class BackgroundSyncActorTest {
 
     private void expectSyncActorToStartStreaming(final TestKit pubSub, final Duration withinTimeout,
             final Consumer<SudoStreamSnapshots> msgAssertions) {
-        final DistributedPubSubMediator.Send startStream =
-                pubSub.expectMsgClass(withinTimeout, DistributedPubSubMediator.Send.class);
+        final DistributedPubSubMediator.Publish startStream =
+                pubSub.expectMsgClass(withinTimeout, DistributedPubSubMediator.Publish.class);
         assertThat(startStream.msg()).isInstanceOf(SudoStreamSnapshots.class);
         msgAssertions.accept(((SudoStreamSnapshots) startStream.msg()));
     }

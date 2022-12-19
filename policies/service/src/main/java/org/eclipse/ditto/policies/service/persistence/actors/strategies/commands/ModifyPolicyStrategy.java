@@ -18,26 +18,24 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.PolicyTooLargeException;
-import org.eclipse.ditto.policies.api.PoliciesValidator;
-import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.model.signals.events.PolicyModified;
+import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy} command for an
@@ -57,14 +55,15 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
             @Nullable final Metadata metadata) {
 
         final Instant eventTs = getEventTimestamp();
-        final DittoHeadersBuilder<?, ?> adjustedHeadersBuilder = command.getDittoHeaders().toBuilder();
-        final Set<PolicyEntry> adjustedEntries = potentiallyAdjustPolicyEntries(command.getPolicy().getEntriesSet()
-        );
-        final DittoHeaders adjustedHeaders = adjustedHeadersBuilder.build();
-        final Policy adjustedPolicy = PoliciesModelFactory.newPolicyBuilder(
-                command.getPolicy().getEntityId().orElseThrow(), adjustedEntries).build();
+        final DittoHeaders commandHeaders = command.getDittoHeaders();
+        final Policy commandPolicy = command.getPolicy();
+        final Set<PolicyEntry> adjustedEntries = potentiallyAdjustPolicyEntries(commandPolicy.getEntriesSet());
+        final Policy adjustedPolicy =
+                PoliciesModelFactory.newPolicyBuilder(commandPolicy.getEntityId().orElseThrow(), adjustedEntries)
+                        .setPolicyImports(commandPolicy.getPolicyImports())
+                        .build();
 
-        final ModifyPolicy adjustedCommand = ModifyPolicy.of(command.getEntityId(), adjustedPolicy, adjustedHeaders);
+        final ModifyPolicy adjustedCommand = ModifyPolicy.of(command.getEntityId(), adjustedPolicy, commandHeaders);
 
         final Policy modifiedPolicyWithImplicits = adjustedPolicy.toBuilder()
                 .setModified(eventTs)
@@ -72,18 +71,12 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
                 .build();
 
         final JsonObject modifiedPolicyJsonObject = modifiedPolicyWithImplicits.toJson();
-        try {
-            PolicyCommandSizeValidator.getInstance()
-                    .ensureValidSize(
-                            modifiedPolicyJsonObject::getUpperBoundForStringSize,
-                            () -> modifiedPolicyJsonObject.toString().length(),
-                            () -> adjustedHeaders);
-        } catch (final PolicyTooLargeException e) {
-            return ResultFactory.newErrorResult(e, adjustedCommand);
-        }
+        PolicyCommandSizeValidator.getInstance()
+                .ensureValidSize(modifiedPolicyJsonObject::getUpperBoundForStringSize,
+                        () -> modifiedPolicyJsonObject.toString().length(), () -> commandHeaders);
 
         final Optional<Result<PolicyEvent<?>>> alreadyExpiredSubject =
-                checkForAlreadyExpiredSubject(modifiedPolicyWithImplicits, adjustedHeaders, command);
+                checkForAlreadyExpiredSubject(modifiedPolicyWithImplicits, commandHeaders, command);
         if (alreadyExpiredSubject.isPresent()) {
             return alreadyExpiredSubject.get();
         }
@@ -92,14 +85,14 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
 
         if (validator.isValid()) {
             final PolicyModified policyModified =
-                    PolicyModified.of(modifiedPolicyWithImplicits, nextRevision, eventTs, adjustedHeaders, metadata);
+                    PolicyModified.of(modifiedPolicyWithImplicits, nextRevision, eventTs, commandHeaders, metadata);
             final WithDittoHeaders response = appendETagHeaderIfProvided(adjustedCommand,
-                    ModifyPolicyResponse.modified(context.getState(), adjustedHeaders),
+                    ModifyPolicyResponse.modified(context.getState(), commandHeaders),
                     modifiedPolicyWithImplicits);
             return ResultFactory.newMutationResult(adjustedCommand, policyModified, response);
         } else {
             return ResultFactory.newErrorResult(
-                    policyInvalid(context.getState(), validator.getReason().orElse(null), adjustedHeaders), command);
+                    policyInvalid(context.getState(), validator.getReason().orElse(null), commandHeaders), command);
         }
     }
 

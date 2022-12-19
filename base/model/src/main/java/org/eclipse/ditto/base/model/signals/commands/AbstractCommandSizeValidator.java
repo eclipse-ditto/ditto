@@ -20,6 +20,9 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Abstract base command size validator class responsible for checking whether size limitation of entities were
@@ -83,7 +86,23 @@ public abstract class AbstractCommandSizeValidator<T extends DittoRuntimeExcepti
     }
 
     /**
-     * Builds a new exception that is used to flag an too large size.
+     * Guard function that throws when a size limit is specified, and the given {@code jsonifiable} modified with the
+     * given {@code jsonField} is greater than the limit.
+     *
+     * @param jsonifiable a json before applying the modification
+     * @param jsonField the field to set on the given json
+     * @param headersSupplier the headersSupplier for the exception
+     * @throws T if size limit is set and exceeded
+     */
+    public void ensureValidSize(final Jsonifiable<JsonObject> jsonifiable, final JsonField jsonField, final Supplier<DittoHeaders> headersSupplier) {
+        ensureValidSize(() -> {
+            final JsonObject jsonWithField = jsonifiable.toJson().setValue(jsonField.getKey(), jsonField.getValue());
+            return jsonWithField.toString().length();
+        }, headersSupplier);
+    }
+
+    /**
+     * Builds a new exception that is used to flag a too large size.
      *
      * @param maxSize the max size
      * @param actualSize the actual size

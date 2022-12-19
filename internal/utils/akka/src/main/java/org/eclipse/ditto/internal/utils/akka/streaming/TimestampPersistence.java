@@ -57,4 +57,5 @@ public interface TimestampPersistence {
      * @return the tagged timestamp.
      */
     Source<Optional<Pair<Instant, String>>, NotUsed> getTaggedTimestamp();
+
 }

@@ -1,14 +1,14 @@
 ---
-title: Manage connections 
+title: Manage connections via HTTP API
 keywords:
 tags: [connectivity]
 permalink: connectivity-manage-connections.html
 ---
 
-In order to manage (CRUD) connections in Ditto, a separate [HTTP API](http-api-doc.html#/Connections)
-can be used. As this is not a task for a developer
-but more for a "DevOps engineer", creating new connections to external systems the endpoint 
-is authenticated using the ["devops"](installation-operating.html#devops-user) user.
+In order to manage (CRUD) connections in Ditto, the [HTTP API](http-api-doc.html#/Connections)
+is recommended to be used instead of the old fashion [Manage connections via Piggyback commands](connectivity-manage-connections-piggyback.html). 
+As this is not a task for a developer, but more for a "DevOps engineer", the endpoint for creating new connections 
+to external systems is authenticated using the ["devops"](installation-operating.html#devops-user) user.
 
 ## Authorization
 
@@ -17,6 +17,11 @@ authorized users) to use in order to determine the permissions for when the conn
 a Thing). If you want to use a user for the basic auth (from the [HTTP API](connectivity-protocol-bindings-http.html))
 use the prefix `nginx:`, e.g. `nginx:ditto`.
 See [Basic Authentication](basic-auth.html#authorization-context-in-devops-commands) for more information.
+
+## Encryption sensitive configuration data
+There is an option to enable encryption of credentials or other sensitive fields of the connection entities before they are 
+persisted in the database on global service configuration level.
+For more details refer to [Connections sensitive data encryption](installation-operating.html#encrypt-sensitive-data-in-connections)
 
 ## CRUD endpoints
 
@@ -45,9 +50,13 @@ Create a new connection by sending an HTTP `POST` request:
 ```
 
 The content of the connection configuration object is specified in the [Connections section](basic-connections.html).
-For protocol specific examples, consult the [AMQP-0.9.1 binding](connectivity-protocol-bindings-amqp091.html),
-[AMQP-1.0 binding](connectivity-protocol-bindings-amqp10.html) or
-[MQTT-3.1.1 binding](connectivity-protocol-bindings-mqtt.html) respectively.
+For protocol specific examples, consult the specific connection type binding respectively:
+* [AMQP-0.9.1 binding](connectivity-protocol-bindings-amqp091.html),
+* [AMQP-1.0 binding](connectivity-protocol-bindings-amqp10.html),
+* [MQTT-3.1.1 binding](connectivity-protocol-bindings-mqtt.html),
+* [MQTT-5 binding](connectivity-protocol-bindings-mqtt5.html),
+* [HTTP 1.1 binding](connectivity-protocol-bindings-http.html),
+* [Apache Kafka 2.x binding](connectivity-protocol-bindings-kafka2.html)
 
 Additionally, you can test a connection before creating it:
 

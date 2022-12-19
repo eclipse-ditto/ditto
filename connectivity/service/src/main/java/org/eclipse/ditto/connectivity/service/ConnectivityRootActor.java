@@ -21,6 +21,7 @@ import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
 import org.eclipse.ditto.connectivity.service.config.ConnectionIdsRetrievalConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.enforcement.ConnectionEnforcerActorPropsFactory;
+import org.eclipse.ditto.connectivity.service.messaging.ClientSupervisor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectionIdsRetrievalActor;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceOperationsActor;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceStreamingActorCreator;
@@ -30,13 +31,14 @@ import org.eclipse.ditto.edge.service.dispatching.ShardRegions;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
+import org.eclipse.ditto.internal.utils.cluster.ShardRegionCreator;
 import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.internal.utils.health.config.PersistenceConfig;
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.PersistencePingActor;
@@ -49,8 +51,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
-import akka.cluster.sharding.ClusterSharding;
-import akka.cluster.sharding.ClusterShardingSettings;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.DeciderBuilder;
 import scala.PartialFunction;
@@ -82,21 +82,26 @@ public final class ConnectivityRootActor extends DittoRootActor {
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
         final var enforcerActorPropsFactory =
                 ConnectionEnforcerActorPropsFactory.get(actorSystem, dittoExtensionsConfig);
-        final var connectionSupervisorProps =
-                ConnectionSupervisorActor.props(commandForwarder, pubSubMediator, enforcerActorPropsFactory);
         // Create persistence streaming actor (with no cache) and make it known to pubSubMediator.
         final ActorRef persistenceStreamingActor =
                 startChildActor(ConnectionPersistenceStreamingActorCreator.ACTOR_NAME,
                         ConnectionPersistenceStreamingActorCreator.props());
         pubSubMediator.tell(DistPubSubAccess.put(persistenceStreamingActor), getSelf());
 
-        // start DittoProtocolSub extension, even if not passed to connections via reference
+
+        // start DittoProtocolSub and blocked namespaces extensions, even if not passed to connections via reference
         //  because of serialization issues the single BaseClientActors "get" the extension themselves
         //  it must however be started here in order to already participate in Ditto pub/sub, even if no connection is
         //  available!
+        log.info("Started blocked namespaces replicator <{}>", BlockedNamespaces.of(actorSystem).getReplicator());
         DittoProtocolSub.get(actorSystem);
 
         final MongoReadJournal mongoReadJournal = MongoReadJournal.newInstance(actorSystem);
+
+        final var clientShardRegion = startClientShardRegion(actorSystem, connectivityConfig);
+        final var connectionSupervisorProps =
+                ConnectionSupervisorActor.props(commandForwarder, pubSubMediator, enforcerActorPropsFactory,
+                        clientShardRegion);
         startClusterSingletonActor(
                 PersistencePingActor.props(
                         startConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),
@@ -105,7 +110,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
         final ConnectionIdsRetrievalConfig connectionIdsRetrievalConfig =
                 connectivityConfig.getConnectionIdsRetrievalConfig();
         startChildActor(ConnectionIdsRetrievalActor.ACTOR_NAME, ConnectionIdsRetrievalActor.props(mongoReadJournal,
-                        connectionIdsRetrievalConfig));
+                connectionIdsRetrievalConfig));
 
         startChildActor(ConnectionPersistenceOperationsActor.ACTOR_NAME,
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
@@ -116,7 +121,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
 
         final var cleanupConfig = connectivityConfig.getConnectionConfig().getCleanupConfig();
         final var cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE);
-        startChildActor(PersistenceCleanupActor.NAME, cleanupActorProps);
+        startChildActor(PersistenceCleanupActor.ACTOR_NAME, cleanupActorProps);
 
         final ActorRef healthCheckingActor = getHealthCheckingActor(connectivityConfig);
         bindHttpStatusRoute(connectivityConfig.getHttpConfig(), healthCheckingActor);
@@ -173,15 +178,17 @@ public final class ConnectivityRootActor extends DittoRootActor {
 
     private static ActorRef startConnectionShardRegion(final ActorSystem actorSystem,
             final Props connectionSupervisorProps, final ClusterConfig clusterConfig) {
+        return ShardRegionCreator.start(actorSystem, ConnectivityMessagingConstants.SHARD_REGION,
+                connectionSupervisorProps, clusterConfig.getNumberOfShards(),
+                ConnectivityMessagingConstants.CLUSTER_ROLE);
+    }
 
-        final ClusterShardingSettings shardingSettings = ClusterShardingSettings.create(actorSystem)
-                .withRole(ConnectivityMessagingConstants.CLUSTER_ROLE);
-
-        return ClusterSharding.get(actorSystem)
-                .start(ConnectivityMessagingConstants.SHARD_REGION,
-                        connectionSupervisorProps,
-                        shardingSettings,
-                        ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem));
+    private static ActorRef startClientShardRegion(final ActorSystem actorSystem, final ConnectivityConfig config) {
+        final var numberOfShards = config.getClusterConfig().getNumberOfShards();
+        final var refreshInterval = config.getClientConfig().getSubscriptionRefreshDelay();
+        final var props = ClientSupervisor.props(numberOfShards, refreshInterval);
+        return ShardRegionCreator.start(actorSystem, ConnectivityMessagingConstants.CLIENT_SHARD_REGION, props,
+                numberOfShards, ConnectivityMessagingConstants.CLUSTER_ROLE);
     }
 
 }

@@ -28,6 +28,7 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
@@ -63,6 +64,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import akka.pattern.AskTimeoutException;
@@ -72,6 +74,10 @@ import akka.testkit.javadsl.TestKit;
  * Tests commands that triggers different or multiple commands internally.
  */
 public final class MultiStageCommandEnforcementTest extends AbstractThingEnforcementTest {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     private static final Subject DEFAULT_SUBJECT =
             Subject.newInstance(SubjectIssuer.GOOGLE, "defaultSubject");
@@ -332,7 +338,8 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             final Thing thing = emptyThing(thingId, policyId);
             final Policy policy = defaultPolicy(policyId);
             final var retrievePolicyResponse = RetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
-
+            when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
             // WHEN: received CreateThing
             final CreateThing createThing = CreateThing.of(thing, null, DEFAULT_HEADERS);
 
@@ -355,6 +362,8 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             final PolicyId policyId = PolicyId.of(thingId);
             final Thing thing = emptyThing(thingId, null);
             final Policy policy = defaultPolicy(policyId);
+            when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
 
             // WHEN: received CreateThing
             final var createThing = CreateThing.of(thing, null, DEFAULT_HEADERS);
@@ -401,6 +410,8 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             final PolicyId policyId = PolicyId.of("policy", UUID.randomUUID().toString());
             final Thing thing = emptyThing(thingId, policyId);
             final Policy policy = defaultPolicy(policyId);
+            when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
 
             // WHEN: received CreateThing
             final var createThing = CreateThing.of(thing, policy.toJson(), DEFAULT_HEADERS);
@@ -426,6 +437,8 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             final PolicyId policyId = PolicyId.of("policy", UUID.randomUUID().toString());
             final Thing thing = emptyThing(thingId, policyId);
             final Policy policy = thingOnlyPolicy(policyId);
+            when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
 
             // WHEN: received CreateThing whose inline policy does not permit creation of itself
             final var createThing = CreateThing.of(thing, policy.toJson(), DEFAULT_HEADERS);

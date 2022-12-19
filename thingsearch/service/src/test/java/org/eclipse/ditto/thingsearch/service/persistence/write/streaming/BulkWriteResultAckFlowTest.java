@@ -24,6 +24,7 @@ import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
@@ -199,8 +200,9 @@ public final class BulkWriteResultAckFlowTest {
             final long thingRevision = i * 10L;
             final PolicyId policyId = i % 4 < 2 ? null : PolicyId.of("policy", String.valueOf(i));
             final long policyRevision = i * 100L;
+            final PolicyTag policyTag = policyId == null ? null : PolicyTag.of(policyId, policyRevision);
             final Metadata metadata =
-                    Metadata.of(thingId, thingRevision, policyId, policyRevision, List.of(), null,
+                    Metadata.of(thingId, thingRevision, policyTag, Set.of(), List.of(), null,
                             actorSystem.actorSelection(probes.get(i).ref().path()));
             final AbstractWriteModel abstractModel;
             if (i % 2 == 0) {

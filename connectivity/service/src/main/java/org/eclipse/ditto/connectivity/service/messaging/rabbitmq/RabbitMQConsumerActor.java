@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -41,9 +42,8 @@ import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.PreparedTrace;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.Traces;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.TracingSpans;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 
 import com.rabbitmq.client.BasicProperties;
@@ -51,6 +51,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
@@ -122,6 +123,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
                 .match(Delivery.class, this::handleDelivery)
                 .match(ResourceStatus.class, this::handleAddressStatus)
                 .match(RetrieveAddressStatus.class, ram -> getSender().tell(getCurrentSourceStatus(), getSelf()))
+                .matchEquals(Control.STOP_CONSUMER, this::stopConsumerOnRequest)
                 .matchAny(m -> {
                     logger.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -133,7 +135,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
         final Envelope envelope = delivery.getEnvelope();
         final byte[] body = delivery.getBody();
 
-        StartedTrace trace = Traces.emptyStartedTrace();
+        var startedSpan = TracingSpans.emptyStartedSpan(SpanOperationName.of("rabbitmq_consume"));
         Map<String, String> headers = null;
         try {
             @Nullable final String correlationId = properties.getCorrelationId();
@@ -144,15 +146,11 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
             }
             headers = extractHeadersFromMessage(properties, envelope);
 
-            final PreparedTrace preparedTrace =
-                    DittoTracing.trace(DittoTracing.extractTraceContext(headers), "rabbitmq_consume")
-                            .connectionId(connectionId);
-            headers = trace.propagateContext(headers);
-            if (null != correlationId) {
-                trace = preparedTrace.correlationId(correlationId).start();
-            } else {
-                trace = preparedTrace.start();
-            }
+            startedSpan = DittoTracing.newPreparedSpan(headers, startedSpan.getOperationName())
+                    .connectionId(connectionId)
+                    .correlationId(correlationId)
+                    .start();
+            headers = startedSpan.propagateContext(headers);
 
             final ExternalMessageBuilder externalMessageBuilder =
                     ExternalMessageFactory.newExternalMessageBuilder(headers);
@@ -193,8 +191,8 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
                                             "basic.nack for deliveryTag={0}, requeue={0}",
                                     delivery.getEnvelope().getDeliveryTag(), requeue);
                         } catch (final IOException e) {
-                            logger.error("Delivery of basic.nack for deliveryTag={} failed: {}", envelope.getDeliveryTag(),
-                                    e.getMessage());
+                            logger.error("Delivery of basic.nack for deliveryTag={} failed: {}",
+                                    envelope.getDeliveryTag(), e.getMessage());
                             inboundAcknowledgedMonitor.exception(e);
                         }
                     });
@@ -207,7 +205,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
             } else {
                 inboundMonitor.failure(e);
             }
-            trace.fail(e);
+            startedSpan.tagAsFailed(e);
         } catch (final Exception e) {
             logger.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage());
             if (headers != null) {
@@ -215,10 +213,19 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
             } else {
                 inboundMonitor.exception(e);
             }
-            trace.fail(e);
+            startedSpan.tagAsFailed(e);
         } finally {
-            trace.finish();
+            startedSpan.finish();
         }
+    }
+
+    private void stopConsumerOnRequest(final Control stopConsumer) {
+        try {
+            channel.close();
+        } catch (final IOException | TimeoutException e) {
+            // do nothing about exceptions since the actor will shutdown shortly after
+        }
+        getSender().tell(Done.getInstance(), getSelf());
     }
 
     private static boolean shouldBeInterpretedAsBytes(@Nullable final String contentType) {
@@ -256,4 +263,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
         return new HashMap<>();
     }
 
+    enum Control {
+        STOP_CONSUMER
+    }
 }

@@ -19,6 +19,7 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.api.commands.sudo.SudoCommand;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -31,7 +32,6 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
 import org.eclipse.ditto.internal.utils.akka.PingCommandResponse;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
@@ -43,8 +43,8 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.TracingTags;
-import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonValue;
 
@@ -194,7 +194,7 @@ public abstract class AbstractPersistenceActor<
      * Publish an event.
      *
      * @param previousEntity the previous state of the entity before the event was applied.
-     * @param event the event which was applied.
+     * @param event          the event which was applied.
      */
     protected abstract void publishEvent(@Nullable S previousEntity, E event);
 
@@ -340,7 +340,7 @@ public abstract class AbstractPersistenceActor<
     /**
      * Persist an event, modify actor state by the event strategy, then invoke the handler.
      *
-     * @param event the event to persist and apply.
+     * @param event   the event to persist and apply.
      * @param handler what happens afterwards.
      */
     protected void persistAndApplyEvent(final E event, final BiConsumer<E, S> handler) {
@@ -465,30 +465,37 @@ public abstract class AbstractPersistenceActor<
                         command -> handleByStrategy(command, (CommandStrategy<C, S, K, E>) getDeletedStrategy()));
     }
 
+    @SuppressWarnings("unchecked")
     private <T extends Command<?>> void handleByStrategy(final T command, final CommandStrategy<T, S, K, E> strategy) {
         log.debug("Handling by strategy: <{}>", command);
 
-        final StartedTrace trace = DittoTracing
-                .trace(command, "apply_command_strategy")
+        final var startedSpan = DittoTracing.newPreparedSpan(
+                        command.getDittoHeaders(),
+                        SpanOperationName.of("apply_command_strategy")
+                )
                 .start();
-        final T tracedCommand = DittoTracing.propagateContext(trace.getContext(), command);
+
+        final var tracedCommand =
+                command.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(command.getDittoHeaders())));
 
         accessCounter++;
         Result<E> result;
         try {
-            result = strategy.apply(getStrategyContext(), entity, getNextRevisionNumber(), tracedCommand);
+            result = strategy.apply(getStrategyContext(), entity, getNextRevisionNumber(), (T) tracedCommand);
+            result.accept(this);
         } catch (final DittoRuntimeException e) {
-            trace.fail(e);
+            startedSpan.tagAsFailed(e);
             result = ResultFactory.newErrorResult(e, tracedCommand);
+            result.accept(this);
         } finally {
-            trace.finish();
+            startedSpan.finish();
         }
-        result.accept(this);
+        reportSudoCommandDone(command);
     }
 
     @Override
     public void onMutation(final Command<?> command, final E event, final WithDittoHeaders response,
-            final boolean becomeCreated, final boolean becomeDeleted) {
+                           final boolean becomeCreated, final boolean becomeDeleted) {
 
         persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
             if (shouldSendResponse(command.getDittoHeaders())) {
@@ -520,7 +527,7 @@ public abstract class AbstractPersistenceActor<
     /**
      * Send a reply and increment access counter.
      *
-     * @param sender recipient of the message.
+     * @param sender  recipient of the message.
      * @param message the message.
      */
     protected void notifySender(final ActorRef sender, final WithDittoHeaders message) {
@@ -532,32 +539,40 @@ public abstract class AbstractPersistenceActor<
         return getRevisionNumber() + 1;
     }
 
+    @SuppressWarnings("unchecked")
     private void persistEvent(final E event, final Consumer<E> handler) {
-        final DittoDiagnosticLoggingAdapter l = log.withCorrelationId(event);
+        final var l = log.withCorrelationId(event);
         l.debug("Persisting Event <{}>.", event.getType());
 
-        final StartedTrace persistTrace = DittoTracing.trace(event, "persist_event")
-                .tag(TracingTags.SIGNAL_TYPE, event.getType())
+        final var persistOperationSpan = DittoTracing.newPreparedSpan(
+                        event.getDittoHeaders(),
+                        SpanOperationName.of("persist_event")
+                )
+                .tag(SpanTagKey.SIGNAL_TYPE.getTagForValue(event.getType()))
                 .start();
-        final E tracedEvent = DittoTracing.propagateContext(persistTrace.getContext(), event);
 
-        persist(tracedEvent, persistedEvent -> {
-            l.info("Successfully persisted Event <{}> w/ rev: <{}>.", persistedEvent.getType(),
-                    getRevisionNumber());
-            persistTrace.finish();
+        persist(
+                event.setDittoHeaders(DittoHeaders.of(persistOperationSpan.propagateContext(event.getDittoHeaders()))),
+                persistedEvent -> {
+                    l.info("Successfully persisted Event <{}> w/ rev: <{}>.",
+                            persistedEvent.getType(),
+                            getRevisionNumber());
+                    persistOperationSpan.finish();
 
-            /* the event has to be applied before creating the snapshot, otherwise a snapshot with new
-               sequence no (e.g. 2), but old entity revision no (e.g. 1) will be created -> can lead to serious
-               aftereffects.
-             */
-            handler.accept(persistedEvent);
-            onEntityModified();
+                    /*
+                     * The event has to be applied before creating the snapshot, otherwise a snapshot with new
+                     * sequence no (e.g. 2), but old entity revision no (e.g. 1) will be created -> can lead to serious
+                     * aftereffects.
+                     */
+                    handler.accept(persistedEvent);
+                    onEntityModified();
 
-            // save a snapshot if there were too many changes since the last snapshot
-            if (snapshotThresholdPassed()) {
-                takeSnapshot("snapshot threshold is reached");
-            }
-        });
+                    // save a snapshot if there were too many changes since the last snapshot
+                    if (snapshotThresholdPassed()) {
+                        takeSnapshot("snapshot threshold is reached");
+                    }
+                }
+        );
     }
 
     private void takeSnapshot(final String reason) {
@@ -634,10 +649,16 @@ public abstract class AbstractPersistenceActor<
         return confirmedSnapshotRevision;
     }
 
-    private void notAccessible(final WithDittoHeaders withDittoHeaders) {
+    /**
+     * Reply a not-accessible exception using the Ditto headers of a message.
+     *
+     * @param withDittoHeaders The message with Ditto headers.
+     */
+    protected void notAccessible(final WithDittoHeaders withDittoHeaders) {
         final DittoRuntimeExceptionBuilder<?> builder = newNotAccessibleExceptionBuilder()
                 .dittoHeaders(withDittoHeaders.getDittoHeaders());
         notifySender(builder.build());
+        reportSudoCommandDone(withDittoHeaders);
     }
 
     private void shutdown(final String shutdownLogTemplate, final I entityId) {
@@ -647,6 +668,21 @@ public abstract class AbstractPersistenceActor<
 
     private boolean isEntityActive() {
         return entity != null && !entityExistsAsDeleted();
+    }
+
+    private void reportSudoCommandDone(final WithDittoHeaders command) {
+        if (command instanceof SudoCommand || command.getDittoHeaders().isSudo()) {
+            getSudoCommandDoneRecipient().tell(AbstractPersistenceSupervisor.Control.SUDO_COMMAND_DONE, getSelf());
+        }
+    }
+
+    /**
+     * Return the recipient to notify after processing a sudo command.
+     *
+     * @return The recipient.
+     */
+    protected ActorRef getSudoCommandDoneRecipient() {
+        return getContext().getParent();
     }
 
     /**
@@ -692,6 +728,7 @@ public abstract class AbstractPersistenceActor<
         private CheckForActivity(final long accessCounter) {
             this.accessCounter = accessCounter;
         }
+
     }
 
     private enum Control {
@@ -722,6 +759,7 @@ public abstract class AbstractPersistenceActor<
                     "emptyEvent=" + emptyEvent +
                     "]";
         }
+
     }
 
 }

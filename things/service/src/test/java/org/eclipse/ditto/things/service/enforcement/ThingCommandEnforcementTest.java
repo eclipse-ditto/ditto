@@ -40,6 +40,7 @@ import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatcher;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -88,9 +89,11 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttribute;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.mockito.Mockito;
 
 import akka.actor.ActorRef;
 import akka.testkit.javadsl.TestKit;
@@ -103,6 +106,10 @@ import scala.concurrent.duration.Duration;
  */
 @SuppressWarnings({"squid:S3599", "squid:S1171"})
 public final class ThingCommandEnforcementTest extends AbstractThingEnforcementTest {
+
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
     @Rule
     public final TestName testName = new TestName();
@@ -203,6 +210,8 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                         Permissions.newInstance(Permission.READ, Permission.WRITE))
                 .build();
         final Thing thing = newThing().build();
+        when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
 
         new TestKit(system) {{
             final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers());
@@ -210,7 +219,6 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
 
             policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
             policiesShardRegionProbe.reply(CreatePolicyResponse.of(policyId, policy, headers()));
-
             //Ensure that created policy is deleted after failed authorization of CreateThing
             final DeletePolicy deletePolicy = policiesShardRegionProbe.expectMsgClass(DeletePolicy.class);
             assertThat(deletePolicy.getDittoHeaders().isSudo()).isTrue();
@@ -441,6 +449,8 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                 .setRevision(1)
                 .build();
         final Thing thing = newThing().build();
+        when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
 
         new TestKit(system) {{
             final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers());
@@ -465,9 +475,8 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
         final Thing thing = newThing().build();
         final PolicyId policyId = PolicyId.of(THING_ID);
         final Policy policy = provideDefaultImplicitPolicy(policyId);
-
-        final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
-                SudoRetrievePolicyResponse.of(policyId, policy.toJson(FieldType.all()), DittoHeaders.empty());
+        when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
 
         new TestKit(system) {{
             final CreateThing createThing = CreateThing.of(thing, null, headers());
@@ -591,13 +600,15 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                 .setRevision(1)
                 .build();
         final Thing thing = newThing().build();
+        when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
 
         new TestKit(system) {{
             final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers());
             supervisor.tell(createThing, getRef());
 
             policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
-            policiesShardRegionProbe.reply(CreatePolicyResponse.of(PolicyId.of(THING_ID), policy, headers()));
+            policiesShardRegionProbe.reply(CreatePolicyResponse.of(policyId, policy, headers()));
 
             final CreateThing expectedCreateThing = addReadSubjectHeader(
                     CreateThing.of(thing.setPolicyId(policyId), policy.toJson(), null, headers()));
@@ -670,9 +681,12 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                         .dittoHeaders(dittoHeaders)
                         .build());
             } else {
+                final Policy policyWithNewId = policy.toBuilder().setId(newPolicyId).build();
+                when(policyEnforcerProvider.getPolicyEnforcer(newPolicyId))
+                        .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policyWithNewId))));
                 // after that, a copy of the policy is created:
                 policiesShardRegionProbe.reply(
-                        CreatePolicyResponse.of(newPolicyId, policy.toBuilder().setId(newPolicyId).build(), headers())
+                        CreatePolicyResponse.of(newPolicyId, policyWithNewId, headers())
                 );
             }
 

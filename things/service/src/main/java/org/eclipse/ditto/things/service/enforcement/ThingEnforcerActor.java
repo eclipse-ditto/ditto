@@ -69,6 +69,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.pattern.AskTimeoutException;
 import akka.pattern.Patterns;
@@ -101,8 +102,9 @@ public final class ThingEnforcerActor
 
         this.policiesShardRegion = policiesShardRegion;
         this.askWithRetryConfig = askWithRetryConfig;
+        final ActorSystem system = context().system();
         policyIdReferencePlaceholderResolver = PolicyIdReferencePlaceholderResolver.of(
-                thingsShardRegion, askWithRetryConfig, context().system());
+                thingsShardRegion, askWithRetryConfig, system);
     }
 
     /**
@@ -130,8 +132,7 @@ public final class ThingEnforcerActor
     @Override
     protected CompletionStage<Optional<PolicyEnforcer>> loadPolicyEnforcer(final Signal<?> signal) {
         if (signal instanceof CreateThing createThing && !Signal.isChannelLive(createThing)) {
-            return loadPolicyEnforcerForCreateThing(createThing)
-                    .thenApply(Optional::of);
+            return loadPolicyEnforcerForCreateThing(createThing);
         } else {
             return providePolicyIdForEnforcement(signal)
                     .thenCompose(policyId -> providePolicyEnforcer(policyId)
@@ -195,7 +196,7 @@ public final class ThingEnforcerActor
         }
     }
 
-    private CompletionStage<PolicyEnforcer> loadPolicyEnforcerForCreateThing(final CreateThing createThing) {
+    private CompletionStage<Optional<PolicyEnforcer>> loadPolicyEnforcerForCreateThing(final CreateThing createThing) {
         final Optional<String> policyIdOrPlaceholder = createThing.getPolicyIdOrPlaceholder();
         final Optional<JsonObject> initialPolicyJson = createThing.getInitialPolicy();
         final CompletionStage<Policy> policyCs;
@@ -220,7 +221,7 @@ public final class ThingEnforcerActor
             final Policy defaultPolicy = getDefaultPolicy(createThing.getDittoHeaders(), createThing.getEntityId());
             policyCs = createPolicy(defaultPolicy, createThing);
         }
-        return policyCs.thenApply(PolicyEnforcer::of);
+        return policyCs.thenCompose(policy -> providePolicyEnforcer(policy.getEntityId().orElse(null)));
     }
 
     private CompletionStage<Policy> getCopiedPolicy(final String policyIdOrPlaceholder,

@@ -51,6 +51,7 @@ import org.eclipse.ditto.edge.service.acknowledgements.things.ThingLiveCommandAc
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.edge.service.placeholders.EntityIdPlaceholder;
 import org.eclipse.ditto.gateway.api.GatewayInternalErrorException;
+import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionAbortedException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResultProvider;
@@ -83,10 +84,14 @@ import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 import akka.Done;
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
+import akka.actor.Cancellable;
+import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.Patterns;
+import akka.stream.KillSwitch;
 import akka.stream.javadsl.SourceQueueWithComplete;
 import scala.PartialFunction;
 
@@ -94,6 +99,12 @@ import scala.PartialFunction;
  * Actor handling a single streaming connection / session.
  */
 final class StreamingSessionActor extends AbstractActorWithTimers {
+
+    /**
+     * Ask-timeout in shutdown tasks. Its duration should be long enough for session requests to succeed but
+     * ultimately does not matter because each shutdown phase has its own timeout.
+     */
+    private static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
 
     /**
      * Maximum lifetime of an expiring session.
@@ -116,8 +127,10 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
     private final Set<AcknowledgementLabel> declaredAcks;
     private final ThreadSafeDittoLoggingAdapter logger;
-
     private AuthorizationContext authorizationContext;
+
+    private Cancellable cancellableShutdownTask;
+    @Nullable private final KillSwitch killSwitch;
 
     @SuppressWarnings("unused")
     private StreamingSessionActor(final Connect connect,
@@ -140,6 +153,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         this.jwtAuthenticationResultProvider = jwtAuthenticationResultProvider;
         outstandingSubscriptionAcks = EnumSet.noneOf(StreamingType.class);
         authorizationContext = connect.getConnectionAuthContext();
+        killSwitch = connect.getKillSwitch().orElse(null);
         streamingSessions = new EnumMap<>(StreamingType.class);
         ackregatorStarter = AcknowledgementAggregatorActorStarter.of(getContext(),
                 streamingConfig.getAcknowledgementConfig(),
@@ -197,14 +211,24 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
     @Override
     public void preStart() {
+        declareAcknowledgementLabels(declaredAcks);
+
+        final var coordinatedShutdown = CoordinatedShutdown.get(getContext().getSystem());
+        final var serviceRequestsDoneTask = "service-requests-done-streaming-session-actor" ;
+        cancellableShutdownTask = coordinatedShutdown.addCancellableTask(CoordinatedShutdown.PhaseServiceRequestsDone(),
+                serviceRequestsDoneTask,
+                () -> Patterns.ask(getSelf(), Control.SERVICE_REQUESTS_DONE, SHUTDOWN_ASK_TIMEOUT)
+                        .thenApply(reply -> Done.done())
+        );
+
         eventAndResponsePublisher.watchCompletion()
                 .whenComplete((done, error) -> getSelf().tell(Control.TERMINATED, getSelf()));
-        declareAcknowledgementLabels(declaredAcks);
     }
 
     @Override
     public void postStop() {
         logger.info("Closing <{}> streaming session.", type);
+        cancellableShutdownTask.cancel();
         cancelSessionTimeout();
         eventAndResponsePublisher.complete();
     }
@@ -383,6 +407,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .match(Terminated.class, this::handleTerminated)
                 .matchEquals(Control.TERMINATED, this::handleTerminated)
                 .matchEquals(Control.SESSION_TERMINATION, this::handleSessionTermination)
+                .matchEquals(Control.SERVICE_REQUESTS_DONE, this::serviceRequestsDone)
                 .build();
     }
 
@@ -745,6 +770,14 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         }
     }
 
+    private void serviceRequestsDone(final Control serviceRequestsDone) {
+        logger.info("{}: abort ongoing websocket session", serviceRequestsDone);
+        if (killSwitch != null) {
+            killSwitch.abort(GatewayWebsocketSessionAbortedException.of(DittoHeaders.empty()));
+        }
+        getSender().tell(Done.getInstance(), ActorRef.noSender());
+    }
+
     /**
      * Messages to self to perform an outstanding acknowledgement if not already acknowledged.
      */
@@ -778,10 +811,11 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
     }
 
-    private enum Control {
+    public enum Control {
         TERMINATED,
         SESSION_TERMINATION,
-        RESUBSCRIBE
+        RESUBSCRIBE,
+        SERVICE_REQUESTS_DONE
     }
 
 }

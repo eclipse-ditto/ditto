@@ -40,6 +40,7 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyImportsValidator;
 
 /**
  * This command creates a new Policy. It contains the full {@link org.eclipse.ditto.policies.model.Policy} including the Policy ID which should be used
@@ -77,6 +78,8 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
         }
 
         final JsonObject policyJsonObject = policy.toJson();
+
+        PolicyImportsValidator.validatePolicyImports(policy.getEntityId().get(), policy.getPolicyImports());
 
         PolicyCommandSizeValidator.getInstance().ensureValidSize(
                 policyJsonObject::getUpperBoundForStringSize,

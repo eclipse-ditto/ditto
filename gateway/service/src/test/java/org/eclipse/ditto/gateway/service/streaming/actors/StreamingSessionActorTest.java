@@ -39,6 +39,7 @@ import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMissingException;
+import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionAbortedException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResult;
@@ -53,6 +54,7 @@ import org.eclipse.ditto.gateway.service.util.config.streaming.DefaultStreamingC
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.jwt.model.JwtInvalidException;
@@ -62,6 +64,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingRespon
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -94,11 +97,14 @@ import akka.testkit.TestProbe;
 @RunWith(MockitoJUnitRunner.class)
 public final class StreamingSessionActorTest {
 
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
+
     private static AuthorizationContext authorizationContext;
 
     @Rule
-    public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance(
-            ConfigFactory.load("test"));
+    public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance(ConfigFactory.load("test"));
 
     @Rule
     public final TestName testName = new TestName();
@@ -131,9 +137,10 @@ public final class StreamingSessionActorTest {
                 TestSink.probe(actorSystemResource.getActorSystem());
         final Source<SessionedJsonifiable, SourceQueueWithComplete<SessionedJsonifiable>> source =
                 Source.queue(100, OverflowStrategy.fail());
-        final var pair = source.viaMat(KillSwitches.single(), Keep.both())
-                .toMat(sink, Keep.both())
-                .run(actorSystemResource.getActorSystem());
+        final var pair =
+                source.viaMat(KillSwitches.single(), Keep.both())
+                        .toMat(sink, Keep.both())
+                        .run(actorSystemResource.getActorSystem());
         sourceQueue = pair.first().first();
         sinkProbe = pair.second();
         killSwitch = pair.first().second();
@@ -355,6 +362,19 @@ public final class StreamingSessionActorTest {
         commandRouterProbe.expectMsg(retrieveThingResponse);
     }
 
+    @Test
+    public void testGatewayWebsocketSessionAbortedExceptionIsThrownWhenServiceRequestDneIsReceived() {
+        final var testKit = actorSystemResource.newTestKit();
+        final var underTest = testKit.watch(actorSystemResource.newActor(getProps()));
+
+        underTest.tell(StreamingSessionActor.Control.SERVICE_REQUESTS_DONE, ActorRef.noSender());
+
+        sourceQueue.watchCompletion().whenComplete((done, throwable) -> {
+            assertThat(done).isNull();
+            assertThat(throwable).isInstanceOf(GatewayWebsocketSessionAbortedException.class);
+        });
+    }
+
     private static String getTokenString() {
         return getTokenString(Instant.now().plusSeconds(60L));
     }
@@ -412,7 +432,8 @@ public final class StreamingSessionActorTest {
                 JsonSchemaVersion.LATEST,
                 null,
                 declaredAcks,
-                authorizationContext);
+                authorizationContext,
+                killSwitch);
     }
 
     private static Set<AcknowledgementLabel> getAcknowledgementLabels(final String... ackLabelNames) {

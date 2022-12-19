@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.things.service.starter;
 
+import org.eclipse.ditto.base.api.commands.sudo.SudoQueryCommandResponse;
 import org.eclipse.ditto.base.api.common.RetrieveConfigResponse;
 import org.eclipse.ditto.base.api.common.purge.PurgeEntitiesResponse;
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveLoggerConfigResponse;
@@ -31,6 +32,10 @@ import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeaturePropertyResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureResponse;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoRetrieveNamespaceReportResponse;
+import org.eclipse.ditto.thingsearch.model.signals.commands.SearchErrorResponse;
+import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommandResponse;
+import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
 
 public final class ThingsServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
 
@@ -53,7 +58,10 @@ public final class ThingsServiceGlobalCommandResponseRegistryTest extends Global
                 RetrieveHealthResponse.class,
                 PurgeEntitiesResponse.class,
                 ModifySplitBrainResolverResponse.class,
-                Acknowledgement.class
+                Acknowledgement.class,
+                QueryThingsResponse.class,
+                SearchErrorResponse.class,
+                SudoRetrieveNamespaceReportResponse.class
         );
     }
 

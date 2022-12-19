@@ -209,3 +209,52 @@ Create or modify the resource identified by the `path` field of the Policy entry
 |            | `204`  | Success - The resource was successfully updated.       |
 
 **Example:** [Modify a single resource](protocol-examples-policies-modifyresource.html)
+
+## Modify all policy imports
+
+Modify all imports of the Policy identified by the `<namespace>/<policyName>` pair in the `topic` field.
+
+### Command
+
+| Field     | Value                                                                                                                                 |
+|-----------|---------------------------------------------------------------------------------------------------------------------------------------|
+| **topic** | `<namespace>/<policyName>/policies/commands/modify`                                                                                   |
+| **path**  | `/imports`                                                                                                                            |
+| **value** | The imports of the policy as JSON.<br/>see [Policy representation (JSON)](protocol-specification-policies.html#policy-representation) |
+
+### Response
+
+| Field      |        | Value                                                   |
+|------------|--------|---------------------------------------------------------|
+| **topic**  |        | `<namespace>/<policyName>/policies/commands/modify`     |
+| **path**   |        | `/imports`                                              |
+| **status** | _code_ |
+|            | `204`  | Success - The Policy imports were successfully updated. |
+
+**Example:** [Modify all imports](protocol-examples-policies-modifyimports.html)
+
+## Create or modify a single policy import
+
+Create or modify the import identified by the `path` field of the Policy import identified the
+`<namespace>/<policyName>` pair in the `topic` field and the `<importedPolicyId>` in the `path` field.
+
+### Command
+
+| Field     | Value                                                                                                                         |
+|-----------|-------------------------------------------------------------------------------------------------------------------------------|
+| **topic** | `<namespace>/<policyName>/policies/commands/modify`                                                                           |
+| **path**  | `/imports/<importedPolicyId>`                                                                                                 |
+| **value** | The Policy import as JSON.<br/>see [Policy representation (JSON)](protocol-specification-policies.html#policy-representation) |
+
+### Response
+
+| Field      |        | Value                                                                                                                                                                                                   |
+|------------|--------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **topic**  |        | `<namespace>/<policyName>/policies/commands/modify`                                                                                                                                                     |
+| **path**   |        | `/imports/<importedPolicyId>`                                                                                                                                                                           |
+| **value**  |        | The created Policy import as JSON object, see [Policy representation (JSON)](protocol-specification-policies.html#policy-representation). This field is not available, if the resource already existed. |
+| **status** | _code_ |
+|            | `201`  | Success - The import was successfully created.                                                                                                                                                          |
+|            | `204`  | Success - The import was successfully updated.                                                                                                                                                          |
+
+**Example:** [Modify a single import](protocol-examples-policies-modifyimport.html)

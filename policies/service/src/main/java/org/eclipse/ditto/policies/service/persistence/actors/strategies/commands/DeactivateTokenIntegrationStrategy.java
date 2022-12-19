@@ -22,22 +22,21 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.SubjectId;
-import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.signals.commands.actions.DeactivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.actions.DeactivateTokenIntegrationResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyActionEvent;
 import org.eclipse.ditto.policies.model.signals.events.SubjectDeleted;
 import org.eclipse.ditto.policies.model.signals.events.SubjectsDeletedPartially;
+import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
 import akka.actor.ActorSystem;
 
@@ -66,13 +65,8 @@ final class DeactivateTokenIntegrationStrategy
         final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(label)
                 .filter(entry -> command.isApplicable(entry, dittoHeaders.getAuthorizationContext()));
         if (optionalEntry.isPresent()) {
-            final Set<SubjectId> subjectIds;
             final PolicyEntry policyEntry = optionalEntry.get();
-            try {
-                subjectIds = subjectIdFromActionResolver.resolveSubjectIds(policyEntry, command);
-            } catch (final DittoRuntimeException e) {
-                return ResultFactory.newErrorResult(e, command);
-            }
+            final Set<SubjectId> subjectIds = subjectIdFromActionResolver.resolveSubjectIds(policyEntry, command);
             final DeactivateTokenIntegration adjustedCommand =
                     DeactivateTokenIntegration.of(command.getEntityId(), command.getLabel(), subjectIds, dittoHeaders);
 

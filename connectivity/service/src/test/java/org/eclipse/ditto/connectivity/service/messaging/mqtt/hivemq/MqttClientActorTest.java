@@ -13,6 +13,12 @@
 package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
@@ -53,6 +59,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnecti
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttHeader;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttServerRule;
@@ -77,13 +84,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
 import com.typesafe.config.ConfigFactory;
 
+import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
@@ -161,13 +168,13 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
     }
 
     private void enableGenericMqttClientMethodStubbing() {
-        Mockito.when(genericMqttClient.connect()).thenReturn(CompletableFuture.completedFuture(null));
-        Mockito.when(genericMqttClient.disconnect()).thenReturn(CompletableFuture.completedFuture(null));
-        Mockito.when(genericMqttClient.subscribe(Mockito.any()))
-                .thenReturn(Single.just(Mockito.mock(GenericMqttSubAck.class)));
-        Mockito.when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement())
+        when(genericMqttClient.connect()).thenReturn(CompletableFuture.completedFuture(null));
+        when(genericMqttClient.disconnect()).thenReturn(CompletableFuture.completedFuture(null));
+        when(genericMqttClient.subscribe(any()))
+                .thenReturn(Single.just(mock(GenericMqttSubAck.class)));
+        when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement())
                 .thenReturn(Flowable.never());
-        Mockito.when(genericMqttClient.publish(Mockito.any()))
+        when(genericMqttClient.publish(any()))
                 .thenAnswer(invocation -> {
                     final GenericMqttPublish genericMqttPublish = invocation.getArgument(0);
                     final var commandForwarderRef = commandForwarder.ref();
@@ -177,7 +184,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
     }
 
     private void enableGenericMqttClientFactoryMethodStubbing() {
-        Mockito.when(genericMqttClientFactory.getGenericMqttClient(Mockito.any())).thenReturn(genericMqttClient);
+        when(genericMqttClientFactory.getGenericMqttClient(any())).thenReturn(genericMqttClient);
         genericMqttClientFactoryMock.when(() -> GenericMqttClientFactory.newInstance())
                 .thenReturn(genericMqttClientFactory);
     }
@@ -239,7 +246,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void subscribeFails() {
         final var mqttSubscribeException = new MqttSubscribeException("Quisquam omnis in quia hic et libero.", null);
-        Mockito.when(genericMqttClient.subscribe(Mockito.any())).thenReturn(Single.error(mqttSubscribeException));
+        when(genericMqttClient.subscribe(any())).thenReturn(Single.error(mqttSubscribeException));
         final var underTest = TestActorRef.apply(
                 createClientActor(commandForwarder.ref(),
                         ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
@@ -294,7 +301,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
         final var connection = ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
                 .connectionStatus(ConnectivityStatus.CLOSED)
                 .build();
-        Mockito.when(genericMqttClient.connect(Mockito.any())).thenReturn(CompletableFuture.completedStage(null));
+        when(genericMqttClient.connect(any())).thenReturn(CompletableFuture.completedStage(null));
         final var testKit = actorSystemResource.newTestKit();
         final var underTest = testKit.watch(TestActorRef.apply(
                 createClientActor(commandForwarder.ref(), connection),
@@ -304,15 +311,15 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
         underTest.tell(TestConnection.of(connection, getDittoHeadersWithCorrelationId()), testKit.getRef());
 
         testKit.expectMsg(new Status.Success("successfully connected + initialized mapper"));
-        Mockito.verify(genericMqttClient).disconnect();
+        verify(genericMqttClient).disconnect();
         testKit.expectTerminated(Duration.ofSeconds(5L), underTest);
-        Mockito.verify(genericMqttClient).disconnect();
+        verify(genericMqttClient).disconnect();
     }
 
     @Test
     public void testConnectionFails() {
         final var mqttClientConnectException = new MqttClientConnectException("Failed to connect.", null);
-        Mockito.when(genericMqttClient.connect(Mockito.any())).thenThrow(mqttClientConnectException);
+        when(genericMqttClient.connect(any())).thenThrow(mqttClientConnectException);
         final var connection = ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
                 .connectionStatus(ConnectivityStatus.CLOSED)
                 .build();
@@ -332,7 +339,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                     assertThat(connectionFailedException).hasCause(mqttClientConnectException);
                 });
         testKit.expectTerminated(Duration.ofSeconds(5L), underTest);
-        Mockito.verify(genericMqttClient, Mockito.never()).disconnect();
+        verify(genericMqttClient, never()).disconnect();
     }
 
     private String getSerializedModifyThingCommand(final Object... correlationIdSuffixes) {
@@ -357,7 +364,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
     }
 
     private void enableSubscribingAndConsumingMethodStubbing(final GenericMqttPublish... incomingPublishes) {
-        Mockito.doAnswer(invocation -> {
+        doAnswer(invocation -> {
                     final GenericMqttSubscribe genericMqttSubscribe = invocation.getArgument(0);
 
                     final var subscribedMqttTopicFilters = genericMqttSubscribe.genericMqttSubscriptions()
@@ -365,7 +372,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                             .collect(Collectors.toList());
 
                     // This needs to be a side effect, unfortunately.
-                    Mockito.when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement())
+                    when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement())
                             .thenReturn(Flowable.fromIterable(
                                     Stream.of(incomingPublishes)
                                             .filter(incoming -> subscribedMqttTopicFilters.stream()
@@ -373,9 +380,9 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                                             .collect(Collectors.toList())
                             ));
 
-                    return Single.just(Mockito.mock(GenericMqttSubAck.class));
+                    return Single.just(mock(GenericMqttSubAck.class));
                 })
-                .when(genericMqttClient).subscribe(Mockito.any());
+                .when(genericMqttClient).subscribe(any());
     }
 
     @Test
@@ -644,6 +651,31 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
         assertThat(commandForwarder.expectMsgClass(GenericMqttPublish.class))
                 .satisfies(genericMqttPublish ->
                         assertThat(genericMqttPublish.getTopic()).isEqualTo(MqttTopic.of("replyTarget/" + thingId)));
+    }
+
+
+    @Test
+    public void stopConsumingOnRequest() {
+        final var underTest = TestActorRef.apply(
+                createClientActor(
+                        commandForwarder.ref(),
+                        ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
+                                .connectionStatus(ConnectivityStatus.CLOSED)
+                                .setSources(TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT)
+                                .build()
+                ),
+                actorSystemResource.getActorSystem()
+        );
+        final var dittoHeadersWithCorrelationId = getDittoHeadersWithCorrelationId();
+        final var testKit = actorSystemResource.newTestKit();
+        underTest.tell(OpenConnection.of(CONNECTION_ID, dittoHeadersWithCorrelationId), testKit.getRef());
+        testKit.expectMsg(CONNECTED_SUCCESS);
+
+        underTest.tell(BaseClientActor.Control.SERVICE_UNBIND, testKit.getRef());
+        testKit.expectMsg(Done.getInstance());
+        verify(genericMqttClient).unsubscribe(any());
+
+        actorSystemResource.getActorSystem().stop(underTest);
     }
 
 }

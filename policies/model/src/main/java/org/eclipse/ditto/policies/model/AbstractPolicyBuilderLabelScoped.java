@@ -86,6 +86,24 @@ public abstract class AbstractPolicyBuilderLabelScoped implements PolicyBuilder.
     }
 
     @Override
+    public PolicyBuilder setPolicyImport(final PolicyImport policyImport) {
+        delegate.setPolicyImport(policyImport);
+        return this;
+    }
+
+    @Override
+    public PolicyBuilder setPolicyImports(final PolicyImports imports) {
+        delegate.setPolicyImports(imports);
+        return this;
+    }
+
+    @Override
+    public PolicyBuilder setImportableFor(final CharSequence label, final ImportableType importableType) {
+        delegate.setImportableFor(label, importableType);
+        return this;
+    }
+
+    @Override
     public PolicyBuilder.LabelScoped set(final PolicyEntry entry) {
         delegate.set(entry);
         return this;

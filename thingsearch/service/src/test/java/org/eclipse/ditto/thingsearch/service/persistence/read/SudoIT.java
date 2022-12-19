@@ -16,12 +16,14 @@ import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Set;
 
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.internal.models.streaming.LowerBound;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.rql.query.QueryBuilderFactory;
@@ -97,9 +99,9 @@ public final class SudoIT extends AbstractReadPersistenceITBase {
     @Test
     public void sudoStreamMetadata() {
         final Metadata metadata1 =
-                Metadata.of(THING1_ID, 1L, PolicyId.of(THING1_ID), 0L, TIMESTAMP1, null);
+                Metadata.of(THING1_ID, 1L, PolicyTag.of(PolicyId.of(THING1_ID), 0L), Set.of(), TIMESTAMP1, null);
         final Metadata metadata2 =
-                Metadata.of(THING2_ID, 2L, PolicyId.of(THING2_ID), 0L, TIMESTAMP2, null);
+                Metadata.of(THING2_ID, 2L, PolicyTag.of(PolicyId.of(THING2_ID), 0L), Set.of(), TIMESTAMP2, null);
         assertThat(waitFor(readPersistence.sudoStreamMetadata(LowerBound.emptyEntityId(ThingConstants.ENTITY_TYPE))))
                 .containsExactly(metadata1, metadata2);
 

@@ -21,7 +21,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
-import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
+import org.eclipse.ditto.internal.utils.cluster.ShardRegionCreator;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
@@ -34,6 +34,8 @@ import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceClea
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsubpolicies.PolicyAnnouncementPubSubFactory;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProviderExtension;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.service.common.config.PoliciesConfig;
 import org.eclipse.ditto.policies.service.persistence.actors.PoliciesPersistenceStreamingActorCreator;
@@ -42,7 +44,6 @@ import org.eclipse.ditto.policies.service.persistence.actors.PolicySupervisorAct
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
@@ -86,19 +87,14 @@ public final class PoliciesRootActor extends DittoRootActor {
         ClusterUtil.startSingleton(actorSystem, getContext(), PoliciesMessagingConstants.CLUSTER_ROLE,
                 BlockedNamespacesUpdater.ACTOR_NAME, blockedNamespacesUpdaterProps);
 
+        final PolicyEnforcerProvider policyEnforcerProvider = PolicyEnforcerProviderExtension.get(actorSystem).getPolicyEnforcerProvider();
         final var policySupervisorProps =
-                getPolicySupervisorActorProps(pubSubMediator, policyAnnouncementPub, blockedNamespaces);
+                getPolicySupervisorActorProps(pubSubMediator, policyAnnouncementPub, blockedNamespaces,
+                        policyEnforcerProvider);
 
-        final var clusterConfig = policiesConfig.getClusterConfig();
-        final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(clusterConfig.getNumberOfShards(),
-                actorSystem);
-
-        final ActorRef policiesShardRegion = ClusterSharding.get(actorSystem)
-                .start(PoliciesMessagingConstants.SHARD_REGION,
-                        policySupervisorProps,
-                        shardingSettings,
-                        shardRegionExtractor
-                );
+        final ActorRef policiesShardRegion =
+                ShardRegionCreator.start(actorSystem, PoliciesMessagingConstants.SHARD_REGION, policySupervisorProps,
+                        policiesConfig.getClusterConfig().getNumberOfShards(), CLUSTER_ROLE);
 
         final var mongoReadJournal = MongoReadJournal.newInstance(actorSystem);
         startClusterSingletonActor(
@@ -114,7 +110,7 @@ public final class PoliciesRootActor extends DittoRootActor {
 
         final var cleanupConfig = policiesConfig.getPolicyConfig().getCleanupConfig();
         final var cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE);
-        startChildActor(PersistenceCleanupActor.NAME, cleanupActorProps);
+        startChildActor(PersistenceCleanupActor.ACTOR_NAME, cleanupActorProps);
 
         final var healthCheckConfig = policiesConfig.getHealthCheckConfig();
         final var hcBuilder =
@@ -136,9 +132,11 @@ public final class PoliciesRootActor extends DittoRootActor {
 
     private static Props getPolicySupervisorActorProps(final ActorRef pubSubMediator,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
-            final BlockedNamespaces blockedNamespaces) {
+            final BlockedNamespaces blockedNamespaces,
+            final PolicyEnforcerProvider policyEnforcerProvider) {
 
-        return PolicySupervisorActor.props(pubSubMediator, policyAnnouncementPub, blockedNamespaces);
+        return PolicySupervisorActor.props(pubSubMediator, policyAnnouncementPub, blockedNamespaces,
+                policyEnforcerProvider);
     }
 
     /**

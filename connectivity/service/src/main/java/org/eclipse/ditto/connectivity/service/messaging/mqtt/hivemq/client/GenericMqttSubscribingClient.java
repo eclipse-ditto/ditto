@@ -12,9 +12,13 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client;
 
+import java.util.concurrent.CompletionStage;
+
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubAck;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscribe;
+
+import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 
 import io.reactivex.Flowable;
 import io.reactivex.Single;
@@ -78,8 +82,15 @@ public interface GenericMqttSubscribingClient {
      *         the MQTT session expires.
      *     </li>
      * </ul>
-     * @see #subscribe(GenericMqttSubscribe) 
+     * @see #subscribe(GenericMqttSubscribe)
      */
     Flowable<GenericMqttPublish> consumeSubscribedPublishesWithManualAcknowledgement();
 
+    /**
+     * Unsubscribe from the topic filters.
+     *
+     * @param mqttTopicFilters The topic filters.
+     * @return the {@code Completable} that completes or fails according to the unsubscription result.
+     */
+    CompletionStage<Void> unsubscribe(MqttTopicFilter... mqttTopicFilters);
 }

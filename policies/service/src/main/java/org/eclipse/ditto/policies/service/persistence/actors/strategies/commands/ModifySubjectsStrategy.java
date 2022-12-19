@@ -20,22 +20,24 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Subjects;
-import org.eclipse.ditto.policies.api.PoliciesValidator;
-import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjects;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectsResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.model.signals.events.SubjectsModified;
+import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjects} command.
@@ -57,18 +59,25 @@ final class ModifySubjectsStrategy extends AbstractPolicyCommandStrategy<ModifyS
         final PolicyId policyId = context.getState();
         final Label label = command.getLabel();
         final Subjects subjects = command.getSubjects();
+        final DittoHeaders commandHeaders = command.getDittoHeaders();
 
         if (nonNullPolicy.getEntryFor(label).isPresent()) {
-            final DittoHeadersBuilder<?, ?> adjustedHeadersBuilder = command.getDittoHeaders().toBuilder();
+
+            final JsonPointer resourcesPointer = Policy.JsonFields.ENTRIES.getPointer()
+                    .append(JsonPointer.of(label))
+                    .append(PolicyEntry.JsonFields.SUBJECTS.getPointer());
+            PolicyCommandSizeValidator.getInstance()
+                    .ensureValidSize(nonNullPolicy, JsonField.newInstance(resourcesPointer, subjects.toJson()),
+                            () -> commandHeaders);
+
             final Subjects adjustedSubjects = potentiallyAdjustSubjects(subjects);
-            final DittoHeaders adjustedHeaders = adjustedHeadersBuilder.build();
             final ModifySubjects adjustedCommand = ModifySubjects.of(command.getEntityId(), command.getLabel(),
-                    adjustedSubjects, adjustedHeaders);
+                    adjustedSubjects, commandHeaders);
 
             final Policy newPolicy = nonNullPolicy.setSubjectsFor(label, adjustedSubjects);
 
             final Optional<Result<PolicyEvent<?>>> alreadyExpiredSubject =
-                    checkForAlreadyExpiredSubject(newPolicy, adjustedHeaders, command);
+                    checkForAlreadyExpiredSubject(newPolicy, commandHeaders, command);
             if (alreadyExpiredSubject.isPresent()) {
                 return alreadyExpiredSubject.get();
             }
@@ -78,13 +87,13 @@ final class ModifySubjectsStrategy extends AbstractPolicyCommandStrategy<ModifyS
             if (validator.isValid()) {
                 final SubjectsModified subjectsModified =
                         SubjectsModified.of(policyId, label, adjustedSubjects, nextRevision, getEventTimestamp(),
-                                adjustedHeaders, metadata);
+                                commandHeaders, metadata);
                 final WithDittoHeaders response = appendETagHeaderIfProvided(adjustedCommand,
-                        ModifySubjectsResponse.of(policyId, label, adjustedHeaders), nonNullPolicy);
+                        ModifySubjectsResponse.of(policyId, label, commandHeaders), nonNullPolicy);
                 return ResultFactory.newMutationResult(adjustedCommand, subjectsModified, response);
             } else {
                 return ResultFactory.newErrorResult(
-                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), adjustedHeaders),
+                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), commandHeaders),
                         command);
             }
         } else {

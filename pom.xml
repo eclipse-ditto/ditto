@@ -184,6 +184,17 @@
                 <role>Committer</role>
             </roles>
         </developer>
+        <developer>
+            <id>dschwilk</id>
+            <name>David Schwilk</name>
+            <email>david.schwilk@bosch.io</email>
+            <url>https://github.com/DerSchwilk</url>
+            <organization>Bosch.IO GmbH</organization>
+            <organizationUrl>https://www.bosch.io</organizationUrl>
+            <roles>
+                <role>Committer</role>
+            </roles>
+        </developer>
     </developers>
 
     <modules>
@@ -231,7 +242,7 @@
         <!-- globally set version for checking binary compatibility against -->
         <!-- whoever changes this to ${revision} or ${project.version} is responsible for API breakage caused by this! -->
         <!-- in other words: never do that here! exclude the 'breakages' locally in the japicmp maven plugin if you intentionally break something -->
-        <binary-compatibility-check.version>3.0.0</binary-compatibility-check.version>
+        <binary-compatibility-check.version>3.1.0</binary-compatibility-check.version>
 
         <maven.skins.fluido.version>1.7</maven.skins.fluido.version>
         <doxia.markdown.version>1.8</doxia.markdown.version>
@@ -486,7 +497,7 @@
                 <plugin>
                     <groupId>org.sonatype.plugins</groupId>
                     <artifactId>nexus-staging-maven-plugin</artifactId>
-                    <version>1.6.12</version>
+                    <version>1.6.13</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -570,6 +581,7 @@
                         <header>${project.basedir}/src/license-header-2019.txt</header>
                         <header>${project.basedir}/src/license-header-2020.txt</header>
                         <header>${project.basedir}/src/license-header-2021.txt</header>
+                        <header>${project.basedir}/src/license-header-2022.txt</header>
                     </validHeaders>
                     <aggregate>true</aggregate>
                     <quiet>false</quiet>
@@ -941,8 +953,9 @@
                         <configuration>
                             <serverId>ossrh</serverId>
                             <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                            <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
-                            <autoReleaseAfterClose>false</autoReleaseAfterClose>
+                            <skipStagingRepositoryClose>false</skipStagingRepositoryClose>
+                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                            <autoDropAfterRelease>true</autoDropAfterRelease>
                         </configuration>
                     </plugin>
                 </plugins>

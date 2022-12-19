@@ -25,10 +25,11 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
@@ -40,16 +41,13 @@ import org.eclipse.ditto.policies.model.SubjectAnnouncement;
 import org.eclipse.ditto.policies.model.SubjectExpiry;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.SubjectType;
-import org.eclipse.ditto.policies.api.PoliciesValidator;
-import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegrationResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyActionEvent;
 import org.eclipse.ditto.policies.model.signals.events.SubjectCreated;
 import org.eclipse.ditto.policies.model.signals.events.SubjectModified;
 import org.eclipse.ditto.policies.model.signals.events.SubjectsModifiedPartially;
+import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
 import akka.actor.ActorSystem;
 
@@ -73,6 +71,7 @@ final class ActivateTokenIntegrationStrategy
             @Nullable final Metadata metadata) {
 
         final Policy nonNullPolicy = checkNotNull(policy, "policy");
+        final DittoHeaders commandHeaders = command.getDittoHeaders();
         final PolicyId policyId = context.getState();
         final Label label = command.getLabel();
         final SubjectExpiry commandSubjectExpiry = command.getSubjectExpiry();
@@ -81,22 +80,15 @@ final class ActivateTokenIntegrationStrategy
                 .filter(entry -> command.isApplicable(entry, command.getDittoHeaders().getAuthorizationContext()));
         if (optionalEntry.isPresent()) {
             final PolicyEntry policyEntry = optionalEntry.get();
-            final DittoHeadersBuilder<?, ?> adjustedHeadersBuilder = command.getDittoHeaders().toBuilder();
-            final Set<SubjectId> subjectIds;
-            try {
-                subjectIds = subjectIdFromActionResolver.resolveSubjectIds(policyEntry, command);
-            } catch (final DittoRuntimeException e) {
-                return ResultFactory.newErrorResult(e, command);
-            }
+            final Set<SubjectId> subjectIds = subjectIdFromActionResolver.resolveSubjectIds(policyEntry, command);
             final SubjectType subjectType = PoliciesModelFactory.newSubjectType(
                     MessageFormat.format(MESSAGE_PATTERN_SUBJECT_TYPE, command.getName(), Instant.now().toString()));
             final SubjectExpiry adjustedSubjectExpiry = roundPolicySubjectExpiry(commandSubjectExpiry);
             final SubjectAnnouncement adjustedSubjectAnnouncement =
                     roundSubjectAnnouncement(command.getSubjectAnnouncement().orElse(null));
-            final DittoHeaders adjustedHeaders = adjustedHeadersBuilder.build();
             final ActivateTokenIntegration adjustedCommand = ActivateTokenIntegration.of(
                     command.getEntityId(), command.getLabel(), subjectIds, adjustedSubjectExpiry.getTimestamp(),
-                    adjustedHeaders);
+                    commandHeaders);
 
             final Set<Subject> adjustedSubjects = subjectIds.stream()
                     .map(subjectId -> Subject.newInstance(subjectId, subjectType, adjustedSubjectExpiry,
@@ -109,7 +101,7 @@ final class ActivateTokenIntegrationStrategy
             final Policy newPolicy = policyBuilder.build();
 
             final Optional<Result<PolicyActionEvent<?>>> alreadyExpiredSubject =
-                    checkForAlreadyExpiredSubject(newPolicy, adjustedHeaders, command);
+                    checkForAlreadyExpiredSubject(newPolicy, commandHeaders, command);
             if (alreadyExpiredSubject.isPresent()) {
                 return alreadyExpiredSubject.get();
             }
@@ -125,22 +117,22 @@ final class ActivateTokenIntegrationStrategy
 
                     if (policyEntry.getSubjects().getSubject(subjectId).isPresent()) {
                         event = SubjectModified.of(policyId, label, adjustedSubject, nextRevision, eventTimestamp,
-                                adjustedHeaders, metadata);
+                                commandHeaders, metadata);
                     } else {
                         event = SubjectCreated.of(policyId, label, adjustedSubject, nextRevision, eventTimestamp,
-                                adjustedHeaders, metadata);
+                                commandHeaders, metadata);
                     }
                 } else {
                     event = SubjectsModifiedPartially.of(policyId, Map.of(label, adjustedSubjects), nextRevision,
-                            eventTimestamp, adjustedHeaders, metadata);
+                            eventTimestamp, commandHeaders, metadata);
                 }
                 final ActivateTokenIntegrationResponse rawResponse =
-                        ActivateTokenIntegrationResponse.of(policyId, label, subjectIds, adjustedHeaders);
+                        ActivateTokenIntegrationResponse.of(policyId, label, subjectIds, commandHeaders);
                 // do not append ETag - activated subjects do not support ETags.
                 return ResultFactory.newMutationResult(adjustedCommand, event, rawResponse);
             } else {
                 return ResultFactory.newErrorResult(
-                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), adjustedHeaders),
+                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), commandHeaders),
                         command);
             }
         } else {

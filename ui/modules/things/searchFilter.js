@@ -26,7 +26,13 @@ const filterExamples = [
   'like(attributes/key1,"known-chars-at-start*")',
 ];
 
+const filterHistory = [];
+
 let keyStrokeTimeout;
+
+let lastSearch = '';
+
+const FILTER_PLACEHOLDER = '*****';
 
 const dom = {
   filterList: null,
@@ -53,7 +59,10 @@ export async function ready() {
     if (event.target && event.target.classList.contains('dropdown-item')) {
       dom.searchFilterEdit.value = event.target.textContent;
       checkIfFavourite();
-      ThingsSearch.searchThings(event.target.textContent);
+      const filterEditNeeded = checkAndMarkParameter();
+      if (!filterEditNeeded) {
+        Things.searchThings(event.target.textContent);
+      }
     }
   });
 
@@ -101,6 +110,42 @@ function onEnvironmentChanged() {
   updateFilterList();
 }
 
+/**
+ * Tests if the search filter is an RQL. If yes, things search is called otherwise just things get
+ * @param {String} filter search filter string containing an RQL or a thingId
+ */
+function searchTriggered(filter) {
+  lastSearch = filter;
+  fillHistory(filter);
+  const regex = /^(eq\(|ne\(|gt\(|ge\(|lt\(|le\(|in\(|like\(|exists\(|and\(|or\(|not\().*/;
+  if (filter === '' || regex.test(filter)) {
+    Things.searchThings(filter);
+  } else {
+    Things.getThings([filter]);
+  }
+}
+
+/**
+ * Gets the list of pinned things
+ */
+function pinnedTriggered() {
+  lastSearch = 'pinned';
+  dom.searchFilterEdit.value = null;
+  dom.favIcon.classList.replace('bi-star-fill', 'bi-star');
+  Things.getThings(Environments.current()['pinnedThings']);
+}
+
+/**
+ * Performs the last search by the user using the last used filter.
+ * If the user used pinned things last time, the pinned things are reloaded
+ */
+export function performLastSearch() {
+  if (lastSearch === 'pinned') {
+    pinnedTriggered();
+  } else {
+    searchTriggered(lastSearch);
+  }
+}
 
 /**
  * Updates the UI filterList
@@ -108,9 +153,14 @@ function onEnvironmentChanged() {
 function updateFilterList() {
   dom.filterList.innerHTML = '';
   Utils.addDropDownEntries(dom.filterList, ['Favourite search filters'], true);
-  Utils.addDropDownEntries(dom.filterList, Environments.current().filterList);
+  Utils.addDropDownEntries(dom.filterList, Environments.current().filterList ?? []);
+  Utils.addDropDownEntries(dom.filterList, ['Field search filters'], true);
+  Utils.addDropDownEntries(dom.filterList, (Environments.current().fieldList ?? [])
+      .map((f) => `eq(${f.path},${FILTER_PLACEHOLDER})`));
   Utils.addDropDownEntries(dom.filterList, ['Example search filters'], true);
   Utils.addDropDownEntries(dom.filterList, filterExamples);
+  Utils.addDropDownEntries(dom.filterList, ['Recent search filters'], true);
+  Utils.addDropDownEntries(dom.filterList, filterHistory);
 }
 
 /**
@@ -140,6 +190,24 @@ function checkIfFavourite() {
     dom.favIcon.classList.replace('bi-star', 'bi-star-fill');
   } else {
     dom.favIcon.classList.replace('bi-star-fill', 'bi-star');
+  }
+}
+
+function checkAndMarkParameter() {
+  const index = dom.searchFilterEdit.value.indexOf(FILTER_PLACEHOLDER);
+  if (index >= 0) {
+    dom.searchFilterEdit.focus();
+    dom.searchFilterEdit.setSelectionRange(index, index + FILTER_PLACEHOLDER.length);
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function fillHistory(filter) {
+  if (!filterHistory.includes(filter)) {
+    filterHistory.unshift(filter);
+    updateFilterList();
   }
 }
 

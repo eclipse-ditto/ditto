@@ -21,6 +21,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnections;
 import org.eclipse.ditto.gateway.service.endpoints.actors.ConnectionsRetrievalActorPropsFactory;
+import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
@@ -38,7 +39,6 @@ import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 
@@ -52,23 +52,24 @@ public final class GatewayProxyActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "proxy";
 
-    private final ActorSelection devOpsCommandsActor;
-    private final ActorRef edgeCommandForwarder;
-    private final ActorRef pubSubMediator;
-
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
+    private final ActorRef pubSubMediator;
+    private final ActorSelection devOpsCommandsActor;
+    private final ActorRef edgeCommandForwarder;
+    private final HttpConfig httpConfig;
     private final ActorRef statisticsActor;
     private final ConnectionsRetrievalActorPropsFactory connectionsRetrievalActorPropsFactory;
 
     @SuppressWarnings("unused")
-    private GatewayProxyActor(final ActorRef pubSubMediator,
-            final ActorSelection devOpsCommandsActor,
-            final ActorRef edgeCommandForwarder) {
+    private GatewayProxyActor(final ActorRef pubSubMediator, final ActorSelection devOpsCommandsActor,
+            final ActorRef edgeCommandForwarder, final HttpConfig httpConfig) {
         this.pubSubMediator = pubSubMediator;
         this.devOpsCommandsActor = devOpsCommandsActor;
         this.edgeCommandForwarder = edgeCommandForwarder;
+        this.httpConfig = httpConfig;
         this.statisticsActor = getContext().actorOf(StatisticsActor.props(pubSubMediator), StatisticsActor.ACTOR_NAME);
+
         final Config dittoExtensionConfig =
                 ScopedConfig.dittoExtension(getContext().getSystem().settings().config());
         this.connectionsRetrievalActorPropsFactory =
@@ -81,13 +82,14 @@ public final class GatewayProxyActor extends AbstractActor {
      * @param pubSubMediator the Pub/Sub mediator to use for subscribing for events.
      * @param devOpsCommandsActor the Actor ref to the local DevOpsCommandsActor.
      * @param edgeCommandForwarder the Actor ref to the {@code EdgeCommandForwarderActor}.
+     * @param httpConfig the http config.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef pubSubMediator,
-            final ActorSelection devOpsCommandsActor,
-            final ActorRef edgeCommandForwarder) {
+    public static Props props(final ActorRef pubSubMediator, final ActorSelection devOpsCommandsActor,
+            final ActorRef edgeCommandForwarder, final HttpConfig httpConfig) {
 
-        return Props.create(GatewayProxyActor.class, pubSubMediator, devOpsCommandsActor, edgeCommandForwarder);
+        return Props.create(GatewayProxyActor.class, pubSubMediator, devOpsCommandsActor, edgeCommandForwarder,
+                httpConfig);
     }
 
     static boolean isLiveCommandOrEvent(final Signal<?> signal) {
@@ -131,7 +133,8 @@ public final class GatewayProxyActor extends AbstractActor {
                 })
                 .match(QueryThings.class, qt -> {
                     final ActorRef responseActor = getContext().actorOf(
-                            QueryThingsPerRequestActor.props(qt, edgeCommandForwarder, getSender(), pubSubMediator)
+                            QueryThingsPerRequestActor.props(qt, edgeCommandForwarder, getSender(), pubSubMediator,
+                                    httpConfig)
                     );
                     edgeCommandForwarder.tell(qt, responseActor);
                 })
@@ -154,10 +157,6 @@ public final class GatewayProxyActor extends AbstractActor {
                     getSender().tell(cause, getSelf());
                 })
                 .match(DittoRuntimeException.class, cre -> getSender().tell(cre, getSelf()))
-                .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck ->
-                        log.debug("Successfully subscribed to distributed pub/sub on topic '{}'",
-                                subscribeAck.subscribe().topic())
-                )
                 .matchAny(m -> log.warning("Got unknown message, expected a 'Command': {}", m));
 
         return receiveBuilder.build();

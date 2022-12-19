@@ -12,10 +12,13 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
+import java.util.Set;
+
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Thing;
@@ -73,8 +76,8 @@ public final class TestSearchUpdaterStream {
             final long policyRevision) {
 
         final JsonObject thingJson = thing.toJson(FieldType.all());
-        final AbstractWriteModel writeModel = EnforcedThingMapper.toWriteModel(thingJson, policy, policyRevision,
-                null, -1);
+        final AbstractWriteModel writeModel =
+                EnforcedThingMapper.toWriteModel(thingJson, policy, Set.of(), policyRevision, null, -1);
         final var mongoWriteModel =
                 writeModel.toIncrementalMongo(
                         ThingDeleteModel.of(Metadata.ofDeleted(thing.getEntityId().orElseThrow())), 13).orElseThrow();
@@ -95,7 +98,8 @@ public final class TestSearchUpdaterStream {
      */
     public Source<WriteResultAndErrors, NotUsed> delete(final ThingId thingId, final long revision,
             @Nullable final PolicyId policyId, final long policyRevision) {
-        return delete(Metadata.of(thingId, revision, policyId, policyRevision, null));
+        return delete(Metadata.of(thingId, revision, policyId == null ? null : PolicyTag.of(policyId, policyRevision),
+                Set.of(), null));
     }
 
     /**
