@@ -127,7 +127,6 @@ import akka.actor.ActorSystem;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.cluster.Cluster;
 import akka.pattern.AskTimeoutException;
 import akka.testkit.TestActorRef;
 import akka.testkit.TestProbe;
@@ -175,7 +174,6 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     @After
     public void tearDown() {
         if (actorSystem != null) {
-            Cluster.get(actorSystem).prepareForFullClusterShutdown();
             actorSystem.terminate();
         }
     }
