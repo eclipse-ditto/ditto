@@ -55,9 +55,8 @@ final class DeleteConnectionStrategy extends AbstractConnectivityCommandStrategy
         // Not closing the connection asynchronously; rely on client actors to cleanup all resources when stopped.
         final List<ConnectionAction> actions =
                 Arrays.asList(ConnectionAction.PERSIST_AND_APPLY_EVENT, ConnectionAction.CHECK_LOGGING_ENABLED,
-                        ConnectionAction.CLOSE_CONNECTION, ConnectionAction.STOP_CLIENT_ACTORS,
-                        ConnectionAction.DISABLE_LOGGING, ConnectionAction.SEND_RESPONSE,
-                        ConnectionAction.BECOME_DELETED);
+                        ConnectionAction.STOP_CLIENT_ACTORS, ConnectionAction.DISABLE_LOGGING,
+                        ConnectionAction.SEND_RESPONSE, ConnectionAction.BECOME_DELETED);
         return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
     }
 

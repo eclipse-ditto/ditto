@@ -198,7 +198,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
         final ClusterShardingSettings shardingSettings = ClusterShardingSettings.create(actorSystem)
                 .withRole(ConnectivityMessagingConstants.CLUSTER_ROLE);
         return ClusterSharding.get(actorSystem)
-                .start(ConnectivityMessagingConstants.CLIENT_SHARD_REGION, props, shardingSettings,
+                .start(ConnectivityMessagingConstants.SHARD_REGION, props, shardingSettings,
                         ShardRegionExtractor.of(numberOfShards, actorSystem));
     }
 
