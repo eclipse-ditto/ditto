@@ -90,10 +90,10 @@ public final class MqttClientActor extends BaseClientActor {
     private MqttClientActor(final Connection connection,
             final ActorRef commandForwarder,
             final ActorRef connectionActor,
-            final boolean dryRun,
+            final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
 
-        super(connection, commandForwarder, connectionActor, dryRun, connectivityConfigOverwrites);
+        super(connection, commandForwarder, connectionActor, dittoHeaders, connectivityConfigOverwrites);
 
         final var connectivityConfig = connectivityConfig();
         final var connectionConfig = connectivityConfig.getConnectionConfig();
@@ -129,7 +129,7 @@ public final class MqttClientActor extends BaseClientActor {
                 ConditionChecker.checkNotNull(mqttConnection, "mqttConnection"),
                 ConditionChecker.checkNotNull(commandForwarder, "commandForwarder"),
                 ConditionChecker.checkNotNull(connectionActor, "connectionActor"),
-                ConditionChecker.checkNotNull(dittoHeaders, "dittoHeaders").isDryRun(),
+                ConditionChecker.checkNotNull(dittoHeaders, "dittoHeaders"),
                 ConditionChecker.checkNotNull(connectivityConfigOverwrites, "connectivityConfigOverwrites"));
     }
 
