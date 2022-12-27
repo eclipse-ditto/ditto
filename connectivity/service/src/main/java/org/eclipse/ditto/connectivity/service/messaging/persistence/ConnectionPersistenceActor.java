@@ -660,20 +660,8 @@ public final class ConnectionPersistenceActor
                 .matchEquals(Control.CHECK_LOGGING_ACTIVE, this::checkLoggingEnabled)
                 .matchEquals(Control.TRIGGER_UPDATE_PRIORITY, this::triggerUpdatePriority)
                 .match(UpdatePriority.class, this::updatePriority)
-                .match(ConnectionSupervisorActor.RestartByConnectionType.class, this::initiateRestartByConnectionType)
                 .build()
                 .orElse(super.matchAnyAfterInitialization());
-    }
-
-    private void initiateRestartByConnectionType(
-            final ConnectionSupervisorActor.RestartByConnectionType restartByConnectionType) {
-        if (entity.getConnectionType().equals(restartByConnectionType.getConnectionType())) {
-            sender().tell(ConnectionSupervisorActor.RestartConnection.of(null), self());
-            log.info("Restart command sent to ConnectionSupervisorActor {}.", sender());
-        } else {
-            log.info("Skipping restart of non-{} connection {}.",
-                    restartByConnectionType.getConnectionType(), entityId);
-        }
     }
 
     @Override
