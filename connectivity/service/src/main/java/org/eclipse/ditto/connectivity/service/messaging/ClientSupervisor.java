@@ -43,6 +43,7 @@ import akka.actor.Terminated;
 import akka.cluster.sharding.ClusterSharding;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
+import akka.routing.ConsistentHashingRouter;
 
 /**
  * Supervisor of client actors that live in a shard region.
@@ -215,7 +216,8 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
     private void restartIfOpen(final StopShardedActor stopShardedActor) {
         if (clientActorPropsArgs != null) {
             logger.debug("Restarting connected client actor.");
-            final var envelope = new ShardedBinaryEnvelope(clientActorPropsArgs, clientActorId.toString());
+            final var envelope =
+                    new ConsistentHashingRouter.ConsistentHashableEnvelope(props, clientActorId.toString());
             ClusterSharding.get(getContext().getSystem())
                     .shardRegion(ConnectivityMessagingConstants.CLIENT_SHARD_REGION)
                     .tell(envelope, ActorRef.noSender());
