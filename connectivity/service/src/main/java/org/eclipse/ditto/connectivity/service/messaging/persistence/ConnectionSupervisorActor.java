@@ -89,17 +89,15 @@ public final class ConnectionSupervisorActor
     private boolean isRegisteredForConnectivityConfigChanges = false;
 
     private final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory;
-    private final ActorRef clientShardRegion;
 
     @SuppressWarnings("unused")
     private ConnectionSupervisorActor(final ActorRef commandForwarderActor, final ActorRef pubSubMediator,
-            final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory, final ActorRef clientShardRegion) {
+            final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory) {
 
         super(null, CONNECTIVITY_DEFAULT_LOCAL_ASK_TIMEOUT);
         this.commandForwarderActor = commandForwarderActor;
         this.pubSubMediator = pubSubMediator;
         this.enforcerActorPropsFactory = enforcerActorPropsFactory;
-        this.clientShardRegion = clientShardRegion;
     }
 
     /**
@@ -112,16 +110,14 @@ public final class ConnectionSupervisorActor
      * @param commandForwarder the actor used to send signals into the ditto cluster.
      * @param pubSubMediator pub-sub-mediator for the shutdown behavior.
      * @param enforcerActorPropsFactory used to create the enforcer actor.
-     * @param clientShardRegion the client shard region.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef commandForwarder,
             final ActorRef pubSubMediator,
-            final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory,
-            final ActorRef clientShardRegion) {
+            final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory) {
 
         return Props.create(ConnectionSupervisorActor.class, commandForwarder, pubSubMediator,
-                enforcerActorPropsFactory, clientShardRegion);
+                enforcerActorPropsFactory);
     }
 
     @Override
@@ -182,7 +178,7 @@ public final class ConnectionSupervisorActor
     @Override
     protected Props getPersistenceActorProps(final ConnectionId entityId) {
         return ConnectionPersistenceActor.props(entityId, commandForwarderActor, pubSubMediator,
-                connectivityConfigOverwrites, clientShardRegion);
+                connectivityConfigOverwrites);
     }
 
     @Override
