@@ -15,7 +15,11 @@ package org.eclipse.ditto.internal.utils.cluster;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 
@@ -27,7 +31,6 @@ import org.eclipse.ditto.json.JsonObject;
 
 import akka.actor.ActorSystem;
 import akka.cluster.sharding.ShardRegion;
-import akka.routing.ConsistentHashingRouter;
 
 /**
  * Implementation of {@link ShardRegion.MessageExtractor} which does a {@code hashCode} based sharding with the
@@ -82,8 +85,6 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
             result = entityId.toString();
         } else if (message instanceof ShardRegion.StartEntity startEntity) {
             result = startEntity.entityId();
-        } else if (message instanceof ConsistentHashingRouter.ConsistentHashableEnvelope envelope) {
-            result = envelope.hashKey().toString();
         } else {
             result = null;
         }
@@ -102,8 +103,6 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
         } else if (message instanceof ShardedMessageEnvelope shardedMessageEnvelope) {
             // message was sent from the same cluster node
             entity = createJsonifiableFrom(shardedMessageEnvelope);
-        } else if (message instanceof ConsistentHashingRouter.ConsistentHashableEnvelope envelope) {
-            entity = envelope.message();
         } else {
             entity = message;
         }
@@ -120,10 +119,25 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
         if (null != entityId) {
             final var shardNumber = shardNumberCalculator.calculateShardNumber(entityId);
             result = String.valueOf(shardNumber);
-        } else {
+        } else  {
             result = null;
         }
         return result;
+    }
+
+    /**
+     * Get shard IDs that are not active.
+     *
+     * @param activeShardIds what shard IDs are active.
+     * @return the set of inactive shard IDs.
+     */
+    public Set<String> getInactiveShardIds(final Collection<String> activeShardIds) {
+        final HashSet<String> remainingShardIds = new HashSet<>();
+        IntStream.range(0, numberOfShards)
+                .mapToObj(Integer::toString)
+                .forEach(remainingShardIds::add);
+        activeShardIds.forEach(remainingShardIds::remove);
+        return remainingShardIds;
     }
 
     private Jsonifiable<?> createJsonifiableFrom(final ShardedMessageEnvelope messageEnvelope) {

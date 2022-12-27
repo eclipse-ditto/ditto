@@ -15,7 +15,9 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.connectivity.api.commands.sudo.ConnectivitySudoCommand;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
@@ -64,8 +66,12 @@ public final class ConnectionCreatedStrategies
         strategies.addStrategy(new LoggingExpiredStrategy());
         strategies.addStrategy(new SudoRetrieveConnectionTagsStrategy());
         strategies.addStrategy(new SudoAddConnectionLogEntryStrategy());
-        strategies.addStrategy(new SudoRetrieveConnectionStatusStrategy());
         return strategies;
+    }
+
+    @Override
+    public boolean isDefined(final Command<?> command) {
+        return command instanceof ConnectivityCommand || command instanceof ConnectivitySudoCommand;
     }
 
     @Override

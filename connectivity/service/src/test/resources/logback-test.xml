@@ -27,7 +27,6 @@
     </appender>
 
     <logger name="org.eclipse.ditto" level="${LOG_LEVEL_DITTO:-INFO}"/>
-    <logger name="org.eclipse.ditto.connectivity.service.mapping" level="${LOG_LEVEL_NETTY:-WARN}"/>
 
     <logger name="io.netty" level="${LOG_LEVEL_NETTY:-WARN}"/>
     <logger name="org.apache.http" level="${LOG_LEVEL_HTTP:-WARN}"/>

@@ -48,6 +48,11 @@ public enum ConnectionAction {
     OPEN_CONNECTION,
 
     /**
+     * Tell client actors to close the connection.
+     */
+    CLOSE_CONNECTION,
+
+    /**
      * Stop client actors.
      */
     STOP_CLIENT_ACTORS,
@@ -68,9 +73,9 @@ public enum ConnectionAction {
     BECOME_DELETED,
 
     /**
-     * Check that connection logging is enabled if needed.
+     * Update pubsub topics.
      */
-    CHECK_LOGGING_ENABLED,
+    UPDATE_SUBSCRIPTIONS,
 
     /**
      * Forward command to client actors without waiting for reply.
