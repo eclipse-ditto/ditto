@@ -47,15 +47,12 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
-import org.eclipse.ditto.connectivity.api.commands.sudo.ConnectivitySudoCommand;
-import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveClientActorProps;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionLifecycle;
 import org.eclipse.ditto.connectivity.model.ConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
@@ -113,7 +110,6 @@ import org.eclipse.ditto.internal.utils.akka.logging.CommonMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -188,8 +184,6 @@ public final class ConnectionPersistenceActor
     private final ConnectionPubSub connectionPubSub;
     private final ActorRef clientShardRegion;
     private int subscriptionCounter = 0;
-    private int ongoingStagedCommands = 0;
-    private boolean inCoordinatedShutdown = false;
     private Instant connectionClosedAt = Instant.now();
     private boolean connectionOpened;
     @Nullable private Instant loggingEnabledUntil;
@@ -558,7 +552,6 @@ public final class ConnectionPersistenceActor
     public void onMutation(final Command<?> command, final ConnectivityEvent<?> event,
             final WithDittoHeaders response, final boolean becomeCreated, final boolean becomeDeleted) {
         if (command instanceof StagedCommand stagedCommand) {
-            ++ongoingStagedCommands;
             interpretStagedCommand(stagedCommand.withSenderUnlessDefined(getSender()));
         } else {
             super.onMutation(command, event, response, becomeCreated, becomeDeleted);
@@ -585,11 +578,6 @@ public final class ConnectionPersistenceActor
     private void interpretStagedCommand(final StagedCommand command) {
         if (!command.hasNext()) {
             // execution complete
-            --ongoingStagedCommands;
-            if (inCoordinatedShutdown && ongoingStagedCommands == 0) {
-                log.debug("Stopping after waiting for ongoing staged commands");
-                getContext().stop(getSelf());
-            }
             return;
         }
         switch (command.nextAction()) {
@@ -674,11 +662,6 @@ public final class ConnectionPersistenceActor
                 .matchEquals(Control.CHECK_LOGGING_ACTIVE, this::checkLoggingEnabled)
                 .matchEquals(Control.TRIGGER_UPDATE_PRIORITY, this::triggerUpdatePriority)
                 .match(UpdatePriority.class, this::updatePriority)
-                .match(StopShardedActor.class, this::stopShardedActor)
-                .match(SudoRetrieveClientActorProps.class, this::retrieveClientActorProps)
-                // Respond with not-accessible-exception for unhandled connectivity commands
-                .match(ConnectivitySudoCommand.class, this::notAccessible)
-                .match(ConnectivityCommand.class, this::notAccessible)
                 .build()
                 .orElse(super.matchAnyAfterInitialization());
     }
@@ -917,20 +900,6 @@ public final class ConnectionPersistenceActor
         origin.tell(logsResponse, getSelf());
     }
 
-    private void retrieveClientActorProps(final SudoRetrieveClientActorProps command) {
-        if (entity != null) {
-            log.info("Sending client actor props for <{}>", getSender());
-            final var args = new ClientActorPropsArgs(entity, commandForwarderActor, getSelf(),
-                    command.getDittoHeaders(), connectivityConfigOverwrites);
-            final var clientActorId = new ClientActorId(entityId, command.getClientActorNumber());
-            final var envelope = shardedBinaryEnvelope(args, clientActorId);
-            getSender().tell(envelope, getSelf());
-        } else {
-            log.info("Received request for client actor props of nonexistent connection from <{}>", getSender());
-            notAccessible(command);
-        }
-    }
-
     private CompletionStage<Object> startAndAskClientActorForTest(final TestConnection cmd) {
         final Props props = propsFactory.getActorPropsForType(cmd.getConnection(), commandForwarderActor, getSelf(),
                 getContext().getSystem(), cmd.getDittoHeaders(), connectivityConfigOverwrites);
@@ -952,7 +921,7 @@ public final class ConnectionPersistenceActor
     private void broadcastToClientActors(final Object cmd, final ActorRef sender) {
         for (int i = 0; i < getClientCount(); ++i) {
             final var clientActorId = new ClientActorId(entityId, i);
-            final var envelope = consistentHashableEnvelope(cmd, clientActorId.toString());
+            final var envelope = consistentHashableEnvelope(cmd, clientActorId);
             clientShardRegion.tell(envelope, sender);
         }
     }
@@ -964,7 +933,7 @@ public final class ConnectionPersistenceActor
         CompletionStage<Object> askFuture = CompletableFuture.completedStage(null);
         for (int i = 0; i < getClientCount(); ++i) {
             final var clientActorId = new ClientActorId(entityId, i);
-            final var envelope = consistentHashableEnvelope(cmd, clientActorId.toString());
+            final var envelope = consistentHashableEnvelope(cmd, clientActorId);
             askFuture = askFuture.thenCombine(
                     processClientAskResult(Patterns.ask(clientShardRegion, envelope, clientActorAskTimeout)),
                     (left, right) -> right
@@ -1146,16 +1115,6 @@ public final class ConnectionPersistenceActor
                 CustomConnectivityCommandInterceptorProvider.get(actorSystem, dittoExtensionsConfig)
                         .getCommandInterceptor();
         return new CompoundConnectivityCommandInterceptor(dittoCommandValidator, customCommandValidator);
-    }
-
-    private void stopShardedActor(final StopShardedActor trigger) {
-        if (ongoingStagedCommands == 0) {
-            log.debug("Stopping: no ongoing requests.");
-            getContext().stop(getSelf());
-        } else {
-            inCoordinatedShutdown = true;
-            log.debug("Waiting for <{}> staged commands before stopping", ongoingStagedCommands);
-        }
     }
 
     private static DittoRuntimeException toDittoRuntimeException(final Throwable error, final ConnectionId id,
