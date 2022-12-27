@@ -48,11 +48,6 @@ public enum ConnectionAction {
     OPEN_CONNECTION,
 
     /**
-     * Tell client actors to close the connection.
-     */
-    CLOSE_CONNECTION,
-
-    /**
      * Stop client actors.
      */
     STOP_CLIENT_ACTORS,

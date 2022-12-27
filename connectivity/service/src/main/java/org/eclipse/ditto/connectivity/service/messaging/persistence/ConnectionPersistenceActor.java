@@ -611,7 +611,6 @@ public final class ConnectionPersistenceActor
             }
             case OPEN_CONNECTION -> openConnection(command.next(), false);
             case OPEN_CONNECTION_IGNORE_ERRORS -> openConnection(command.next(), true);
-            case CLOSE_CONNECTION -> closeConnection(command.next());
             case STOP_CLIENT_ACTORS -> {
                 stopClientActors();
                 interpretStagedCommand(command.next());
@@ -820,18 +819,6 @@ public final class ConnectionPersistenceActor
         } else {
             handleException("open-connection", sender, error);
         }
-    }
-
-    private void closeConnection(final StagedCommand command) {
-        final CloseConnection closeConnection = CloseConnection.of(entityId, command.getDittoHeaders());
-        askAllClientActors(closeConnection)
-                .thenAccept(response -> getSelf().tell(command, ActorRef.noSender()))
-                .exceptionally(error -> {
-                    // stop client actors anyway --- the closed status is already persisted.
-                    stopClientActors();
-                    handleException("disconnect", command.getSender(), error);
-                    return null;
-                });
     }
 
     private void logDroppedSignal(final WithDittoHeaders withDittoHeaders, final String type, final String reason) {
