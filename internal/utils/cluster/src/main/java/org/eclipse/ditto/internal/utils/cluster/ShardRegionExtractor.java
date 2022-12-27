@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 
 import akka.actor.ActorSystem;
 import akka.cluster.sharding.ShardRegion;
+import akka.routing.ConsistentHashingRouter;
 
 /**
  * Implementation of {@link ShardRegion.MessageExtractor} which does a {@code hashCode} based sharding with the
@@ -81,14 +82,15 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
             result = entityId.toString();
         } else if (message instanceof ShardRegion.StartEntity startEntity) {
             result = startEntity.entityId();
-        } else if (message instanceof ShardedBinaryEnvelope envelope) {
-            result = envelope.entityName();
+        } else if (message instanceof ConsistentHashingRouter.ConsistentHashableEnvelope envelope) {
+            result = envelope.hashKey().toString();
         } else {
             result = null;
         }
         return result;
     }
 
+    @Nullable
     @Override
     public Object entityMessage(final Object message) {
         final Object entity;
@@ -100,7 +102,7 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
         } else if (message instanceof ShardedMessageEnvelope shardedMessageEnvelope) {
             // message was sent from the same cluster node
             entity = createJsonifiableFrom(shardedMessageEnvelope);
-        } else if (message instanceof ShardedBinaryEnvelope envelope) {
+        } else if (message instanceof ConsistentHashingRouter.ConsistentHashableEnvelope envelope) {
             entity = envelope.message();
         } else {
             entity = message;

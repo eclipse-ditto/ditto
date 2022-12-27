@@ -16,8 +16,8 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 
 import com.typesafe.config.Config;
 
@@ -46,18 +46,6 @@ public interface ClientActorPropsFactory extends DittoExtensionPoint {
             ActorSystem actorSystem,
             DittoHeaders dittoHeaders,
             Config connectivityConfigOverwrites);
-
-    /**
-     * Create actor {@link Props} for a connection.
-     *
-     * @param args arguments of the client actor props.
-     * @param actorSystem the actorSystem.
-     * @return the actor props
-     */
-    default Props getActorProps(final ClientActorPropsArgs args, final ActorSystem actorSystem) {
-        return getActorPropsForType(args.connection(), args.commandForwarderActor(), args.connectionActor(),
-                actorSystem, args.dittoHeaders(), args.connectivityConfigOverwrites());
-    }
 
     /**
      * Loads the implementation of {@code ClientActorPropsFactory} which is configured for the

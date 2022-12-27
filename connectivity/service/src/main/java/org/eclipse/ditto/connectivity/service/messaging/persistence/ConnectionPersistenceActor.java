@@ -83,7 +83,6 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ClientActorId;
-import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsArgs;
 import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpValidator;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushValidator;
@@ -933,9 +932,9 @@ public final class ConnectionPersistenceActor
     }
 
     private CompletionStage<Object> startAndAskClientActorForTest(final TestConnection cmd) {
-        final var args = new ClientActorPropsArgs(cmd.getConnection(), commandForwarderActor, getSelf(),
-                cmd.getDittoHeaders(), connectivityConfigOverwrites);
-        final ActorRef clientActor = getContext().actorOf(propsFactory.getActorProps(args, getContext().getSystem()));
+        final Props props = propsFactory.getActorPropsForType(cmd.getConnection(), commandForwarderActor, getSelf(),
+                getContext().getSystem(), cmd.getDittoHeaders(), connectivityConfigOverwrites);
+        final ActorRef clientActor = getContext().actorOf(props);
         final var resultFuture = processClientAskResult(Patterns.ask(clientActor, cmd, clientActorAskTimeout));
         resultFuture.whenComplete((result, error) -> clientActor.tell(PoisonPill.getInstance(), ActorRef.noSender()));
         return resultFuture;
@@ -946,14 +945,14 @@ public final class ConnectionPersistenceActor
         return askAllClientActors(cmd);
     }
 
-    private static Object consistentHashableEnvelope(final Object message, final ClientActorId clientActorId) {
-        return new ConsistentHashingRouter.ConsistentHashableEnvelope(message, clientActorId.toString());
+    private static Object consistentHashableEnvelope(final Object message, final Object hashKey) {
+        return new ConsistentHashingRouter.ConsistentHashableEnvelope(message, hashKey);
     }
 
     private void broadcastToClientActors(final Object cmd, final ActorRef sender) {
         for (int i = 0; i < getClientCount(); ++i) {
             final var clientActorId = new ClientActorId(entityId, i);
-            final var envelope = consistentHashableEnvelope(cmd, clientActorId);
+            final var envelope = consistentHashableEnvelope(cmd, clientActorId.toString());
             clientShardRegion.tell(envelope, sender);
         }
     }
@@ -965,7 +964,7 @@ public final class ConnectionPersistenceActor
         CompletionStage<Object> askFuture = CompletableFuture.completedStage(null);
         for (int i = 0; i < getClientCount(); ++i) {
             final var clientActorId = new ClientActorId(entityId, i);
-            final var envelope = consistentHashableEnvelope(cmd, clientActorId);
+            final var envelope = consistentHashableEnvelope(cmd, clientActorId.toString());
             askFuture = askFuture.thenCombine(
                     processClientAskResult(Patterns.ask(clientShardRegion, envelope, clientActorAskTimeout)),
                     (left, right) -> right
@@ -1089,9 +1088,9 @@ public final class ConnectionPersistenceActor
     private void startClientActors(final int clientCount, final DittoHeaders dittoHeaders) {
         if (entity != null && clientCount > 0) {
             log.info("Starting ClientActor for connection <{}> with <{}> clients.", entityId, clientCount);
-            final var args = new ClientActorPropsArgs(entity, commandForwarderActor, getSelf(), dittoHeaders,
-                    connectivityConfigOverwrites);
-            broadcastToClientActors(args, ActorRef.noSender());
+            final Props props = propsFactory.getActorPropsForType(entity, commandForwarderActor, getSelf(),
+                    getContext().getSystem(), dittoHeaders, connectivityConfigOverwrites);
+            broadcastToClientActors(props, ActorRef.noSender());
             updateLoggingIfEnabled();
         } else {
             log.error(new IllegalStateException(), "Trying to start client actor without a connection");
@@ -1103,6 +1102,7 @@ public final class ConnectionPersistenceActor
     }
 
     private void stopClientActors() {
+        // TODO: verify poison pill is serializable
         log.debug("Stopping the client actors.");
         broadcastToClientActors(PoisonPill.getInstance(), ActorRef.noSender());
     }
