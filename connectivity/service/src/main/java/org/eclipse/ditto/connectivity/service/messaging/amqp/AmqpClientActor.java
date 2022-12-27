@@ -126,9 +126,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
             final Config connectivityConfigOverwrites,
-            final boolean dryRun) {
+            final DittoHeaders dittoHeaders) {
 
-        super(connection, commandForwarderActor, connectionActor, dryRun, connectivityConfigOverwrites);
+        super(connection, commandForwarderActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
         final ConnectionConfig connectionConfig = connectivityConfig().getConnectionConfig();
         final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
         jmsConnectionFactory =
@@ -154,10 +154,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private AmqpClientActor(final Connection connection,
             final JmsConnectionFactory jmsConnectionFactory,
             final ActorRef commandForwarderActor,
-            final ActorRef connectionActor,
-            final boolean dryRun) {
+            final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
 
-        super(connection, commandForwarderActor, connectionActor, dryRun, ConfigFactory.empty());
+        super(connection, commandForwarderActor, connectionActor, dittoHeaders, ConfigFactory.empty());
 
         this.jmsConnectionFactory = jmsConnectionFactory;
         connectionListener = new StatusReportingListener(getSelf(), logger, connectionLogger);
@@ -184,7 +183,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final ActorRef connectionActor, final Config configOverwrites, final ActorSystem actorSystem,
             final DittoHeaders dittoHeaders) {
         return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem),
-                commandForwarderActor, connectionActor, configOverwrites, dittoHeaders.isDryRun());
+                commandForwarderActor, connectionActor, configOverwrites, dittoHeaders);
     }
 
     /**
@@ -201,7 +200,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final ActorRef connectionActor, final JmsConnectionFactory jmsConnectionFactory,
             final ActorSystem actorSystem) {
         return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem),
-                jmsConnectionFactory, commandForwarderActor, connectionActor, false);
+                jmsConnectionFactory, commandForwarderActor, connectionActor, DittoHeaders.empty());
     }
 
     private static Connection validateConnection(final Connection connection, final ActorSystem actorSystem) {

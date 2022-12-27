@@ -74,10 +74,10 @@ public final class KafkaClientActor extends BaseClientActor {
             final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
             final KafkaPublisherActorFactory publisherActorFactory,
-            final boolean dryRun,
+            final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
 
-        super(connection, commandForwarderActor, connectionActor, dryRun, connectivityConfigOverwrites);
+        super(connection, commandForwarderActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
         kafkaConfig = connectivityConfig().getConnectionConfig().getKafkaConfig();
         kafkaConsumerActors = new ArrayList<>();
         propertiesFactory = PropertiesFactory.newInstance(connection, kafkaConfig, getClientId(connection.getId()));
@@ -89,11 +89,11 @@ public final class KafkaClientActor extends BaseClientActor {
     private KafkaClientActor(final Connection connection,
             final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
-            final boolean dryRun,
+            final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
 
         this(connection, commandForwarderActor, connectionActor, DefaultKafkaPublisherActorFactory.getInstance(),
-                dryRun, connectivityConfigOverwrites);
+                dittoHeaders, connectivityConfigOverwrites);
 
         connectionCounterRegistry.registerAlertFactory(ConnectionType.KAFKA, MetricType.THROTTLED,
                 MetricDirection.INBOUND,
@@ -118,7 +118,7 @@ public final class KafkaClientActor extends BaseClientActor {
             final Config connectivityConfigOverwrites) {
 
         return Props.create(KafkaClientActor.class, validateConnection(connection), commandForwarderActor,
-                connectionActor, dittoHeaders.isDryRun(), connectivityConfigOverwrites);
+                connectionActor, dittoHeaders, connectivityConfigOverwrites);
     }
 
     static Props propsForTests(final Connection connection,
@@ -128,7 +128,7 @@ public final class KafkaClientActor extends BaseClientActor {
             final DittoHeaders dittoHeaders) {
 
         return Props.create(KafkaClientActor.class, validateConnection(connection), proxyActor, connectionActor,
-                factory, dittoHeaders.isDryRun(), ConfigFactory.empty());
+                factory, dittoHeaders, ConfigFactory.empty());
     }
 
     private static Connection validateConnection(final Connection connection) {

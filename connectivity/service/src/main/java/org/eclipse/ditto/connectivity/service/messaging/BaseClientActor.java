@@ -216,7 +216,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     protected BaseClientActor(final Connection connection,
             final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
-            final boolean dryRun,
+            final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
 
         this.connection = checkNotNull(connection, "connection");
@@ -268,7 +268,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         subscriptionIdPrefixLength =
                 ConnectionPersistenceActor.getSubscriptionPrefixLength(connection.getClientCount());
 
-        this.dryRun = dryRun;
+        // Send init message to allow for unsafe initialization of subclasses.
+        dryRun = dittoHeaders.isDryRun();
     }
 
     @Override
