@@ -114,7 +114,6 @@ import org.eclipse.ditto.internal.utils.akka.logging.CommonMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.cluster.ShardedBinaryEnvelope;
 import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
@@ -142,6 +141,7 @@ import akka.cluster.Cluster;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 import akka.persistence.RecoveryCompleted;
+import akka.routing.ConsistentHashingRouter;
 
 /**
  * Handles {@code *Connection} commands and manages the persistence of connection. The actual connection handling to the
@@ -946,14 +946,14 @@ public final class ConnectionPersistenceActor
         return askAllClientActors(cmd);
     }
 
-    private static Object shardedBinaryEnvelope(final Object message, final ClientActorId clientActorId) {
-        return new ShardedBinaryEnvelope(message, clientActorId.toString());
+    private static Object consistentHashableEnvelope(final Object message, final ClientActorId clientActorId) {
+        return new ConsistentHashingRouter.ConsistentHashableEnvelope(message, clientActorId.toString());
     }
 
     private void broadcastToClientActors(final Object cmd, final ActorRef sender) {
         for (int i = 0; i < getClientCount(); ++i) {
             final var clientActorId = new ClientActorId(entityId, i);
-            final var envelope = shardedBinaryEnvelope(cmd, clientActorId);
+            final var envelope = consistentHashableEnvelope(cmd, clientActorId);
             clientShardRegion.tell(envelope, sender);
         }
     }
@@ -965,7 +965,7 @@ public final class ConnectionPersistenceActor
         CompletionStage<Object> askFuture = CompletableFuture.completedStage(null);
         for (int i = 0; i < getClientCount(); ++i) {
             final var clientActorId = new ClientActorId(entityId, i);
-            final var envelope = shardedBinaryEnvelope(cmd, clientActorId);
+            final var envelope = consistentHashableEnvelope(cmd, clientActorId);
             askFuture = askFuture.thenCombine(
                     processClientAskResult(Patterns.ask(clientShardRegion, envelope, clientActorAskTimeout)),
                     (left, right) -> right

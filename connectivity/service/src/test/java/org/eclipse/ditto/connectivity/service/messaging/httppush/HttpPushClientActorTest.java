@@ -61,7 +61,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.cluster.Cluster;
 import akka.http.javadsl.ConnectionContext;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.HttpsConnectionContext;
@@ -125,7 +124,6 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     @After
     public void stopActorSystem() {
         if (actorSystem != null) {
-            Cluster.get(actorSystem).prepareForFullClusterShutdown();
             actorSystem.terminate();
         }
     }
