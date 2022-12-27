@@ -27,15 +27,10 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnect
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
-import org.eclipse.ditto.internal.utils.cluster.ShardedBinaryEnvelope;
 import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
-import org.eclipse.ditto.internal.utils.config.ScopedConfig;
-
-import com.typesafe.config.Config;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
@@ -58,7 +53,6 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
                     DittoHeaders.newBuilder().correlationId(clientActorId.toString()).build());
     private final Duration statusCheckInterval;
     private final ActorRef connectionShardRegion;
-    private final ClientActorPropsFactory propsFactory;
     private Props props;
     private ClientActorPropsArgs clientActorPropsArgs;
     private ActorRef clientActor;
@@ -70,8 +64,8 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
         final var clusterSharding = ClusterSharding.get(actorSystem);
         final var extractor = ShardRegionExtractor.of(numberOfShards, actorSystem);
         connectionShardRegion = clusterSharding.startProxy(ConnectivityMessagingConstants.SHARD_REGION,
-                Optional.of(ConnectivityMessagingConstants.CLUSTER_ROLE), extractor);
-        propsFactory = getClientActorPropsFactory(actorSystem);
+                Optional.of(ConnectivityMessagingConstants.CLUSTER_ROLE),
+                extractor);
     }
 
     @SuppressWarnings({"unused"})
@@ -79,7 +73,6 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
     private ClientSupervisor(final Duration statusCheckInterval, final ActorRef connectionShardRegion) {
         this.statusCheckInterval = statusCheckInterval;
         this.connectionShardRegion = connectionShardRegion;
-        propsFactory = getClientActorPropsFactory(getContext().getSystem());
     }
 
     /**
@@ -117,13 +110,13 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(ClientActorPropsArgs.class, this::startClientActor)
+                .match(Props.class, this::startClientActor)
                 .matchEquals(Control.STATUS_CHECK, this::startStatusCheck)
                 .match(SudoRetrieveConnectionStatusResponse.class, this::checkConnectionStatus)
                 .match(ConnectionNotAccessibleException.class, this::connectionNotAccessible)
                 .match(Terminated.class, this::childTerminated)
                 .match(CloseConnection.class, this::isNoClientActorStarted, this::respondAndStop)
-                .match(ShardedBinaryEnvelope.class, this::extractFromEnvelope)
+                .match(ConsistentHashingRouter.ConsistentHashableEnvelope.class, this::extractFromEnvelope)
                 .match(StopShardedActor.class, this::restartIfOpen)
                 .matchAny(this::forwardToClientActor)
                 .build();
@@ -137,7 +130,7 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
         }).build());
     }
 
-    private void extractFromEnvelope(final ShardedBinaryEnvelope envelope) {
+    private void extractFromEnvelope(final ConsistentHashingRouter.ConsistentHashableEnvelope envelope) {
         getSelf().forward(envelope.message(), getContext());
     }
 
@@ -150,10 +143,10 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
         }
     }
 
-    private void startClientActor(final ClientActorPropsArgs propsArgs) {
-        final var actorProps = propsFactory.getActorProps(propsArgs, getContext().getSystem());
-        if (actorProps.equals(this.props)) {
-            logger.debug("Refreshing actorProps");
+    private void startClientActor(final Props props) {
+        if (props.equals(this.props)) {
+            logger.debug("Refreshing props");
+            Object x = props;
         } else {
             final var oldClientActor = clientActor;
             if (oldClientActor != null) {
@@ -228,11 +221,6 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
         } else {
             getContext().stop(getSelf());
         }
-    }
-
-    private static ClientActorPropsFactory getClientActorPropsFactory(final ActorSystem actorSystem) {
-        final Config dittoExtensionConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
-        return ClientActorPropsFactory.get(actorSystem, dittoExtensionConfig);
     }
 
     private enum Control {
