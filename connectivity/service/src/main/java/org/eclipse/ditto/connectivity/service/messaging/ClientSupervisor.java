@@ -22,8 +22,6 @@ import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionSt
 import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionStatusResponse;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnectionResponse;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
@@ -114,7 +112,6 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
                 .match(SudoRetrieveConnectionStatusResponse.class, this::checkConnectionStatus)
                 .match(ConnectionNotAccessibleException.class, this::connectionNotAccessible)
                 .match(Terminated.class, this::childTerminated)
-                .match(CloseConnection.class, this::isNoClientActorStarted, this::respondAndStop)
                 .match(ConsistentHashingRouter.ConsistentHashableEnvelope.class, this::extractFromEnvelope)
                 .matchAny(this::forwardToClientActor)
                 .build();
@@ -192,15 +189,6 @@ public final class ClientSupervisor extends AbstractActorWithTimers {
 
     private void connectionNotAccessible(final Object trigger) {
         logger.info("Stopping due to <{}>", trigger);
-        getContext().stop(getSelf());
-    }
-
-    private boolean isNoClientActorStarted(final Object message) {
-        return clientActor == null;
-    }
-
-    private void respondAndStop(final CloseConnection command) {
-        getSender().tell(CloseConnectionResponse.of(command.getEntityId(), command.getDittoHeaders()), getSelf());
         getContext().stop(getSelf());
     }
 
