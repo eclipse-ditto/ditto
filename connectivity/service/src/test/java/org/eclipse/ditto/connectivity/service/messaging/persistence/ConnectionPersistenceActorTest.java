@@ -19,6 +19,7 @@ import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.INS
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
@@ -34,7 +35,6 @@ import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
-import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveClientActorProps;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -73,8 +73,6 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConne
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatusResponse;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
-import org.eclipse.ditto.connectivity.service.messaging.ClientActorId;
-import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsArgs;
 import org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory;
 import org.eclipse.ditto.connectivity.service.messaging.MockCommandValidator;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
@@ -84,7 +82,6 @@ import org.eclipse.ditto.connectivity.service.util.ConnectionPubSub;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
 import org.eclipse.ditto.internal.utils.akka.controlflow.WithSender;
-import org.eclipse.ditto.internal.utils.cluster.ShardedBinaryEnvelope;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.test.Retry;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
@@ -248,17 +245,17 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             }
         });
         final var testProbe = actorSystemResource1.newTestProbe();
-        final var clientShardRegion = TestConstants.createClientActorShardRegion(
-                actorSystemResource1.getActorSystem(), connectionId.toString());
+
         final var connectionActorProps = Props.create(ConnectionPersistenceActor.class,
                 () -> new ConnectionPersistenceActor(connectionId,
                         commandForwarderActor,
                         pubSubMediatorProbe.ref(),
-                        ConfigFactory.empty(), clientShardRegion));
+                        Trilean.TRUE,
+                        ConfigFactory.empty()));
 
         final var underTest = actorSystemResource1.newActor(connectionActorProps, connectionId.toString());
         underTest.tell(createConnection(honoConnection), testProbe.ref());
-        testProbe.expectMsgClass(CreateConnectionResponse.class);
+        testProbe.expectMsgClass(FiniteDuration.apply(20, "s"), CreateConnectionResponse.class);
 
         Arrays.stream(ConnectionType.values()).forEach(connectionType -> {
             // WHEN
@@ -1287,29 +1284,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 PartialFunction.fromFunction(msg -> msg instanceof DistributedPubSubMediator.Publish publish &&
                         publish.topic().equals(ConnectionDeleted.TYPE)));
         testProbe.expectTerminated(underTest, FiniteDuration.apply(3, TimeUnit.SECONDS));
-    }
-
-    @Test
-    public void retrieveClientActorProps() {
-        final var underTest = createSupervisor();
-        final var testProbe = actorSystemResource1.newTestProbe();
-        final var clientActorId = new ClientActorId(connectionId, 0);
-        final var command = SudoRetrieveClientActorProps.of(clientActorId.connectionId(),
-                clientActorId.clientNumber(), DittoHeaders.newBuilder().randomCorrelationId().build());
-
-        underTest.tell(command, testProbe.ref());
-        testProbe.expectMsgClass(ConnectionNotAccessibleException.class);
-
-        final var createConnection = createConnection();
-        underTest.tell(createConnection, testProbe.ref());
-        simulateSuccessfulOpenConnectionInClientActor();
-        testProbe.expectMsg(createConnectionResponse());
-
-        underTest.tell(command, testProbe.ref());
-        final var envelope = testProbe.expectMsgClass(ShardedBinaryEnvelope.class);
-        final var message = (ClientActorPropsArgs) envelope.message();
-        assertThat(message.connection()).isEqualTo(createConnection.getConnection());
-        assertThat(message.dittoHeaders()).isEqualTo(command.getDittoHeaders());
     }
 
     private ActorRef createSupervisor() {

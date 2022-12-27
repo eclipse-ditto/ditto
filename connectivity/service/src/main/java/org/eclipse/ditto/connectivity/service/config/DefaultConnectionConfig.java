@@ -269,7 +269,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 blockedHostnames, blockedSubnets, blockedHostRegex, supervisorConfig, snapshotConfig,
                 acknowledgementConfig, cleanupConfig, maxNumberOfTargets, maxNumberOfSources, activityCheckConfig,
                 fieldsEncryptionConfig, amqp10Config, amqp091Config, mqttConfig, kafkaConfig, httpPushConfig,
-                ackLabelDeclareInterval, priorityUpdateInterval, shutdownTimeout);
+                ackLabelDeclareInterval, priorityUpdateInterval, shutdownTimeout, allClientActorsOnOneNode);
     }
 
     @Override
