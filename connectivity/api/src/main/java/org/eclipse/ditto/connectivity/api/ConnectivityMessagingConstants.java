@@ -26,11 +26,6 @@ public final class ConnectivityMessagingConstants {
     public static final String SHARD_REGION = "connection";
 
     /**
-     * Name of the shard region for client actors.
-     */
-    public static final String CLIENT_SHARD_REGION = "client";
-
-    /**
      * Name of the akka cluster role.
      */
     public static final String CLUSTER_ROLE = "connectivity";
