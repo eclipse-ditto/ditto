@@ -33,7 +33,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: mongodb
-          image: docker.io/mongo:4.4
+          image: docker.io/mongo:5.0
           command:
             - mongod
             - --bind_ip
