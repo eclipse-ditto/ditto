@@ -84,7 +84,8 @@ class CrudToolbar extends HTMLElement {
     if (this.isEditing || !this.dom.inputIdValue.value) {
       this.dom.buttonDelete.disabled = true;
     }
-    this.dom.inputIdValue.disabled = !(this.isEditing && !this.dom.inputIdValue.value);
+    const allowIdChange = this.isEditing && (!this.dom.inputIdValue.value || this.hasAttribute('allowIdChange'));
+    this.dom.inputIdValue.disabled = !allowIdChange;
     this.dispatchEvent(new CustomEvent('onEditToggle', {
       composed: true,
       detail: this.isEditing,

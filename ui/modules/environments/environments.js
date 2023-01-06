@@ -29,16 +29,13 @@ let settingsEditor;
 
 let dom = {
   environmentSelector: null,
-  buttonCreateEnvironment: null,
-  buttonDeleteEnvironment: null,
-  buttonUpdateFields: null,
-  buttonUpdateJson: null,
-  inputEnvironmentName: null,
+  tbodyEnvironments: null,
+  tableValidationEnvironments: null,
+  crudEnvironmentFields: null,
+  crudEnvironmentJson: null,
   inputApiUri: null,
   inputSearchNamespaces: null,
   selectDittoVersion: null,
-  tbodyEnvironments: null,
-  tableValidationEnvironments: null,
 };
 
 let observers = [];
@@ -91,71 +88,99 @@ export async function ready() {
   urlSearchParams = new URLSearchParams(window.location.search);
   environments = await loadEnvironmentTemplates();
 
-  settingsEditor = ace.edit('settingsEditor');
-  settingsEditor.session.setMode('ace/mode/json');
+  settingsEditor = Utils.createAceEditor('settingsEditor', 'ace/mode/json', true);
 
-  dom.buttonUpdateJson.onclick = () => {
-    Utils.assert(selectedEnvName, 'No environment selected', dom.tableValidationEnvironments);
-    environments[selectedEnvName] = JSON.parse(settingsEditor.getValue());
-    environmentsJsonChanged();
-  };
+  dom.tbodyEnvironments.addEventListener('click', onEnvironmentsTableClick);
 
-  dom.buttonUpdateFields.onclick = () => {
-    Utils.assert(selectedEnvName, 'No environment selected', dom.tableValidationEnvironments);
-    if (selectedEnvName !== dom.inputEnvironmentName.value) {
-      environments[dom.inputEnvironmentName.value] = environments[selectedEnvName];
-      delete environments[selectedEnvName];
-      selectedEnvName = dom.inputEnvironmentName.value;
-    }
-    environments[selectedEnvName].api_uri = dom.inputApiUri.value;
-    environments[selectedEnvName].searchNamespaces = dom.inputSearchNamespaces.value;
-    environments[selectedEnvName].ditto_version = dom.selectDittoVersion.value;
-    environmentsJsonChanged();
-  };
+  dom.crudEnvironmentJson.addEventListener('onCreateClick', onCreateEnvironmentClick);
+  dom.crudEnvironmentJson.addEventListener('onUpdateClick', onUpdateEnvironmentClick);
+  dom.crudEnvironmentJson.addEventListener('onDeleteClick', onDeleteEnvironmentClick);
+  dom.crudEnvironmentJson.addEventListener('onEditToggle', onEditToggle);
 
-  dom.tbodyEnvironments.addEventListener('click', (event) => {
-    if (event.target && event.target.tagName === 'TD') {
-      if (selectedEnvName && selectedEnvName === event.target.parentNode.id) {
-        selectedEnvName = null;
-      } else {
-        selectedEnvName = event.target.parentNode.id;
-      }
-      updateEnvEditors();
-    }
-  });
+  dom.crudEnvironmentFields.addEventListener('onCreateClick', onCreateEnvironmentClick);
+  dom.crudEnvironmentFields.addEventListener('onUpdateClick', onUpdateEnvironmentClick);
+  dom.crudEnvironmentFields.addEventListener('onDeleteClick', onDeleteEnvironmentClick);
+  dom.crudEnvironmentFields.addEventListener('onEditToggle', onEditToggle);
 
-  dom.buttonCreateEnvironment.onclick = () => {
-    Utils.assert(dom.inputEnvironmentName.value, 'Please provide an environment name', dom.inputEnvironmentName);
-    Utils.assert(!environments[dom.inputEnvironmentName.value], 'Name already used', dom.inputEnvironmentName);
-    environments[dom.inputEnvironmentName.value] = new Environment({
-      api_uri: dom.inputApiUri.value ? dom.inputApiUri.value : '',
-      ditto_version: dom.selectDittoVersion.value ? dom.selectDittoVersion.value : '3',
-    });
-    selectedEnvName = dom.inputEnvironmentName.value;
-    environmentsJsonChanged();
-  };
-
-  dom.buttonDeleteEnvironment.onclick = () => {
-    Utils.assert(selectedEnvName, 'No environment selected', dom.tableValidationEnvironments);
-    Utils.assert(Object.keys(environments).length >= 2, 'At least one environment is required',
-        dom.tableValidationEnvironments);
-    delete environments[selectedEnvName];
-    selectedEnvName = null;
-    environmentsJsonChanged();
-  };
+  dom.environmentSelector.onchange = onEnvironmentSelectorChange;
 
   // Ensure that ace editor to refresh when updated while hidden
   document.querySelector('a[data-bs-target="#tabEnvJson"]').addEventListener('shown.bs.tab', () => {
     settingsEditor.renderer.updateFull();
   });
 
-  dom.environmentSelector.onchange = () => {
-    urlSearchParams.set(URL_PRIMARY_ENVIRONMENT_NAME, dom.environmentSelector.value);
-    window.history.replaceState({}, '', `${window.location.pathname}?${urlSearchParams}`);
-    notifyAll();
-  };
 
   environmentsJsonChanged();
+}
+
+function onEnvironmentSelectorChange() {
+  urlSearchParams.set(URL_PRIMARY_ENVIRONMENT_NAME, dom.environmentSelector.value);
+  window.history.replaceState({}, '', `${window.location.pathname}?${urlSearchParams}`);
+  notifyAll();
+}
+
+function onDeleteEnvironmentClick() {
+  Utils.assert(selectedEnvName, 'No environment selected', dom.tableValidationEnvironments);
+  Utils.assert(Object.keys(environments).length >= 2, 'At least one environment is required',
+      dom.tableValidationEnvironments);
+  delete environments[selectedEnvName];
+  selectedEnvName = null;
+  environmentsJsonChanged();
+}
+
+function onCreateEnvironmentClick(event) {
+  Utils.assert(event.target.idValue,
+      'Environment name must not be empty',
+      event.target.validationElement);
+  Utils.assert(!environments[event.target.idValue],
+      'Environment name already used',
+      event.target.validationElement);
+
+  if (event.target === dom.crudEnvironmentFields) {
+    environments[event.target.idValue] = new Environment({
+      api_uri: dom.inputApiUri.value ?? '',
+      searchNamespaces: dom.inputSearchNamespaces.value ?? '',
+      ditto_version: dom.selectDittoVersion.value ? dom.selectDittoVersion.value : '3',
+    });
+  } else {
+    environments[event.target.idValue] = new Environment(JSON.parse(settingsEditor.getValue()));
+  }
+
+  selectedEnvName = event.target.idValue;
+  event.target.toggleEdit();
+  environmentsJsonChanged();
+}
+
+function onEnvironmentsTableClick(event) {
+  if (event.target && event.target.tagName === 'TD') {
+    if (selectedEnvName && selectedEnvName === event.target.parentNode.id) {
+      selectedEnvName = null;
+    } else {
+      selectedEnvName = event.target.parentNode.id;
+    }
+    updateEnvEditors();
+  }
+}
+
+function onUpdateEnvironmentClick(event) {
+  if (selectedEnvName !== event.target.idValue) {
+    changeEnvironmentName();
+  }
+  if (event.target === dom.crudEnvironmentFields) {
+    environments[selectedEnvName].api_uri = dom.inputApiUri.value;
+    environments[selectedEnvName].searchNamespaces = dom.inputSearchNamespaces.value;
+    environments[selectedEnvName].ditto_version = dom.selectDittoVersion.value;
+  } else {
+    environments[selectedEnvName] = JSON.parse(settingsEditor.getValue());
+  }
+  event.target.toggleEdit();
+  environmentsJsonChanged();
+
+  function changeEnvironmentName() {
+    environments[event.target.idValue] = environments[selectedEnvName];
+    delete environments[selectedEnvName];
+    selectedEnvName = event.target.idValue;
+  }
 }
 
 export function environmentsJsonChanged(modifiedField) {
@@ -192,13 +217,15 @@ export function environmentsJsonChanged(modifiedField) {
 function updateEnvEditors() {
   if (selectedEnvName) {
     const selectedEnvironment = environments[selectedEnvName];
-    dom.inputEnvironmentName.value = selectedEnvName;
+    dom.crudEnvironmentFields.idValue = selectedEnvName;
+    dom.crudEnvironmentJson.idValue = selectedEnvName;
     settingsEditor.setValue(JSON.stringify(selectedEnvironment, null, 2), -1);
     dom.inputApiUri.value = selectedEnvironment.api_uri;
     dom.inputSearchNamespaces.value = selectedEnvironment.searchNamespaces ?? '';
     dom.selectDittoVersion.value = selectedEnvironment.ditto_version ? selectedEnvironment.ditto_version : '3';
   } else {
-    dom.inputEnvironmentName.value = null;
+    dom.crudEnvironmentFields.idValue = null;
+    dom.crudEnvironmentJson.idValue = null;
     settingsEditor.setValue('');
     dom.inputApiUri.value = null;
     dom.inputSearchNamespaces.value = null;
@@ -276,4 +303,13 @@ async function loadEnvironmentTemplates() {
   }
 }
 
-
+function onEditToggle(event) {
+  dom.inputApiUri.disabled = !event.detail;
+  dom.inputSearchNamespaces.disabled = !event.detail;
+  dom.selectDittoVersion.disabled = !event.detail;
+  settingsEditor.setReadOnly(!event.detail);
+  settingsEditor.renderer.setShowGutter(event.detail);
+  if (!event.detail) {
+    updateEnvEditors();
+  }
+}
