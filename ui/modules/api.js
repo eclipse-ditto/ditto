@@ -298,9 +298,10 @@ export function setAuthHeader(forDevOps) {
  * @param {String} path of the Ditto call (e.g. '/things')
  * @param {Object} body payload for the api call
  * @param {Object} additionalHeaders object with additional header fields
+ * @param {boolean} returnHeaders request full response instead of json content
  * @return {Object} result as json object
  */
-export async function callDittoREST(method, path, body, additionalHeaders) {
+export async function callDittoREST(method, path, body, additionalHeaders, returnHeaders = false) {
   let response;
   try {
     response = await fetch(Environments.current().api_uri + '/api/2' + path, {
@@ -327,7 +328,11 @@ export async function callDittoREST(method, path, body, additionalHeaders) {
     throw new Error('An error occurred: ' + response.status);
   }
   if (response.status !== 204) {
-    return response.json();
+    if (returnHeaders) {
+      return response;
+    } else {
+      return response.json();
+    }
   } else {
     return null;
   }

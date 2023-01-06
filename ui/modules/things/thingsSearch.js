@@ -117,7 +117,7 @@ export function getThings(thingIds) {
  * @param {String} filter Ditto search filter (rql)
  * @param {boolean} isMore (optional) use cursor from previous search for additional pages
  */
-export function searchThings(filter, isMore = false) {
+function searchThings(filter, isMore = false) {
   document.body.style.cursor = 'progress';
 
   const namespaces = Environments.current().searchNamespaces;

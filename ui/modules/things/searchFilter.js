@@ -60,7 +60,7 @@ export async function ready() {
       checkIfFavourite();
       const filterEditNeeded = checkAndMarkParameter();
       if (!filterEditNeeded) {
-        ThingsSearch.searchThings(event.target.textContent);
+        ThingsSearch.searchTriggered(event.target.textContent);
       }
     }
   });

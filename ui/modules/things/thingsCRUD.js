@@ -20,20 +20,13 @@ import * as Things from './things.js';
 
 let thingJsonEditor;
 
-let isEditing = false;
-
 let thingTemplates;
 
+let eTag;
+
 const dom = {
-  thingDetails: null,
-  thingId: null,
-  modalThingsEdit: null,
-  iThingsEdit: null,
-  divThingsCRUD: null,
-  buttonEditThing: null,
-  buttonCreateThing: null,
-  buttonSaveThing: null,
-  buttonDeleteThing: null,
+  tbodyThingDetails: null,
+  crudThings: null,
   buttonThingDefinitions: null,
   inputThingDefinition: null,
   ulThingDefinitions: null,
@@ -52,10 +45,10 @@ export async function ready() {
   loadThingTemplates();
 
   dom.ulThingDefinitions.addEventListener('click', onThingDefinitionsClick);
-  dom.buttonCreateThing.onclick = onCreateThingClick;
-  dom.buttonSaveThing.onclick = onSaveThingClick;
-  dom.buttonDeleteThing.onclick = onDeleteThingClick;
-  dom.buttonEditThing.onclick = toggleEdit;
+  dom.crudThings.addEventListener('onCreateClick', onCreateThingClick);
+  dom.crudThings.addEventListener('onUpdateClick', onUpdateThingClick);
+  dom.crudThings.addEventListener('onDeleteClick', onDeleteThingClick);
+  dom.crudThings.addEventListener('onEditToggle', onEditToggle);
 
   document.querySelector('a[data-bs-target="#tabModifyThing"]').addEventListener('shown.bs.tab', (event) => {
     thingJsonEditor.renderer.updateFull();
@@ -63,9 +56,8 @@ export async function ready() {
 }
 
 function onDeleteThingClick() {
-  Utils.assert(dom.thingId.value, 'Thing ID is empty', dom.thingId);
-  Utils.confirm(`Are you sure you want to delete thing<br>'${dom.thingId.value}'?`, 'Delete', () => {
-    API.callDittoREST('DELETE', `/things/${dom.thingId.value}`, null,
+  Utils.confirm(`Are you sure you want to delete thing<br>'${dom.crudThings.idValue}'?`, 'Delete', () => {
+    API.callDittoREST('DELETE', `/things/${dom.crudThings.idValue}`, null,
         {
           'if-match': '*',
         },
@@ -75,29 +67,28 @@ function onDeleteThingClick() {
   });
 }
 
-function onSaveThingClick() {
-  Utils.assert(dom.thingId.value, 'Thing ID is empty', dom.thingId);
-  API.callDittoREST('PUT', `/things/${dom.thingId.value}`, JSON.parse(thingJsonEditor.getValue()),
+function onUpdateThingClick() {
+  API.callDittoREST('PUT', `/things/${dom.crudThings.idValue}`, JSON.parse(thingJsonEditor.getValue()),
       {
-        'if-match': '*',
+        'if-match': eTag,
       },
   ).then(() => {
-    toggleEdit();
-    Things.refreshThing(dom.thingId.value, null);
+    dom.crudThings.toggleEdit();
+    Things.refreshThing(dom.crudThings.idValue, null);
   });
 }
 
 async function onCreateThingClick() {
   const editorValue = thingJsonEditor.getValue();
-  if (dom.thingId.value !== undefined && dom.thingId.value !== '') {
+  if (dom.crudThings.idValue !== undefined && dom.crudThings.idValue !== '') {
     API.callDittoREST('PUT',
-        '/things/' + dom.thingId.value,
+        '/things/' + dom.crudThings.idValue,
         editorValue === '' ? {} : JSON.parse(editorValue),
         {
           'if-none-match': '*',
         },
     ).then((data) => {
-      toggleEdit();
+      dom.crudThings.toggleEdit();
       Things.refreshThing(data.thingId, () => {
         ThingsSearch.getThings([data.thingId]);
       });
@@ -105,7 +96,7 @@ async function onCreateThingClick() {
   } else {
     API.callDittoREST('POST', '/things', editorValue === '' ? {} : JSON.parse(editorValue))
         .then((data) => {
-          toggleEdit();
+          dom.crudThings.toggleEdit();
           Things.refreshThing(data.thingId, () => {
             ThingsSearch.getThings([data.thingId]);
           });
@@ -115,7 +106,7 @@ async function onCreateThingClick() {
 
 function onThingDefinitionsClick(event) {
   Things.setTheThing(null);
-  isEditing = true;
+  // isEditing = true;
   dom.inputThingDefinition.value = event.target.textContent;
   thingJsonEditor.setValue(JSON.stringify(thingTemplates[event.target.textContent], null, 2), -1);
 }
@@ -135,7 +126,7 @@ function loadThingTemplates() {
  * @param {Object} thingJson Thing json
  */
 function onThingChanged(thingJson) {
-  if (isEditing) {
+  if (dom.crudThings.isEditing) {
     return;
   }
 
@@ -143,21 +134,20 @@ function onThingChanged(thingJson) {
   updateThingJsonEditor();
 
   function updateThingDetailsTable() {
-    dom.thingDetails.innerHTML = '';
+    dom.tbodyThingDetails.innerHTML = '';
     if (thingJson) {
-      Utils.addTableRow(dom.thingDetails, 'thingId', false, true, thingJson.thingId);
-      Utils.addTableRow(dom.thingDetails, 'policyId', false, true, thingJson.policyId);
-      Utils.addTableRow(dom.thingDetails, 'definition', false, true, thingJson.definition ?? '');
-      Utils.addTableRow(dom.thingDetails, 'revision', false, true, thingJson._revision);
-      Utils.addTableRow(dom.thingDetails, 'created', false, true, thingJson._created);
-      Utils.addTableRow(dom.thingDetails, 'modified', false, true, thingJson._modified);
+      Utils.addTableRow(dom.tbodyThingDetails, 'thingId', false, true, thingJson.thingId);
+      Utils.addTableRow(dom.tbodyThingDetails, 'policyId', false, true, thingJson.policyId);
+      Utils.addTableRow(dom.tbodyThingDetails, 'definition', false, true, thingJson.definition ?? '');
+      Utils.addTableRow(dom.tbodyThingDetails, 'revision', false, true, thingJson._revision);
+      Utils.addTableRow(dom.tbodyThingDetails, 'created', false, true, thingJson._created);
+      Utils.addTableRow(dom.tbodyThingDetails, 'modified', false, true, thingJson._modified);
     }
   }
 
   function updateThingJsonEditor() {
     if (thingJson) {
-      dom.thingId.value = thingJson.thingId;
-      dom.buttonDeleteThing.disabled = false;
+      dom.crudThings.idValue = thingJson.thingId;
       dom.inputThingDefinition.value = thingJson.definition ?? '';
       const thingCopy = JSON.parse(JSON.stringify(thingJson));
       delete thingCopy['_revision'];
@@ -165,37 +155,44 @@ function onThingChanged(thingJson) {
       delete thingCopy['_modified'];
       thingJsonEditor.setValue(JSON.stringify(thingCopy, null, 2), -1);
     } else {
-      dom.thingId.value = null;
-      dom.buttonDeleteThing.disabled = true;
+      dom.crudThings.idValue = null;
       dom.inputThingDefinition.value = null;
       thingJsonEditor.setValue('');
     }
   }
 }
 
-function toggleEdit() {
-  isEditing = !isEditing;
-  dom.modalThingsEdit.classList.toggle('editBackground');
-  dom.divThingsCRUD.classList.toggle('editForground');
-  dom.iThingsEdit.classList.toggle('bi-pencil-square');
-  dom.iThingsEdit.classList.toggle('bi-x-square');
-  dom.buttonThingDefinitions.disabled = !dom.buttonThingDefinitions.disabled;
-  dom.inputThingDefinition.disabled = !dom.inputThingDefinition.disabled;
-  thingJsonEditor.setReadOnly(!isEditing);
-  thingJsonEditor.renderer.setShowGutter(isEditing);
-  if (dom.thingId.value) {
-    dom.buttonSaveThing.disabled = !dom.buttonSaveThing.disabled;
+function onEditToggle(event) {
+  if (event.detail) {
+    API.callDittoREST('GET', `/things/${Things.theThing.thingId}`, null, null, true)
+        .then((response) => {
+          eTag = response.headers.get('ETag');
+          return response.json();
+        })
+        .then((thingJson) => {
+          enableDisableEditors();
+          updateEditorsBeforeEdit(thingJson);
+        });
   } else {
-    dom.buttonCreateThing.disabled = !dom.buttonCreateThing.disabled;
-    dom.thingId.disabled = !dom.thingId.disabled;
-  }
-  if (!isEditing) {
+    enableDisableEditors();
     clearEditorsAfterCancel();
   }
 
+  function enableDisableEditors() {
+    dom.buttonThingDefinitions.disabled = !event.detail;
+    dom.inputThingDefinition.disabled = !event.detail;
+  }
+
+  function updateEditorsBeforeEdit(thingJson) {
+    dom.inputThingDefinition.value = thingJson.definition ?? '';
+    thingJsonEditor.setReadOnly(!event.detail);
+    thingJsonEditor.renderer.setShowGutter(event.detail);
+    thingJsonEditor.setValue(JSON.stringify(thingJson, null, 2), -1);
+  }
+
   function clearEditorsAfterCancel() {
-    if (dom.thingId.value && dom.thingId.value !== '') {
-      Things.refreshThing(dom.thingId.value, null);
+    if (dom.crudThings.idValue && dom.crudThings.idValue !== '') {
+      Things.refreshThing(dom.crudThings.idValue, null);
     } else {
       dom.inputThingDefinition.value = null;
       thingJsonEditor.setValue('');

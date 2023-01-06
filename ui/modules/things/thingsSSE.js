@@ -33,7 +33,8 @@ function onThingChanged(newThingJson, isNewThingId) {
   } else if (isNewThingId) {
     thingEventSource && thingEventSource.close();
     console.log('Start SSE: ' + newThingJson.thingId);
-    thingEventSource = API.getEventSource(newThingJson.thingId, '&extraFields=_revision,_modified');
+    thingEventSource = API.getEventSource(newThingJson.thingId,
+        '&fields=thingId,attributes,features,_revision,_modified');
     thingEventSource.onmessage = onMessage;
   }
 }

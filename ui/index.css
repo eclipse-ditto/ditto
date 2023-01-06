@@ -175,3 +175,8 @@ hr {
     max-height: 80vh;
     overflow-y: auto;
 }
+
+h5>.badge {
+    vertical-align: top;
+    font-size: 0.6em;
+}

@@ -1,3 +1,4 @@
+/* eslint-disable require-jsdoc */
 /*
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
@@ -16,74 +17,115 @@ import * as Utils from '../utils.js';
 import * as Things from './things.js';
 
 const dom = {
-  attributesTable: null,
-  attributePath: null,
-  attributeValue: null,
-  attributeCount: null,
-  putAttribute: null,
-  deleteAttribute: null,
+  tbodyAttributes: null,
+  crudAttribute: null,
+  inputAttributeValue: null,
+  badgeAttributeCount: null,
 };
+
+let eTag;
 
 /**
  * Initializes components. Should be called after DOMContentLoaded event
  */
 export function ready() {
+  Things.addChangeListener(onThingChanged);
+
   Utils.getAllElementsById(dom);
 
-  dom.attributesTable.onclick = (event) => {
-    if (event.target && event.target.nodeName === 'TD') {
-      const path = event.target.parentNode.children[0].innerText;
-      dom.attributePath.value = path;
-      dom.attributeValue.value = attributeToString(Things.theThing.attributes[path]);
+  dom.tbodyAttributes.onclick = onAttributeTableClick;
+
+  dom.crudAttribute.addEventListener('onCreateClick', onCreateAttributeClick);
+  dom.crudAttribute.addEventListener('onUpdateClick', onUpdateAttributeClick);
+  dom.crudAttribute.addEventListener('onDeleteClick', onDeleteAttributeClick);
+  dom.crudAttribute.addEventListener('onEditToggle', onEditToggle);
+}
+
+function onCreateAttributeClick() {
+  Utils.assert(dom.crudAttribute.idValue, 'Attribute path must not be empty', dom.crudAttribute.validationElement);
+  Utils.assert(!Things.theThing['attributes'] || !Object.keys(Things.theThing.attributes).includes(dom.crudAttribute.idValue),
+      `Attribute path ${dom.crudAttribute.idValue} already exists in Thing`,
+      dom.crudAttribute.validationElement);
+  Utils.assert(dom.inputAttributeValue.value, 'Attribute value must not be empty', dom.inputAttributeValue);
+
+  updateAttribute('PUT');
+}
+function onUpdateAttributeClick() {
+  Utils.assert(dom.inputAttributeValue.value, 'Attribute value must not be empty');
+  updateAttribute('PUT');
+}
+
+function onDeleteAttributeClick() {
+  Utils.confirm(`Are you sure you want to delete attribute<br>'${dom.crudAttribute.idValue}'?`, 'Delete', () => {
+    updateAttribute('DELETE');
+  });
+}
+
+function onAttributeTableClick(event) {
+  if (event.target && event.target.nodeName === 'TD') {
+    const path = event.target.parentNode.children[0].innerText;
+    if (dom.crudAttribute.idValue === path) {
+      refreshAttribute(null);
+    } else {
+      refreshAttribute(Things.theThing, path);
     }
-  };
-
-  dom.putAttribute.onclick = clickAttribute('PUT');
-  dom.deleteAttribute.onclick = clickAttribute('DELETE');
-
-  Things.addChangeListener(updateAttributesTable);
+  }
 }
 
 /**
  * Creates a onclick handler function
  * @param {String} method PUT or DELETE
- * @return {function} Click handler function to PUT or DELETE Ditto attribute
  */
-function clickAttribute(method) {
-  return function() {
-    Utils.assert(Things.theThing, 'No Thing selected');
-    Utils.assert(dom.attributePath.value, 'Attribute path is empty');
-    Utils.assert(method !== 'PUT' || dom.attributeValue.value, 'Attribute value is empty');
-    API.callDittoREST(
-        method,
-        `/things/${Things.theThing.thingId}/attributes/${dom.attributePath.value}`,
-        method === 'PUT' ? attributeFromString(dom.attributeValue.value) : null,
-    ).then(() => Things.refreshThing(Things.theThing.thingId));
-  };
+function updateAttribute(method) {
+  API.callDittoREST(
+      method,
+      `/things/${Things.theThing.thingId}/attributes/${dom.crudAttribute.idValue}`,
+      method === 'PUT' ? attributeFromString(dom.inputAttributeValue.value) : null,
+      {
+        'if-match': method === 'PUT' ? eTag : '*',
+      },
+  ).then(() => {
+    if (method === 'PUT') {
+      dom.crudAttribute.toggleEdit();
+    }
+    Things.refreshThing(Things.theThing.thingId);
+  });
 }
 
-/**
- * Updates UI compoents for attributes
- */
-function updateAttributesTable() {
-  dom.attributesTable.innerHTML = '';
+function refreshAttribute(thing, attributePath) {
+  if (dom.crudAttribute.isEditing) {
+    return;
+  }
+
+  if (thing) {
+    dom.crudAttribute.idValue = attributePath;
+    dom.inputAttributeValue.value = attributeToString(thing.attributes[attributePath]);
+  } else {
+    dom.crudAttribute.idValue = null;
+    dom.inputAttributeValue.value = null;
+  }
+}
+
+function onThingChanged(thing) {
+  dom.crudAttribute.editDisabled = (thing === null);
+
+  dom.tbodyAttributes.innerHTML = '';
   let count = 0;
   let thingHasAttribute = false;
-  if (Things.theThing && Things.theThing.attributes) {
+  if (thing && thing.attributes) {
     Object.keys(Things.theThing.attributes).forEach((path) => {
-      if (path === dom.attributePath.value) {
-        dom.attributeValue.value = attributeToString(Things.theThing.attributes[path]);
+      if (path === dom.crudAttribute.idValue) {
+        refreshAttribute(Things.theThing, path);
         thingHasAttribute = true;
       }
-      Utils.addTableRow(dom.attributesTable, path, path === dom.attributePath.value, false,
+      Utils.addTableRow(dom.tbodyAttributes, path, path === dom.crudAttribute.idValue, false,
           attributeToString(Things.theThing.attributes[path]));
       count++;
     });
   }
-  dom.attributeCount.innerText = count > 0 ? count : '';
+  dom.badgeAttributeCount.innerText = count > 0 ? count : '';
   if (!thingHasAttribute) {
-    dom.attributePath.value = null;
-    dom.attributeValue.value = null;
+    refreshAttribute(null);
   }
 }
 
@@ -108,5 +150,23 @@ function attributeFromString(attribute) {
     return JSON.parse(attribute);
   } catch (err) {
     return attribute;
+  }
+}
+
+function onEditToggle(event) {
+  if (event.detail) {
+    API.callDittoREST('GET', `/things/${Things.theThing.thingId}/attributes/${dom.crudAttribute.idValue}`,
+        null, null, true)
+        .then((response) => {
+          eTag = response.headers.get('ETag');
+          return response.json();
+        })
+        .then((attributeValue) => {
+          dom.inputAttributeValue.disabled = false;
+          dom.inputAttributeValue.value = attributeToString(attributeValue);
+        });
+  } else {
+    dom.inputAttributeValue.disabled = true;
+    dom.inputAttributeValue.value = attributeToString(Things.theThing.attributes[dom.crudAttribute.idValue]);
   }
 }

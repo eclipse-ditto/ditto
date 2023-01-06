@@ -27,17 +27,19 @@ export function addChangeListener(observer) {
 }
 
 function notifyAll() {
-  observers.forEach((observer) => observer.call(null, dom.theFeatureId.value));
+  observers.forEach((observer) => observer.call(null, dom.crudFeature.idValue));
 }
 
 let featurePropertiesEditor;
 let featureDesiredPropertiesEditor;
 
+let eTag;
+
 const dom = {
-  theFeatureId: null,
-  featureDefinition: null,
-  featureCount: null,
-  featuresTable: null,
+  crudFeature: null,
+  inputFeatureDefinition: null,
+  badgeFeatureCount: null,
+  tbodyFeatures: null,
   tableValidationFeature: null,
 };
 
@@ -45,77 +47,76 @@ const dom = {
  * Initializes components. Should be called after DOMContentLoaded event
  */
 export function ready() {
+  Things.addChangeListener(onThingChanged);
+
   Utils.getAllElementsById(dom);
 
-  Utils.addValidatorToTable(dom.featuresTable, dom.tableValidationFeature);
+  Utils.addValidatorToTable(dom.tbodyFeatures, dom.tableValidationFeature);
 
+  dom.tbodyFeatures.onclick = onFeaturesTableClick;
 
-  dom.featuresTable.onclick = (event) => {
-    if (event.target && event.target.nodeName === 'TD') {
-      dom.theFeatureId.value = event.target.textContent;
-      refreshFeature(Things.theThing, dom.theFeatureId.value);
-    }
-  };
+  dom.crudFeature.editDisabled = true;
+  dom.crudFeature.addEventListener('onCreateClick', onCreateFeatureClick);
+  dom.crudFeature.addEventListener('onUpdateClick', onUpdateFeatureClick);
+  dom.crudFeature.addEventListener('onDeleteClick', onDeleteFeatureClick);
+  dom.crudFeature.addEventListener('onEditToggle', onEditToggle);
 
-  document.getElementById('createFeature').onclick = () => {
-    if (!dom.theFeatureId.value) {
-      dom.theFeatureId.value = 'new-feature';
-    }
-    createFeature(dom.theFeatureId.value);
-  };
+  featurePropertiesEditor = Utils.createAceEditor('featurePropertiesEditor', 'ace/mode/json', true);
+  featureDesiredPropertiesEditor = Utils.createAceEditor('featureDesiredPropertiesEditor', 'ace/mode/json', true);
 
-  document.getElementById('putFeature').onclick = () => updateFeature('PUT');
-  document.getElementById('deleteFeature').onclick = () => updateFeature('DELETE');
-
-  featurePropertiesEditor = ace.edit('featurePropertiesEditor');
-  featureDesiredPropertiesEditor = ace.edit('featureDesiredPropertiesEditor');
-
-  featurePropertiesEditor.session.setMode('ace/mode/json');
-  featureDesiredPropertiesEditor.session.setMode('ace/mode/json');
-
-  featurePropertiesEditor.on('dblclick', (event) => {
-    if (!event.domEvent.shiftKey) {
-      return;
-    }
-
-    setTimeout(() => {
-      const token = featurePropertiesEditor.getSelectedText();
-      if (token) {
-        const path = '$..' + token.replace(/['"]+/g, '').trim();
-        const res = JSONPath({
-          json: JSON.parse(featurePropertiesEditor.getValue()),
-          path: path,
-          resultType: 'pointer',
-        });
-        Fields.proposeNewField('features/' + dom.theFeatureId.value + '/properties' + res);
-      }
-    }, 10);
-  });
+  featurePropertiesEditor.on('dblclick', onFeaturePropertiesDblClick);
 
   document.querySelector('a[data-bs-target="#tabCrudFeature"]').addEventListener('shown.bs.tab', (event) => {
     featurePropertiesEditor.renderer.updateFull();
     featureDesiredPropertiesEditor.renderer.updateFull();
   });
-
-  Things.addChangeListener(onThingChanged);
 }
 
-/**
- * Creates a new empty feature for the given thing in Ditto
- * @param {String} newFeatureId Name of the new feature.
- */
-function createFeature(newFeatureId) {
-  console.assert(newFeatureId && newFeatureId != '', 'newFeatureId expected');
-  Utils.assert(Things.theThing, 'No Thing selected');
-  if (Things.theThing['features']) {
-    Utils.assert(!Object.keys(Things.theThing.features).includes(newFeatureId),
-        `Feature ID ${newFeatureId} already exists in Thing`);
+function onUpdateFeatureClick() {
+  updateFeature('PUT');
+}
+
+function onDeleteFeatureClick() {
+  Utils.confirm(`Are you sure you want to delete feature<br>'${dom.crudFeature.idValue}'?`, 'Delete', () => {
+    updateFeature('DELETE');
+  });
+}
+
+function onFeaturePropertiesDblClick(event) {
+  if (!event.domEvent.shiftKey) {
+    return;
   }
 
-  API.callDittoREST('PUT',
-      '/things/' + Things.theThing.thingId + '/features/' + newFeatureId,
-      {},
-  ).then(() => Things.refreshThing(Things.theThing.thingId));
+  setTimeout(() => {
+    const token = featurePropertiesEditor.getSelectedText();
+    if (token) {
+      const path = '$..' + token.replace(/['"]+/g, '').trim();
+      const res = JSONPath({
+        json: JSON.parse(featurePropertiesEditor.getValue()),
+        path: path,
+        resultType: 'pointer',
+      });
+      Fields.proposeNewField('features/' + dom.crudFeature.idValue + '/properties' + res);
+    }
+  }, 10);
+}
+
+function onCreateFeatureClick() {
+  Utils.assert(dom.crudFeature.idValue, 'Feature ID must not be empty', dom.crudFeature.validationElement);
+  Utils.assert(!Things.theThing['features'] || !Object.keys(Things.theThing.features).includes(dom.crudFeature.idValue),
+      `Feature ID ${dom.crudFeature.idValue} already exists in Thing`,
+      dom.crudFeature.validationElement);
+  updateFeature('PUT');
+}
+
+function onFeaturesTableClick(event) {
+  if (event.target && event.target.nodeName === 'TD') {
+    if (dom.crudFeature.idValue === event.target.textContent) {
+      refreshFeature(null);
+    } else {
+      refreshFeature(Things.theThing, event.target.textContent);
+    }
+  }
 }
 
 /**
@@ -124,13 +125,13 @@ function createFeature(newFeatureId) {
  */
 function updateFeature(method) {
   Utils.assert(Things.theThing, 'No Thing selected');
-  Utils.assert(dom.theFeatureId.value, 'No Feature selected');
+  Utils.assert(dom.crudFeature.idValue, 'No Feature selected');
 
   const featureObject = {};
   const featureProperties = featurePropertiesEditor.getValue();
   const featureDesiredProperties = featureDesiredPropertiesEditor.getValue();
-  if (dom.featureDefinition.value) {
-    featureObject.definition = dom.featureDefinition.value.split(',');
+  if (dom.inputFeatureDefinition.value) {
+    featureObject.definition = dom.inputFeatureDefinition.value.split(',');
   }
   if (featureProperties) {
     featureObject.properties = JSON.parse(featureProperties);
@@ -141,40 +142,57 @@ function updateFeature(method) {
 
   API.callDittoREST(
       method,
-      '/things/' + Things.theThing.thingId + '/features/' + dom.theFeatureId.value,
+      '/things/' + Things.theThing.thingId + '/features/' + dom.crudFeature.idValue,
       method === 'PUT' ? featureObject : null,
-  ).then(() => Things.refreshThing(Things.theThing.thingId)
-  ).catch(
+      {
+        'if-match': method === 'PUT' ? eTag : '*'
+      }
+  ).then(() => {
+    if (method === 'PUT') {
+      dom.crudFeature.toggleEdit();
+    }
+    Things.refreshThing(Things.theThing.thingId);
+  }).catch(
       // nothing to clean-up if featureUpdate failed
   );
+}
+
+function updateFeatureEditors(featureJson) {
+  if (featureJson) {
+    dom.inputFeatureDefinition.value = featureJson['definition'] ? featureJson.definition : null;
+    if (featureJson['properties']) {
+      featurePropertiesEditor.setValue(JSON.stringify(featureJson.properties, null, 4), -1);
+    } else {
+      featurePropertiesEditor.setValue('');
+    }
+    if (featureJson['desiredProperties']) {
+      featureDesiredPropertiesEditor.setValue(JSON.stringify(featureJson.desiredProperties, null, 4), -1);
+    } else {
+      featureDesiredPropertiesEditor.setValue('');
+    }
+  } else {
+    dom.inputFeatureDefinition.value = null;
+    featurePropertiesEditor.setValue('');
+    featureDesiredPropertiesEditor.setValue('');
+  }
 }
 
 /**
  * Initializes all UI components for the given single feature of the given thing, if no thing is given the UI is cleared
  * @param {Object} thing thing the feature values are taken from
- * @param {String} feature FeatureId to be refreshed
+ * @param {String} featureId FeatureId to be refreshed
  */
-function refreshFeature(thing, feature) {
-  if (thing) {
-    dom.theFeatureId.value = feature;
-    dom.featureDefinition.value = thing.features[feature]['definition'] ? thing.features[feature].definition : null;
-    if (thing.features[feature]['properties']) {
-      featurePropertiesEditor.setValue(JSON.stringify(thing.features[feature].properties, null, 4), -1);
+function refreshFeature(thing, featureId) {
+  if (!dom.crudFeature.isEditing) {
+    if (thing) {
+      dom.crudFeature.idValue = featureId;
+      updateFeatureEditors(thing.features[featureId]);
     } else {
-      featurePropertiesEditor.setValue('');
+      dom.crudFeature.idValue = null;
+      updateFeatureEditors(null);
     }
-    if (thing.features[feature]['desiredProperties']) {
-      featureDesiredPropertiesEditor.setValue(JSON.stringify(thing.features[feature].desiredProperties, null, 4), -1);
-    } else {
-      featureDesiredPropertiesEditor.setValue('');
-    }
-  } else {
-    dom.theFeatureId.value = null;
-    dom.featureDefinition.value = null;
-    featurePropertiesEditor.setValue('');
-    featureDesiredPropertiesEditor.setValue('');
+    notifyAll();
   }
-  notifyAll();
 }
 
 /**
@@ -182,23 +200,59 @@ function refreshFeature(thing, feature) {
  * @param {Object} thing UI is initialized for the features of the given thing
  */
 function onThingChanged(thing) {
+  dom.crudFeature.editDisabled = (thing === null);
   // Update features table
-  dom.featuresTable.innerHTML = '';
+  dom.tbodyFeatures.innerHTML = '';
   let count = 0;
   let thingHasFeature = false;
   if (thing && thing.features) {
     for (const key of Object.keys(thing.features)) {
-      if (key === dom.theFeatureId.value) {
+      if (key === dom.crudFeature.idValue) {
         refreshFeature(thing, key);
         thingHasFeature = true;
       }
-      Utils.addTableRow(dom.featuresTable, key, key === dom.theFeatureId.value);
+      Utils.addTableRow(dom.tbodyFeatures, key, key === dom.crudFeature.idValue);
       count++;
     }
   }
-  dom.featureCount.textContent = count > 0 ? count : '';
+  dom.badgeFeatureCount.textContent = count > 0 ? count : '';
   if (!thingHasFeature) {
-    dom.theFeatureId.value = null;
-    refreshFeature();
+    dom.crudFeature.idValue = null;
+    updateFeatureEditors(null);
   }
 }
+
+function onEditToggle(event) {
+  if (event.detail) {
+    API.callDittoREST('GET', `/things/${Things.theThing.thingId}/features/${dom.crudFeature.idValue}`, null, null, true)
+        .then((response) => {
+          eTag = response.headers.get('ETag');
+          return response.json();
+        })
+        .then((featureJson) => {
+          enableDisableEditors();
+          updateFeatureEditors(featureJson);
+        });
+  } else {
+    enableDisableEditors();
+    clearEditorsAfterCancel();
+    dom.crudFeature.validationElement.classList.remove('is-invalid');
+  }
+
+  function enableDisableEditors() {
+    dom.inputFeatureDefinition.disabled = !event.detail;
+    featurePropertiesEditor.setReadOnly(!event.detail);
+    featurePropertiesEditor.renderer.setShowGutter(event.detail);
+    featureDesiredPropertiesEditor.setReadOnly(!event.detail);
+    featureDesiredPropertiesEditor.renderer.setShowGutter(event.detail);
+  }
+
+  function clearEditorsAfterCancel() {
+    if (dom.crudFeature.idValue) {
+      refreshFeature(Things.theThing, dom.crudFeature.idValue);
+    } else {
+      refreshFeature(null);
+    }
+  }
+}
+

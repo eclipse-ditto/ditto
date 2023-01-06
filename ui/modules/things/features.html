@@ -11,7 +11,7 @@
   ~ SPDX-License-Identifier: EPL-2.0
   -->
 <h5 data-bs-toggle="collapse" data-bs-target="#collapseFeatures">
-    Features <span class="badge badge-info" id="featureCount"></span></h5>
+    Features <span class="badge rounded-pill bg-info" id="badgeFeatureCount"></span></h5>
 <hr />
 <div class="collapse show" id="collapseFeatures">
     <div class="row resizable_pane" style="height: 45vh;">
@@ -22,7 +22,7 @@
             </div>
             <div class="table-wrap">
                 <table class="table table-striped table-hover table-sm">
-                    <tbody id="featuresTable"></tbody>
+                    <tbody id="tbodyFeatures"></tbody>
                 </table>
             </div>
         </div>
@@ -34,25 +34,12 @@
             </ul>
             <div class="tab-content" style="flex-grow: 1;" id="tabContentFeatures">
                 <div class="tab-pane container active no-margin" id="tabCrudFeature">
-                    <div class="resizable_flex_column">
-                        <div class="input-group input-group-sm mb-1 mt-1">
-                            <label class="input-group-text">Feature ID</label>
-                            <input type="text" class="form-control" id="theFeatureId">
-                            <button class="btn btn-outline-secondary btn-sm" id="createFeature">
-                                <i class="bi bi-plus-circle"></i>
-                            </button>
-                            <button class="btn btn-outline-secondary btn-sm" id="putFeature">
-                                <i class="bi bi-save"></i>
-                            </button>
-                            <button class="btn btn-outline-secondary btn-sm" id="deleteFeature">
-                                <i class="bi bi-trash3"></i>
-                            </button>
-                        </div>
+                    <crud-toolbar id="crudFeature" label="Feature ID">
                         <div class="input-group input-group-sm mb-1">
                             <label class="input-group-text">Definition</label>
-                            <input type="text" class="form-control" id="featureDefinition"></input>
+                            <input type="text" class="form-control" id="inputFeatureDefinition" disabled></input>
                         </div>
-                        <div class="input-group input-group-sm" style="flex-grow: 1; display: flex;">
+                        <div class="input-group input-group-sm mb-1" style="flex-grow: 1; display: flex;">
                             <label class="input-group-text">Properties<br>and<br>Desired<br>Properties</label>
                             <div class="ace_container" style="flex-grow: 1;">
                                 <div class="script_editor" id="featurePropertiesEditor"></div>
@@ -61,7 +48,7 @@
                                 <div class="script_editor" id="featureDesiredPropertiesEditor"></div>
                             </div>
                         </div>
-                    </div>
+                    </crud-toolbar>
                 </div>
             </div>
         </div>

@@ -18,6 +18,8 @@ import * as Utils from '../utils.js';
 import * as Things from './things.js';
 import * as Features from './features.js';
 
+let theFeatureId;
+
 const dom = {
   inputMessageSubject: null,
   inputMessageTimeout: null,
@@ -26,7 +28,6 @@ const dom = {
   buttonMessageFavourite: null,
   ulMessageTemplates: null,
   favIconMessage: null,
-  theFeatureId: null,
   tableValidationFeature: null,
 };
 
@@ -54,7 +55,7 @@ export async function ready() {
 
 
   dom.buttonMessageSend.onclick = () => {
-    Utils.assert(dom.theFeatureId.value, 'Please select a Feature', dom.tableValidationFeature);
+    Utils.assert(theFeatureId, 'Please select a Feature', dom.tableValidationFeature);
     Utils.assert(dom.inputMessageSubject.value, 'Please give a Subject', dom.inputMessageSubject);
     Utils.assert(dom.inputMessageTimeout.value, 'Please give a timeout', dom.inputMessageTimeout);
     messageFeature();
@@ -62,7 +63,7 @@ export async function ready() {
 
   dom.buttonMessageFavourite.onclick = () => {
     const templateName = dom.inputMessageTemplate.value;
-    const featureId = dom.theFeatureId.value;
+    const featureId = theFeatureId;
     Utils.assert(featureId, 'Please select a Feature', dom.tableValidationFeature);
     Utils.assert(templateName, 'Please give a name for the template', dom.inputMessageTemplate);
     Environments.current().messageTemplates[featureId] = Environments.current().messageTemplates[featureId] || {};
@@ -85,7 +86,7 @@ export async function ready() {
   dom.ulMessageTemplates.addEventListener('click', (event) => {
     if (event.target && event.target.classList.contains('dropdown-item')) {
       dom.favIconMessage.classList.replace('bi-star', 'bi-star-fill');
-      const template = Environments.current().messageTemplates[dom.theFeatureId.value][event.target.textContent];
+      const template = Environments.current().messageTemplates[theFeatureId][event.target.textContent];
       dom.inputMessageTemplate.value = event.target.textContent;
       dom.inputMessageSubject.value = template.subject;
       dom.inputMessageTimeout.value = template.timeout;
@@ -114,7 +115,7 @@ function messageFeature() {
   const payload = JSON.parse(acePayload.getValue());
   aceResponse.setValue('');
   API.callDittoREST('POST', '/things/' + Things.theThing.thingId +
-      '/features/' + dom.theFeatureId.value +
+      '/features/' + theFeatureId +
       '/inbox/messages/' + dom.inputMessageSubject.value +
       '?timeout=' + dom.inputMessageTimeout.value,
   payload,
@@ -151,15 +152,16 @@ function clearAllFields() {
 function refillTemplates() {
   dom.ulMessageTemplates.innerHTML = '';
   Utils.addDropDownEntries(dom.ulMessageTemplates, ['Saved message templates'], true);
-  if (dom.theFeatureId.value && Environments.current().messageTemplates[dom.theFeatureId.value]) {
+  if (theFeatureId && Environments.current().messageTemplates[theFeatureId]) {
     Utils.addDropDownEntries(
         dom.ulMessageTemplates,
-        Object.keys(Environments.current().messageTemplates[dom.theFeatureId.value]),
+        Object.keys(Environments.current().messageTemplates[theFeatureId]),
     );
   }
 }
 
 function onFeatureChanged(featureId) {
+  theFeatureId = featureId;
   clearAllFields();
   refillTemplates();
 }
