@@ -31,7 +31,7 @@ spec:
     spec:
       containers:
         - name: mongodb
-          image: docker.io/mongo:4.4
+          image: docker.io/mongo:5.0
           command:
             - mongod
             - --storageEngine

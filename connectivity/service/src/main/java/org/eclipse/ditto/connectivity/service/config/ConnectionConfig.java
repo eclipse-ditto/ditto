@@ -147,6 +147,14 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
     Duration getPriorityUpdateInterval();
 
     /**
+     * Whether to start all client actors on one node.
+     * Useful for single-connectivity-instance deployments.
+     *
+     * @return whether to start all client actors on the same node as the connection persistence actor.
+     */
+    boolean areAllClientActorsOnOneNode();
+
+    /**
      * Get the timeout waiting for responses and acknowledgements during coordinated shutdown.
      *
      * @return The timeout.
@@ -175,6 +183,11 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
          * How often the connection actor will retry starting a failing client actor before escalation to the supervisor.
          */
         CLIENT_ACTOR_RESTARTS_BEFORE_ESCALATION("client-actor-restarts-before-escalation", 3),
+
+        /**
+         * Whether to start all client actors on 1 node.
+         */
+        ALL_CLIENT_ACTORS_ON_ONE_NODE("all-client-actors-on-one-node", false),
 
         /**
          * A comma separated list of allowed hostnames to which http requests will be sent.
