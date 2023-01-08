@@ -24,6 +24,8 @@ import * as ThingsSearch from './modules/things/thingsSearch.js';
 import * as ThingsCRUD from './modules/things/thingsCRUD.js';
 import * as ThingsSSE from './modules/things/thingsSSE.js';
 import * as Connections from './modules/connections/connections.js';
+import * as ConnectionsCRUD from './modules/connections/connectionsCRUD.js';
+import * as ConnectionsMonitor from './modules/connections/connectionsMonitor.js';
 import * as Policies from './modules/policies/policies.js';
 import * as API from './modules/api.js';
 import * as Utils from './modules/utils.js';
@@ -57,6 +59,8 @@ document.addEventListener('DOMContentLoaded', async function() {
   await FeatureMessages.ready();
   Policies.ready();
   Connections.ready();
+  ConnectionsCRUD.ready();
+  ConnectionsMonitor.ready();
   Authorization.ready();
   await Environments.ready();
 

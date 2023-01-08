@@ -154,7 +154,8 @@ function attributeFromString(attribute) {
 }
 
 function onEditToggle(event) {
-  if (event.detail) {
+  const isEditing = event.detail;
+  if (isEditing && dom.crudAttribute.idValue && dom.crudAttribute.idValue !== '') {
     API.callDittoREST('GET', `/things/${Things.theThing.thingId}/attributes/${dom.crudAttribute.idValue}`,
         null, null, true)
         .then((response) => {

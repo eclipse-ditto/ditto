@@ -163,7 +163,8 @@ function onThingChanged(thingJson) {
 }
 
 function onEditToggle(event) {
-  if (event.detail) {
+  const isEditing = event.detail;
+  if (isEditing && Things.theThing) {
     API.callDittoREST('GET', `/things/${Things.theThing.thingId}`, null, null, true)
         .then((response) => {
           eTag = response.headers.get('ETag');
@@ -179,14 +180,14 @@ function onEditToggle(event) {
   }
 
   function enableDisableEditors() {
-    dom.buttonThingDefinitions.disabled = !event.detail;
-    dom.inputThingDefinition.disabled = !event.detail;
+    dom.buttonThingDefinitions.disabled = !isEditing;
+    dom.inputThingDefinition.disabled = !isEditing;
   }
 
   function updateEditorsBeforeEdit(thingJson) {
     dom.inputThingDefinition.value = thingJson.definition ?? '';
-    thingJsonEditor.setReadOnly(!event.detail);
-    thingJsonEditor.renderer.setShowGutter(event.detail);
+    thingJsonEditor.setReadOnly(!isEditing);
+    thingJsonEditor.renderer.setShowGutter(isEditing);
     thingJsonEditor.setValue(JSON.stringify(thingJson, null, 2), -1);
   }
 

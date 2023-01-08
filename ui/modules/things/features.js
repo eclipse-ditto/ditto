@@ -223,7 +223,8 @@ function onThingChanged(thing) {
 }
 
 function onEditToggle(event) {
-  if (event.detail) {
+  const isEditing = event.detail;
+  if (isEditing && dom.crudFeature.idValue && dom.crudFeature.idValue !== '') {
     API.callDittoREST('GET', `/things/${Things.theThing.thingId}/features/${dom.crudFeature.idValue}`, null, null, true)
         .then((response) => {
           eTag = response.headers.get('ETag');
@@ -240,11 +241,11 @@ function onEditToggle(event) {
   }
 
   function enableDisableEditors() {
-    dom.inputFeatureDefinition.disabled = !event.detail;
-    featurePropertiesEditor.setReadOnly(!event.detail);
-    featurePropertiesEditor.renderer.setShowGutter(event.detail);
-    featureDesiredPropertiesEditor.setReadOnly(!event.detail);
-    featureDesiredPropertiesEditor.renderer.setShowGutter(event.detail);
+    dom.inputFeatureDefinition.disabled = !isEditing;
+    featurePropertiesEditor.setReadOnly(!isEditing);
+    featurePropertiesEditor.renderer.setShowGutter(isEditing);
+    featureDesiredPropertiesEditor.setReadOnly(!isEditing);
+    featureDesiredPropertiesEditor.renderer.setShowGutter(isEditing);
   }
 
   function clearEditorsAfterCancel() {
