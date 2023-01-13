@@ -40,7 +40,7 @@ public final class DevopsAuthenticationDirectiveFactory {
     }
 
     public DevopsAuthenticationDirective status() {
-        if (!devOpsConfig.isSecured()) {
+        if (!devOpsConfig.isSecured() || !devOpsConfig.isStatusSecured()) {
             return DevOpsInsecureAuthenticationDirective.getInstance();
         }
         switch (devOpsConfig.getStatusAuthenticationMethod()) {
