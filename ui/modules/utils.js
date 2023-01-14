@@ -259,16 +259,16 @@ export function assert(condition, message, validatedElement) {
 }
 
 /**
- * Simple Date format that makes UTC string more readable and cuts off the milliseconds
- * @param {Date} date to format
+ * Simple Date format that makes ISO string more readable and cuts off the milliseconds
+ * @param {String} dateISOString to format
  * @param {boolean} withMilliseconds don t cut off milliseconds if true
  * @return {String} formatted date
  */
-export function formatDate(date, withMilliseconds) {
+export function formatDate(dateISOString, withMilliseconds) {
   if (withMilliseconds) {
-    return date.replace('T', ' ').replace('Z', '').replace('.', ' ');
+    return dateISOString.replace('T', ' ').replace('Z', '').replace('.', ' ');
   } else {
-    return date.split('.')[0].replace('T', ' ');
+    return dateISOString.split('.')[0].replace('T', ' ');
   }
 }
 

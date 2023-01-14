@@ -26,6 +26,11 @@ export async function ready() {
   Things.addChangeListener(onThingChanged);
 }
 
+let observer;
+export function setObserver(newObserver) {
+  observer = newObserver;
+}
+
 function onThingChanged(newThingJson, isNewThingId) {
   if (!newThingJson) {
     thingEventSource && thingEventSource.close();
@@ -44,6 +49,7 @@ function onMessage(event) {
     console.log(event);
     const merged = _.merge(Things.theThing, JSON.parse(event.data));
     Things.setTheThing(merged);
+    observer && observer.call(null, JSON.parse(event.data));
   }
 }
 

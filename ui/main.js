@@ -23,6 +23,7 @@ import * as Things from './modules/things/things.js';
 import * as ThingsSearch from './modules/things/thingsSearch.js';
 import * as ThingsCRUD from './modules/things/thingsCRUD.js';
 import * as ThingsSSE from './modules/things/thingsSSE.js';
+import * as MessagesIncoming from './modules/things/messagesIncoming.js';
 import * as Connections from './modules/connections/connections.js';
 import * as ConnectionsCRUD from './modules/connections/connectionsCRUD.js';
 import * as ConnectionsMonitor from './modules/connections/connectionsMonitor.js';
@@ -39,6 +40,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   document.getElementById('thingsHTML').innerHTML = await (await fetch('modules/things/things.html')).text();
   document.getElementById('fieldsHTML').innerHTML = await (await fetch('modules/things/fields.html')).text();
   document.getElementById('featuresHTML').innerHTML = await (await fetch('modules/things/features.html')).text();
+  document.getElementById('messagesIncomingHTML').innerHTML = await (await fetch('modules/things/messagesIncoming.html')).text();
   document.getElementById('policyHTML').innerHTML = await (await fetch('modules/policies/policies.html')).text();
   document.getElementById('connectionsHTML').innerHTML =
       await (await fetch('modules/connections/connections.html')).text();
@@ -52,6 +54,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   ThingsSearch.ready();
   ThingsCRUD.ready();
   ThingsSSE.ready();
+  MessagesIncoming.ready();
   Attributes.ready();
   await Fields.ready();
   await SearchFilter.ready();
