@@ -15,6 +15,7 @@ import * as Utils from '../utils.js';
 
 class CrudToolbar extends HTMLElement {
   isEditing = false;
+  isEditDisabled = false;
   dom = {
     label: null,
     inputIdValue: null,
@@ -22,7 +23,7 @@ class CrudToolbar extends HTMLElement {
     buttonCreate: null,
     buttonUpdate: null,
     buttonDelete: null,
-    iEdit: null,
+    buttonCancel: null,
     divRoot: null,
   };
 
@@ -32,15 +33,26 @@ class CrudToolbar extends HTMLElement {
 
   set idValue(newValue) {
     this.dom.inputIdValue.value = newValue;
-    this.dom.buttonDelete.disabled = (newValue === null);
+    if (newValue && newValue !== '') {
+      this.dom.buttonDelete.removeAttribute('hidden');
+    } else {
+      this.dom.buttonDelete.setAttribute('hidden', '');
+    }
   }
 
   get editDisabled() {
-    return this.dom.buttonCrudEdit.disabled;
+    return this.isEditDisabled;
   }
 
   set editDisabled(newValue) {
-    this.dom.buttonCrudEdit.disabled = newValue;
+    this.isEditDisabled = newValue;
+    if (!this.isEditing) {
+      if (this.isEditDisabled) {
+        this.dom.buttonCrudEdit.setAttribute('hidden', '');
+      } else {
+        this.dom.buttonCrudEdit.removeAttribute('hidden');
+      }
+    }
   }
 
   get validationElement() {
@@ -57,6 +69,7 @@ class CrudToolbar extends HTMLElement {
     setTimeout(() => {
       Utils.getAllElementsById(this.dom, this.shadowRoot);
       this.dom.buttonCrudEdit.onclick = () => this.toggleEdit();
+      this.dom.buttonCancel.onclick = () => this.toggleEdit();
       this.dom.label.innerText = this.getAttribute('label') || 'Label';
       this.dom.buttonCreate.onclick = this.eventDispatcher('onCreateClick');
       this.dom.buttonUpdate.onclick = this.eventDispatcher('onUpdateClick');
@@ -76,13 +89,26 @@ class CrudToolbar extends HTMLElement {
     this.isEditing = !this.isEditing;
     document.getElementById('modalCrudEdit').classList.toggle('editBackground');
     this.dom.divRoot.classList.toggle('editForground');
-    this.dom.iEdit.classList.toggle('bi-pencil-square');
-    this.dom.iEdit.classList.toggle('bi-x-square');
-    this.dom.buttonCrudEdit.title = this.isEditing ? 'Cancel' : 'Edit';
-    this.dom.buttonCreate.disabled = !(this.isEditing && !this.dom.inputIdValue.value);
-    this.dom.buttonUpdate.disabled = !(this.isEditing && this.dom.inputIdValue.value);
+
+    if (this.isEditing || this.isEditDisabled) {
+      this.dom.buttonCrudEdit.setAttribute('hidden', '');
+    } else {
+      this.dom.buttonCrudEdit.removeAttribute('hidden');
+    }
+    this.dom.buttonCancel.toggleAttribute('hidden');
+
+    if (this.isEditing) {
+      if (this.dom.inputIdValue.value) {
+        this.dom.buttonUpdate.toggleAttribute('hidden');
+      } else {
+        this.dom.buttonCreate.toggleAttribute('hidden');
+      }
+    } else {
+      this.dom.buttonCreate.setAttribute('hidden', '');
+      this.dom.buttonUpdate.setAttribute('hidden', '');
+    }
     if (this.isEditing || !this.dom.inputIdValue.value) {
-      this.dom.buttonDelete.disabled = true;
+      this.dom.buttonDelete.setAttribute('hidden', '');
     }
     const allowIdChange = this.isEditing && (!this.dom.inputIdValue.value || this.hasAttribute('allowIdChange'));
     this.dom.inputIdValue.disabled = !allowIdChange;

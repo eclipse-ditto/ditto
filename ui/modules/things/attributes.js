@@ -1,16 +1,17 @@
-/* eslint-disable require-jsdoc */
 /*
- * Copyright (c) 2022 Contributors to the Eclipse Foundation
- *
- * See the NOTICE file(s) distributed with this work for additional
- * information regarding copyright ownership.
- *
- * This program and the accompanying materials are made available under the
- * terms of the Eclipse Public License 2.0 which is available at
- * http://www.eclipse.org/legal/epl-2.0
- *
- * SPDX-License-Identifier: EPL-2.0
- */
+* Copyright (c) 2022 Contributors to the Eclipse Foundation
+*
+* See the NOTICE file(s) distributed with this work for additional
+* information regarding copyright ownership.
+*
+* This program and the accompanying materials are made available under the
+* terms of the Eclipse Public License 2.0 which is available at
+* http://www.eclipse.org/legal/epl-2.0
+*
+* SPDX-License-Identifier: EPL-2.0
+*/
+/* eslint-disable require-jsdoc */
+/* eslint-disable comma-dangle */
 
 import * as API from '../api.js';
 import * as Utils from '../utils.js';
@@ -48,7 +49,7 @@ function onCreateAttributeClick() {
       dom.crudAttribute.validationElement);
   Utils.assert(dom.inputAttributeValue.value, 'Attribute value must not be empty', dom.inputAttributeValue);
 
-  updateAttribute('PUT');
+  updateAttribute('PUT', true);
 }
 function onUpdateAttributeClick() {
   Utils.assert(dom.inputAttributeValue.value, 'Attribute value must not be empty');
@@ -75,14 +76,19 @@ function onAttributeTableClick(event) {
 /**
  * Creates a onclick handler function
  * @param {String} method PUT or DELETE
+ * @param {boolean} isNewAttribute if a new attribute is created. default = false
  */
-function updateAttribute(method) {
+function updateAttribute(method, isNewAttribute) {
   API.callDittoREST(
       method,
       `/things/${Things.theThing.thingId}/attributes/${dom.crudAttribute.idValue}`,
       method === 'PUT' ? attributeFromString(dom.inputAttributeValue.value) : null,
+      isNewAttribute ?
       {
-        'if-match': method === 'PUT' ? eTag : '*',
+        'If-None-Match': '*'
+      } :
+      {
+        'If-Match': method === 'PUT' ? eTag : '*'
       },
   ).then(() => {
     if (method === 'PUT') {
@@ -155,6 +161,7 @@ function attributeFromString(attribute) {
 
 function onEditToggle(event) {
   const isEditing = event.detail;
+  dom.inputAttributeValue.disabled = !isEditing;
   if (isEditing && dom.crudAttribute.idValue && dom.crudAttribute.idValue !== '') {
     API.callDittoREST('GET', `/things/${Things.theThing.thingId}/attributes/${dom.crudAttribute.idValue}`,
         null, null, true)
@@ -163,11 +170,11 @@ function onEditToggle(event) {
           return response.json();
         })
         .then((attributeValue) => {
-          dom.inputAttributeValue.disabled = false;
           dom.inputAttributeValue.value = attributeToString(attributeValue);
         });
   } else {
-    dom.inputAttributeValue.disabled = true;
-    dom.inputAttributeValue.value = attributeToString(Things.theThing.attributes[dom.crudAttribute.idValue]);
+    dom.inputAttributeValue.value = dom.crudAttribute.idValue ?
+      attributeToString(Things.theThing.attributes[dom.crudAttribute.idValue]) :
+      null;
   }
 }

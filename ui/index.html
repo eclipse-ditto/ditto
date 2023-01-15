@@ -146,21 +146,25 @@
         <div class="input-group input-group-sm mb-1 mt-1 has-validation">
             <label class="input-group-text" id="label">Default</label>
             <input type="text" class="form-control" disabled id="inputIdValue">
-            <button class="btn btn-secondary btn-sm" id="buttonCrudEdit"
+            <button class="btn btn-outline-primary btn-sm" id="buttonCrudEdit"
                 data-bs-toggle="tooltip" title="Edit">
-                <i id="iEdit" class="bi bi-pencil-square"></i>
+                Edit
             </button>
-            <button class="btn btn-secondary btn-sm" disabled id="buttonCreate"
+            <button class="btn btn-outline-primary btn-sm" hidden id="buttonCreate"
                 data-bs-toggle="tooltip" title="Create">
-                <i class="bi bi-plus-circle"></i>
+                Create
             </button>
-            <button class="btn btn-secondary btn-sm" disabled id="buttonUpdate"
+            <button class="btn btn-outline-primary btn-sm" hidden id="buttonUpdate"
                 data-bs-toggle="tooltip" title="Update">
-                <i class="bi bi-save"></i>
+                Update
             </button>
-            <button class="btn btn-secondary btn-sm" disabled id="buttonDelete"
+            <button class="btn btn-outline-secondary btn-sm" hidden id="buttonDelete"
                 data-bs-toggle="tooltip" title="Delete">
-                <i class="bi bi-trash3"></i>
+                Delete
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" hidden id="buttonCancel"
+                data-bs-toggle="tooltip" title="Cancel" >
+                Cancel
             </button>
             <div class="invalid-feedback"></div>
         </div>

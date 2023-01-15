@@ -106,7 +106,7 @@ function onCreateFeatureClick() {
   Utils.assert(!Things.theThing['features'] || !Object.keys(Things.theThing.features).includes(dom.crudFeature.idValue),
       `Feature ID ${dom.crudFeature.idValue} already exists in Thing`,
       dom.crudFeature.validationElement);
-  updateFeature('PUT');
+  updateFeature('PUT', true);
 }
 
 function onFeaturesTableClick(event) {
@@ -122,8 +122,9 @@ function onFeaturesTableClick(event) {
 /**
  * Triggers a feature update in Ditto according to UI contents
  * @param {String} method Either PUT to update the feature or DELETE to delete the feature
+ * @param {boolean} isNewFeature indicates if a new feature should be created. (default: false)
  */
-function updateFeature(method) {
+function updateFeature(method, isNewFeature = false) {
   Utils.assert(Things.theThing, 'No Thing selected');
   Utils.assert(dom.crudFeature.idValue, 'No Feature selected');
 
@@ -144,8 +145,12 @@ function updateFeature(method) {
       method,
       '/things/' + Things.theThing.thingId + '/features/' + dom.crudFeature.idValue,
       method === 'PUT' ? featureObject : null,
+      isNewFeature ?
       {
-        'if-match': method === 'PUT' ? eTag : '*'
+        'If-None-Match': '*'
+      } :
+      {
+        'If-Match': method === 'PUT' ? eTag : '*'
       }
   ).then(() => {
     if (method === 'PUT') {
@@ -236,7 +241,7 @@ function onEditToggle(event) {
         });
   } else {
     enableDisableEditors();
-    clearEditorsAfterCancel();
+    resetEditors();
     dom.crudFeature.validationElement.classList.remove('is-invalid');
   }
 
@@ -248,7 +253,7 @@ function onEditToggle(event) {
     featureDesiredPropertiesEditor.renderer.setShowGutter(isEditing);
   }
 
-  function clearEditorsAfterCancel() {
+  function resetEditors() {
     if (dom.crudFeature.idValue) {
       refreshFeature(Things.theThing, dom.crudFeature.idValue);
     } else {
