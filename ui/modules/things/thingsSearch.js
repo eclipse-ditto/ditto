@@ -107,8 +107,21 @@ export function getThings(thingIds) {
   dom.thingsTableBody.innerHTML = '';
   if (thingIds.length > 0) {
     API.callDittoREST('GET',
-        `/things?${Fields.getQueryParameter()}&ids=${thingIds}&option=sort(%2BthingId)`,
-    ).then(fillThingsTable);
+        `/things?${Fields.getQueryParameter()}&ids=${thingIds}&option=sort(%2BthingId)`)
+        .then(fillThingsTable)
+        .catch((error) => {
+          resetAndClearViews();
+        });
+  } else {
+    resetAndClearViews();
+  }
+}
+
+function resetAndClearViews(retainThing = false) {
+  theSearchCursor = null;
+  dom.thingsTableBody.innerHTML = '';
+  if (!retainThing) {
+    Things.setTheThing(null);
   }
 }
 
@@ -133,14 +146,12 @@ function searchThings(filter, isMore = false) {
     if (isMore) {
       removeMoreFromThingList();
     } else {
-      theSearchCursor = null;
-      dom.thingsTableBody.innerHTML = '';
+      resetAndClearViews(true);
     }
     fillThingsTable(searchResult.items);
     checkMorePages(searchResult);
   }).catch((error) => {
-    theSearchCursor = null;
-    dom.thingsTableBody.innerHTML = '';
+    resetAndClearViews();
   }).finally(() => {
     document.body.style.cursor = 'default';
   });

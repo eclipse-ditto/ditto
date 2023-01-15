@@ -44,7 +44,7 @@ export function WoTDescription(targetTab, forFeature) {
   };
 
   const onReferenceChanged = () => {
-    if (tabLink.classList.contains('active')) {
+    if (tabLink && tabLink.classList.contains('active')) {
       refreshDescription();
     } else {
       viewDirty = true;

@@ -13,6 +13,7 @@
 /* eslint-disable require-jsdoc */
 // @ts-check
 import * as API from '../api.js';
+import * as Environments from '../environments/environments.js';
 
 import * as Things from './things.js';
 
@@ -24,6 +25,7 @@ let thingEventSource;
  */
 export async function ready() {
   Things.addChangeListener(onThingChanged);
+  Environments.addChangeListener(onEnvironmentChanged);
 }
 
 let observer;
@@ -33,14 +35,25 @@ export function setObserver(newObserver) {
 
 function onThingChanged(newThingJson, isNewThingId) {
   if (!newThingJson) {
-    thingEventSource && thingEventSource.close();
-    thingEventSource = null;
+    stopSSE();
   } else if (isNewThingId) {
     thingEventSource && thingEventSource.close();
     console.log('Start SSE: ' + newThingJson.thingId);
     thingEventSource = API.getEventSource(newThingJson.thingId,
         '&fields=thingId,attributes,features,_revision,_modified');
     thingEventSource.onmessage = onMessage;
+  }
+}
+
+function stopSSE() {
+  thingEventSource && thingEventSource.close();
+  thingEventSource = null;
+  console.log('SSE Stopped');
+}
+
+function onEnvironmentChanged(modifiedField) {
+  if (!['pinnedThings', 'filterList', 'messageTemplates'].includes(modifiedField)) {
+    stopSSE();
   }
 }
 
