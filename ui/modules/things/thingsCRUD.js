@@ -172,26 +172,26 @@ function onEditToggle(event) {
         })
         .then((thingJson) => {
           enableDisableEditors();
-          updateEditorsBeforeEdit(thingJson);
+          initializeEditors(thingJson);
         });
   } else {
     enableDisableEditors();
-    clearEditorsAfterCancel();
+    resetEditors();
   }
 
   function enableDisableEditors() {
     dom.buttonThingDefinitions.disabled = !isEditing;
     dom.inputThingDefinition.disabled = !isEditing;
-  }
-
-  function updateEditorsBeforeEdit(thingJson) {
-    dom.inputThingDefinition.value = thingJson.definition ?? '';
     thingJsonEditor.setReadOnly(!isEditing);
     thingJsonEditor.renderer.setShowGutter(isEditing);
+  }
+
+  function initializeEditors(thingJson) {
+    dom.inputThingDefinition.value = thingJson.definition ?? '';
     thingJsonEditor.setValue(JSON.stringify(thingJson, null, 2), -1);
   }
 
-  function clearEditorsAfterCancel() {
+  function resetEditors() {
     if (dom.crudThings.idValue && dom.crudThings.idValue !== '') {
       Things.refreshThing(dom.crudThings.idValue, null);
     } else {
