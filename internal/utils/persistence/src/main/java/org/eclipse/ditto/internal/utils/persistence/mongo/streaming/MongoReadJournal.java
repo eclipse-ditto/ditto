@@ -644,8 +644,8 @@ public final class MongoReadJournal {
                         MongoReadJournal.MAX_BACK_OFF_DURATION, randomFactor)
                 .withMaxRestarts(maxRestarts, minBackOff);
         return RestartSource.onFailuresWithBackoff(restartSettings, () ->
-                Source.fromPublisher(journal.aggregate(pipeline)
-                                .collation(Collation.builder().locale("en_US").numericOrdering(true).build()))
+                Source.fromPublisher(journal.aggregate(pipeline))
+//                                .collation(Collation.builder().locale("en_US").numericOrdering(true).build()))
                         .flatMapConcat(document -> {
                             final Object pid = document.get(J_ID);
                             if (pid instanceof CharSequence) {
@@ -752,23 +752,24 @@ public final class MongoReadJournal {
                 Accumulators.max(maxPid, "$" + S_ID),
                 Accumulators.push(
                         items,
-                        new Document().append("$cond", new Document()
-                                .append("if",
-                                        new Document().append("$ne", Arrays.asList("$" + LIFECYCLE, "DELETED")))
-                                .append("then", "$$CURRENT")
-                                .append("else", includeDeleted ? "$$CURRENT" : null)
-                        ))
-        ));
+                        new Document())));
+//                                .append("$cond", new Document()
+//                                .append("if",
+//                                        new Document().append("$ne", Arrays.asList("$" + LIFECYCLE, "DELETED")))
+//                                .append("then", "$$CURRENT")
+//                                .append("else", includeDeleted ? "$$CURRENT" : null)
+//                        ))
 
         // remove null entries by projection
-        if (!includeDeleted) {
-            pipeline.add(Aggregates.project(new Document()
-                    .append(maxPid, 1)
-                    .append(items, new Document()
-                            .append("$setDifference", Arrays.asList("$" + items, Collections.singletonList(null)))
-                    )
-            ));
-        }
+//        if (!includeDeleted) {
+//            pipeline.add(Aggregates.project(new Document()
+//                    .append(maxPid, 1)
+//                    .append(items, new Document()
+//                            .append("$setDifference", Arrays.asList("$" + items, Collections.singletonList(null)))
+//                    )
+//            ));
+//            pipeline.add(Aggregates.match(Filters.ne("type", )))
+//        }
 
         return Source.fromPublisher(snapshotStore.aggregate(pipeline)
                         .batchSize(batchSize) // use batchSize also for the cursor batchSize (16 by default bc of backpressure!)
