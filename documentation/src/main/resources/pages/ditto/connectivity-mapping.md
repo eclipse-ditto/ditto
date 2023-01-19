@@ -546,6 +546,29 @@ In order to work more conveniently with binary payloads, the following libraries
 * [long.js](https://github.com/dcodeIO/long.js) for representing a 64-bit two's-complement integer value
 
 
+### Adding additional JS libraries
+
+The used [Rhino JS engine](https://github.com/mozilla/rhino) allows making use of "CommonJS" in order to load JS
+modules via `require('')` into the engine.  
+This feature is exposed to Ditto, configuring the configuration key `commonJsModulePath` or environment variable 
+`CONNECTIVITY_MESSAGE_MAPPING_JS_COMMON_JS_MODULE_PATH` of the connectivity service to a path in the
+connectivity Docker container where to load additional CommonJS modules from - e.g. use a volume mount in order to get
+additional JS modules into the container.
+
+For example, configure this variable to a folder to which you add (our mount) JavaScript libraries:
+```
+CONNECTIVITY_MESSAGE_MAPPING_JS_COMMON_JS_MODULE_PATH=/opt/commonjs-modules/
+```
+
+Then, for example, put [`pbf.js`](https://www.npmjs.com/package/pbf) (or any other JS library you want to use) 
+into that folder.
+
+Afterwards, the library can be used in your JS snippet using:
+```javascript
+var Pbf = require('pbf');
+```
+
+
 ### Helper functions
 
 Ditto comes with a few helper functions, which makes writing the mapping scripts easier. They are available under the
@@ -1214,7 +1237,8 @@ public final class FooMapper extends AbstractMessageMapper {
     }
 
     @Override
-    protected void doConfigure(Connection connection, MappingConfig mappingConfig, MessageMapperConfiguration configuration) {
+    private void doConfigure(Connection connection, MappingConfig mappingConfig,
+            MessageMapperConfiguration configuration) {
         // extract configuration if needed
     }
 }

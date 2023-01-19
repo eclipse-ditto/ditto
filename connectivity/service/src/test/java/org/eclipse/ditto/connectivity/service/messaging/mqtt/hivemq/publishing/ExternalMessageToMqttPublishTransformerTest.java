@@ -276,4 +276,32 @@ public final class ExternalMessageToMqttPublishTransformerTest {
                 .hasCauseInstanceOf(InvalidHeaderValueException.class);
     }
 
+    @Test
+    public void transformFullyFledgedExternalMessageWithBlankHeaderReturnsExpectedTransformationSuccessResult() {
+        final var correlationId = testNameCorrelationId.getCorrelationId();
+        final var genericMqttPublish = GenericMqttPublish.builder(MQTT_TOPIC, MQTT_QOS)
+                .retain(RETAIN)
+                .payload(PAYLOAD)
+                .correlationData(ByteBufferUtils.fromUtf8String(correlationId.toString()))
+                .contentType(CONTENT_TYPE.getValue())
+                .responseTopic(REPLY_TO_TOPIC)
+                .userProperties(USER_PROPERTIES)
+                .build();
+        Mockito.when(externalMessage.getHeaders())
+                .thenReturn(DittoHeaders.newBuilder()
+                        .putHeader(MqttHeader.MQTT_TOPIC.getName(), MQTT_TOPIC.toString())
+                        .putHeader(MqttHeader.MQTT_QOS.getName(), String.valueOf(MQTT_QOS.getCode()))
+                        .putHeader(MqttHeader.MQTT_RETAIN.getName(), String.valueOf(genericMqttPublish.isRetain()))
+                        .putHeader("ablankheader", "")
+                        .correlationId(correlationId)
+                        .putHeader(ExternalMessage.REPLY_TO_HEADER, REPLY_TO_TOPIC.toString())
+                        .contentType(CONTENT_TYPE)
+                        .putHeaders(USER_PROPERTIES.stream()
+                                .collect(Collectors.toMap(UserProperty::name, UserProperty::value)))
+                        .build());
+        Mockito.when(externalMessage.getBytePayload()).thenReturn(genericMqttPublish.getPayload());
+
+        assertThat(ExternalMessageToMqttPublishTransformer.transform(externalMessage, mqttPublishTarget))
+                .isEqualTo(TransformationSuccess.of(externalMessage, genericMqttPublish));
+    }
 }

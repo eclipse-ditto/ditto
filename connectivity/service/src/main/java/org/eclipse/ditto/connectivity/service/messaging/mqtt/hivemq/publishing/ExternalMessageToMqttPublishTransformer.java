@@ -236,6 +236,7 @@ final class ExternalMessageToMqttPublishTransformer {
     ) {
         return externalMessageHeaders.stream()
                 .filter(header -> !KNOWN_MQTT_HEADER_NAMES.contains(header.getKey()))
+                .filter(header -> header.getValue() != null && !header.getValue().isBlank())
                 .map(header -> {
                     final var headerKey = header.getKey();
                     final String headerValue;
