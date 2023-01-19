@@ -25,6 +25,7 @@ import * as API from '../api.js';
 import * as Utils from '../utils.js';
 import * as Fields from './fields.js';
 import * as Things from './things.js';
+import * as ThingsSSE from './thingsSSE.js';
 import * as Environments from '../environments/environments.js';
 
 let lastSearch = '';
@@ -39,6 +40,7 @@ const dom = {
 
 export async function ready() {
   Things.addChangeListener(onThingChanged);
+  ThingsSSE.addChangeListener(onSelectedThingUpdate);
 
   Utils.getAllElementsById(dom);
 
@@ -236,7 +238,7 @@ function fillThingsTable(thingsList) {
         json: item,
         path: path,
       });
-      Utils.addCellToRow(row, elem.length !== 0 ? elem[0] : '');
+      Utils.addCellToRow(row, elem.length !== 0 ? elem[0] : '').setAttribute('jsonPath', path);
     });
   }
 
@@ -269,4 +271,20 @@ function onThingChanged(thingJson) {
   if (!thingJson) {
     Utils.tableAdjustSelection(dom.thingsTableBody, () => false);
   }
+}
+
+function onSelectedThingUpdate(thingUpdateJson) {
+  const row = document.getElementById(thingUpdateJson.thingId);
+  Array.from(row.cells).forEach((cell) => {
+    const path = cell.getAttribute('jsonPath');
+    if (path) {
+      const elem = JSONPath({
+        json: thingUpdateJson,
+        path: path,
+      });
+      if (elem.length !== 0) {
+        cell.innerHTML = elem[0];
+      }
+    }
+  });
 }

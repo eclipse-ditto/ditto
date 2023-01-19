@@ -30,7 +30,7 @@ let messageDetail;
 let currentThingId;
 
 export function ready() {
-  ThingsSSE.setObserver(onMessage);
+  ThingsSSE.addChangeListener(onMessage);
   Things.addChangeListener(onThingChanged);
 
   Utils.getAllElementsById(dom);

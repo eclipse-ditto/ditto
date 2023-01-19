@@ -73,12 +73,14 @@ export function addCheckboxToRow(row, id, checked, onToggle) {
  * @param {String} cellContent content of new cell
  * @param {String} cellTooltip tooltip for new cell
  * @param {Number} position optional, default -1 (add to the end)
+ * @return {HTMLElement} created cell element 
  */
 export function addCellToRow(row, cellContent, cellTooltip = null, position = -1) {
   const cell = row.insertCell(position);
   cell.innerHTML = cellContent;
   cell.setAttribute('data-bs-toggle', 'tooltip');
   cell.title = cellTooltip ?? cellContent;
+  return cell;
 }
 
 /**

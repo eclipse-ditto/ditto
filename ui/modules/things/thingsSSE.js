@@ -11,6 +11,7 @@
 * SPDX-License-Identifier: EPL-2.0
 */
 /* eslint-disable require-jsdoc */
+/* eslint-disable arrow-parens */
 // @ts-check
 import * as API from '../api.js';
 import * as Environments from '../environments/environments.js';
@@ -28,9 +29,12 @@ export async function ready() {
   Environments.addChangeListener(onEnvironmentChanged);
 }
 
-let observer;
-export function setObserver(newObserver) {
-  observer = newObserver;
+const observers = [];
+export function addChangeListener(observer) {
+  observers.push(observer);
+}
+function notifyAll(thingJson) {
+  observers.forEach(observer => observer.call(null, thingJson));
 }
 
 function onThingChanged(newThingJson, isNewThingId) {
@@ -62,7 +66,7 @@ function onMessage(event) {
     console.log(event);
     const merged = _.merge(Things.theThing, JSON.parse(event.data));
     Things.setTheThing(merged);
-    observer && observer.call(null, JSON.parse(event.data));
+    notifyAll(JSON.parse(event.data));
   }
 }
 
