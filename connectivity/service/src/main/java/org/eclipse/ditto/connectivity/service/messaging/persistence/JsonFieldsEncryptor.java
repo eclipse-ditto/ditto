@@ -87,7 +87,7 @@ public final class JsonFieldsEncryptor {
     }
 
     static String replaceUriPassword(final String uriStringRepresentation, final String patchedPassword) {
-        final String userInfo = URI.create(uriStringRepresentation).getUserInfo();
+        final String userInfo = URI.create(uriStringRepresentation).getRawUserInfo();
         final String newUserInfo = userInfo.substring(0, userInfo.indexOf(":") + 1) + patchedPassword;
         final int startOfPwd = uriStringRepresentation.indexOf(userInfo);
         final int endOfPassword = uriStringRepresentation.indexOf("@");
@@ -159,7 +159,7 @@ public final class JsonFieldsEncryptor {
                     .message("Not a valid connection URI")
                     .build();
         }
-        final String userInfo = uri.getUserInfo();
+        final String userInfo = uri.getRawUserInfo();
         if (userInfo == null) {
             return Optional.empty();
         }
