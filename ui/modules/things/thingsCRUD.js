@@ -154,10 +154,12 @@ function onThingChanged(thingJson) {
       delete thingCopy['_created'];
       delete thingCopy['_modified'];
       thingJsonEditor.setValue(JSON.stringify(thingCopy, null, 2), -1);
+      thingJsonEditor.session.getUndoManager().reset();
     } else {
       dom.crudThings.idValue = null;
       dom.inputThingDefinition.value = null;
       thingJsonEditor.setValue('');
+      thingJsonEditor.session.getUndoManager().reset();
     }
   }
 }

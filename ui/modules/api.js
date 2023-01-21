@@ -338,9 +338,9 @@ export async function callDittoREST(method, path, body, additionalHeaders, retur
   }
 }
 
-export function getEventSource(thingId, urlParams) {
+export function getEventSource(thingIds, urlParams) {
   return new EventSourcePolyfill(
-      `${Environments.current().api_uri}/api/2/things?ids=${thingId}${urlParams ?? ''}`, {
+      `${Environments.current().api_uri}/api/2/things?ids=${thingIds}${urlParams ? '&' + urlParams : ''}`, {
         headers: {
           [authHeaderKey]: authHeaderValue,
         },

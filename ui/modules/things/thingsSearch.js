@@ -14,6 +14,7 @@
 /* eslint-disable require-jsdoc */
 /* eslint-disable new-cap */
 /* eslint-disable no-invalid-this */
+/* eslint-disable arrow-parens */
 
 // @ts-check
 
@@ -38,9 +39,18 @@ const dom = {
   favIcon: null,
 };
 
+const observers = [];
+export function addChangeListener(observer) {
+  observers.push(observer);
+}
+function notifyAll(thingIds, fields) {
+  observers.forEach(observer => observer.call(null, thingIds, fields));
+}
+
+
 export async function ready() {
   Things.addChangeListener(onThingChanged);
-  ThingsSSE.addChangeListener(onSelectedThingUpdate);
+  ThingsSSE.addChangeListener(updateTableRow);
 
   Utils.getAllElementsById(dom);
 
@@ -107,20 +117,27 @@ export function performLastSearch() {
  */
 export function getThings(thingIds) {
   dom.thingsTableBody.innerHTML = '';
+  const fieldsQueryParameter = Fields.getQueryParameter();
   if (thingIds.length > 0) {
     API.callDittoREST('GET',
-        `/things?${Fields.getQueryParameter()}&ids=${thingIds}&option=sort(%2BthingId)`)
-        .then(fillThingsTable)
+        `/things?${fieldsQueryParameter}&ids=${thingIds}&option=sort(%2BthingId)`)
+        .then((thingJsonArray) => {
+          fillThingsTable(thingJsonArray);
+          notifyAll(thingIds, fieldsQueryParameter);
+        })
         .catch((error) => {
           resetAndClearViews();
+          notifyAll(null);
         });
   } else {
     resetAndClearViews();
+    notifyAll(null);
   }
 }
 
 function resetAndClearViews(retainThing = false) {
   theSearchCursor = null;
+  dom.thingsTableHead.innerHTML = '';
   dom.thingsTableBody.innerHTML = '';
   if (!retainThing) {
     Things.setTheThing(null);
@@ -136,9 +153,9 @@ function searchThings(filter, isMore = false) {
   document.body.style.cursor = 'progress';
 
   const namespaces = Environments.current().searchNamespaces;
-
+  const fieldsQueryParameter = Fields.getQueryParameter();
   API.callDittoREST('GET',
-      '/search/things?' + Fields.getQueryParameter() +
+      '/search/things?' + fieldsQueryParameter +
       ((filter && filter !== '') ? '&filter=' + encodeURIComponent(filter) : '') +
       ((namespaces && namespaces !== '') ? '&namespaces=' + namespaces : '') +
       '&option=sort(%2BthingId)' +
@@ -152,8 +169,10 @@ function searchThings(filter, isMore = false) {
     }
     fillThingsTable(searchResult.items);
     checkMorePages(searchResult);
+    notifyAll(searchResult.items.map(thingJson => thingJson.thingId), fieldsQueryParameter);
   }).catch((error) => {
     resetAndClearViews();
+    notifyAll(null);
   }).finally(() => {
     document.body.style.cursor = 'default';
   });
@@ -273,7 +292,7 @@ function onThingChanged(thingJson) {
   }
 }
 
-function onSelectedThingUpdate(thingUpdateJson) {
+export function updateTableRow(thingUpdateJson) {
   const row = document.getElementById(thingUpdateJson.thingId);
   Array.from(row.cells).forEach((cell) => {
     const path = cell.getAttribute('jsonPath');

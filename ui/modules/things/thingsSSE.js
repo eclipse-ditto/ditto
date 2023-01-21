@@ -17,15 +17,18 @@ import * as API from '../api.js';
 import * as Environments from '../environments/environments.js';
 
 import * as Things from './things.js';
+import * as ThingsSearch from './thingsSearch.js';
 
-let thingEventSource;
+let selectedThingEventSource;
+let thingsTableEventSource;
 
 
 /**
  * Initializes components. Should be called after DOMContentLoaded event
  */
 export async function ready() {
-  Things.addChangeListener(onThingChanged);
+  Things.addChangeListener(onSelectedThingChanged);
+  ThingsSearch.addChangeListener(onThingsTableChanged);
   Environments.addChangeListener(onEnvironmentChanged);
 }
 
@@ -37,36 +40,52 @@ function notifyAll(thingJson) {
   observers.forEach(observer => observer.call(null, thingJson));
 }
 
-function onThingChanged(newThingJson, isNewThingId) {
-  if (!newThingJson) {
-    stopSSE();
-  } else if (isNewThingId) {
-    thingEventSource && thingEventSource.close();
-    console.log('Start SSE: ' + newThingJson.thingId);
-    thingEventSource = API.getEventSource(newThingJson.thingId,
-        '&fields=thingId,attributes,features,_revision,_modified');
-    thingEventSource.onmessage = onMessage;
+function onThingsTableChanged(thingIds, fieldsQueryParameter) {
+  stopSSE(thingsTableEventSource);
+  if (thingIds) {
+    console.log('SSE Start: THINGS TABLE');
+    thingsTableEventSource = API.getEventSource(thingIds, fieldsQueryParameter);
+    thingsTableEventSource.onmessage = onMessageThingsTable;
   }
 }
 
-function stopSSE() {
-  thingEventSource && thingEventSource.close();
-  thingEventSource = null;
-  console.log('SSE Stopped');
+function onSelectedThingChanged(newThingJson, isNewThingId) {
+  if (!newThingJson) {
+    stopSSE(selectedThingEventSource);
+  } else if (isNewThingId) {
+    selectedThingEventSource && selectedThingEventSource.close();
+    console.log('SSE Start: SELECTED THING : ' + newThingJson.thingId);
+    selectedThingEventSource = API.getEventSource(newThingJson.thingId,
+        'fields=thingId,attributes,features,_revision,_modified');
+    selectedThingEventSource.onmessage = onMessageSelectedThing;
+  }
+}
+
+function stopSSE(eventSource) {
+  if (eventSource) {
+    eventSource.close();
+    console.log('SSE Stopped: ' + (eventSource === selectedThingEventSource ? 'SELECTED THING' : 'THINGS TABLE'));
+  }
 }
 
 function onEnvironmentChanged(modifiedField) {
   if (!['pinnedThings', 'filterList', 'messageTemplates'].includes(modifiedField)) {
-    stopSSE();
+    stopSSE(selectedThingEventSource);
+    stopSSE(thingsTableEventSource);
   }
 }
 
-function onMessage(event) {
+function onMessageSelectedThing(event) {
   if (event.data && event.data !== '') {
-    console.log(event);
     const merged = _.merge(Things.theThing, JSON.parse(event.data));
     Things.setTheThing(merged);
     notifyAll(JSON.parse(event.data));
+  }
+}
+
+function onMessageThingsTable(event) {
+  if (event.data && event.data !== '') {
+    ThingsSearch.updateTableRow(JSON.parse(event.data));
   }
 }
 

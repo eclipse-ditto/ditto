@@ -180,6 +180,8 @@ function updateFeatureEditors(featureJson) {
     featurePropertiesEditor.setValue('');
     featureDesiredPropertiesEditor.setValue('');
   }
+  featurePropertiesEditor.session.getUndoManager().reset();
+  featureDesiredPropertiesEditor.session.getUndoManager().reset();
 }
 
 /**
