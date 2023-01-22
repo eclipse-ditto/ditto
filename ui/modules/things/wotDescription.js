@@ -21,7 +21,7 @@ export function WoTDescription(targetTab, forFeature) {
   let aceWoTDescription;
   let viewDirty = false;
   const _forFeature = forFeature;
-  const domTheFeatureId = document.getElementById('theFeatureId');
+  let theFeatureId;
 
   const ready = async () => {
     const tabId = Utils.addTab(
@@ -43,7 +43,10 @@ export function WoTDescription(targetTab, forFeature) {
     aceWoTDescription = Utils.createAceEditor(aceId, 'ace/mode/json', true);
   };
 
-  const onReferenceChanged = () => {
+  const onReferenceChanged = (ref) => {
+    if (_forFeature) {
+      theFeatureId = ref;
+    }
     if (tabLink && tabLink.classList.contains('active')) {
       refreshDescription();
     } else {
@@ -64,12 +67,10 @@ export function WoTDescription(targetTab, forFeature) {
   }
 
   function refreshDescription() {
-    let featurePath = '';
-    if (_forFeature) {
-      featurePath = '/features/' + domTheFeatureId.value;
-    }
+    const featurePath = _forFeature ? '/features/' + theFeatureId : '';
+
     aceWoTDescription.setValue('');
-    if (Things.theThing && (!_forFeature || domTheFeatureId.value)) {
+    if (Things.theThing && (!_forFeature || theFeatureId)) {
       API.callDittoREST(
           'GET',
           '/things/' + Things.theThing.thingId + featurePath,

@@ -169,7 +169,9 @@ function searchThings(filter, isMore = false) {
     }
     fillThingsTable(searchResult.items);
     checkMorePages(searchResult);
-    notifyAll(searchResult.items.map(thingJson => thingJson.thingId), fieldsQueryParameter);
+    if (!isMore) {
+      notifyAll(searchResult.items.map(thingJson => thingJson.thingId), fieldsQueryParameter);
+    }
   }).catch((error) => {
     resetAndClearViews();
     notifyAll(null);
@@ -294,6 +296,7 @@ function onThingChanged(thingJson) {
 
 export function updateTableRow(thingUpdateJson) {
   const row = document.getElementById(thingUpdateJson.thingId);
+  console.assert(row !== null, 'Unexpected thingId for table update. thingId was not loaded before');
   Array.from(row.cells).forEach((cell) => {
     const path = cell.getAttribute('jsonPath');
     if (path) {
