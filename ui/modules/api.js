@@ -298,9 +298,10 @@ export function setAuthHeader(forDevOps) {
  * @param {String} path of the Ditto call (e.g. '/things')
  * @param {Object} body payload for the api call
  * @param {Object} additionalHeaders object with additional header fields
+ * @param {boolean} returnHeaders request full response instead of json content
  * @return {Object} result as json object
  */
-export async function callDittoREST(method, path, body, additionalHeaders) {
+export async function callDittoREST(method, path, body, additionalHeaders, returnHeaders = false) {
   let response;
   try {
     response = await fetch(Environments.current().api_uri + '/api/2' + path, {
@@ -327,10 +328,24 @@ export async function callDittoREST(method, path, body, additionalHeaders) {
     throw new Error('An error occurred: ' + response.status);
   }
   if (response.status !== 204) {
-    return response.json();
+    if (returnHeaders) {
+      return response;
+    } else {
+      return response.json();
+    }
   } else {
     return null;
   }
+}
+
+export function getEventSource(thingIds, urlParams) {
+  return new EventSourcePolyfill(
+      `${Environments.current().api_uri}/api/2/things?ids=${thingIds}${urlParams ? '&' + urlParams : ''}`, {
+        headers: {
+          [authHeaderKey]: authHeaderValue,
+        },
+      },
+  );
 }
 
 /**
@@ -345,11 +360,9 @@ export async function callDittoREST(method, path, body, additionalHeaders) {
 export async function callConnectionsAPI(operation, successCallback, connectionId, connectionJson, command) {
   Utils.assert((env() !== 'things' || Environments.current().solutionId), 'No solutionId configured in environment');
   const params = config[env()][operation];
-  // if (param && param.charAt(0) === '"' && param.charAt(str.length -1) === '"') {
-  //   param = param.substr(1, param.length -2);
-  // };
+  let response;
   try {
-    const response = await fetch(Environments.current().api_uri + params.path.replace('{{solutionId}}',
+    response = await fetch(Environments.current().api_uri + params.path.replace('{{solutionId}}',
         Environments.current().solutionId).replace('{{connectionId}}', connectionId), {
       method: params.method,
       headers: {
@@ -363,45 +376,47 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
               .replace('{{command}}', command) :
           connectionJson ? JSON.stringify(connectionJson) : command,
     });
-    if (!response.ok) {
-      response.json()
-          .then((dittoErr) => {
-            Utils.showError(dittoErr.description, dittoErr.message, dittoErr.status);
-          })
-          .catch((err) => {
-            Utils.showError('No error details from Ditto', response.statusText, response.status);
-          });
-      throw new Error('An error occured: ' + response.status);
-    }
-    if (operation !== 'connectionCommand' && response.status !== 204) {
-      document.body.style.cursor = 'progress';
-      response.json().then((data) => {
-        if (data && data['?'] && data['?']['?'].status >= 400) {
-          const dittoErr = data['?']['?'].payload;
-          Utils.showError(dittoErr.description, dittoErr.message, dittoErr.status);
-        } else {
-          if (params.unwrapJsonPath) {
-            params.unwrapJsonPath.split('.').forEach(function(node) {
-              if (node === '?') {
-                node = Object.keys(data)[0];
-              }
-              data = data[node];
-            });
-          }
-          successCallback(data);
-        }
-      }).catch((error) => {
-        Utils.showError('Error calling connections API', error);
-        throw error;
-      }).finally(() => {
-        document.body.style.cursor = 'default';
-      });
-    } else {
-      successCallback && successCallback();
-    }
   } catch (err) {
     Utils.showError(err);
     throw err;
+  }
+
+  if (!response.ok) {
+    response.json()
+        .then((dittoErr) => {
+          Utils.showError(dittoErr.description, dittoErr.message, dittoErr.status);
+        })
+        .catch((err) => {
+          Utils.showError('No error details from Ditto', response.statusText, response.status);
+        });
+    throw new Error('An error occured: ' + response.status);
+  }
+  if (operation !== 'connectionCommand' && response.status !== 204) {
+    document.body.style.cursor = 'progress';
+    response.json()
+        .then((data) => {
+          if (data && data['?'] && data['?']['?'].status >= 400) {
+            const dittoErr = data['?']['?'].payload;
+            Utils.showError(dittoErr.description, dittoErr.message, dittoErr.status);
+          } else {
+            if (params.unwrapJsonPath) {
+              params.unwrapJsonPath.split('.').forEach(function(node) {
+                if (node === '?') {
+                  node = Object.keys(data)[0];
+                }
+                data = data[node];
+              });
+            }
+            successCallback(data);
+          }
+        }).catch((error) => {
+          Utils.showError('Error calling connections API', error);
+          throw error;
+        }).finally(() => {
+          document.body.style.cursor = 'default';
+        });
+  } else {
+    successCallback && successCallback();
   }
 }
 

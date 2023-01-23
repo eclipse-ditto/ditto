@@ -1,3 +1,4 @@
+/* eslint-disable require-jsdoc */
 /*
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
@@ -10,10 +11,11 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
+// @ts-check
 
 import * as Environments from '../environments/environments.js';
 import * as Utils from '../utils.js';
-import * as Things from './things.js';
+import * as ThingsSearch from './thingsSearch.js';
 
 const filterExamples = [
   'eq(attributes/location,"kitchen")',
@@ -28,8 +30,6 @@ const filterExamples = [
 const filterHistory = [];
 
 let keyStrokeTimeout;
-
-let lastSearch = '';
 
 const FILTER_PLACEHOLDER = '*****';
 
@@ -51,19 +51,23 @@ export async function ready() {
 
   Utils.getAllElementsById(dom);
 
+  dom.pinnedThings.onclick = ThingsSearch.pinnedTriggered;
+
+
   dom.filterList.addEventListener('click', (event) => {
     if (event.target && event.target.classList.contains('dropdown-item')) {
       dom.searchFilterEdit.value = event.target.textContent;
       checkIfFavourite();
       const filterEditNeeded = checkAndMarkParameter();
       if (!filterEditNeeded) {
-        Things.searchThings(event.target.textContent);
+        ThingsSearch.searchTriggered(event.target.textContent);
       }
     }
   });
 
   dom.searchThings.onclick = () => {
-    searchTriggered(dom.searchFilterEdit.value);
+    fillHistory(dom.searchFilterEdit.value);
+    ThingsSearch.searchTriggered(dom.searchFilterEdit.value);
   };
 
   dom.searchFavourite.onclick = () => {
@@ -75,7 +79,8 @@ export async function ready() {
 
   dom.searchFilterEdit.onkeyup = (event) => {
     if (event.key === 'Enter' || event.code === 13) {
-      searchTriggered(dom.searchFilterEdit.value);
+      fillHistory(dom.searchFilterEdit.value);
+      ThingsSearch.searchTriggered(dom.searchFilterEdit.value);
     } else {
       clearTimeout(keyStrokeTimeout);
       keyStrokeTimeout = setTimeout(checkIfFavourite, 1000);
@@ -88,7 +93,9 @@ export async function ready() {
     }
   };
 
-  dom.pinnedThings.onclick = pinnedTriggered;
+  dom.searchFilterEdit.onchange = ThingsSearch.removeMoreFromThingList;
+
+  dom.searchFilterEdit.focus();
 }
 
 /**
@@ -102,43 +109,6 @@ function onEnvironmentChanged() {
     Environments.current().pinnedThings = [];
   }
   updateFilterList();
-}
-
-/**
- * Tests if the search filter is an RQL. If yes, things search is called otherwise just things get
- * @param {String} filter search filter string containing an RQL or a thingId
- */
-function searchTriggered(filter) {
-  lastSearch = filter;
-  fillHistory(filter);
-  const regex = /^(eq\(|ne\(|gt\(|ge\(|lt\(|le\(|in\(|like\(|exists\(|and\(|or\(|not\().*/;
-  if (filter === '' || regex.test(filter)) {
-    Things.searchThings(filter);
-  } else {
-    Things.getThings([filter]);
-  }
-}
-
-/**
- * Gets the list of pinned things
- */
-function pinnedTriggered() {
-  lastSearch = 'pinned';
-  dom.searchFilterEdit.value = null;
-  dom.favIcon.classList.replace('bi-star-fill', 'bi-star');
-  Things.getThings(Environments.current()['pinnedThings']);
-}
-
-/**
- * Performs the last search by the user using the last used filter.
- * If the user used pinned things last time, the pinned things are reloaded
- */
-export function performLastSearch() {
-  if (lastSearch === 'pinned') {
-    pinnedTriggered();
-  } else {
-    searchTriggered(lastSearch);
-  }
 }
 
 /**
