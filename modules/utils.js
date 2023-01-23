@@ -28,7 +28,7 @@ export function ready() {
 
 /**
  * Adds a table to a table element
- * @param {HTMLElement} table tbody element the row is added to
+ * @param {HTMLTableElement} table tbody element the row is added to
  * @param {String} key first column text of the row. Acts as id of the row
  * @param {boolean} selected if true, the new row will be marked as selected
  * @param {boolean} withClipBoardCopy add a clipboard button at the last column of the row
@@ -69,16 +69,18 @@ export function addCheckboxToRow(row, id, checked, onToggle) {
 
 /**
  * Adds a cell to the row including a tooltip
- * @param {HTMRTableRowElement} row target row
+ * @param {HTMLTableRowElement} row target row
  * @param {String} cellContent content of new cell
  * @param {String} cellTooltip tooltip for new cell
- * @param {integer} position optional, default -1 (add to the end)
+ * @param {Number} position optional, default -1 (add to the end)
+ * @return {HTMLElement} created cell element 
  */
-export function addCellToRow(row, cellContent, cellTooltip, position) {
-  const cell = row.insertCell(position ?? -1);
+export function addCellToRow(row, cellContent, cellTooltip = null, position = -1) {
+  const cell = row.insertCell(position);
   cell.innerHTML = cellContent;
   cell.setAttribute('data-bs-toggle', 'tooltip');
   cell.title = cellTooltip ?? cellContent;
+  return cell;
 }
 
 /**
@@ -149,7 +151,7 @@ export function setOptions(target, options) {
  * @param {array} items array of items for the drop down
  * @param {boolean} isHeader (optional) true to add a header line
  */
-export function addDropDownEntries(target, items, isHeader) {
+export function addDropDownEntries(target, items, isHeader = false) {
   items.forEach((value) => {
     const li = document.createElement('li');
     li.innerHTML = isHeader ?
@@ -191,10 +193,11 @@ export function addTab(tabItemsNode, tabContentsNode, title, contentHTML, toolTi
 /**
  * Get the HTMLElements of all the given ids. The HTMLElements will be returned in the original object
  * @param {Object} domObjects object with empty keys that are used as ids of the dom elements
+ * @param {Element} searchRoot optional root to search in (optional for shadow dom)
  */
-export function getAllElementsById(domObjects) {
+export function getAllElementsById(domObjects, searchRoot = document) {
   Object.keys(domObjects).forEach((id) => {
-    domObjects[id] = document.getElementById(id);
+    domObjects[id] = searchRoot.getElementById(id);
     if (!domObjects[id]) {
       throw new Error(`Element ${id} not found.`);
     }
@@ -207,13 +210,13 @@ export function getAllElementsById(domObjects) {
  * @param {String} header Header for toast
  * @param {String} status Status text for toas
  */
-export function showError(message, header, status) {
+export function showError(message, header, status = '') {
   const domToast = document.createElement('div');
   domToast.classList.add('toast');
   domToast.innerHTML = `<div class="toast-header alert-danger">
   <i class="bi me-2 bi-exclamation-triangle-fill"></i>
   <strong class="me-auto">${header ?? 'Error'}</strong>
-  <small>${status ?? ''}</small>
+  <small>${status}</small>
   <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
   </div>
   <div class="toast-body">${message}</div>`;
@@ -258,16 +261,16 @@ export function assert(condition, message, validatedElement) {
 }
 
 /**
- * Simple Date format that makes UTC string more readable and cuts off the milliseconds
- * @param {Date} date to format
+ * Simple Date format that makes ISO string more readable and cuts off the milliseconds
+ * @param {String} dateISOString to format
  * @param {boolean} withMilliseconds don t cut off milliseconds if true
  * @return {String} formatted date
  */
-export function formatDate(date, withMilliseconds) {
+export function formatDate(dateISOString, withMilliseconds) {
   if (withMilliseconds) {
-    return date.replace('T', ' ').replace('Z', '').replace('.', ' ');
+    return dateISOString.replace('T', ' ').replace('Z', '').replace('.', ' ');
   } else {
-    return date.split('.')[0].replace('T', ' ');
+    return dateISOString.split('.')[0].replace('T', ' ');
   }
 }
 
@@ -319,7 +322,7 @@ export function addValidatorToTable(tableElement, inputElement) {
 
 /**
  * Adjust selection of a table
- * @param {HTMLElement} tbody table with the data
+ * @param {HTMLTableElement} tbody table with the data
  * @param {function} condition evaluate if table row should be selected or not
  */
 export function tableAdjustSelection(tbody, condition) {

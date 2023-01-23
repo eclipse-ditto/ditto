@@ -35,55 +35,34 @@
         </ul>
         <div class="tab-content" style="flex-grow: 1; overflow: hidden;">
             <div class="tab-pane container active no-margin" id="tabEnvDetails">
-                <div class="input-group input-group-sm mb-1 mt-1">
-                    <label class="input-group-text">Name</label>
-                    <input type="text" class="form-control" id="inputEnvironmentName" spellcheck="false">
-                    <button class="btn btn-outline-secondary btn-sm" id="buttonCreateEnvironment">
-                        <i class="bi bi-plus-circle"></i>
-                    </button>
-                    <button class="btn btn-outline-secondary btn-sm" id="buttonUpdateFields"
-                        data-bs-toggle="tooltip" title="Save selected field details">
-                        <i class="bi bi-save"></i>
-                    </button>
-                    <button class="btn btn-outline-secondary btn-sm" id="buttonDeleteEnvironment">
-                        <i class="bi bi-trash3"></i>
-                    </button>
-                    <div class="invalid-feedback"></div>
-                </div>
-                <div class="input-group input-group-sm mt-1">
-                    <label class="input-group-text" data-bs-toggle="tooltip"
-                        title="URI including protocol, host and port (e.g. http://localhost:8080)">API URI</label>
-                    <input type="text" class="form-control form-control-sm" id="inputApiUri"></input>
-                </div>
-                <div class="input-group input-group-sm mt-1">
-                    <label class="input-group-text" data-bs-toggle="tooltip"
-                        title="A comma-separated list of namespaces (e.g. com.example.namespace). The given namespaces are used as a parameter for the Things search">Search Namespaces</label>
-                    <input type="text" class="form-control form-control-sm" spellcheck="false" id="inputSearchNamespaces"></input>
-                </div>
-                <div class="input-group input-group-sm mt-1">
-                    <label class="input-group-text">Ditto Version</label>
-                    <select class="form-select form-select-sm" id="selectDittoVersion">
-                        <option selecte value="3">3</option>
-                        <option value="2">2</option>
-                    </select>
-                </div>
+                <crud-toolbar label="Name" id="crudEnvironmentFields" allowIdChange>
+                    <div class="input-group input-group-sm mt-1">
+                        <label class="input-group-text" data-bs-toggle="tooltip"
+                            title="URI including protocol, host and port (e.g. http://localhost:8080)">API URI</label>
+                        <input type="text" class="form-control form-control-sm" id="inputApiUri" disabled></input>
+                    </div>
+                    <div class="input-group input-group-sm mt-1">
+                        <label class="input-group-text" data-bs-toggle="tooltip"
+                            title="A comma-separated list of namespaces (e.g. com.example.namespace). The given namespaces are used as a parameter for the Things search">Search Namespaces</label>
+                        <input type="text" class="form-control form-control-sm" spellcheck="false" id="inputSearchNamespaces" disabled></input>
+                    </div>
+                    <div class="input-group input-group-sm mt-1">
+                        <label class="input-group-text">Ditto Version</label>
+                        <select class="form-select form-select-sm" id="selectDittoVersion" disabled>
+                            <option selecte value="3">3</option>
+                            <option value="2">2</option>
+                        </select>
+                    </div>    
+                </crud-toolbar>
             </div>
             <div class="tab-pane container no-margin" id="tabEnvJson">
-                <div class="resizable_flex_column">
-                    <div class="input-group input-group-sm mb-1">
-                        <div class="form-control-sm" style="flex-grow: 1;"></div>
-                        <button class="btn btn-outline-secondary btn-sm button_round_both" id="buttonUpdateJson"
-                            data-bs-toggle="tooltip" title="Save selected environment json">
-                            <i class="bi bi-save"></i>
-                            Save
-                        </button>
-                    </div>
+                <crud-toolbar label="Name" id="crudEnvironmentJson" allowIdChange>
                     <div class="ace_container" style="flex-grow: 1;">
                         <div>
                             <div class="script_editor" id="settingsEditor"></div>
                         </div>
                     </div>
-                </div>
+                </crud-toolbar>
             </div>
         </div>
     </div>
