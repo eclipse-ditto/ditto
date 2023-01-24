@@ -16,6 +16,8 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkArgument
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -150,7 +152,8 @@ public abstract class HonoConnectionFactory implements DittoExtensionPoint {
 
     private String combineUriWithCredentials(final String uri, final UserPasswordCredentials credentials) {
         return uri.replaceFirst("(\\S+://)(\\S+)",
-                "$1" + credentials.getUsername() + ":" + credentials.getPassword() + "@$2");
+                "$1" + URLEncoder.encode(credentials.getUsername(), StandardCharsets.UTF_8) + ":" +
+                        URLEncoder.encode(credentials.getPassword(), StandardCharsets.UTF_8) + "@$2");
     }
 
     private Map<String, String> makeupSpecificConfig(final Connection connection) {

@@ -3,7 +3,7 @@
   "name": "Things-Hono Test 1",
   "connectionType": "hono",
   "connectionStatus": "open",
-  "uri": "tcp://test_username:test_password@localhost:9922",
+  "uri": "tcp://test_username:test_password_w%2Fspecial_char@localhost:9922",
   "sources": [
     {
       "addresses": [

@@ -19,6 +19,8 @@ import static org.eclipse.ditto.connectivity.model.HonoAddressAlias.TELEMETRY;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -120,8 +122,8 @@ public final class DefaultHonoConnectionFactoryTest {
         );
         return ConnectivityModelFactory.newConnectionBuilder(originalConnection)
                 .uri(honoConfig.getBaseUri().toString().replaceFirst("(\\S+://)(\\S+)",
-                        "$1" + honoConfig.getUserPasswordCredentials().getUsername()
-                                + ":" + honoConfig.getUserPasswordCredentials().getPassword()
+                        "$1" + URLEncoder.encode(honoConfig.getUserPasswordCredentials().getUsername(), StandardCharsets.UTF_8)
+                                + ":" + URLEncoder.encode(honoConfig.getUserPasswordCredentials().getPassword(), StandardCharsets.UTF_8)
                                 + "@$2"))
                 .validateCertificate(honoConfig.isValidateCertificates())
                 .specificConfig(Map.of(
