@@ -129,7 +129,7 @@ public final class DefaultMongoDbConfigTest {
 
         softly.assertThat(underTest.getMaxQueryTime()).as("maxQueryTime")
                 .isEqualTo(MongoDbConfig.MongoDbConfigValue.MAX_QUERY_TIME.getDefaultValue());
-        softly.assertThat(underTest.isDocumentDBCompatibilityMode()).as("documentDBCompatibilityMode")
+        softly.assertThat(underTest.isDocumentDBCompatibilityMode()).as("documentDbCompatibilityMode")
                 .isEqualTo(MongoDbConfig.MongoDbConfigValue.DOCUMENT_DB_COMPATIBILITY_MODE.getDefaultValue());
         softly.assertThat(underTest.getMongoDbUri()).as("mongoDbUri").isEqualTo("mongodb://foo:bar@mongodb:27017/test?ssl=false");
         softly.assertThat(underTest.getOptionsConfig()).satisfies(optionsConfig -> {

@@ -90,6 +90,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
 
     private final IndexInitializer indexInitializer;
     private final Duration maxQueryTime;
+    private final boolean documentDbCompatibilityMode;
     private final MongoHints hints;
 
     /**
@@ -109,6 +110,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         log = Logging.getLogger(actorSystem, getClass());
         indexInitializer = IndexInitializer.of(database, SystemMaterializer.get(actorSystem).materializer());
         maxQueryTime = mongoClient.getDittoSettings().getMaxQueryTime();
+        documentDbCompatibilityMode = mongoClient.getDittoSettings().isDocumentDbCompatibilityMode();
         hints = MongoHints.empty();
         log.info("Query readConcern=<{}> readPreference=<{}>", readConcern, readPreference);
     }
@@ -118,12 +120,14 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
             final LoggingAdapter log,
             final IndexInitializer indexInitializer,
             final Duration maxQueryTime,
+            final boolean documentDbCompatibilityMode,
             final MongoHints hints) {
 
         this.collection = collection;
         this.log = log;
         this.indexInitializer = indexInitializer;
         this.maxQueryTime = maxQueryTime;
+        this.documentDbCompatibilityMode = documentDbCompatibilityMode;
         this.hints = hints;
     }
 
@@ -135,12 +139,15 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
      */
     public MongoThingsSearchPersistence withHintsByNamespace(final String jsonString) {
         final MongoHints theHints = MongoHints.byNamespace(jsonString);
-        return new MongoThingsSearchPersistence(collection, log, indexInitializer, maxQueryTime, theHints);
+        return new MongoThingsSearchPersistence(collection, log, indexInitializer, maxQueryTime,
+                documentDbCompatibilityMode, theHints);
     }
 
     @Override
     public CompletionStage<Void> initializeIndices() {
-        return indexInitializer.initialize(PersistenceConstants.THINGS_COLLECTION_NAME, Indices.all())
+        return indexInitializer.initialize(PersistenceConstants.THINGS_COLLECTION_NAME,
+                        Indices.all(documentDbCompatibilityMode)
+                )
                 .exceptionally(t -> {
                     log.error(t, "Index-Initialization failed: {}", t.getMessage());
                     return null;

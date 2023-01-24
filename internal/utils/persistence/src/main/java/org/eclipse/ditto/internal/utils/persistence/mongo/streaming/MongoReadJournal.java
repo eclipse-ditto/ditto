@@ -633,7 +633,7 @@ public final class MongoReadJournal {
                         "}"
         ))));
 
-        if (mongoClient.getDittoSettings().isDocumentDBCompatibilityMode()) {
+        if (mongoClient.getDittoSettings().isDocumentDbCompatibilityMode()) {
             // extract priority as "int" from relevant tags so that they can be compared numerically:
             pipeline.add(Aggregates.project(Projections.computed(J_TAGS, BsonDocument.parse(
                     "{\n" +
@@ -684,7 +684,7 @@ public final class MongoReadJournal {
                 .withMaxRestarts(maxRestarts, minBackOff);
 
         final AggregatePublisher<Document> aggregatePublisher;
-        if (mongoClient.getDittoSettings().isDocumentDBCompatibilityMode()) {
+        if (mongoClient.getDittoSettings().isDocumentDbCompatibilityMode()) {
             aggregatePublisher = journal.aggregate(pipeline);
         } else {
             aggregatePublisher =  journal.aggregate(pipeline)

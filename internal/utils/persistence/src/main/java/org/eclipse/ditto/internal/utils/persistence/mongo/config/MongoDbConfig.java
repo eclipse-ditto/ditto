@@ -95,7 +95,7 @@ public interface MongoDbConfig {
         /**
          * Whether to run in "DocumentDB" compatibility mode or not.
          */
-        DOCUMENT_DB_COMPATIBILITY_MODE("documentDB-compatibility-mode", false);
+        DOCUMENT_DB_COMPATIBILITY_MODE("documentDb-compatibility-mode", false);
 
         private final String path;
         private final Object defaultValue;

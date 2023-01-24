@@ -30,11 +30,11 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 public final class DittoMongoClientSettings {
 
     private final Duration maxQueryTime;
-    private final boolean documentDBCompatibilityMode;
+    private final boolean documentDbCompatibilityMode;
 
     private DittoMongoClientSettings(final Builder builder) {
         maxQueryTime = builder.maxQueryTime;
-        documentDBCompatibilityMode = builder.documentDbCompatibilityMode;
+        documentDbCompatibilityMode = builder.documentDbCompatibilityMode;
     }
 
     /**
@@ -60,8 +60,8 @@ public final class DittoMongoClientSettings {
      *
      * @return the DocumentDB compatibility mode.
      */
-    public boolean isDocumentDBCompatibilityMode() {
-        return documentDBCompatibilityMode;
+    public boolean isDocumentDbCompatibilityMode() {
+        return documentDbCompatibilityMode;
     }
 
     /**
