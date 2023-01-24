@@ -14,6 +14,7 @@ package org.eclipse.ditto.internal.utils.persistence.mongo;
 
 import java.time.Duration;
 import java.time.temporal.TemporalUnit;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -29,9 +30,11 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 public final class DittoMongoClientSettings {
 
     private final Duration maxQueryTime;
+    private final boolean documentDBCompatibilityMode;
 
     private DittoMongoClientSettings(final Builder builder) {
         maxQueryTime = builder.maxQueryTime;
+        documentDBCompatibilityMode = builder.documentDbCompatibilityMode;
     }
 
     /**
@@ -53,6 +56,15 @@ public final class DittoMongoClientSettings {
     }
 
     /**
+     * Returns whether to initialize the DittoMongoClient with the "DocumentDB" compatibility mode enabled or not.
+     *
+     * @return the DocumentDB compatibility mode.
+     */
+    public boolean isDocumentDBCompatibilityMode() {
+        return documentDBCompatibilityMode;
+    }
+
+    /**
      * A mutable builder with a fluent API for a {@code DittoMongoClientSettings}.
      */
     @NotThreadSafe
@@ -61,10 +73,15 @@ public final class DittoMongoClientSettings {
         private static final Duration DEFAULT_MAX_QUERY_TIME =
                 (Duration) MongoDbConfig.MongoDbConfigValue.MAX_QUERY_TIME.getDefaultValue();
 
+        private static final boolean DEFAULT_DOCUMENTDB_COMPATIBILITY_MODE =
+                (boolean) MongoDbConfig.MongoDbConfigValue.DOCUMENT_DB_COMPATIBILITY_MODE.getDefaultValue();
+
         private Duration maxQueryTime;
+        private boolean documentDbCompatibilityMode;
 
         private Builder() {
             maxQueryTime = DEFAULT_MAX_QUERY_TIME;
+            documentDbCompatibilityMode = DEFAULT_DOCUMENTDB_COMPATIBILITY_MODE;
         }
 
         /**
@@ -88,11 +105,20 @@ public final class DittoMongoClientSettings {
          * @return this builder instance to allow method chaining.
          */
         public Builder maxQueryTime(@Nullable final Duration maxQueryTime) {
-            if (null != maxQueryTime) {
-                this.maxQueryTime = maxQueryTime;
-            } else {
-                this.maxQueryTime = DEFAULT_MAX_QUERY_TIME;
-            }
+            this.maxQueryTime = Objects.requireNonNullElse(maxQueryTime, DEFAULT_MAX_QUERY_TIME);
+            return this;
+        }
+
+        /**
+         * Sets the DocumentDB compatibility mode.
+         *
+         * @param documentDbCompatibilityMode whether to initialize the DittoMongoClient with the "DocumentDB"
+         * compatibility mode enabled or not.
+         *
+         * @return this builder instance to allow method chaining.
+         */
+        public Builder documentDbCompatibilityMode(final boolean documentDbCompatibilityMode) {
+            this.documentDbCompatibilityMode = documentDbCompatibilityMode;
             return this;
         }
 

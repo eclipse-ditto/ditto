@@ -37,6 +37,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.mongodb.client.result.DeleteResult;
 import com.typesafe.config.Config;
@@ -54,9 +56,18 @@ import akka.testkit.javadsl.TestKit;
  * Tests {@link MongoReadJournal}.
  * CAUTION: Do not use Akka streams testkit; it does not work for Source.fromPublisher against reactive-streams client.
  */
+@RunWith(Parameterized.class)
 public final class MongoReadJournalIT {
 
     private static final String MONGO_DB = "mongoReadJournalIT";
+
+    @Parameterized.Parameters(name = "documentDbCompatibilityMode={0}")
+    public static Collection<Boolean> documentDbCompatibilityMode() {
+        return Arrays.asList(false, true);
+    }
+
+    @Parameterized.Parameter
+    public static boolean documentDbCompatibilityMode;
 
     @ClassRule
     public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
@@ -71,6 +82,7 @@ public final class MongoReadJournalIT {
         mongoClient = MongoClientWrapper.getBuilder()
                 .hostnameAndPort(MONGO_RESOURCE.getBindIp(), MONGO_RESOURCE.getPort())
                 .defaultDatabaseName(MONGO_DB)
+                .documentDbCompatibilityMode(documentDbCompatibilityMode)
                 .connectionPoolMaxSize(100)
                 .connectionPoolMaxWaitTime(Duration.ofSeconds(30))
                 .build();

@@ -80,6 +80,7 @@ public final class DefaultMongoDbConfigTest {
         final DefaultMongoDbConfig underTest = DefaultMongoDbConfig.of(rawMongoDbConfig);
 
         softly.assertThat(underTest.getMaxQueryTime()).isEqualTo(Duration.ofSeconds(10));
+        softly.assertThat(underTest.isDocumentDBCompatibilityMode()).isEqualTo(true);
         // query options from the configured Mongo URI in "mongodb_test.conf" must be preserved
         // exception is the "ssl" option where the configured value in the config has priority
         softly.assertThat(underTest.getMongoDbUri())
@@ -126,7 +127,10 @@ public final class DefaultMongoDbConfigTest {
                 ConfigFactory.parseMap(Collections.singletonMap(absoluteMongoDbUriPath, sourceMongoDbUri));
         final DefaultMongoDbConfig underTest = DefaultMongoDbConfig.of(originalMongoDbConfig);
 
-        softly.assertThat(underTest.getMaxQueryTime()).as("maxQueryTime").isEqualTo(Duration.ofMinutes(1));
+        softly.assertThat(underTest.getMaxQueryTime()).as("maxQueryTime")
+                .isEqualTo(MongoDbConfig.MongoDbConfigValue.MAX_QUERY_TIME.getDefaultValue());
+        softly.assertThat(underTest.isDocumentDBCompatibilityMode()).as("documentDBCompatibilityMode")
+                .isEqualTo(MongoDbConfig.MongoDbConfigValue.DOCUMENT_DB_COMPATIBILITY_MODE.getDefaultValue());
         softly.assertThat(underTest.getMongoDbUri()).as("mongoDbUri").isEqualTo("mongodb://foo:bar@mongodb:27017/test?ssl=false");
         softly.assertThat(underTest.getOptionsConfig()).satisfies(optionsConfig -> {
             softly.assertThat(optionsConfig.isSslEnabled()).as("ssl").isFalse();

@@ -43,10 +43,12 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import com.mongodb.client.model.Accumulators;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.BsonField;
+import com.mongodb.client.model.Collation;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.client.result.DeleteResult;
+import com.mongodb.reactivestreams.client.AggregatePublisher;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.typesafe.config.Config;
 
@@ -599,7 +601,7 @@ public final class MongoReadJournal {
                 .withAttributes(Attributes.inputBuffer(1, 1));
     }
 
-    private static Source<String, NotUsed> listPidsInJournalOrderedByPriorityTag(
+    private Source<String, NotUsed> listPidsInJournalOrderedByPriorityTag(
             final MongoCollection<Document> journal,
             final String tag,
             final int maxRestarts) {
@@ -623,7 +625,7 @@ public final class MongoReadJournal {
                         "            $eq: [\n" +
                         "                {\n" +
                         "                    $substrCP: [\"$$tags\", 0, " + PRIORITY_TAG_PREFIX.length() + "]\n" +
-                        "                }\n," +
+                        "                },\n" +
                         "                \"" + PRIORITY_TAG_PREFIX + "\"\n" +
                         "            ]\n" +
                         "        }\n" +
@@ -631,23 +633,45 @@ public final class MongoReadJournal {
                         "}"
         ))));
 
-        // extract priority as "int" from relevant tags so that they can be compared numerically:
-        pipeline.add(Aggregates.project(Projections.computed(J_TAGS, BsonDocument.parse(
-                "{\n" +
-                        "   $map: {\n" +
-                        "      input: \"$" + J_TAGS + "\",\n" +
-                        "      as: \"tag\",\n" +
-                        "      in: {\n" +
-                        "         $convert: {\n" +
-                        "            input: {\n" +
-                        "               $substrCP: [\"$$tag\", " + PRIORITY_TAG_PREFIX.length() + ", { $strLenCP: \"$$tag\"}]\n" +
-                        "            },\n" +
-                        "            to: \"int\"\n" +
-                        "         }\n" +
-                        "      }\n" +
-                        "   }\n" +
-                        "}\n"
-        ))));
+        if (mongoClient.getDittoSettings().isDocumentDBCompatibilityMode()) {
+            // extract priority as "int" from relevant tags so that they can be compared numerically:
+            pipeline.add(Aggregates.project(Projections.computed(J_TAGS, BsonDocument.parse(
+                    "{\n" +
+                            "   $map: {\n" +
+                            "      input: \"$" + J_TAGS + "\",\n" +
+                            "      as: \"tag\",\n" +
+                            "      in: {\n" +
+                            "         $reduce: {\n" +
+                            "            input: {\n" +
+                            "               $range: [\n" +
+                            "                  0,\n" +
+                            "                  {\n" +
+                            "                     $subtract: [\n" +
+                            "                        1000,\n" + // assumption: max prio is 1000 - all higher prios are not correctly ordered
+                            "                        {\n" +
+                            "                           $strLenCP: {\n" +
+                            "                              $substrCP: [\n" +
+                            "                                 \"$$tag\", " + PRIORITY_TAG_PREFIX.length() + ", { $strLenCP: \"$$tag\" }\n" +
+                            "                              ]\n" +
+                            "                           }\n" +
+                            "                        }\n" +
+                            "                     ]\n" +
+                            "                  }\n" +
+                            "               ],\n" +
+                            "            },\n" +
+                            "            initialValue: \"$$tag\",\n" +
+                            "            in: {\n" +
+                            "               $concat: [\n" +
+                            "                  \" \",\n" +
+                            "                  \"$$value\"\n" +
+                            "               ]\n" +
+                            "            }\n" +
+                            "         }\n" +
+                            "      }\n" +
+                            "   }\n" +
+                            "}\n"
+            ))));
+        }
 
         // sort stage 2 -- order after group stage is not defined
         pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.descending(J_TAGS))));
@@ -658,8 +682,17 @@ public final class MongoReadJournal {
         final RestartSettings restartSettings = RestartSettings.create(minBackOff,
                         MongoReadJournal.MAX_BACK_OFF_DURATION, randomFactor)
                 .withMaxRestarts(maxRestarts, minBackOff);
+
+        final AggregatePublisher<Document> aggregatePublisher;
+        if (mongoClient.getDittoSettings().isDocumentDBCompatibilityMode()) {
+            aggregatePublisher = journal.aggregate(pipeline);
+        } else {
+            aggregatePublisher =  journal.aggregate(pipeline)
+                    .collation(Collation.builder().locale("en_US").numericOrdering(true).build());
+        }
+
         return RestartSource.onFailuresWithBackoff(restartSettings, () ->
-                Source.fromPublisher(journal.aggregate(pipeline))
+                Source.fromPublisher(aggregatePublisher)
                         .flatMapConcat(document -> {
                             final Object pid = document.get(J_ID);
                             if (pid instanceof CharSequence) {
