@@ -16,7 +16,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -44,7 +43,6 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import com.mongodb.client.model.Accumulators;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.BsonField;
-import com.mongodb.client.model.Collation;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Sorts;
@@ -744,32 +742,27 @@ public final class MongoReadJournal {
         // sort stage 2 -- order after group stage is not defined
         pipeline.add(Aggregates.sort(Sorts.ascending(S_ID)));
 
-        // group stage 2: filter out pids whose latest snapshot is a deleted snapshot, but retain max encountered pid
-        // ---- or ---- : include latest deleted snapshots
+        // redact stage - "$$PRUNE"s documents with "__lifecycle" = DELETED if includeDeleted=false
+        // if includeDeleted=true keeps them using "$$DESCEND"
+        pipeline.add(new Document().append("$redact", new Document()
+                .append("$cond", new Document()
+                        .append("if",
+                                new Document().append("$ne", Arrays.asList("$" + LIFECYCLE, "DELETED")))
+                        .append("then", "$$DESCEND")
+                        .append("else", includeDeleted ? "$$DESCEND" : "$$PRUNE")
+        )));
+
+        // group stage 2: group by max encountered pid, "push" all elements calculated in previous "redact"
         final String maxPid = "m";
         final String items = "i";
         pipeline.add(Aggregates.group(null,
                 Accumulators.max(maxPid, "$" + S_ID),
-                Accumulators.push(
-                        items,
-                        new Document())));
-//                                .append("$cond", new Document()
-//                                .append("if",
-//                                        new Document().append("$ne", Arrays.asList("$" + LIFECYCLE, "DELETED")))
-//                                .append("then", "$$CURRENT")
-//                                .append("else", includeDeleted ? "$$CURRENT" : null)
-//                        ))
-
-        // remove null entries by projection
-//        if (!includeDeleted) {
-//            pipeline.add(Aggregates.project(new Document()
-//                    .append(maxPid, 1)
-//                    .append(items, new Document()
-//                            .append("$setDifference", Arrays.asList("$" + items, Collections.singletonList(null)))
-//                    )
-//            ));
-//            pipeline.add(Aggregates.match(Filters.ne("type", )))
-//        }
+                Accumulators.push(items, new Document()
+                        .append("_id", "$_id")
+                        .append(S_SN, "$sn")
+                        .append(LIFECYCLE, "$__lifecycle")
+                )
+        ));
 
         return Source.fromPublisher(snapshotStore.aggregate(pipeline)
                         .batchSize(batchSize) // use batchSize also for the cursor batchSize (16 by default bc of backpressure!)
