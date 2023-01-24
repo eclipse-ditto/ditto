@@ -112,126 +112,126 @@ public final class MongoReadJournalIT {
         }
     }
 
-//    @Test
-//    public void streamLatestSnapshotsWithBatchCutOffWithinSamePid() {
-//        // GIVEN
-//        insert("test_snaps", new Document()
-//                .append("pid", "pid1")
-//                .append("sn", 1L)
-//                .append("s2", new Document().append("_modified", "2020-02-29T23:59:59.999Z"))
-//        );
-//        insert("test_snaps", new Document()
-//                .append("pid", "pid3")
-//                .append("sn", 1L)
-//                .append("s2", new Document().append("_modified", "1999-01-01:00:00:00.000Z"))
-//        );
-//        insert("test_snaps", new Document()
-//                .append("pid", "pid3")
-//                .append("sn", 2L)
-//                .append("s2", new Document().append("_modified", "2000-01-01T00:01:01.000Z"))
-//        );
-//        insert("test_snaps", new Document()
-//                .append("pid", "pid3")
-//                .append("sn", 3L)
-//                .append("s2", new Document().append("_modified", "2020-01-31T19:57:48.571Z"))
-//        );
-//        insert("test_snaps", new Document()
-//                .append("pid", "pid4")
-//                .append("sn", 4L)
-//                .append("s2", new Document().append("_modified", "1970-01-01T00:00:00.000Z"))
-//        );
-//        // latest snapshot of pid5 is deleted; it should not show up
-//        insert("test_snaps", new Document()
-//                .append("pid", "pid5")
-//                .append("sn", 4L)
-//                .append("s2", new Document().append("_modified", "1970-01-01T00:00:00.001Z"))
-//        );
-//        insert("test_snaps", new Document()
-//                .append("pid", "pid5")
-//                .append("sn", 5L)
-//                .append("s2", new Document()
-//                        .append("_modified", "1970-01-01T00:00:00.002Z")
-//                        .append("__lifecycle", "DELETED")
-//                )
-//        );
-//
-//        // WHEN: latest snapshots requested with batch size that splits the snapshots of pid3 into 2 batches
-//        final List<Document> snapshots =
-//                readJournal.getNewestSnapshotsAbove("pid2", 2, materializer, "_modified")
-//                        .runWith(Sink.seq(), materializer)
-//                        .toCompletableFuture()
-//                        .join();
-//
-//        // THEN: snapshots of the highest sequence number for each pid are returned
-//        assertThat(snapshots).containsExactly(
-//                new Document().append("_id", "pid3")
-//                        .append("__lifecycle", null)
-//                        .append("_modified", "2020-01-31T19:57:48.571Z")
-//                        .append("sn", 3L),
-//                new Document().append("_id", "pid4")
-//                        .append("__lifecycle", null)
-//                        .append("_modified", "1970-01-01T00:00:00.000Z")
-//                        .append("sn", 4L)
-//        );
-//    }
+    @Test
+    public void streamLatestSnapshotsWithBatchCutOffWithinSamePid() {
+        // GIVEN
+        insert("test_snaps", new Document()
+                .append("pid", "pid1")
+                .append("sn", 1L)
+                .append("s2", new Document().append("_modified", "2020-02-29T23:59:59.999Z"))
+        );
+        insert("test_snaps", new Document()
+                .append("pid", "pid3")
+                .append("sn", 1L)
+                .append("s2", new Document().append("_modified", "1999-01-01:00:00:00.000Z"))
+        );
+        insert("test_snaps", new Document()
+                .append("pid", "pid3")
+                .append("sn", 2L)
+                .append("s2", new Document().append("_modified", "2000-01-01T00:01:01.000Z"))
+        );
+        insert("test_snaps", new Document()
+                .append("pid", "pid3")
+                .append("sn", 3L)
+                .append("s2", new Document().append("_modified", "2020-01-31T19:57:48.571Z"))
+        );
+        insert("test_snaps", new Document()
+                .append("pid", "pid4")
+                .append("sn", 4L)
+                .append("s2", new Document().append("_modified", "1970-01-01T00:00:00.000Z"))
+        );
+        // latest snapshot of pid5 is deleted; it should not show up
+        insert("test_snaps", new Document()
+                .append("pid", "pid5")
+                .append("sn", 4L)
+                .append("s2", new Document().append("_modified", "1970-01-01T00:00:00.001Z"))
+        );
+        insert("test_snaps", new Document()
+                .append("pid", "pid5")
+                .append("sn", 5L)
+                .append("s2", new Document()
+                        .append("_modified", "1970-01-01T00:00:00.002Z")
+                        .append("__lifecycle", "DELETED")
+                )
+        );
 
-//    @Test
-//    public void streamLatestSnapshotsWithDeletedSnapshots() {
-//        // GIVEN
-//        // pid1: deleted
-//        insert("test_snaps", new Document()
-//                .append("pid", "pid1")
-//                .append("sn", 1L)
-//                .append("s2", new Document()
-//                        .append("_modified", "2020-02-29T23:59:59.999Z")
-//                        .append("__lifecycle", "DELETED")
-//                )
-//        );
-//        // pid2: deleted as final snapshot
-//        insert("test_snaps", new Document()
-//                .append("pid", "pid2")
-//                .append("sn", 1L)
-//                .append("s2", new Document().append("_modified", "1999-01-01:00:00:00.001Z"))
-//        );
-//        insert("test_snaps", new Document()
-//                .append("pid", "pid2")
-//                .append("sn", 2L)
-//                .append("s2", new Document()
-//                        .append("_modified", "1999-01-01:00:00:00.000Z")
-//                        .append("__lifecycle", "DELETED")
-//                )
-//        );
-//        // pid3: non-deleted as final snapshot
-//        insert("test_snaps", new Document()
-//                .append("pid", "pid3")
-//                .append("sn", 2L)
-//                .append("s2", new Document()
-//                        .append("_modified", "2000-01-01T00:01:01.000Z")
-//                        .append("__lifecycle", "DELETED")
-//                )
-//        );
-//        insert("test_snaps", new Document()
-//                .append("pid", "pid3")
-//                .append("sn", 3L)
-//                .append("s2", new Document().append("_modified", "2020-01-31T19:57:48.571Z"))
-//        );
-//
-//        // WHEN: latest snapshots requested with batch size 2
-//        final List<Document> snapshots =
-//                readJournal.getNewestSnapshotsAbove("", 2, materializer, "_modified")
-//                        .runWith(Sink.seq(), materializer)
-//                        .toCompletableFuture()
-//                        .join();
-//
-//        // THEN: pid3 should be returned.
-//        assertThat(snapshots).containsExactly(
-//                new Document().append("_id", "pid3")
-//                        .append("__lifecycle", null)
-//                        .append("_modified", "2020-01-31T19:57:48.571Z")
-//                        .append("sn", 3L)
-//        );
-//
-//    }
+        // WHEN: latest snapshots requested with batch size that splits the snapshots of pid3 into 2 batches
+        final List<Document> snapshots =
+                readJournal.getNewestSnapshotsAbove("pid2", 2, materializer, "_modified")
+                        .runWith(Sink.seq(), materializer)
+                        .toCompletableFuture()
+                        .join();
+
+        // THEN: snapshots of the highest sequence number for each pid are returned
+        assertThat(snapshots).containsExactly(
+                new Document().append("_id", "pid3")
+                        .append("__lifecycle", null)
+                        .append("_modified", "2020-01-31T19:57:48.571Z")
+                        .append("sn", 3L),
+                new Document().append("_id", "pid4")
+                        .append("__lifecycle", null)
+                        .append("_modified", "1970-01-01T00:00:00.000Z")
+                        .append("sn", 4L)
+        );
+    }
+
+    @Test
+    public void streamLatestSnapshotsWithDeletedSnapshots() {
+        // GIVEN
+        // pid1: deleted
+        insert("test_snaps", new Document()
+                .append("pid", "pid1")
+                .append("sn", 1L)
+                .append("s2", new Document()
+                        .append("_modified", "2020-02-29T23:59:59.999Z")
+                        .append("__lifecycle", "DELETED")
+                )
+        );
+        // pid2: deleted as final snapshot
+        insert("test_snaps", new Document()
+                .append("pid", "pid2")
+                .append("sn", 1L)
+                .append("s2", new Document().append("_modified", "1999-01-01:00:00:00.001Z"))
+        );
+        insert("test_snaps", new Document()
+                .append("pid", "pid2")
+                .append("sn", 2L)
+                .append("s2", new Document()
+                        .append("_modified", "1999-01-01:00:00:00.000Z")
+                        .append("__lifecycle", "DELETED")
+                )
+        );
+        // pid3: non-deleted as final snapshot
+        insert("test_snaps", new Document()
+                .append("pid", "pid3")
+                .append("sn", 2L)
+                .append("s2", new Document()
+                        .append("_modified", "2000-01-01T00:01:01.000Z")
+                        .append("__lifecycle", "DELETED")
+                )
+        );
+        insert("test_snaps", new Document()
+                .append("pid", "pid3")
+                .append("sn", 3L)
+                .append("s2", new Document().append("_modified", "2020-01-31T19:57:48.571Z"))
+        );
+
+        // WHEN: latest snapshots requested with batch size 4
+        final List<Document> snapshots =
+                readJournal.getNewestSnapshotsAbove("", 4, materializer, "_modified")
+                        .runWith(Sink.seq(), materializer)
+                        .toCompletableFuture()
+                        .join();
+
+        // THEN: pid3 should be returned.
+        assertThat(snapshots).containsExactly(
+                new Document().append("_id", "pid3")
+                        .append("__lifecycle", null)
+                        .append("_modified", "2020-01-31T19:57:48.571Z")
+                        .append("sn", 3L)
+        );
+
+    }
 
     private static Document snapshot(final String pid, final long sn, final boolean deleted) {
         return new Document().append("pid", pid)
@@ -240,82 +240,82 @@ public final class MongoReadJournalIT {
                                     .append("__lifecycle", deleted  ? "DELETED"  :"ACTIVE"));
     }
 
-//    @Test
-//    public void streamLatestSnapshotsWithPidFilter() {
-//        // GIVEN
-//        insert("test_snaps", snapshot("snip:pid1", 1L, false));
-//        insert("test_snaps", snapshot("snap:pid1", 1L, false));
-//        insert("test_snaps", snapshot("snap:pid1", 2L, false));
-//        insert("test_snaps", snapshot("snap:pid1", 3L, false));
-//        insert("test_snaps", snapshot("snip:pid3", 1L, false));
-//        insert("test_snaps", snapshot("snap:pid4", 4L, false));
-//
-//        // latest snapshot of pid5 is deleted; it should not show up
-//        insert("test_snaps", snapshot("snap:pid5", 1L, false));
-//        insert("test_snaps", snapshot("snap:pid5", 2L, true));
-//
-//        insert("test_snaps", snapshot("snap:pid6", 6L, false));
-//
-//
-//        // WHEN: latest snapshots requested with batch size that splits the snapshots of pid3 into 2 batches
-//        final List<Document> snapshots =
-//                readJournal.getNewestSnapshotsAbove(SnapshotFilter.of("", "^snap:.*"), 2, materializer, "_modified")
-//                        .runWith(Sink.seq(), materializer)
-//                        .toCompletableFuture()
-//                        .join();
-//
-//        // THEN: snapshots of the highest sequence number for each pid are returned
-//        assertThat(snapshots).containsExactly(
-//                new Document().append("_id", "snap:pid1")
-//                        .append("__lifecycle", "ACTIVE")
-//                        .append("_modified", "1970-01-01T00:00:03Z")
-//                        .append("sn", 3L),
-//                new Document().append("_id", "snap:pid4")
-//                        .append("__lifecycle", "ACTIVE")
-//                        .append("_modified", "1970-01-01T00:00:04Z")
-//                        .append("sn", 4L),
-//                new Document().append("_id", "snap:pid6")
-//                        .append("__lifecycle", "ACTIVE")
-//                        .append("_modified", "1970-01-01T00:00:06Z")
-//                        .append("sn", 6L)
-//        );
-//    }
+    @Test
+    public void streamLatestSnapshotsWithPidFilter() {
+        // GIVEN
+        insert("test_snaps", snapshot("snip:pid1", 1L, false));
+        insert("test_snaps", snapshot("snap:pid1", 1L, false));
+        insert("test_snaps", snapshot("snap:pid1", 2L, false));
+        insert("test_snaps", snapshot("snap:pid1", 3L, false));
+        insert("test_snaps", snapshot("snip:pid3", 1L, false));
+        insert("test_snaps", snapshot("snap:pid4", 4L, false));
 
-//    @Test
-//    public void streamLatestSnapshotsWithLowerBoundAndPidFilter() {
-//        // GIVEN
-//        insert("test_snaps", snapshot("snip:pid1", 1L, false));
-//        insert("test_snaps", snapshot("snap:pid1", 1L, false));
-//        insert("test_snaps", snapshot("snap:pid1", 2L, false));
-//        insert("test_snaps", snapshot("snap:pid1", 3L, false));
-//        insert("test_snaps", snapshot("snip:pid3", 1L, false));
-//        insert("test_snaps", snapshot("snap:pid4", 4L, false));
-//
-//        // latest snapshot of pid5 is deleted; it should not show up
-//        insert("test_snaps", snapshot("snap:pid5", 1L, false));
-//        insert("test_snaps", snapshot("snap:pid5", 2L, true));
-//
-//        insert("test_snaps", snapshot("snap:pid6", 6L, false));
-//
-//        // WHEN: latest snapshots requested lower bound and pid filter
-//        final List<Document> snapshots =
-//                readJournal.getNewestSnapshotsAbove(SnapshotFilter.of("snap:pid2", "^snap:.*"), 2, materializer, "_modified")
-//                        .runWith(Sink.seq(), materializer)
-//                        .toCompletableFuture()
-//                        .join();
-//
-//        // THEN: snapshots of the highest sequence number for each pid are returned
-//        assertThat(snapshots).containsExactly(
-//                new Document().append("_id", "snap:pid4")
-//                        .append("__lifecycle", "ACTIVE")
-//                        .append("_modified", "1970-01-01T00:00:04Z")
-//                        .append("sn", 4L),
-//                new Document().append("_id", "snap:pid6")
-//                        .append("__lifecycle", "ACTIVE")
-//                        .append("_modified", "1970-01-01T00:00:06Z")
-//                        .append("sn", 6L)
-//        );
-//    }
+        // latest snapshot of pid5 is deleted; it should not show up
+        insert("test_snaps", snapshot("snap:pid5", 1L, false));
+        insert("test_snaps", snapshot("snap:pid5", 2L, true));
+
+        insert("test_snaps", snapshot("snap:pid6", 6L, false));
+
+
+        // WHEN: latest snapshots requested with batch size that splits the snapshots of pid3 into 2 batches
+        final List<Document> snapshots =
+                readJournal.getNewestSnapshotsAbove(SnapshotFilter.of("", "^snap:.*"), 3, materializer, "_modified")
+                        .runWith(Sink.seq(), materializer)
+                        .toCompletableFuture()
+                        .join();
+
+        // THEN: snapshots of the highest sequence number for each pid are returned
+        assertThat(snapshots).containsExactly(
+                new Document().append("_id", "snap:pid1")
+                        .append("__lifecycle", "ACTIVE")
+                        .append("_modified", "1970-01-01T00:00:03Z")
+                        .append("sn", 3L),
+                new Document().append("_id", "snap:pid4")
+                        .append("__lifecycle", "ACTIVE")
+                        .append("_modified", "1970-01-01T00:00:04Z")
+                        .append("sn", 4L),
+                new Document().append("_id", "snap:pid6")
+                        .append("__lifecycle", "ACTIVE")
+                        .append("_modified", "1970-01-01T00:00:06Z")
+                        .append("sn", 6L)
+        );
+    }
+
+    @Test
+    public void streamLatestSnapshotsWithLowerBoundAndPidFilter() {
+        // GIVEN
+        insert("test_snaps", snapshot("snip:pid1", 1L, false));
+        insert("test_snaps", snapshot("snap:pid1", 1L, false));
+        insert("test_snaps", snapshot("snap:pid1", 2L, false));
+        insert("test_snaps", snapshot("snap:pid1", 3L, false));
+        insert("test_snaps", snapshot("snip:pid3", 1L, false));
+        insert("test_snaps", snapshot("snap:pid4", 4L, false));
+
+        // latest snapshot of pid5 is deleted; it should not show up
+        insert("test_snaps", snapshot("snap:pid5", 1L, false));
+        insert("test_snaps", snapshot("snap:pid5", 2L, true));
+
+        insert("test_snaps", snapshot("snap:pid6", 6L, false));
+
+        // WHEN: latest snapshots requested lower bound and pid filter
+        final List<Document> snapshots =
+                readJournal.getNewestSnapshotsAbove(SnapshotFilter.of("snap:pid2", "^snap:.*"), 3, materializer, "_modified")
+                        .runWith(Sink.seq(), materializer)
+                        .toCompletableFuture()
+                        .join();
+
+        // THEN: snapshots of the highest sequence number for each pid are returned
+        assertThat(snapshots).containsExactly(
+                new Document().append("_id", "snap:pid4")
+                        .append("__lifecycle", "ACTIVE")
+                        .append("_modified", "1970-01-01T00:00:04Z")
+                        .append("sn", 4L),
+                new Document().append("_id", "snap:pid6")
+                        .append("__lifecycle", "ACTIVE")
+                        .append("_modified", "1970-01-01T00:00:06Z")
+                        .append("sn", 6L)
+        );
+    }
 
     @Test
     public void extractJournalPidsFromEventsAndNotSnapshots() {
@@ -378,24 +378,24 @@ public final class MongoReadJournalIT {
         assertThat(pids).containsExactly("pid1", "pid3", "pid4");
     }
 
-//    @Test
-//    public void extractJournalPidsInOrderOfTags() {
-//        insert("test_journal",
-//                new JournalEntry("pid1").withSn(1L).withTags(Set.of("always-alive", "priority-10")).getDocument());
-//        insert("test_journal",
-//                new JournalEntry("pid2").withSn(1L).withTags(Set.of("always-alive", "priority-2")).getDocument());
-//        insert("test_journal",
-//                new JournalEntry("pid3").withSn(2L).withTags(Set.of("always-alive", "priority-3")).getDocument());
-//        insert("test_journal",
-//                new JournalEntry("pid4").withSn(2L).withTags(Set.of("always-alive", "priority-4")).getDocument());
-//
-//        final List<String> pids =
-//                readJournal.getJournalPidsWithTagOrderedByPriorityTag("always-alive", Duration.ZERO)
-//                        .runWith(Sink.seq(), materializer)
-//                        .toCompletableFuture().join();
-//
-//        assertThat(pids).containsExactly("pid1", "pid4", "pid3", "pid2");
-//    }
+    @Test
+    public void extractJournalPidsInOrderOfTags() {
+        insert("test_journal",
+                new JournalEntry("pid1").withSn(1L).withTags(Set.of("always-alive", "priority-10")).getDocument());
+        insert("test_journal",
+                new JournalEntry("pid2").withSn(1L).withTags(Set.of("always-alive", "priority-2")).getDocument());
+        insert("test_journal",
+                new JournalEntry("pid3").withSn(2L).withTags(Set.of("always-alive", "priority-3")).getDocument());
+        insert("test_journal",
+                new JournalEntry("pid4").withSn(2L).withTags(Set.of("always-alive", "priority-4")).getDocument());
+
+        final List<String> pids =
+                readJournal.getJournalPidsWithTagOrderedByPriorityTag("always-alive", Duration.ZERO)
+                        .runWith(Sink.seq(), materializer)
+                        .toCompletableFuture().join();
+
+        assertThat(pids).containsExactly("pid1", "pid4", "pid3", "pid2");
+    }
 
     @Test
     public void extractJournalPidsInOrderOfTagsOfNewestEvent() {

@@ -614,7 +614,7 @@ public final class MongoReadJournal {
         pipeline.add(Aggregates.group("$" + J_PROCESSOR_ID, Accumulators.last(J_TAGS, "$" + J_TAGS)));
 
         // Filter irrelevant tags for priority ordering.
-        final BsonDocument arrayFilter = BsonDocument.parse(
+        pipeline.add(Aggregates.project(Projections.computed(J_TAGS, BsonDocument.parse(
                 "{\n" +
                         "    $filter: {\n" +
                         "        input: \"$" + J_TAGS + "\",\n" +
@@ -629,8 +629,25 @@ public final class MongoReadJournal {
                         "        }\n" +
                         "    }\n" +
                         "}"
-        );
-        pipeline.add(Aggregates.project(Projections.computed(J_TAGS, arrayFilter)));
+        ))));
+
+        // extract priority as "int" from relevant tags so that they can be compared numerically:
+        pipeline.add(Aggregates.project(Projections.computed(J_TAGS, BsonDocument.parse(
+                "{\n" +
+                        "   $map: {\n" +
+                        "      input: \"$" + J_TAGS + "\",\n" +
+                        "      as: \"tag\",\n" +
+                        "      in: {\n" +
+                        "         $convert: {\n" +
+                        "            input: {\n" +
+                        "               $substrCP: [\"$$tag\", " + PRIORITY_TAG_PREFIX.length() + ", { $strLenCP: \"$$tag\"}]\n" +
+                        "            },\n" +
+                        "            to: \"int\"\n" +
+                        "         }\n" +
+                        "      }\n" +
+                        "   }\n" +
+                        "}\n"
+        ))));
 
         // sort stage 2 -- order after group stage is not defined
         pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.descending(J_TAGS))));
@@ -643,7 +660,6 @@ public final class MongoReadJournal {
                 .withMaxRestarts(maxRestarts, minBackOff);
         return RestartSource.onFailuresWithBackoff(restartSettings, () ->
                 Source.fromPublisher(journal.aggregate(pipeline))
-//                                .collation(Collation.builder().locale("en_US").numericOrdering(true).build()))
                         .flatMapConcat(document -> {
                             final Object pid = document.get(J_ID);
                             if (pid instanceof CharSequence) {
@@ -733,7 +749,7 @@ public final class MongoReadJournal {
         // sort stage
         pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.ascending(S_PROCESSOR_ID), Sorts.descending(S_SN))));
 
-        // limit stage. It should come before group stage or MongoDB would scan the entire journal collection.
+        // limit stage. It should come before group stage or MongoDB would scan the entire snapshot collection
         pipeline.add(Aggregates.limit(batchSize));
 
         // group stage 1: by PID. PID is from now on in field _id (S_ID)
@@ -757,11 +773,7 @@ public final class MongoReadJournal {
         final String items = "i";
         pipeline.add(Aggregates.group(null,
                 Accumulators.max(maxPid, "$" + S_ID),
-                Accumulators.push(items, new Document()
-                        .append("_id", "$_id")
-                        .append(S_SN, "$sn")
-                        .append(LIFECYCLE, "$__lifecycle")
-                )
+                Accumulators.push(items, "$$ROOT")
         ));
 
         return Source.fromPublisher(snapshotStore.aggregate(pipeline)
