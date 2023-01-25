@@ -1,0 +1,42 @@
+global:
+  scrape_interval:     30s
+  scrape_timeout:      10s
+  evaluation_interval: 30s
+
+scrape_configs:
+  # Scrape prometheus itself.
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Scrape grafana.
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+
+  # Scrape Ditto.
+  - job_name: 'ditto'
+    kubernetes_sd_configs:
+    - role: pod
+
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+      action: keep
+      regex: true
+    - source_labels: [ __meta_kubernetes_pod_annotation_prometheus_io_path ]
+      action: replace
+      target_label: __metrics_path__
+      regex: (.+)
+    - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+      action: replace
+      regex: ([^:]+)(?::\d+)?;(\d+)
+      replacement: ${1}:${2}
+      target_label: __address__
+    - action: labelmap
+      regex: __meta_kubernetes_pod_label_(.+)
+    - source_labels: [__meta_kubernetes_pod_name]
+      action: replace
+      target_label: instance
+    - source_labels: [__meta_kubernetes_pod_container_name]
+      action: replace
+      target_label: job
