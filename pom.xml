@@ -233,9 +233,9 @@
         <maven.build.timestamp.format>yyyy-MM-dd</maven.build.timestamp.format>
         <timestamp>${maven.build.timestamp}</timestamp>
 
-        <release.scm.connection>scm:git:git@github.com:eclipse/ditto.git</release.scm.connection>
-        <release.scm.developerConnection>scm:git:https://github.com/eclipse/ditto.git</release.scm.developerConnection>
-        <release.scm.url>https://github.com/eclipse/ditto.git</release.scm.url>
+        <release.scm.connection>scm:git:git@github.com:eclipse-ditto/ditto.git</release.scm.connection>
+        <release.scm.developerConnection>scm:git:https://github.com/eclipse-ditto/ditto.git</release.scm.developerConnection>
+        <release.scm.url>https://github.com/eclipse-ditto/ditto.git</release.scm.url>
 
         <argLine>-Dfile.encoding=${project.build.sourceEncoding}</argLine>
 

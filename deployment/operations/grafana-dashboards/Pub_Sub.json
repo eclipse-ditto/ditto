@@ -3,10 +3,7 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": {
-          "type": "datasource",
-          "uid": "grafana"
-        },
+        "datasource": "grafana",
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -33,10 +30,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -120,10 +114,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -222,10 +213,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -305,10 +293,7 @@
       }
     },
     {
-      "datasource": {
-        "type": "elasticsearch",
-        "uid": "PAE1B8C8635429669"
-      },
+      "datasource": "elasticsearch",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -555,10 +540,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -645,10 +627,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "description": "",
       "fill": 1,
       "fillGradient": 0,
@@ -770,10 +749,7 @@
         "noDataState": "no_data",
         "notifications": []
       },
-      "datasource": {
-        "type": "elasticsearch",
-        "uid": "PAE1B8C8635429669"
-      },
+      "datasource": "elasticsearch",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -882,10 +858,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -981,10 +954,7 @@
   "templating": {
     "list": [
       {
-        "datasource": {
-          "type": "elasticsearch",
-          "uid": "PAE1B8C8635429669"
-        },
+        "datasource": "elasticsearch",
         "filters": [],
         "hide": 0,
         "name": "Filters",

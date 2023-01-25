@@ -3,10 +3,7 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": {
-          "type": "datasource",
-          "uid": "grafana"
-        },
+        "datasource": "grafana",
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -35,10 +32,7 @@
       "cacheTimeout": "0",
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "description": "Positive Y axis: stacked search queries\nNegative Y axis: stacked search counts",
       "editable": true,
       "error": false,
@@ -143,10 +137,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "editable": true,
       "error": false,
       "fieldConfig": {
@@ -242,10 +233,7 @@
       "cacheTimeout": "0",
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "editable": true,
       "error": false,
       "fieldConfig": {
@@ -343,10 +331,7 @@
       "cacheTimeout": "0",
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "description": "Percentiles are capped to max. 10s",
       "editable": true,
       "error": false,
@@ -475,10 +460,7 @@
       "bars": true,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "links": []
@@ -568,10 +550,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "links": []
@@ -675,10 +654,7 @@
       "bars": true,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -764,10 +740,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "links": []
@@ -857,10 +830,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "links": []
@@ -990,10 +960,7 @@
       }
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1087,10 +1054,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "links": []
@@ -1180,10 +1144,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "links": []
@@ -1273,10 +1234,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "links": []
@@ -1383,10 +1341,7 @@
           "text": "All",
           "value": "$__all"
         },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "P1809F7CD0C75ACF3"
-        },
+        "datasource": "prometheus",
         "definition": "",
         "hide": 0,
         "includeAll": true,

@@ -3,10 +3,7 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": {
-          "type": "datasource",
-          "uid": "grafana"
-        },
+        "datasource": "grafana",
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -30,10 +27,7 @@
   "panels": [
     {
       "collapsed": false,
-      "datasource": {
-        "type": "datasource",
-        "uid": "grafana"
-      },
+      "datasource": "grafana",
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -50,10 +44,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "links": [],
@@ -102,10 +93,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "expr": "sum(connection_client{instance=~\"$Host\", type=~\"$ConnectionType\", id=~\"$Connection\"}) by (type)",
           "format": "time_series",
           "instant": false,
@@ -149,10 +137,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "links": [],
@@ -201,10 +186,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "expr": "sum(connection_client{instance=~\"$Host\", type=~\"$ConnectionType\", id=~\"$Connection\"}) by (instance, type)",
           "format": "time_series",
           "instant": false,
@@ -248,10 +230,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "description": "Connections which delivered metrics in the last 7 days",
       "fieldConfig": {
         "defaults": {
@@ -301,10 +280,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "expr": "count by (ditto_connection_type) (count by (instance, ditto_connection_id, ditto_connection_type) (increase(connectivity_message_mapping_seconds_count{instance=~\"$Host\", ditto_connection_type=~\"$ConnectionType\", ditto_connection_id=~\"$Connection\"}[5m]) > 0))",
           "format": "time_series",
           "hide": false,
@@ -349,10 +325,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "description": "Connections which delivered metrics in the last 7 days",
       "fieldConfig": {
         "defaults": {
@@ -402,10 +375,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "expr": "count by (instance, ditto_connection_type) (count by (instance, ditto_connection_id, ditto_connection_type) (increase (connectivity_message_mapping_seconds_count{instance=~\"$Host\", ditto_connection_type=~\"$ConnectionType\", ditto_connection_id=~\"$Connection\"}[5m]) > 0))",
           "format": "time_series",
           "hide": false,
@@ -447,10 +417,7 @@
     },
     {
       "collapsed": false,
-      "datasource": {
-        "type": "datasource",
-        "uid": "grafana"
-      },
+      "datasource": "grafana",
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -467,10 +434,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "links": [],
@@ -566,10 +530,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "description": "This number reflects the number of messages that resulted out of payload mappings per second.",
       "fieldConfig": {
         "defaults": {
@@ -666,10 +627,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "description": "",
       "fieldConfig": {
         "defaults": {
@@ -766,10 +724,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "description": "",
       "fieldConfig": {
         "defaults": {
@@ -871,10 +826,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "description": "",
       "fieldConfig": {
         "defaults": {
@@ -1006,10 +958,7 @@
       "bars": true,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "description": "",
       "fieldConfig": {
         "defaults": {
@@ -1056,10 +1005,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "editorMode": "code",
           "exemplar": true,
           "expr": "count(rate(connection_messages_total{instance=~\"$Host\", id=~\"$Connection\", type=~\"$ConnectionType\", category=\"throttled\", direction=\"inbound\"}[5m])>0) by (type, id)",
@@ -1071,10 +1017,7 @@
           "refId": "B"
         },
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "exemplar": true,
           "expr": "count(rate(connection_messages_total{category=\"throttled\", direction=\"inbound\"}[5m]) > 0) by (id)",
           "hide": true,
@@ -1131,10 +1074,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "description": "",
       "fieldConfig": {
         "defaults": {
@@ -1228,10 +1168,7 @@
     },
     {
       "collapsed": false,
-      "datasource": {
-        "type": "datasource",
-        "uid": "grafana"
-      },
+      "datasource": "grafana",
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -1248,10 +1185,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "links": [],
@@ -1348,10 +1282,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "links": [],
@@ -1447,10 +1378,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "description": "This number reflects the number of messages that resulted out of payload mappings per second.",
       "fieldConfig": {
         "defaults": {
@@ -1547,10 +1475,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "links": [],
@@ -1646,10 +1571,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "links": [],
@@ -1745,10 +1667,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "links": [],
@@ -1844,10 +1763,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "links": []
@@ -1962,10 +1878,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "links": []
@@ -2074,10 +1987,7 @@
           "text": "All",
           "value": "$__all"
         },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "P1809F7CD0C75ACF3"
-        },
+        "datasource": "prometheus",
         "definition": "",
         "hide": 0,
         "includeAll": true,
@@ -2108,10 +2018,7 @@
             "$__all"
           ]
         },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "P1809F7CD0C75ACF3"
-        },
+        "datasource": "prometheus",
         "definition": "label_values(connectivity_message_mapping_seconds_count,ditto_connection_id)",
         "hide": 0,
         "includeAll": true,
@@ -2138,10 +2045,7 @@
           "text": "All",
           "value": "$__all"
         },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "P1809F7CD0C75ACF3"
-        },
+        "datasource": "prometheus",
         "definition": "label_values(connectivity_message_mapping_seconds_count,ditto_connection_type)",
         "hide": 0,
         "includeAll": true,

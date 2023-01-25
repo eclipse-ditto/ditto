@@ -3,10 +3,7 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": {
-          "type": "datasource",
-          "uid": "grafana"
-        },
+        "datasource": "grafana",
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -29,10 +26,7 @@
   "liveNow": false,
   "panels": [
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "description": "",
       "fieldConfig": {
         "defaults": {
@@ -130,10 +124,7 @@
           "text": "None",
           "value": ""
         },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "P1809F7CD0C75ACF3"
-        },
+        "datasource": "prometheus",
         "definition": "label_values(actor_mailbox_size, service)",
         "hide": 0,
         "includeAll": false,
@@ -159,10 +150,7 @@
           "text": "All",
           "value": "$__all"
         },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "P1809F7CD0C75ACF3"
-        },
+        "datasource": "prometheus",
         "definition": "label_values(actor_mailbox_size{service=~\"$service\"}, instance)",
         "hide": 0,
         "includeAll": true,

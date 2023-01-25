@@ -3,10 +3,7 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": {
-          "type": "grafana",
-          "uid": "-- Grafana --"
-        },
+        "datasource": "grafana",
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -29,10 +26,7 @@
   "liveNow": false,
   "panels": [
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -105,10 +99,7 @@
       },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "editorMode": "code",
           "expr": "sum(irate(sudo_commands_total{job=~\"$Application\",instance=~\"$Instance\"}[5m])) by (type)",
           "legendFormat": "{{type}}",
@@ -120,10 +111,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -189,10 +177,7 @@
       "pluginVersion": "8.5.6",
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "editorMode": "code",
           "exemplar": false,
           "expr": "sum(sudo_commands_total{job=~\"$Application\",instance=~\"$Instance\"}) by (type)",
@@ -241,10 +226,7 @@
       "type": "table"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -290,10 +272,7 @@
       },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "editorMode": "code",
           "exemplar": false,
           "expr": "sum(sudo_commands_total{job=~\"$Application\",instance=~\"$Instance\"}) by (type)",
@@ -334,10 +313,7 @@
           "text": "All",
           "value": "$__all"
         },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "P1809F7CD0C75ACF3"
-        },
+        "datasource": "prometheus",
         "definition": "label_values(sudo_commands_total, job)",
         "hide": 0,
         "includeAll": true,
@@ -361,10 +337,7 @@
           "text": "All",
           "value": "$__all"
         },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "P1809F7CD0C75ACF3"
-        },
+        "datasource": "prometheus",
         "definition": "label_values(sudo_commands_total, instance)",
         "hide": 0,
         "includeAll": true,

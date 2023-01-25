@@ -3,10 +3,7 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": {
-          "type": "datasource",
-          "uid": "grafana"
-        },
+        "datasource": "grafana",
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -29,10 +26,7 @@
   "panels": [
     {
       "collapsed": false,
-      "datasource": {
-        "type": "datasource",
-        "uid": "grafana"
-      },
+      "datasource": "grafana",
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -45,10 +39,7 @@
       "type": "row"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -132,10 +123,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -210,10 +198,7 @@
       "pluginVersion": "8.5.6",
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "editorMode": "code",
           "expr": "sum(irate(enforcement_seconds_count{segment=\"overall\",channel!=\"live\"}[5m]) > 0) by (category, resource, outcome)",
           "format": "time_series",
@@ -223,10 +208,7 @@
           "refId": "A"
         },
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "editorMode": "code",
           "expr": "sum(irate(enforcement_seconds_count{segment=\"overall\",channel=\"live\"}[5m]) > 0) by (category, resource, outcome)",
           "format": "time_series",
@@ -242,10 +224,7 @@
     },
     {
       "collapsed": false,
-      "datasource": {
-        "type": "datasource",
-        "uid": "grafana"
-      },
+      "datasource": "grafana",
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -258,10 +237,7 @@
       "type": "row"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -354,10 +330,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -444,10 +417,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "description": "Positive: inbound messages\nNegative: outbound messages",
       "fieldConfig": {
         "defaults": {

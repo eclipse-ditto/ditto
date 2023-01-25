@@ -3,10 +3,7 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": {
-          "type": "grafana",
-          "uid": "-- Grafana --"
-        },
+        "datasource": "grafana",
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -42,10 +39,7 @@
       "type": "row"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -135,10 +129,7 @@
       },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "editorMode": "code",
           "exemplar": false,
           "expr": "sum(irate(enforcement_seconds_count{job=~\"$Application\",instance=~\"$Instance\",segment=\"overall\",outcome=~\"$Outcome\",channel!=\"live\"}[$__rate_interval])) by (resource, category, outcome)",
@@ -152,10 +143,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -248,10 +236,7 @@
       },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "editorMode": "code",
           "exemplar": false,
           "expr": "sum(irate(enforcement_seconds_count{job=~\"$Application\",instance=~\"$Instance\",outcome=~\"$Outcome\",segment=\"overall\",channel=\"live\"}[$__rate_interval])) by (resource, category, outcome)",
@@ -266,10 +251,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -341,10 +323,7 @@
       },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "editorMode": "code",
           "exemplar": false,
           "expr": "avg((idelta(enforcement_seconds_sum{job=~\"$Application\",instance=~\"$Instance\",outcome=~\"$Outcome\",segment=\"overall\",channel!=\"live\"}[$__rate_interval]) / idelta(enforcement_seconds_count{job=~\"$Application\",instance=~\"$Instance\",outcome=~\"$Outcome\",segment=\"overall\",channel!=\"live\"}[$__rate_interval])) > 0) by (resource, category, outcome)",
@@ -358,10 +337,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -433,10 +409,7 @@
       },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "editorMode": "code",
           "exemplar": false,
           "expr": "avg((idelta(enforcement_seconds_sum{job=~\"$Application\",instance=~\"$Instance\",outcome=~\"$Outcome\",segment=\"overall\",channel=\"live\"}[$__rate_interval]) / idelta(enforcement_seconds_count{job=~\"$Application\",instance=~\"$Instance\",segment=\"overall\",channel=\"live\"}[$__rate_interval])) > 0) by (resource, category, outcome)",
@@ -464,10 +437,7 @@
       "type": "row"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -539,10 +509,7 @@
       },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "editorMode": "code",
           "exemplar": false,
           "expr": "avg((idelta(pre_enforcement_seconds_sum{job=~\"$Application\",instance=~\"$Instance\",outcome=~\"$Outcome\",channel!=\"live\"}[$__rate_interval]) / idelta(pre_enforcement_seconds_count{job=~\"$Application\",instance=~\"$Instance\",outcome=~\"$Outcome\",channel!=\"live\"}[$__rate_interval])) > 0) by (resource, category, outcome)",
@@ -556,10 +523,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -631,10 +595,7 @@
       },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "editorMode": "code",
           "exemplar": false,
           "expr": "avg((idelta(pre_enforcement_seconds_sum{job=~\"$Application\",instance=~\"$Instance\",outcome=~\"$Outcome\",channel=\"live\"}[$__rate_interval]) / idelta(pre_enforcement_seconds_count{job=~\"$Application\",instance=~\"$Instance\",outcome=~\"$Outcome\",channel=\"live\"}[$__rate_interval])) > 0) by (resource, category, outcome)",
@@ -662,10 +623,7 @@
       "type": "row"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -737,10 +695,7 @@
       },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "editorMode": "code",
           "exemplar": false,
           "expr": "avg((idelta(enforcement_seconds_sum{job=~\"$Application\",instance=~\"$Instance\",outcome=~\"$Outcome\",segment=\"enf\",channel!=\"live\"}[$__rate_interval]) / idelta(enforcement_seconds_count{job=~\"$Application\",instance=~\"$Instance\",outcome=~\"$Outcome\",segment=\"enf\",channel!=\"live\"}[$__rate_interval])) > 0) by (resource, category, outcome)",
@@ -754,10 +709,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "P1809F7CD0C75ACF3"
-      },
+      "datasource": "prometheus",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -829,10 +781,7 @@
       },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "editorMode": "code",
           "exemplar": false,
           "expr": "avg((idelta(enforcement_seconds_sum{job=~\"$Application\",instance=~\"$Instance\",segment=\"enf\",channel=\"live\"}[$__rate_interval]) / idelta(enforcement_seconds_count{job=~\"$Application\",instance=~\"$Instance\",segment=\"enf\",channel=\"live\"}[$__rate_interval])) > 0) by (resource, category, outcome)",
@@ -857,10 +806,7 @@
       "id": 17,
       "panels": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "description": "",
           "fieldConfig": {
             "defaults": {
@@ -971,10 +917,7 @@
           },
           "targets": [
             {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "P1809F7CD0C75ACF3"
-              },
+              "datasource": "prometheus",
               "editorMode": "code",
               "exemplar": false,
               "expr": "avg((idelta(enforcement_seconds_sum{job=~\"$Application\",instance=~\"$Instance\",outcome=~\"$Outcome\",segment=\"process\",channel!=\"live\"}[$__rate_interval]) / idelta(enforcement_seconds_count{job=~\"$Application\",instance=~\"$Instance\",outcome=~\"$Outcome\",segment=\"process\",channel!=\"live\"}[$__rate_interval])) > 0) by (resource, category, outcome)",
@@ -988,10 +931,7 @@
           "type": "timeseries"
         },
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "description": "",
           "fieldConfig": {
             "defaults": {
@@ -1063,10 +1003,7 @@
           },
           "targets": [
             {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "P1809F7CD0C75ACF3"
-              },
+              "datasource": "prometheus",
               "editorMode": "code",
               "exemplar": false,
               "expr": "avg((idelta(enforcement_seconds_sum{job=~\"$Application\",instance=~\"$Instance\",outcome=~\"$Outcome\",segment=\"process\",channel=\"live\"}[$__rate_interval]) / idelta(enforcement_seconds_count{job=~\"$Application\",instance=~\"$Instance\",outcome=~\"$Outcome\",segment=\"process\",channel=\"live\"}[$__rate_interval])) > 0) by (resource, category, outcome)",
@@ -1095,10 +1032,7 @@
       "id": 21,
       "panels": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "description": "",
           "fieldConfig": {
             "defaults": {
@@ -1170,10 +1104,7 @@
           },
           "targets": [
             {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "P1809F7CD0C75ACF3"
-              },
+              "datasource": "prometheus",
               "editorMode": "code",
               "exemplar": false,
               "expr": "avg((idelta(enforcement_seconds_sum{job=~\"$Application\",instance=~\"$Instance\",outcome=~\"$Outcome\",segment=\"resp_filter\",channel!=\"live\"}[$__rate_interval]) / idelta(enforcement_seconds_count{job=~\"$Application\",instance=~\"$Instance\",segment=\"resp_filter\",channel!=\"live\"}[$__rate_interval])) > 0) by (resource, category, outcome)",
@@ -1187,10 +1118,7 @@
           "type": "timeseries"
         },
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "P1809F7CD0C75ACF3"
-          },
+          "datasource": "prometheus",
           "description": "",
           "fieldConfig": {
             "defaults": {
@@ -1262,10 +1190,7 @@
           },
           "targets": [
             {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "P1809F7CD0C75ACF3"
-              },
+              "datasource": "prometheus",
               "editorMode": "code",
               "exemplar": false,
               "expr": "avg((idelta(enforcement_seconds_sum{job=~\"$Application\",instance=~\"$Instance\",outcome=~\"$Outcome\",segment=\"resp_filter\",channel=\"live\"}[$__rate_interval]) / idelta(enforcement_seconds_count{job=~\"$Application\",instance=~\"$Instance\",segment=\"resp_filter\",channel=\"live\"}[$__rate_interval])) > 0) by (resource, category, outcome)",
@@ -1297,10 +1222,7 @@
           "text": "All",
           "value": "$__all"
         },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "P1809F7CD0C75ACF3"
-        },
+        "datasource": "prometheus",
         "definition": "label_values(enforcement_seconds_count, job)",
         "hide": 0,
         "includeAll": true,
@@ -1324,10 +1246,7 @@
           "text": "All",
           "value": "$__all"
         },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "P1809F7CD0C75ACF3"
-        },
+        "datasource": "prometheus",
         "definition": "label_values(enforcement_seconds_count{job=\"$Application\"}, instance)",
         "hide": 0,
         "includeAll": true,
@@ -1351,10 +1270,7 @@
           "text": "All",
           "value": "$__all"
         },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "P1809F7CD0C75ACF3"
-        },
+        "datasource": "prometheus",
         "definition": "label_values(enforcement_seconds_count, outcome)",
         "hide": 0,
         "includeAll": true,
