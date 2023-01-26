@@ -7,6 +7,13 @@ topnav: topnav
 
 This page contains a collection of presentations, videos and workshops about Eclipse Ditto, sorted from most recent ones downwards.
 
+## 26.01.2023 Eclipse Ditto in 30 minutes
+
+Topic: Short 30 minutes overview of Eclipse Ditto
+
+The slides can be found here: [2023_01_ditto-in-30-min](slides/2023_01_ditto-in-30-min/index.html).
+
+
 ## 24.10.2022 EclipseCon Europe 2022 Community Day
 
 Topic: Project status update of Eclipse Ditto
