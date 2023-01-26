@@ -111,6 +111,15 @@ final class CriteriaFactoryImpl implements CriteriaFactory {
     }
 
     @Override
+    public Predicate ilike(@Nullable final Object value) {
+        if (value instanceof String) {
+            return new ILikePredicateImpl(value);
+        } else {
+            throw new IllegalArgumentException("In the like predicate only string values are allowed.");
+        }
+    }
+
+    @Override
     public Predicate in(final List<?> values) {
         return new InPredicateImpl(requireNonNull(values));
     }
