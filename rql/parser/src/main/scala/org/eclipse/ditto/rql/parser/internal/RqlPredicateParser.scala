@@ -28,7 +28,7 @@ import scala.util.{Failure, Success}
   * <pre>
   * Query                      = SingleComparisonOp | MultiComparisonOp | MultiLogicalOp | SingleLogicalOp | ExistsOp
   * SingleComparisonOp         = SingleComparisonName, '(', ComparisonProperty, ',', ComparisonValue, ')'
-  * SingleComparisonName       = "eq" | "ne" | "gt" | "ge" | "lt" | "le" | "like"
+  * SingleComparisonName       = "eq" | "ne" | "gt" | "ge" | "lt" | "le" | "like" | "ilike"
   * MultiComparisonOp          = MultiComparisonName, '(', ComparisonProperty, ',', ComparisonValue, { ',', ComparisonValue }, ')'
   * MultiComparisonName        = "in"
   * MultiLogicalOp             = MultiLogicalName, '(', Query, { ',', Query }, ')'
@@ -71,10 +71,10 @@ private class RqlPredicateParser(override val input: ParserInput) extends RqlPar
   }
 
   /**
-    * SingleComparisonName       = "eq" | "ne" | "gt" | "ge" | "lt" | "le" | "like"
+    * SingleComparisonName       = "eq" | "ne" | "gt" | "ge" | "lt" | "le" | "like" | "ilike"
     */
   private def SingleComparisonName: Rule1[SingleComparisonNode.Type] = rule {
-    eq | ne | gt | ge | lt | le | like
+    eq | ne | gt | ge | lt | le | like | ilike
   }
 
   private def eq: Rule1[SingleComparisonNode.Type] = rule {
@@ -103,6 +103,10 @@ private class RqlPredicateParser(override val input: ParserInput) extends RqlPar
 
   private def like: Rule1[SingleComparisonNode.Type] = rule {
     "like" ~ push(SingleComparisonNode.Type.LIKE)
+  }
+
+  private def ilike: Rule1[SingleComparisonNode.Type] = rule {
+    "ilike" ~ push(SingleComparisonNode.Type.ILIKE)
   }
 
   /**

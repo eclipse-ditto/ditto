@@ -137,6 +137,18 @@ public class CreateBsonPredicateVisitor implements PredicateVisitor<Function<Str
         return fieldName -> Filters.regex(fieldName, valueWithoutLeadingOrTrailingWildcard, "");
     }
 
+    @Override
+    public Function<String, Bson> visitILike(final String value) {
+        // remove leading or trailing wildcard because queries like /^a/ are much faster than /^a.*$/ or /^a.*/
+        // from mongodb docs:
+        // "Additionally, while /^a/, /^a.*/, and /^a.*$/ match equivalent strings, they have different performance
+        // characteristics. All of these expressions use an index if an appropriate index exists;
+        // however, /^a.*/, and /^a.*$/ are slower. /^a/ can stop scanning after matching the prefix."
+        final String valueWithoutLeadingOrTrailingWildcard = removeLeadingOrTrailingWildcard(value);
+        Pattern pattern = Pattern.compile(valueWithoutLeadingOrTrailingWildcard, Pattern.CASE_INSENSITIVE)
+        return fieldName -> Filters.regex(fieldName, pattern, "");
+    }
+
     private static String removeLeadingOrTrailingWildcard(final String valueString) {
         String valueWithoutLeadingOrTrailingWildcard = valueString;
         if (valueString.startsWith(LEADING_WILDCARD)) {
