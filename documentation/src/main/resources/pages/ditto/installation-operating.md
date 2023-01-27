@@ -157,9 +157,12 @@ The configured subject-issuer will be used to prefix the value of each individua
 As of the OAuth2.0 and OpenID Connect standards Ditto expects the headers `Authorization: Bearer <JWT>` and
 `Content-Type: application/json`, containing the issued token of the provider.
 
-**The token has to be issued beforehand. The required logic is not provided by Ditto.** When using
-the OIDC provider [keycloak](https://www.keycloak.org/), a project like [keycloak-gatekeeper](https://github.com/keycloak/keycloak-gatekeeper)
-may be put in front of Ditto to handle the token-logic.
+**The token has to be issued beforehand. The required logic is not provided by Ditto.** 
+
+This can e.g. be done by an OIDC provider like [Keycloak](https://www.keycloak.org/).  
+A project like [oauth2-proxy](https://github.com/oauth2-proxy/oauth2-proxy)
+may be put in front of Ditto to handle the token-logic like e.g. loading/saving the token from/to a Cookie and passing
+it to Ditto as `Authorization` header.
 
 **If the chosen OIDC provider uses a self-signed certificate**, the certificate has to be retrieved and configured for 
 the akka-http ssl configuration.
