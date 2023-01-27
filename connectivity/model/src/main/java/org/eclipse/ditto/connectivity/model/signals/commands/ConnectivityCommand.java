@@ -12,14 +12,16 @@
  */
 package org.eclipse.ditto.connectivity.model.signals.commands;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.eclipse.ditto.base.model.entity.type.WithEntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonPointer;
 
 /**
  * Base interface for all commands which are understood by the Connectivity service. Implementations of this interface
@@ -27,7 +29,8 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ConnectivityCommand<T extends ConnectivityCommand<T>> extends Command<T> {
+public interface ConnectivityCommand<T extends ConnectivityCommand<T>> extends Command<T>,
+        WithEntityType {
 
     /**
      * Type Prefix of Connectivity commands.
@@ -56,6 +59,17 @@ public interface ConnectivityCommand<T extends ConnectivityCommand<T>> extends C
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
+
+    /**
+     * Returns the entity type {@link ConnectivityConstants#ENTITY_TYPE}.
+     *
+     * @return the Connection entity type.
+     * @since 3.2.0
+     */
+    @Override
+    default EntityType getEntityType() {
+        return ConnectivityConstants.ENTITY_TYPE;
+    }
 
     /**
      * This class contains definitions for all specific fields of a {@code ConnectivityCommand}'s JSON representation.

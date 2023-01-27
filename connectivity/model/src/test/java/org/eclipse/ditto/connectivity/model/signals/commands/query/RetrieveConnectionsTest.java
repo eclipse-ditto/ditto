@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.model.signals.commands.query;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -28,6 +29,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandRegistry;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
@@ -72,7 +74,8 @@ public final class RetrieveConnectionsTest {
     public void assertImmutability() {
         assertInstancesOf(RetrieveConnections.class,
                 areImmutable(),
-                assumingFields("connectionIds").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
+                assumingFields("connectionIds").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
+                provided(JsonFieldSelector.class).isAlsoImmutable());
     }
 
     @Test

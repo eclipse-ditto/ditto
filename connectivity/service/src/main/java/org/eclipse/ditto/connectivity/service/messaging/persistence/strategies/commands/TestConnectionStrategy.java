@@ -18,21 +18,23 @@ import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFa
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.StagedCommand;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.StagedCommand;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection} command.
@@ -41,6 +43,20 @@ final class TestConnectionStrategy extends AbstractConnectivityCommandStrategy<T
 
     TestConnectionStrategy() {
         super(TestConnection.class);
+    }
+
+    @Override
+    public boolean isDefined(final TestConnection command) {
+        return true;
+    }
+
+    @Override
+    public boolean isDefined(final Context<ConnectionState> context, @Nullable final Connection connection, final TestConnection command) {
+        final boolean connectionExists = Optional.ofNullable(connection)
+                .map(t -> !t.isDeleted())
+                .orElse(false);
+
+        return !connectionExists && Objects.equals(context.getState().id(), command.getEntityId());
     }
 
     @Override
@@ -66,5 +82,16 @@ final class TestConnectionStrategy extends AbstractConnectivityCommandStrategy<T
             return newQueryResult(command,
                     TestConnectionResponse.alreadyCreated(context.getState().id(), command.getDittoHeaders()));
         }
+    }
+
+    @Override
+    public Optional<EntityTag> previousEntityTag(final TestConnection command,
+            @Nullable final Connection previousEntity) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<EntityTag> nextEntityTag(final TestConnection command, @Nullable final Connection newEntity) {
+        return Optional.empty();
     }
 }

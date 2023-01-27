@@ -16,23 +16,25 @@ import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFa
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.StagedCommand;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.DeleteConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.DeleteConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.StagedCommand;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.connectivity.model.signals.commands.modify.DeleteConnection}
+ * This strategy handles the {@link DeleteConnection}
  * command.
  */
 final class DeleteConnectionStrategy extends AbstractConnectivityCommandStrategy<DeleteConnection> {
@@ -61,4 +63,14 @@ final class DeleteConnectionStrategy extends AbstractConnectivityCommandStrategy
         return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
     }
 
+    @Override
+    public Optional<EntityTag> previousEntityTag(final DeleteConnection command,
+            @Nullable final Connection previousEntity) {
+        return Optional.ofNullable(previousEntity).flatMap(EntityTag::fromEntity);
+    }
+
+    @Override
+    public Optional<EntityTag> nextEntityTag(final DeleteConnection command, @Nullable final Connection newEntity) {
+        return Optional.empty();
+    }
 }

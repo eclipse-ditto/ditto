@@ -13,17 +13,19 @@
 package org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.commands;
 
 import java.text.MessageFormat;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityInternalErrorException;
+import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.StagedCommand;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.connectivity.service.messaging.persistence.stages.StagedCommand}
@@ -49,5 +51,16 @@ final class StagedCommandStrategy extends AbstractConnectivityCommandStrategy<St
                         .description("This is an internal error. Please contact the service team.")
                         .dittoHeaders(command.getDittoHeaders())
                         .build(), command));
+    }
+
+    @Override
+    public Optional<EntityTag> previousEntityTag(final StagedCommand command,
+            @Nullable final Connection previousEntity) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<EntityTag> nextEntityTag(final StagedCommand command, @Nullable final Connection newEntity) {
+        return Optional.empty();
     }
 }

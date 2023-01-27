@@ -29,7 +29,7 @@ tags:
   - name: CloudEvents
     description: Process CloudEvents in Ditto
   - name: Connections
-    description: Manage Connections
+    description: Manage connections
 security:
   - Google:
       - openid
@@ -6818,13 +6818,14 @@ paths:
           command to process.
   /connections:
     get:
-      summary: Retrieve all Connections
+      summary: Retrieve all connections
       description: Returns all connections.
       security:
         - DevOpsBasic: []
       tags:
         - Connections
       parameters:
+        - $ref: '#/components/parameters/ConnectionFieldsQueryParam'
         - name: ids-only
           in: query
           description: 'When set to true, the request will return the registered ids only and not the whole connections objects.'
@@ -6865,7 +6866,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
     post:
-      summary: Create a new Connection
+      summary: Create a new connection
       description: |-
         Creates the connection defined in the JSON body.
         The ID of the connection will be **generated** by the backend. Any `ID` specified in the request body is therefore
@@ -6965,14 +6966,15 @@ paths:
         required: true
   '/connections/{connectionId}':
     get:
-      summary: Retrieve a specific Connection
+      summary: Retrieve a specific connection
       description: Returns the connection identified by the `connectionId` path parameter.
       security:
         - DevOpsBasic: []
       tags:
         - Connections
       parameters:
-        - $ref: '#/components/parameters/connectionIdPathParam'
+        - $ref: '#/components/parameters/ConnectionIdPathParam'
+        - $ref: '#/components/parameters/ConnectionFieldsQueryParam'
       responses:
         '200':
           description: The request successfully returned the connection.
@@ -7005,14 +7007,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
     put:
-      summary: Update a specific Connection registered
+      summary: Create or update a connection with a specified ID
       description: Update the connection identified by the `connectionId` path parameter.
       security:
         - DevOpsBasic: []
       tags:
         - Connections
       parameters:
-        - $ref: '#/components/parameters/connectionIdPathParam'
+        - $ref: '#/components/parameters/ConnectionIdPathParam'
       responses:
         '204':
           description: The connection was successfully updated.
@@ -7079,14 +7081,14 @@ paths:
                   headerMapping: {}
         required: true
     delete:
-      summary: Delete a specific Connection
+      summary: Delete a specific connection
       description: Delete the connection identified by the `connectionId` path parameter.
       security:
         - DevOpsBasic: []
       tags:
         - Connections
       parameters:
-        - $ref: '#/components/parameters/connectionIdPathParam'
+        - $ref: '#/components/parameters/ConnectionIdPathParam'
       responses:
         '204':
           description: The connection was successfully deleted.
@@ -7116,7 +7118,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
   '/connections/{connectionId}/command':
     post:
-      summary: Send a command to a specific Connection.
+      summary: Send a command to a specific connection
       description: |-
         Sends the command specified in the body to the connection identified by the `connectionId`
         path parameter.
@@ -7125,7 +7127,7 @@ paths:
       tags:
         - Connections
       parameters:
-        - $ref: '#/components/parameters/connectionIdPathParam'
+        - $ref: '#/components/parameters/ConnectionIdPathParam'
       responses:
         '200':
           description: The command was sent to the connection successfully.
@@ -7169,14 +7171,14 @@ paths:
         required: true
   '/connections/{connectionId}/status':
     get:
-      summary: Retrieve status of a specific Connection
+      summary: Retrieve status of a specific connection
       description: Returns the status of the connection identified by the `connectionId` path parameter.
       security:
         - DevOpsBasic: []
       tags:
         - Connections
       parameters:
-        - $ref: '#/components/parameters/connectionIdPathParam'
+        - $ref: '#/components/parameters/ConnectionIdPathParam'
       responses:
         '200':
           description: The request successfully returned the connection status.
@@ -7210,14 +7212,14 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
   '/connections/{connectionId}/metrics':
     get:
-      summary: Retrieve metrics of a specific Connection
+      summary: Retrieve metrics of a specific connection
       description: Returns the metrics of the connection identified by the `connectionId` path parameter.
       security:
         - DevOpsBasic: []
       tags:
         - Connections
       parameters:
-        - $ref: '#/components/parameters/connectionIdPathParam'
+        - $ref: '#/components/parameters/ConnectionIdPathParam'
       responses:
         '200':
           description: The request successfully returned the connection metrics.
@@ -7251,7 +7253,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
   '/connections/{connectionId}/logs':
     get:
-      summary: Retrieve logs of a specific Connection
+      summary: Retrieve logs of a specific connection
       description: |-
         Returns the logs of the connection identified by the `connectionId` path parameter.
         **Before** log entries are generated and returned, logging needs be enabled with the `command`
@@ -7262,7 +7264,7 @@ paths:
       tags:
         - Connections
       parameters:
-        - $ref: '#/components/parameters/connectionIdPathParam'
+        - $ref: '#/components/parameters/ConnectionIdPathParam'
       responses:
         '200':
           description: The request successfully returned the connection logs.
@@ -8158,11 +8160,56 @@ components:
       required: false
       schema:
         type: string
-    connectionIdPathParam:
+    ConnectionIdPathParam:
       name: connectionId
       in: path
       description: The ID of the connection
       required: true
+      schema:
+        type: string
+    ConnectionFieldsQueryParam:
+      name: fields
+      in: query
+      description: |-
+        Contains a comma-separated list of fields to be included in the returned
+        JSON.
+
+        #### Selectable fields
+
+        * `id`
+        * `name`
+        * `_revision`
+
+          Specifically selects the revision of the connection. The revision is a counter, which is incremented on each modification of a connection.
+
+        * `_created`
+
+          Specifically selects the created timestamp of the connection in ISO-8601 UTC format. The timestamp is set on creation of a connection.
+
+        * `_modified`
+
+          Specifically selects the modified timestamp of the connection in ISO-8601 UTC format. The timestamp is set on each modification of a connection.
+
+        * `connectionType`
+        * `connectionStatus`
+        * `credentials`
+        * `uri`
+        * `sources`
+        * `targets`
+        * `sshTunnel`
+        * `clientCount`
+        * `failoverEnabled`
+        * `validateCertificates`
+        * `processorPoolSize`
+        * `specificConfig`
+        * `mappingDefinitions`
+        * `tags`
+        * `ca`
+
+        #### Examples
+
+        * `?fields=id,_revision,sources`
+      required: false
       schema:
         type: string
   schemas:

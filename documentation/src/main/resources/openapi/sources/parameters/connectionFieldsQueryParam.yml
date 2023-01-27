@@ -1,0 +1,54 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+name: fields
+in: query
+description: |-
+  Contains a comma-separated list of fields to be included in the returned
+  JSON.
+
+  #### Selectable fields
+
+  * `id`
+  * `name`
+  * `_revision`
+
+    Specifically selects the revision of the connection. The revision is a counter, which is incremented on each modification of a connection.
+
+  * `_created`
+
+    Specifically selects the created timestamp of the connection in ISO-8601 UTC format. The timestamp is set on creation of a connection.
+
+  * `_modified`
+
+    Specifically selects the modified timestamp of the connection in ISO-8601 UTC format. The timestamp is set on each modification of a connection.
+
+  * `connectionType`
+  * `connectionStatus`
+  * `credentials`
+  * `uri`
+  * `sources`
+  * `targets`
+  * `sshTunnel`
+  * `clientCount`
+  * `failoverEnabled`
+  * `validateCertificates`
+  * `processorPoolSize`
+  * `specificConfig`
+  * `mappingDefinitions`
+  * `tags`
+  * `ca`
+
+  #### Examples
+
+  * `?fields=id,_revision,sources`
+required: false
+schema:
+  type: string

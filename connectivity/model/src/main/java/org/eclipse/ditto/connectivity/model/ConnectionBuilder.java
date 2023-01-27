@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.model;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -202,6 +203,44 @@ public interface ConnectionBuilder {
      * @return this builder
      */
     ConnectionBuilder lifecycle(@Nullable ConnectionLifecycle lifecycle);
+
+    /**
+     * Sets the given revision number to this builder.
+     *
+     * @param revisionNumber the revision number to be set.
+     * @return this builder to allow method chaining.
+     * @since 3.2.0
+     */
+    default ConnectionBuilder revision(final long revisionNumber) {
+        return revision(ConnectionRevision.newInstance(revisionNumber));
+    }
+
+    /**
+     * Sets the {@link ConnectionRevision} of the connection.
+     *
+     * @param revision the connection revision
+     * @return this builder
+     * @since 3.2.0
+     */
+    ConnectionBuilder revision(@Nullable ConnectionRevision revision);
+
+    /**
+     * Sets the given modified timestamp to this builder.
+     *
+     * @param modified the timestamp to be set.
+     * @return this builder to allow method chaining.
+     * @since 3.2.0
+     */
+    ConnectionBuilder modified(@Nullable Instant modified);
+
+    /**
+     * Sets the given created timestamp to this builder.
+     *
+     * @param created the created timestamp to be set.
+     * @return this builder to allow method chaining.
+     * @since 3.2.0
+     */
+    ConnectionBuilder created(@Nullable Instant created);
 
     /**
      * Sets the {@link SshTunnel} of the connection.

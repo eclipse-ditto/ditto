@@ -16,11 +16,11 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionLifecycle;
-import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
+import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted} event.
+ * This strategy handles the {@link ConnectionDeleted} event.
  */
 final class ConnectionDeletedStrategy implements EventStrategy<ConnectionDeleted, Connection> {
 
@@ -29,7 +29,9 @@ final class ConnectionDeletedStrategy implements EventStrategy<ConnectionDeleted
     public Connection handle(final ConnectionDeleted event, @Nullable final Connection connection,
             final long revision) {
         if (connection != null) {
-            return connection.toBuilder().lifecycle(ConnectionLifecycle.DELETED).build();
+            return connection.toBuilder().lifecycle(ConnectionLifecycle.DELETED)
+                    .modified(event.getTimestamp().orElse(null))
+                    .build();
         } else {
             return null;
         }

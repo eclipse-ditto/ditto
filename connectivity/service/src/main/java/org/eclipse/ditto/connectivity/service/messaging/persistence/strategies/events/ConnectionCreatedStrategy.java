@@ -15,11 +15,11 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
+import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated} event.
+ * This strategy handles the {@link ConnectionCreated} event.
  */
 final class ConnectionCreatedStrategy implements EventStrategy<ConnectionCreated, Connection> {
 

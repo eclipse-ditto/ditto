@@ -14,15 +14,18 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.
 
 import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory.newQueryResult;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection} command
@@ -43,5 +46,16 @@ final class TestConnectionConflictStrategy extends AbstractConnectivityCommandSt
 
         return newQueryResult(command,
                 TestConnectionResponse.alreadyCreated(context.getState().id(), command.getDittoHeaders()));
+    }
+
+    @Override
+    public Optional<EntityTag> previousEntityTag(final TestConnection command,
+            @Nullable final Connection previousEntity) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<EntityTag> nextEntityTag(final TestConnection command, @Nullable final Connection newEntity) {
+        return Optional.empty();
     }
 }

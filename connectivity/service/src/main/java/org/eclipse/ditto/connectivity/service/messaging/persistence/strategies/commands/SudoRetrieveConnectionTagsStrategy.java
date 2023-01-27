@@ -12,9 +12,12 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.commands;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionTags;
 import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionTagsResponse;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -45,5 +48,17 @@ final class SudoRetrieveConnectionTagsStrategy extends AbstractConnectivityComma
         } else {
             return ResultFactory.newErrorResult(notAccessible(context, command), command);
         }
+    }
+
+    @Override
+    public Optional<EntityTag> previousEntityTag(final SudoRetrieveConnectionTags command,
+            @Nullable final Connection previousEntity) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<EntityTag> nextEntityTag(final SudoRetrieveConnectionTags command,
+            @Nullable final Connection newEntity) {
+        return Optional.empty();
     }
 }

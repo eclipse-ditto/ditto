@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -91,7 +92,12 @@ public class ErrorHandlingActorTest extends WithMockServers {
             // create connection
             final ConnectivityModifyCommand<?> command = CreateConnection.of(connection, DittoHeaders.empty());
             underTest.tell(command, getRef());
-            expectMsg(CreateConnectionResponse.of(connection, DittoHeaders.empty()));
+            final CreateConnectionResponse resp =
+                    expectMsgClass(dilated(CONNECT_TIMEOUT), CreateConnectionResponse.class);
+            Assertions.assertThat(resp.getConnection())
+                    .usingRecursiveComparison()
+                    .ignoringFields("revision", "modified", "created")
+                    .isEqualTo(connection);
         }};
         tearDown();
     }
@@ -121,9 +127,12 @@ public class ErrorHandlingActorTest extends WithMockServers {
             // create connection
             final CreateConnection createConnection = CreateConnection.of(connection, DittoHeaders.empty());
             underTest.tell(createConnection, getRef());
-            final CreateConnectionResponse createConnectionResponse =
-                    CreateConnectionResponse.of(connection, DittoHeaders.empty());
-            expectMsg(dilated(CONNECT_TIMEOUT), createConnectionResponse);
+            final CreateConnectionResponse resp =
+                    expectMsgClass(dilated(CONNECT_TIMEOUT), CreateConnectionResponse.class);
+            Assertions.assertThat(resp.getConnection())
+                    .usingRecursiveComparison()
+                    .ignoringFields("revision", "modified", "created")
+                    .isEqualTo(connection);
 
             // delete connection
             final ConnectivityModifyCommand<?> command = DeleteConnection.of(connectionId, DittoHeaders.empty());
@@ -147,9 +156,12 @@ public class ErrorHandlingActorTest extends WithMockServers {
             // create connection
             final CreateConnection createConnection = CreateConnection.of(connection, DittoHeaders.empty());
             underTest.tell(createConnection, getRef());
-            final CreateConnectionResponse createConnectionResponse =
-                    CreateConnectionResponse.of(connection, DittoHeaders.empty());
-            expectMsg(createConnectionResponse);
+            final CreateConnectionResponse resp =
+                    expectMsgClass(dilated(CONNECT_TIMEOUT), CreateConnectionResponse.class);
+            Assertions.assertThat(resp.getConnection())
+                    .usingRecursiveComparison()
+                    .ignoringFields("revision", "modified", "created")
+                    .isEqualTo(connection);
 
             // modify connection
             final ConnectivityModifyCommand<?> command;

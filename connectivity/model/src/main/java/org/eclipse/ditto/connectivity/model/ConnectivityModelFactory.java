@@ -991,4 +991,15 @@ public final class ConnectivityModelFactory {
         return ImmutableLogEntry.getBuilder(correlationId, timestamp, logCategory, logType, logLevel, message);
     }
 
+    /**
+     * Returns a new immutable {@link ConnectionRevision} which is initialised with the given revision number.
+     *
+     * @param revisionNumber the {@code long} value of the revision.
+     * @return the new immutable {@code ConnectionRevision}.
+     * @since 3.2.0
+     */
+    public static ConnectionRevision newConnectionRevision(final long revisionNumber) {
+        return ImmutableConnectionRevision.of(revisionNumber);
+    }
+
 }

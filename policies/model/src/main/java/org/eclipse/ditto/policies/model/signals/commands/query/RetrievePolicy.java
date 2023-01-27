@@ -89,7 +89,7 @@ public final class RetrievePolicy extends AbstractCommand<RetrievePolicy>
      *
      * @param policyId the ID of a single Policy to be retrieved by this command.
      * @param dittoHeaders the optional command headers of the request.
-     * @param selectedFields the fields of the JSON representation of the Thing to retrieve.
+     * @param selectedFields the fields of the JSON representation of the Policy to retrieve.
      * @return a Command for retrieving the Policy with the {@code policyId} as its ID which is readable from the passed
      * authorization context.
      * @throws NullPointerException if any argument is {@code null}.

@@ -22,7 +22,9 @@ import static org.eclipse.ditto.connectivity.service.messaging.persistence.stage
 import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory.newErrorResult;
 import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory.newMutationResult;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -30,16 +32,17 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.StagedCommand;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.StagedCommand;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 
 /**
  * This strategy handles the {@link CreateConnection} command.
@@ -51,13 +54,33 @@ final class CreateConnectionStrategy extends AbstractConnectivityCommandStrategy
     }
 
     @Override
+    public boolean isDefined(final CreateConnection command) {
+        return true;
+    }
+
+    @Override
+    public boolean isDefined(final Context<ConnectionState> context, @Nullable final Connection connection,
+            final CreateConnection command) {
+        final boolean connectionExists = Optional.ofNullable(connection)
+                .map(t -> !t.isDeleted())
+                .orElse(false);
+
+        return !connectionExists && Objects.equals(context.getState().id(), command.getEntityId());
+    }
+
+    @Override
     protected Result<ConnectivityEvent<?>> doApply(final Context<ConnectionState> context,
             @Nullable final Connection entity,
             final long nextRevision,
             final CreateConnection command,
             @Nullable final Metadata metadata) {
 
-        final Connection connection = command.getConnection().toBuilder().lifecycle(ACTIVE).build();
+        final Instant timestamp = getEventTimestamp();
+        final Connection connection = command.getConnection().toBuilder().lifecycle(ACTIVE)
+                .revision(nextRevision)
+                .created(timestamp)
+                .modified(timestamp)
+                .build();
         final ConnectivityEvent<?> event =
                 ConnectionCreated.of(connection, nextRevision, getEventTimestamp(), command.getDittoHeaders(),
                         metadata);
@@ -77,5 +100,16 @@ final class CreateConnectionStrategy extends AbstractConnectivityCommandStrategy
         } else {
             return newMutationResult(command, event, response, true, false);
         }
+    }
+
+    @Override
+    public Optional<EntityTag> previousEntityTag(final CreateConnection command,
+            @Nullable final Connection previousEntity) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<EntityTag> nextEntityTag(final CreateConnection command, @Nullable final Connection newEntity) {
+        return Optional.ofNullable(newEntity).flatMap(EntityTag::fromEntity);
     }
 }
