@@ -36,6 +36,7 @@ import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyImport;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
@@ -53,7 +54,7 @@ import akka.stream.javadsl.Source;
  */
 public final class BackgroundSyncStream {
 
-    private static Logger LOGGER = DittoLoggerFactory.getThreadSafeLogger(BackgroundSyncStream.class);
+    private static final Logger LOGGER = DittoLoggerFactory.getThreadSafeLogger(BackgroundSyncStream.class);
     private static final ThingId EMPTY_THING_ID = ThingId.of(LowerBound.emptyEntityId(ThingConstants.ENTITY_TYPE));
     private static final PolicyId EMPTY_POLICY_ID = PolicyId.of(LowerBound.emptyEntityId(PolicyConstants.ENTITY_TYPE));
 
@@ -186,7 +187,7 @@ public final class BackgroundSyncStream {
                         .orElseGet(() -> CompletableFuture.completedStage(true));
                 return Source.completionStage(consistencyCheckCs)
                         .flatMapConcat(policiesAreConsistent -> {
-                            if (policiesAreConsistent) {
+                            if (Boolean.TRUE.equals(policiesAreConsistent)) {
                                 return Source.empty();
                             } else {
                                 return Source.single(indexed.invalidateCaches(false, true)).log("PoliciesInconsistent");
@@ -283,13 +284,17 @@ public final class BackgroundSyncStream {
                         final String message = String.format(
                                 "Error in background sync stream when trying to retrieve policy revision of " +
                                         "Policy with ID <%s>", policyId);
-                        LOGGER.error(message, error);
+                        LOGGER.warn(message, error);
                         return false;
                     } else if (response instanceof SudoRetrievePolicyRevisionResponse retrieveResponse) {
                         final long revision = retrieveResponse.getRevision();
                         return policyTag.getRevision() == revision;
+                    } else if (response instanceof PolicyNotAccessibleException) {
+                        LOGGER.info("Policy with ID <{}> is/was no longer accessible when trying to retrieve policy " +
+                                "revision of Policy", policyId);
+                        return false;
                     } else {
-                        LOGGER.error("Unexpected message in background sync stream when trying to retrieve policy " +
+                        LOGGER.warn("Unexpected message in background sync stream when trying to retrieve policy " +
                                         "revision of Policy with ID <{}>. Expected <{}> but got <{}>.",
                                 policyId, SudoRetrievePolicyRevisionResponse.class, response.getClass());
                         return false;
@@ -305,12 +310,16 @@ public final class BackgroundSyncStream {
                     if (error != null) {
                         final String message = String.format("Error in background sync stream when trying to " +
                                 "retrieve policy with ID <%s>", policyId);
-                        LOGGER.error(message, error);
+                        LOGGER.warn(message, error);
                         return Optional.empty();
                     } else if (response instanceof SudoRetrievePolicyResponse retrieveResponse) {
                         return Optional.of(retrieveResponse.getPolicy());
+                    } else if (response instanceof PolicyNotAccessibleException) {
+                        LOGGER.info("Policy with ID <{}> is/was no longer accessible when trying to retrieve policy",
+                                policyId);
+                        return Optional.empty();
                     } else {
-                        LOGGER.error("Unexpected message in background sync stream when trying to retrieve policy " +
+                        LOGGER.warn("Unexpected message in background sync stream when trying to retrieve policy " +
                                         "with ID <{}>. Expected <{}> but got <{}>.",
                                 policyId, SudoRetrievePolicyRevisionResponse.class, response.getClass());
                         return Optional.empty();
