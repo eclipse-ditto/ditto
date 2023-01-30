@@ -12,11 +12,11 @@ Starting with **Eclipse Ditto 3.2.0**, APIs for retrieving the history of the fo
 
 The capabilities of these APIs are the following:
 
-| Entity     | Retrieving entity at a specific revision or timestamp | Streaming modification events of an entity specifying from/to revision/timestamp |
-|------------|-------------------------------------------------------|----------------------------------------------------------------------------------|
-| Thing      | ✓                                                     | ✓                                                                                |
-| Policy     | ✓                                                     | ✓                                                                                |
-| Connection | ✓                                                     | no                                                                               |
+| Entity     | [Retrieving entity at a specific revision or timestamp](#retrieving-entity-from-history) | [Streaming modification events of an entity specifying from/to revision/timestamp](#streaming-historical-events-of-entity) |
+|------------|------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------|
+| Thing      | ✓                                                                                        | ✓                                                                                                                          |
+| Policy     | ✓                                                                                        | ✓                                                                                                                          |
+| Connection | ✓                                                                                        | no                                                                                                                         |
 
 {% include note.html content="Ditto's history API capabilities are not comparable with the features of a time series database.
     E.g. no aggregations on or compactions of the historical data can be done." %}
@@ -53,7 +53,7 @@ curl -u ditto:ditto 'http://localhost:8080/api/2/policies/org.eclipse.ditto:poli
   --header 'at-historical-revision: 1'
   
 # Access a connection:
-curl -u ditto:ditto 'http://localhost:8080/api/2/connections/some-connection-1' \
+curl -u devops:foobar 'http://localhost:8080/api/2/connections/some-connection-1' \
   --header 'at-historical-revision: 1'
 ```
 
@@ -78,7 +78,7 @@ curl -u ditto:ditto 'http://localhost:8080/api/2/policies/org.eclipse.ditto:poli
   --header 'at-historical-timestamp: 2022-10-24T06:11:15Z'
   
 # Access a connection:
-curl -u ditto:ditto 'http://localhost:8080/api/2/connections/some-connection-1' \
+curl -u devops:foobar 'http://localhost:8080/api/2/connections/some-connection-1' \
   --header 'at-historical-timestamp: 2022-10-24T07:11Z'
 ```
 
@@ -143,6 +143,81 @@ curl --http2 -u ditto:ditto -H 'Accept:text/event-stream' -N \
 Please inspect the [protocol specification of DittoProtocol messages for streaming persisted events](protocol-specification-streaming-subscription.html)
 to find out how to stream historical (persisted) events via DittoProtocol.  
 Using the DittoProtocol, historical events can be streamed either via WebSocket or connections.
+
+Example protocol interaction for retrieving the persisted events of a thing:
+
+**First:** Subscribe for the persisted events of a thing
+```json
+{
+  "topic": "org.eclipse.ditto/thing-2/things/twin/streaming/subscribeForPersistedEvents",
+  "path": "/",
+  "headers": {},
+  "value": {
+    "fromHistoricalRevision": 1,
+    "toHistoricalRevision": 10
+  }
+}
+```
+
+Alternatively to `fromHistoricalRevision` and `toHistoricalRevision`, also a timestamp based range may be used:
+`fromHistoricalTimestamp` and `toHistoricalTimestamp`.  
+The "to" can be omitted in order to receive all events up to the current revision or timestamp.
+
+As a result, the following `created` event is received as response:
+```json
+{
+  "topic": "org.eclipse.ditto/thing-2/things/twin/streaming/created",
+  "path": "/",
+  "headers": {},
+  "value": {
+    "subscriptionId": "0"
+  }
+}
+```
+
+**Second:** Once the streaming subscription is confirmed to be created, request demand (of how many events to get streamed), 
+referencing the `subscriptionId`:
+```json
+{
+  "topic": "org.eclipse.ditto/thing-2/things/twin/streaming/request",
+  "path": "/",
+  "headers": {},
+  "value": {
+    "subscriptionId": "0",
+    "demand": 25
+  }
+}
+```
+
+The backend will start sending the requested persisted events as `next` messages: 
+```json
+{
+  "topic": "org.eclipse.ditto/thing-2/things/twin/streaming/next",
+  "path": "/",
+  "headers": {},
+  "value": {
+    "subscriptionId": "0",
+    "item": {
+      
+    }
+  }
+}
+```
+
+It will do so either until all existing events were sent, in that case a `complete` event is sent:
+```json
+{
+  "topic": "org.eclipse.ditto/thing-2/things/twin/streaming/complete",
+  "path": "/",
+  "headers": {},
+  "value": {
+    "subscriptionId": "0"
+  }
+}
+```
+
+Or it will stop after the `demand` was fulfilled, waiting for the requester to claim more demand with a new `request` 
+message.
 
 
 ## Configuring historical headers to persist
