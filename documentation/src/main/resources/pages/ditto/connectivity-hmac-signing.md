@@ -93,7 +93,7 @@ The parameters of the algorithm `az-sasl` are:
 
 ### Configuration
 
-Algorithm names and implementations are configured in [`connectivity.conf`](https://github.com/eclipse/ditto/blob/master/connectivity/service/src/main/resources/connectivity.conf).
+Algorithm names and implementations are configured in [`connectivity.conf`](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/resources/connectivity.conf).
 The default configuration provides the names and implementations of the available pre-defined algorithms for the given
 connection types.
 ```hocon
@@ -130,7 +130,7 @@ and which interface needs to be implemented.
 |                          | HTTP Push connection | AMQP 1.0 connection |
 | ------------------------ | -------------------- | ------------------- |
 | Config path       | `ditto.connectivity.connection.http-push.hmac-algorithms`   | `ditto.connectivity.connection.amqp10.hmac-algorithms` |
-| Class to implement  | [HttpRequestSigningFactory](https://github.com/eclipse/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/messaging/httppush/HttpRequestSigningFactory.java)  | [AmqpConnectionSigningFactory](https://github.com/eclipse/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/messaging/amqp/AmqpConnectionSigningFactory.java) |
+| Class to implement  | [HttpRequestSigningFactory](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/messaging/httppush/HttpRequestSigningFactory.java)  | [AmqpConnectionSigningFactory](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/messaging/amqp/AmqpConnectionSigningFactory.java) |
 
 
 ### Example integrations

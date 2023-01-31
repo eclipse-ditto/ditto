@@ -26,7 +26,7 @@ In order to start Ditto, you'll need:
 * some other tools like docker-compose, helm, k3s, minikube or openshift to run Ditto.
  
 You can choose from several options to run/deploy Ditto.
-A good starting point here is [Ditto Deployment](https://github.com/eclipse/ditto/blob/master/deployment/README.md).
+A good starting point here is [Ditto Deployment](https://github.com/eclipse-ditto/ditto/blob/master/deployment/README.md).
 After completing the deployment of your choice Ditto should be up & running.
 
 Now you have running:

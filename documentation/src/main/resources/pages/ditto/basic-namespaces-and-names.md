@@ -19,7 +19,7 @@ The namespace must conform to the following notation:
 
 When writing a Java application, you can use the following regex to validate your namespaces:  
     ``(?<ns>|(?:(?:[a-zA-Z]\w*+)(?:[.-][a-zA-Z]\w*+)*+))``
-    (see [RegexPatterns#NAMESPACE_REGEX](https://github.com/eclipse/ditto/blob/master/base/model/src/main/java/org/eclipse/ditto/base/model/entity/id/RegexPatterns.java)).
+    (see [RegexPatterns#NAMESPACE_REGEX](https://github.com/eclipse-ditto/ditto/blob/master/base/model/src/main/java/org/eclipse/ditto/base/model/entity/id/RegexPatterns.java)).
 	
 Examples for valid namespaces:
 * `org.eclipse.ditto`,
@@ -36,7 +36,7 @@ The name must conform to the following notation:
 
 When writing a Java application, you can use the following regex to validate your thing name:  
     ``(?<name>[^\x00-\x1F\x7F-\xFF/]++)``
-    (see [RegexPatterns#ENTITY_NAME_REGEX](https://github.com/eclipse/ditto/blob/master/base/model/src/main/java/org/eclipse/ditto/base/model/entity/id/RegexPatterns.java)).
+    (see [RegexPatterns#ENTITY_NAME_REGEX](https://github.com/eclipse-ditto/ditto/blob/master/base/model/src/main/java/org/eclipse/ditto/base/model/entity/id/RegexPatterns.java)).
 
 Examples for valid names:
     * `ditto`,
@@ -53,7 +53,7 @@ A namespaced ID must conform to the following expectations:
 
 When writing a Java application, you can use the following regex to validate your namespaced IDs:  
 	``(?<ns>|(?:(?:[a-zA-Z]\w*+)(?:[.-][a-zA-Z]\w*+)*+)):(?<name>[^\x00-\x1F\x7F-\xFF/]++)``
-	(see [RegexPatterns#ID_REGEX](https://github.com/eclipse/ditto/blob/master/base/model/src/main/java/org/eclipse/ditto/base/model/entity/id/RegexPatterns.java)).
+	(see [RegexPatterns#ID_REGEX](https://github.com/eclipse-ditto/ditto/blob/master/base/model/src/main/java/org/eclipse/ditto/base/model/entity/id/RegexPatterns.java)).
 
 Examples for valid IDs:
 * `org.eclipse.ditto:smart-coffee-1`,

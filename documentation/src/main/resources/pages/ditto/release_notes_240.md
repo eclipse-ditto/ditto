@@ -7,7 +7,7 @@ summary: "Version 2.4.0 of Eclipse Ditto, released on 14.04.2022"
 permalink: release_notes_240.html
 ---
 
-Ditto **2.4.0** is API and [binary compatible](https://github.com/eclipse/ditto/blob/master/documentation/src/main/resources/architecture/DADR-0005-semantic-versioning.md)
+Ditto **2.4.0** is API and [binary compatible](https://github.com/eclipse-ditto/ditto/blob/master/documentation/src/main/resources/architecture/DADR-0005-semantic-versioning.md)
 to prior Eclipse Ditto 2.x versions.
 
 ## Changelog
@@ -40,8 +40,8 @@ The following non-functional work is also included:
 <br/>
 
 For a complete list of all merged PRs, inspect the following milestones:
-* [merged pull requests for milestone 2.4.0-M1](https://github.com/eclipse/ditto/pulls?q=is:pr+milestone:2.4.0-M1)
-* [merged pull requests for milestone 2.4.0](https://github.com/eclipse/ditto/pulls?q=is:pr+milestone:2.4.0)
+* [merged pull requests for milestone 2.4.0-M1](https://github.com/eclipse-ditto/ditto/pulls?q=is:pr+milestone:2.4.0-M1)
+* [merged pull requests for milestone 2.4.0](https://github.com/eclipse-ditto/ditto/pulls?q=is:pr+milestone:2.4.0)
 
 <br/>
 <br/>
@@ -52,7 +52,7 @@ bugfixes were added:
 
 ### Changes
 
-#### [Upgrade to Java 17 + change of Java runtime to Hotspot](https://github.com/eclipse/ditto/issues/1283)
+#### [Upgrade to Java 17 + change of Java runtime to Hotspot](https://github.com/eclipse-ditto/ditto/issues/1283)
 
 We upgraded the compiler target level for our service modules from 11 to 17 and also use a Java 17 runtime environment
 for our service containers. Please note that the Ditto model still remains compatible to Java 8.  
@@ -65,7 +65,7 @@ Docker images for the following architectures will be published to docker.io:
 * `linux/amd64`
 * `linux/arm64` (new)
 
-#### [Removal of rate limiting / throttling limits as default](https://github.com/eclipse/ditto/pull/1324)
+#### [Removal of rate limiting / throttling limits as default](https://github.com/eclipse-ditto/ditto/pull/1324)
 
 By default, Ditto had configurations in place to rate limit consumption of messages received via:
 * AMQP 1.0 connections
@@ -78,7 +78,7 @@ and can be enabled manually, as mentioned in the [configuration - rate limiting 
 
 ### New features
 
-#### [W3C WoT (Web of Things) integration](https://github.com/eclipse/ditto/issues/1034)
+#### [W3C WoT (Web of Things) integration](https://github.com/eclipse-ditto/ditto/issues/1034)
 
 Ditto adds and optional (and currently *experimental*) integration of the 
 [Web of Things (WoT) Thing Description 1.1](https://www.w3.org/TR/wot-thing-description11/) specification.
@@ -90,13 +90,13 @@ skeleton upon creation of a thing.
 For more details, please have a look at the [blogpost](2022-03-03-wot-integration.html) and the 
 [WoT integration documentation](basic-wot-integration.html).
 
-#### [SSE (ServerSentEvent) API for subscribing to messages](https://github.com/eclipse/ditto/issues/1186)
+#### [SSE (ServerSentEvent) API for subscribing to messages](https://github.com/eclipse-ditto/ditto/issues/1186)
 
 Messages to or from a digital twin can now be subscribed to with the [SSE endpoint](httpapi-sse.html), either on 
 [Thing level](httpapi-sse.html#subscribe-for-messages-for-a-specific-thing) or for a specific 
 [Feature](httpapi-sse.html#subscribe-for-messages-of-a-specific-feature-of-a-specific-thing)
 
-#### [Recovery status for connections indicating when e.g. recovery is no longer tried after max backoff](https://github.com/eclipse/ditto/pull/1336)
+#### [Recovery status for connections indicating when e.g. recovery is no longer tried after max backoff](https://github.com/eclipse-ditto/ditto/pull/1336)
 
 The new recovery status contains one of the values:
 * ongoing
@@ -107,12 +107,12 @@ The new recovery status contains one of the values:
 and can be used to find out whether an automatic failover is still ongoing or if the max amount of configured reconnects 
 applying backoff was reached and that recovery is no longer happening.
 
-#### [Enhance placeholders to resolve to multiple values](https://github.com/eclipse/ditto/pull/1331)
+#### [Enhance placeholders to resolve to multiple values](https://github.com/eclipse-ditto/ditto/pull/1331)
 
 Placeholders may now resolve to multiple values instead of only a single one which enables e.g. applying 
 [placeholder functions](basic-placeholders.html#function-expressions) to each element of an array.
 
-#### [Advanced JWT placeholder operations](https://github.com/eclipse/ditto/pull/1309)
+#### [Advanced JWT placeholder operations](https://github.com/eclipse-ditto/ditto/pull/1309)
 
 Using the above feature of placeholders being resolved to multiple values, the JWT placeholder, which can be used
 in [scope of the OpenID connect configuration](basic-placeholders.html#scope-openid-connect-configuration), can now 
@@ -126,7 +126,7 @@ Example extracting only subjects from a JSON array "roles" contained in a JWT en
 {%raw%}{{ jwt:extra/roles | fn:filter('like','*moderator') }}{%endraw%}
 ```
 
-#### [Support for a wildcard/placeholder identifying the changed feature in order to enrich e.g. its definition](https://github.com/eclipse/ditto/issues/710)
+#### [Support for a wildcard/placeholder identifying the changed feature in order to enrich e.g. its definition](https://github.com/eclipse-ditto/ditto/issues/710)
 
 Using the above feature of placeholders being resolved to multiple values, it is now possible to use a placeholder 
 `{%raw%}{{ feature:id }}{%endraw%}` as part of an [enrichment `extraFields` pointer](basic-enrichment.html) resolving
@@ -143,8 +143,8 @@ published via websocket or a connection:
 
 Several bugs in Ditto 2.3.x were fixed for 2.4.0.
 This is a complete list of the
-[merged pull requests for 2.4.0-M1](https://github.com/eclipse/ditto/pulls?q=is%3Apr+milestone%3A2.4.0-M1) and 
-[merged pull requests for 2.4.0](https://github.com/eclipse/ditto/pulls?q=is%3Apr+milestone%3A2.4.0), 
+[merged pull requests for 2.4.0-M1](https://github.com/eclipse-ditto/ditto/pulls?q=is%3Apr+milestone%3A2.4.0-M1) and 
+[merged pull requests for 2.4.0](https://github.com/eclipse-ditto/ditto/pulls?q=is%3Apr+milestone%3A2.4.0), 
 including the fixed bugs.
 
 
@@ -160,11 +160,11 @@ Migrations required updating from Ditto 2.3.x or earlier versions:
 ## Ditto clients
 
 For a complete list of all merged client PRs, inspect the following milestones:
-* [merged pull requests for milestone 2.4.0-M1](https://github.com/eclipse/ditto-clients/pulls?q=is:pr+milestone:2.4.0-M1)
+* [merged pull requests for milestone 2.4.0-M1](https://github.com/eclipse-ditto/ditto-clients/pulls?q=is:pr+milestone:2.4.0-M1)
 
 ### Ditto Java SDK
 
-#### [Fix returning the revision of a Policy when retrieved via the client](https://github.com/eclipse/ditto-clients/pull/182)
+#### [Fix returning the revision of a Policy when retrieved via the client](https://github.com/eclipse-ditto/ditto-clients/pull/182)
 
 When using the `client.policies().retrievePolicy(PolicyId)` functionality in the Ditto Java client, the `getRevision()`
 method of the returned policy was always empty.  
@@ -172,7 +172,7 @@ The revision will now be included.
 
 ### Ditto JavaScript SDK
 
-See separate [Changelog](https://github.com/eclipse/ditto-clients/blob/master/javascript/CHANGELOG.md) of JS client.
+See separate [Changelog](https://github.com/eclipse-ditto/ditto-clients/blob/master/javascript/CHANGELOG.md) of JS client.
 
 
 ## Roadmap

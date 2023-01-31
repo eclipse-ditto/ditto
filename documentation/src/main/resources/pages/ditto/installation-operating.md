@@ -35,11 +35,11 @@ Each of Ditto's microservice has many options for configuration, e.g. timeouts, 
 
 In order to have a look at all possible configuration options and what default values they have, here are the 
 configuration files of Ditto's microservices:
-* Policies: [policies.conf](https://github.com/eclipse/ditto/blob/master/policies/service/src/main/resources/policies.conf)
-* Things: [things.conf](https://github.com/eclipse/ditto/blob/master/things/service/src/main/resources/things.conf)
-* Things-Search: [things-search.conf](https://github.com/eclipse/ditto/blob/master/thingsearch/service/src/main/resources/things-search.conf)
-* Connectivity: [connectivity.conf](https://github.com/eclipse/ditto/blob/master/connectivity/service/src/main/resources/connectivity.conf)
-* Gateway: [gateway.conf](https://github.com/eclipse/ditto/blob/master/gateway/service/src/main/resources/gateway.conf)
+* Policies: [policies.conf](https://github.com/eclipse-ditto/ditto/blob/master/policies/service/src/main/resources/policies.conf)
+* Things: [things.conf](https://github.com/eclipse-ditto/ditto/blob/master/things/service/src/main/resources/things.conf)
+* Things-Search: [things-search.conf](https://github.com/eclipse-ditto/ditto/blob/master/thingsearch/service/src/main/resources/things-search.conf)
+* Connectivity: [connectivity.conf](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/resources/connectivity.conf)
+* Gateway: [gateway.conf](https://github.com/eclipse-ditto/ditto/blob/master/gateway/service/src/main/resources/gateway.conf)
 
 Whenever you find the syntax `${?UPPER_CASE_ENV_NAME}` in the configuration files, you may overwrite the default value
 by specifying that environment variable when running the container.
@@ -232,7 +232,7 @@ Values that are valid URIs are treated specially and only the password of the us
 encrypted.
 
 Configuration can be seen at [Ditto service configuration files](#ditto-configuration) in
-the [connectivity.conf](https://github.com/eclipse/ditto/blob/master/connectivity/service/src/main/resources/connectivity.conf)
+the [connectivity.conf](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/resources/connectivity.conf)
 at "ditto.connectivity.connection.encryption" section of the config.
 
 If at some point encryption is decided to be disabled the symmetric key is important to be kept in the 
@@ -412,7 +412,7 @@ To put it in a nutshell, Ditto reports:
     * mapping times
 
 Have a look at the 
-[example Grafana dashboards](https://github.com/eclipse/ditto/tree/master/deployment/operations/grafana-dashboards)
+[example Grafana dashboards](https://github.com/eclipse-ditto/ditto/tree/master/deployment/operations/grafana-dashboards)
 and build and share new ones back to the Ditto community.
 
 ## Tracing
@@ -690,14 +690,14 @@ Piggyback commands can be used for managing policies, e.g. in order to create, r
 "devops" (super) user.
 
 All 
-[PolicyCommand](https://github.com/eclipse/ditto/blob/master/policies/model/src/main/java/org/eclipse/ditto/policies/model/signals/commands/PolicyCommand.java)s
+[PolicyCommand](https://github.com/eclipse-ditto/ditto/blob/master/policies/model/src/main/java/org/eclipse/ditto/policies/model/signals/commands/PolicyCommand.java)s
 may be sent via piggyback - however be aware that the internal JSON representation of the policy commands must be used 
 and not the [Ditto Protocol](protocol-specification-policies.html).
 
 The internal JSON representation can be found in the code, e.g. defined in the static `fromJson` methods of the commands.
 
 Example piggyback for 
-[CreatePolicy](https://github.com/eclipse/ditto/blob/master/policies/model/src/main/java/org/eclipse/ditto/policies/model/signals/commands/modify/CreatePolicy.java):
+[CreatePolicy](https://github.com/eclipse-ditto/ditto/blob/master/policies/model/src/main/java/org/eclipse/ditto/policies/model/signals/commands/modify/CreatePolicy.java):
 ```json
 {
   "targetActorSelection": "/system/sharding/policy",
@@ -719,7 +719,7 @@ Example piggyback for
 ```
 
 Example piggyback for 
-[RetrievePolicy](https://github.com/eclipse/ditto/blob/master/policies/model/src/main/java/org/eclipse/ditto/policies/model/signals/commands/query/RetrievePolicy.java):
+[RetrievePolicy](https://github.com/eclipse-ditto/ditto/blob/master/policies/model/src/main/java/org/eclipse/ditto/policies/model/signals/commands/query/RetrievePolicy.java):
 ```json
 {
   "targetActorSelection": "/system/sharding/policy",
@@ -741,14 +741,14 @@ Piggyback commands can be used for managing things, e.g. in order to create, ret
 "devops" (super) user.
 
 All
-[ThingCommand](https://github.com/eclipse/ditto/blob/master/things/model/src/main/java/org/eclipse/ditto/things/model/signals/commands/ThingCommand.java)s
+[ThingCommand](https://github.com/eclipse-ditto/ditto/blob/master/things/model/src/main/java/org/eclipse/ditto/things/model/signals/commands/ThingCommand.java)s
 may be sent via piggyback - however be aware that the internal JSON representation of the thing commands must be used
 and not the [Ditto Protocol](protocol-specification-things.html).
 
 The internal JSON representation can be found in the code, e.g. defined in the static `fromJson` methods of the commands.
 
 Example piggyback for
-[CreateThing](https://github.com/eclipse/ditto/blob/master/things/model/src/main/java/org/eclipse/ditto/things/model/signals/commands/modify/CreateThing.java):
+[CreateThing](https://github.com/eclipse-ditto/ditto/blob/master/things/model/src/main/java/org/eclipse/ditto/things/model/signals/commands/modify/CreateThing.java):
 ```json
 {
   "targetActorSelection": "/system/sharding/thing",
@@ -768,7 +768,7 @@ Example piggyback for
 ```
 
 Example piggyback for
-[RetrieveThing](https://github.com/eclipse/ditto/blob/master/things/model/src/main/java/org/eclipse/ditto/things/model/signals/commands/query/RetrieveThing.java):
+[RetrieveThing](https://github.com/eclipse-ditto/ditto/blob/master/things/model/src/main/java/org/eclipse/ditto/things/model/signals/commands/query/RetrieveThing.java):
 ```json
 {
   "targetActorSelection": "/system/sharding/thing",

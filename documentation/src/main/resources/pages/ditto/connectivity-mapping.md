@@ -1185,8 +1185,8 @@ Beside the JavaScript based mapping - which can be configured/changed at runtime
 connectivity service - there is also the possibility to implement a custom Java based mapper.
 
 The interface to be implemented is
-[`MessageMapper`](https://github.com/eclipse/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/mapping/MessageMapper.java))
-and there is an abstract class [`AbstractMessageMapper`](https://github.com/eclipse/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/mapping/AbstractMessageMapper.java)
+[`MessageMapper`](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/mapping/MessageMapper.java))
+and there is an abstract class [`AbstractMessageMapper`](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/mapping/AbstractMessageMapper.java)
 which eases implementation of a custom mapper.
 
 Simply extend from `AbstractMessageMapper` to provide a custom mapper:
@@ -1278,7 +1278,7 @@ In order to use this custom Java based mapper implementation, the following step
 ### Example for Custom Java based mapper
 
 Please have a look at the following Ditto example project:
-* [custom-ditto-java-payload-mapper](https://github.com/eclipse/ditto-examples/tree/master/custom-ditto-java-payload-mapper)
+* [custom-ditto-java-payload-mapper](https://github.com/eclipse-ditto/ditto-examples/tree/master/custom-ditto-java-payload-mapper)
 
 This shows how to implement, add and configure a custom, Protobuf based, Java payload mapper for Ditto to use in the
 connectivity service for mapping a custom domain specific Protbuf encoded payload.

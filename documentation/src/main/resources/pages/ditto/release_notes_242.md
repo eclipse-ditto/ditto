@@ -16,8 +16,8 @@ Compared to the latest release [2.4.1](release_notes_241.html), the following bu
 ### Bugfixes
 
 This is a complete list of the
-[merged pull requests](https://github.com/eclipse/ditto/pulls?q=is%3Apr+milestone%3A2.4.2), including the fixed bugs.
+[merged pull requests](https://github.com/eclipse-ditto/ditto/pulls?q=is%3Apr+milestone%3A2.4.2), including the fixed bugs.
 
-#### [Skip hostname verification check with self signed in kafka](https://github.com/eclipse/ditto/pull/1475)
+#### [Skip hostname verification check with self signed in kafka](https://github.com/eclipse-ditto/ditto/pull/1475)
 
 Another required fix in order to connect to a Kafka with a self signed certificate.

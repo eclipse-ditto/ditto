@@ -22,7 +22,7 @@ be configured for the connection in order to transform the messages.
 
 ## Global Kafka client configuration
 
-The behavior of the used Kafka client can be configured in the [connectivity.conf](https://github.com/eclipse/ditto/blob/master/connectivity/service/src/main/resources/connectivity.conf)
+The behavior of the used Kafka client can be configured in the [connectivity.conf](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/resources/connectivity.conf)
 under key `ditto.connectivity.connection.kafka`:
 * `consumer`: The Kafka consumer configuration applied when configuring [sources](#source-format) in order to consume messages from Kafka
 * `committer`: The Kafka committer configuration to apply when consuming messages, e.g. the `max-batch` size and `max-interval` duration

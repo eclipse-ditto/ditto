@@ -13,15 +13,15 @@ topnav:
     - title:
       image: GitHub-Mark-Light-32px.png
       alt: Sources at GitHub
-      external_url: https://github.com/eclipse/ditto
+      external_url: https://github.com/eclipse-ditto/ditto
     - title: SDKs
       image: GitHub-Mark-Light-32px.png
       alt: SDK sources at GitHub
-      external_url: https://github.com/eclipse/ditto-clients
+      external_url: https://github.com/eclipse-ditto/ditto-clients
     - title: examples
       image: GitHub-Mark-Light-32px.png
       alt: Example sources at GitHub
-      external_url: https://github.com/eclipse/ditto-examples
+      external_url: https://github.com/eclipse-ditto/ditto-examples
 
 #Topnav dropdowns
 topnav_dropdowns:

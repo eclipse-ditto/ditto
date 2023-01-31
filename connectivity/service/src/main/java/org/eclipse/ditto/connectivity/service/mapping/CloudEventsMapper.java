@@ -58,7 +58,7 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
     private static final String TYPE = "type";
     private static final String OUTBOUNDTYPE = "org.eclipse.ditto.outbound";
     private static final String OUTBOUNDSPECVERSION = "1.0";
-    private static final String OUTBOUNDSOURCE = "https://github.com/eclipse/ditto";
+    private static final String OUTBOUNDSOURCE = "https://github.com/eclipse-ditto/ditto";
     private static final String DATA = "data";
     private static final String DATA_BASE64 = "data_base64";
     private static final String OUTBOUND_DATA_CONTENT_TYPE = "datacontenttype";

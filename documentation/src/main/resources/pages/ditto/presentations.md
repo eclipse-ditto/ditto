@@ -88,7 +88,7 @@ Organized via [Meetup](https://www.meetup.com/IoT-Hessen/events/248886802/) by D
 
 The slides can be found here: [2018_05_23-meetup-iot-hessen](slides/2018_05_23-meetup-iot-hessen/index.html).
 
-The code of the showed live demo can be found in our [ditto-examples](https://github.com/eclipse/ditto-examples/tree/master/octopus-via-hono).
+The code of the showed live demo can be found in our [ditto-examples](https://github.com/eclipse-ditto/ditto-examples/tree/master/octopus-via-hono).
 
 ## 07.02.2018 Virtual IoT Meetup
 

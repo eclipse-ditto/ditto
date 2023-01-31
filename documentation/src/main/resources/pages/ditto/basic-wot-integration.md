@@ -294,7 +294,7 @@ Prerequisites to use the Thing Description generation:
   when retrieving the Thing via HTTP `GET /api/2/<namespace>:<thing-name>`
 
 The available configuration of the WoT integration can be found in the 
-[things.conf](https://github.com/eclipse/ditto/blob/master/things/service/src/main/resources/things.conf)
+[things.conf](https://github.com/eclipse-ditto/ditto/blob/master/things/service/src/main/resources/things.conf)
 config file of the [things service](architecture-services-things.html) at path `ditto.things.wot`.  
 There you can configure which `securityDefinitions` shall be added to the generated TDs and which `base` path 
 prefix to create into the TDs, depending on your public Ditto endpoint.
@@ -370,7 +370,7 @@ In order to resolve TM placeholders, Ditto applies the following strategy:
 * when a placeholder was not found in the `"model-placeholders"` of the Thing/Feature, a fallback to the Ditto 
   configuration is done:
     * placeholder fallbacks can be configured in Ditto via the 
-      [things.conf](https://github.com/eclipse/ditto/blob/master/things/service/src/main/resources/things.conf) 
+      [things.conf](https://github.com/eclipse-ditto/ditto/blob/master/things/service/src/main/resources/things.conf) 
       configuration file of the [things service](architecture-services-things.html) at path 
       `ditto.things.wot.to-thing-description.placeholders`.<br/>  
       This map may contain static values, but use and JSON type as value (e.g. also a JSON Object), e.g.:

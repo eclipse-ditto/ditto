@@ -69,7 +69,7 @@ sudo chmod +x /usr/local/bin/docker-compose
 That is required to get the `docker-compose.yaml` file and other resources required to run Ditto with Docker Compose.
 
 ```shell
-git clone --depth 1 https://github.com/eclipse/ditto.git
+git clone --depth 1 https://github.com/eclipse-ditto/ditto.git
 ```
 
 

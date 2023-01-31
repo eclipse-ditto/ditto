@@ -10,7 +10,7 @@ sidebar: false
 toc: false
 ---
 
-Before [Ditto Java Client](https://github.com/eclipse/ditto-clients/tree/master/java) 1.3.0,
+Before [Ditto Java Client](https://github.com/eclipse-ditto/ditto-clients/tree/master/java) 1.3.0,
 a client object connects to a configured Ditto back-end during its creation.
 
 ```java

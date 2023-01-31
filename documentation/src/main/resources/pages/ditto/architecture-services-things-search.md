@@ -21,14 +21,14 @@ and [policies](architecture-services-policies.html) services.
 It however contains a model which can transform an <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.rql}}">RQL</a> 
 search query into a Java domain model which is defined here:
 
-* [rql parser ast](https://github.com/eclipse/ditto/tree/master/rql/model/src/main/java/org/eclipse/ditto/rql/model/predicates/ast)
+* [rql parser ast](https://github.com/eclipse-ditto/ditto/tree/master/rql/model/src/main/java/org/eclipse/ditto/rql/model/predicates/ast)
 
 ## Signals
 
 Other services can communicate with the things-search service via:
 
 
-* [commands](https://github.com/eclipse/ditto/tree/master/thingsearch/model/src/main/java/org/eclipse/ditto/thingsearch/model/signals/commands):
+* [commands](https://github.com/eclipse-ditto/ditto/tree/master/thingsearch/model/src/main/java/org/eclipse/ditto/thingsearch/model/signals/commands):
   containing commands and command responses which are processed by this service
 
 ## Persistence

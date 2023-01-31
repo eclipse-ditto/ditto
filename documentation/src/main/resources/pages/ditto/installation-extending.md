@@ -65,7 +65,7 @@ If however lots of configuration changes should be done, a more feasible approac
 Those configuration files can contain any [Ditto configuration](installation-operating.html#ditto-configuration) done in
 the service config files.
 
-For example, the [gateway.conf](https://github.com/eclipse/ditto/blob/master/gateway/service/src/main/resources/gateway.conf)
+For example, the [gateway.conf](https://github.com/eclipse-ditto/ditto/blob/master/gateway/service/src/main/resources/gateway.conf)
 contains the following configuration snippet:
 ```hocon
 ditto {

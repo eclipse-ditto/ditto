@@ -14,7 +14,7 @@ Compared to the latest release [1.1.1](release_notes_111.html), the following ch
 
 ### Changes
 
-#### [Publish minor and micro version tags to Docker Hub](https://github.com/eclipse/ditto/pull/693)
+#### [Publish minor and micro version tags to Docker Hub](https://github.com/eclipse-ditto/ditto/pull/693)
 
 Starting with Ditto 1.1.2, the Docker images built and pushed to Docker Hub are:
 * full version (e.g. `1.1.2`)
@@ -25,17 +25,17 @@ Starting with Ditto 1.1.2, the Docker images built and pushed to Docker Hub are:
 ### Bugfixes
 
 This is a complete list of the 
-[merged pull requests](https://github.com/eclipse/ditto/pulls?q=is%3Apr+milestone%3A1.1.2), including the fixed bugs.
+[merged pull requests](https://github.com/eclipse-ditto/ditto/pulls?q=is%3Apr+milestone%3A1.1.2), including the fixed bugs.
 
 
-#### [Fix NullPointerException when disabling validation of certificates in connections](https://github.com/eclipse/ditto/pull/688)
+#### [Fix NullPointerException when disabling validation of certificates in connections](https://github.com/eclipse-ditto/ditto/pull/688)
 
-Fixed [Mqtt 3 connection without using certificate validation](https://github.com/eclipse/ditto/issues/679).
+Fixed [Mqtt 3 connection without using certificate validation](https://github.com/eclipse-ditto/ditto/issues/679).
 
-#### [Connection creation timeout](https://github.com/eclipse/ditto/pull/692)
+#### [Connection creation timeout](https://github.com/eclipse-ditto/ditto/pull/692)
 
 There was an issue where sometimes the creation of a connection entity failed with a timeout just because the establishing of the actual connection took too much time.
 
-#### [Minor improvements to throughput/performance](https://github.com/eclipse/ditto/pull/689)
+#### [Minor improvements to throughput/performance](https://github.com/eclipse-ditto/ditto/pull/689)
 
 Some minor overall simplifications and performance improvements. 

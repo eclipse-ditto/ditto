@@ -7,7 +7,7 @@ summary: "Version 2.3.0 of Eclipse Ditto, released on 21.01.2022"
 permalink: release_notes_230.html
 ---
 
-Ditto **2.3.0** is API and [binary compatible](https://github.com/eclipse/ditto/blob/master/documentation/src/main/resources/architecture/DADR-0005-semantic-versioning.md)
+Ditto **2.3.0** is API and [binary compatible](https://github.com/eclipse-ditto/ditto/blob/master/documentation/src/main/resources/architecture/DADR-0005-semantic-versioning.md)
 to prior Eclipse Ditto 2.x versions.
 
 ## Changelog
@@ -49,7 +49,7 @@ The following non-functional work is also included:
 <br/>
 
 For a complete list of all merged PRs, inspect the following milestones:
-* [merged pull requests for milestone 2.3.0](https://github.com/eclipse/ditto/pulls?q=is:pr+milestone:2.3.0)
+* [merged pull requests for milestone 2.3.0](https://github.com/eclipse-ditto/ditto/pulls?q=is:pr+milestone:2.3.0)
 
 <br/>
 <br/>
@@ -60,7 +60,7 @@ bugfixes were added.
 
 ### New features
 
-#### [HTTP API for "live" commands](https://github.com/eclipse/ditto/issues/106)
+#### [HTTP API for "live" commands](https://github.com/eclipse-ditto/ditto/issues/106)
 
 Ditto's ["live" channel](protocol-twinlive.html#live) is now also available for commands invoked via HTTP API.  
 See also the [blogpost covering that topic](2021-12-20-http-live-channel.html).
@@ -72,7 +72,7 @@ Live commands bypass the twin and go directly to the devices.
 However, an existing twin is still required for policy enforcement.
 
 
-#### [Smart channel strategy for live/twin read access](https://github.com/eclipse/ditto/issues/1228)
+#### [Smart channel strategy for live/twin read access](https://github.com/eclipse-ditto/ditto/issues/1228)
 
 Ditto adds support for selecting the "twin" or the "live" channel for thing query commands based on an 
 [RQL condition](basic-rql.html) of a newly added parameter 
@@ -82,12 +82,12 @@ See also the [blogpost covering that topic](2021-12-22-live-channel-condition.ht
 In addition, a new [payload mapper](connectivity-mapping.html#updatetwinwithliveresponse-mapper) automatically updating 
 the twin based on received live data from devices was added.
 
-#### [Configurable allowing creation of entities based on namespace and authenticated subjects](https://github.com/eclipse/ditto/pull/1251)
+#### [Configurable allowing creation of entities based on namespace and authenticated subjects](https://github.com/eclipse-ditto/ditto/pull/1251)
 
 This added feature allows configuring restrictions, which [authenticated subjects](basic-auth.html#authenticated-subjects)
 may create new entities (things / policies) in which namespaces.
 
-#### [Allow using `*` as a placeholder for the feature id in selected fields](https://github.com/eclipse/ditto/pull/1277)
+#### [Allow using `*` as a placeholder for the feature id in selected fields](https://github.com/eclipse-ditto/ditto/pull/1277)
 
 When selecting for certain [`fields` of a thing](httpapi-concepts.html#field-selector-with-wildcard) or when using 
 [signal enrichment (extraFields)](basic-enrichment.html) in order to add more (unchanged) data from a twin to e.g. events 
@@ -98,7 +98,7 @@ the wildcard `*` can now be used in order to select all features of a thing with
 
 Several bugs in Ditto 2.2.x were fixed for 2.3.0.  
 This is a complete list of the
-[merged pull requests](https://github.com/eclipse/ditto/pulls?q=is%3Apr+milestone%3A2.3.0), including the fixed bugs.
+[merged pull requests](https://github.com/eclipse-ditto/ditto/pulls?q=is%3Apr+milestone%3A2.3.0), including the fixed bugs.
 
 
 ## Migration notes
@@ -108,7 +108,7 @@ No migrations required updating from Ditto 2.2.x
 ## Ditto clients
 
 For a complete list of all merged client PRs, inspect the following milestones:
-* [merged pull requests for milestone 2.3.0](https://github.com/eclipse/ditto-clients/pulls?q=is:pr+milestone:2.3.0)
+* [merged pull requests for milestone 2.3.0](https://github.com/eclipse-ditto/ditto-clients/pulls?q=is:pr+milestone:2.3.0)
 
 ### Ditto Java SDK
 
@@ -116,7 +116,7 @@ No mentionable changes/enhancements/bugfixes.
 
 ### Ditto JavaScript SDK
 
-See separate [Changelog](https://github.com/eclipse/ditto-clients/blob/master/javascript/CHANGELOG.md) of JS client.
+See separate [Changelog](https://github.com/eclipse-ditto/ditto-clients/blob/master/javascript/CHANGELOG.md) of JS client.
 
 
 ## Roadmap
@@ -124,4 +124,4 @@ See separate [Changelog](https://github.com/eclipse/ditto-clients/blob/master/ja
 Looking forward, the current plans for Ditto 2.4.0 are:
 
 * Update service code to Java 17 (APIs stay at Java 8) + run Ditto containers with Java 17 runtime
-* Continue work on the started [WoT (Web of Things) integration](https://github.com/eclipse/ditto/pull/1270)
+* Continue work on the started [WoT (Web of Things) integration](https://github.com/eclipse-ditto/ditto/pull/1270)

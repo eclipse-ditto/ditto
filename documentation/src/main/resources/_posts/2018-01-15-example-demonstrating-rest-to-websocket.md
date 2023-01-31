@@ -11,7 +11,7 @@ toc: false
 ---
 
 There's a new example showing how to combine the REST and WebSocket API
-over at the [Eclipse Ditto examples repository](https://github.com/eclipse/ditto-examples/tree/master/rest-to-websocket).
+over at the [Eclipse Ditto examples repository](https://github.com/eclipse-ditto/ditto-examples/tree/master/rest-to-websocket).
 Right from the project's description:
 
 >This example shows how to leverage the powers of combining the REST and
@@ -31,7 +31,7 @@ Right from the project's description:
 href="https://raw.githubusercontent.com/eclipse/ditto-examples/master/rest-to-websocket/docs/images/make-coffee.gif" 
 alt="Eclipse Ditto REST to WebSocket example gif" 
 max-width=800 
-caption="Source: https://github.com/eclipse/ditto-examples" %}
+caption="Source: https://github.com/eclipse-ditto/ditto-examples" %}
 
 If you have any wishes, improvements, are missing something
 or just want to get in touch with us, you can use one of

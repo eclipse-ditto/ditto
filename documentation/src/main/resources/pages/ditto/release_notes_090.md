@@ -42,7 +42,7 @@ bugfixes were added.
 
 #### Changes
 
-##### [Streamline configuration](https://github.com/eclipse/ditto/issues/350)
+##### [Streamline configuration](https://github.com/eclipse-ditto/ditto/issues/350)
 
 In this release, we changed how internally the configuration is determined in Ditto's microservices. This should not 
 have any impact on a user of Eclipse Ditto. As however some configuration keys were remanded or restructured, some
@@ -51,18 +51,18 @@ adjustments when manually configuring Ditto could be required.
 
 #### New features
 
-##### [Introduce cursor-based paging for search requests](https://github.com/eclipse/ditto/pull/407)
+##### [Introduce cursor-based paging for search requests](https://github.com/eclipse-ditto/ditto/pull/407)
 
 In order to provide a constant performance for using pagination for the `things-search` miscroservice across even large 
 result sets (100s of thousands or more) of digital twins, a new cursor-based approach was added in addition to the 
 old `offset/limit` approach which gets slower for each page.
 
-##### [Simple throttling for amqp 1.0 consumers](https://github.com/eclipse/ditto/pull/420)
+##### [Simple throttling for amqp 1.0 consumers](https://github.com/eclipse-ditto/ditto/pull/420)
 
 Added a simple throttling mechanism for amqp 1.0 consumers.
 The throttling is configurable by defining the number of messages allowed per time interval.
 
-##### [Collect connectivity log entries and provide via devops command](https://github.com/eclipse/ditto/issues/318)
+##### [Collect connectivity log entries and provide via devops command](https://github.com/eclipse-ditto/ditto/issues/318)
 
 In order to let a user analyze failures / unexpected behavior in his connections (e.g. to an MQTT or AMQP broker) 
 without giving him full access to the log-files of Ditto, a connection scoped mechanism for retrieving connectivity logs 
@@ -71,21 +71,21 @@ was added.
 
 #### Bugfixes
 
-##### [Memory and performance fixes in concierge, gateway](https://github.com/eclipse/ditto/pull/400)
+##### [Memory and performance fixes in concierge, gateway](https://github.com/eclipse-ditto/ditto/pull/400)
 
 Ditto's `concierge` service did use a sharding approach for enforcing authorization information which lead to huge 
 amounts of memory required when managing multi million of digital twins.
 
 That, in addition to some memory fixes in the gateway and addition of metrics, was fixed in this PR.
 
-##### [Ensure ordering for processed commands](https://github.com/eclipse/ditto/pull/417)
+##### [Ensure ordering for processed commands](https://github.com/eclipse-ditto/ditto/pull/417)
 
 In previous versions of Ditto the order in which command were processed not guaranteed to be maintained. As maintaining
 the order however is the expected behavior, we decided to treat that as bug and added to the `concierge` service (where
 the order could be lost) to sequentially process commands issues via HTTP/WebSocket and connections.
 
 This release contains several bugfixes, this is a complete list of the 
-[merged pull requests](https://github.com/eclipse/ditto/pulls?q=is%3Apr+milestone%3A0.9.0+).
+[merged pull requests](https://github.com/eclipse-ditto/ditto/pulls?q=is%3Apr+milestone%3A0.9.0+).
 
 
 

@@ -270,5 +270,5 @@ client.twin().registerForThingChanges("REG1", change -> {
 ## Further examples
 
 For further examples on how to use the Ditto client, please have a look at the class 
-[DittoClientUsageExamples](https://github.com/eclipse/ditto-clients/blob/master/java/src/test/java/org/eclipse/ditto/client/DittoClientUsageExamples.java)
+[DittoClientUsageExamples](https://github.com/eclipse-ditto/ditto-clients/blob/master/java/src/test/java/org/eclipse/ditto/client/DittoClientUsageExamples.java)
  which is configured to connect to the [Ditto sandbox](https://ditto.eclipseprojects.io).

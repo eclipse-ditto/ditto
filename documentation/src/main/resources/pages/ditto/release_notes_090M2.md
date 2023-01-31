@@ -11,12 +11,12 @@ This second milestone of the "0.9.0" release provides closes more gaps towards t
 
 ## Changes
 
-### [Make it easy to add new Authentication mechanisms and allow chaining them](https://github.com/eclipse/ditto/issues/348)
+### [Make it easy to add new Authentication mechanisms and allow chaining them](https://github.com/eclipse-ditto/ditto/issues/348)
 
 If we have multiple applicable authentication mechanisms all of them are processed until either one of them 
 authenticates successfully or all of them fail.
 
-### [Unify implementations of things-search across API versions](https://github.com/eclipse/ditto/pull/392)
+### [Unify implementations of things-search across API versions](https://github.com/eclipse-ditto/ditto/pull/392)
 
 Ditto's "search" capabilities were rewritten so that bot API v1 and API v2 use the same MongoDB based search index.
 
@@ -29,24 +29,24 @@ Ditto's "search" capabilities were rewritten so that bot API v1 and API v2 use t
 
 ### Various contributions for a setup of Eclipse Ditto on Microsoft Azure
 
-As discussed in the ongoing issue [Eclipse Ditto on Microsoft Azure](https://github.com/eclipse/ditto/issues/358) Microsoft
+As discussed in the ongoing issue [Eclipse Ditto on Microsoft Azure](https://github.com/eclipse-ditto/ditto/issues/358) Microsoft
 added a few PRs in order to deploy Ditto on MS Azure cloud:
 
-* [Enable support for MongoDB persistence in K8s](https://github.com/eclipse/ditto/pull/364)
-* [Fix Nginx connectivity after Helm update](https://github.com/eclipse/ditto/pull/375)
-* [Recover from closed JMS AMQP message producer](https://github.com/eclipse/ditto/pull/367)
-* [Improve nginx configuration for gateway restarts](https://github.com/eclipse/ditto/pull/386)
+* [Enable support for MongoDB persistence in K8s](https://github.com/eclipse-ditto/ditto/pull/364)
+* [Fix Nginx connectivity after Helm update](https://github.com/eclipse-ditto/ditto/pull/375)
+* [Recover from closed JMS AMQP message producer](https://github.com/eclipse-ditto/ditto/pull/367)
+* [Improve nginx configuration for gateway restarts](https://github.com/eclipse-ditto/ditto/pull/386)
 
 
 ## Bugfixes
 
 
-### [MQTT publish fails if no sources are configured](https://github.com/eclipse/ditto/issues/387)
+### [MQTT publish fails if no sources are configured](https://github.com/eclipse-ditto/ditto/issues/387)
 
 Fixed: If using a MQTT connection that only has targets but no sources, publishing of events will fail.
 
 ### Various smaller bugfixes
 
 This is a complete list of the 
-[merged pull requests](https://github.com/eclipse/ditto/pulls?q=is%3Apr+milestone%3A0.9.0-M2+).
+[merged pull requests](https://github.com/eclipse-ditto/ditto/pulls?q=is%3Apr+milestone%3A0.9.0-M2+).
 

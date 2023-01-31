@@ -20,7 +20,7 @@ which was released recently with milestone [0.8.0-M2](2018-09-27-milestone-annou
 
 On his journey into digital twin land he made a great example with an ESP8266 powered board connected via an MQTT broker
 to Ditto and published it to the 
-[Eclipse Ditto examples repository](https://github.com/eclipse/ditto-examples/tree/master/mqtt-bidirectional):
+[Eclipse Ditto examples repository](https://github.com/eclipse-ditto/ditto-examples/tree/master/mqtt-bidirectional):
 
 > This example is about how to communicate between device and solution in a two way pattern through Ditto using MQTT. 
   This means we will add a policy, a thing and a MQTT connection to Ditto. 
@@ -40,7 +40,7 @@ to Ditto and published it to the
 href="https://raw.githubusercontent.com/eclipse/ditto-examples/master/mqtt-bidirectional/img/diagram.jpg" 
 alt="Eclipse Ditto bidirectional MQTT diagram" 
 max-width=800 
-caption="Source: https://github.com/eclipse/ditto-examples" %}
+caption="Source: https://github.com/eclipse-ditto/ditto-examples" %}
 
 > We will use an Octopus-board with an ESP8266 on it. It has several sensors built in, but for simplicity we will
  just use it's temperature and altitude sensor. 

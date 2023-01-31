@@ -31,7 +31,7 @@ bugfixes were added.
 
 ### Changes
 
-#### [Remove suffixed collections](https://github.com/eclipse/ditto/issues/537)
+#### [Remove suffixed collections](https://github.com/eclipse-ditto/ditto/issues/537)
 
 We removed suffixed collection support from Things and Policies persistence.
 These collections do not scale well with increased amount of namespaces and lead to massive problems with mongodb as 
@@ -40,7 +40,7 @@ sharding can't be used.
 
 ### New features
 
-#### [Comprehensive support for command responses](https://github.com/eclipse/ditto/issues/540)
+#### [Comprehensive support for command responses](https://github.com/eclipse-ditto/ditto/issues/540)
 
 Adds the possibility to define a "reply target" for [connection sources](basic-connections.html#sources) where 
 * the response address may be configured
@@ -52,7 +52,7 @@ specified a `reply-to` address.
 Used in combination with [Eclipse Hono](https://eclipse.org/hono/)  it is possible to send responses to devices which 
 e.g. need to retrieve data from Ditto.
 
-#### [Add "definition" to Thing in order to reference used model](https://github.com/eclipse/ditto/issues/247)
+#### [Add "definition" to Thing in order to reference used model](https://github.com/eclipse-ditto/ditto/issues/247)
 
 In order to specify which model a Thing follows, the JSON of the Thing entity was enhanced with a single string for 
 `"definintion"`. This can e.g. be used in order to place an [Eclipse Vorto](https://eclipse.org/vorto/) 
@@ -60,7 +60,7 @@ In order to specify which model a Thing follows, the JSON of the Thing entity wa
 
 ### Bugfixes
 
-#### [Fixed NullPointer in StreamingSessionActor](https://github.com/eclipse/ditto/pull/546)
+#### [Fixed NullPointer in StreamingSessionActor](https://github.com/eclipse-ditto/ditto/pull/546)
 
 When closing a WebSocket session, a `NullPointerException` occurred which is fixed now.
 

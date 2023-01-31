@@ -18,10 +18,10 @@ Compared to the latest release [1.1.3](release_notes_113.html), the following bu
 ### Bugfixes
 
 This is a complete list of the
-[merged pull requests](https://github.com/eclipse/ditto/pulls?q=is%3Apr+milestone%3A1.1.5), including the fixed bugs.
+[merged pull requests](https://github.com/eclipse-ditto/ditto/pulls?q=is%3Apr+milestone%3A1.1.5), including the fixed bugs.
 
 
-#### [Compile model modules with Java 8](https://github.com/eclipse/ditto/pull/769)
+#### [Compile model modules with Java 8](https://github.com/eclipse-ditto/ditto/pull/769)
 
 The 2 modules in the Ditto model were accidentally compiled with Java 11 as source/target which caused 
 that e.g. the Ditto client could not be used any longer with Java 8:
