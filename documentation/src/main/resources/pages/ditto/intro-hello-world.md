@@ -62,7 +62,7 @@ Inside "definition" we can add one JSON string value.
 
 We create a Thing for the example from above by using [cURL](https://github.com/curl/curl). Basic authentication will use the credentials of a user "ditto". 
 Those credentials have been created by default in the [nginx](https://github.com/nginx/nginx) started via "docker". 
-(See [ditto/deployment/docker/README.md](https://github.com/eclipse/ditto/blob/master/deployment/docker/README.md))
+(See [ditto/deployment/docker/README.md](https://github.com/eclipse-ditto/ditto/blob/master/deployment/docker/README.md))
 
 ```bash
 curl -u ditto:ditto -X PUT -H 'Content-Type: application/json' -d '{

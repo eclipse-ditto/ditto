@@ -60,7 +60,7 @@ millions of managed things.
 
 The main changes compared to the last release, [0.9.0](release_notes_090.html), are:
 
-* addition of a Java and a JavaScript client SDK in separate [GitHub repo](https://github.com/eclipse/ditto-clients)
+* addition of a Java and a JavaScript client SDK in separate [GitHub repo](https://github.com/eclipse-ditto/ditto-clients)
 * configurable OpenID Connect authorization servers
 * support for OpenID Connect / OAuth2.0 based authentication in Ditto Java Client
 * invoking custom foreign HTTP endpoints as a result of events/messages

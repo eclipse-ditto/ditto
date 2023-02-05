@@ -22,13 +22,13 @@ bugfixes were added.
 
 ## Changes
 
-### [Marked some DittoHeaders as internal](https://github.com/eclipse/ditto/pull/195)
+### [Marked some DittoHeaders as internal](https://github.com/eclipse-ditto/ditto/pull/195)
 
 In order to prevent that a user of Ditto's API (e.g. WebSocket or AMQP) sets arbitrary security relevant headers, 
 those `DittoHeaders` are no marked as "not readable from external". Other headers which should not be propagated to 
 the outside of Ditto are marked as "not to be written to external".
 
-### [Update to Kamon 1.0 and report metrics to Prometheus](https://github.com/eclipse/ditto/issues/105)
+### [Update to Kamon 1.0 and report metrics to Prometheus](https://github.com/eclipse-ditto/ditto/issues/105)
 
 Previously, Ditto was using Kamon 0.6.x and reported metrics/traces to a [Graphite](https://graphiteapp.org) back-end. 
 Together with the update to Kamon 1.0 the Ditto services now provide HTTP endpoints which can be scraped by 
@@ -40,14 +40,14 @@ guide.
 
 ## New features
 
-### [Kubernetes cluster bootstrapping](https://github.com/eclipse/ditto/pull/201)
+### [Kubernetes cluster bootstrapping](https://github.com/eclipse-ditto/ditto/pull/201)
 
 Ditto now discovers its cluster nodes automatically also when running in Kubernetes. It uses the 
 kubernetes-api in order to discover the other cluster nodes.
 
 An example on how to run Ditto with Kubernetes is provided in the /kubernetes git directory.
 
-### [Allow placeholders inside connection config](https://github.com/eclipse/ditto/issues/178)
+### [Allow placeholders inside connection config](https://github.com/eclipse-ditto/ditto/issues/178)
 
 In many cases configuration values of a [Connection](connectivity-manage-connections.html) can be dependent on the 
 message's headers. This feature allows Ditto connections to access header fields and use it in the connection's 
@@ -59,7 +59,7 @@ from Hono authenticated `device-id` via the placeholder `header:device-id`.
 
 ## Bugfixes
 
-### [Fixed excessive memory consumption of things-service](https://github.com/eclipse/ditto/pull/194)
+### [Fixed excessive memory consumption of things-service](https://github.com/eclipse-ditto/ditto/pull/194)
 
 In previous versions, Ditto's `things-service` created a lot of instances for each Thing which was loaded into memory.
 This is now optimized so that the service does no longer need so much memory.
@@ -71,11 +71,11 @@ In this milestone we put a lot of effort in further stabilizing AMQP 1.0 and 0.9
 
 These issues were addressed in several fixes:
 
-* [#189](https://github.com/eclipse/ditto/pull/189)
-* [#178](https://github.com/eclipse/ditto/issues/178)
+* [#189](https://github.com/eclipse-ditto/ditto/pull/189)
+* [#178](https://github.com/eclipse-ditto/ditto/issues/178)
 
 ### Various smaller bugfixes
 
 This is a complete list of the 
-[merged pull requests](https://github.com/eclipse/ditto/pulls?q=is%3Apr+milestone%3A0.8.0-M1+).
+[merged pull requests](https://github.com/eclipse-ditto/ditto/pulls?q=is%3Apr+milestone%3A0.8.0-M1+).
 

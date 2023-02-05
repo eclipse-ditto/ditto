@@ -50,10 +50,10 @@ We want to especially highlight the following bugfixes also included:
 
 ### Changes
 
-#### [New Ditto "thing" search index](https://github.com/eclipse/ditto/issues/1374)
+#### [New Ditto "thing" search index](https://github.com/eclipse-ditto/ditto/issues/1374)
 
 Change reasoning documented in 
-[DADR-0008](https://github.com/eclipse/ditto/blob/master/documentation/src/main/resources/architecture/DADR-0008-wildcard-search-index.md).
+[DADR-0008](https://github.com/eclipse-ditto/ditto/blob/master/documentation/src/main/resources/architecture/DADR-0008-wildcard-search-index.md).
 
 The Ditto 2.x implementation of the search index uses the [attribute pattern](https://www.mongodb.com/blog/post/building-with-patterns-the-attribute-pattern) 
 for indexing data in MongoDB. 
@@ -74,10 +74,10 @@ query and update performance is improved and more stable than with the current a
 {% include note.html content="Be aware of the
   [migration note](#migration-building-up-new-search-index) before updating to Ditto 3.0." %}
 
-#### [Removal of former "ditto-concierge" service](https://github.com/eclipse/ditto/issues/1339)
+#### [Removal of former "ditto-concierge" service](https://github.com/eclipse-ditto/ditto/issues/1339)
 
 Change reasoning documented in
-[DADR-0007](https://github.com/eclipse/ditto/blob/master/documentation/src/main/resources/architecture/DADR-0007-concierge-removal.md).
+[DADR-0007](https://github.com/eclipse-ditto/ditto/blob/master/documentation/src/main/resources/architecture/DADR-0007-concierge-removal.md).
 
 In order to reduce the complexity of message flows and the required networking "hops" in a Ditto cluster for a command
 to be authorized and applied, it was decided to eliminate the former "ditto-concierge" service.
@@ -101,7 +101,7 @@ Ditto 3.0 requires less resources and provide lower latency + higher throughput 
 
 #### Clear declaration and configuration of Ditto "Extension points"
 
-As part of the ["ditto-concierge" service removal](https://github.com/eclipse/ditto/issues/1339) a new and common 
+As part of the ["ditto-concierge" service removal](https://github.com/eclipse-ditto/ditto/issues/1339) a new and common 
 mechanism for [extending Ditto](installation-extending.html) was introduced.  
 Examples of such extensions are:
 * adding additional, custom HTTP APIs to Ditto
@@ -111,7 +111,7 @@ Examples of such extensions are:
 Check out the [documentation on extending Ditto](installation-extending.html) and the existing extension points 
 (interfaces extending `DittoExtensionPoint`) to find out what can be extended and how to do it.
 
-#### [Rewrite of Ditto managed MQTT connection to use reactive client](https://github.com/eclipse/ditto/pull/1411)
+#### [Rewrite of Ditto managed MQTT connection to use reactive client](https://github.com/eclipse-ditto/ditto/pull/1411)
 
 Ditto's MQTT connection integration now consumes messages in a reactive manner. Together with throttling this effectively enables backpressure.  
 
@@ -119,10 +119,10 @@ Ditto's MQTT connection integration now consumes messages in a reactive manner. 
 
 Improving Ditto's resilience is part of almost every release. Those improvements are included in 3.0:
 
-* [Allow turning the akka SBR on/off during runtime](https://github.com/eclipse/ditto/pull/1373)
-* [Implement graceful shutdown for http publisher actor](https://github.com/eclipse/ditto/pull/1381)
+* [Allow turning the akka SBR on/off during runtime](https://github.com/eclipse-ditto/ditto/pull/1373)
+* [Implement graceful shutdown for http publisher actor](https://github.com/eclipse-ditto/ditto/pull/1381)
 
-#### [DevOps commands response consistency](https://github.com/eclipse/ditto/pull/1380)
+#### [DevOps commands response consistency](https://github.com/eclipse-ditto/ditto/pull/1380)
 
 Devops commands error responses are fixed to have similar structure to non-error ones.  
 Responses to requests with `"aggregate": false` are stripped to remove service name and instance (or layers of `"?"`)
@@ -133,18 +133,18 @@ If devops commands were utilized, this will require a migration of the response 
 {% include note.html content="Be aware of the
   [migration note](#migration-devops-commands-response-adjustments) before updating to Ditto 3.0." %}
 
-#### [Make Ditto pubsub update operations simpler and more consistent](https://github.com/eclipse/ditto/pull/1427)
+#### [Make Ditto pubsub update operations simpler and more consistent](https://github.com/eclipse-ditto/ditto/pull/1427)
 
 Simplify Ditto pubsub update operations to make sure that subscriptions are active before sending acknowledgements.
 
 
 ### New features
 
-#### [Ability to search in JSON arrays and also in feature definitions](https://github.com/eclipse/ditto/pull/1396)
+#### [Ability to search in JSON arrays and also in feature definitions](https://github.com/eclipse-ditto/ditto/pull/1396)
 
 [Searching in arrays](basic-search.html#search-queries-in-json-arrays) is now officially supported and enabled by default.
 
-This also enables [support to search by feature definition](https://github.com/eclipse/ditto/pull/1417).
+This also enables [support to search by feature definition](https://github.com/eclipse-ditto/ditto/pull/1417).
 
 You can use this e.g. in order to search for all things having a feature with a certain definition:
 ```
@@ -158,14 +158,14 @@ There were however still some open issues and bugs which lead to that the metada
 
 The following features, enhancements and fixes about [metadata](basic-metadata.html) are included in Ditto 3.0:
 
-* [Retrieve thing metadata when not retrieving complete thing](https://github.com/eclipse/ditto/issues/772)
-* [Metadata is not deleted when thing parts are deleted](https://github.com/eclipse/ditto/issues/829)
-* [Make is possible to delete metadata from a thing](https://github.com/eclipse/ditto/issues/779)
-* [Metadata cannot be set on sub-resources via HTTP](https://github.com/eclipse/ditto/issues/1146)
-* [Add initial-metadata support to thing creation](https://github.com/eclipse/ditto/issues/884)
-* [Search does not work for _metadata](https://github.com/eclipse/ditto/issues/1404)
+* [Retrieve thing metadata when not retrieving complete thing](https://github.com/eclipse-ditto/ditto/issues/772)
+* [Metadata is not deleted when thing parts are deleted](https://github.com/eclipse-ditto/ditto/issues/829)
+* [Make is possible to delete metadata from a thing](https://github.com/eclipse-ditto/ditto/issues/779)
+* [Metadata cannot be set on sub-resources via HTTP](https://github.com/eclipse-ditto/ditto/issues/1146)
+* [Add initial-metadata support to thing creation](https://github.com/eclipse-ditto/ditto/issues/884)
+* [Search does not work for _metadata](https://github.com/eclipse-ditto/ditto/issues/1404)
 
-#### [New HTTP API for CRUD of connections](https://github.com/eclipse/ditto/issues/1406)
+#### [New HTTP API for CRUD of connections](https://github.com/eclipse-ditto/ditto/issues/1406)
 
 With Ditto 2.x, connection management in Ditto could only be done via 
 [piggyback devops commands](installation-operating.html#piggyback-commands).
@@ -182,17 +182,17 @@ The latest live version of the UI can be found here:
 You can use it in order to e.g. connect to your Ditto installation to manage things, policies and even connections.
 
 Contributions:
-* [Eclipse Ditto explorer UI](https://github.com/eclipse/ditto/pull/1397)
-* [Ditto explorer UI: Improvements from review](https://github.com/eclipse/ditto/pull/1405)
-* [Explorer UI - Add initial support for connections](https://github.com/eclipse/ditto/pull/1414)
-* [added mechanism to build "ditto-ui" Docker image](https://github.com/eclipse/ditto/pull/1415)
-* [Explorer UI - review improvements for connections](https://github.com/eclipse/ditto/pull/1418)
-* [Explorer UI: add local_ditto_ide and ditto_sanbdox environments](https://github.com/eclipse/ditto/pull/1422)
-* [Explorer UI - add support for policies](https://github.com/eclipse/ditto/pull/1430)
-* [Explorer UI - Fix: Avoid storing credentials](https://github.com/eclipse/ditto/pull/1464)
-* [Explorer UI - Improve message to feature and some WoT support](https://github.com/eclipse/ditto/pull/1455)
+* [Eclipse Ditto explorer UI](https://github.com/eclipse-ditto/ditto/pull/1397)
+* [Ditto explorer UI: Improvements from review](https://github.com/eclipse-ditto/ditto/pull/1405)
+* [Explorer UI - Add initial support for connections](https://github.com/eclipse-ditto/ditto/pull/1414)
+* [added mechanism to build "ditto-ui" Docker image](https://github.com/eclipse-ditto/ditto/pull/1415)
+* [Explorer UI - review improvements for connections](https://github.com/eclipse-ditto/ditto/pull/1418)
+* [Explorer UI: add local_ditto_ide and ditto_sanbdox environments](https://github.com/eclipse-ditto/ditto/pull/1422)
+* [Explorer UI - add support for policies](https://github.com/eclipse-ditto/ditto/pull/1430)
+* [Explorer UI - Fix: Avoid storing credentials](https://github.com/eclipse-ditto/ditto/pull/1464)
+* [Explorer UI - Improve message to feature and some WoT support](https://github.com/eclipse-ditto/ditto/pull/1455)
 
-#### [Support for EC signed JsonWebKeys (JWKs)](https://github.com/eclipse/ditto/pull/1432)
+#### [Support for EC signed JsonWebKeys (JWKs)](https://github.com/eclipse-ditto/ditto/pull/1432)
 
 In Ditto 2.x the deserialization of an Elliptic Curve Json Web Token (JWT) failed, because Ditto assumed it to be an 
 RSA token and missed the modulus and exponent information.  
@@ -204,32 +204,32 @@ With the [W3C Web of Things "Thing Description 1.1" standard](https://www.w3.org
 its final phases before official recommendation by the W3C, we think it is time to enable the [WoT Integration](basic-wot-integration.html)
 in Ditto by default and suggest it as the "default" type system for Ditto.
 
-Together with some minor adjustments to the [Ditto WoT model](https://github.com/eclipse/ditto/tree/master/wot/model) to
+Together with some minor adjustments to the [Ditto WoT model](https://github.com/eclipse-ditto/ditto/tree/master/wot/model) to
 the final changes to the 1.1 version of WoT TD, the following improvements also made it into Ditto 3.0:
 
-* [Added WoT context extension ontologies in different formats](https://github.com/eclipse/ditto/pull/1442)
-* [Apply WoT Ditto extension in skeleton and TD generation](https://github.com/eclipse/ditto/pull/1460)
+* [Added WoT context extension ontologies in different formats](https://github.com/eclipse-ditto/ditto/pull/1442)
+* [Apply WoT Ditto extension in skeleton and TD generation](https://github.com/eclipse-ditto/ditto/pull/1460)
 
 By using the Ditto WoT Extension Ontology located at 
 [https://ditto.eclipseprojects.io/wot/ditto-extension](https://ditto.eclipseprojects.io/wot/ditto-extension), it is possible
 to define an additional `"category"` for WoT properties. That can for example be used to ease the migration from Vorto 
 models, e.g. by defining a `"ditto:category": "configuration"` inside a WoT ThingModel.
 
-#### [Make "default namespace" for creating new entities configurable](https://github.com/eclipse/ditto/pull/1372)
+#### [Make "default namespace" for creating new entities configurable](https://github.com/eclipse-ditto/ditto/pull/1372)
 
 When e.g. creating new entities (things/policies) via `HTTP POST`, previously an empty namespace was used to create them in.  
-This namespace can now be [configured](https://github.com/eclipse/ditto/blob/master/edge/service/src/main/resources/ditto-edge-service.conf#L12-L13)
+This namespace can now be [configured](https://github.com/eclipse-ditto/ditto/blob/master/edge/service/src/main/resources/ditto-edge-service.conf#L12-L13)
 via the environment variable `DITTO_DEFAULT_NAMESPACE` set to the "edge" services (ditto-gateway and ditto-connectivity).
 
-#### [Provide custom namespace when creating things via HTTP POST](https://github.com/eclipse/ditto/issues/550)
+#### [Provide custom namespace when creating things via HTTP POST](https://github.com/eclipse-ditto/ditto/issues/550)
 
 Provides the option to provide a custom namespace to create a new thing in when using `HTTP POST`.
 
-#### [Make it possible to provide multiple OIDC issuer urls for a single configured openid-connect "prefix"](https://github.com/eclipse/ditto/pull/1465)
+#### [Make it possible to provide multiple OIDC issuer urls for a single configured openid-connect "prefix"](https://github.com/eclipse-ditto/ditto/pull/1465)
 
 Configure multiple `issuer` endpoints for the same configured [openid-connect-provider](installation-operating.html#openid-connect).
 
-#### [Addition of a "CloudEvents" mapper for mapping CE payloads in Ditto connections](https://github.com/eclipse/ditto/pull/1437)
+#### [Addition of a "CloudEvents" mapper for mapping CE payloads in Ditto connections](https://github.com/eclipse-ditto/ditto/pull/1437)
 
 Adds a [CloudEvents](connectivity-mapping.html#cloudevents-mapper) in order to e.g. consume CloudEvents via Apache Kafka
 or MQTT and additionally to also publish CEs as well via all supported connectivity types.
@@ -239,9 +239,9 @@ or MQTT and additionally to also publish CEs as well via all supported connectiv
 
 Several bugs in Ditto 2.4.x were fixed for 3.0.0.  
 This is a complete list of the
-* [merged pull requests for milestone 3.0.0](https://github.com/eclipse/ditto/pulls?q=is:pr+milestone:3.0.0)
+* [merged pull requests for milestone 3.0.0](https://github.com/eclipse-ditto/ditto/pulls?q=is:pr+milestone:3.0.0)
 
-Here as well for the Ditto Java Client: [merged pull requests for milestone 3.0.0](https://github.com/eclipse/ditto-clients/pulls?q=is:pr+milestone:3.0.0)
+Here as well for the Ditto Java Client: [merged pull requests for milestone 3.0.0](https://github.com/eclipse-ditto/ditto-clients/pulls?q=is:pr+milestone:3.0.0)
 
 #### Passwords stored in the URI of connections to no longer need to be double encoded
 
@@ -249,29 +249,29 @@ Previously for some passwords containing special characters like e.g. a `+` the 
 before storing it to the [Connection](basic-connections.html) `URI`.
 
 This has been fixed by the PR:
-* [Remove double decoding credentials of Connection URI passwords](https://github.com/eclipse/ditto/pull/1471)
+* [Remove double decoding credentials of Connection URI passwords](https://github.com/eclipse-ditto/ditto/pull/1471)
 
 Also fixing the reported issue:
-* [Basic auth in (mqtt) connection requires you to encode the username and password twice](https://github.com/eclipse/ditto/issues/1199)
+* [Basic auth in (mqtt) connection requires you to encode the username and password twice](https://github.com/eclipse-ditto/ditto/issues/1199)
 
 {% include note.html content="Be aware of the
   [migration note](#migration-connection-uri-password-encoding) before updating to Ditto 3.0." %}
 
-#### [When merging a feature, the normalized payload does not contain full feature](https://github.com/eclipse/ditto/issues/1446)
+#### [When merging a feature, the normalized payload does not contain full feature](https://github.com/eclipse-ditto/ditto/issues/1446)
 
 When using the [Normalized mapper](connectivity-mapping.html#normalized-mapper) in Ditto connections together with
 [extra field enrichment](basic-enrichment.html), the outcome "merged" thing JSON structure could miss some information
 from the enriched "extra" data.  
 This has been fixed.
 
-#### [Fix that adding custom Java MessageMappers to Ditto via classpath is no longer possible](https://github.com/eclipse/ditto/issues/1463)
+#### [Fix that adding custom Java MessageMappers to Ditto via classpath is no longer possible](https://github.com/eclipse-ditto/ditto/issues/1463)
 
 Writing own, Java based, `MessageMappers` and adding them to the classpath 
 [as documented](connectivity-mapping.html#custom-java-based-implementation) did no longer work.  
 This has been fixed and the documentation for doing exactly that has been updated.
 
 In addition, an example of how to provide a custom Protobuf payload mapper has been provided via 
-[custom-ditto-java-payload-mapper](https://github.com/eclipse/ditto-examples/tree/master/custom-ditto-java-payload-mapper).
+[custom-ditto-java-payload-mapper](https://github.com/eclipse-ditto/ditto-examples/tree/master/custom-ditto-java-payload-mapper).
 
 
 ## Migration notes
@@ -380,7 +380,7 @@ When [Restricting entity creation](installation-operating.html#restricting-entit
 the configuration for Ditto 3.0 has to be adjusted.
 
 As the configuration was part of the former "ditto-concierge" service (which was removed from Ditto 3.0), the configuration
-is now located in [ditto-entity-creation.conf](https://github.com/eclipse/ditto/blob/master/internal/utils/config/src/main/resources/ditto-entity-creation.conf).
+is now located in [ditto-entity-creation.conf](https://github.com/eclipse-ditto/ditto/blob/master/internal/utils/config/src/main/resources/ditto-entity-creation.conf).
 
 So the configuration keys changed 
 * from: `ditto.concierge.enforcement.entity-creation`
@@ -391,7 +391,7 @@ done for the "ditto-concierge" service.
 
 ### Migration: DevOps commands response adjustments
 
-In [#1380](https://github.com/eclipse/ditto/pull/1380) the response of DevOps commands was consolidated to have a simpler
+In [#1380](https://github.com/eclipse-ditto/ditto/pull/1380) the response of DevOps commands was consolidated to have a simpler
 response format.  
 If DevOps command responses were used in prior Ditto versions, please adjust according to the 
 [new response formats](installation-operating.html#devops-commands).
@@ -415,8 +415,8 @@ double encoding **must be migrated** to use single encoding instead.
 
 Looking forward, the current plans for Ditto 3.1.0 are:
 
-* [Support AMQP Message Annotations when extracting values for Headers](https://github.com/eclipse/ditto/issues/1390)
-* [Policy imports](https://github.com/eclipse/ditto/issues/298) which will allow re-use of policies by importing existing ones
+* [Support AMQP Message Annotations when extracting values for Headers](https://github.com/eclipse-ditto/ditto/issues/1390)
+* [Policy imports](https://github.com/eclipse-ditto/ditto/issues/298) which will allow re-use of policies by importing existing ones
 * Perform a benchmark of Ditto 3.0 and provide a "tuning" chapter in the documentation as a reference to the commonly 
   asked questions 
   * how many Things Ditto can manage 

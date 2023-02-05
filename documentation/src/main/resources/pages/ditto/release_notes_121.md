@@ -16,10 +16,10 @@ Compared to the latest release [1.2.0](release_notes_120.html), the following bu
 ### Bugfixes
 
 This is a complete list of the
-[merged pull requests](https://github.com/eclipse/ditto/pulls?q=is%3Apr+milestone%3A1.2.1), including the fixed bugs.
+[merged pull requests](https://github.com/eclipse-ditto/ditto/pulls?q=is%3Apr+milestone%3A1.2.1), including the fixed bugs.
 
 
-#### [Ditto JSON is not OSGi compatible due to missing imports](https://github.com/eclipse/ditto/issues/790)
+#### [Ditto JSON is not OSGi compatible due to missing imports](https://github.com/eclipse-ditto/ditto/issues/790)
 
 The OSGi bundle `ditto-json` was not compatible to be run in OSGi environments as imports of 3rd party libraries
 were used which were not defined in the `Import-Package` of the bundle.

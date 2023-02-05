@@ -25,6 +25,9 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabelInvalidException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedSub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
@@ -131,9 +134,11 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
             return CompletableFuture.completedFuture(null);
         }
 
-        // don't complete the future with the exception this method emits as this is a bug in Ditto which we must escalate
-        // via the actor supervision strategy
-        ensureAcknowledgementLabelsAreFullyResolved(acknowledgementLabels);
+        try {
+            ensureAcknowledgementLabelsAreFullyResolved(acknowledgementLabels);
+        } catch (final DittoRuntimeException dre) {
+            return CompletableFuture.failedStage(dre);
+        }
 
         return distributedAcks.declareAcknowledgementLabels(acknowledgementLabels, subscriber, group)
                 .thenApply(ack -> null);
@@ -144,9 +149,10 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
                 .filter(Predicate.not(AcknowledgementLabel::isFullyResolved))
                 .findFirst()
                 .ifPresent(ackLabel -> {
-                    // if this happens, this is a bug in the Ditto codebase! at this point the AckLabel must be resolved
-                    throw new IllegalArgumentException("AcknowledgementLabel was not fully resolved while " +
-                            "trying to declare it: " + ackLabel);
+                    throw AcknowledgementLabelInvalidException.of(ackLabel,
+                            "AcknowledgementLabel was not fully resolved while trying to declare it",
+                            null,
+                            DittoHeaders.empty());
                 });
     }
 

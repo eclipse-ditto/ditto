@@ -12,7 +12,7 @@ bugfixes were added.
 
 ## Changes
 
-### [OpenJ9 based Docker images](https://github.com/eclipse/ditto/pull/133)
+### [OpenJ9 based Docker images](https://github.com/eclipse-ditto/ditto/pull/133)
 
 The official Eclipse Ditto Docker images are now based on the [Eclipse OpenJ9](https://www.eclipse.org/openj9/) JVM.
 With this JVM (cheers to the OpenJ9 developers for this awesome JVM) Ditto's containers need a lot less memory having
@@ -28,12 +28,12 @@ the [new features](#new-features).
 
 ## New features
 
-### [AMQP 0.9.1 connectivity](https://github.com/eclipse/ditto/issues/129)
+### [AMQP 0.9.1 connectivity](https://github.com/eclipse-ditto/ditto/issues/129)
 
 The new `connectivity` service can now, additionally to AMQP 1.0, manage and open connections to AMQP 0.9.1 endpoints 
 (e.g. provided by a [RabbitMQ](https://www.rabbitmq.com) broker).
 
-### [Payload mapping to/from Ditto Protocol](https://github.com/eclipse/ditto/issues/130)
+### [Payload mapping to/from Ditto Protocol](https://github.com/eclipse-ditto/ditto/issues/130)
 
 The new `connectivity` service can now also map message arbitrary text or byte payload from incoming AMQP 1.0 / 0.9.1 
 connections which are not yet in [Ditto Protocol](protocol-overview.html) messages in such and can also map outgoing 
@@ -47,7 +47,7 @@ Ditto Protocol messages (e.g. responses or events) back to some arbitrary text o
 The former AMQP bridge did loose the connection to AMQP 1.0 endpoints. This is now much more stable from which also the 
 new AMQP 0.9.1 connections benefit.
 
-### [Docker compose config was wrong](https://github.com/eclipse/ditto/issues/140)
+### [Docker compose config was wrong](https://github.com/eclipse-ditto/ditto/issues/140)
 
 The entrypoint/command was pointing to a wrong `starter.jar`.
 
@@ -55,7 +55,7 @@ The entrypoint/command was pointing to a wrong `starter.jar`.
 ### Various smaller bugfixes
 
 This is a complete list of the 
-[merged pull requests](https://github.com/eclipse/ditto/pulls?q=is%3Apr+milestone%3A0.3.0-M1+).
+[merged pull requests](https://github.com/eclipse-ditto/ditto/pulls?q=is%3Apr+milestone%3A0.3.0-M1+).
 
 
 ## Documentation

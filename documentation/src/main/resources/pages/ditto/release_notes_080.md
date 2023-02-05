@@ -41,7 +41,7 @@ bugfixes were added.
 
 #### New features
 
-##### [Support Hono's command&control in Ditto connectivity](https://github.com/eclipse/ditto/issues/164)
+##### [Support Hono's command&control in Ditto connectivity](https://github.com/eclipse-ditto/ditto/issues/164)
 
 Eclipse Ditto can now map arbitrary headers when connecting to AMQP 1.0 endpoints or AMQP 0.9.1 brokers.
 That way Ditto can send "command&control" messages to Eclipse Hono and correlate a potential response coming from a 
@@ -50,7 +50,7 @@ device.
 #### Bugfixes
 
 This release contains several bugfixes, this is a complete list of the 
-[merged pull requests](https://github.com/eclipse/ditto/pulls?q=is%3Apr+milestone%3A0.8.0+).
+[merged pull requests](https://github.com/eclipse-ditto/ditto/pulls?q=is%3Apr+milestone%3A0.8.0+).
 
 
 

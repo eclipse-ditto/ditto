@@ -226,7 +226,7 @@ The contained fields in a single log entry are the following:
 * `message`:       the actual log message
 
 Please inspect the other available configuration options in 
-[connectivity.conf](https://github.com/eclipse/ditto/blob/master/connectivity/service/src/main/resources/connectivity.conf) 
+[connectivity.conf](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/resources/connectivity.conf) 
 at path `ditto.connectivity.monitoring.logger.publisher` to learn about other configuration possibilities.
 
 

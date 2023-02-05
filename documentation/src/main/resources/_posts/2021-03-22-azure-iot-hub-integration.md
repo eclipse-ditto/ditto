@@ -205,5 +205,5 @@ generate a SAS token out of that string.
 ## Getting started
 
 To get started using Azure IoT Hub as a message broker for Eclipse Ditto, the 
-[Azure IoT Hub Device Simulator Example](https://github.com/eclipse/ditto-examples/tree/master/azure/azure-iot-hub-device-simulator) 
+[Azure IoT Hub Device Simulator Example](https://github.com/eclipse-ditto/ditto-examples/tree/master/azure/azure-iot-hub-device-simulator) 
 is a good entry point.

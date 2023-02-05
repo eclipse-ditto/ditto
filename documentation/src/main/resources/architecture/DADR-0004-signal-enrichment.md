@@ -8,7 +8,7 @@ accepted
 
 ## Context
 
-Supporting a new feature, the so called [signal enrichment](https://github.com/eclipse/ditto/issues/561), raises a few
+Supporting a new feature, the so called [signal enrichment](https://github.com/eclipse-ditto/ditto/issues/561), raises a few
 questions towards throughput and scalability impact of that new feature.
 
 In the current architecture, Ditto internally publishes events (as part of the applied "event sourcing" pattern) for 

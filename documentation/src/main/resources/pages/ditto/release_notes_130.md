@@ -7,7 +7,7 @@ summary: "Version 1.3.0 of Eclipse Ditto, released on 30.09.2020"
 permalink: release_notes_130.html
 ---
 
-Ditto **1.3.0** is API and [binary compatible](https://github.com/eclipse/ditto/blob/master/documentation/src/main/resources/architecture/DADR-0005-semantic-versioning.md)
+Ditto **1.3.0** is API and [binary compatible](https://github.com/eclipse-ditto/ditto/blob/master/documentation/src/main/resources/architecture/DADR-0005-semantic-versioning.md)
 to prior Eclipse Ditto 1.x versions.
 
 ## Changelog
@@ -18,18 +18,18 @@ bugfixes were added.
 
 ### Changes
 
-#### [Update Akka, Akka HTTP and Scala to latest versions](https://github.com/eclipse/ditto/issues/774)
+#### [Update Akka, Akka HTTP and Scala to latest versions](https://github.com/eclipse-ditto/ditto/issues/774)
 
 The core libraries Ditto is built on were updated to their latest versions which should improve cluster stability
 and overall performance.
 
-#### [Removed OWASP security headers](https://github.com/eclipse/ditto/pull/804)
+#### [Removed OWASP security headers](https://github.com/eclipse-ditto/ditto/pull/804)
 
 Setting the [OWASP recommended secure HTTP headers](https://owasp.org/www-project-secure-headers/) 
 (e.g. `X-Frame-Options`, `X-Content-Type-Options`, `X-XSS-Protection`) was removed from the Ditto codebase as such 
 headers are typically set in a reverse proxy (e.g. nginx) or in a cloud loadbalancer in front of Ditto. 
 
-#### [Ditto Java Client: Changed default initial reconnect behavior](https://github.com/eclipse/ditto-clients/pull/86)
+#### [Ditto Java Client: Changed default initial reconnect behavior](https://github.com/eclipse-ditto/ditto-clients/pull/86)
 
 A newly created configuration was added whether a Ditto Java Client should retry connecting to a Ditto backend
 even when the initial connection attempt failed 
@@ -49,7 +49,7 @@ connection should fail with an exception instead, so this is the new default beh
 
 ### New features
 
-#### [Automatic creation of things](https://github.com/eclipse/ditto/issues/760)
+#### [Automatic creation of things](https://github.com/eclipse-ditto/ditto/issues/760)
 
 Added a [payload mapper](connectivity-mapping.html) for connectivity which implicitly creates a new digital twin (thing)
 for incoming messages: [ImplicitThingCreation Mapper](connectivity-mapping.html#implicitthingcreation-mapper).
@@ -60,7 +60,7 @@ automatically creates connected devices, for example when a new device connects 
 This new feature can work together with the 
 [Hono feature for implicit registration of devices connected via gateways](https://github.com/eclipse/hono/issues/2053).
 
-#### [Use response of HTTP push connections as live message response](https://github.com/eclipse/ditto/pull/809)
+#### [Use response of HTTP push connections as live message response](https://github.com/eclipse-ditto/ditto/pull/809)
 
 When [HTTP connections](connectivity-protocol-bindings-http.html) there are now several options 
 to respond to published [live messages](protocol-specification-things-messages.html): 
@@ -69,7 +69,7 @@ to respond to published [live messages](protocol-specification-things-messages.h
 For example, it is possible to use the HTTP response of the foreign HTTP endpoint (Webhook) as Ditto live message 
 response.
 
-#### [Raw payload mapper to enable raw pass-through of live messages](https://github.com/eclipse/ditto/issues/777)
+#### [Raw payload mapper to enable raw pass-through of live messages](https://github.com/eclipse-ditto/ditto/issues/777)
 
 Added a [payload mapper](connectivity-mapping.html) for connectivity which converts consumed messages via connectivity 
 in "raw mode": [RawMessage mapper](connectivity-mapping.html#rawmessage-mapper).
@@ -85,21 +85,21 @@ WebSocket.
 
 Several bugs in Ditto 1.2.x were fixed for 1.3.0.<br/>
 This is a complete list of the 
-[merged pull requests](https://github.com/eclipse/ditto/pulls?q=is%3Apr+milestone%3A1.3.0), including the fixed bugs.<br/>
-Here as well for the Ditto Java Client: [merged pull requests](https://github.com/eclipse/ditto-clients/pulls?q=is%3Apr+milestone%3A1.3.0)
+[merged pull requests](https://github.com/eclipse-ditto/ditto/pulls?q=is%3Apr+milestone%3A1.3.0), including the fixed bugs.<br/>
+Here as well for the Ditto Java Client: [merged pull requests](https://github.com/eclipse-ditto/ditto-clients/pulls?q=is%3Apr+milestone%3A1.3.0)
 
-#### [Responses from HTTP /messages API were JSON escaped](https://github.com/eclipse/ditto/issues/805)
+#### [Responses from HTTP /messages API were JSON escaped](https://github.com/eclipse-ditto/ditto/issues/805)
 
 With Ditto 1.2.0 HTTP responses to the `POST /messages` APIs which transported `application/json` were falsely JSON 
 escaped. As the fix for that had to be done in several steps and at several places, the fix is not backported to the 
 Ditto 1.2.0 line and it is suggested to update to Ditto 1.3.0 right away, if affected by this bug.
 
-#### [Putting `_metadata` while creating a Thing does not work bug](https://github.com/eclipse/ditto/issues/801)
+#### [Putting `_metadata` while creating a Thing does not work bug](https://github.com/eclipse-ditto/ditto/issues/801)
 
 When putting [Metadata](basic-metadata.html) as part of a "create thing" API call, the metadata was not applied. Only
 when updating an existing thing, the metadata was applied.
 
-#### [Ditto Java Client: threads leakage](https://github.com/eclipse/ditto-clients/pull/87)
+#### [Ditto Java Client: threads leakage](https://github.com/eclipse-ditto/ditto-clients/pull/87)
 
 The Ditto Java client did not close/cleanup its threadpools when closing the client.
 

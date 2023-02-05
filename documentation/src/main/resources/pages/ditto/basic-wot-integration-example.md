@@ -15,7 +15,7 @@ Wrapping up the [WoT integration](basic-wot-integration.html) with a practical e
 You can provide a WoT Thing Model via any HTTP(s) URL addressable endpoint, for example simply put your WoT TMs into
 a GitHub repository.  
 For this example, Ditto added a model into its `ditto-examples` GitHub Repo:  
-[floor-lamp-1.0.0.tm.jsonld](https://github.com/eclipse/ditto-examples/blob/master/wot/models/floor-lamp-1.0.0.tm.jsonld)
+[floor-lamp-1.0.0.tm.jsonld](https://github.com/eclipse-ditto/ditto-examples/blob/master/wot/models/floor-lamp-1.0.0.tm.jsonld)
 
 This file is available as HTTP served file at:  
 [https://eclipse-ditto.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld](https://eclipse-ditto.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld)

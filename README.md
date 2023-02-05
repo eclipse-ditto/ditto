@@ -7,7 +7,7 @@
 # Eclipse Ditto™
 
 [![Join the chat at https://gitter.im/eclipse/ditto](https://badges.gitter.im/eclipse/ditto.svg)](https://gitter.im/eclipse/ditto?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Build Status](https://github.com/eclipse/ditto/workflows/build/badge.svg)](https://github.com/eclipse/ditto/actions?query=workflow%3Abuild)
+[![Build Status](https://github.com/eclipse-ditto/ditto/workflows/build/badge.svg)](https://github.com/eclipse-ditto/ditto/actions?query=workflow%3Abuild)
 [![Maven Central](https://img.shields.io/maven-central/v/org.eclipse.ditto/ditto?label=maven)](https://search.maven.org/search?q=g:org.eclipse.ditto)
 [![Docker pulls](https://img.shields.io/docker/pulls/eclipse/ditto-things.svg)](https://hub.docker.com/search?q=eclipse%2Fditto&type=image)
 [![License](https://img.shields.io/badge/License-EPL%202.0-green.svg)](https://opensource.org/licenses/EPL-2.0)
@@ -41,7 +41,7 @@ In order to start up Ditto via *Docker Compose*, you'll need:
   * at least 2 CPU cores which can be used by Docker
   * at least 4 GB of RAM which can be used by Docker
 
-You also have other possibilities to run Ditto, please have a look [here](https://github.com/eclipse/ditto/tree/master/deployment) to explore them.
+You also have other possibilities to run Ditto, please have a look [here](https://github.com/eclipse-ditto/ditto/tree/master/deployment) to explore them.
 
 ### Start Ditto
 

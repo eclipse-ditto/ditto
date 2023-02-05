@@ -24,8 +24,8 @@ That worked quite well, but still had some issues:
 
 Our current implementation focus lies on two GitHub issues resolving those problems:
 
-* [Enhance existing AMQP-bridge with AMQP 0.9.1 connectivity](https://github.com/eclipse/ditto/issues/129)
-* [Support mapping arbitrary message payloads in AMQP-bridge](https://github.com/eclipse/ditto/issues/130)
+* [Enhance existing AMQP-bridge with AMQP 0.9.1 connectivity](https://github.com/eclipse-ditto/ditto/issues/129)
+* [Support mapping arbitrary message payloads in AMQP-bridge](https://github.com/eclipse-ditto/ditto/issues/130)
 
 
 ## Changes and Enhancements

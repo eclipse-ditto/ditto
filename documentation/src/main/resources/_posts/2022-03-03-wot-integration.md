@@ -191,7 +191,7 @@ e.g. have a builder based API for building new objects or to read a TD/TM from a
 </dependency>
 ```
 
-Please have a look at the added [ditto-wot-model module](https://github.com/eclipse/ditto/tree/master/wot/model) to find
+Please have a look at the added [ditto-wot-model module](https://github.com/eclipse-ditto/ditto/tree/master/wot/model) to find
 out more about example usage.
 
 

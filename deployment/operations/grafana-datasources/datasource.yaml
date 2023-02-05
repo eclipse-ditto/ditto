@@ -1,0 +1,39 @@
+# config file version
+apiVersion: 1
+
+# list of datasources to insert/update depending
+# whats available in the database
+datasources:
+  #
+  # Prometheus datasource
+  #
+- name: prometheus
+  # <string, required> datasource type. Required
+  type: prometheus
+  # <string, required> access mode. direct or proxy. Required
+  access: proxy
+  # <int> org id. will default to orgId 1 if not specified
+  orgId: 1
+  # <string> url
+  url: http://prometheus:9090
+  # <bool> allow users to edit datasources from the UI.
+  editable: false
+
+- name: elasticsearch
+  # <string, required> datasource type. Required
+  type: elasticsearch
+  # <string, required> access mode. direct or proxy. Required
+  access: proxy
+  # <int> org id. will default to orgId 1 if not specified
+  orgId: 1
+  # <string> url
+  url: http://elasticsearch:9200
+  # <bool> allow users to edit datasources from the UI.
+  editable: false
+  database: "[logstash-]YYYY.MM.DD"
+  # <map> fields that will be converted to json and stored in json_data
+  jsonData:
+    interval: Daily
+    timeField: "@timestamp"
+    esVersion: '8.0.0'
+    logMessageField: message

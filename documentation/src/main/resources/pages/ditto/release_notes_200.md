@@ -72,7 +72,7 @@ pointing to an alternative implementation to use instead. Now, these deprecated 
 
 Some changes to the codebase which could not be done in Ditto 1.x without breaking binary compatibility were also done.
 
-#### [Removed content-type header mapping for connection targets](https://github.com/eclipse/ditto/pull/934)
+#### [Removed content-type header mapping for connection targets](https://github.com/eclipse-ditto/ditto/pull/934)
 
 Removed the default header mapping of `content-type` for new connection targets. The header mapping led to irritating
 results, when payload mapping and header mapping disagreed on the actual `content-type`. Existing connections will still
@@ -83,7 +83,7 @@ If you need to keep the old behavior, please have a look at the
 
 #### OpenID Connect configuration change
 
-For supporting [Configurable OpenID Connect / OAuth2.0 claim extraction](https://github.com/eclipse/ditto/issues/512), 
+For supporting [Configurable OpenID Connect / OAuth2.0 claim extraction](https://github.com/eclipse-ditto/ditto/issues/512), 
 the configuration format was changed, please have a look at the  
 [migration notes](#openid-connect-configuration-for-gateway).
 
@@ -205,7 +205,7 @@ In addition, all APIs which returned a `CompletableFuture` were adjusted to retu
 
 #### Ditto JavaScript client
 
-Starting with Ditto 2.0.0, the releases of the [Ditto JavaScript client](https://github.com/eclipse/ditto-clients/tree/master/javascript)
+Starting with Ditto 2.0.0, the releases of the [Ditto JavaScript client](https://github.com/eclipse-ditto/ditto-clients/tree/master/javascript)
 are in sync with Ditto releases.  
 In oder to have a simplified usage of the JS client, the "api" module must no longer be explicitly imported, 
 simply directly import one of the following 2 npm modules:
@@ -215,7 +215,7 @@ simply directly import one of the following 2 npm modules:
 
 ### New features
 
-#### [Merge/PATCH updates of digital twins](https://github.com/eclipse/ditto/issues/288)
+#### [Merge/PATCH updates of digital twins](https://github.com/eclipse-ditto/ditto/issues/288)
 
 This new feature allows updating parts of a thing without affecting existing parts. You may now for example update an
 attribute, add a new property to a feature and delete a property of a different feature in a _single request_. The new
@@ -223,57 +223,57 @@ merge functionality is available via the HTTP API and the all channels using the
 [Merge updates via HTTP](httpapi-concepts.html#merge-updates)
 or the [Merge protocol specification](protocol-specification-things-merge.html) for more details and examples.
 
-#### [Configurable OpenID Connect / OAuth2.0 claim extraction](https://github.com/eclipse/ditto/issues/512)
+#### [Configurable OpenID Connect / OAuth2.0 claim extraction](https://github.com/eclipse-ditto/ditto/issues/512)
 
 OpenID Connect support has been extended; Previously, only the `sub` field from a JWT was injected as an authorization subject.
 This is now configurable: The Ditto Gateway config takes a list of placeholder strings that are used to construct authorization subjects.  
 See [OpenID Connect](installation-operating.html#openid-connect)
 
-#### [Establishing connections to endpoints via SSH tunnel](https://github.com/eclipse/ditto/issues/985)
+#### [Establishing connections to endpoints via SSH tunnel](https://github.com/eclipse-ditto/ditto/issues/985)
 
 Add support for connecting to an external system from Ditto via an SSH tunnel.
 
-#### [DevOps API to retrieve all known connections](https://github.com/eclipse/ditto/issues/605)
+#### [DevOps API to retrieve all known connections](https://github.com/eclipse-ditto/ditto/issues/605)
 
 Adds a new [DevOps command](connectivity-manage-connections.html) to list all 
 configured, non-deleted connections.
 
-#### [Expiring policy subjects](https://github.com/eclipse/ditto/issues/890)
+#### [Expiring policy subjects](https://github.com/eclipse-ditto/ditto/issues/890)
 
 In order to give access for a certain "authorized subject" only until a fixed timestamp, a Policy subject can 
 optionally be provided with an ["expiry" timestamp](basic-policy.html#expiring-policy-subjects) 
 (being an ISO-8601 string).
 
-#### [Publishing of announcement message prior to policy expiry](https://github.com/eclipse/ditto/issues/964)
+#### [Publishing of announcement message prior to policy expiry](https://github.com/eclipse-ditto/ditto/issues/964)
 
 For "expiring" policy subjects it is useful to get an [announcement](basic-signals-announcement.html) message prior
 to the actual expiry in order to be able to prolong the temporary access rights.
 
-#### [Addition of policy actions in order to inject a policy subject](https://github.com/eclipse/ditto/issues/926)
+#### [Addition of policy actions in order to inject a policy subject](https://github.com/eclipse-ditto/ditto/issues/926)
 
 New [policy HTTP API](basic-policy.html#action-activatetokenintegration) to inject authorization subjects based on 
 the <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> of the HTTP request.
 
-#### [Built-in acknowledgement for search updates / strong consistency of the search index](https://github.com/eclipse/ditto/issues/914)
+#### [Built-in acknowledgement for search updates / strong consistency of the search index](https://github.com/eclipse-ditto/ditto/issues/914)
 
 Ditto's search index is only eventually consistent. Applications that rely on search to for twin interactions which 
 need to know when a change is reflected in the search index, may request the new built-in 
 [`"search-persisted"`](basic-acknowledgements.html#built-in-acknowledgement-labels) acknowledgement label.
 
-#### [Restoring active connection faster after a hard restart of the Ditto cluster](https://github.com/eclipse/ditto/pull/1018)
+#### [Restoring active connection faster after a hard restart of the Ditto cluster](https://github.com/eclipse-ditto/ditto/pull/1018)
 
 Prioritize very active [connections](basic-connections.html) over inactive connections for reconnecting:  
 The higher the priority, the earlier it will be reconnected on startup.
 
-#### [Support for "Last Will" for MQTT connections](https://github.com/eclipse/ditto/issues/1021)
+#### [Support for "Last Will" for MQTT connections](https://github.com/eclipse-ditto/ditto/issues/1021)
 
 Adds "Last Will" support for managed MQTT connections
 
-#### [Allow setting retain flag for MQTT connections](https://github.com/eclipse/ditto/issues/1029)
+#### [Allow setting retain flag for MQTT connections](https://github.com/eclipse-ditto/ditto/issues/1029)
 
 The `retain` flag of MQTT messages published via a managed connection is set according to a message header.
 
-#### [Provide JWT tokens to Websocket endpoint with browser APIs](https://github.com/eclipse/ditto/issues/667)
+#### [Provide JWT tokens to Websocket endpoint with browser APIs](https://github.com/eclipse-ditto/ditto/issues/667)
 
 Prior to Ditto 2.0 it was only possible to pass a JWT to the `/ws` endpoint with the `Authorization` header.  
 As this however is not possible to influence in the browser based JavaScript API of `WebSocket`, it was not possible
@@ -286,24 +286,24 @@ This is now possible by supplying the JWT via a [query-parameter `access_token`]
 
 Several bugs in Ditto 1.5.x were fixed for 2.0.0.  
 This is a complete list of the
-* [merged pull requests for milestone 2.0.0-M1](https://github.com/eclipse/ditto/pulls?q=is:pr+milestone:2.0.0-M1)
-* [merged pull requests for milestone 2.0.0-M2](https://github.com/eclipse/ditto/pulls?q=is:pr+milestone:2.0.0-M2)
-* [merged pull requests for milestone 2.0.0](https://github.com/eclipse/ditto/pulls?q=is:pr+milestone:2.0.0)
+* [merged pull requests for milestone 2.0.0-M1](https://github.com/eclipse-ditto/ditto/pulls?q=is:pr+milestone:2.0.0-M1)
+* [merged pull requests for milestone 2.0.0-M2](https://github.com/eclipse-ditto/ditto/pulls?q=is:pr+milestone:2.0.0-M2)
+* [merged pull requests for milestone 2.0.0](https://github.com/eclipse-ditto/ditto/pulls?q=is:pr+milestone:2.0.0)
 
-Here as well for the Ditto Java Client: [merged pull requests for milestone 2.0.0](https://github.com/eclipse/ditto-clients/pulls?q=is:pr+milestone:2.0.0)
+Here as well for the Ditto Java Client: [merged pull requests for milestone 2.0.0](https://github.com/eclipse-ditto/ditto-clients/pulls?q=is:pr+milestone:2.0.0)
 
 
-#### ["content-type" of a Ditto Protocol JSON message did not describe its "value"](https://github.com/eclipse/ditto/pull/987)
+#### ["content-type" of a Ditto Protocol JSON message did not describe its "value"](https://github.com/eclipse-ditto/ditto/pull/987)
 
 The `"content-type"` field in [Ditto Protocol headers](protocol-specification.html#headers) was intended to identify the 
 type of the [`"value"`](protocol-specification.html#value). This was not consequently ensured which has now been fixed.
 
-#### [Password encoding/decoding for AMQP 1.0 connections with special characters](https://github.com/eclipse/ditto/pull/996)
+#### [Password encoding/decoding for AMQP 1.0 connections with special characters](https://github.com/eclipse-ditto/ditto/pull/996)
 
 When passwords contained a `+` sign, they were wrongly decoded for 
 [AMQP 1.0 connections](connectivity-protocol-bindings-amqp10.html).
 
-#### [Merging "extraFields" into thing payload when using "normalization" mapper](https://github.com/eclipse/ditto/issues/947)
+#### [Merging "extraFields" into thing payload when using "normalization" mapper](https://github.com/eclipse-ditto/ditto/issues/947)
 
 When selecting [extra](basic-connections.html#target-topics-and-enrichment) via "enrichment", the actual value of an 
 event could be overwritten by the "extra" data. The event data now always has priority.
@@ -331,7 +331,7 @@ In order to migrate existing [things](basic-thing.html) from API version 1 to AP
 ### "content-type" header mapping in connection targets
 
 Due to the 
-[removed default content-type header mapping for connection targets](https://github.com/eclipse/ditto/pull/934), 
+[removed default content-type header mapping for connection targets](https://github.com/eclipse-ditto/ditto/pull/934), 
 it might be necessary to update the way connection targets are created in case you create connection targets without
 explicit `headerMapping` and rely on a specific content-type on the receiving side. The request to create connection 
 targets can be updated to contain the "old" default in this case:
@@ -361,7 +361,7 @@ targets can be updated to contain the "old" default in this case:
 ### OpenID Connect configuration for gateway
 
 The oauth configuration section of the Gateway service has been altered to support
-[arbitrary claims for authorization subjects](https://github.com/eclipse/ditto/issues/512). 
+[arbitrary claims for authorization subjects](https://github.com/eclipse-ditto/ditto/issues/512). 
 The `openid-connect-issuers` map now takes key-object pairs rather than key-string pairs:
 
 old:
@@ -420,5 +420,5 @@ This call returns a `CompletionStage` which finally resolves to a connected `Dit
 
 Looking forward, the current plans for Ditto 2.1.0 are:
 
-* [Support for consuming messages from Apache Kafka](https://github.com/eclipse/ditto/issues/586)
-* [Let policies import other policies to enable re-use when securing things](https://github.com/eclipse/ditto/issues/298)
+* [Support for consuming messages from Apache Kafka](https://github.com/eclipse-ditto/ditto/issues/586)
+* [Let policies import other policies to enable re-use when securing things](https://github.com/eclipse-ditto/ditto/issues/298)
