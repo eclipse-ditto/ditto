@@ -153,12 +153,12 @@ public interface CriteriaFactory {
     Predicate like(@Nullable Object value);
 
     /**
-     *Creates a predicate which checks lower than or equals.
+     *Creates a predicate which checks lower than or equals case insensitive.
      *
      * @param value the value, may be {@code null}.
      * @return the predicate. 
      */
-    Predicate ilike(@Nullable object value);
+    Predicate ilike(@Nullable Object value);
     
     /**
      * The $in predicate selects the documents where the value of a field equals any value in the specified array.
