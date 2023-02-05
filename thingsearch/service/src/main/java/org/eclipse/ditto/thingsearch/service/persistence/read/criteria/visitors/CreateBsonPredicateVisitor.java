@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
@@ -145,8 +146,8 @@ public class CreateBsonPredicateVisitor implements PredicateVisitor<Function<Str
         // characteristics. All of these expressions use an index if an appropriate index exists;
         // however, /^a.*/, and /^a.*$/ are slower. /^a/ can stop scanning after matching the prefix."
         final String valueWithoutLeadingOrTrailingWildcard = removeLeadingOrTrailingWildcard(value);
-        Pattern pattern = Pattern.compile(valueWithoutLeadingOrTrailingWildcard, Pattern.CASE_INSENSITIVE)
-        return fieldName -> Filters.regex(fieldName, pattern, "");
+        Pattern pattern = Pattern.compile(valueWithoutLeadingOrTrailingWildcard, Pattern.CASE_INSENSITIVE);
+        return fieldName -> Filters.regex(fieldName, pattern);
     }
 
     private static String removeLeadingOrTrailingWildcard(final String valueString) {
