@@ -78,7 +78,12 @@ public final class SingleComparisonNode extends ComparisonNode<SingleComparisonN
         /**
          * Represents a lower than or equals comparison.
          */
-        LIKE("like");
+        LIKE("like"),
+        
+         /**
+         * Represents a lower than or equals comparison case insensitive.
+         */
+        ILIKE("ilike");
 
         private final String name;
 
