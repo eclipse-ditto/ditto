@@ -17,6 +17,7 @@ import org.eclipse.ditto.base.api.common.purge.PurgeEntities;
 import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackCommand;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
+import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.base.service.cluster.ModifySplitBrainResolver;
 import org.eclipse.ditto.connectivity.api.commands.sudo.SudoAddConnectionLogEntry;
 import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionIdsByTag;
@@ -66,7 +67,8 @@ public class ConnectivityServiceGlobalCommandRegistryTest extends GlobalCommandR
                 PurgeEntities.class,
                 ModifySplitBrainResolver.class,
                 PublishSignal.class,
-                SudoAddConnectionLogEntry.class
+                SudoAddConnectionLogEntry.class,
+                SubscribeForPersistedEvents.class
         );
     }
 

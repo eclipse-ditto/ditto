@@ -840,6 +840,20 @@
           }
         }
       }
+    },
+    "_revision": {
+      "type": "integer",
+      "description": "_(read-only)_ The revision is a counter which is incremented on each modification of a connection."
+    },
+    "_created": {
+      "type": "string",
+      "description": "_(read-only)_ The created timestamp of the connection in ISO-8601 UTC format. The timestamp is set on creation of a connection.",
+      "format": "date-time"
+    },
+    "_modified": {
+      "type": "string",
+      "description": "_(read-only)_ The modified timestamp of the connection in ISO-8601 UTC format. The timestamp is set on each modification of a connection.",
+      "format": "date-time"
     }
   },
   "additionalProperties": false,

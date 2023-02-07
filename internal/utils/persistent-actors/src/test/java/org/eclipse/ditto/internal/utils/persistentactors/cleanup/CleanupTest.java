@@ -21,6 +21,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -67,7 +68,8 @@ public final class CleanupTest {
         when(mongoReadJournal.getNewestSnapshotsAbove(any(), anyInt(), eq(true), any(), any()))
                 .thenReturn(Source.empty());
 
-        final var underTest = new Cleanup(mongoReadJournal, materializer, () -> Pair.create(0, 1), 1, 1, true);
+        final var underTest = new Cleanup(mongoReadJournal, materializer, () -> Pair.create(0, 1),
+                Duration.ZERO, 1, 1, true);
         final var result = underTest.getCleanupStream("")
                 .flatMapConcat(x -> x)
                 .runWith(Sink.seq(), materializer)
@@ -94,7 +96,8 @@ public final class CleanupTest {
                 invocation.<Long>getArgument(1) * 1000L + invocation.<Long>getArgument(2) * 10L)))
                 .when(mongoReadJournal).deleteSnapshots(any(), anyLong(), anyLong());
 
-        final var underTest = new Cleanup(mongoReadJournal, materializer, () -> Pair.create(0, 1), 1, 4, true);
+        final var underTest = new Cleanup(mongoReadJournal, materializer, () -> Pair.create(0, 1),
+                Duration.ZERO, 1, 4, true);
 
         final var result = underTest.getCleanupStream("")
                 .flatMapConcat(x -> x)
@@ -127,7 +130,8 @@ public final class CleanupTest {
                 invocation.<Long>getArgument(1) * 1000L + invocation.<Long>getArgument(2) * 10L)))
                 .when(mongoReadJournal).deleteSnapshots(any(), anyLong(), anyLong());
 
-        final var underTest = new Cleanup(mongoReadJournal, materializer, () -> Pair.create(0, 1), 1, 4, false);
+        final var underTest = new Cleanup(mongoReadJournal, materializer, () -> Pair.create(0, 1),
+                Duration.ZERO, 1, 4, false);
 
         final var result = underTest.getCleanupStream("")
                 .flatMapConcat(x -> x)
@@ -168,7 +172,8 @@ public final class CleanupTest {
                 .when(mongoReadJournal).deleteSnapshots(any(), anyLong(), anyLong());
 
         // WHEN: the instance is responsible for 1/3 of the 3 PIDs
-        final var underTest = new Cleanup(mongoReadJournal, materializer, () -> Pair.create(2, 3), 1, 4, false);
+        final var underTest = new Cleanup(mongoReadJournal, materializer, () -> Pair.create(2, 3),
+                Duration.ZERO, 1, 4, false);
 
         final var result = underTest.getCleanupStream("")
                 .flatMapConcat(x -> x)

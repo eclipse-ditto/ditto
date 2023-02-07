@@ -27,6 +27,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.TestConstants;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
@@ -55,7 +56,7 @@ public final class RetrieveResolvedHonoConnectionTest {
     public void assertImmutability() {
         assertInstancesOf(RetrieveResolvedHonoConnection.class,
                 areImmutable(),
-                provided(ConnectionId.class).isAlsoImmutable());
+                provided(ConnectionId.class, JsonFieldSelector.class).isAlsoImmutable());
     }
 
     @Test

@@ -22,7 +22,13 @@ public enum ConnectionsParameter {
      * Request parameter for doing a dry-run before creating a connection.
      */
     DRY_RUN("dry-run"),
-    IDS_ONLY("ids-only");
+
+    IDS_ONLY("ids-only"),
+
+    /**
+     * Request parameter for including only the selected fields in the Connection JSON document(s).
+     */
+    FIELDS("fields");
 
     private final String parameterValue;
 

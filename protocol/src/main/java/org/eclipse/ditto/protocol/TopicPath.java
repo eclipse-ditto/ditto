@@ -19,6 +19,14 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.eclipse.ditto.base.model.signals.commands.streaming.CancelStreamingSubscription;
+import org.eclipse.ditto.base.model.signals.commands.streaming.RequestFromStreamingSubscription;
+import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
+import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionComplete;
+import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionCreated;
+import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionFailed;
+import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionHasNext;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
 import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -66,6 +74,18 @@ public interface TopicPath {
      */
     static TopicPathBuilder newBuilder(final PolicyId policyId) {
         return ProtocolFactory.newTopicPathBuilder(policyId);
+    }
+
+    /**
+     * Returns a mutable builder to create immutable {@code TopicPath} instances for a given {@code connectionId}.
+     *
+     * @param connectionId the identifier of the {@code Connection}.
+     * @return the builder.
+     * @throws NullPointerException if {@code connectionId} is {@code null}.
+     * @since 3.1.0
+     */
+    static TopicPathBuilder newBuilder(final ConnectionId connectionId) {
+        return ProtocolFactory.newTopicPathBuilder(connectionId);
     }
 
     /**
@@ -122,11 +142,19 @@ public interface TopicPath {
     Optional<Action> getAction();
 
     /**
-     * Returns an {@link Optional} for an search action part of this {@code TopicPath}.
+     * Returns an {@link Optional} for a search action part of this {@code TopicPath}.
      *
      * @return the search action.
      */
     Optional<SearchAction> getSearchAction();
+
+    /**
+     * Returns an {@link Optional} for a streaming action part of this {@code TopicPath}.
+     *
+     * @return the streaming action.
+     * @since 3.2.0
+     */
+    Optional<StreamingAction> getStreamingAction();
 
     /**
      * Returns an {@link Optional} for a subject part of this {@code TopicPath}.
@@ -268,7 +296,14 @@ public interface TopicPath {
          *
          * @since 2.0.0
          */
-        ANNOUNCEMENTS("announcements");
+        ANNOUNCEMENTS("announcements"),
+
+        /**
+         * Criterion for streaming commands.
+         *
+         * @since 3.2.0
+         */
+        STREAMING("streaming");
 
         private final String name;
 
@@ -467,6 +502,67 @@ public interface TopicPath {
          * Returns the SearchAction name as String.
          *
          * @return the SearchAction name as String.
+         */
+        public String getName() {
+            return name;
+        }
+
+        /**
+         * @return the same as {@link #getName()}.
+         */
+        @Override
+        public String toString() {
+            return getName();
+        }
+
+    }
+
+    /**
+     * An enumeration of topic path streaming actions.
+     *
+     * @since 3.2.0
+     */
+    enum StreamingAction {
+
+        SUBSCRIBE_FOR_PERSISTED_EVENTS(SubscribeForPersistedEvents.NAME),
+
+        CANCEL(CancelStreamingSubscription.NAME),
+
+        REQUEST(RequestFromStreamingSubscription.NAME),
+
+        COMPLETE(StreamingSubscriptionComplete.NAME),
+
+        GENERATED(StreamingSubscriptionCreated.NAME),
+
+        FAILED(StreamingSubscriptionFailed.NAME),
+
+        NEXT(StreamingSubscriptionHasNext.NAME),
+
+        ERROR("error");
+
+        private final String name;
+
+        StreamingAction(final String name) {
+            this.name = name;
+        }
+
+        /**
+         * Creates a StreamingAction from the passed StreamingAction {@code name} if such an enum value exists,
+         * otherwise an empty Optional.
+         *
+         * @param name the StreamingAction name to create the StreamingAction enum value of.
+         * @return the optional StreamingAction.
+         */
+        public static Optional<StreamingAction> forName(final String name) {
+            return Stream.of(values())
+                    .filter(a -> Objects.equals(a.getName(), name))
+                    .findFirst();
+        }
+
+        /**
+         * Returns the StreamingAction name as String.
+         *
+         * @return the StreamingAction name as String.
          */
         public String getName() {
             return name;

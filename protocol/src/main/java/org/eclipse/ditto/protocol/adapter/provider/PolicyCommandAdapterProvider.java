@@ -12,13 +12,14 @@
  */
 package org.eclipse.ditto.protocol.adapter.provider;
 
-import org.eclipse.ditto.protocol.adapter.Adapter;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommand;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
+import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
+import org.eclipse.ditto.protocol.adapter.Adapter;
 
 /**
  * Provider for all policy command adapters. This interface mainly defines the generic type arguments and adds
@@ -30,6 +31,7 @@ public interface PolicyCommandAdapterProvider
         extends QueryCommandAdapterProvider<PolicyQueryCommand<?>, PolicyQueryCommandResponse<?>>,
         ModifyCommandAdapterProvider<PolicyModifyCommand<?>, PolicyModifyCommandResponse<?>>,
         ErrorResponseAdapterProvider<PolicyErrorResponse>,
+        EventAdapterProvider<PolicyEvent<?>>,
         AdapterProvider {
 
     /**

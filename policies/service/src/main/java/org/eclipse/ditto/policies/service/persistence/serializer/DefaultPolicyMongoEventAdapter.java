@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.policies.service.persistence.serializer;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 
 import akka.actor.ExtendedActorSystem;
@@ -24,7 +22,7 @@ import akka.actor.ExtendedActorSystem;
  */
 public final class DefaultPolicyMongoEventAdapter extends AbstractPolicyMongoEventAdapter {
 
-    public DefaultPolicyMongoEventAdapter(@Nullable final ExtendedActorSystem system) {
+    public DefaultPolicyMongoEventAdapter(final ExtendedActorSystem system) {
         super(system);
     }
 

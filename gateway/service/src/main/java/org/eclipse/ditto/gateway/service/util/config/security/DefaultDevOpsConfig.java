@@ -33,23 +33,25 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
 
     private static final String CONFIG_PATH = "devops";
 
-    private final boolean secureStatus;
+    private final boolean secured;
     private final DevopsAuthenticationMethod devopsAuthenticationMethod;
     private final String password;
     private final Collection<String> devopsOAuth2Subjects;
+    private final boolean statusSecured;
     private final DevopsAuthenticationMethod statusAuthenticationMethod;
     private final String statusPassword;
     private final Collection<String> statusOAuth2Subjects;
     private final OAuthConfig oAuthConfig;
 
     private DefaultDevOpsConfig(final ConfigWithFallback configWithFallback) {
-        secureStatus = configWithFallback.getBoolean(DevOpsConfigValue.SECURED.getConfigPath());
+        secured = configWithFallback.getBoolean(DevOpsConfigValue.SECURED.getConfigPath());
         devopsAuthenticationMethod =
                 getDevopsAuthenticationMethod(configWithFallback, DevOpsConfigValue.DEVOPS_AUTHENTICATION_METHOD);
         password = configWithFallback.getString(DevOpsConfigValue.PASSWORD.getConfigPath());
         devopsOAuth2Subjects =
                 Collections.unmodifiableList(new ArrayList<>(
                         configWithFallback.getStringList(DevOpsConfigValue.DEVOPS_OAUTH2_SUBJECTS.getConfigPath())));
+        statusSecured = configWithFallback.getBoolean(DevOpsConfigValue.STATUS_SECURED.getConfigPath());
         statusAuthenticationMethod =
                 getDevopsAuthenticationMethod(configWithFallback, DevOpsConfigValue.STATUS_AUTHENTICATION_METHOD);
         statusPassword = configWithFallback.getString(DevOpsConfigValue.STATUS_PASSWORD.getConfigPath());
@@ -84,7 +86,7 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
 
     @Override
     public boolean isSecured() {
-        return secureStatus;
+        return secured;
     }
 
     @Override
@@ -100,6 +102,11 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
     @Override
     public Collection<String> getDevopsOAuth2Subjects() {
         return devopsOAuth2Subjects;
+    }
+
+    @Override
+    public boolean isStatusSecured() {
+        return statusSecured;
     }
 
     @Override
@@ -131,10 +138,11 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
             return false;
         }
         final DefaultDevOpsConfig that = (DefaultDevOpsConfig) o;
-        return Objects.equals(secureStatus, that.secureStatus) &&
+        return Objects.equals(secured, that.secured) &&
                 Objects.equals(devopsAuthenticationMethod, that.devopsAuthenticationMethod) &&
                 Objects.equals(password, that.password) &&
                 Objects.equals(devopsOAuth2Subjects, that.devopsOAuth2Subjects) &&
+                Objects.equals(statusSecured, that.statusSecured) &&
                 Objects.equals(statusAuthenticationMethod, that.statusAuthenticationMethod) &&
                 Objects.equals(statusOAuth2Subjects, that.statusOAuth2Subjects) &&
                 Objects.equals(statusPassword, that.statusPassword) &&
@@ -143,17 +151,18 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(secureStatus, devopsAuthenticationMethod, password, devopsOAuth2Subjects,
-                statusAuthenticationMethod, statusPassword, statusOAuth2Subjects, oAuthConfig);
+        return Objects.hash(secured, devopsAuthenticationMethod, password, devopsOAuth2Subjects,
+                statusSecured, statusAuthenticationMethod, statusPassword, statusOAuth2Subjects, oAuthConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "secureStatus=" + secureStatus +
+                "secured=" + secured +
                 ", devopsAuthenticationMethod=" + devopsAuthenticationMethod +
                 ", password=*****" +
                 ", devopsOAuth2Subject=" + devopsOAuth2Subjects +
+                ", statusSecured=" + statusSecured +
                 ", statusAuthenticationMethod=" + statusAuthenticationMethod +
                 ", statusPassword=*****" +
                 ", statusOAuth2Subject=" + statusOAuth2Subjects +

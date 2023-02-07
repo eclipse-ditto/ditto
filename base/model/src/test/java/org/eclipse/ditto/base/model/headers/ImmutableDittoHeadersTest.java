@@ -19,11 +19,13 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -129,6 +131,12 @@ public final class ImmutableDittoHeadersTest {
                             .build())
                     .build())
             .build();
+    private static final Long KNOWN_AT_HISTORICAL_REVISION = 42L;
+    private static final Instant KNOWN_AT_HISTORICAL_TIMESTAMP = Instant.now();
+
+    private static final JsonObject KNOWN_HISTORICAL_HEADERS = JsonObject.newBuilder()
+            .set(DittoHeaderDefinition.ORIGINATOR.getKey(), "foo:bar")
+            .build();
 
 
     static {
@@ -199,6 +207,9 @@ public final class ImmutableDittoHeadersTest {
                 .putHeader(DittoHeaderDefinition.GET_METADATA.getKey(), KNOWN_DITTO_GET_METADATA )
                 .putHeader(DittoHeaderDefinition.DELETE_METADATA.getKey(), KNOWN_DITTO_DELETE_METADATA )
                 .putHeader(DittoHeaderDefinition.DITTO_METADATA.getKey(), KNOWN_DITTO_METADATA.formatAsString())
+                .putHeader(DittoHeaderDefinition.AT_HISTORICAL_REVISION.getKey(), String.valueOf(KNOWN_AT_HISTORICAL_REVISION))
+                .putHeader(DittoHeaderDefinition.AT_HISTORICAL_TIMESTAMP.getKey(), String.valueOf(KNOWN_AT_HISTORICAL_TIMESTAMP))
+                .putHeader(DittoHeaderDefinition.HISTORICAL_HEADERS.getKey(), KNOWN_HISTORICAL_HEADERS.formatAsString())
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -526,6 +537,9 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.GET_METADATA.getKey(), KNOWN_DITTO_GET_METADATA)
                 .set(DittoHeaderDefinition.DELETE_METADATA.getKey(), KNOWN_DITTO_DELETE_METADATA)
                 .set(DittoHeaderDefinition.DITTO_METADATA.getKey(), KNOWN_DITTO_METADATA)
+                .set(DittoHeaderDefinition.AT_HISTORICAL_REVISION.getKey(), KNOWN_AT_HISTORICAL_REVISION)
+                .set(DittoHeaderDefinition.AT_HISTORICAL_TIMESTAMP.getKey(), KNOWN_AT_HISTORICAL_TIMESTAMP.toString())
+                .set(DittoHeaderDefinition.HISTORICAL_HEADERS.getKey(), KNOWN_HISTORICAL_HEADERS)
                 .build();
 
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
@@ -710,7 +724,7 @@ public final class ImmutableDittoHeadersTest {
     }
 
     private static Map<String, String> createMapContainingAllKnownHeaders() {
-        final Map<String, String> result = new HashMap<>();
+        final Map<String, String> result = new LinkedHashMap<>();
         result.put(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey(), AUTH_CONTEXT.toJsonString());
         result.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), KNOWN_CORRELATION_ID);
         result.put(DittoHeaderDefinition.SCHEMA_VERSION.getKey(), KNOWN_SCHEMA_VERSION.toString());
@@ -762,6 +776,9 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.GET_METADATA.getKey(), KNOWN_DITTO_GET_METADATA);
         result.put(DittoHeaderDefinition.DELETE_METADATA.getKey(), KNOWN_DITTO_DELETE_METADATA);
         result.put(DittoHeaderDefinition.DITTO_METADATA.getKey(), KNOWN_DITTO_METADATA.formatAsString());
+        result.put(DittoHeaderDefinition.AT_HISTORICAL_REVISION.getKey(), String.valueOf(KNOWN_AT_HISTORICAL_REVISION));
+        result.put(DittoHeaderDefinition.AT_HISTORICAL_TIMESTAMP.getKey(), String.valueOf(KNOWN_AT_HISTORICAL_TIMESTAMP));
+        result.put(DittoHeaderDefinition.HISTORICAL_HEADERS.getKey(), KNOWN_HISTORICAL_HEADERS.formatAsString());
 
         return result;
     }

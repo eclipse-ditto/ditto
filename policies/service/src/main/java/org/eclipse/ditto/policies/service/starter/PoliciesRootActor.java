@@ -88,15 +88,16 @@ public final class PoliciesRootActor extends DittoRootActor {
                 BlockedNamespacesUpdater.ACTOR_NAME, blockedNamespacesUpdaterProps);
 
         final PolicyEnforcerProvider policyEnforcerProvider = PolicyEnforcerProviderExtension.get(actorSystem).getPolicyEnforcerProvider();
+        final var mongoReadJournal = MongoReadJournal.newInstance(actorSystem);
+
         final var policySupervisorProps =
                 getPolicySupervisorActorProps(pubSubMediator, policyAnnouncementPub, blockedNamespaces,
-                        policyEnforcerProvider);
+                        policyEnforcerProvider, mongoReadJournal);
 
         final ActorRef policiesShardRegion =
                 ShardRegionCreator.start(actorSystem, PoliciesMessagingConstants.SHARD_REGION, policySupervisorProps,
                         policiesConfig.getClusterConfig().getNumberOfShards(), CLUSTER_ROLE);
 
-        final var mongoReadJournal = MongoReadJournal.newInstance(actorSystem);
         startClusterSingletonActor(
                 PersistencePingActor.props(policiesShardRegion, policiesConfig.getPingConfig(), mongoReadJournal),
                 PersistencePingActor.ACTOR_NAME);
@@ -133,10 +134,11 @@ public final class PoliciesRootActor extends DittoRootActor {
     private static Props getPolicySupervisorActorProps(final ActorRef pubSubMediator,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
             final BlockedNamespaces blockedNamespaces,
-            final PolicyEnforcerProvider policyEnforcerProvider) {
+            final PolicyEnforcerProvider policyEnforcerProvider,
+            final MongoReadJournal mongoReadJournal) {
 
         return PolicySupervisorActor.props(pubSubMediator, policyAnnouncementPub, blockedNamespaces,
-                policyEnforcerProvider);
+                policyEnforcerProvider, mongoReadJournal);
     }
 
     /**

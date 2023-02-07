@@ -51,8 +51,10 @@ import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthent
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
 
 import akka.http.javadsl.model.MediaTypes;
 import akka.http.javadsl.server.PathMatchers;
@@ -142,11 +144,25 @@ public final class ConnectionsRoute extends AbstractRoute {
         return pathEndOrSingleSlash(() ->
                 concat(
                         get(() -> // GET /connections?ids-only=false
-                                parameterOptional(ConnectionsParameter.IDS_ONLY.toString(), idsOnly -> handlePerRequest(ctx,
-                                        RetrieveConnections.newInstance(idsOnly.map(Boolean::valueOf).orElse(false),
-                                                dittoHeaders)
-                                ))
-
+                                parameterOptional(ConnectionsParameter.IDS_ONLY.toString(), idsOnly ->
+                                        parameterOptional(ConnectionsParameter.FIELDS.toString(), fieldsString ->
+                                                {
+                                                    final Optional<JsonFieldSelector> selectedFields =
+                                                            calculateSelectedFields(fieldsString);
+                                                    return handlePerRequest(ctx, RetrieveConnections.newInstance(
+                                                            idsOnly.map(Boolean::valueOf).orElseGet(() -> selectedFields
+                                                                    .filter(sf -> sf.getPointers().size() == 1 &&
+                                                                            sf.getPointers().contains(
+                                                                                    JsonPointer.of("id")
+                                                                            )
+                                                                    ).isPresent()
+                                                            ),
+                                                            selectedFields.orElse(null),
+                                                            dittoHeaders)
+                                                    );
+                                                }
+                                        )
+                                )
                         ),
                         post(() -> // POST /connections?dry-run=<dryRun>
                                 parameterOptional(ConnectionsParameter.DRY_RUN.toString(), dryRun ->
@@ -198,13 +214,17 @@ public final class ConnectionsRoute extends AbstractRoute {
                                         payloadSource ->
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource, payloadJsonString ->
                                                         ModifyConnection.of(
-                                                                buildConnectionForPut(connectionId,
-                                                                        payloadJsonString),
+                                                                buildConnectionForPut(connectionId, payloadJsonString),
                                                                 dittoHeaders))
                                 )
                         ),
                         get(() -> // GET /connections/<connectionId>
-                                handlePerRequest(ctx, RetrieveConnection.of(connectionId, dittoHeaders))
+                                parameterOptional(ConnectionsParameter.FIELDS.toString(), fieldsString ->
+                                        handlePerRequest(ctx, RetrieveConnection.of(connectionId,
+                                                calculateSelectedFields(fieldsString).orElse(null),
+                                                dittoHeaders)
+                                        )
+                                )
                         ),
                         delete(() -> // DELETE /connections/<connectionId>
                                 handlePerRequest(ctx, DeleteConnection.of(connectionId, dittoHeaders))

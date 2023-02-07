@@ -16,7 +16,7 @@ import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 
 /**
  * Implementations of this interface are associated to a {@code Thing} identified by the value
- * returned from {@link #getEntityId()} ()}.
+ * returned from {@link #getEntityId()}.
  */
 public interface WithThingId extends WithEntityId {
 

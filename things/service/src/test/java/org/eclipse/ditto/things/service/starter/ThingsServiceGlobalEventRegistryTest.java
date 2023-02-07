@@ -12,10 +12,11 @@
  */
 package org.eclipse.ditto.things.service.starter;
 
-import org.eclipse.ditto.policies.model.signals.events.PolicyModified;
-import org.eclipse.ditto.things.api.ThingSnapshotTaken;
+import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionComplete;
 import org.eclipse.ditto.internal.utils.persistentactors.EmptyEvent;
 import org.eclipse.ditto.internal.utils.test.GlobalEventRegistryTestCases;
+import org.eclipse.ditto.policies.model.signals.events.PolicyModified;
+import org.eclipse.ditto.things.api.ThingSnapshotTaken;
 import org.eclipse.ditto.things.model.signals.events.FeatureDeleted;
 import org.eclipse.ditto.thingsearch.api.events.ThingsOutOfSync;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionCreated;
@@ -27,6 +28,8 @@ public final class ThingsServiceGlobalEventRegistryTest extends GlobalEventRegis
                 FeatureDeleted.class,
                 ThingSnapshotTaken.class,
                 EmptyEvent.class,
+                PolicyModified.class,
+                StreamingSubscriptionComplete.class,
                 PolicyModified.class,
                 SubscriptionCreated.class,
                 ThingsOutOfSync.class

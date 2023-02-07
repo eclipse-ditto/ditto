@@ -45,6 +45,7 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -55,6 +56,7 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
+import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionHistoryNotAccessibleException;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CheckConnectionLogsActive;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
@@ -198,12 +200,13 @@ public final class ConnectionPersistenceActor
     @Nullable private Instant recoveredAt;
 
     ConnectionPersistenceActor(final ConnectionId connectionId,
+            final MongoReadJournal mongoReadJournal,
             final ActorRef commandForwarderActor,
             final ActorRef pubSubMediator,
             final Trilean allClientActorsOnOneNode,
             final Config connectivityConfigOverwrites) {
 
-        super(connectionId);
+        super(connectionId, mongoReadJournal);
         this.actorSystem = context().system();
         cluster = Cluster.get(actorSystem);
         final Config dittoExtensionConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
@@ -263,18 +266,21 @@ public final class ConnectionPersistenceActor
      * Creates Akka configuration object for this actor.
      *
      * @param connectionId the connection ID.
-     * @param commandForwarderActor the actor used to send signals into the ditto cluster..
+     * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the connection.
+     * @param commandForwarderActor the actor used to send signals into the ditto cluster.
+     * @param pubSubMediator pub-sub-mediator for the shutdown behavior.
      * @param pubSubMediator the pubSubMediator
      * @param connectivityConfigOverwrites the overwrites for the connectivity config for the given connection.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ConnectionId connectionId,
+            final MongoReadJournal mongoReadJournal,
             final ActorRef commandForwarderActor,
             final ActorRef pubSubMediator,
             final Config connectivityConfigOverwrites
     ) {
-        return Props.create(ConnectionPersistenceActor.class, connectionId,
-                commandForwarderActor, pubSubMediator, Trilean.UNKNOWN, connectivityConfigOverwrites);
+        return Props.create(ConnectionPersistenceActor.class, connectionId, mongoReadJournal,
+                commandForwarderActor, pubSubMediator,Trilean.UNKNOWN, connectivityConfigOverwrites);
     }
 
     /**
@@ -348,6 +354,16 @@ public final class ConnectionPersistenceActor
     @Override
     protected DittoRuntimeExceptionBuilder<?> newNotAccessibleExceptionBuilder() {
         return ConnectionNotAccessibleException.newBuilder(entityId);
+    }
+
+    @Override
+    protected DittoRuntimeExceptionBuilder<?> newHistoryNotAccessibleExceptionBuilder(final long revision) {
+        return ConnectionHistoryNotAccessibleException.newBuilder(entityId, revision);
+    }
+
+    @Override
+    protected DittoRuntimeExceptionBuilder<?> newHistoryNotAccessibleExceptionBuilder(final Instant timestamp) {
+        return ConnectionHistoryNotAccessibleException.newBuilder(entityId, timestamp);
     }
 
     @Override
@@ -665,6 +681,9 @@ public final class ConnectionPersistenceActor
                 // CreateSubscription is a ThingSearchCommand, but it is created in InboundDispatchingSink from an
                 // adaptable and directly sent to this actor:
                 .match(CreateSubscription.class, this::startThingSearchSession)
+                // SubscribeForPersistedEvents is created in InboundDispatchingSink from an
+                // adaptable and directly sent to this actor:
+                .match(SubscribeForPersistedEvents.class, this::startStreamingSubscriptionSession)
                 .matchEquals(Control.CHECK_LOGGING_ACTIVE, this::checkLoggingEnabled)
                 .matchEquals(Control.TRIGGER_UPDATE_PRIORITY, this::triggerUpdatePriority)
                 .match(UpdatePriority.class, this::updatePriority)
@@ -725,10 +744,29 @@ public final class ConnectionPersistenceActor
         augmentWithPrefixAndForward(command, entity.getClientCount());
     }
 
+    private void startStreamingSubscriptionSession(final SubscribeForPersistedEvents command) {
+        if (entity == null) {
+            logDroppedSignal(command, command.getType(), "No Connection configuration available.");
+            return;
+        }
+        log.debug("Forwarding <{}> to client actors.", command);
+        // compute the next prefix according to subscriptionCounter and the currently configured client actor count
+        // ignore any "prefix" field from the command
+        augmentWithPrefixAndForward(command, entity.getClientCount());
+    }
+
     private void augmentWithPrefixAndForward(final CreateSubscription createSubscription, final int clientCount) {
         subscriptionCounter = (subscriptionCounter + 1) % Math.max(1, clientCount);
         final var prefix = getPrefix(getSubscriptionPrefixLength(clientCount), subscriptionCounter);
         final var commandWithPrefix = createSubscription.setPrefix(prefix);
+        connectionPubSub.publishSignal(commandWithPrefix, entityId, prefix, ActorRef.noSender());
+    }
+
+    private void augmentWithPrefixAndForward(final SubscribeForPersistedEvents subscribeForPersistedEvents,
+            final int clientCount) {
+        subscriptionCounter = (subscriptionCounter + 1) % Math.max(1, clientCount);
+        final var prefix = getPrefix(getSubscriptionPrefixLength(clientCount), subscriptionCounter);
+        final var commandWithPrefix = subscribeForPersistedEvents.setPrefix(prefix);
         connectionPubSub.publishSignal(commandWithPrefix, entityId, prefix, ActorRef.noSender());
     }
 

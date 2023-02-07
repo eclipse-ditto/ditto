@@ -263,6 +263,9 @@ entries:
           - title: Search
             url: /basic-search.html
             output: web
+          - title: History capabilities
+            url: /basic-history.html
+            output: web
           - title: Acknowledgements / QoS
             url: /basic-acknowledgements.html
             output: web
@@ -491,6 +494,10 @@ entries:
                   - title: Announcement
                     url: /protocol-specification-connections-announcement.html
                     output: web
+
+          - title: Streaming subscriptions (history)
+            url: /protocol-specification-streaming-subscription.html
+            output: web
 
           - title: Bindings
             url: /protocol-bindings.html

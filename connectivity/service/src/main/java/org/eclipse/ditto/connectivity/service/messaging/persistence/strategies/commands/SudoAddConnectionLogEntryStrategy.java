@@ -12,9 +12,12 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.commands;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.connectivity.api.commands.sudo.SudoAddConnectionLogEntry;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -57,5 +60,17 @@ final class SudoAddConnectionLogEntryStrategy extends AbstractConnectivityComman
                 logEntry.getLogCategory(),
                 logEntry.getLogType(),
                 logEntry.getAddress().orElse(null));
+    }
+
+    @Override
+    public Optional<EntityTag> previousEntityTag(final SudoAddConnectionLogEntry command,
+            @Nullable final Connection previousEntity) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<EntityTag> nextEntityTag(final SudoAddConnectionLogEntry command,
+            @Nullable final Connection newEntity) {
+        return Optional.empty();
     }
 }

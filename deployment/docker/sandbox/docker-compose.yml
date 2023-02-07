@@ -135,7 +135,7 @@ services:
       - TZ=Europe/Berlin
       - BIND_HOSTNAME=0.0.0.0
       - ENABLE_PRE_AUTHENTICATION=true
-      - DEVOPS_SECURE_STATUS=false
+      - DEVOPS_STATUS_SECURED=false
       - DITTO_DEVOPS_FEATURE_WOT_INTEGRATION_ENABLED=true
       - |
         JAVA_TOOL_OPTIONS=

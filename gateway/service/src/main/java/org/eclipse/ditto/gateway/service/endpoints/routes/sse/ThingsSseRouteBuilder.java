@@ -18,6 +18,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -41,7 +42,10 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.FeatureToggle;
+import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.base.service.UriEncoding;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsParameter;
@@ -59,8 +63,13 @@ import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.search.SearchSource;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.Message;
@@ -118,10 +127,19 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     private static final String LAST_EVENT_ID_HEADER = "Last-Event-ID";
 
     private static final String PARAM_FILTER = "filter";
-    private static final String PARAM_FIELDS = "fields";
+    private static final String PARAM_FIELDS = ThingsParameter.FIELDS.toString();
     private static final String PARAM_OPTION = "option";
     private static final String PARAM_NAMESPACES = "namespaces";
     private static final String PARAM_EXTRA_FIELDS = "extraFields";
+
+    private static final String PARAM_FROM_HISTORICAL_REVISION = "from-historical-revision";
+    private static final String PARAM_TO_HISTORICAL_REVISION = "to-historical-revision";
+    private static final String PARAM_FROM_HISTORICAL_TIMESTAMP = "from-historical-timestamp";
+    private static final String PARAM_TO_HISTORICAL_TIMESTAMP = "to-historical-timestamp";
+
+    private static final JsonFieldDefinition<JsonObject> CONTEXT =
+            JsonFactory.newJsonObjectFieldDefinition("_context");
+
     private static final PartialFunction<HttpHeader, Accept> ACCEPT_HEADER_EXTRACTOR = newAcceptHeaderExtractor();
 
     private static final Counter THINGS_SSE_COUNTER = getCounterFor(PATH_THINGS);
@@ -268,8 +286,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                                         return createMessagesSseRoute(ctx, dhcs, thingId,
                                                                 jsonPointerString);
                                                     } else {
-                                                        params.put(ThingsParameter.FIELDS.toString(),
-                                                                jsonPointerString);
+                                                        params.put(PARAM_FIELDS, jsonPointerString);
                                                         return createSseRoute(ctx, dhcs,
                                                                 JsonPointer.of(jsonPointerString),
                                                                 params
@@ -318,18 +335,68 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         @Nullable final var filterString = parameters.get(PARAM_FILTER);
         final List<String> namespaces = getNamespaces(parameters.get(PARAM_NAMESPACES));
         final List<ThingId> targetThingIds = getThingIds(parameters.get(ThingsParameter.IDS.toString()));
-        @Nullable final ThingFieldSelector fields =
-                getFieldSelector(parameters.get(ThingsParameter.FIELDS.toString()));
+        @Nullable final ThingFieldSelector fields = getFieldSelector(parameters.get(PARAM_FIELDS));
         @Nullable final ThingFieldSelector extraFields = getFieldSelector(parameters.get(PARAM_EXTRA_FIELDS));
+
+        @Nullable final Long fromHistoricalRevision = Optional.ofNullable(
+                parameters.get(PARAM_FROM_HISTORICAL_REVISION))
+                .map(Long::parseLong)
+                .orElse(null);
+        @Nullable final Long toHistoricalRevision = Optional.ofNullable(
+                parameters.get(PARAM_TO_HISTORICAL_REVISION))
+                .map(Long::parseLong)
+                .orElse(null);
+
+        @Nullable final Instant fromHistoricalTimestamp = Optional.ofNullable(
+                parameters.get(PARAM_FROM_HISTORICAL_TIMESTAMP))
+                .map(Instant::parse)
+                .orElse(null);
+        @Nullable final Instant toHistoricalTimestamp = Optional.ofNullable(
+                parameters.get(PARAM_TO_HISTORICAL_TIMESTAMP))
+                .map(Instant::parse)
+                .orElse(null);
+
         final CompletionStage<SignalEnrichmentFacade> facadeStage = signalEnrichmentProvider == null
                 ? CompletableFuture.completedStage(null)
                 : signalEnrichmentProvider.getFacade(ctx.getRequest());
+
 
         final var sseSourceStage = facadeStage.thenCompose(facade -> dittoHeadersStage.thenCompose(
                 dittoHeaders -> sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders).thenApply(unused -> {
                     if (filterString != null) {
                         // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
                         queryFilterCriteriaFactory.filterCriteria(filterString, dittoHeaders);
+                    }
+
+                    final String connectionCorrelationId = dittoHeaders.getCorrelationId()
+                            .orElseThrow(() -> new IllegalStateException(
+                                    "Expected correlation-id in SSE DittoHeaders: " + dittoHeaders));
+                    final var authorizationContext = dittoHeaders.getAuthorizationContext();
+                    final Object startStreaming;
+                    if (null != fromHistoricalRevision) {
+                        FeatureToggle
+                                .checkHistoricalApiAccessFeatureEnabled(SubscribeForPersistedEvents.TYPE, dittoHeaders);
+                        startStreaming = SubscribeForPersistedEvents.of(targetThingIds.get(0),
+                                fieldPointer,
+                                fromHistoricalRevision,
+                                null != toHistoricalRevision ? toHistoricalRevision : Long.MAX_VALUE,
+                                dittoHeaders);
+                    } else if (null != fromHistoricalTimestamp) {
+                        FeatureToggle
+                                .checkHistoricalApiAccessFeatureEnabled(SubscribeForPersistedEvents.TYPE, dittoHeaders);
+                        startStreaming = SubscribeForPersistedEvents.of(targetThingIds.get(0),
+                                fieldPointer,
+                                fromHistoricalTimestamp,
+                                toHistoricalTimestamp,
+                                dittoHeaders);
+                    } else {
+                        startStreaming =
+                                StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
+                                                authorizationContext)
+                                        .withNamespaces(namespaces)
+                                        .withFilter(filterString)
+                                        .withExtraFields(extraFields)
+                                        .build();
                     }
 
                     final Source<SessionedJsonifiable, SupervisedStream.WithQueue> publisherSource =
@@ -339,25 +406,14 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                             .mapMaterializedValue(pair -> {
                                 final SupervisedStream.WithQueue withQueue = pair.first();
                                 final KillSwitch killSwitch = pair.second();
-                                final String connectionCorrelationId = dittoHeaders.getCorrelationId()
-                                        .orElseThrow(() -> new IllegalStateException(
-                                                "Expected correlation-id in SSE DittoHeaders: " + dittoHeaders));
 
                                 final var jsonSchemaVersion = dittoHeaders.getSchemaVersion()
                                         .orElse(JsonSchemaVersion.LATEST);
                                 sseConnectionSupervisor.supervise(withQueue.getSupervisedStream(),
                                         connectionCorrelationId, dittoHeaders);
-                                final var authorizationContext = dittoHeaders.getAuthorizationContext();
                                 final var connect = new Connect(withQueue.getSourceQueue(), connectionCorrelationId,
                                         STREAMING_TYPE_SSE, jsonSchemaVersion, null, Set.of(),
                                         authorizationContext, null);
-                                final var startStreaming =
-                                        StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
-                                                        authorizationContext)
-                                                .withNamespaces(namespaces)
-                                                .withFilter(filterString)
-                                                .withExtraFields(extraFields)
-                                                .build();
                                 Patterns.ask(streamingActor, connect, LOCAL_ASK_TIMEOUT)
                                         .thenApply(ActorRef.class::cast)
                                         .thenAccept(streamingSessionActor ->
@@ -369,8 +425,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                 return NotUsed.getInstance();
                             })
                             .mapAsync(streamingConfig.getParallelism(), jsonifiable ->
-                                    postprocess(jsonifiable, facade, targetThingIds, namespaces, fieldPointer,
-                                            fields))
+                                    postprocess(jsonifiable, facade, targetThingIds, namespaces, fieldPointer, fields))
                             .mapConcat(jsonValues -> jsonValues)
                             .map(jsonValue -> {
                                 THINGS_SSE_COUNTER.increment();
@@ -546,8 +601,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         final Supplier<CompletableFuture<Collection<JsonValue>>> emptySupplier =
                 () -> CompletableFuture.completedFuture(Collections.emptyList());
 
-        if (jsonifiable.getJsonifiable() instanceof ThingEvent) {
-            final ThingEvent<?> event = (ThingEvent<?>) jsonifiable.getJsonifiable();
+        if (jsonifiable.getJsonifiable() instanceof ThingEvent<?> event) {
             final boolean isLiveEvent = StreamingType.isLiveSignal(event);
             if (!isLiveEvent && namespaceMatches(event, namespaces) &&
                     targetThingIdMatches(event, targetThingIds)) {
@@ -640,11 +694,21 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         final JsonObject thingJson = null != fields
                 ? thing.toJson(jsonSchemaVersion, fields)
                 : thing.toJson(jsonSchemaVersion);
+
         @Nullable final JsonValue returnValue;
         if (!fieldPointer.isEmpty()) {
             returnValue = thingJson.getValue(fieldPointer).orElse(null);
         } else {
-            returnValue = thingJson;
+            final boolean includeContext = Optional.ofNullable(fields)
+                    .filter(field -> field.getPointers().stream()
+                            .map(JsonPointer::getRoot)
+                            .anyMatch(p -> p.equals(CONTEXT.getPointer().getRoot()))
+                    ).isPresent();
+            if (includeContext) {
+                returnValue = addContext(thingJson.toBuilder(), event).get(fields);
+            } else {
+                returnValue = thingJson;
+            }
         }
         return (thingJson.isEmpty() || null == returnValue) ? Collections.emptyList() :
                 Collections.singletonList(returnValue);
@@ -692,6 +756,31 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                 .tag("type", "sse")
                 .tag("direction", "out")
                 .tag("path", path);
+    }
+
+    /**
+     * Add a JSON object at {@code _context} key containing e.g. the {@code headers} of the passed
+     * {@code withDittoHeaders}.
+     *
+     * @param objectBuilder the JsonObject build to add the {@code _context} to.
+     * @param withDittoHeaders the object to extract the {@code DittoHeaders} from.
+     * @return the built JsonObject including the {@code _context}.
+     */
+    private static JsonObject addContext(final JsonObjectBuilder objectBuilder,
+            final WithDittoHeaders withDittoHeaders) {
+
+        objectBuilder.set(CONTEXT, JsonObject.newBuilder()
+                .set("headers", dittoHeadersToJson(withDittoHeaders.getDittoHeaders()))
+                .build()
+        );
+        return objectBuilder.build();
+    }
+
+    private static JsonObject dittoHeadersToJson(final DittoHeaders dittoHeaders) {
+        return dittoHeaders.entrySet()
+                .stream()
+                .map(entry -> JsonFactory.newField(JsonKey.of(entry.getKey()), JsonFactory.newValue(entry.getValue())))
+                .collect(JsonCollectors.fieldsToObject());
     }
 
 }

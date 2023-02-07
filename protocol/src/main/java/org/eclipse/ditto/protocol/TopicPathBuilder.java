@@ -65,6 +65,15 @@ public interface TopicPathBuilder {
     AnnouncementsTopicPathBuilder announcements();
 
     /**
+     * Sets the {@code Group} of this builder to {@link TopicPath.Criterion#STREAMING}. A previously set group is
+     * replaced.
+     *
+     * @return this builder.
+     * @since 3.2.0
+     */
+    StreamingTopicPathBuilder streaming();
+
+    /**
      * Sets the {@code Channel} of this builder to {@link TopicPath.Channel#TWIN}. A previously set channel is
      * replaced.
      *

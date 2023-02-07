@@ -20,6 +20,7 @@ import static org.mockito.Mockito.when;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
@@ -35,6 +36,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 
 import akka.stream.Attributes;
 import akka.testkit.TestProbe;
@@ -80,7 +82,8 @@ public final class PolicySupervisorActorTest extends PersistenceActorTestBase {
     public void stopNonexistentPolicy() {
         new TestKit(actorSystem) {{
             final PolicyId policyId = PolicyId.of("test.ns", "stopNonexistentPolicy");
-            final var props = PolicySupervisorActor.props(pubSubMediator, pub, blockedNamespaces, policyEnforcerProvider);
+            final var props = PolicySupervisorActor.props(pubSubMediator, pub, blockedNamespaces,
+                    policyEnforcerProvider, Mockito.mock(MongoReadJournal.class));
             final var underTest = watch(childActorOf(props, policyId.toString()));
             underTest.tell(new StopShardedActor(), getRef());
             expectTerminated(underTest);
@@ -91,7 +94,8 @@ public final class PolicySupervisorActorTest extends PersistenceActorTestBase {
     public void stopAfterRetrievingNonexistentPolicy() {
         new TestKit(actorSystem) {{
             final PolicyId policyId = PolicyId.of("test.ns", "retrieveNonexistentPolicy");
-            final var props = PolicySupervisorActor.props(pubSubMediator, pub, blockedNamespaces, policyEnforcerProvider);
+            final var props = PolicySupervisorActor.props(pubSubMediator, pub, blockedNamespaces,
+                    policyEnforcerProvider, Mockito.mock(MongoReadJournal.class));
             final var underTest = watch(childActorOf(props, policyId.toString()));
             final var probe = TestProbe.apply(actorSystem);
             final var retrievePolicy = RetrievePolicy.of(policyId, DittoHeaders.empty());
@@ -111,7 +115,8 @@ public final class PolicySupervisorActorTest extends PersistenceActorTestBase {
             {
                 final var policy = createPolicyWithRandomId();
                 final var policyId = policy.getEntityId().orElseThrow();
-                final var props = PolicySupervisorActor.props(pubSubMediator, pub, blockedNamespaces, policyEnforcerProvider);
+                final var props = PolicySupervisorActor.props(pubSubMediator, pub, blockedNamespaces,
+                        policyEnforcerProvider, Mockito.mock(MongoReadJournal.class));
                 final var underTest = watch(childActorOf(props, policyId.toString()));
                 final var probe = TestProbe.apply(actorSystem);
 

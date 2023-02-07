@@ -9,7 +9,7 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 get:
-  summary: Retrieve all Connections
+  summary: Retrieve all connections
   description: |-
     Returns all connections.
   security:
@@ -17,6 +17,7 @@ get:
   tags:
     - Connections
   parameters:
+    - $ref: '../../parameters/connectionFieldsQueryParam.yml'
     - name: ids-only
       in: query
       description: |-
@@ -60,7 +61,7 @@ get:
           schema:
             $ref: '../../schemas/errors/advancedError.yml'
 post:
-  summary: Create a new Connection
+  summary: Create a new connection
   description: |-
     Creates the connection defined in the JSON body.
     The ID of the connection will be **generated** by the backend. Any `ID` specified in the request body is therefore

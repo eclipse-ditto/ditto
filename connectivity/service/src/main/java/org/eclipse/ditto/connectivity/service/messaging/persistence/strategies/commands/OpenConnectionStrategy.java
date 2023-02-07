@@ -29,15 +29,16 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.StagedCommand;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionOpened;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.StagedCommand;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 
 /**
  * This strategy handles the {@link OpenConnection} command.
@@ -68,5 +69,16 @@ final class OpenConnectionStrategy extends AbstractConnectivityCommandStrategy<O
                             SEND_RESPONSE);
             return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
         }
+    }
+
+    @Override
+    public Optional<EntityTag> previousEntityTag(final OpenConnection command,
+            @Nullable final Connection previousEntity) {
+        return Optional.ofNullable(previousEntity).flatMap(EntityTag::fromEntity);
+    }
+
+    @Override
+    public Optional<EntityTag> nextEntityTag(final OpenConnection command, @Nullable final Connection newEntity) {
+        return Optional.of(getEntityOrThrow(newEntity)).flatMap(EntityTag::fromEntity);
     }
 }

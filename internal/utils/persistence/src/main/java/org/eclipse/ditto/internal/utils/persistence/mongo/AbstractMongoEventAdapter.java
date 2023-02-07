@@ -12,20 +12,23 @@
  */
 package org.eclipse.ditto.internal.utils.persistence.mongo;
 
+import java.util.Optional;
 import java.util.Set;
-
-import javax.annotation.Nullable;
 
 import org.bson.BsonDocument;
 import org.bson.BsonValue;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.EventRegistry;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.EventConfig;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 import org.slf4j.Logger;
@@ -43,13 +46,21 @@ public abstract class AbstractMongoEventAdapter<T extends Event<?>> implements E
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMongoEventAdapter.class);
 
-    @Nullable protected final ExtendedActorSystem system;
-    protected final EventRegistry<T> eventRegistry;
+    /**
+     * Internal header for persisting the historical headers for events.
+     */
+    public static final JsonFieldDefinition<JsonObject> HISTORICAL_EVENT_HEADERS = JsonFieldDefinition.ofJsonObject(
+            "__hh");
 
-    protected AbstractMongoEventAdapter(@Nullable final ExtendedActorSystem system,
-            final EventRegistry<T> eventRegistry) {
+    protected final ExtendedActorSystem system;
+    protected final EventRegistry<T> eventRegistry;
+    private final EventConfig eventConfig;
+
+    protected AbstractMongoEventAdapter(final ExtendedActorSystem system,
+            final EventRegistry<T> eventRegistry, final EventConfig eventConfig) {
         this.system = system;
         this.eventRegistry = eventRegistry;
+        this.eventConfig = eventConfig;
     }
 
     @Override
@@ -66,9 +77,9 @@ public abstract class AbstractMongoEventAdapter<T extends Event<?>> implements E
     public Object toJournal(final Object event) {
         if (event instanceof Event<?> theEvent) {
             final JsonSchemaVersion schemaVersion = theEvent.getImplementedSchemaVersion();
-            final JsonObject jsonObject = performToJournalMigration(
+            final JsonObject jsonObject = performToJournalMigration(theEvent,
                     theEvent.toJson(schemaVersion, FieldType.regularOrSpecial())
-            );
+            ).build();
             final BsonDocument bson = DittoBsonJson.getInstance().parse(jsonObject);
             final Set<String> tags = theEvent.getDittoHeaders().getJournalTags();
             return new Tagged(bson, tags);
@@ -84,8 +95,12 @@ public abstract class AbstractMongoEventAdapter<T extends Event<?>> implements E
             try {
                 final JsonObject jsonObject = jsonValue.asObject()
                         .setValue(EventsourcedEvent.JsonFields.REVISION.getPointer(), Event.DEFAULT_REVISION);
+                final DittoHeaders dittoHeaders = jsonObject.getValue(HISTORICAL_EVENT_HEADERS)
+                        .map(obj -> DittoHeaders.newBuilder(obj).build())
+                        .orElse(DittoHeaders.empty());
+
                 final T result =
-                        eventRegistry.parse(performFromJournalMigration(jsonObject), DittoHeaders.empty());
+                        eventRegistry.parse(performFromJournalMigration(jsonObject), dittoHeaders);
                 return EventSeq.single(result);
             } catch (final JsonParseException | DittoRuntimeException e) {
                 if (system != null) {
@@ -105,11 +120,22 @@ public abstract class AbstractMongoEventAdapter<T extends Event<?>> implements E
      * Performs an optional migration of the passed in {@code jsonObject} (which is the JSON representation of the
      * {@link Event} to persist) just before it is transformed to Mongo BSON and inserted into the "journal" collection.
      *
-     * @param jsonObject the JsonObject representation of the {@link Event} to persist.
+     * @param event the event to apply journal migration for.
+     * @param jsonObject the JsonObject representation of the {@link org.eclipse.ditto.base.model.signals.events.Event} to persist.
      * @return the adjusted/migrated JsonObject to store.
      */
-    protected JsonObject performToJournalMigration(final JsonObject jsonObject) {
-        return jsonObject;
+    protected JsonObjectBuilder performToJournalMigration(final Event<?> event, final JsonObject jsonObject) {
+        return jsonObject.toBuilder()
+                .set(HISTORICAL_EVENT_HEADERS, calculateHistoricalHeaders(event.getDittoHeaders()).toJson());
+    }
+
+    private DittoHeaders calculateHistoricalHeaders(final DittoHeaders dittoHeaders) {
+        final DittoHeadersBuilder<?, ?> historicalHeadersBuilder = DittoHeaders.newBuilder();
+        eventConfig.getHistoricalHeadersToPersist().forEach(headerKeyToPersist ->
+                Optional.ofNullable(dittoHeaders.get(headerKeyToPersist))
+                        .ifPresent(value -> historicalHeadersBuilder.putHeader(headerKeyToPersist, value))
+        );
+        return historicalHeadersBuilder.build();
     }
 
     /**

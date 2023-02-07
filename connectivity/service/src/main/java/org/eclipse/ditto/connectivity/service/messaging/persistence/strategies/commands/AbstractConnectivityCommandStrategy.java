@@ -29,7 +29,8 @@ import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.Connecti
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
-import org.eclipse.ditto.internal.utils.persistentactors.commands.AbstractCommandStrategy;
+import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
+import org.eclipse.ditto.internal.utils.persistentactors.etags.AbstractConditionHeaderCheckingCommandStrategy;
 
 /**
  * Abstract base class for {@link org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand} strategies.
@@ -37,10 +38,18 @@ import org.eclipse.ditto.internal.utils.persistentactors.commands.AbstractComman
  * @param <C> the type of the handled command
  */
 abstract class AbstractConnectivityCommandStrategy<C extends Command<?>>
-        extends AbstractCommandStrategy<C, Connection, ConnectionState, ConnectivityEvent<?>> {
+        extends AbstractConditionHeaderCheckingCommandStrategy<C, Connection, ConnectionState, ConnectivityEvent<?>> {
 
-    AbstractConnectivityCommandStrategy(final Class<?> theMatchingClass) {
+    private static final ConditionalHeadersValidator VALIDATOR =
+            ConnectionsConditionalHeadersValidatorProvider.getInstance();
+
+    protected AbstractConnectivityCommandStrategy(final Class<C> theMatchingClass) {
         super(theMatchingClass);
+    }
+
+    @Override
+    protected ConditionalHeadersValidator getValidator() {
+        return VALIDATOR;
     }
 
     @Override

@@ -61,7 +61,9 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.WithStreamingSubscriptionId;
 import org.eclipse.ditto.base.model.signals.WithType;
+import org.eclipse.ditto.base.model.signals.commands.streaming.StreamingSubscriptionCommand;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
@@ -114,6 +116,7 @@ import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionVal
 import org.eclipse.ditto.connectivity.service.util.ConnectionPubSub;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
+import org.eclipse.ditto.edge.service.streaming.StreamingSubscriptionManager;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
@@ -178,8 +181,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private static final String MESSAGE_MAPPING_PROCESSOR_DISPATCHER = "message-mapping-processor-dispatcher";
     private static final Pattern EXCLUDED_ADDRESS_REPORTING_CHILD_NAME_PATTERN = Pattern.compile(
             OutboundMappingProcessorActor.ACTOR_NAME + "|" + OutboundDispatchingActor.ACTOR_NAME + "|" +
-                    "ackr.*" + "|" + "StreamSupervisor-.*|subscriptionManager");
+                    "ackr.*" + "|" + "StreamSupervisor-.*|" +
+                    SubscriptionManager.ACTOR_NAME  + "|" + StreamingSubscriptionManager.ACTOR_NAME);
     private static final String DITTO_STATE_TIMEOUT_TIMER = "dittoStateTimeout";
+
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
     private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT =
             "Closed because of unknown/failure/misconfiguration status in client.";
@@ -207,6 +212,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private Sink<Object, NotUsed> inboundMappingSink;
     private ActorRef outboundDispatchingActor;
     private ActorRef subscriptionManager;
+    private ActorRef streamingSubscriptionManager;
     private ActorRef tunnelActor;
     private int ackregatorCount = 0;
     private boolean shuttingDown = false;
@@ -325,6 +331,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         inboundMappingSink = getInboundMappingSink(protocolAdapter, inboundDispatchingSink);
         subscriptionManager =
                 startSubscriptionManager(commandForwarderActorSelection, connectivityConfig().getClientConfig());
+        streamingSubscriptionManager = startStreamingSubscriptionManager(commandForwarderActorSelection, connectivityConfig().getClientConfig());
 
         if (connection.getSshTunnel().map(SshTunnel::isEnabled).orElse(false)) {
             tunnelActor = childActorNanny.startChildActor(SshTunnelActor.ACTOR_NAME,
@@ -505,6 +512,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inAnyState() {
         return matchEvent(RetrieveConnectionMetrics.class, (command, data) -> retrieveConnectionMetrics(command))
+                .event(StreamingSubscriptionCommand.class, this::forwardStreamingSubscriptionCommand)
                 .event(ThingSearchCommand.class, this::forwardThingSearchCommand)
                 .event(RetrieveConnectionStatus.class, this::retrieveConnectionStatus)
                 .event(ResetConnectionMetrics.class, this::resetConnectionMetrics)
@@ -1716,6 +1724,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final Signal<?> signal = inboundSignal.getSignal();
         if (signal instanceof WithSubscriptionId<?>) {
             dispatchSearchCommand((WithSubscriptionId<?>) signal);
+        } else if (signal instanceof WithStreamingSubscriptionId<?>) {
+            dispatchStreamingSubscriptionCommand((WithStreamingSubscriptionId<?>) signal);
         } else {
             final var entityId = tryExtractEntityId(signal).orElseThrow();
             connectionPubSub.publishSignal(inboundSignal.asDispatched(), connectionId(), entityId, getSender());
@@ -1743,6 +1753,24 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             connectionLogger.failure(InfoProviderFactory.forSignal(searchCommand),
                     "Dropping search command with invalid subscription ID: " +
                             searchCommand.getSubscriptionId());
+        }
+    }
+
+    private void dispatchStreamingSubscriptionCommand(
+            final WithStreamingSubscriptionId<?> streamingSubscriptionCommand) {
+
+        final String subscriptionId = streamingSubscriptionCommand.getSubscriptionId();
+        if (subscriptionId.length() > subscriptionIdPrefixLength) {
+            final var prefix = subscriptionId.substring(0, subscriptionIdPrefixLength);
+            connectionPubSub.publishSignal(streamingSubscriptionCommand, connectionId(), prefix, ActorRef.noSender());
+        } else {
+            // command is invalid or outdated, dropping.
+            logger.withCorrelationId(streamingSubscriptionCommand)
+                    .info("Dropping streaming subscription command with invalid subscription ID: <{}>",
+                            streamingSubscriptionCommand);
+            connectionLogger.failure(InfoProviderFactory.forSignal(streamingSubscriptionCommand),
+                    "Dropping streaming subscription command with invalid subscription ID: " +
+                            streamingSubscriptionCommand.getSubscriptionId());
         }
     }
 
@@ -1891,6 +1919,19 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return getContext().actorOf(props, SubscriptionManager.ACTOR_NAME);
     }
 
+    /**
+     * Start the streaming subscription manager. Requires MessageMappingProcessorActor to be started to work.
+     * Creates an actor materializer.
+     *
+     * @return reference of the streaming subscription manager.
+     */
+    private ActorRef startStreamingSubscriptionManager(final ActorSelection proxyActor, final ClientConfig clientConfig) {
+        final var mat = Materializer.createMaterializer(this::getContext);
+        final var props = StreamingSubscriptionManager.props(clientConfig.getSubscriptionManagerTimeout(),
+                proxyActor, mat);
+        return getContext().actorOf(props, StreamingSubscriptionManager.ACTOR_NAME);
+    }
+
     private FSM.State<BaseClientState, BaseClientData> forwardThingSearchCommand(final WithDittoHeaders command,
             final BaseClientData data) {
         // Tell subscriptionManager to send search events to messageMappingProcessorActor.
@@ -1899,6 +1940,19 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         // for the message path of the search protocol.
         if (stateName() == CONNECTED) {
             subscriptionManager.tell(command, outboundDispatchingActor);
+        } else {
+            logger.withCorrelationId(command)
+                    .debug("Client state <{}> is not CONNECTED; dropping <{}>", stateName(), command);
+        }
+        return stay();
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> forwardStreamingSubscriptionCommand(
+            final StreamingSubscriptionCommand<?> command,
+            final BaseClientData data) {
+        // Tell subscriptionManager to send streaming subscription events to messageMappingProcessorActor.
+        if (stateName() == CONNECTED) {
+            streamingSubscriptionManager.tell(command, outboundDispatchingActor);
         } else {
             logger.withCorrelationId(command)
                     .debug("Client state <{}> is not CONNECTED; dropping <{}>", stateName(), command);

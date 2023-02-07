@@ -13,30 +13,40 @@
 package org.eclipse.ditto.internal.utils.persistentactors;
 
 import java.time.Duration;
+import java.time.Instant;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.bson.BsonDocument;
 import org.eclipse.ditto.base.api.commands.sudo.SudoCommand;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
+import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
 import org.eclipse.ditto.internal.utils.akka.PingCommandResponse;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
+import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoEventAdapter;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
@@ -46,15 +56,21 @@ import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
 import akka.actor.ActorRef;
+import akka.actor.Cancellable;
 import akka.japi.pf.ReceiveBuilder;
 import akka.persistence.RecoveryCompleted;
 import akka.persistence.RecoveryTimedOut;
 import akka.persistence.SaveSnapshotFailure;
 import akka.persistence.SaveSnapshotSuccess;
 import akka.persistence.SnapshotOffer;
+import akka.persistence.SnapshotProtocol;
+import akka.persistence.SnapshotSelectionCriteria;
+import akka.persistence.query.EventEnvelope;
+import akka.stream.javadsl.Sink;
 import scala.Option;
 
 /**
@@ -72,7 +88,8 @@ public abstract class AbstractPersistenceActor<
         S extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField>,
         I extends EntityId,
         K,
-        E extends Event<? extends E>> extends AbstractPersistentActorWithTimersAndCleanup implements ResultVisitor<E> {
+        E extends EventsourcedEvent<? extends E>>
+        extends AbstractPersistentActorWithTimersAndCleanup implements ResultVisitor<E> {
 
     /**
      * An event journal {@code Tag} used to tag journal entries managed by a PersistenceActor as "always alive" meaning
@@ -83,6 +100,7 @@ public abstract class AbstractPersistenceActor<
     private final SnapshotAdapter<S> snapshotAdapter;
     private final Receive handleEvents;
     private final Receive handleCleanups;
+    private final MongoReadJournal mongoReadJournal;
     private long lastSnapshotRevision;
     private long confirmedSnapshotRevision;
 
@@ -104,10 +122,12 @@ public abstract class AbstractPersistenceActor<
      * Instantiate the actor.
      *
      * @param entityId the entity ID.
+     * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the entity.
      */
     @SuppressWarnings("unchecked")
-    protected AbstractPersistenceActor(final I entityId) {
+    protected AbstractPersistenceActor(final I entityId, final MongoReadJournal mongoReadJournal) {
         this.entityId = entityId;
+        this.mongoReadJournal = mongoReadJournal;
         final var actorSystem = context().system();
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
         this.snapshotAdapter = SnapshotAdapter.get(actorSystem, dittoExtensionsConfig);
@@ -189,6 +209,20 @@ public abstract class AbstractPersistenceActor<
      * @return An exception builder to respond to unexpected commands addressed to a nonexistent entity.
      */
     protected abstract DittoRuntimeExceptionBuilder<?> newNotAccessibleExceptionBuilder();
+
+    /**
+     * @param revision the revision which could not be resolved in the entity history.
+     * @return An exception builder to respond to unexpected commands addressed to a nonexistent historical entity at a
+     * given {@code revision}.
+     */
+    protected abstract DittoRuntimeExceptionBuilder<?> newHistoryNotAccessibleExceptionBuilder(long revision);
+
+    /**
+     * @param timestamp the timestamp which could not be resolved in the entity history.
+     * @return An exception builder to respond to unexpected commands addressed to a nonexistent historical entity at a
+     * given {@code timestamp}.
+     */
+    protected abstract DittoRuntimeExceptionBuilder<?> newHistoryNotAccessibleExceptionBuilder(Instant timestamp);
 
     /**
      * Publish an event.
@@ -292,6 +326,8 @@ public abstract class AbstractPersistenceActor<
         final CommandStrategy<C, S, K, E> commandStrategy = getCreatedStrategy();
 
         final Receive receive = handleCleanups.orElse(ReceiveBuilder.create()
+                        .match(commandStrategy.getMatchingClass(), this::isHistoricalRetrieveCommand,
+                                this::handleHistoricalRetrieveCommand)
                         .match(commandStrategy.getMatchingClass(), commandStrategy::isDefined, this::handleByCommandStrategy)
                         .match(PersistEmptyEvent.class, this::handlePersistEmptyEvent)
                         .match(CheckForActivity.class, this::checkForActivity)
@@ -306,6 +342,145 @@ public abstract class AbstractPersistenceActor<
 
         scheduleCheckForActivity(getActivityCheckConfig().getInactiveInterval());
         scheduleSnapshot();
+    }
+
+    private boolean isHistoricalRetrieveCommand(final C command) {
+        final DittoHeaders headers = command.getDittoHeaders();
+        return command.getCategory().equals(Command.Category.QUERY) && (
+                headers.containsKey(DittoHeaderDefinition.AT_HISTORICAL_REVISION.getKey()) ||
+                        headers.containsKey(DittoHeaderDefinition.AT_HISTORICAL_TIMESTAMP.getKey())
+        );
+    }
+
+    private void handleHistoricalRetrieveCommand(final C command) {
+
+        try {
+            FeatureToggle.checkHistoricalApiAccessFeatureEnabled(command.getType(), command.getDittoHeaders());
+        } catch (final DittoRuntimeException dre) {
+            getSender().tell(dre, getSelf());
+            return;
+        }
+
+        final CommandStrategy<C, S, K, E> commandStrategy = getCreatedStrategy();
+        final EventStrategy<E, S> eventStrategy = getEventStrategy();
+        final ActorRef sender = getSender();
+        final ActorRef self = getSelf();
+        final long atHistoricalRevision = Optional
+                .ofNullable(command.getDittoHeaders().get(DittoHeaderDefinition.AT_HISTORICAL_REVISION.getKey()))
+                .map(Long::parseLong)
+                .orElseGet(this::lastSequenceNr);
+        final Instant atHistoricalTimestamp = Optional
+                .ofNullable(command.getDittoHeaders().get(DittoHeaderDefinition.AT_HISTORICAL_TIMESTAMP.getKey()))
+                .map(Instant::parse)
+                .orElse(Instant.EPOCH);
+
+        loadSnapshot(persistenceId(), SnapshotSelectionCriteria.create(
+                atHistoricalRevision,
+                atHistoricalTimestamp.equals(Instant.EPOCH) ? Long.MAX_VALUE : atHistoricalTimestamp.toEpochMilli(),
+                0L,
+                0L
+        ), getLatestSnapshotSequenceNumber());
+
+        final Duration waitTimeout = Duration.ofSeconds(5);
+        final Cancellable cancellableSnapshotLoadTimeout =
+                getContext().getSystem().getScheduler().scheduleOnce(waitTimeout, getSelf(), waitTimeout,
+                        getContext().getDispatcher(), getSelf());
+        getContext().become(ReceiveBuilder.create()
+                .match(SnapshotProtocol.LoadSnapshotResult.class, loadSnapshotResult ->
+                        historicalRetrieveHandleLoadSnapshotResult(command,
+                                commandStrategy,
+                                eventStrategy,
+                                sender,
+                                self,
+                                atHistoricalRevision,
+                                atHistoricalTimestamp,
+                                cancellableSnapshotLoadTimeout,
+                                loadSnapshotResult
+                        )
+                )
+                .match(SnapshotProtocol.LoadSnapshotFailed.class, loadSnapshotFailed ->
+                        log.warning(loadSnapshotFailed.cause(), "Loading snapshot failed")
+                )
+                .matchEquals(waitTimeout, wt -> {
+                    log.withCorrelationId(command)
+                            .warning("Timed out waiting for receiving snapshot result!");
+                    becomeCreatedOrDeletedHandler();
+                    unstashAll();
+                })
+                .matchAny(any -> stash())
+                .build());
+    }
+
+    private void historicalRetrieveHandleLoadSnapshotResult(final C command,
+            final CommandStrategy<C, S, K, E> commandStrategy,
+            final EventStrategy<E, S> eventStrategy,
+            final ActorRef sender,
+            final ActorRef self,
+            final long atHistoricalRevision,
+            final Instant atHistoricalTimestamp,
+            final Cancellable cancellableSnapshotLoadTimeout,
+            final SnapshotProtocol.LoadSnapshotResult loadSnapshotResult) {
+
+        final Option<S> snapshotEntity = loadSnapshotResult.snapshot()
+                .map(snapshotAdapter::fromSnapshotStore);
+        final boolean snapshotIsPresent = snapshotEntity.isDefined();
+
+        if (snapshotIsPresent || getLatestSnapshotSequenceNumber() == 0) {
+            final long snapshotEntityRevision = snapshotIsPresent ?
+                    loadSnapshotResult.snapshot().get().metadata().sequenceNr() : 0L;
+
+            final long fromSequenceNr;
+            if (atHistoricalRevision == snapshotEntityRevision) {
+                fromSequenceNr = snapshotEntityRevision;
+            } else {
+                fromSequenceNr = snapshotEntityRevision + 1;
+            }
+
+            @Nullable final S entityFromSnapshot = snapshotIsPresent ? snapshotEntity.get() : null;
+            mongoReadJournal.currentEventsByPersistenceId(persistenceId(),
+                            fromSequenceNr,
+                            atHistoricalRevision
+                    )
+                    .map(AbstractPersistenceActor::mapJournalEntryToEvent)
+                    .map(journalEntryEvent -> new EntityWithEvent(
+                            eventStrategy.handle((E) journalEntryEvent, entityFromSnapshot, journalEntryEvent.getRevision()),
+                            (E) journalEntryEvent
+                    ))
+                    .takeWhile(entityWithEvent -> {
+                        if (atHistoricalTimestamp.equals(Instant.EPOCH)) {
+                            // no at-historical-timestamp was specified, so take all up to "at-historical-revision":
+                            return true;
+                        } else {
+                            // take while the timestamps of the events are before the specified "at-historical-timestamp":
+                            return entityWithEvent.event.getTimestamp()
+                                    .filter(ts -> ts.isBefore(atHistoricalTimestamp))
+                                    .isPresent();
+                        }
+                    })
+                    .reduce((ewe1, ewe2) -> new EntityWithEvent(
+                            eventStrategy.handle(ewe2.event, ewe2.entity, ewe2.revision),
+                            ewe2.event
+                    ))
+                    .runWith(Sink.foreach(entityWithEvent ->
+                                    commandStrategy.apply(getStrategyContext(),
+                                            entityWithEvent.entity,
+                                            entityWithEvent.revision,
+                                            command
+                                    ).accept(new HistoricalResultListener(sender,
+                                            entityWithEvent.event.getDittoHeaders()))
+                            ),
+                            getContext().getSystem());
+        } else {
+            if (!atHistoricalTimestamp.equals(Instant.EPOCH)) {
+                sender.tell(newHistoryNotAccessibleExceptionBuilder(atHistoricalTimestamp).build(), self);
+            } else {
+                sender.tell(newHistoryNotAccessibleExceptionBuilder(atHistoricalRevision).build(), self);
+            }
+        }
+
+        cancellableSnapshotLoadTimeout.cancel();
+        becomeCreatedOrDeletedHandler();
+        unstashAll();
     }
 
     /**
@@ -358,7 +533,7 @@ public abstract class AbstractPersistenceActor<
     }
 
     /**
-     * Allows to modify the passed in {@code event} before {@link #persistEvent(Event, Consumer)} is invoked.
+     * Allows to modify the passed in {@code event} before {@link #persistEvent(EventsourcedEvent, Consumer)} is invoked.
      * Overwrite this method and call the super method in order to additionally modify the event before persisting it.
      *
      * @param event the event to potentially modify.
@@ -452,7 +627,7 @@ public abstract class AbstractPersistenceActor<
     }
 
     protected void handleByCommandStrategy(final C command) {
-        handleByStrategy(command, getCreatedStrategy());
+        handleByStrategy(command, entity, getCreatedStrategy());
     }
 
     @SuppressWarnings("unchecked")
@@ -462,11 +637,12 @@ public abstract class AbstractPersistenceActor<
                 .match(deletedStrategy.getMatchingClass(), deletedStrategy::isDefined,
                         // get the current deletedStrategy during "matching time" to allow implementing classes
                         // to update the strategy during runtime
-                        command -> handleByStrategy(command, (CommandStrategy<C, S, K, E>) getDeletedStrategy()));
+                        command -> handleByStrategy(command, entity, (CommandStrategy<C, S, K, E>) getDeletedStrategy()));
     }
 
     @SuppressWarnings("unchecked")
-    private <T extends Command<?>> void handleByStrategy(final T command, final CommandStrategy<T, S, K, E> strategy) {
+    private <T extends Command<?>> void handleByStrategy(final T command, @Nullable final S workEntity,
+            final CommandStrategy<T, S, K, E> strategy) {
         log.debug("Handling by strategy: <{}>", command);
 
         final var startedSpan = DittoTracing.newPreparedSpan(
@@ -481,7 +657,7 @@ public abstract class AbstractPersistenceActor<
         accessCounter++;
         Result<E> result;
         try {
-            result = strategy.apply(getStrategyContext(), entity, getNextRevisionNumber(), (T) tracedCommand);
+            result = strategy.apply(getStrategyContext(), workEntity, getNextRevisionNumber(), (T) tracedCommand);
             result.accept(this);
         } catch (final DittoRuntimeException e) {
             startedSpan.tagAsFailed(e);
@@ -713,6 +889,18 @@ public abstract class AbstractPersistenceActor<
         return new CheckForActivity(accessCounter);
     }
 
+    private static EventsourcedEvent<?> mapJournalEntryToEvent(final EventEnvelope eventEnvelope) {
+
+        final BsonDocument event = (BsonDocument) eventEnvelope.event();
+        final JsonObject eventAsJsonObject = DittoBsonJson.getInstance()
+                .serialize(event);
+
+        final DittoHeaders dittoHeaders = eventAsJsonObject.getValue(AbstractMongoEventAdapter.HISTORICAL_EVENT_HEADERS)
+                .map(obj -> DittoHeaders.newBuilder(obj).build())
+                .orElseGet(DittoHeaders::empty);
+        return (EventsourcedEvent<?>) GlobalEventRegistry.getInstance().parse(eventAsJsonObject, dittoHeaders);
+    }
+
     /**
      * Check if any command is processed.
      */
@@ -757,4 +945,71 @@ public abstract class AbstractPersistenceActor<
 
     }
 
+    @Immutable
+    private final class EntityWithEvent {
+        @Nullable private final S entity;
+        private final long revision;
+        private final E event;
+
+        private EntityWithEvent(@Nullable final S entity, final E event) {
+            this.entity = entity;
+            this.revision = event.getRevision();
+            this.event = event;
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" +
+                    "entity=" + entity +
+                    ", revision=" + revision +
+                    ", event=" + event +
+                    ']';
+        }
+    }
+
+    private final class HistoricalResultListener implements ResultVisitor<E> {
+
+        private final ActorRef sender;
+        private final DittoHeaders historicalDittoHeaders;
+
+        private HistoricalResultListener(final ActorRef sender, final DittoHeaders historicalDittoHeaders) {
+            this.sender = sender;
+            this.historicalDittoHeaders = historicalDittoHeaders.toBuilder()
+                    .removeHeader(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey())
+                    .build();
+        }
+
+        @Override
+        public void onMutation(final Command<?> command, final E event,
+                final WithDittoHeaders response,
+                final boolean becomeCreated, final boolean becomeDeleted) {
+            throw new UnsupportedOperationException("Mutating historical entity not supported.");
+        }
+
+        @Override
+        public void onQuery(final Command<?> command, final WithDittoHeaders response) {
+            if (command.getDittoHeaders().isResponseRequired()) {
+                final WithDittoHeaders theResponseToSend;
+                if (response instanceof DittoHeadersSettable<?> dittoHeadersSettable) {
+                    final DittoHeaders queryCommandHeaders = response.getDittoHeaders();
+                    final DittoHeaders adjustedHeaders = queryCommandHeaders.toBuilder()
+                            .putHeader(DittoHeaderDefinition.HISTORICAL_HEADERS.getKey(),
+                                    historicalDittoHeaders.toJson().toString())
+                            .build();
+                    theResponseToSend = dittoHeadersSettable.setDittoHeaders(adjustedHeaders);
+                } else {
+                    theResponseToSend = response;
+                }
+                notifySender(sender, theResponseToSend);
+            }
+        }
+
+        @Override
+        public void onError(final DittoRuntimeException error,
+                final Command<?> errorCausingCommand) {
+            if (shouldSendResponse(errorCausingCommand.getDittoHeaders())) {
+                notifySender(sender, error);
+            }
+        }
+    }
 }

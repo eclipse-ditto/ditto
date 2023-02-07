@@ -9,7 +9,7 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 get:
-  summary: Retrieve logs of a specific Connection
+  summary: Retrieve logs of a specific connection
   description: |-
     Returns the logs of the connection identified by the `connectionId` path parameter.
     **Before** log entries are generated and returned, logging needs be enabled with the `command`

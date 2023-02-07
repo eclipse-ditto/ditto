@@ -15,6 +15,7 @@ package org.eclipse.ditto.things.service.persistence.actors;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsubthings.LiveSignalPub;
@@ -149,10 +150,15 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
                     }
                 },
                 liveSignalPub,
-                (thingId, distributedPub, searchShardRegionProxy) -> ThingPersistenceActor.props(thingId,
-                        distributedPub, null),
+                (thingId, mongoReadJournal, distributedPub, searchShardRegionProxy) -> ThingPersistenceActor.props(
+                        thingId,
+                        mongoReadJournal,
+                        distributedPub,
+                        null
+                ),
                 null,
-                policyEnforcerProvider);
+                policyEnforcerProvider,
+                Mockito.mock(MongoReadJournal.class));
 
         return system.actorOf(props, id.toString());
     }

@@ -29,6 +29,7 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotDeclaredExceptio
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.base.model.acks.FatalPubSubException;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -41,7 +42,10 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.streaming.StreamingSubscriptionCommand;
+import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionEvent;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementForwarderActor;
 import org.eclipse.ditto.edge.service.acknowledgements.message.MessageCommandAckRequestSetter;
@@ -50,6 +54,7 @@ import org.eclipse.ditto.edge.service.acknowledgements.things.ThingCommandRespon
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.edge.service.placeholders.EntityIdPlaceholder;
+import org.eclipse.ditto.edge.service.streaming.StreamingSubscriptionManager;
 import org.eclipse.ditto.gateway.api.GatewayInternalErrorException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionAbortedException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionClosedException;
@@ -92,6 +97,9 @@ import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 import akka.stream.KillSwitch;
+import akka.stream.SourceRef;
+import akka.stream.javadsl.Keep;
+import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.SourceQueueWithComplete;
 import scala.PartialFunction;
 
@@ -120,6 +128,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     private final ActorRef commandForwarder;
     private final StreamingConfig streamingConfig;
     private final ActorRef subscriptionManager;
+    private final ActorRef streamingSubscriptionManager;
     private final Set<StreamingType> outstandingSubscriptionAcks;
     private final Map<StreamingType, StreamingSession> streamingSessions;
     private final JwtValidator jwtValidator;
@@ -139,6 +148,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
             final StreamingConfig streamingConfig,
             final HeaderTranslator headerTranslator,
             final Props subscriptionManagerProps,
+            final Props streamingSubscriptionManagerProps,
             final JwtValidator jwtValidator,
             final JwtAuthenticationResultProvider jwtAuthenticationResultProvider) {
 
@@ -172,6 +182,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .withCorrelationId(connectionCorrelationId);
         connect.getSessionExpirationTime().ifPresent(this::startSessionTimeout);
         subscriptionManager = getContext().actorOf(subscriptionManagerProps, SubscriptionManager.ACTOR_NAME);
+        streamingSubscriptionManager = getContext().actorOf(streamingSubscriptionManagerProps,
+                StreamingSubscriptionManager.ACTOR_NAME);
         declaredAcks = connect.getDeclaredAcknowledgementLabels();
         startSubscriptionRefreshTimer();
     }
@@ -185,6 +197,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
      * @param streamingConfig the config to apply for the streaming session.
      * @param headerTranslator translates headers from external sources or to external sources.
      * @param subscriptionManagerProps Props of the subscription manager for search protocol.
+     * @param streamingSubscriptionManagerProps Props of the subscription manager for streaming subscription commands.
      * @param jwtValidator validator of JWT tokens.
      * @param jwtAuthenticationResultProvider provider of JWT authentication results.
      * @return the Akka configuration Props object.
@@ -195,6 +208,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
             final StreamingConfig streamingConfig,
             final HeaderTranslator headerTranslator,
             final Props subscriptionManagerProps,
+            final Props streamingSubscriptionManagerProps,
             final JwtValidator jwtValidator,
             final JwtAuthenticationResultProvider jwtAuthenticationResultProvider) {
 
@@ -205,6 +219,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 streamingConfig,
                 headerTranslator,
                 subscriptionManagerProps,
+                streamingSubscriptionManagerProps,
                 jwtValidator,
                 jwtAuthenticationResultProvider);
     }
@@ -259,6 +274,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                         commandForwarder.forward(liveCommandResponse, getContext()))
                 .match(CommandResponse.class, this::forwardAcknowledgementOrLiveCommandResponse)
                 .match(ThingSearchCommand.class, this::forwardSearchCommand)
+                .match(StreamingSubscriptionCommand.class, this::forwardStreamingSubscriptionCommand)
                 .match(Signal.class, signal ->
                         // forward signals for which no reply is expected with self return address for downstream errors
                         commandForwarder.tell(signal, getReturnAddress(signal)))
@@ -278,6 +294,10 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .match(SubscriptionEvent.class, signal -> {
                     logger.debug("Got SubscriptionEvent in <{}> session, publishing: {}", type, signal);
                     eventAndResponsePublisher.offer(SessionedJsonifiable.subscription(signal));
+                })
+                .match(StreamingSubscriptionEvent.class, signal -> {
+                    logger.debug("Got StreamingSubscriptionEvent in <{}> session, publishing: {}", type, signal);
+                    eventAndResponsePublisher.offer(SessionedJsonifiable.streamingSubscription(signal));
                 })
                 .match(CommandResponse.class, this::publishResponseOrError)
                 .match(DittoRuntimeException.class, this::publishResponseOrError)
@@ -312,6 +332,44 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
     private Receive createPubSubBehavior() {
         return ReceiveBuilder.create()
+                .match(SubscribeForPersistedEvents.class, streamPersistedEvents -> {
+                    authorizationContext = streamPersistedEvents.getDittoHeaders().getAuthorizationContext();
+                    final var session = StreamingSession.of(
+                            streamPersistedEvents.getEntityId() instanceof NamespacedEntityId nsEid ?
+                                    List.of(nsEid.getNamespace()) : List.of(),
+                            null,
+                            null,
+                            getSelf(),
+                            logger);
+                    streamingSessions.put(StreamingType.EVENTS, session);
+
+                    Patterns.ask(commandForwarder, streamPersistedEvents, streamPersistedEvents.getDittoHeaders()
+                                    .getTimeout()
+                                    .orElse(Duration.ofSeconds(5))
+                            )
+                            .thenApply(response -> (SourceRef<?>) response)
+                            .whenComplete((sourceRef, throwable) -> {
+                                    if (null != sourceRef) {
+                                        sourceRef.getSource()
+                                                .toMat(Sink.actorRef(getSelf(), Control.TERMINATED), Keep.left())
+                                                .run(getContext().getSystem());
+                                    } else if (null != throwable) {
+                                        final var dittoRuntimeException = DittoRuntimeException
+                                                .asDittoRuntimeException(throwable,
+                                                        cause -> GatewayInternalErrorException.newBuilder()
+                                                                .dittoHeaders(DittoHeaders.newBuilder()
+                                                                        .correlationId(connectionCorrelationId)
+                                                                        .build())
+                                                                .cause(cause)
+                                                                .build()
+                                                );
+                                        eventAndResponsePublisher.offer(SessionedJsonifiable.error(dittoRuntimeException));
+                                        terminateWebsocketStream();
+                                    } else {
+                                        terminateWebsocketStream();
+                                    }
+                            });
+                })
                 .match(StartStreaming.class, startStreaming -> {
                     authorizationContext = startStreaming.getAuthorizationContext();
                     Criteria criteria;
@@ -553,6 +611,11 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
     private void forwardSearchCommand(final ThingSearchCommand<?> searchCommand) {
         subscriptionManager.tell(searchCommand, getSelf());
+    }
+
+    private void forwardStreamingSubscriptionCommand(
+            final StreamingSubscriptionCommand<?> streamingSubscriptionCommand) {
+        streamingSubscriptionManager.tell(streamingSubscriptionCommand, getSelf());
     }
 
     private boolean isSessionAllowedToReceiveSignal(final Signal<?> signal,

@@ -67,7 +67,7 @@ public final class SubjectsModifiedPartially extends AbstractPolicyActionEvent<S
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition<JsonObject> JSON_MODIFIED_SUBJECTS =
+    public static final JsonFieldDefinition<JsonObject> JSON_MODIFIED_SUBJECTS =
             JsonFactory.newJsonObjectFieldDefinition("modifiedSubjects", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final Map<Label, Collection<Subject>> modifiedSubjects;
@@ -242,7 +242,13 @@ public final class SubjectsModifiedPartially extends AbstractPolicyActionEvent<S
                 .collect(JsonCollectors.fieldsToObject());
     }
 
-    private static Map<Label, Collection<Subject>> modifiedSubjectsFromJson(final JsonObject jsonObject) {
+    /**
+     * Transform the passed {@code jsonObject} to a map of modified subjects as expected in the payload of this event.
+     *
+     * @param jsonObject the json object to read the modified subjects from.
+     * @return the map.
+     */
+    public static Map<Label, Collection<Subject>> modifiedSubjectsFromJson(final JsonObject jsonObject) {
         final Map<Label, Collection<Subject>> map = jsonObject.stream()
                 .collect(Collectors.toMap(field -> Label.of(field.getKeyName()),
                         field -> subjectsFromJsonWithId(field.getValue().asObject()),

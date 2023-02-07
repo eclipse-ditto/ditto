@@ -43,6 +43,10 @@ public final class MappingStrategiesFactory {
         return PolicyAnnouncementMappingStrategies.getInstance();
     }
 
+    public static PolicyEventMappingStrategies getPolicyEventMappingStrategies() {
+        return PolicyEventMappingStrategies.getInstance();
+    }
+
     public static ThingMergeCommandMappingStrategies getThingMergeCommandMappingStrategies() {
         return ThingMergeCommandMappingStrategies.getInstance();
     }
@@ -108,6 +112,15 @@ public final class MappingStrategiesFactory {
      */
     public static ConnectivityAnnouncementMappingStrategies getConnectivityAnnouncementMappingStrategies() {
         return ConnectivityAnnouncementMappingStrategies.getInstance();
+    }
+
+    public static StreamingSubscriptionCommandMappingStrategies getStreamingSubscriptionCommandMappingStrategies() {
+        return StreamingSubscriptionCommandMappingStrategies.getInstance();
+    }
+
+    public static StreamingSubscriptionEventMappingStrategies getStreamingSubscriptionEventMappingStrategies(
+            final ErrorRegistry<?> errorRegistry) {
+        return StreamingSubscriptionEventMappingStrategies.getInstance(errorRegistry);
     }
 
 }

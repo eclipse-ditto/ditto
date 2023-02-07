@@ -27,6 +27,8 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.WithConnectionId;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 import org.eclipse.ditto.json.JsonField;
@@ -41,7 +43,8 @@ import akka.actor.ActorRef;
  * It contains a sequence of actions. Some actions are asynchronous. The connection actor can thus schedule the next
  * action as a staged command to self after an asynchronous action. Synchronous actions can be executed right away.
  */
-public final class StagedCommand implements ConnectivityCommand<StagedCommand>, Iterator<StagedCommand> {
+public final class StagedCommand implements ConnectivityCommand<StagedCommand>, Iterator<StagedCommand>,
+        WithConnectionId {
 
     private final ConnectivityCommand<?> command;
     @Nullable private final ConnectivityEvent<?> event;
@@ -80,6 +83,17 @@ public final class StagedCommand implements ConnectivityCommand<StagedCommand>, 
      */
     public ConnectivityCommand<?> getCommand() {
         return command;
+    }
+
+    @Override
+    public ConnectionId getEntityId() {
+        if (command instanceof WithConnectionId withConnectionId) {
+            return withConnectionId.getEntityId();
+        } else if (event != null) {
+            return event.getEntityId();
+        } else {
+            throw new IllegalStateException("Could not determine ConnectionId in StagedCommand");
+        }
     }
 
     /**
@@ -210,4 +224,5 @@ public final class StagedCommand implements ConnectivityCommand<StagedCommand>, 
     private Queue<ConnectionAction> getActionsAsQueue() {
         return new LinkedList<>(actions);
     }
+
 }

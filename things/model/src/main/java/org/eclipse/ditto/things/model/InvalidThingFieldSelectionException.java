@@ -18,12 +18,12 @@ import java.text.MessageFormat;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Thrown when a {@link ThingFieldSelector} was not valid.
@@ -34,9 +34,9 @@ import org.eclipse.ditto.base.model.json.JsonParsableException;
 public final class InvalidThingFieldSelectionException extends DittoRuntimeException implements ThingException {
 
     private static final String DEFAULT_MESSAGE_TEMPLATE = "Thing field selection <{0}> was not valid.";
-    private static final String DEFAULT_DESCRIPTION = "Please provide a comma separated List of valid Thing fields." +
+    private static final String DEFAULT_DESCRIPTION = "Please provide a comma separated List of valid Thing fields. " +
             "Make sure that you did not use a space after a comma. Valid Fields are: " +
-            ThingFieldSelector.SELECTABLE_FIELDS.toString();
+            ThingFieldSelector.SELECTABLE_FIELDS;
 
     static final String ERROR_CODE = ERROR_CODE_PREFIX + "field.selection.invalid";
 

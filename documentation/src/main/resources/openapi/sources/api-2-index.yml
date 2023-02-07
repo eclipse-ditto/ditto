@@ -41,7 +41,7 @@ tags:
   - name: CloudEvents
     description: Process CloudEvents in Ditto
   - name: Connections
-    description: Manage Connections
+    description: Manage connections
 
 security:
   - Google:
@@ -271,8 +271,10 @@ components:
       $ref: "./parameters/thingIdPathParam.yml"
     TimeoutParam:
       $ref: "./parameters/timeoutParam.yml"
-    connectionIdPathParam:
+    ConnectionIdPathParam:
       $ref: './parameters/connectionIdPathParam.yml'
+    ConnectionFieldsQueryParam:
+      $ref: "./parameters/connectionFieldsQueryParam.yml"
 
   schemas:
     Error:

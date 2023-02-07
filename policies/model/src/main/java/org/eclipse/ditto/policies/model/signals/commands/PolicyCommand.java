@@ -12,24 +12,26 @@
  */
 package org.eclipse.ditto.policies.model.signals.commands;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.entity.type.WithEntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.policies.model.PolicyConstants;
-import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.policies.model.PolicyConstants;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.WithPolicyId;
 
 /**
  * Aggregates all {@link Command}s which are related to a {@link org.eclipse.ditto.policies.model.Policy}.
  *
  * @param <T> the type of the implementing class.
  */
-public interface PolicyCommand<T extends PolicyCommand<T>> extends Command<T>, WithEntityType, SignalWithEntityId<T> {
+public interface PolicyCommand<T extends PolicyCommand<T>> extends Command<T>, WithEntityType, WithPolicyId,
+        SignalWithEntityId<T> {
 
     /**
      * Type Prefix of Policy commands.

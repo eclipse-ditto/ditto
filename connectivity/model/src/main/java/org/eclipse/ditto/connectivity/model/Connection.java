@@ -20,21 +20,19 @@ import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.entity.Entity;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Represents a connection within the Connectivity service.
  */
 @Immutable
-public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
+public interface Connection extends Entity<ConnectionRevision> {
 
     /**
      * Returns the identifier of this {@code Connection}.
@@ -242,11 +240,6 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
         return toJson(FieldType.notHidden());
     }
 
-    @Override
-    default JsonObject toJson(final JsonSchemaVersion schemaVersion, final JsonFieldSelector fieldSelector) {
-        return toJson(schemaVersion, FieldType.notHidden()).get(fieldSelector);
-    }
-
     /**
      * An enumeration of the known {@code JsonField}s of a {@code Connection}.
      */
@@ -257,6 +250,33 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          * JSON field containing the Connection's lifecycle.
          */
         public static final JsonFieldDefinition<String> LIFECYCLE = JsonFactory.newStringFieldDefinition("__lifecycle",
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the Connection's revision.
+         * @since 3.2.0
+         */
+        public static final JsonFieldDefinition<Long> REVISION = JsonFactory.newLongFieldDefinition("_revision",
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the Connection's modified timestamp in ISO-8601 format.
+         * @since 3.2.0
+         */
+        public static final JsonFieldDefinition<String> MODIFIED = JsonFactory.newStringFieldDefinition("_modified",
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the Connection's created timestamp in ISO-8601 format.
+         * @since 3.2.0
+         */
+        public static final JsonFieldDefinition<String> CREATED = JsonFactory.newStringFieldDefinition("_created",
                 FieldType.SPECIAL,
                 FieldType.HIDDEN,
                 JsonSchemaVersion.V_2);

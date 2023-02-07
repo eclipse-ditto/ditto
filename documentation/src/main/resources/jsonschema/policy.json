@@ -1,12 +1,36 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "type": "object",
-  "description": "A Policy enables developers to configure fine-grained access control for Things.",
+  "description": "A policy enables developers to configure fine-grained access control for Things.",
   "title": "Policy",
   "properties": {
     "policyId": {
       "type": "string",
-      "description": "Unique identifier representing the Policy, has to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).\n\nExamples for a valid Policy ID:\n * `org.eclipse.ditto:xdk_policy_53`\n * `foo:xdk_53`\n * `org.eclipse.vorto_42:xdk_policy`"
+      "description": "Unique identifier representing the policy, has to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).\n\nExamples for a valid policy ID:\n * `org.eclipse.ditto:xdk_policy_53`\n * `foo:xdk_53`\n * `org.eclipse.vorto_42:xdk_policy`"
+    },
+    "imports": {
+      "title": "PolicyImports",
+      "type": "object",
+      "description": "Policy imports containing one policy import for each key. The key is the policy ID of the referenced policy.",
+      "properties": {
+        "additionalProperties": {
+          "title": "PolicyImport",
+          "type": "object",
+          "description": "Single policy import defining which policy entries of the referenced policy are imported.",
+          "properties": {
+            "entries" : {
+              "title": "ImportedEntries",
+              "type": "array",
+              "description": "The policy entries to import from the referenced policy identified by their labels. In case the field is omitted or an empty array is provided, all policy entries defined as implicit (\"importable\": \"implicit\") are imported.",
+              "items": {
+                "type": "string",
+                "description": "Label of a policy entry to import from the referenced policy."
+              },
+              "maxItems": 10
+            }
+          }
+        }
+      }
     },
     "entries": {
       "title": "PolicyEntries",
@@ -16,7 +40,7 @@
         "additionalProperties": {
           "title": "Label",
           "type": "object",
-          "description": "Single Policy entry containing Subjects and Resources.",
+          "description": "Single policy entry containing Subjects and Resources.",
           "properties": {
             "subjects": {
               "title": "Subjects",
@@ -34,7 +58,7 @@
                   },
                   "expiry": {
                     "type": "string",
-                    "description": "The optional expiry timestamp (formatted in ISO-8601) indicates how long this subject should be considered before it is automatically deleted from the Policy.",
+                    "description": "The optional expiry timestamp (formatted in ISO-8601) indicates how long this subject should be considered before it is automatically deleted from the policy.",
                     "format": "date-time"
                   },
                   "requestedAcks": {
@@ -70,13 +94,13 @@
               "additionalProperties": {
                 "title": "ResourceEntry",
                 "type": "object",
-                "description": "Single Resource entry defining permissions per effect. The keys must be in the format `type:path` with `type` being one of the following `thing`, `policy` or `message` resources. See [Policy documentation](../basic-policy.html#which-resources-can-be-controlled) for detailed information.",
+                "description": "Single Resource entry defining permissions per effect. The keys must be in the format `type:path` with `type` being one of the following `thing`, `policy` or `message` resources. See [policy documentation](../basic-policy.html#which-resources-can-be-controlled) for detailed information.",
                 "properties": {
                   "grant": {
                     "type": "array",
                     "items": {
                       "type": "string",
-                      "description": "All subjects specified in this Policy entry are granted read/write permission on the resources specified in the path, and all subsequent paths, except they are revoked at a subsequent policy label.",
+                      "description": "All subjects specified in this policy entry are granted read/write permission on the resources specified in the path, and all subsequent paths, except they are revoked at a subsequent policy label.",
                       "enum": [
                         "READ",
                         "WRITE"
@@ -87,7 +111,7 @@
                     "type": "array",
                     "items": {
                       "type": "string",
-                      "description": "All subjects specified in this Policy entry are prohibited to read/write on the resources specified in the path, and all subsequent paths, except they are granted again such permission at a subsequent policy label.",
+                      "description": "All subjects specified in this policy entry are prohibited to read/write on the resources specified in the path, and all subsequent paths, except they are granted again such permission at a subsequent policy label.",
                       "enum": [
                         "READ",
                         "WRITE"
@@ -116,29 +140,23 @@
         }
       }
     },
-    "imports": {
-      "title": "PolicyImports",
+    "_revision": {
+      "type": "integer",
+      "description": "_(read-only)_ The revision is a counter which is incremented on each modification of a policy."
+    },
+    "_created": {
+      "type": "string",
+      "description": "_(read-only)_ The created timestamp of the policy in ISO-8601 UTC format. The timestamp is set on creation of a policy.",
+      "format": "date-time"
+    },
+    "_modified": {
+      "type": "string",
+      "description": "_(read-only)_ The modified timestamp of the policy in ISO-8601 UTC format. The timestamp is set on each modification of a policy.",
+      "format": "date-time"
+    },
+    "_metadata": {
       "type": "object",
-      "description": "Policy imports containing one policy import for each key. The key is the policy ID of the referenced policy.",
-      "properties": {
-        "additionalProperties": {
-          "title": "PolicyImport",
-          "type": "object",
-          "description": "Single policy import defining which policy entries of the referenced policy are imported.",
-          "properties": {
-            "entries" : {
-              "title": "ImportedEntries",
-              "type": "array",
-              "description": "The policy entries to import from the referenced policy identified by their labels. In case the field is omitted or an empty array is provided, all policy entries defined as implicit (\"importable\": \"implicit\") are imported.",
-              "items": {
-                "type": "string",
-                "description": "Label of a policy entry to import from the referenced policy."
-              },
-              "maxItems": 10
-            }
-          }
-        }
-      }
+      "description": "_(read-only)_ The metadata of the policy. This field is not returned by default but must be selected explicitly. The content is a JSON object having the policy's JSON structure with the difference that the JSON leaves of the policy are JSON objects containing the metadata."
     }
   },
   "required": [

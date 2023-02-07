@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
@@ -33,7 +34,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class CleanupPersistenceResponseTest {
 
-    private static final EntityId ID = EntityId.of(EntityType.of("thing"), "eclipse:ditto");
+    private static final EntityId ID = NamespacedEntityId.of(EntityType.of("thing"), "eclipse:ditto");
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(CommandResponse.JsonFields.TYPE, CleanupPersistenceResponse.TYPE)
             .set(CleanupCommandResponse.JsonFields.ENTITY_TYPE, ID.getEntityType().toString())

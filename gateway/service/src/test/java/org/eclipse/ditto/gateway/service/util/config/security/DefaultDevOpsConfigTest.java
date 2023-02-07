@@ -65,6 +65,7 @@ public final class DefaultDevOpsConfigTest {
                 DevOpsConfig.DevOpsConfigValue.DEVOPS_AUTHENTICATION_METHOD);
         assertDefaultValueFor(underTest.getPassword(), DevOpsConfig.DevOpsConfigValue.PASSWORD);
         assertDefaultValueFor(underTest.getDevopsOAuth2Subjects(), DevOpsConfig.DevOpsConfigValue.DEVOPS_OAUTH2_SUBJECTS);
+        assertDefaultValueFor(underTest.isStatusSecured(), DevOpsConfig.DevOpsConfigValue.STATUS_SECURED);
         assertDefaultValueFor(underTest.getStatusAuthenticationMethod().getMethodName(),
                 DevOpsConfig.DevOpsConfigValue.STATUS_AUTHENTICATION_METHOD);
         assertDefaultValueFor(underTest.getStatusPassword(), DevOpsConfig.DevOpsConfigValue.STATUS_PASSWORD);
@@ -87,6 +88,7 @@ public final class DefaultDevOpsConfigTest {
         assertConfiguredValueFor(underTest.getPassword(), DevOpsConfig.DevOpsConfigValue.PASSWORD, "bumlux");
         assertConfiguredValueFor(underTest.getDevopsOAuth2Subjects(),
                 DevOpsConfig.DevOpsConfigValue.DEVOPS_OAUTH2_SUBJECTS, List.of("someissuer:a", "someissuer:b"));
+        assertConfiguredValueFor(underTest.isStatusSecured(), DevOpsConfig.DevOpsConfigValue.SECURED, false);
         assertConfiguredValueFor(underTest.getStatusAuthenticationMethod().getMethodName(),
                 DevOpsConfig.DevOpsConfigValue.STATUS_AUTHENTICATION_METHOD, "oauth2");
         assertConfiguredValueFor(underTest.getStatusPassword(), DevOpsConfig.DevOpsConfigValue.STATUS_PASSWORD,

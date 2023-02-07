@@ -16,8 +16,10 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 
+import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.test.Retry;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonFactory;
@@ -233,13 +235,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
     public void actorCannotBeStartedWithNegativeSnapshotThreshold() {
         final Config customConfig = createNewDefaultTestConfig().withValue(SNAPSHOT_THRESHOLD,
                 ConfigValueFactory.fromAnyRef(-1));
-        setup(customConfig);
-
-        disableLogging();
-        new TestKit(actorSystem) {{
-            final ActorRef underTest = createPersistenceActorFor(ThingId.of("fail:fail"));
-            watch(underTest);
-            expectTerminated(underTest);
-        }};
+        Assertions.assertThatExceptionOfType(DittoConfigError.class)
+                        .isThrownBy(() -> setup(customConfig));
     }
 }

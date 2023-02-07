@@ -19,7 +19,6 @@ import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.INS
 
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
@@ -28,12 +27,14 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
@@ -82,6 +83,7 @@ import org.eclipse.ditto.connectivity.service.util.ConnectionPubSub;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
 import org.eclipse.ditto.internal.utils.akka.controlflow.WithSender;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.test.Retry;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
@@ -91,6 +93,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
@@ -210,8 +213,14 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     @Test
     public void testConnectionTypeHono() throws IOException {
         //GIVEN
-        final var honoConnection = generateConnectionObjectFromJsonFile("hono-connection-custom-test.json");
-        final var expectedHonoConnection = generateConnectionObjectFromJsonFile("hono-connection-custom-expected.json");
+        final var honoConnection = generateConnectionObjectFromJsonFile("hono-connection-custom-test.json")
+                .toBuilder()
+                .id(connectionId)
+                .build();
+        final var expectedHonoConnection = generateConnectionObjectFromJsonFile("hono-connection-custom-expected.json")
+                .toBuilder()
+                .id(connectionId)
+                .build();
         final var testConnection = TestConnection.of(honoConnection, dittoHeadersWithCorrelationId);
         final var testProbe = actorSystemResource1.newTestProbe();
         final var connectionSupervisorActor = createSupervisor();
@@ -248,13 +257,17 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
         final var connectionActorProps = Props.create(ConnectionPersistenceActor.class,
                 () -> new ConnectionPersistenceActor(connectionId,
+                        Mockito.mock(MongoReadJournal.class),
                         commandForwarderActor,
                         pubSubMediatorProbe.ref(),
                         Trilean.TRUE,
                         ConfigFactory.empty()));
 
         final var underTest = actorSystemResource1.newActor(connectionActorProps, connectionId.toString());
-        underTest.tell(createConnection(honoConnection), testProbe.ref());
+        final CreateConnection createConnection = createConnection(
+                honoConnection.toBuilder().id(connectionId).build()
+        );
+        underTest.tell(createConnection, testProbe.ref());
         testProbe.expectMsgClass(FiniteDuration.apply(20, "s"), CreateConnectionResponse.class);
 
         Arrays.stream(ConnectionType.values()).forEach(connectionType -> {
@@ -350,7 +363,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // create connection
         underTest.tell(createConnection(), testProbe.ref());
         simulateSuccessfulOpenConnectionInClientActor();
-        testProbe.expectMsg(createConnectionResponse());
+        expectCreateConnectionResponse(testProbe, connection);
 
         // close connection
         final CloseConnection closeConnection = CloseConnection.of(connectionId, dittoHeadersWithCorrelationId);
@@ -375,7 +388,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // create connection
         underTest.tell(createConnection(), testProbe.ref());
         simulateSuccessfulOpenConnectionInClientActor();
-        testProbe.expectMsg(createConnectionResponse());
+        expectCreateConnectionResponse(testProbe, connection);
 
         // delete connection
         underTest.tell(DeleteConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
@@ -465,7 +478,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // create connection
         underTest.tell(createConnection(), testProbe.ref());
         simulateSuccessfulOpenConnectionInClientActor();
-        testProbe.expectMsg(createConnectionResponse());
+        expectCreateConnectionResponse(testProbe, connection);
 
         // delete connection
         underTest.tell(DeleteConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
@@ -476,7 +489,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // create connection again (while ConnectionActor is in deleted state)
         underTest.tell(createConnection(), testProbe.ref());
         simulateSuccessfulOpenConnectionInClientActor();
-        testProbe.expectMsg(createConnectionResponse());
+        expectCreateConnectionResponse(testProbe, connection);
     }
 
     @Test
@@ -488,7 +501,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // create connection
         underTest.tell(createConnection(), testProbe.ref());
         simulateSuccessfulOpenConnectionInClientActor();
-        testProbe.expectMsg(createConnectionResponse());
+        expectCreateConnectionResponse(testProbe, connection);
 
         // delete connection
         underTest.tell(DeleteConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
@@ -509,7 +522,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
         // create connection
         underTest.tell(createConnection(closedConnection), testProbe.ref());
-        testProbe.expectMsg(createConnectionResponse(closedConnection));
+        expectCreateConnectionResponse(testProbe, closedConnection);
 
         // assert that client actor is not called for closed connection
         mockClientActorProbe.expectNoMessage();
@@ -674,7 +687,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // create connection
         underTest.tell(createConnection(), testProbe.ref());
         simulateSuccessfulOpenConnectionInClientActor();
-        testProbe.expectMsg(createConnectionResponse());
+        expectCreateConnectionResponse(testProbe, connection);
 
         // close connection
         underTest.tell(CloseConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
@@ -697,7 +710,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
         // create connection
         underTest.tell(createConnection(closedConnection), testProbe.ref());
-        testProbe.expectMsg(createConnectionResponse(closedConnection));
+        expectCreateConnectionResponse(testProbe, closedConnection);
         mockClientActorProbe.expectNoMessage();
 
         // retrieve metrics
@@ -721,7 +734,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // create connection
         underTest.tell(createConnection(), testProbe.ref());
         simulateSuccessfulOpenConnectionInClientActor();
-        testProbe.expectMsg(createConnectionResponse());
+        expectCreateConnectionResponse(testProbe, connection);
 
         // modify connection | Implicitly validates the restart by waiting for pubsub subscribe from client actor.
         underTest.tell(ModifyConnection.of(connection, dittoHeadersWithCorrelationId), testProbe.ref());
@@ -746,7 +759,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // create connection
         underTest.tell(createConnection(), testProbe.ref());
         simulateSuccessfulOpenConnectionInClientActor();
-        testProbe.expectMsg(createConnectionResponse());
+        expectCreateConnectionResponse(testProbe, connection);
 
         // stop actor
         actorSystemResource1.stopActor(underTest);
@@ -797,7 +810,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // create connection
         underTest.tell(createConnection(), testProbe.ref());
         simulateSuccessfulOpenConnectionInClientActor();
-        testProbe.expectMsg(createConnectionResponse());
+        expectCreateConnectionResponse(testProbe, connection);
 
         // modify connection
         final var modifiedConnection = ConnectivityModelFactory.newConnectionBuilder(connection)
@@ -819,7 +832,11 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
         // retrieve connection status
         underTest.tell(RetrieveConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
-        testProbe.expectMsg(RetrieveConnectionResponse.of(modifiedConnection.toJson(), dittoHeadersWithCorrelationId));
+        testProbe.expectMsg(RetrieveConnectionResponse.of(modifiedConnection.toJson(),
+                dittoHeadersWithCorrelationId.toBuilder()
+                        .eTag(EntityTag.fromString("\"rev:2\""))
+                        .build()
+        ));
     }
 
     @Test
@@ -831,7 +848,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // create connection
         underTest.tell(createConnection(), testProbe.ref());
         simulateSuccessfulOpenConnectionInClientActor();
-        testProbe.expectMsg(createConnectionResponse());
+        expectCreateConnectionResponse(testProbe, connection);
 
         // close connection
         underTest.tell(CloseConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
@@ -873,7 +890,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // create connection
         underTest.tell(createConnection(), testProbe.ref());
         simulateSuccessfulOpenConnectionInClientActor();
-        testProbe.expectMsg(createConnectionResponse());
+        expectCreateConnectionResponse(testProbe, connection);
 
         // delete connection
         underTest.tell(DeleteConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
@@ -893,14 +910,16 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     @Test
     public void exceptionDuringClientActorPropsCreation() {
 
-        final var connectionActorProps = ConnectionPersistenceActor.props(
-                TestConstants.createRandomConnectionId(), commandForwarderActor, pubSubMediatorProbe.ref(),
-                ConfigFactory.empty()
-        );
-
         final var testProbe = actorSystemResource1.newTestProbe();
         final var supervisor = actorSystemResource1.newTestProbe();
-        final var connectionActorRef = supervisor.childActorOf(connectionActorProps);
+
+        final var connectionActorProps = ConnectionPersistenceActor.props(
+                connectionId,
+                Mockito.mock(MongoReadJournal.class),
+                commandForwarderActor,
+                pubSubMediatorProbe.ref(),
+                ConfigFactory.empty());
+        final var connectionActorRef = supervisor.childActorOf(connectionActorProps, "connection");
 
         // create connection
         final CreateConnection createConnection = createConnection();
@@ -920,7 +939,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
     @Test
     public void exceptionDueToCustomValidator() {
-        final var connectionActorProps = ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
+        final var connectionActorProps = ConnectionPersistenceActor.props(connectionId,
+                Mockito.mock(MongoReadJournal.class),
                 commandForwarderActor,
                 pubSubMediatorProbe.ref(),
                 ConfigFactory.empty());
@@ -954,7 +974,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // create connection
         underTest.tell(createConnection(), testProbe.ref());
         simulateSuccessfulOpenConnectionInClientActor();
-        testProbe.expectMsg(createConnectionResponse());
+        expectCreateConnectionResponse(testProbe, connection);
 
         // reset metrics
         final var resetConnectionMetrics = ResetConnectionMetrics.of(connectionId, dittoHeadersWithCorrelationId);
@@ -973,7 +993,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // create connection
         underTest.tell(createConnection(), testProbe.ref());
         simulateSuccessfulOpenConnectionInClientActor();
-        testProbe.expectMsg(createConnectionResponse());
+        expectCreateConnectionResponse(testProbe, connection);
 
         // send cleanup command
         underTest.tell(CleanupPersistence.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
@@ -989,7 +1009,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // create connection
         underTest.tell(createConnection(), testProbe.ref());
         simulateSuccessfulOpenConnectionInClientActor();
-        testProbe.expectMsg(createConnectionResponse());
+        expectCreateConnectionResponse(testProbe, connection);
 
         //Close logging which are automatically enabled via create connection
         underTest.tell(LoggingExpired.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
@@ -1011,7 +1031,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
         // create connection
         underTest.tell(createConnection(closedConnection), testProbe.ref());
-        testProbe.expectMsg(createConnectionResponse(closedConnection));
+        expectCreateConnectionResponse(testProbe, closedConnection);
         clientActorProbe.expectNoMessage();
 
         // retrieve logs
@@ -1042,7 +1062,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // create connection
         underTest.tell(createConnection(), testProbe.ref());
         simulateSuccessfulOpenConnectionInClientActor();
-        testProbe.expectMsg(createConnectionResponse());
+        expectCreateConnectionResponse(testProbe, connection);
 
         // retrieve logs
         final var retrieveConnectionLogs = RetrieveConnectionLogs.of(connectionId, dittoHeadersWithCorrelationId);
@@ -1069,7 +1089,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // create connection
         underTest.tell(createConnection(), testProbe.ref());
         simulateSuccessfulOpenConnectionInClientActor();
-        testProbe.expectMsg(createConnectionResponse());
+        expectCreateConnectionResponse(testProbe, connection);
 
         // reset logs
         underTest.tell(resetConnectionLogs, testProbe.ref());
@@ -1086,7 +1106,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // create connection
         underTest.tell(createConnection(), testProbe.ref());
         simulateSuccessfulOpenConnectionInClientActor();
-        testProbe.expectMsg(createConnectionResponse());
+        expectCreateConnectionResponse(testProbe, connection);
 
         // Wait until connection is established
         // enable connection logs
@@ -1115,7 +1135,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // create connection
         underTest.tell(createConnection(), testProbe.ref());
         simulateSuccessfulOpenConnectionInClientActor();
-        testProbe.expectMsg(createConnectionResponse());
+        expectCreateConnectionResponse(testProbe, connection);
 
         //Close logging which are automatically enabled via create connection
         underTest.tell(LoggingExpired.of(connectionId, DittoHeaders.empty()), testProbe.ref());
@@ -1155,6 +1175,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var testProbe = actorSystemResource1.newTestProbe();
         final var connectionActorProps = Props.create(ConnectionPersistenceActor.class,
                 () -> new ConnectionPersistenceActor(connectionId,
+                        Mockito.mock(MongoReadJournal.class),
                         commandForwarderActor,
                         pubSubMediatorProbe.ref(),
                         Trilean.TRUE,
@@ -1217,6 +1238,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 Props.create(
                         ConnectionPersistenceActor.class,
                         () -> new ConnectionPersistenceActor(connectionId,
+                                Mockito.mock(MongoReadJournal.class),
                                 commandForwarderActor,
                                 pubSubMediatorProbe.ref(),
                                 Trilean.FALSE,
@@ -1230,9 +1252,13 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final DittoHeaders headersIndicatingFailingInstantiation = createConnection.getDittoHeaders().toBuilder()
                 .putHeader("number-of-instantiation-failures",
                         String.valueOf(TestConstants.CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation()))
+                .responseRequired(false)
                 .build();
         underTest.tell(createConnection.setDittoHeaders(headersIndicatingFailingInstantiation), testProbe.ref());
-        testProbe.expectMsg(createConnectionResponse().setDittoHeaders(headersIndicatingFailingInstantiation));
+        final CreateConnectionResponse resp =
+                expectCreateConnectionResponse(testProbe, connection);
+        assertThat(resp.getDittoHeaders())
+                .isEqualTo(headersIndicatingFailingInstantiation);
 
         assertThat(underTest.isTerminated()).isFalse();
     }
@@ -1244,6 +1270,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 Props.create(
                         ConnectionPersistenceActor.class,
                         () -> new ConnectionPersistenceActor(connectionId,
+                                Mockito.mock(MongoReadJournal.class),
                                 commandForwarderActor,
                                 pubSubMediatorProbe.ref(),
                                 Trilean.FALSE,
@@ -1257,9 +1284,13 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final DittoHeaders headersIndicatingFailingInstantiation = createConnection.getDittoHeaders().toBuilder()
                 .putHeader("number-of-instantiation-failures",
                         String.valueOf(TestConstants.CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation() + 1))
+                .responseRequired(false)
                 .build();
         underTest.tell(createConnection.setDittoHeaders(headersIndicatingFailingInstantiation), testProbe.ref());
-        testProbe.expectMsg(createConnectionResponse().setDittoHeaders(headersIndicatingFailingInstantiation));
+        final CreateConnectionResponse resp =
+                expectCreateConnectionResponse(testProbe, connection);
+        assertThat(resp.getDittoHeaders())
+                .isEqualTo(headersIndicatingFailingInstantiation);
 
         testProbe.expectTerminated(underTest, FiniteDuration.apply(3, TimeUnit.SECONDS));
     }
@@ -1272,7 +1303,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
         // create connection
         underTest.tell(createConnection(closedConnection), testProbe.ref());
-        testProbe.expectMsg(createConnectionResponse(closedConnection));
+        expectCreateConnectionResponse(testProbe, closedConnection);
         pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Subscribe.class);
 
         // delete connection
@@ -1301,14 +1332,17 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         return CreateConnection.of(connection, dittoHeadersWithCorrelationId);
     }
 
-    private CreateConnectionResponse createConnectionResponse() {
-        return createConnectionResponse(connection);
+    private CreateConnectionResponse expectCreateConnectionResponse(final TestProbe probe, 
+            final Connection theConnection) {
+        final CreateConnectionResponse resp =
+                probe.expectMsgClass(CreateConnectionResponse.class);
+        Assertions.assertThat(resp.getConnection())
+                .usingRecursiveComparison()
+                .ignoringFields("revision", "modified", "created")
+                .isEqualTo(theConnection);
+        return resp;
     }
-
-    private CreateConnectionResponse createConnectionResponse(final Connection connection) {
-        return CreateConnectionResponse.of(connection, dittoHeadersWithCorrelationId);
-    }
-
+    
     private void simulateSuccessfulOpenConnectionInClientActor() {
         expectMockClientActorMessage(EnableConnectionLogs.of(connectionId, DittoHeaders.empty()));
         expectMockClientActorMessage(OpenConnection.of(connectionId, dittoHeadersWithCorrelationId));

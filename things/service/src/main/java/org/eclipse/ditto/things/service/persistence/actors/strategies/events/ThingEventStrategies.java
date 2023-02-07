@@ -14,8 +14,8 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.events;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.internal.utils.persistentactors.events.AbstractEventStrategies;
+import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.signals.events.AttributeCreated;
 import org.eclipse.ditto.things.model.signals.events.AttributeDeleted;
 import org.eclipse.ditto.things.model.signals.events.AttributeModified;
@@ -54,7 +54,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
 
 /**
- * This Singleton strategy handles all {@link org.eclipse.ditto.things.model.signals.events.ThingEvent}s.
+ * This Singleton strategy handles all {@link ThingEvent}s.
  */
 @Immutable
 public final class ThingEventStrategies extends AbstractEventStrategies<ThingEvent<?>, Thing> {

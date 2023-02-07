@@ -44,11 +44,13 @@ import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.WithStreamingSubscriptionId;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
+import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
 import org.eclipse.ditto.connectivity.api.MappedInboundExternalMessage;
@@ -508,6 +510,8 @@ public final class InboundDispatchingSink
                         )
                         .match(CreateSubscription.class, cmd -> forwardToConnectionActor(cmd, sender))
                         .match(WithSubscriptionId.class, cmd -> forwardToClientActor(cmd, sender))
+                        .match(SubscribeForPersistedEvents.class, cmd -> forwardToConnectionActor(cmd, sender))
+                        .match(WithStreamingSubscriptionId.class, cmd -> forwardToClientActor(cmd, sender))
                         .matchAny(baseSignal -> ackregatorStarter.preprocess(baseSignal,
                                 (signal, isAckRequesting) -> Stream.of(new IncomingSignal(signal,
                                         getReturnAddress(sender, isAckRequesting, signal),
@@ -659,7 +663,7 @@ public final class InboundDispatchingSink
         return Stream.empty();
     }
 
-    private <T> Stream<T> forwardToConnectionActor(final CreateSubscription command, @Nullable final ActorRef sender) {
+    private <T> Stream<T> forwardToConnectionActor(final Command<?> command, @Nullable final ActorRef sender) {
         connectionActor.tell(command, sender);
 
         return Stream.empty();

@@ -34,10 +34,12 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConne
 import org.eclipse.ditto.connectivity.service.enforcement.ConnectionEnforcerActorPropsFactory;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 
@@ -134,7 +136,8 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(system.settings().config());
         final var enforcerActorPropsFactory = ConnectionEnforcerActorPropsFactory.get(system, dittoExtensionsConfig);
         final Props props =
-                ConnectionSupervisorActor.props(proxyActorProbe.ref(), pubSubMediator, enforcerActorPropsFactory);
+                ConnectionSupervisorActor.props(proxyActorProbe.ref(), pubSubMediator, enforcerActorPropsFactory,
+                        Mockito.mock(MongoReadJournal.class));
 
         return system.actorOf(props, String.valueOf(id));
     }

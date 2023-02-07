@@ -66,7 +66,7 @@ public final class SubjectsDeletedPartially extends AbstractPolicyActionEvent<Su
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static final JsonFieldDefinition<JsonObject> JSON_DELETED_SUBJECT_IDS =
+    public static final JsonFieldDefinition<JsonObject> JSON_DELETED_SUBJECT_IDS =
             JsonFactory.newJsonObjectFieldDefinition("deletedSubjectIds", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
@@ -228,7 +228,13 @@ public final class SubjectsDeletedPartially extends AbstractPolicyActionEvent<Su
                 .collect(JsonCollectors.fieldsToObject());
     }
 
-    private static Map<Label, Collection<SubjectId>> deletedSubjectsFromJson(final JsonObject jsonObject) {
+    /**
+     * Transform the passed {@code jsonObject} to a map of deleted subjectIds as expected in the payload of this event.
+     *
+     * @param jsonObject the json object to read the modified subjects from.
+     * @return the map.
+     */
+    public static Map<Label, Collection<SubjectId>> deletedSubjectsFromJson(final JsonObject jsonObject) {
         final Map<Label, Collection<SubjectId>> map = jsonObject.stream()
                 .collect(Collectors.toMap(field -> Label.of(field.getKeyName()),
                         field -> field.getValue().asArray().stream()

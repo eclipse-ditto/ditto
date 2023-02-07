@@ -35,7 +35,13 @@ public interface EntityId extends CharSequence, Comparable<EntityId> {
      */
     static EntityId of(final EntityType entityType, final CharSequence entityId) {
         final EntityIds entityIds = EntityIds.getInstance();
-        return entityIds.getEntityId(entityType, entityId);
+        try {
+            // most entity ids are namespaces, so try that first
+            return entityIds.getNamespacedEntityId(entityType, entityId);
+        } catch (final NamespacedEntityIdInvalidException namespacedEntityIdInvalidException) {
+            // only in the exceptional case, fall back to non-namespaced flavor:
+            return entityIds.getEntityId(entityType, entityId);
+        }
     }
 
     @Override

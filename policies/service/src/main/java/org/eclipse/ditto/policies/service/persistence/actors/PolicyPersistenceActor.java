@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.policies.service.persistence.actors;
 
+import java.time.Instant;
 import java.util.Set;
 import java.util.stream.StreamSupport;
 
@@ -26,6 +27,7 @@ import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
@@ -36,6 +38,7 @@ import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyLifecycle;
 import org.eclipse.ditto.policies.model.Subjects;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyHistoryNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.service.common.config.DittoPoliciesConfig;
@@ -76,11 +79,12 @@ public final class PolicyPersistenceActor
 
     @SuppressWarnings("unused")
     private PolicyPersistenceActor(final PolicyId policyId,
+            final MongoReadJournal mongoReadJournal,
             final ActorRef pubSubMediator,
             final ActorRef announcementManager,
             final PolicyConfig policyConfig) {
 
-        super(policyId);
+        super(policyId, mongoReadJournal);
         this.pubSubMediator = pubSubMediator;
         this.announcementManager = announcementManager;
         this.policyConfig = policyConfig;
@@ -88,12 +92,13 @@ public final class PolicyPersistenceActor
     }
 
     private PolicyPersistenceActor(final PolicyId policyId,
+            final MongoReadJournal mongoReadJournal,
             final ActorRef pubSubMediator,
             final ActorRef announcementManager,
             final ActorRef supervisor) {
 
         // not possible to call other constructor because "getContext()" is not available as argument of "this()"
-        super(policyId);
+        super(policyId, mongoReadJournal);
         this.pubSubMediator = pubSubMediator;
         this.announcementManager = announcementManager;
         this.supervisor = supervisor;
@@ -107,25 +112,30 @@ public final class PolicyPersistenceActor
      * Creates Akka configuration object {@link Props} for this PolicyPersistenceActor.
      *
      * @param policyId the ID of the Policy this Actor manages.
+     * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the policy.
      * @param pubSubMediator the PubSub mediator actor.
      * @param announcementManager manager of policy announcements.
      * @param policyConfig the policy config.
      * @return the Akka configuration Props object
      */
     public static Props props(final PolicyId policyId,
+            final MongoReadJournal mongoReadJournal,
             final ActorRef pubSubMediator,
             final ActorRef announcementManager,
             final PolicyConfig policyConfig) {
 
-        return Props.create(PolicyPersistenceActor.class, policyId, pubSubMediator, announcementManager, policyConfig);
+        return Props.create(PolicyPersistenceActor.class, policyId, mongoReadJournal, pubSubMediator,
+                announcementManager, policyConfig);
     }
 
     static Props propsForTests(final PolicyId policyId,
+            final MongoReadJournal mongoReadJournal,
             final ActorRef pubSubMediator,
             final ActorRef announcementManager,
             final ActorSystem actorSystem) {
 
-        return Props.create(PolicyPersistenceActor.class, policyId, pubSubMediator, announcementManager,
+        return Props.create(PolicyPersistenceActor.class, policyId, mongoReadJournal, pubSubMediator,
+                announcementManager,
                 actorSystem.deadLetters());
     }
 
@@ -187,6 +197,16 @@ public final class PolicyPersistenceActor
     @Override
     protected DittoRuntimeExceptionBuilder<?> newNotAccessibleExceptionBuilder() {
         return PolicyNotAccessibleException.newBuilder(entityId);
+    }
+
+    @Override
+    protected DittoRuntimeExceptionBuilder<?> newHistoryNotAccessibleExceptionBuilder(final long revision) {
+        return PolicyHistoryNotAccessibleException.newBuilder(entityId, revision);
+    }
+
+    @Override
+    protected DittoRuntimeExceptionBuilder<?> newHistoryNotAccessibleExceptionBuilder(final Instant timestamp) {
+        return PolicyHistoryNotAccessibleException.newBuilder(entityId, timestamp);
     }
 
     @Override

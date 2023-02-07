@@ -16,6 +16,7 @@ import static org.eclipse.ditto.internal.utils.persistence.mongo.streaming.Mongo
 import static org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal.S_ID;
 import static org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal.S_SN;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.LongStream;
@@ -35,6 +36,7 @@ final class Cleanup {
     private final MongoReadJournal readJournal;
     private final Materializer materializer;
     private final Supplier<Pair<Integer, Integer>> responsibilitySupplier;
+    private final Duration historyRetentionDuration;
     private final int readBatchSize;
     private final int deleteBatchSize;
     private final boolean deleteFinalDeletedSnapshot;
@@ -42,6 +44,7 @@ final class Cleanup {
     Cleanup(final MongoReadJournal readJournal,
             final Materializer materializer,
             final Supplier<Pair<Integer, Integer>> responsibilitySupplier,
+            final Duration historyRetentionDuration,
             final int readBatchSize,
             final int deleteBatchSize,
             final boolean deleteFinalDeletedSnapshot) {
@@ -49,6 +52,7 @@ final class Cleanup {
         this.readJournal = readJournal;
         this.materializer = materializer;
         this.responsibilitySupplier = responsibilitySupplier;
+        this.historyRetentionDuration = historyRetentionDuration;
         this.readBatchSize = readBatchSize;
         this.deleteBatchSize = deleteBatchSize;
         this.deleteFinalDeletedSnapshot = deleteFinalDeletedSnapshot;
@@ -59,8 +63,12 @@ final class Cleanup {
             final Materializer materializer,
             final Supplier<Pair<Integer, Integer>> responsibilitySupplier) {
 
-        return new Cleanup(readJournal, materializer, responsibilitySupplier, config.getReadsPerQuery(),
-                config.getWritesPerCredit(), config.shouldDeleteFinalDeletedSnapshot());
+        return new Cleanup(readJournal, materializer, responsibilitySupplier,
+                config.getHistoryRetentionDuration(),
+                config.getReadsPerQuery(),
+                config.getWritesPerCredit(),
+                config.shouldDeleteFinalDeletedSnapshot()
+        );
     }
 
     Source<Source<CleanupResult, NotUsed>, NotUsed> getCleanupStream(final String lowerBound) {
@@ -68,7 +76,7 @@ final class Cleanup {
     }
 
     private Source<SnapshotRevision, NotUsed> getSnapshotRevisions(final String lowerBound) {
-        return readJournal.getNewestSnapshotsAbove(lowerBound, readBatchSize, true, materializer)
+        return readJournal.getNewestSnapshotsAbove(lowerBound, readBatchSize, true, historyRetentionDuration, materializer)
                 .map(document -> new SnapshotRevision(document.getString(S_ID),
                         document.getLong(S_SN),
                         "DELETED".equals(document.getString(LIFECYCLE))))
@@ -92,7 +100,8 @@ final class Cleanup {
             } else {
                 final List<Long> upperBounds = getSnUpperBoundsPerBatch(minSnOpt.orElseThrow(), sr.sn);
                 return Source.from(upperBounds).map(upperBound -> Source.lazySource(() ->
-                        readJournal.deleteEvents(sr.pid, upperBound - deleteBatchSize + 1, upperBound)
+                        readJournal
+                                .deleteEvents(sr.pid, upperBound - deleteBatchSize + 1, upperBound)
                                 .map(result -> new CleanupResult(CleanupResult.Type.EVENTS, sr, result))
                 ).mapMaterializedValue(ignored -> NotUsed.getInstance()));
             }

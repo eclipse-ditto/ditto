@@ -54,6 +54,13 @@ public interface DevOpsConfig {
     Collection<String> getDevopsOAuth2Subjects();
 
     /**
+     * Indicates whether the DevOps resource {@code /status} should be secured or not.
+     *
+     * @return {@code true} if {@code /status} should be secured, {@code false} else;
+     */
+    boolean isStatusSecured();
+
+    /**
      * Returns the authentication method for status resources.
      *
      * @return the authentication method.
@@ -108,6 +115,11 @@ public interface DevOpsConfig {
         DEVOPS_OAUTH2_SUBJECTS("devops-oauth2-subjects", List.of()),
 
         /**
+         * Determines whether DevOps resource {@code /status} should be secured or not.
+         */
+        STATUS_SECURED("status-secured", true),
+
+        /**
          * The authentication method for status resources.
          */
         STATUS_AUTHENTICATION_METHOD("status-authentication-method", "basic"),
@@ -125,7 +137,7 @@ public interface DevOpsConfig {
         private final String path;
         private final Object defaultValue;
 
-        private DevOpsConfigValue(final String thePath, final Object theDefaultValue) {
+        DevOpsConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

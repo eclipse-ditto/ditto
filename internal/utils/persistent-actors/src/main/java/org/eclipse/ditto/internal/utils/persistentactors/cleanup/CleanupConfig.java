@@ -41,7 +41,7 @@ public interface CleanupConfig {
      * @param config the config values to set.
      * @return the new cleanup config object.
      */
-    CleanupConfig setAll(final Config config);
+    CleanupConfig setAll(Config config);
 
     /**
      * Return whether background cleanup is enabled.
@@ -49,6 +49,16 @@ public interface CleanupConfig {
      * @return whether background cleanup is enabled.
      */
     boolean isEnabled();
+
+    /**
+     * Returns the duration of how long to "keep" events and snapshots before being allowed to remove them in scope
+     * of cleanup.
+     * If this e.g. is set to 30 days - then effectively an event history of 30 days would be available via the read
+     * journal.
+     *
+     * @return the history retention duration.
+     */
+    Duration getHistoryRetentionDuration();
 
     /**
      * Returns quiet period between cleanup streams.
@@ -117,6 +127,12 @@ public interface CleanupConfig {
          * Whether background cleanup is enabled.
          */
         ENABLED("enabled", true),
+
+        /**
+         * History retention duration.
+         * Events and snapshots are kept at least that long before cleaning them up from the persistence.
+         */
+        HISTORY_RETENTION_DURATION("history-retention-duration", Duration.ofDays(0L)),
 
         /**
          * Quiet period.

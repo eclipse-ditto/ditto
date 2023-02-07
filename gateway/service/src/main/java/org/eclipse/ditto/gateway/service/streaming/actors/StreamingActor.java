@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.stream.StreamSupport;
 
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
+import org.eclipse.ditto.edge.service.streaming.StreamingSubscriptionManager;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.gateway.service.streaming.signals.Connect;
@@ -61,6 +62,7 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
     private final JwtValidator jwtValidator;
     private final JwtAuthenticationResultProvider jwtAuthenticationResultProvider;
     private final Props subscriptionManagerProps;
+    private final Props streamingSubscriptionManagerProps;
     private final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final HeaderTranslator headerTranslator;
     private int childCounter = -1;
@@ -94,9 +96,13 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
         this.headerTranslator = headerTranslator;
         streamingSessionsCounter = DittoMetrics.gauge("streaming_sessions_count");
         final ActorSelection commandForwarderSelection = ActorSelection.apply(commandForwarder, "");
+        final Materializer materializer = Materializer.createMaterializer(getContext());
         subscriptionManagerProps =
                 SubscriptionManager.props(streamingConfig.getSearchIdleTimeout(), pubSubMediator,
-                        commandForwarderSelection, Materializer.createMaterializer(getContext()));
+                        commandForwarderSelection, materializer);
+        streamingSubscriptionManagerProps =
+                StreamingSubscriptionManager.props(streamingConfig.getSearchIdleTimeout(),
+                        commandForwarderSelection, materializer);
         scheduleScrapeStreamSessionsCounter();
     }
 
@@ -148,7 +154,8 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
                     final ActorRef streamingSessionActor = getContext().actorOf(
                             StreamingSessionActor.props(connect, dittoProtocolSub,
                                     commandRouter, streamingConfig, headerTranslator,
-                                    subscriptionManagerProps, jwtValidator, jwtAuthenticationResultProvider),
+                                    subscriptionManagerProps, streamingSubscriptionManagerProps,
+                                    jwtValidator, jwtAuthenticationResultProvider),
                             sessionActorName);
                     getSender().tell(streamingSessionActor, ActorRef.noSender());
                 })

@@ -98,6 +98,7 @@ public abstract class AbstractEvent<T extends AbstractEvent<T>> implements Event
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
+
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
                 // TYPE is included unconditionally:
                 .set(JsonFields.TYPE, type)

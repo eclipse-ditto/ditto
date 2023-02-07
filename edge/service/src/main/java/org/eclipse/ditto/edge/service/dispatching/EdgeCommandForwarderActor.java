@@ -22,11 +22,13 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.streaming.StreamingSubscriptionCommand;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformers;
 import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
 import org.eclipse.ditto.connectivity.api.commands.sudo.ConnectivitySudoCommand;
+import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveAllConnectionIds;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -37,8 +39,10 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
+import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
+import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
@@ -146,6 +150,18 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 .match(ConnectivitySudoCommand.class, this::forwardToConnectivity)
                 .match(ThingSearchCommand.class, this::forwardToThingSearch)
                 .match(ThingSearchSudoCommand.class, this::forwardToThingSearch)
+                .match(StreamingSubscriptionCommand.class,
+                        src -> src.getEntityType().equals(ThingConstants.ENTITY_TYPE),
+                        this::forwardToThings
+                )
+                .match(StreamingSubscriptionCommand.class,
+                        src -> src.getEntityType().equals(PolicyConstants.ENTITY_TYPE),
+                        this::forwardToPolicies
+                )
+                .match(StreamingSubscriptionCommand.class,
+                        src -> src.getEntityType().equals(ConnectivityConstants.ENTITY_TYPE),
+                        this::forwardToConnectivity
+                )
                 .match(Signal.class, this::handleUnknownSignal)
                 .matchAny(m -> log.warning("Got unknown message: {}", m))
                 .build();
@@ -220,22 +236,23 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 () -> signalTransformationCs.thenAccept(transformed -> aggregatorProxyActor.tell(transformed, sender)));
     }
 
-    private void forwardToPolicies(final PolicyCommand<?> policyCommand) {
+    private void forwardToPolicies(final Signal<?> policySignal) {
         final ActorRef sender = getSender();
-        final CompletionStage<Signal<?>> signalTransformationCs = applySignalTransformation(policyCommand, sender);
-        scheduleTask(policyCommand, () -> signalTransformationCs
-                .thenAccept(transformed -> {
-                    final PolicyCommand<?> transformedPolicyCommand = (PolicyCommand<?>) transformed;
-                    log.withCorrelationId(transformedPolicyCommand)
+        final CompletionStage<Signal<?>> signalTransformationCs = applySignalTransformation(policySignal, sender);
+        scheduleTask(policySignal, () -> signalTransformationCs
+                .thenAccept(transformedSignal -> {
+                    log.withCorrelationId(transformedSignal)
                             .info("Forwarding policy command with ID <{}> and type <{}> to 'policies' shard region",
-                                    transformedPolicyCommand.getEntityId(), transformedPolicyCommand.getType());
+                                    transformedSignal instanceof WithEntityId withEntityId ? withEntityId.getEntityId() :
+                                            null,
+                                    transformedSignal.getType());
 
-                    if (isIdempotent(transformedPolicyCommand)) {
-                        askWithRetryCommandForwarder.forwardCommand(transformedPolicyCommand,
+                    if (transformedSignal instanceof Command<?> transformedCommand && isIdempotent(transformedCommand)) {
+                        askWithRetryCommandForwarder.forwardCommand(transformedCommand,
                                 shardRegions.policies(),
                                 sender);
                     } else {
-                        shardRegions.policies().tell(transformedPolicyCommand, sender);
+                        shardRegions.policies().tell(transformedSignal, sender);
                     }
                 }));
     }

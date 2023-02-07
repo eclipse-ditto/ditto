@@ -48,6 +48,7 @@ import org.eclipse.ditto.base.model.entity.Revision;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
@@ -1389,7 +1390,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         ClusterShardingSettings.apply(actorSystem).withRole("policies");
                 final var box = new AtomicReference<ActorRef>();
                 final ActorRef announcementManager = createAnnouncementManager(policyId, box::get);
-                final Props props = PolicyPersistenceActor.propsForTests(policyId, pubSubMediator, announcementManager,
+                final Props props = PolicyPersistenceActor.propsForTests(policyId, Mockito.mock(MongoReadJournal.class),
+                        pubSubMediator, announcementManager,
                         actorSystem);
                 final Cluster cluster = Cluster.get(actorSystem);
                 cluster.join(cluster.selfAddress());
@@ -1640,7 +1642,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final var box = new AtomicReference<ActorRef>();
                 final ActorRef announcementManager = createAnnouncementManager(policyId, box::get);
                 final Props persistentActorProps =
-                        PolicyPersistenceActor.propsForTests(policyId, pubSubMediator, announcementManager, actorSystem);
+                        PolicyPersistenceActor.propsForTests(policyId, Mockito.mock(MongoReadJournal.class),
+                                pubSubMediator, announcementManager, actorSystem);
 
                 final TestProbe errorsProbe = TestProbe.apply(actorSystem);
 
@@ -1755,7 +1758,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     private ActorRef createPersistenceActorFor(final TestKit testKit, final PolicyId policyId) {
         final var box = new AtomicReference<ActorRef>();
         final ActorRef announcementManager = createAnnouncementManager(policyId, box::get);
-        final Props props = PolicyPersistenceActor.propsForTests(policyId, pubSubMediator, announcementManager,
+        final Props props = PolicyPersistenceActor.propsForTests(policyId, Mockito.mock(MongoReadJournal.class),
+                pubSubMediator, announcementManager,
                 actorSystem);
         final var persistenceActor = testKit.watch(testKit.childActorOf(props));
         box.set(persistenceActor);

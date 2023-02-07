@@ -12,18 +12,17 @@
  */
 package org.eclipse.ditto.things.service.persistence.serializer;
 
-import javax.annotation.Nullable;
-
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
+import org.eclipse.ditto.base.service.config.DittoServiceConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoEventAdapter;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.service.common.config.DefaultThingConfig;
 
 import akka.actor.ExtendedActorSystem;
 
@@ -36,29 +35,16 @@ public final class ThingMongoEventAdapter extends AbstractMongoEventAdapter<Thin
     private static final JsonPointer POLICY_IN_THING_EVENT_PAYLOAD = ThingEvent.JsonFields.THING.getPointer()
             .append(JsonPointer.of(Policy.INLINED_FIELD_NAME));
 
-    public ThingMongoEventAdapter(@Nullable final ExtendedActorSystem system) {
-        super(system, GlobalEventRegistry.getInstance());
+    public ThingMongoEventAdapter(final ExtendedActorSystem system) {
+        super(system, GlobalEventRegistry.getInstance(), DefaultThingConfig.of(
+                DittoServiceConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()), "things")
+        ).getEventConfig());
     }
 
     @Override
-    protected JsonObject performToJournalMigration(final JsonObject jsonObject) {
-        return jsonObject
+    protected JsonObjectBuilder performToJournalMigration(final Event<?> event, final JsonObject jsonObject) {
+        return super.performToJournalMigration(event, jsonObject)
                 .remove(POLICY_IN_THING_EVENT_PAYLOAD); // remove the policy entries from thing event payload
-    }
-
-    @Override
-    public Object toJournal(final Object event) {
-        if (event instanceof Event<?> theEvent) {
-            final JsonSchemaVersion schemaVersion = theEvent.getImplementedSchemaVersion();
-            final JsonObject jsonObject =
-                    theEvent.toJson(schemaVersion, FieldType.regularOrSpecial())
-                            // remove the policy entries from thing event payload
-                            .remove(POLICY_IN_THING_EVENT_PAYLOAD);
-            final DittoBsonJson dittoBsonJson = DittoBsonJson.getInstance();
-            return dittoBsonJson.parse(jsonObject);
-        } else {
-            throw new IllegalArgumentException("Unable to toJournal a non-'Event' object! Was: " + event.getClass());
-        }
     }
 
 }

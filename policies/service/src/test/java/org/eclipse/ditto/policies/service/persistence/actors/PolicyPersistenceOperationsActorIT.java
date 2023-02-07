@@ -28,6 +28,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistence.operations.EntityPersistenceOperations;
 import org.eclipse.ditto.internal.utils.persistence.operations.NamespacePersistenceOperations;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
@@ -236,9 +237,8 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
     @Override
     protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final PolicyId id) {
         final Props props =
-                PolicySupervisorActor.props(pubSubMediator, Mockito.mock(DistributedPub.class), null, Mockito.mock(
-                        PolicyEnforcerProvider.class));
-
+                PolicySupervisorActor.props(pubSubMediator, Mockito.mock(DistributedPub.class), null,
+                        Mockito.mock(PolicyEnforcerProvider.class), Mockito.mock(MongoReadJournal.class));
         return system.actorOf(props, id.toString());
     }
 

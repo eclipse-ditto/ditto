@@ -31,6 +31,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionEvent;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.connectivity.model.Target;
@@ -79,6 +80,7 @@ final class OutboundDispatchingActor extends AbstractActor {
                 .match(InboundSignal.class, this::inboundSignal)
                 .match(CommandResponse.class, this::forwardWithoutCheck)
                 .match(SubscriptionEvent.class, this::forwardWithoutCheck)
+                .match(StreamingSubscriptionEvent.class, this::forwardWithoutCheck)
                 .match(DittoRuntimeException.class, this::forwardWithoutCheck)
                 .match(Signal.class, this::handleSignal)
                 .matchAny(message -> logger.warning("Unknown message: <{}>", message))

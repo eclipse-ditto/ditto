@@ -88,12 +88,14 @@ public final class ThingsRootActor extends DittoRootActor {
 
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
         final PolicyEnforcerProvider policyEnforcerProvider = PolicyEnforcerProviderExtension.get(actorSystem).getPolicyEnforcerProvider();
+        final var mongoReadJournal = newMongoReadJournal(thingsConfig.getMongoDbConfig(), actorSystem);
         final Props thingSupervisorActorProps = getThingSupervisorActorProps(pubSubMediator,
                 distributedPubThingEventsForTwin,
                 liveSignalPub,
                 propsFactory,
                 blockedNamespaces,
-                policyEnforcerProvider
+                policyEnforcerProvider,
+                mongoReadJournal
         );
 
         final ActorRef thingsShardRegion =
@@ -128,10 +130,9 @@ public final class ThingsRootActor extends DittoRootActor {
                 DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props()));
 
         final ActorRef snapshotStreamingActor =
-                ThingsPersistenceStreamingActorCreator.startSnapshotStreamingActor(this::startChildActor);
+                ThingsPersistenceStreamingActorCreator.startPersistenceStreamingActor(this::startChildActor);
 
         final var cleanupConfig = thingsConfig.getThingConfig().getCleanupConfig();
-        final var mongoReadJournal = newMongoReadJournal(thingsConfig.getMongoDbConfig(), actorSystem);
         final Props cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE);
         startChildActor(PersistenceCleanupActor.ACTOR_NAME, cleanupActorProps);
 
@@ -174,9 +175,10 @@ public final class ThingsRootActor extends DittoRootActor {
             final LiveSignalPub liveSignalPub,
             final ThingPersistenceActorPropsFactory propsFactory,
             final BlockedNamespaces blockedNamespaces,
-            final PolicyEnforcerProvider policyEnforcerProvider) {
+            final PolicyEnforcerProvider policyEnforcerProvider,
+            final MongoReadJournal mongoReadJournal) {
         return ThingSupervisorActor.props(pubSubMediator, distributedPubThingEventsForTwin,
-                liveSignalPub, propsFactory, blockedNamespaces, policyEnforcerProvider);
+                liveSignalPub, propsFactory, blockedNamespaces, policyEnforcerProvider, mongoReadJournal);
     }
 
     private static MongoReadJournal newMongoReadJournal(final MongoDbConfig mongoDbConfig,

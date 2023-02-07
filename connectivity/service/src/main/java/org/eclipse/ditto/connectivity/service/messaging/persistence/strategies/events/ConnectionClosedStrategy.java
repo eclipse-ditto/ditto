@@ -18,11 +18,11 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
-import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionClosed;
+import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.connectivity.model.signals.events.ConnectionClosed} event.
+ * This strategy handles the {@link ConnectionClosed} event.
  */
 final class ConnectionClosedStrategy implements EventStrategy<ConnectionClosed, Connection> {
 

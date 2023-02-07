@@ -1,29 +1,14 @@
-<!--
-  ~ Copyright (c) 2022 Contributors to the Eclipse Foundation
-  ~
-  ~ See the NOTICE file(s) distributed with this work for additional
-  ~ information regarding copyright ownership.
-  ~
-  ~ This program and the accompanying materials are made available under the
-  ~ terms of the Eclipse Public License 2.0 which is available at
-  ~ http://www.eclipse.org/legal/epl-2.0
-  ~
-  ~ SPDX-License-Identifier: EPL-2.0
-  -->
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="PoliciesService" type="Application" factoryName="Application" folderName="Ditto" nameIsGenerated="true">
     <envs>
       <env name="LOG_LEVEL_APPLICATION" value="INFO" />
+      <env name="CLEANUP_HISTORY_RETENTION_DURATION" value="5d" />
+      <env name="POLICY_EVENT_HISTORICAL_HEADERS_TO_PERSIST.0" value="ditto-originator" />
+      <env name="POLICY_EVENT_HISTORICAL_HEADERS_TO_PERSIST.1" value="correlation-id" />
     </envs>
     <option name="MAIN_CLASS_NAME" value="org.eclipse.ditto.policies.service.starter.PoliciesService" />
     <module name="ditto-policies-service" />
     <option name="VM_PARAMETERS" value="-Xms512m -Xmx512m" />
-    <extension name="coverage">
-      <pattern>
-        <option name="PATTERN" value="org.eclipse.ditto.services.policies.starter.*" />
-        <option name="ENABLED" value="true" />
-      </pattern>
-    </extension>
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

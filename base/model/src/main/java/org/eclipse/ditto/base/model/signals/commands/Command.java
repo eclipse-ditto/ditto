@@ -159,7 +159,13 @@ public interface Command<T extends Command<T>> extends Signal<T> {
          * Category of commands that are neither of the above 3 (query, modify, delete) but perform an action on the
          * entity.
          */
-        ACTION;
+        ACTION,
+
+        /**
+         * Category of commands that stream e.g. historical events.
+         * @since 3.2.0
+         */
+        STREAM;
 
         /**
          * Determines whether the passed {@code category} effectively modifies the targeted entity.

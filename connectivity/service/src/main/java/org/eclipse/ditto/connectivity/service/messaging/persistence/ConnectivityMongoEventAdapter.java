@@ -12,27 +12,30 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import akka.actor.ExtendedActorSystem;
 import org.eclipse.ditto.base.model.signals.JsonParsable;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.EventJsonDeserializer;
 import org.eclipse.ditto.base.model.signals.events.EventRegistry;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
+import org.eclipse.ditto.base.service.config.DittoServiceConfig;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionModified;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.FieldsEncryptionConfig;
+import org.eclipse.ditto.connectivity.service.config.DefaultConnectionConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoEventAdapter;
+import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.FieldsEncryptionConfig;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * EventAdapter for {@link ConnectivityEvent}s persisted into
@@ -43,8 +46,10 @@ public final class ConnectivityMongoEventAdapter extends AbstractMongoEventAdapt
     private final FieldsEncryptionConfig encryptionConfig;
     private final Logger logger;
 
-    public ConnectivityMongoEventAdapter(@Nullable final ExtendedActorSystem system) {
-        super(system, createEventRegistry());
+    public ConnectivityMongoEventAdapter(final ExtendedActorSystem system) {
+        super(system, createEventRegistry(), DefaultConnectionConfig.of(
+                        DittoServiceConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()), "connectivity"))
+                .getEventConfig());
         logger = LoggerFactory.getLogger(ConnectivityMongoEventAdapter.class);
         final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(system.settings().config()));
@@ -56,11 +61,14 @@ public final class ConnectivityMongoEventAdapter extends AbstractMongoEventAdapt
     }
 
     @Override
-    protected JsonObject performToJournalMigration(final JsonObject jsonObject) {
+    protected JsonObjectBuilder performToJournalMigration(final Event<?> event, final JsonObject jsonObject) {
         if (encryptionConfig.isEncryptionEnabled()) {
-            return JsonFieldsEncryptor.encrypt(jsonObject, ConnectivityConstants.ENTITY_TYPE.toString(), encryptionConfig.getJsonPointers(), encryptionConfig.getSymmetricalKey());
+            final JsonObject superObject = super.performToJournalMigration(event, jsonObject).build();
+            return JsonFieldsEncryptor.encrypt(superObject, ConnectivityConstants.ENTITY_TYPE.toString(),
+                    encryptionConfig.getJsonPointers(), encryptionConfig.getSymmetricalKey())
+                    .toBuilder();
         }
-        return jsonObject;
+        return super.performToJournalMigration(event, jsonObject);
     }
 
     @Override

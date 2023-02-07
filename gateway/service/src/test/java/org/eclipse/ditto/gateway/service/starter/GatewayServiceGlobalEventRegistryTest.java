@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.gateway.service.starter;
 
+import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionComplete;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
 import org.eclipse.ditto.internal.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.policies.model.signals.events.ResourceDeleted;
@@ -29,7 +30,8 @@ public final class GatewayServiceGlobalEventRegistryTest extends GlobalEventRegi
                 FeatureDeleted.class,
                 ThingsOutOfSync.class,
                 SubscriptionCreated.class,
-                ThingSnapshotTaken.class
+                ThingSnapshotTaken.class,
+                StreamingSubscriptionComplete.class
         );
     }
 

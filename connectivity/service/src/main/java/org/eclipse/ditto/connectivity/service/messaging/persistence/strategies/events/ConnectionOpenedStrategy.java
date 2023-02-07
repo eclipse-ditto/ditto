@@ -18,17 +18,20 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
-import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionOpened;
+import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.connectivity.model.signals.events.ConnectionOpened} event.
+ * This strategy handles the {@link ConnectionOpened} event.
  */
 final class ConnectionOpenedStrategy implements EventStrategy<ConnectionOpened, Connection> {
 
     @Override
     public Connection handle(final ConnectionOpened event, @Nullable final Connection connection,
             final long revision) {
-        return checkNotNull(connection, "connection").toBuilder().connectionStatus(ConnectivityStatus.OPEN).build();
+        return checkNotNull(connection, "connection")
+                .toBuilder()
+                .connectionStatus(ConnectivityStatus.OPEN)
+                .build();
     }
 }

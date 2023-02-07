@@ -22,13 +22,13 @@ import java.time.format.DateTimeParseException;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.entity.metadata.Metadata;
-import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 
 /**
  * This class helps to deserialize JSON to a sub-class of {@link Event}. Hereby this class extracts the values which

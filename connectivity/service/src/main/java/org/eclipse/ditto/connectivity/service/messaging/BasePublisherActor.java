@@ -48,6 +48,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionEvent;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -356,7 +357,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
     private Optional<SendingContext> getSendingContext(final OutboundSignal.Mapped mappedOutboundSignal) {
         final Optional<SendingContext> result;
-        if (isResponseOrErrorOrSearchEvent(mappedOutboundSignal)) {
+        if (isResponseOrErrorOrStreamingEvent(mappedOutboundSignal)) {
             final Signal<?> source = mappedOutboundSignal.getSource();
             final DittoHeaders dittoHeaders = source.getDittoHeaders();
             result = dittoHeaders.getReplyTarget()
@@ -369,17 +370,19 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     }
 
     /**
-     * Checks whether the passed in {@code outboundSignal} is a response or an error or a search event.
+     * Checks whether the passed in {@code outboundSignal} is a response or an error or a streaming event
+     * (including search events).
      * Those messages are supposed to be published at the reply target of the source whence the original command came.
      *
      * @param outboundSignal the OutboundSignal to check.
      * @return {@code true} if the OutboundSignal is a response or an error, {@code false} otherwise
      */
-    private static boolean isResponseOrErrorOrSearchEvent(final OutboundSignal.Mapped outboundSignal) {
+    private static boolean isResponseOrErrorOrStreamingEvent(final OutboundSignal.Mapped outboundSignal) {
         final ExternalMessage externalMessage = outboundSignal.getExternalMessage();
         return externalMessage.isResponse() ||
                 externalMessage.isError() ||
-                outboundSignal.getSource() instanceof SubscriptionEvent;
+                outboundSignal.getSource() instanceof SubscriptionEvent ||
+                outboundSignal.getSource() instanceof StreamingSubscriptionEvent<?>;
     }
 
     private Optional<ReplyTarget> getReplyTargetByIndex(final int replyTargetIndex) {

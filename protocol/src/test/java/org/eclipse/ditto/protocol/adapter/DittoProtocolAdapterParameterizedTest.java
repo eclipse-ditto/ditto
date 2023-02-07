@@ -212,6 +212,11 @@ public final class DittoProtocolAdapterParameterizedTest {
         final ConnectivityCommandAdapterProvider connectivityCommandAdapterProvider =
                 mock(ConnectivityCommandAdapterProvider.class);
 
+        final StreamingSubscriptionCommandAdapter streamingSubscriptionCommandAdapter =
+                mock(StreamingSubscriptionCommandAdapter.class);
+        final StreamingSubscriptionEventAdapter streamingSubscriptionEventAdapter =
+                mock(StreamingSubscriptionEventAdapter.class);
+
         when(thingCommandAdapterProvider.getQueryCommandAdapter())
                 .thenReturn(thingQueryCommandAdapter);
         when(thingCommandAdapterProvider.getQueryCommandResponseAdapter())
@@ -247,9 +252,11 @@ public final class DittoProtocolAdapterParameterizedTest {
                 .thenReturn(policyErrorResponseAdapter);
 
         final AdapterResolver adapterResolver = new DefaultAdapterResolver(thingCommandAdapterProvider,
-                policyCommandAdapterProvider, connectivityCommandAdapterProvider, acknowledgementAdapterProvider);
+                policyCommandAdapterProvider, connectivityCommandAdapterProvider, acknowledgementAdapterProvider,
+                streamingSubscriptionCommandAdapter, streamingSubscriptionEventAdapter);
         underTest = DittoProtocolAdapter.newInstance(HeaderTranslator.empty(), thingCommandAdapterProvider,
                 policyCommandAdapterProvider, connectivityCommandAdapterProvider, acknowledgementAdapterProvider,
+                streamingSubscriptionCommandAdapter, streamingSubscriptionEventAdapter,
                 adapterResolver);
 
         reset(thingQueryCommandAdapter);

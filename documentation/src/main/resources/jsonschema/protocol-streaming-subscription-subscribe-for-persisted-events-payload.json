@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "description": "",
+  "title": "",
+  "properties": {
+    "fromHistoricalRevision": {
+      "type": "integer",
+      "description": "The revision to start the streaming from."
+    },
+    "toHistoricalRevision": {
+      "type": "integer",
+      "description": "The revision to stop the streaming at."
+    },
+    "fromHistoricalTimestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The timestamp to start the streaming from."
+    },
+    "toHistoricalTimestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The timestamp to stop the streaming at."
+    }
+  }
+}

@@ -12,11 +12,17 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.commands;
 
-import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction;
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.LoggingExpired;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.connectivity.model.signals.commands.modify.LoggingExpired} command.
+ * This strategy handles the {@link LoggingExpired} command.
  */
 final class LoggingExpiredStrategy extends AbstractSingleActionStrategy<LoggingExpired> {
 
@@ -27,5 +33,16 @@ final class LoggingExpiredStrategy extends AbstractSingleActionStrategy<LoggingE
     @Override
     ConnectionAction getAction() {
         return ConnectionAction.DISABLE_LOGGING;
+    }
+
+    @Override
+    public Optional<EntityTag> previousEntityTag(final LoggingExpired command,
+            @Nullable final Connection previousEntity) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<EntityTag> nextEntityTag(final LoggingExpired command, @Nullable final Connection newEntity) {
+        return Optional.empty();
     }
 }

@@ -16,6 +16,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkArgument
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -49,6 +50,9 @@ abstract class AbstractConnectionBuilder implements ConnectionBuilder {
     @Nullable MappingContext mappingContext = null;
     @Nullable String trustedCertificates;
     @Nullable ConnectionLifecycle lifecycle = null;
+    @Nullable ConnectionRevision revision = null;
+    @Nullable Instant modified = null;
+    @Nullable Instant created = null;
     @Nullable SshTunnel sshTunnel = null;
 
     // optional with default:
@@ -189,6 +193,24 @@ abstract class AbstractConnectionBuilder implements ConnectionBuilder {
     @Override
     public ConnectionBuilder lifecycle(@Nullable final ConnectionLifecycle lifecycle) {
         this.lifecycle = lifecycle;
+        return this;
+    }
+
+    @Override
+    public ConnectionBuilder revision(@Nullable final ConnectionRevision revision) {
+        this.revision = revision;
+        return this;
+    }
+
+    @Override
+    public ConnectionBuilder modified(@Nullable final Instant modified) {
+        this.modified = modified;
+        return this;
+    }
+
+    @Override
+    public ConnectionBuilder created(@Nullable final Instant created) {
+        this.created = created;
         return this;
     }
 

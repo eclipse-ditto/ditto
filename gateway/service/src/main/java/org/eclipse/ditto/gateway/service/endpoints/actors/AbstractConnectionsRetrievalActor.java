@@ -24,6 +24,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -46,6 +48,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFieldSelector;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -111,7 +114,10 @@ public abstract class AbstractConnectionsRetrievalActor extends AbstractActor {
                 retrieveConnections(connectionIds
                         .stream()
                         .map(ConnectionId::of)
-                        .toList(), initialCommand.getDittoHeaders())
+                        .toList(),
+                        initialCommand.getSelectedFields().orElse(null),
+                        initialCommand.getDittoHeaders()
+                )
                         .thenAccept(retrieveConnectionsResponse -> {
                             sender.tell(retrieveConnectionsResponse, getSelf());
                             stop();
@@ -147,13 +153,15 @@ public abstract class AbstractConnectionsRetrievalActor extends AbstractActor {
     }
 
     private CompletionStage<RetrieveConnectionsResponse> retrieveConnections(
-            final Collection<ConnectionId> connectionIds, final DittoHeaders dittoHeaders) {
+            final Collection<ConnectionId> connectionIds,
+            @Nullable final JsonFieldSelector selectedFields,
+            final DittoHeaders dittoHeaders) {
 
         checkNotNull(connectionIds, "connectionIds");
         checkNotNull(dittoHeaders, "dittoHeaders");
 
         final List<CompletableFuture<RetrieveConnectionResponse>> completableFutures = connectionIds.parallelStream()
-                .map(connectionId -> retrieveConnection(RetrieveConnection.of(connectionId, dittoHeaders)))
+                .map(connectionId -> retrieveConnection(RetrieveConnection.of(connectionId, selectedFields, dittoHeaders)))
                 .map(CompletionStage::toCompletableFuture)
                 .toList();
 

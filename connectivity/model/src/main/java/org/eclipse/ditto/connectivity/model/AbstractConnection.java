@@ -15,6 +15,8 @@ package org.eclipse.ditto.connectivity.model;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -31,6 +33,8 @@ import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -56,6 +60,9 @@ abstract class AbstractConnection implements Connection {
     @Nullable private final Credentials credentials;
     @Nullable private final String trustedCertificates;
     @Nullable private final ConnectionLifecycle lifecycle;
+    @Nullable private final ConnectionRevision revision;
+    @Nullable private final Instant modified;
+    @Nullable private final Instant created;
     private final List<Source> sources;
     private final List<Target> targets;
     private final int clientCount;
@@ -85,12 +92,15 @@ abstract class AbstractConnection implements Connection {
         payloadMappingDefinition = builder.payloadMappingDefinition;
         tags = Collections.unmodifiableSet(new LinkedHashSet<>(builder.tags));
         lifecycle = builder.lifecycle;
+        revision = builder.revision;
+        modified = builder.modified;
+        created = builder.created;
         sshTunnel = builder.sshTunnel;
     }
 
     abstract ConnectionUri getConnectionUri(@Nullable String builderConnectionUri);
 
-    static void buildFromJson (final JsonObject jsonObject, final AbstractConnectionBuilder builder) {
+    static void buildFromJson(final JsonObject jsonObject, final AbstractConnectionBuilder builder) {
         final MappingContext mappingContext = jsonObject.getValue(JsonFields.MAPPING_CONTEXT)
                 .map(ConnectivityModelFactory::mappingContextFromJson)
                 .orElse(null);
@@ -112,6 +122,12 @@ abstract class AbstractConnection implements Connection {
 
         jsonObject.getValue(JsonFields.LIFECYCLE)
                 .flatMap(ConnectionLifecycle::forName).ifPresent(builder::lifecycle);
+        jsonObject.getValue(JsonFields.REVISION)
+                .map(ConnectionRevision::newInstance).ifPresent(builder::revision);
+        jsonObject.getValue(JsonFields.MODIFIED)
+                .map(AbstractConnection::tryToParseInstant).ifPresent(builder::modified);
+        jsonObject.getValue(JsonFields.CREATED)
+                .map(AbstractConnection::tryToParseInstant).ifPresent(builder::created);
         jsonObject.getValue(JsonFields.CREDENTIALS).ifPresent(builder::credentialsFromJson);
         jsonObject.getValue(JsonFields.CLIENT_COUNT).ifPresent(builder::clientCount);
         jsonObject.getValue(JsonFields.FAILOVER_ENABLED).ifPresent(builder::failoverEnabled);
@@ -296,6 +312,36 @@ abstract class AbstractConnection implements Connection {
         return Optional.ofNullable(lifecycle);
     }
 
+    @Override
+    public Optional<? extends EntityId> getEntityId() {
+        return Optional.of(id);
+    }
+
+    @Override
+    public Optional<ConnectionRevision> getRevision() {
+        return Optional.ofNullable(revision);
+    }
+
+    @Override
+    public Optional<Instant> getModified() {
+        return Optional.ofNullable(modified);
+    }
+
+    @Override
+    public Optional<Instant> getCreated() {
+        return Optional.ofNullable(created);
+    }
+
+    @Override
+    public Optional<Metadata> getMetadata() {
+        return Optional.empty(); // currently not metadata support for connections
+    }
+
+    @Override
+    public boolean isDeleted() {
+        return ConnectionLifecycle.DELETED.equals(lifecycle);
+    }
+
     static ConnectionBuilder fromConnection(final Connection connection, final AbstractConnectionBuilder builder) {
         checkNotNull(connection, "Connection");
 
@@ -316,7 +362,10 @@ abstract class AbstractConnection implements Connection {
                 .name(connection.getName().orElse(null))
                 .sshTunnel(connection.getSshTunnel().orElse(null))
                 .tags(connection.getTags())
-                .lifecycle(connection.getLifecycle().orElse(null));
+                .lifecycle(connection.getLifecycle().orElse(null))
+                .revision(connection.getRevision().orElse(null))
+                .modified(connection.getModified().orElse(null))
+                .created(connection.getCreated().orElse(null));
     }
 
     @Override
@@ -329,6 +378,15 @@ abstract class AbstractConnection implements Connection {
         }
         jsonObjectBuilder.set(JsonFields.ID, String.valueOf(id), predicate);
         jsonObjectBuilder.set(JsonFields.NAME, name, predicate);
+        if (null != revision) {
+            jsonObjectBuilder.set(JsonFields.REVISION, revision.toLong(), predicate);
+        }
+        if (null != modified) {
+            jsonObjectBuilder.set(JsonFields.MODIFIED, modified.toString(), predicate);
+        }
+        if (null != created) {
+            jsonObjectBuilder.set(JsonFields.CREATED, created.toString(), predicate);
+        }
         jsonObjectBuilder.set(JsonFields.CONNECTION_TYPE, connectionType.getName(), predicate);
         jsonObjectBuilder.set(JsonFields.CONNECTION_STATUS, connectionStatus.getName(), predicate);
         jsonObjectBuilder.set(JsonFields.URI, uri.toString(), predicate);
@@ -368,6 +426,15 @@ abstract class AbstractConnection implements Connection {
         return jsonObjectBuilder.build();
     }
 
+    private static Instant tryToParseInstant(final CharSequence dateTime) {
+        try {
+            return Instant.parse(dateTime);
+        } catch (final DateTimeParseException e) {
+            throw new JsonParseException("The JSON object's field '" + Connection.JsonFields.MODIFIED.getPointer() + "' " +
+                    "is not in ISO-8601 format as expected");
+        }
+    }
+
     @SuppressWarnings("OverlyComplexMethod")
     @Override
     public boolean equals(@Nullable final Object o) {
@@ -394,6 +461,9 @@ abstract class AbstractConnection implements Connection {
                 Objects.equals(specificConfig, that.specificConfig) &&
                 Objects.equals(payloadMappingDefinition, that.payloadMappingDefinition) &&
                 Objects.equals(lifecycle, that.lifecycle) &&
+                Objects.equals(revision, that.revision) &&
+                Objects.equals(modified, that.modified) &&
+                Objects.equals(created, that.created) &&
                 Objects.equals(sshTunnel, that.sshTunnel) &&
                 Objects.equals(tags, that.tags);
     }
@@ -402,7 +472,7 @@ abstract class AbstractConnection implements Connection {
     public int hashCode() {
         return Objects.hash(id, name, connectionType, connectionStatus, sources, targets, clientCount, failOverEnabled,
                 credentials, trustedCertificates, uri, validateCertificate, processorPoolSize, specificConfig,
-                payloadMappingDefinition, sshTunnel, tags, lifecycle);
+                payloadMappingDefinition, sshTunnel, tags, lifecycle, revision, modified, created);
     }
 
     @Override
@@ -426,6 +496,9 @@ abstract class AbstractConnection implements Connection {
                 ", payloadMappingDefinition=" + payloadMappingDefinition +
                 ", tags=" + tags +
                 ", lifecycle=" + lifecycle +
+                ", revision=" + revision +
+                ", modified=" + modified +
+                ", created=" + created +
                 "]";
     }
 

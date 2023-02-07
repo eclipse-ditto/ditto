@@ -1,36 +1,36 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "type": "object",
-  "description": "A *Thing* is a generic entity which can be used as a handle for multiple *Features* belonging to this *Thing*.",
+  "description": "A *thing* is a generic entity which can be used as a handle for multiple *Features* belonging to this *thing*.",
   "title": "Thing in API v2",
   "properties": {
     "thingId": {
       "type": "string",
-      "description": "Unique identifier representing the Thing, has to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).\n\nExamples for a valid Thing ID:\n * `org.eclipse.ditto:xdk_53`\n * `foo:xdk_53`\n * `org.eclipse.vorto_42:xdk_thing`"
+      "description": "Unique identifier representing the thing, has to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).\n\nExamples for a valid thing ID:\n * `org.eclipse.ditto:xdk_53`\n * `foo:xdk_53`\n * `org.eclipse.vorto_42:xdk_thing`"
     },
     "policyId": {
       "type": "string",
-      "description": "Links to the ID of an existing Policy which contains the authorization information applied for this Thing. The policy ID has to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))."
+      "description": "Links to the ID of an existing Policy which contains the authorization information applied for this thing. The policy ID has to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))."
     },
     "definition": {
       "title": "Definition",
       "type": "string",
-      "description": "The definition of this Thing declaring its model in the form '<namespace>:<name>:<version>' or a valid HTTP(s) URL.",
+      "description": "The definition of this thing declaring its model in the form '<namespace>:<name>:<version>' or a valid HTTP(s) URL.",
       "pattern": "([_a-zA-Z0-9\\-.]+):([_a-zA-Z0-9\\-.]+):([_a-zA-Z0-9\\-.]+)"
     },
     "attributes": {
       "title": "Attributes",
       "type": "object",
-      "description": "The Attributes that describe this Thing in more detail. Can be an arbitrary JSON object. Attributes are typically used to model rather static properties at the Thing level. Static means that the values do not change as frequently as property values of Features."
+      "description": "The Attributes that describe this thing in more detail. Can be an arbitrary JSON object. Attributes are typically used to model rather static properties at the thing level. Static means that the values do not change as frequently as property values of Features."
     },
     "features": {
       "title": "Features",
       "type": "object",
-      "description": "The Features belonging to this Thing. A Thing can handle any number of Features.\n The key of this object represents the `featureId`. Due to the fact that a Feature ID often needs to be set in the path of a HTTP request, we strongly recommend to use a restricted the set of characters (e.g. those for [Uniform Resource Identifiers (URI)](http://www.ietf.org/rfc/rfc3986.txt)).",
+      "description": "The Features belonging to this thing. A thing can handle any number of Features.\n The key of this object represents the `featureId`. Due to the fact that a Feature ID often needs to be set in the path of a HTTP request, we strongly recommend to use a restricted the set of characters (e.g. those for [Uniform Resource Identifiers (URI)](http://www.ietf.org/rfc/rfc3986.txt)).",
       "additionalProperties": {
         "title": "Feature",
         "type": "object",
-        "description": "A Feature is used to manage all data and functionality of a Thing that can be clustered in an outlined technical context.",
+        "description": "A Feature is used to manage all data and functionality of a thing that can be clustered in an outlined technical context.",
         "additionalProperties": {
           "type": "object",
           "description": "The elements of a Feature.",
@@ -67,21 +67,21 @@
     },
     "_revision": {
       "type": "integer",
-      "description": "_(read-only)_ The revision is a counter which is incremented on each modification of a Thing."
+      "description": "_(read-only)_ The revision is a counter which is incremented on each modification of a thing."
     },
     "_created": {
       "type": "string",
-      "description": "_(read-only)_ The created timestamp of the Thing in ISO-8601 UTC format. The timestamp is set on creation of a Thing.",
+      "description": "_(read-only)_ The created timestamp of the thing in ISO-8601 UTC format. The timestamp is set on creation of a thing.",
       "format": "date-time"
     },
     "_modified": {
       "type": "string",
-      "description": "_(read-only)_ The modified timestamp of the Thing in ISO-8601 UTC format. The timestamp is set on each modification of a Thing.",
+      "description": "_(read-only)_ The modified timestamp of the thing in ISO-8601 UTC format. The timestamp is set on each modification of a thing.",
       "format": "date-time"
     },
     "_metadata": {
       "type": "object",
-      "description": "_(read-only)_ The Metadata of the Thing. This field is not returned by default but must be selected explicitly. The content is a JSON object having the Thing's JSON structure with the difference that the JSON leaves of the Thing are JSON objects containing the metadata."
+      "description": "_(read-only)_ The Metadata of the thing. This field is not returned by default but must be selected explicitly. The content is a JSON object having the thing's JSON structure with the difference that the JSON leaves of the thing are JSON objects containing the metadata."
     }
   },
   "required": [

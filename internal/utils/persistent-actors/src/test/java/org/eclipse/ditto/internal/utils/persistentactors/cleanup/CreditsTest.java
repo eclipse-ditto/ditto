@@ -134,7 +134,8 @@ public final class CreditsTest {
         // mock timer permits 1 batch of credit, after which no credit is given out
         final var mockTimerResult = new AtomicLong(0L);
         doAnswer(inv -> mockTimerResult.getAndSet(1001L)).when(mockTimer).getThenReset();
-        final var cleanup = new Cleanup(mongoReadJournal, materializer, () -> Pair.create(0, 1), 1, 4, true);
+        final var cleanup = new Cleanup(mongoReadJournal, materializer, () -> Pair.create(0, 1),
+                Duration.ZERO, 1, 4, true);
         final var underTest = new Credits(getFastCreditConfig(4), mockTimer);
 
         final var log = Logging.getLogger(actorSystem, this);
@@ -164,7 +165,7 @@ public final class CreditsTest {
     }
 
     private static CleanupConfig getFastCreditConfig(final int creditPerBatch) {
-        return new DefaultCleanupConfig(true, Duration.ZERO, Duration.ofMillis(100), Duration.ofNanos(1000),
+        return new DefaultCleanupConfig(true, Duration.ZERO, Duration.ZERO, Duration.ofMillis(100), Duration.ofNanos(1000),
                 creditPerBatch, 100, 100, false);
     }
 }

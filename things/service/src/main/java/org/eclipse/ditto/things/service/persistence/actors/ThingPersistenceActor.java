@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors;
 
+import java.time.Instant;
+
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
@@ -24,6 +26,7 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
@@ -38,6 +41,7 @@ import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingLifecycle;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingHistoryNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
@@ -83,10 +87,11 @@ public final class ThingPersistenceActor
 
     @SuppressWarnings("unused")
     private ThingPersistenceActor(final ThingId thingId,
+            final MongoReadJournal mongoReadJournal,
             final DistributedPub<ThingEvent<?>> distributedPub,
             @Nullable final ActorRef searchShardRegionProxy) {
 
-        super(thingId);
+        super(thingId, mongoReadJournal);
         final DittoThingsConfig thingsConfig = DittoThingsConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
@@ -99,14 +104,17 @@ public final class ThingPersistenceActor
      * Creates Akka configuration object {@link Props} for this ThingPersistenceActor.
      *
      * @param thingId the Thing ID this Actor manages.
+     * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the thing.
      * @param distributedPub the distributed-pub access to publish thing events.
      * @return the Akka configuration Props object
      */
     public static Props props(final ThingId thingId,
+            final MongoReadJournal mongoReadJournal,
             final DistributedPub<ThingEvent<?>> distributedPub,
             @Nullable final ActorRef searchShardRegionProxy) {
 
-        return Props.create(ThingPersistenceActor.class, thingId, distributedPub, searchShardRegionProxy);
+        return Props.create(ThingPersistenceActor.class, thingId, mongoReadJournal, distributedPub,
+                searchShardRegionProxy);
     }
 
     @Override
@@ -191,6 +199,16 @@ public final class ThingPersistenceActor
     @Override
     protected DittoRuntimeExceptionBuilder<?> newNotAccessibleExceptionBuilder() {
         return ThingNotAccessibleException.newBuilder(entityId);
+    }
+
+    @Override
+    protected DittoRuntimeExceptionBuilder<?> newHistoryNotAccessibleExceptionBuilder(final long revision) {
+        return ThingHistoryNotAccessibleException.newBuilder(entityId, revision);
+    }
+
+    @Override
+    protected DittoRuntimeExceptionBuilder<?> newHistoryNotAccessibleExceptionBuilder(final Instant timestamp) {
+        return ThingHistoryNotAccessibleException.newBuilder(entityId, timestamp);
     }
 
     @Override

@@ -12,11 +12,17 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.commands;
 
-import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction;
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetrics;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionAction;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetrics}
+ * This strategy handles the {@link RetrieveConnectionMetrics}
  * command.
  */
 final class RetrieveConnectionMetricsStrategy extends AbstractSingleActionStrategy<RetrieveConnectionMetrics> {
@@ -28,5 +34,17 @@ final class RetrieveConnectionMetricsStrategy extends AbstractSingleActionStrate
     @Override
     ConnectionAction getAction() {
         return ConnectionAction.RETRIEVE_CONNECTION_METRICS;
+    }
+
+    @Override
+    public Optional<EntityTag> previousEntityTag(final RetrieveConnectionMetrics command,
+            @Nullable final Connection previousEntity) {
+        return nextEntityTag(command, previousEntity);
+    }
+
+    @Override
+    public Optional<EntityTag> nextEntityTag(final RetrieveConnectionMetrics command,
+            @Nullable final Connection newEntity) {
+        return Optional.ofNullable(newEntity).flatMap(EntityTag::fromEntity);
     }
 }

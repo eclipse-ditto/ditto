@@ -114,6 +114,17 @@ public interface Adapter<T extends Jsonifiable<?>> {
     }
 
     /**
+     * Return the set of streaming actions supported by this adapter.
+     * It is the empty set by default.
+     *
+     * @return the collection of supported streaming actions.
+     * @since 3.2.0
+     */
+    default Set<TopicPath.StreamingAction> getStreamingActions() {
+        return Collections.emptySet();
+    }
+
+    /**
      * Retrieve whether this adapter is for responses.
      *
      * @return whether this adapter is for responses.

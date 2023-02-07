@@ -22,6 +22,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionEvent;
 import org.eclipse.ditto.gateway.service.streaming.signals.StreamingAck;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
@@ -141,14 +142,25 @@ public interface SessionedJsonifiable {
     }
 
     /**
-     * Create a sessioned Jsonifiable for a {@link org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent}
+     * Create a sessioned Jsonifiable for a {@link SubscriptionEvent}
      * as response.
      *
-     * @param subscriptionEvent the {@link org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent} as response.
+     * @param subscriptionEvent the {@link SubscriptionEvent} as response.
      * @return the sessioned Jsonifiable.
      */
     static SessionedJsonifiable subscription(final SubscriptionEvent<?> subscriptionEvent) {
         return new SessionedResponseErrorOrAck(subscriptionEvent, subscriptionEvent.getDittoHeaders(), null);
+    }
+
+    /**
+     * Create a sessioned Jsonifiable for a {@link StreamingSubscriptionEvent}
+     * as response.
+     *
+     * @param streamingSubscriptionEvent the {@link StreamingSubscriptionEvent} as response.
+     * @return the sessioned Jsonifiable.
+     */
+    static SessionedJsonifiable streamingSubscription(final StreamingSubscriptionEvent<?> streamingSubscriptionEvent) {
+        return new SessionedResponseErrorOrAck(streamingSubscriptionEvent, streamingSubscriptionEvent.getDittoHeaders(), null);
     }
 
     /**

@@ -96,6 +96,7 @@ public abstract class AbstractEventsourcedEvent<T extends AbstractEventsourcedEv
         //  it shall not invoke super.toJson(...) because in that case "appendPayloadAndBuild" would be invoked twice
         //  and the order of the fields to appear in the JSON would not be controllable!
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
+
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
                 // TYPE + entityId is included unconditionally:
                 .set(Event.JsonFields.TYPE, getType())

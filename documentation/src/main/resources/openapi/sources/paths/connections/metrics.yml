@@ -9,7 +9,7 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 get:
-  summary: Retrieve metrics of a specific Connection
+  summary: Retrieve metrics of a specific connection
   description: |-
     Returns the metrics of the connection identified by the `connectionId` path parameter.
   security:

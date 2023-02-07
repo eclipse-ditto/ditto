@@ -40,7 +40,8 @@ public final class ThingEnforcement extends AbstractEnforcementReloaded<Signal<?
 
         enforcementStrategies = List.of(
                 new LiveSignalEnforcement(),
-                new ThingCommandEnforcement(actorSystem, policiesShardRegion, enforcementConfig)
+                new ThingCommandEnforcement(actorSystem, policiesShardRegion, enforcementConfig),
+                new StreamRequestingCommandEnforcement()
         );
     }
 

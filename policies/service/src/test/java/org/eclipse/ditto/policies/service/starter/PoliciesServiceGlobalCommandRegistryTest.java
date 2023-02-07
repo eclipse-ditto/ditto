@@ -17,6 +17,7 @@ import org.eclipse.ditto.base.api.common.purge.PurgeEntities;
 import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackCommand;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
+import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.base.service.cluster.ModifySplitBrainResolver;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
@@ -47,7 +48,8 @@ public final class PoliciesServiceGlobalCommandRegistryTest extends GlobalComman
                 PurgeEntities.class,
                 PublishSignal.class,
                 ModifyPolicyImports.class,
-                ModifySplitBrainResolver.class
+                ModifySplitBrainResolver.class,
+                SubscribeForPersistedEvents.class
         );
     }
 }
