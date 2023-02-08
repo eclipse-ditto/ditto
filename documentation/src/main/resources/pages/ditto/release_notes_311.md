@@ -7,11 +7,11 @@ summary: "Version 3.1.1 of Eclipse Ditto, released on 05.01.2023"
 permalink: release_notes_311.html
 ---
 
-This is a bugfix release, no new features since [3.0.0](release_notes_300.html) were added.
+This is a bugfix release, no new features since [3.1.0](release_notes_310.html) were added.
 
 ## Changelog
 
-Compared to the latest release [3.0.0](release_notes_300.html), the following bugfixes were added.
+Compared to the latest release [3.1.0](release_notes_310.html), the following bugfixes were added.
 
 ### Bugfixes
 
