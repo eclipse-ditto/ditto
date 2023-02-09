@@ -16,12 +16,12 @@ import java.net.URI;
 import java.text.MessageFormat;
 import java.util.Set;
 
+import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.HonoAddressAlias;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.DefaultHonoConfig;
 import org.eclipse.ditto.connectivity.service.config.HonoConfig;
-
-import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -33,15 +33,21 @@ public final class DefaultHonoConnectionFactory extends HonoConnectionFactory {
 
     private final HonoConfig honoConfig;
 
+    private ConnectionId connectionId;
+
     /**
      * Constructs a {@code DefaultHonoConnectionFactory} for the specified arguments.
      *
      * @param actorSystem the actor system in which to load the factory.
-     * @param config configuration properties for this factory.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
-    public DefaultHonoConnectionFactory(final ActorSystem actorSystem, final Config config) {
+    public DefaultHonoConnectionFactory(final ActorSystem actorSystem) {
         honoConfig = new DefaultHonoConfig(actorSystem);
+    }
+
+    @Override
+    protected void preConversion(final Connection honoConnection) {
+        connectionId = honoConnection.getId();
     }
 
     @Override
@@ -76,12 +82,14 @@ public final class DefaultHonoConnectionFactory extends HonoConnectionFactory {
 
     @Override
     protected String resolveSourceAddress(final HonoAddressAlias honoAddressAlias) {
-        return MessageFormat.format("hono.{0}", honoAddressAlias.getAliasValue());
+        return MessageFormat.format("hono.{0}.{1}",
+                honoAddressAlias.getAliasValue(), connectionId);
     }
 
     @Override
     protected String resolveTargetAddress(final HonoAddressAlias honoAddressAlias) {
-        return MessageFormat.format("hono.{0}/'{{thing:id}}'", honoAddressAlias.getAliasValue());
+        return MessageFormat.format("hono.{0}.{1}/'{{thing:id}}'",
+                honoAddressAlias.getAliasValue(), connectionId);
     }
 
 }

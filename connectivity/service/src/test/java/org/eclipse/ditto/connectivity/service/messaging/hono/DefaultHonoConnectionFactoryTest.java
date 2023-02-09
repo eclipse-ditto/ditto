@@ -30,6 +30,7 @@ import java.util.stream.Stream;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.HonoAddressAlias;
 import org.eclipse.ditto.connectivity.model.ReplyTarget;
@@ -75,7 +76,7 @@ public final class DefaultHonoConnectionFactoryTest {
     @Test
     public void newInstanceWithNullActorSystemThrowsException() {
         Assertions.assertThatNullPointerException()
-                .isThrownBy(() -> new DefaultHonoConnectionFactory(null, ConfigFactory.empty()))
+                .isThrownBy(() -> new DefaultHonoConnectionFactory(null))
                 .withMessage("The actorSystem must not be null!")
                 .withNoCause();
     }
@@ -88,7 +89,7 @@ public final class DefaultHonoConnectionFactoryTest {
                 generateConnectionObjectFromJsonFile("hono-connection-custom-expected.json");
 
         final var underTest =
-                new DefaultHonoConnectionFactory(actorSystemResource.getActorSystem(), ConfigFactory.empty());
+                new DefaultHonoConnectionFactory(actorSystemResource.getActorSystem());
 
         assertThat(underTest.getHonoConnection(userProvidedHonoConnection)).isEqualTo(expectedHonoConnection);
     }
@@ -99,7 +100,7 @@ public final class DefaultHonoConnectionFactoryTest {
                 generateConnectionObjectFromJsonFile("hono-connection-default-test.json");
 
         final var underTest =
-                new DefaultHonoConnectionFactory(actorSystemResource.getActorSystem(), ConfigFactory.empty());
+                new DefaultHonoConnectionFactory(actorSystemResource.getActorSystem());
 
         assertThat(underTest.getHonoConnection(userProvidedHonoConnection))
                 .isEqualTo(getExpectedHonoConnection(userProvidedHonoConnection));
@@ -133,22 +134,22 @@ public final class DefaultHonoConnectionFactoryTest {
                 )
                 .setSources(List.of(
                         ConnectivityModelFactory.newSourceBuilder(sourcesByAddress.get(TELEMETRY.getAliasValue()))
-                                .addresses(Set.of(getExpectedResolvedSourceAddress(TELEMETRY)))
+                                .addresses(Set.of(getExpectedResolvedSourceAddress(TELEMETRY, originalConnection.getId())))
                                 .replyTarget(ReplyTarget.newBuilder()
-                                        .address(getExpectedResolvedCommandTargetAddress())
+                                        .address(getExpectedResolvedCommandTargetAddress(originalConnection.getId()))
                                         .headerMapping(commandReplyTargetHeaderMapping)
                                         .build())
                                 .build(),
                         ConnectivityModelFactory.newSourceBuilder(sourcesByAddress.get(EVENT.getAliasValue()))
-                                .addresses(Set.of(getExpectedResolvedSourceAddress(EVENT)))
+                                .addresses(Set.of(getExpectedResolvedSourceAddress(EVENT, originalConnection.getId())))
                                 .replyTarget(ReplyTarget.newBuilder()
-                                        .address(getExpectedResolvedCommandTargetAddress())
+                                        .address(getExpectedResolvedCommandTargetAddress(originalConnection.getId()))
                                         .headerMapping(commandReplyTargetHeaderMapping)
                                         .build())
                                 .build(),
                         ConnectivityModelFactory.newSourceBuilder(
                                         sourcesByAddress.get(COMMAND_RESPONSE.getAliasValue()))
-                                .addresses(Set.of(getExpectedResolvedSourceAddress(COMMAND_RESPONSE)))
+                                .addresses(Set.of(getExpectedResolvedSourceAddress(COMMAND_RESPONSE, originalConnection.getId())))
                                 .headerMapping(ConnectivityModelFactory.newHeaderMapping(Map.of(
                                         "correlation-id", "{{ header:correlation-id }}",
                                         "status", "{{ header:status }}"
@@ -157,8 +158,8 @@ public final class DefaultHonoConnectionFactoryTest {
                 ))
                 .setTargets(List.of(
                         ConnectivityModelFactory.newTargetBuilder(targets.get(0))
-                                .address(getExpectedResolvedCommandTargetAddress())
-                                .originalAddress(getExpectedResolvedCommandTargetAddress())
+                                .address(getExpectedResolvedCommandTargetAddress(originalConnection.getId()))
+                                .originalAddress(getExpectedResolvedCommandTargetAddress(originalConnection.getId()))
                                 .headerMapping(ConnectivityModelFactory.newHeaderMapping(
                                         Stream.concat(
                                                 basicAdditionalTargetHeaderMappingEntries.entrySet().stream(),
@@ -168,8 +169,8 @@ public final class DefaultHonoConnectionFactoryTest {
                                 ))
                                 .build(),
                         ConnectivityModelFactory.newTargetBuilder(targets.get(1))
-                                .address(getExpectedResolvedCommandTargetAddress())
-                                .originalAddress(getExpectedResolvedCommandTargetAddress())
+                                .address(getExpectedResolvedCommandTargetAddress(originalConnection.getId()))
+                                .originalAddress(getExpectedResolvedCommandTargetAddress(originalConnection.getId()))
                                 .headerMapping(ConnectivityModelFactory.newHeaderMapping(
                                         basicAdditionalTargetHeaderMappingEntries
                                 ))
@@ -184,12 +185,12 @@ public final class DefaultHonoConnectionFactoryTest {
         return result;
     }
 
-    private static String getExpectedResolvedSourceAddress(final HonoAddressAlias honoAddressAlias) {
-        return "hono." + honoAddressAlias.getAliasValue();
+    private static String getExpectedResolvedSourceAddress(final HonoAddressAlias honoAddressAlias, final ConnectionId connectionId) {
+        return "hono." + honoAddressAlias.getAliasValue() + "." + connectionId;
     }
 
-    private static String getExpectedResolvedCommandTargetAddress() {
-        return "hono." + HonoAddressAlias.COMMAND.getAliasValue() + "/{{thing:id}}";
+    private static String getExpectedResolvedCommandTargetAddress(final ConnectionId connectionId) {
+        return "hono." + HonoAddressAlias.COMMAND.getAliasValue() + "." + connectionId + "/{{thing:id}}";
     }
 
 }
