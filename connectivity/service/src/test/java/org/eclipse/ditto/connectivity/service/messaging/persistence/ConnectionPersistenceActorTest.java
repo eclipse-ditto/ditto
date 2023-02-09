@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
+
 import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
@@ -88,6 +90,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupe
 import org.eclipse.ditto.internal.utils.test.Retry;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -213,11 +216,11 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     @Test
     public void testConnectionTypeHono() throws IOException {
         //GIVEN
-        final var honoConnection = generateConnectionObjectFromJsonFile("hono-connection-custom-test.json")
+        final var honoConnection = generateConnectionObjectFromJsonFile("hono-connection-custom-test.json", null)
                 .toBuilder()
                 .id(connectionId)
                 .build();
-        final var expectedHonoConnection = generateConnectionObjectFromJsonFile("hono-connection-custom-expected.json")
+        final var expectedHonoConnection = generateConnectionObjectFromJsonFile("hono-connection-custom-expected.json", connectionId)
                 .toBuilder()
                 .id(connectionId)
                 .build();
@@ -243,7 +246,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     @Test
     public void testRestartByConnectionType() throws IOException {
         // GIVEN
-        final var honoConnection = generateConnectionObjectFromJsonFile("hono-connection-custom-test.json");
+        final var honoConnection = generateConnectionObjectFromJsonFile("hono-connection-custom-test.json", null);
         mockClientActorProbe.setAutoPilot(new TestActor.AutoPilot() {
             @Override
             public TestActor.AutoPilot run(final ActorRef sender, final Object msg) {
@@ -283,13 +286,19 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         });
     }
 
-    private static Connection generateConnectionObjectFromJsonFile(final String fileName) throws IOException {
+    private static Connection generateConnectionObjectFromJsonFile(final String fileName,
+            @Nullable ConnectionId connectionId) throws IOException {
         final var testClassLoader = DefaultHonoConnectionFactoryTest.class.getClassLoader();
         try (final var connectionJsonFileStreamReader = new InputStreamReader(
                 testClassLoader.getResourceAsStream(fileName)
         )) {
-            return ConnectivityModelFactory.connectionFromJson(
-                    JsonFactory.readFrom(connectionJsonFileStreamReader).asObject());
+            JsonObject jsonObject = JsonFactory.readFrom(connectionJsonFileStreamReader).asObject();
+            var connId = jsonObject.getValue("id");
+            if (connectionId != null && connId.isPresent()) {
+                var jsonString = jsonObject.formatAsString().replace(connId.get().asString(), connectionId);
+                jsonObject = JsonFactory.readFrom(jsonString).asObject();
+            }
+            return ConnectivityModelFactory.connectionFromJson(jsonObject);
         }
     }
 
