@@ -16,6 +16,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -23,6 +24,8 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -30,6 +33,7 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
 import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
@@ -42,10 +46,12 @@ import org.eclipse.ditto.internal.utils.pubsubthings.LiveSignalPub;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingUnavailableException;
+import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
@@ -53,6 +59,8 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.enforcement.ThingEnforcement;
 import org.eclipse.ditto.things.service.enforcement.ThingEnforcerActor;
+import org.eclipse.ditto.things.service.enforcement.ThingPolicyCreated;
+import org.eclipse.ditto.things.service.enforcement.RollbackCreatedPolicy;
 import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 
 import akka.actor.ActorKilledException;
@@ -94,6 +102,8 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     private final ActorRef searchShardRegionProxy;
 
     private final Duration shutdownTimeout;
+    @Nullable
+    private ThingPolicyCreated policyCreatedEvent;
 
     @SuppressWarnings("unused")
     private ThingSupervisorActor(final ActorRef pubSubMediator,
@@ -307,12 +317,46 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                             pair.response() instanceof RetrieveThingResponse retrieveThingResponse) {
                         return inlinePolicyEnrichment.enrichPolicy(retrieveThing, retrieveThingResponse)
                                 .map(Object.class::cast);
+                    } else if (RollbackCreatedPolicy.shouldRollback(pair.command(), pair.response())) {
+                        CompletableFuture<Object> responseF = new CompletableFuture<>();
+                        getSelf().tell(RollbackCreatedPolicy.of(pair.command(), pair.response(), responseF), getSelf());
+                        return Source.fromCompletionStage(responseF);
                     } else {
                         return Source.single(pair.response());
                     }
                 })
                 .toMat(Sink.head(), Keep.right())
                 .run(materializer);
+    }
+
+    @Override
+    protected CompletableFuture<Object> handleTargetActorException(final Throwable error, final Signal<?> enforcedSignal) {
+        if (enforcedSignal instanceof CreateThing createThing) {
+            CompletableFuture<Object> responseFuture = new CompletableFuture<>();
+            getSelf().tell(RollbackCreatedPolicy.of(createThing, error, responseFuture), getSelf());
+            return responseFuture;
+        }
+        return CompletableFuture.failedFuture(error);
+    }
+
+    private void handlerRollbackCreatedPolicy(final RollbackCreatedPolicy rollback) {
+        if (policyCreatedEvent != null) {
+            DittoHeaders dittoHeaders = rollback.initialCommand().getDittoHeaders();
+            final DeletePolicy deletePolicy = DeletePolicy.of(policyCreatedEvent.policyId(), dittoHeaders.toBuilder()
+                    .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), "true").build());
+            AskWithRetry.askWithRetry(policiesShardRegion, deletePolicy,
+                    enforcementConfig.getAskWithRetryConfig(),
+                    getContext().system(), response -> {
+                        log.withCorrelationId(dittoHeaders)
+                                .info("Policy <{}> deleted after rolling back it's creation. " +
+                                        "Policies shard region response: <{}>", deletePolicy.getEntityId(), response);
+                        rollback.completeInitialResponse();
+                        return response;
+                    });
+
+        } else {
+            rollback.completeInitialResponse();
+        }
     }
 
     @Override
@@ -377,6 +421,10 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final FI.UnitApply<Object> matchAnyBehavior) {
         return ReceiveBuilder.create()
                 .matchEquals(Control.SHUTDOWN_TIMEOUT, this::shutdownActor)
+                .match(ThingPolicyCreated.class, event -> {
+                    this.policyCreatedEvent = event;
+                    log.withCorrelationId(event.dittoHeaders()).info("Policy <{}> created", event.policyId());
+                }).match(RollbackCreatedPolicy.class, this::handlerRollbackCreatedPolicy)
                 .build()
                 .orElse(super.activeBehaviour(matchProcessNextTwinMessageBehavior, matchAnyBehavior));
     }

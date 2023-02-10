@@ -347,6 +347,18 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         return CompletableFuture.completedStage(persistenceCommandResponse);
     }
 
+
+    /**
+     * Hook for handling unexpected PersistenceActor exceptions before response is sent back to the SupervisorActor.
+     *
+     * @param error the error
+     * @param enforcedSignal the ditto headers from the initial command
+     */
+    protected CompletionStage<Object> handleTargetActorException(final Throwable error,
+            final Signal<?> enforcedSignal) {
+        return CompletableFuture.failedFuture(error);
+    }
+
     /**
      * Return a preferably static supervisor strategy for this actor. By default, child actor is stopped when killed
      * or failing, triggering restart after exponential back-off.
@@ -968,7 +980,14 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                             modifyTargetActorCommandResponse(enforcedSignal, response))
                     .thenApply(response ->
                             new EnforcedSignalAndTargetActorResponse(enforcedSignal, response)
-                    );
+                    ).exceptionallyCompose(error -> {
+                        log.withCorrelationId(enforcedSignal)
+                                .error(error, "Unexpected target actor response error!");
+                        return handleTargetActorException(error, enforcedSignal)
+                                // Would never gon in apply as handleTargetActorException will always return failed future
+                                // Added only for compilation
+                                .thenApply(o -> new EnforcedSignalAndTargetActorResponse(null, null));
+                    });
         } else if (enforcerResponse instanceof DistributedPubWithMessage distributedPubWithMessage) {
             return askTargetActor(distributedPubWithMessage,
                     distributedPubWithMessage.signal().getDittoHeaders().isResponseRequired(), sender
