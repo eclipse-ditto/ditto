@@ -37,7 +37,8 @@ public interface PredicateVisitor<T> {
 
     T visitLike(@Nullable String value);
 
+    T visitILike(@Nullable String value);
+
     T visitIn(List<?> values);
 
-    T visitILike(@Nullable String value);
 }

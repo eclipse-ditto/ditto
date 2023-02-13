@@ -21,6 +21,7 @@ public final class LikeHelperTest {
 
     @Test
     public void testWildcards() {
+        //case sensitive test cases
         assertExpression("", "*", true);
         assertExpression("foo", "*", true);
         assertExpression("foo.bar", "foo.bar", true);
@@ -29,6 +30,15 @@ public final class LikeHelperTest {
         assertExpression("foo..bar", "*bar", true);
         assertExpression("foo.bar.baz", "bar", false);
         assertExpression("foo.bar.baz", "*bar*", true);
+        //case insensitive test cases appending this  (?i) before text
+        assertExpression("", "*", true);
+        assertExpression("foo", "*", true);
+        assertExpression("foo.bar", "(?i)FOO.BAR", true);
+        assertExpression("foo..bar", "(?i)foo.bar", false);
+        assertExpression("foo..bar", "(?i)FOO*", true);
+        assertExpression("foo..bar", "*(?i)Bar", true);
+        assertExpression("foo.bar.baz", "(?i)bar", false);
+        assertExpression("foo.bar.baz", "*(?i)bAr*", true);
     }
 
     private static void assertExpression(final String value, final String expression, final boolean matches) {

@@ -30,6 +30,8 @@ description: |-
 
   * ```like({property},{value})```  (i.e. contains values similar to the expressions listed)
 
+  * ```ilike({property},{value})```  (i.e. contains values similar and case insensitive to the expressions listed)
+
   * ```exists({property})```  (i.e. all things in which the given path exists)
 
 

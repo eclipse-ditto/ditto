@@ -240,6 +240,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
                         .filter(str -> null != value && Pattern.compile(value).matcher(str).matches())
                         .isPresent();
     }
+
     @Override
     public Function<String, Predicate<Thing>> visitILike(@Nullable final String value) {
         return fieldName ->
@@ -249,6 +250,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
                         .filter(str -> null != value && Pattern.compile(value, Pattern.CASE_INSENSITIVE).matcher(str).matches())
                         .isPresent();
     }
+    
     @Nullable
     private Object resolveValue(@Nullable final Object value) {
         if (value instanceof ParsedPlaceholder) {
