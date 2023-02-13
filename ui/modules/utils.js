@@ -156,7 +156,7 @@ export function addDropDownEntries(target, items, isHeader = false) {
     const li = document.createElement('li');
     li.innerHTML = isHeader ?
         `<h6 class="dropdown-header">${value}</h6>` :
-        `<a class="dropdown-item">${value}</a>`;
+        `<a class="dropdown-item" href="#">${value}</a>`;
     target.appendChild(li);
   });
 }
@@ -307,6 +307,51 @@ export function createAceEditor(domId, sessionMode, readOnly) {
   }
 
   return result;
+}
+
+/**
+ * Creates a autocomplete input field
+ * @param {String} selector selector for the input field
+ * @param {function} src src
+ * @param {String} placeHolder placeholder for input field
+ * @return {Object} autocomplete instance
+ */
+export function createAutoComplete(selector, src, placeHolder) {
+  return new autoComplete({
+    selector: selector,
+    data: {
+      src: src,
+      keys: ['label'],
+    },
+    placeHolder: placeHolder,
+    resultsList: {
+      class: 'dropdown-menu show',
+      maxResults: 30,
+    },
+    resultItem: {
+      class: 'dropdown-item',
+      highlight: true,
+      element: (item, data) => {
+        item.style = 'display: flex;';
+        item.innerHTML = `<span style="flex-grow: 1;" >${data.match}</span>
+            <span style="color: 3a8c9a;" class="fw-light fst-italic ms-1">${data.value.group}</span>`;
+      },
+    },
+    events: {
+      input: {
+        results: () => {
+          Array.from(document.getElementsByClassName('resizable_pane')).forEach((resizePane) => {
+            resizePane.style.overflow = 'unset';
+          });
+        },
+        close: () => {
+          Array.from(document.getElementsByClassName('resizable_pane')).forEach((resizePane) => {
+            resizePane.style.overflow = 'auto';
+          });
+        },
+      },
+    },
+  });
 }
 
 /**

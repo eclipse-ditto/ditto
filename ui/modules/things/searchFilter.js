@@ -31,7 +31,9 @@ const filterHistory = [];
 
 let keyStrokeTimeout;
 
-const FILTER_PLACEHOLDER = '*****';
+const FILTER_PLACEHOLDER = '...';
+
+let autoCompleteJS;
 
 const dom = {
   filterList: null,
@@ -53,15 +55,15 @@ export async function ready() {
 
   dom.pinnedThings.onclick = ThingsSearch.pinnedTriggered;
 
+  autoCompleteJS = Utils.createAutoComplete('#searchFilterEdit', createFilterList, 'Search for Things...');
+  autoCompleteJS.input.addEventListener('selection', (event) => {
+    const selection = event.detail.selection.value;
+    fillSearchFilterEdit(selection.rql);
+  });
 
   dom.filterList.addEventListener('click', (event) => {
     if (event.target && event.target.classList.contains('dropdown-item')) {
-      dom.searchFilterEdit.value = event.target.textContent;
-      checkIfFavourite();
-      const filterEditNeeded = checkAndMarkParameter();
-      if (!filterEditNeeded) {
-        ThingsSearch.searchTriggered(event.target.textContent);
-      }
+      fillSearchFilterEdit(event.target.textContent);
     }
   });
 
@@ -78,7 +80,7 @@ export async function ready() {
   };
 
   dom.searchFilterEdit.onkeyup = (event) => {
-    if (event.key === 'Enter' || event.code === 13) {
+    if ((event.key === 'Enter' || event.code === 13) && dom.searchFilterEdit.value.indexOf(FILTER_PLACEHOLDER) < 0) {
       fillHistory(dom.searchFilterEdit.value);
       ThingsSearch.searchTriggered(dom.searchFilterEdit.value);
     } else {
@@ -87,13 +89,9 @@ export async function ready() {
     }
   };
 
-  dom.searchFilterEdit.onclick = (event) => {
-    if (event.target.selectionStart === event.target.selectionEnd) {
-      event.target.select();
-    }
+  dom.searchFilterEdit.onchange = () => {
+    ThingsSearch.removeMoreFromThingList();
   };
-
-  dom.searchFilterEdit.onchange = ThingsSearch.removeMoreFromThingList;
 
   dom.searchFilterEdit.focus();
 }
@@ -111,6 +109,16 @@ function onEnvironmentChanged() {
   updateFilterList();
 }
 
+function fillSearchFilterEdit(fillString) {
+  dom.searchFilterEdit.value = fillString;
+
+  checkIfFavourite();
+  const filterEditNeeded = checkAndMarkParameter();
+  if (!filterEditNeeded) {
+    ThingsSearch.searchTriggered(dom.searchFilterEdit.value);
+  }
+}
+
 /**
  * Updates the UI filterList
  */
@@ -118,13 +126,79 @@ function updateFilterList() {
   dom.filterList.innerHTML = '';
   Utils.addDropDownEntries(dom.filterList, ['Favourite search filters'], true);
   Utils.addDropDownEntries(dom.filterList, Environments.current().filterList ?? []);
-  Utils.addDropDownEntries(dom.filterList, ['Field search filters'], true);
-  Utils.addDropDownEntries(dom.filterList, (Environments.current().fieldList ?? [])
-      .map((f) => `eq(${f.path},${FILTER_PLACEHOLDER})`));
   Utils.addDropDownEntries(dom.filterList, ['Example search filters'], true);
   Utils.addDropDownEntries(dom.filterList, filterExamples);
   Utils.addDropDownEntries(dom.filterList, ['Recent search filters'], true);
   Utils.addDropDownEntries(dom.filterList, filterHistory);
+}
+
+async function createFilterList(query) {
+  const date24h = new Date();
+  const date1h = new Date();
+  const date1m = new Date();
+  date24h.setDate(date24h.getDate() - 1);
+  date1h.setHours(date1h.getHours() - 1);
+  date1m.setMinutes(date1m.getMinutes() -1);
+
+  return [
+    {
+      label: 'Created since 1m',
+      rql: `gt(_created,"${date1m.toISOString()}")`,
+      group: 'Time',
+    },
+    {
+      label: 'Created since 1h',
+      rql: `gt(_created,"${date1h.toISOString()}")`,
+      group: 'Time',
+    },
+    {
+      label: 'Created since 24h',
+      rql: `gt(_created,"${date24h.toISOString()}")`,
+      group: 'Time',
+    },
+    {
+      label: 'Modified since 1m',
+      rql: `gt(_modified,"${date1m.toISOString()}")`,
+      group: 'Time',
+    },
+    {
+      label: 'Modified since 1h',
+      rql: `gt(_modified,"${date1h.toISOString()}")`,
+      group: 'Time',
+    },
+    {
+      label: 'Modified since 24h',
+      rql: `gt(_modified,"${date24h.toISOString()}")`,
+      group: 'Time',
+    },
+    {
+      label: `thingId = ${FILTER_PLACEHOLDER}`,
+      rql: `eq(thingId,"${FILTER_PLACEHOLDER}")`,
+      group: 'ThingId',
+    },
+    {
+      label: `thingId ~ ${FILTER_PLACEHOLDER}`,
+      rql: `like(thingId,"${FILTER_PLACEHOLDER}*")`,
+      group: 'ThingId',
+    },
+    {
+      label: `exists ${FILTER_PLACEHOLDER}`,
+      rql: `exists(${FILTER_PLACEHOLDER})`,
+      group: 'Other',
+    },
+    ...(Environments.current().filterList ?? []).map((f) => ({label: f, rql: f, group: 'Favourite'})),
+    ...(Environments.current().fieldList ?? []).map((f) => ({
+      label: `${f.label} = ${FILTER_PLACEHOLDER}`,
+      rql: `eq(${f.path},"${FILTER_PLACEHOLDER}")`,
+      group: 'Field',
+    })),
+    ...(Environments.current().fieldList ?? []).map((f) => ({
+      label: `${f.label} ~ ${FILTER_PLACEHOLDER}`,
+      rql: `like(${f.path},"*${FILTER_PLACEHOLDER}*")`,
+      group: 'Field',
+    })),
+    ...filterHistory.map((f) => ({label: f, rql: f, group: 'Recent'})),
+  ];
 }
 
 /**
@@ -160,6 +234,8 @@ function checkIfFavourite() {
 function checkAndMarkParameter() {
   const index = dom.searchFilterEdit.value.indexOf(FILTER_PLACEHOLDER);
   if (index >= 0) {
+    // filterString.replace(FILTER_PLACEHOLDER, '');
+    // dom.searchFilterEdit.value = filterString;
     dom.searchFilterEdit.focus();
     dom.searchFilterEdit.setSelectionRange(index, index + FILTER_PLACEHOLDER.length);
     return true;
