@@ -145,7 +145,7 @@ public interface CriteriaFactory {
     Predicate le(@Nullable Object value);
 
     /**
-     * Creates a predicate which checks lower than or equals.
+     * Represents a string 'like' comparison, supporting wildcards '*' for multiple and '?' for a single character.
      *
      * @param value the value, may be {@code null}.
      * @return the predicate.
@@ -153,8 +153,8 @@ public interface CriteriaFactory {
     Predicate like(@Nullable Object value);
 
     /**
-     *Creates a predicate which checks lower than or equals case insensitive.
-     *
+     * Represents a string 'like' comparison, supporting wildcards '*' for multiple and '?' for a single character with case insensitivity.
+     * @since 3.2.0
      * @param value the value, may be {@code null}.
      * @return the predicate. 
      */

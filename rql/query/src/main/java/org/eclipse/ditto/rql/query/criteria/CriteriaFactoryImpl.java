@@ -115,7 +115,7 @@ final class CriteriaFactoryImpl implements CriteriaFactory {
         if (value instanceof String) {
             return new ILikePredicateImpl(value);
         } else {
-            throw new IllegalArgumentException("In the like predicate only string values are allowed.");
+            throw new IllegalArgumentException("In the ilike predicate only string values are allowed.");
         }
     }
 

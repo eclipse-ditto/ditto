@@ -138,6 +138,13 @@ public final class ThingPredicatePredicateVisitorTest {
     }
 
     @Test
+    public void matchingStringILike() {
+        // the sut already works on regex Pattern - the translation from "*" to ".*" followed by case insensitivity is done in LikePredicateImpl
+        doTest(sut.visitLike("this-is.*"), JsonValue.of("THIS-IS-THE-CONTENT"))
+                .isTrue();
+    }
+
+    @Test
     public void matchingViaPlaceholderStringLike() {
         // the sut already works on regex Pattern - the translation from "*" to ".*" is done in LikePredicateImpl
         doTest(sutWithPlaceholderResolver.visitLike("baz.*"), "test:lower")

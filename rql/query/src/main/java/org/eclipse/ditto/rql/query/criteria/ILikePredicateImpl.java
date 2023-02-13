@@ -14,7 +14,7 @@ package org.eclipse.ditto.rql.query.criteria;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.model.common.ILikeHelper;
+import org.eclipse.ditto.base.model.common.LikeHelper;
 import org.eclipse.ditto.rql.query.criteria.visitors.PredicateVisitor;
 
 /**
@@ -30,7 +30,7 @@ final class ILikePredicateImpl extends AbstractSinglePredicate {
     private String convertToRegexSyntaxAndGetOption() {
         final Object value = getValue();
         if (value != null) {
-            return ILikeHelper.convertToRegexSyntax(value.toString());
+            return LikeHelper.convertToRegexSyntax(value.toString());
         } else {
             return null;
         }
