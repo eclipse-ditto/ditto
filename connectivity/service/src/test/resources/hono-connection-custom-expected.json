@@ -7,7 +7,7 @@
   "sources": [
     {
       "addresses": [
-        "hono.telemetry"
+        "hono.telemetry.test-connection-id"
       ],
       "consumerCount": 1,
       "qos": 0,
@@ -32,7 +32,7 @@
         "implicitStandaloneThingCreation"
       ],
       "replyTarget": {
-        "address": "hono.command/{{thing:id}}",
+        "address": "hono.command.test-connection-id/{{thing:id}}",
         "headerMapping": {
           "device_id": "custom_value1",
           "user_key1": "user_value1",
@@ -48,7 +48,7 @@
     },
     {
       "addresses": [
-        "hono.event"
+        "hono.event.test-connection-id"
       ],
       "consumerCount": 1,
       "qos": 1,
@@ -72,7 +72,7 @@
         "implicitStandaloneThingCreation"
       ],
       "replyTarget": {
-        "address": "hono.command/{{thing:id}}",
+        "address": "hono.command.test-connection-id/{{thing:id}}",
         "headerMapping": {
           "device_id": "{{ thing:id }}",
           "subject": "custom_value2",
@@ -88,7 +88,7 @@
     },
     {
       "addresses": [
-        "hono.command_response"
+        "hono.command_response.test-connection-id"
       ],
       "consumerCount": 1,
       "qos": 0,
@@ -120,7 +120,7 @@
   ],
   "targets": [
     {
-      "address": "hono.command/{{thing:id}}",
+      "address": "hono.command.test-connection-id/{{thing:id}}",
       "topics": [
         "_/_/things/live/messages",
         "_/_/things/live/commands"
@@ -137,7 +137,7 @@
       }
     },
     {
-      "address": "hono.command/{{thing:id}}",
+      "address": "hono.command.test-connection-id/{{thing:id}}",
       "topics": [
         "_/_/things/twin/events",
         "_/_/things/live/events"
