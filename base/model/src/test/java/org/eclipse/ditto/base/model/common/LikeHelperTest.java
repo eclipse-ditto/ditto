@@ -30,19 +30,29 @@ public final class LikeHelperTest {
         assertExpression("foo..bar", "*bar", true);
         assertExpression("foo.bar.baz", "bar", false);
         assertExpression("foo.bar.baz", "*bar*", true);
-        //case insensitive test cases appending this  (?i) before text
-        assertExpression("", "*", true);
-        assertExpression("foo", "*", true);
-        assertExpression("foo.bar", "(?i)FOO.BAR", true);
-        assertExpression("foo..bar", "(?i)foo.bar", false);
-        assertExpression("foo..bar", "(?i)FOO*", true);
-        assertExpression("foo..bar", "*(?i)Bar", true);
-        assertExpression("foo.bar.baz", "(?i)bar", false);
-        assertExpression("foo.bar.baz", "*(?i)bAr*", true);
     }
 
     private static void assertExpression(final String value, final String expression, final boolean matches) {
         Pattern p = Pattern.compile(LikeHelper.convertToRegexSyntax(expression));
         Assert.assertEquals(matches, p.matcher(value).matches());
     }
+
+    @Test
+    public void testCaseInsensitiveWildcards() {
+        //case insensitive test cases 
+        assertExpressionCaseInsensitive("", "*", true);
+        assertExpressionCaseInsensitive("foo", "*", true);
+        assertExpressionCaseInsensitive("foo.bar", "FOO.BAR", true);
+        assertExpressionCaseInsensitive("foo..bar", "foo.bar", false);
+        assertExpressionCaseInsensitive("foo..bar", "FOO*", true);
+        assertExpressionCaseInsensitive("foo..bar", "*Bar", true);
+        assertExpressionCaseInsensitive("foo.bar.baz", "bar", false);
+        assertExpressionCaseInsensitive("foo.bar.baz", "*bAr*", true);
+    }
+
+    private static void assertExpressionCaseInsensitive(final String value, final String expression, final boolean matches) {
+        Pattern p = Pattern.compile(LikeHelper.convertToRegexSyntax(expression), Pattern.CASE_INSENSITIVE);
+        Assert.assertEquals(matches, p.matcher(value).matches());
+    }
+
 }
