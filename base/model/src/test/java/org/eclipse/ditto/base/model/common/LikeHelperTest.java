@@ -21,6 +21,7 @@ public final class LikeHelperTest {
 
     @Test
     public void testWildcards() {
+        //case sensitive test cases
         assertExpression("", "*", true);
         assertExpression("foo", "*", true);
         assertExpression("foo.bar", "foo.bar", true);
@@ -35,4 +36,23 @@ public final class LikeHelperTest {
         Pattern p = Pattern.compile(LikeHelper.convertToRegexSyntax(expression));
         Assert.assertEquals(matches, p.matcher(value).matches());
     }
+
+    @Test
+    public void testCaseInsensitiveWildcards() {
+        //case insensitive test cases 
+        assertExpressionCaseInsensitive("", "*", true);
+        assertExpressionCaseInsensitive("foo", "*", true);
+        assertExpressionCaseInsensitive("foo.bar", "FOO.BAR", true);
+        assertExpressionCaseInsensitive("foo..bar", "foo.bar", false);
+        assertExpressionCaseInsensitive("foo..bar", "FOO*", true);
+        assertExpressionCaseInsensitive("foo..bar", "*Bar", true);
+        assertExpressionCaseInsensitive("foo.bar.baz", "bar", false);
+        assertExpressionCaseInsensitive("foo.bar.baz", "*bAr*", true);
+    }
+
+    private static void assertExpressionCaseInsensitive(final String value, final String expression, final boolean matches) {
+        Pattern p = Pattern.compile(LikeHelper.convertToRegexSyntax(expression), Pattern.CASE_INSENSITIVE);
+        Assert.assertEquals(matches, p.matcher(value).matches());
+    }
+
 }

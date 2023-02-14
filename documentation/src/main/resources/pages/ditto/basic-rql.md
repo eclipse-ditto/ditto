@@ -218,6 +218,38 @@ like(attributes/key1,"*known-chars-in-between*")
 like(attributes/key1,"just-som?-char?-unkn?wn")
 ```
 
+#### ilike
+Filter property values which are like (similar) and case insensitive `<value>`.
+
+```
+ilike(<property>,<value>) 
+```
+
+{% include note.html content="The `ilike` operator is not defined in the linked RQL grammar, it is a Ditto
+    specific operator." %}
+
+**Details concerning the ilike-operator**
+
+The `ilike` operator provides some regular expression capabilities for pattern matching Strings with case insensitivity.
+
+The following expressions are supported:
+
+* \*endswith => match at the end of a specific String.
+* startswith\* => match at the beginning of a specific String.
+* \*contains\* => match if contains a specific String.
+* Th?ng => match for a wildcard character.
+
+**Examples**
+```
+ilike(attributes/key1,"*known-CHARS-at-end")
+
+ilike(attributes/key1,"known-chars-AT-start*") 
+
+ilike(attributes/key1,"*KNOWN-CHARS-IN-BETWEEN*") 
+
+ilike(attributes/key1,"just-som?-char?-unkn?wn")
+```
+
 #### exists
 
 Filter property values which exist.

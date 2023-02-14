@@ -76,9 +76,14 @@ public final class SingleComparisonNode extends ComparisonNode<SingleComparisonN
         LE("le"),
 
         /**
-         * Represents a lower than or equals comparison.
+         * Represents a string 'like' comparison, supporting wildcards '*' for multiple and '?' for a single character.
          */
-        LIKE("like");
+        LIKE("like"),
+        
+         /**
+         * Represents a string 'like' comparison, supporting wildcards '*' for multiple and '?' for a single character with case sensitivity.
+         */
+        ILIKE("ilike");
 
         private final String name;
 

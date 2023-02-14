@@ -241,6 +241,16 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
                         .isPresent();
     }
 
+    @Override
+    public Function<String, Predicate<Thing>> visitILike(@Nullable final String value) {
+        return fieldName ->
+                thing -> getThingField(fieldName, thing)
+                        .filter(JsonValue::isString)
+                        .map(JsonValue::asString)
+                        .filter(str -> null != value && Pattern.compile(value, Pattern.CASE_INSENSITIVE).matcher(str).matches())
+                        .isPresent();
+    }
+    
     @Nullable
     private Object resolveValue(@Nullable final Object value) {
         if (value instanceof ParsedPlaceholder) {

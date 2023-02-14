@@ -54,6 +54,7 @@ final class ParameterPredicateVisitor implements PredicateVisitor {
         SINGLE_COMPARISON_NODE_MAPPING.put(SingleComparisonNode.Type.LT, CriteriaFactory::lt);
         SINGLE_COMPARISON_NODE_MAPPING.put(SingleComparisonNode.Type.LE, CriteriaFactory::le);
         SINGLE_COMPARISON_NODE_MAPPING.put(SingleComparisonNode.Type.LIKE, CriteriaFactory::like);
+        SINGLE_COMPARISON_NODE_MAPPING.put(SingleComparisonNode.Type.ILIKE, CriteriaFactory::ilike);
     }
 
     private final List<Criteria> criteria = new ArrayList<>();
