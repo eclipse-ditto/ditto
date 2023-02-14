@@ -226,9 +226,13 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
 
         @Override
         Completable sendUnsubscribe(final Mqtt3RxClient mqtt3RxClient, final MqttTopicFilter... mqttTopicFilters) {
-            final var unsubscribe =
-                    Mqtt3Unsubscribe.builder().addTopicFilters(mqttTopicFilters).build();
-            return mqtt3RxClient.unsubscribe(unsubscribe);
+            if (mqttTopicFilters.length == 0) {
+                return Completable.complete();
+            } else {
+                final var unsubscribe =
+                        Mqtt3Unsubscribe.builder().addTopicFilters(mqttTopicFilters).build();
+                return mqtt3RxClient.unsubscribe(unsubscribe);
+            }
         }
 
         @Override
