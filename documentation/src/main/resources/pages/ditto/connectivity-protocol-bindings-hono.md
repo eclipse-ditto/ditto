@@ -41,15 +41,15 @@ Runtime, these are resolved as following:
 * `event` -> `{%raw%}hono.event.{{connection:id}}{%endraw%}`
 * `telemetry` -> `{%raw%}hono.telemetry.{{connection:id}}{%endraw%}`
 * `command_response` -> `{%raw%}hono.command_response.{{connection:id}}{%endraw%}`
- 
-Note: The {{connection:id}} will be replaced by the value of connectionId
+
+Note: The `{%raw%}{{connection:id}}{%endraw%}` will be replaced by the value of connectionId
 
 #### Source reply target
 Similar to source addresses, the reply target `address` is an alias as well. The single valid value for it is `command`. 
 It is resolved to Kafka topic/key like this:
 * `command` -> `{%raw%}hono.command.{{connection:id}}/<thingId>{%endraw%}` (&lt;thingId> is substituted by thing ID value).
 
-Note: The {{connection:id}} will be replaced by the value of connectionId
+Note: The `{%raw%}{{connection:id}}{%endraw%}` will be replaced by the value of connectionId
 
 The needed header mappings for the `replyTarget` are also populated automatically at runtime and there is 
 no need to specify them in the connection definition. Any of the following specified value will be substituted (i.e. ignored).
@@ -101,7 +101,9 @@ and [Header mapping for connections](connectivity-header-mapping.html).
 #### Target address 
 The target `address` is specified as an alias and the only valid alias is `command`. 
 It is automatically resolved at runtime to the following Kafka topic/key:
-* `command` -> `hono.command/<thingId>` (&lt;thingId> is substituted by thing ID value).
+* `command` -> `{%raw%}hono.command.{{connection:id}}/<thingId>{%endraw%}` (&lt;thingId> is substituted by thing ID value).
+
+Note: The `{%raw%}{{connection:id}}{%endraw%}` will be replaced by the value of connectionId
 
 #### Target header mapping
 The target `headerMapping` section is also populated automatically at runtime and there is
