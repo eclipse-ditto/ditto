@@ -40,6 +40,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistentactors.EmptyEvent;
 
 import akka.NotUsed;
 import akka.actor.AbstractActor;
@@ -114,6 +115,12 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
                 .orElse(true);
     }
 
+    private static boolean isNotEmptyEvent(final Document document) {
+        return Optional.ofNullable(document.getString(MongoReadJournal.J_EVENT_MANIFEST))
+                .map(manifest -> !EmptyEvent.TYPE.equals(manifest))
+                .orElse(false);
+    }
+
     private static boolean isNotDeleted(final Document document) {
         return Optional.ofNullable(document.getString(MongoReadJournal.J_EVENT_MANIFEST))
                 .map(manifest -> !ConnectionDeleted.TYPE.equals(manifest))
@@ -166,6 +173,7 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
             final Source<String, NotUsed> idsFromSnapshots = getIdsFromSnapshotsSource();
             final Source<String, NotUsed> idsFromJournal = persistenceIdsFromJournalSourceSupplier.get()
                     .filter(ConnectionIdsRetrievalActor::isNotDeleted)
+                    .filter(ConnectionIdsRetrievalActor::isNotEmptyEvent)
                     .map(document -> document.getString(MongoReadJournal.J_EVENT_PID));
 
             final CompletionStage<CommandResponse> retrieveAllConnectionIdsResponse =

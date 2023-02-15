@@ -56,7 +56,7 @@ public final class EmptyEvent implements Event<EmptyEvent> {
 
     static final String NAME = "empty-event";
 
-    static final String TYPE = TYPE_PREFIX + NAME;
+    public static final String TYPE = TYPE_PREFIX + NAME;
 
     private static final JsonFieldDefinition<JsonValue> JSON_EFFECT =
             JsonFactory.newJsonValueFieldDefinition("effect", FieldType.REGULAR, JsonSchemaVersion.V_2);
