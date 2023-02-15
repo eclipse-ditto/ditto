@@ -207,6 +207,14 @@ public final class ImmutableSearchPropertyTest {
                 .hasStringRepresentation("like(" + PROPERTY_PATH + ",\"" + BOSCH + "\")");
     }
 
+    @Test
+    public void ilikeReturnsExpected() {
+        assertThat(underTest.ilike(BOSCH))
+                .hasType(SearchFilter.Type.ILIKE)
+                .hasOnlyValue(BOSCH)
+                .hasStringRepresentation("ilike(" + PROPERTY_PATH + ",\"" + BOSCH + "\")");
+    }
+
     @Test(expected = NullPointerException.class)
     public void tryToCallInWithNullStringForMandatoryValue() {
         underTest.in(null, ACME);

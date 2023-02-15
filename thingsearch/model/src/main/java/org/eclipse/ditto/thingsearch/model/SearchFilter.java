@@ -100,6 +100,11 @@ public interface SearchFilter {
         LIKE("like"),
 
         /**
+         * Filter type for checking if a string matches a regular expression, in a case insensitive way.
+         */
+        ILIKE("ilike"),
+
+        /**
          * Filter type for checking if an entity is contained in a set of given entities.
          */
         IN("in");

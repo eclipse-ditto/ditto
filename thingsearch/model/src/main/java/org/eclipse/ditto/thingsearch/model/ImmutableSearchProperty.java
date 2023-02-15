@@ -241,6 +241,13 @@ final class ImmutableSearchProperty implements SearchProperty {
     }
 
     @Override
+    public PropertySearchFilter ilike(final String value) {
+        checkStringValue(value);
+
+        return ImmutablePropertyFilter.of(SearchFilter.Type.ILIKE, propertyPath, JsonFactory.newValue(value));
+    }
+
+    @Override
     public PropertySearchFilter in(final boolean value, final Boolean... furtherValues) {
         return in(toCollection(JsonFactory::newValue, value, furtherValues));
     }

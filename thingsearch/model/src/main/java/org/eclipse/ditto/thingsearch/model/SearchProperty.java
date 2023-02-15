@@ -294,6 +294,15 @@ public interface SearchProperty {
     PropertySearchFilter like(String value);
 
     /**
+     * Returns a new search filter for checking if the value of this property is case insensitive like the given value.
+     *
+     * @param value the value to compare the value of this property with.
+     * @return the new search filter.
+     * @throws NullPointerException if {@code value} is {@code null}.
+     */
+    PropertySearchFilter ilike(String value);
+
+    /**
      * Returns a new search filter for checking if the value of this property is in the given value(s).
      *
      * @param value the value to check if the value of this property is in.
