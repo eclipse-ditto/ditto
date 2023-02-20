@@ -30,7 +30,7 @@ You should be able to work with your locally running default using the `local_di
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=eclipse-ditto/ditto&type=Date)](https://star-history.com/?secret=Z2hwXzJERUNBUmFRa09KM3BvdTFMUkJ1Y3VnY25FV3hxVjNBM3hEVQ==#eclipse-ditto/ditto&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=eclipse-ditto/ditto&type=Date)](https://star-history.com/#eclipse-ditto/ditto&Date)
 
 ## Getting started
 
