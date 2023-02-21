@@ -86,10 +86,8 @@
         <developer>
             <id>tjaeckle</id>
             <name>Thomas Jaeckle</name>
-            <email>thomas.jaeckle@bosch.io</email>
+            <email>ditto@jaeckles.de</email>
             <url>https://github.com/thjaeckle</url>
-            <organization>Bosch.IO GmbH</organization>
-            <organizationUrl>https://www.bosch.io</organizationUrl>
             <roles>
                 <role>Lead</role>
                 <role>Committer</role>
