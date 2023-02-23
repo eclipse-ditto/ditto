@@ -18,16 +18,16 @@
             <div class="col-md-6 resizable_flex_column">
                 <div class="input-group input-group-sm mb-1 mt-1">
                     <div class="btn-group dropend">
-                        <button id="searchFavourite" class="btn btn-outline-secondary btn-sm" data-bs-toggle="tooltip"
-                            title="Toggle favourite for search filter">
+                        <button id="searchFavorite" class="btn btn-outline-secondary btn-sm" data-bs-toggle="tooltip"
+                            title="Toggle favorite for search filter">
                             <i id="favIcon" class="bi bi-star"></i>
                         </button>
                         <button class="btn btn-outline-secondary btn-sm dropdown-toggle dropdown-toggle-split"
                             data-bs-toggle="dropdown"></button>
                         <ul id="filterList" class="dropdown-menu" style="position: fixed; top: auto;"></ul>
                     </div>
-                    <input type="text" class="form-control form-control-sm autocomplete" placeholder="Search things..."
-                        id="searchFilterEdit" autocomplete="off"></input>
+                    <input type="search" class="form-control form-control-sm" 
+                        id="searchFilterEdit" spellcheck=false autocomplete="off"></input>
                     <button id="searchThings" class="btn btn-outline-secondary btn-sm" data-bs-toggle="tooltip"
                         title="Search things by thingId or valid ditto search filter">
                         search

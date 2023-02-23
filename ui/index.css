@@ -180,3 +180,11 @@ h5>.badge {
     vertical-align: top;
     font-size: 0.6em;
 }
+
+.autoComplete_wrapper {
+    flex-grow: 1;
+}
+
+.autoComplete_wrapper ul > li[aria-selected="true"] {
+    background-color: rgba(123, 123, 123, 0.1);
+}
