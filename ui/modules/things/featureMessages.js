@@ -25,7 +25,7 @@ const dom = {
   inputMessageTimeout: null,
   inputMessageTemplate: null,
   buttonMessageSend: null,
-  buttonMessageFavourite: null,
+  buttonMessageFavorite: null,
   ulMessageTemplates: null,
   favIconMessage: null,
   tableValidationFeature: null,
@@ -61,7 +61,7 @@ export async function ready() {
     messageFeature();
   };
 
-  dom.buttonMessageFavourite.onclick = () => {
+  dom.buttonMessageFavorite.onclick = () => {
     const templateName = dom.inputMessageTemplate.value;
     const featureId = theFeatureId;
     Utils.assert(featureId, 'Please select a Feature', dom.tableValidationFeature);

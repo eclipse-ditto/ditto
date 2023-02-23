@@ -40,7 +40,7 @@ const dom = {
   favIcon: null,
   searchFilterEdit: null,
   searchThings: null,
-  searchFavourite: null,
+  searchFavorite: null,
   tabThings: null,
   pinnedThings: null,
 };
@@ -72,8 +72,8 @@ export async function ready() {
     ThingsSearch.searchTriggered(dom.searchFilterEdit.value);
   };
 
-  dom.searchFavourite.onclick = () => {
-    if (toggleFilterFavourite(dom.searchFilterEdit.value)) {
+  dom.searchFavorite.onclick = () => {
+    if (toggleFilterFavorite(dom.searchFilterEdit.value)) {
       dom.favIcon.classList.toggle('bi-star');
       dom.favIcon.classList.toggle('bi-star-fill');
     }
@@ -85,7 +85,7 @@ export async function ready() {
       ThingsSearch.searchTriggered(dom.searchFilterEdit.value);
     } else {
       clearTimeout(keyStrokeTimeout);
-      keyStrokeTimeout = setTimeout(checkIfFavourite, 1000);
+      keyStrokeTimeout = setTimeout(checkIfFavorite, 1000);
     }
   };
 
@@ -112,7 +112,7 @@ function onEnvironmentChanged() {
 function fillSearchFilterEdit(fillString) {
   dom.searchFilterEdit.value = fillString;
 
-  checkIfFavourite();
+  checkIfFavorite();
   const filterEditNeeded = checkAndMarkParameter();
   if (!filterEditNeeded) {
     ThingsSearch.searchTriggered(dom.searchFilterEdit.value);
@@ -124,7 +124,7 @@ function fillSearchFilterEdit(fillString) {
  */
 function updateFilterList() {
   dom.filterList.innerHTML = '';
-  Utils.addDropDownEntries(dom.filterList, ['Favourite search filters'], true);
+  Utils.addDropDownEntries(dom.filterList, ['Favorite search filters'], true);
   Utils.addDropDownEntries(dom.filterList, Environments.current().filterList ?? []);
   Utils.addDropDownEntries(dom.filterList, ['Example search filters'], true);
   Utils.addDropDownEntries(dom.filterList, filterExamples);
@@ -186,7 +186,7 @@ async function createFilterList(query) {
       rql: `exists(${FILTER_PLACEHOLDER})`,
       group: 'Other',
     },
-    ...(Environments.current().filterList ?? []).map((f) => ({label: f, rql: f, group: 'Favourite'})),
+    ...(Environments.current().filterList ?? []).map((f) => ({label: f, rql: f, group: 'Favorite'})),
     ...(Environments.current().fieldList ?? []).map((f) => ({
       label: `${f.label} = ${FILTER_PLACEHOLDER}`,
       rql: `eq(${f.path},"${FILTER_PLACEHOLDER}")`,
@@ -206,7 +206,7 @@ async function createFilterList(query) {
  * @param {String} filter filter
  * @return {boolean} true if the filter was toggled
  */
-function toggleFilterFavourite(filter) {
+function toggleFilterFavorite(filter) {
   if (!filter || filter === '') {
     return false;
   }
@@ -223,7 +223,7 @@ function toggleFilterFavourite(filter) {
 /**
  * Initializes the UI for the favicon dependent on wether the search filter is in the search filters
  */
-function checkIfFavourite() {
+function checkIfFavorite() {
   if (Environments.current().filterList.indexOf(dom.searchFilterEdit.value) >= 0) {
     dom.favIcon.classList.replace('bi-star', 'bi-star-fill');
   } else {
