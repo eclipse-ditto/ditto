@@ -36,7 +36,6 @@ const FILTER_PLACEHOLDER = '...';
 let autoCompleteJS;
 
 const dom = {
-  filterList: null,
   favIcon: null,
   searchFilterEdit: null,
   searchThings: null,
@@ -59,12 +58,6 @@ export async function ready() {
   autoCompleteJS.input.addEventListener('selection', (event) => {
     const selection = event.detail.selection.value;
     fillSearchFilterEdit(selection.rql);
-  });
-
-  dom.filterList.addEventListener('click', (event) => {
-    if (event.target && event.target.classList.contains('dropdown-item')) {
-      fillSearchFilterEdit(event.target.textContent);
-    }
   });
 
   dom.searchThings.onclick = () => {
@@ -106,7 +99,6 @@ function onEnvironmentChanged() {
   if (!Environments.current()['pinnedThings']) {
     Environments.current().pinnedThings = [];
   }
-  updateFilterList();
 }
 
 function fillSearchFilterEdit(fillString) {
@@ -117,19 +109,6 @@ function fillSearchFilterEdit(fillString) {
   if (!filterEditNeeded) {
     ThingsSearch.searchTriggered(dom.searchFilterEdit.value);
   }
-}
-
-/**
- * Updates the UI filterList
- */
-function updateFilterList() {
-  dom.filterList.innerHTML = '';
-  Utils.addDropDownEntries(dom.filterList, ['Favorite search filters'], true);
-  Utils.addDropDownEntries(dom.filterList, Environments.current().filterList ?? []);
-  Utils.addDropDownEntries(dom.filterList, ['Example search filters'], true);
-  Utils.addDropDownEntries(dom.filterList, filterExamples);
-  Utils.addDropDownEntries(dom.filterList, ['Recent search filters'], true);
-  Utils.addDropDownEntries(dom.filterList, filterHistory);
 }
 
 async function createFilterList(query) {
@@ -181,11 +160,6 @@ async function createFilterList(query) {
       rql: `like(thingId,"${FILTER_PLACEHOLDER}*")`,
       group: 'ThingId',
     },
-    {
-      label: `exists ${FILTER_PLACEHOLDER}`,
-      rql: `exists(${FILTER_PLACEHOLDER})`,
-      group: 'Other',
-    },
     ...(Environments.current().filterList ?? []).map((f) => ({label: f, rql: f, group: 'Favorite'})),
     ...(Environments.current().fieldList ?? []).map((f) => ({
       label: `${f.label} = ${FILTER_PLACEHOLDER}`,
@@ -198,6 +172,7 @@ async function createFilterList(query) {
       group: 'Field',
     })),
     ...filterHistory.map((f) => ({label: f, rql: f, group: 'Recent'})),
+    ...filterExamples.map((f) => ({label: f, rql: f, group: 'Example'})),
   ];
 }
 
@@ -247,7 +222,6 @@ function checkAndMarkParameter() {
 function fillHistory(filter) {
   if (!filterHistory.includes(filter)) {
     filterHistory.unshift(filter);
-    updateFilterList();
   }
 }
 
