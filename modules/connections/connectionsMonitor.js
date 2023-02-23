@@ -29,6 +29,7 @@ let dom = {
   buttonRetrieveConnectionMetrics: null,
   buttonResetConnectionMetrics: null,
   tableValidationConnections: null,
+  // inputConnectionLogFilter: null,
 };
 
 let connectionLogs;
@@ -60,6 +61,7 @@ export function ready() {
   dom.buttonRetrieveConnectionMetrics.onclick = retrieveConnectionMetrics;
   document.querySelector('a[data-bs-target="#tabConnectionMetrics"]').onclick = retrieveConnectionMetrics;
   dom.buttonResetConnectionMetrics.onclick = onResetConnectionMetricsClick;
+  // dom.inputConnectionLogFilter.onchange = onConnectionLogFilterChange;
 }
 
 function onResetConnectionMetricsClick() {
@@ -112,17 +114,25 @@ function retrieveConnectionStatus() {
 
 function retrieveConnectionLogs() {
   Utils.assert(selectedConnectionId, 'Please select a connection', dom.tableValidationConnections);
-  dom.tbodyConnectionLogs.innerHTML = '';
-  connectionLogDetail.setValue('');
   API.callConnectionsAPI('retrieveConnectionLogs', (response) => {
     connectionLogs = response.connectionLogs;
     adjustEnableButton(response);
-    response.connectionLogs.forEach((entry) => {
-      Utils.addTableRow(dom.tbodyConnectionLogs, Utils.formatDate(entry.timestamp, true), false, false, entry.type, entry.level);
-    });
-    dom.tbodyConnectionLogs.scrollTop = dom.tbodyConnectionLogs.scrollHeight - dom.tbodyConnectionLogs.clientHeight;
+    fillConnectionLogsTable(response.connectionLogs);
   },
   selectedConnectionId);
+}
+
+let connectionLogsFilter;
+
+function fillConnectionLogsTable(entries) {
+  dom.tbodyConnectionLogs.innerHTML = '';
+  connectionLogDetail.setValue('');
+
+  let filter = connectionLogsFilter ? connectionLogsFilter.match : (a => true);
+  entries.filter(filter).forEach((entry) => {
+    Utils.addTableRow(dom.tbodyConnectionLogs, Utils.formatDate(entry.timestamp, true), false, false, entry.type, entry.level);
+  });
+  dom.tbodyConnectionLogs.scrollTop = dom.tbodyConnectionLogs.scrollHeight - dom.tbodyConnectionLogs.clientHeight;
 }
 
 function adjustEnableButton(response) {
@@ -144,4 +154,40 @@ function onConnectionChange(connection, isNewConnection = true) {
   if (!isNewConnection && connection && connection.id) {
     retrieveConnectionLogs();
   }
+}
+
+function JsonFilter() {
+  let _filters = [];
+
+  const match = (object) => {
+    let result = true;
+    _filters.forEach((f) => result = result && object[f.key] === f.value);
+    return result;
+  };
+
+  const add = (key, value) => {
+    _filters.push({key: key, value: value});
+  };
+
+  return {
+    match,
+    add,
+  };
+}
+
+const knownFields = ['category', 'type', 'level'];
+
+function onConnectionLogFilterChange(event) {
+  if (event.target.value && event.target.value !== '') {
+    connectionLogsFilter = new JsonFilter();
+    event.target.value.split(/(\s+)/).forEach((elem) => {
+      const keyValue = elem.split(':');
+      if (keyValue.length === 2 && knownFields.includes(keyValue[0].trim())) {
+        connectionLogsFilter.add(keyValue[0].trim(), keyValue[1].trim());
+      }
+    });
+  } else {
+    connectionLogsFilter = null;
+  }
+  fillConnectionLogsTable(connectionLogs);
 }
