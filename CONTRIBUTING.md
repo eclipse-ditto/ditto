@@ -34,6 +34,27 @@ We use the [Google Java Style Guide](https://github.com/google/styleguide) where
 
 The only adjustment: use longer lines ("line split") with 120 characters instead of only 100.
 
+## Strive for code safety
+
+This section mainly targets development and refactoring at the *service side.*
+We know: exception handling is cumbersome.
+We also know: not handling an exception could be fatal.
+This is why we introduced the `Result` type which can be found in module
+`ditto-utils-result`.
+The idea is that for each method which returns a value and which could fail a
+`Result` should be returned instead of the plain value.
+This clearly indicates that the result should be checked for an error before
+working with the actual return value – all within the regular code flow
+without the burden of `try/catch`.
+Please see [PR #1530](https://github.com/eclipse-ditto/ditto/pull/1530) for
+more information.
+
+By the way, for methods which only produces side effects but which could fail
+consider to use checked exceptions (we know) to ensure that all program paths
+are covered.
+
+Thanks a lot.
+
 ## Making your Changes
 
 * Fork the repository on GitHub
