@@ -321,7 +321,7 @@ export function createAutoComplete(selector, src, placeHolder) {
     selector: selector,
     data: {
       src: src,
-      keys: ['label'],
+      keys: ['label', 'group'],
     },
     placeHolder: placeHolder,
     resultsList: {
@@ -333,8 +333,9 @@ export function createAutoComplete(selector, src, placeHolder) {
       highlight: true,
       element: (item, data) => {
         item.style = 'display: flex;';
-        item.innerHTML = `<span style="flex-grow: 1;" >${data.match}</span>
-            <span style="color: 3a8c9a;" class="fw-light fst-italic ms-1">${data.value.group}</span>`;
+        item.innerHTML = `<span style="flex-grow: 1;" >${data.key === 'label' ? data.match : data.value.label}</span>
+            <span style="color: 3a8c9a;" class="fw-light fst-italic ms-1">
+              ${data.key === 'group' ? data.match : data.value.group}</span>`;
       },
     },
     events: {
