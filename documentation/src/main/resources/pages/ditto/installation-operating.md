@@ -37,7 +37,7 @@ In order to have a look at all possible configuration options and what default v
 configuration files of Ditto's microservices:
 * Policies: [policies.conf](https://github.com/eclipse-ditto/ditto/blob/master/policies/service/src/main/resources/policies.conf)
 * Things: [things.conf](https://github.com/eclipse-ditto/ditto/blob/master/things/service/src/main/resources/things.conf)
-* Things-Search: [things-search.conf](https://github.com/eclipse-ditto/ditto/blob/master/thingsearch/service/src/main/resources/things-search.conf)
+* Things-Search: [things-search.conf](https://github.com/eclipse-ditto/ditto/blob/master/thingsearch/service/src/main/resources/search.conf)
 * Connectivity: [connectivity.conf](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/resources/connectivity.conf)
 * Gateway: [gateway.conf](https://github.com/eclipse-ditto/ditto/blob/master/gateway/service/src/main/resources/gateway.conf)
 
