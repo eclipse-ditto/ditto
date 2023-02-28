@@ -33,6 +33,7 @@ public final class RouteBaseProperties {
 
     private final ActorRef proxyActor;
     private final ActorSystem actorSystem;
+    private final boolean isCoapRoute;
     private final HttpConfig httpConfig;
     private final CommandConfig commandConfig;
     private final HeaderTranslator headerTranslator;
@@ -40,6 +41,7 @@ public final class RouteBaseProperties {
     private RouteBaseProperties(final Builder builder) {
         proxyActor = ConditionChecker.checkNotNull(builder.proxyActor, "builder.proxyActor");
         actorSystem = ConditionChecker.checkNotNull(builder.actorSystem, "builder.actorSystem");
+        isCoapRoute = builder.isCoapRoute;
         httpConfig = ConditionChecker.checkNotNull(builder.httpConfig, "builder.httpConfig");
         commandConfig = ConditionChecker.checkNotNull(builder.commandConfig, "builder.commandConfig");
         headerTranslator = ConditionChecker.checkNotNull(builder.headerTranslator, "builder.headerTranslator");
@@ -48,10 +50,11 @@ public final class RouteBaseProperties {
     /**
      * Returns a mutable builder with a fluent API for creating a {@code RouteBaseProperties} object.
      *
+     * @param isCoapRoute TODO TJ doc
      * @return the builder.
      */
-    public static Builder newBuilder() {
-        return new Builder();
+    public static Builder newBuilder(final boolean isCoapRoute) {
+        return new Builder(isCoapRoute);
     }
 
     /**
@@ -63,7 +66,7 @@ public final class RouteBaseProperties {
      */
     public static Builder newBuilder(final RouteBaseProperties routeBaseProperties) {
         ConditionChecker.checkNotNull(routeBaseProperties, "routeBaseProperties");
-        return newBuilder()
+        return newBuilder(false)
                 .proxyActor(routeBaseProperties.getProxyActor())
                 .actorSystem(routeBaseProperties.getActorSystem())
                 .httpConfig(routeBaseProperties.getHttpConfig())
@@ -87,6 +90,13 @@ public final class RouteBaseProperties {
      */
     public ActorSystem getActorSystem() {
         return actorSystem;
+    }
+
+    /**
+     * @return whether these are the properties of a CoAP route or not.
+     */
+    public boolean isCoapRoute() {
+        return isCoapRoute;
     }
 
     /**
@@ -127,6 +137,7 @@ public final class RouteBaseProperties {
         final var that = (RouteBaseProperties) o;
         return Objects.equals(proxyActor, that.proxyActor) &&
                 Objects.equals(actorSystem, that.actorSystem) &&
+                Objects.equals(isCoapRoute, that.isCoapRoute) &&
                 Objects.equals(httpConfig, that.httpConfig) &&
                 Objects.equals(commandConfig, that.commandConfig) &&
                 Objects.equals(headerTranslator, that.headerTranslator);
@@ -136,6 +147,7 @@ public final class RouteBaseProperties {
     public int hashCode() {
         return Objects.hash(proxyActor,
                 actorSystem,
+                isCoapRoute,
                 httpConfig,
                 commandConfig,
                 headerTranslator);
@@ -144,13 +156,15 @@ public final class RouteBaseProperties {
     @NotThreadSafe
     public static final class Builder {
 
+        private final boolean isCoapRoute;
         private ActorRef proxyActor;
         private ActorSystem actorSystem;
         private HttpConfig httpConfig;
         private CommandConfig commandConfig;
         private HeaderTranslator headerTranslator;
 
-        private Builder() {
+        private Builder(final boolean isCoapRoute) {
+            this.isCoapRoute = isCoapRoute;
             proxyActor = null;
             actorSystem = null;
             httpConfig = null;

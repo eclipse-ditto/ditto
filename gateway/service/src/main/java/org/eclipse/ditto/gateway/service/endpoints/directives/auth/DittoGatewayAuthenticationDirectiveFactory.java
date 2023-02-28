@@ -14,13 +14,21 @@ package org.eclipse.ditto.gateway.service.endpoints.directives.auth;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationChain;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationFailureAggregator;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationFailureAggregators;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationProvider;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
+import org.eclipse.ditto.gateway.service.security.authentication.DefaultAuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationProvider;
 import org.eclipse.ditto.gateway.service.security.authentication.preauth.PreAuthenticatedAuthenticationProvider;
@@ -30,10 +38,10 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.lang.Nullable;
 import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
+import akka.http.javadsl.server.RequestContext;
 
 /**
  * Ditto's default factory for building authentication directives.
@@ -47,6 +55,7 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
     private final Executor authenticationDispatcher;
     @Nullable private GatewayAuthenticationDirective gatewayHttpAuthenticationDirective;
     @Nullable private GatewayAuthenticationDirective gatewayWsAuthenticationDirective;
+    @Nullable private GatewayAuthenticationDirective gatewayCoapAuthenticationDirective;
 
     public DittoGatewayAuthenticationDirectiveFactory(final ActorSystem actorSystem, final Config config) {
         authConfig = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()))
@@ -89,9 +98,39 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
         return gatewayWsAuthenticationDirective;
     }
 
+    @Override
+    public GatewayAuthenticationDirective buildCoapAuthentication() {
+
+        if (null == gatewayCoapAuthenticationDirective) {
+            final AuthenticationProvider<AuthenticationResult> coapAuthenticationProvider = new AuthenticationProvider<>() {
+                        @Override
+                        public boolean isApplicable(final RequestContext requestContext) {
+                            return true; // TODO TJ extract CoAP AuthenticationProvider
+                        }
+
+                        @Override
+                        public CompletableFuture<AuthenticationResult> authenticate(final RequestContext requestContext,
+                                final DittoHeaders dittoHeaders) {
+                            return CompletableFuture.completedFuture(
+                                    DefaultAuthenticationResult.successful(dittoHeaders,
+                                            AuthorizationContext.newInstance(
+                                                    DittoAuthorizationContextType.PRE_AUTHENTICATED_COAP,
+                                                    AuthorizationSubject.newInstance("coap:some-device-id") // TODO TJ determine from coap auth
+                                            )
+                                    )
+                            );
+                        }
+                    };
+            gatewayCoapAuthenticationDirective =
+                    generateGatewayAuthenticationDirective(authConfig, coapAuthenticationProvider,
+                            authenticationDispatcher);
+        }
+        return gatewayCoapAuthenticationDirective;
+    }
+
     private static GatewayAuthenticationDirective generateGatewayAuthenticationDirective(
             final AuthenticationConfig authConfig,
-            final AuthenticationProvider<AuthenticationResult> jwtAuthenticationProvider,
+            @Nullable final AuthenticationProvider<AuthenticationResult> authenticationProvider,
             final Executor authenticationDispatcher) {
 
         final Collection<AuthenticationProvider<?>> authenticationProviders = new ArrayList<>();
@@ -100,7 +139,9 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
             authenticationProviders.add(PreAuthenticatedAuthenticationProvider.getInstance());
         }
 
-        authenticationProviders.add(jwtAuthenticationProvider);
+        if (null != authenticationProvider) {
+            authenticationProviders.add(authenticationProvider);
+        }
 
         final AuthenticationFailureAggregator authenticationFailureAggregator =
                 AuthenticationFailureAggregators.getDefault();

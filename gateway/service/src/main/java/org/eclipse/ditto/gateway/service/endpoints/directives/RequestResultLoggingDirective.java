@@ -26,6 +26,7 @@ import org.eclipse.ditto.gateway.service.endpoints.utils.HttpUtils;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 
+import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.server.Complete;
 import akka.http.javadsl.server.Route;
 
@@ -65,8 +66,12 @@ public final class RequestResultLoggingDirective {
                 final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(correlationId);
                 if (routeResult instanceof Complete complete) {
                     final int statusCode = complete.getResponse().status().intValue();
-                    logger.info("StatusCode of request {} '{}' was: {}", requestMethod, filteredRelativeRequestUri,
-                            statusCode);
+                    final boolean isCoapRequest = request.getHeader("ditto-coap-proxy")
+                            .map(HttpHeader::value)
+                            .map(Boolean::parseBoolean)
+                            .orElse(false);
+                    logger.info("StatusCode of <{}> request <{}> '{}' was: {}", isCoapRequest ? "CoAP" : "HTTP",
+                            requestMethod, filteredRelativeRequestUri, statusCode);
                     if (logger.isDebugEnabled()) {
                         final String filteredRawRequestUri = filterRawUri(HttpUtils.getRawRequestUri(request));
                         logger.debug("Raw request URI was: {}", filteredRawRequestUri);

@@ -46,6 +46,9 @@ public abstract class SpanTagKey<T> {
 
     public static final SpanTagKey<HttpStatus> HTTP_STATUS = new HttpStatusImplementation(KEY_PREFIX + "statusCode");
 
+    public static final SpanTagKey<CharSequence> REQUEST_PROTOCOL =
+            new CharSequenceImplementation(KEY_PREFIX + "request.protocol");
+
     public static final SpanTagKey<CharSequence> REQUEST_METHOD_NAME =
             new CharSequenceImplementation(KEY_PREFIX + "request.method");
 

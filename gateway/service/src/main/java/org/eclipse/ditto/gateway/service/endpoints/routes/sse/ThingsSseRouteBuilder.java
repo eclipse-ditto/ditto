@@ -124,6 +124,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             "(/features/[^/]+)?/(inbox|outbox)/messages/.+");
 
     private static final String STREAMING_TYPE_SSE = "SSE";
+    private static final String STREAMING_TYPE_COAP_OBSERVE = "CoAP:observe";
     private static final String LAST_EVENT_ID_HEADER = "Last-Event-ID";
 
     private static final String PARAM_FILTER = "filter";
@@ -368,6 +369,11 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                         queryFilterCriteriaFactory.filterCriteria(filterString, dittoHeaders);
                     }
 
+                    final boolean isCoapRequest = Optional.ofNullable(dittoHeaders.get("ditto-coap-proxy"))
+                            .map(Boolean::parseBoolean)
+                            .orElse(false);
+                    final String streamingType = isCoapRequest ? STREAMING_TYPE_COAP_OBSERVE : STREAMING_TYPE_SSE;
+
                     final String connectionCorrelationId = dittoHeaders.getCorrelationId()
                             .orElseThrow(() -> new IllegalStateException(
                                     "Expected correlation-id in SSE DittoHeaders: " + dittoHeaders));
@@ -412,7 +418,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                 sseConnectionSupervisor.supervise(withQueue.getSupervisedStream(),
                                         connectionCorrelationId, dittoHeaders);
                                 final var connect = new Connect(withQueue.getSourceQueue(), connectionCorrelationId,
-                                        STREAMING_TYPE_SSE, jsonSchemaVersion, null, Set.of(),
+                                        streamingType, jsonSchemaVersion, null, Set.of(),
                                         authorizationContext, null);
                                 Patterns.ask(streamingActor, connect, LOCAL_ASK_TIMEOUT)
                                         .thenApply(ActorRef.class::cast)
@@ -462,6 +468,12 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                     .mapMaterializedValue(pair -> {
                                         final SupervisedStream.WithQueue withQueue = pair.first();
                                         final KillSwitch killSwitch = pair.second();
+
+                                        final boolean isCoapRequest = Optional.ofNullable(dittoHeaders.get("ditto-coap-proxy"))
+                                                .map(Boolean::parseBoolean)
+                                                .orElse(false);
+                                        final String streamingType = isCoapRequest ? STREAMING_TYPE_COAP_OBSERVE : STREAMING_TYPE_SSE;
+
                                         final String connectionCorrelationId = dittoHeaders.getCorrelationId()
                                                 .orElseThrow(() -> new IllegalStateException(
                                                         "Expected correlation-id in SSE DittoHeaders: " +
@@ -474,7 +486,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                         final var authorizationContext = dittoHeaders.getAuthorizationContext();
                                         final var connect =
                                                 new Connect(withQueue.getSourceQueue(), connectionCorrelationId,
-                                                        STREAMING_TYPE_SSE, jsonSchemaVersion, null, Set.of(),
+                                                        streamingType, jsonSchemaVersion, null, Set.of(),
                                                         authorizationContext, null);
                                         final String resourcePathRqlStatement;
                                         if (INBOX_OUTBOX_WITH_SUBJECT_PATTERN.matcher(messagePath).matches()) {

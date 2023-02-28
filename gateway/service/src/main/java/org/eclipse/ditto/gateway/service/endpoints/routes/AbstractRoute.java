@@ -352,7 +352,11 @@ public abstract class AbstractRoute extends AllDirectives {
             customRequestTimeout = checkTimeoutFunction.apply(optionalTimeout);
         }
 
-        return increaseHttpRequestTimeout(inner, customRequestTimeout);
+        if (routeBaseProperties.isCoapRoute()) {
+            return inner.apply(customRequestTimeout);
+        } else {
+            return increaseHttpRequestTimeout(inner, customRequestTimeout);
+        }
     }
 
     private CompletionStage<HttpResponse> toStrict(final HttpResponse response) {

@@ -35,6 +35,13 @@ public final class DittoAuthorizationContextType extends AuthorizationContextTyp
             new DittoAuthorizationContextType("pre-authenticated-http");
 
     /**
+     * Type indicating that the authorization context was created the pre-authenticated mechanism via CoAP which is
+     * setting an authenticated subject as header field.
+     */
+    public static final DittoAuthorizationContextType PRE_AUTHENTICATED_COAP =
+            new DittoAuthorizationContextType("pre-authenticated-coap");
+
+    /**
      * Type indicating that the authorization context was created using the pre-authenticated mechanism of connections
      * by having configured the contained auth subjects in a Ditto connection source/target.
      */
@@ -62,7 +69,7 @@ public final class DittoAuthorizationContextType extends AuthorizationContextTyp
      * @return an array containing the Ditto specified authorization context types.
      */
     public static AuthorizationContextType[] values() {
-        return new AuthorizationContextType[]{ PRE_AUTHENTICATED_HTTP, PRE_AUTHENTICATED_CONNECTION, JWT, UNSPECIFIED };
+        return new AuthorizationContextType[]{ PRE_AUTHENTICATED_HTTP, PRE_AUTHENTICATED_COAP, PRE_AUTHENTICATED_CONNECTION, JWT, UNSPECIFIED };
     }
 
     /**

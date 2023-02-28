@@ -20,6 +20,7 @@ import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.edge.service.dispatching.EdgeCommandForwarderActor;
 import org.eclipse.ditto.edge.service.dispatching.ShardRegions;
 import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
+import org.eclipse.ditto.gateway.service.coap.DittoCoapServerActor;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.routes.CustomApiRoutesProvider;
@@ -153,6 +154,10 @@ public final class GatewayRootActor extends DittoRootActor {
                 healthCheckActor, pubSubMediator, healthCheckConfig, jwtAuthenticationFactory,
                 devopsAuthenticationDirectiveFactory, protocolAdapterProvider, headerTranslator);
 
+        final Route routeForCoap = createRouteForCoap(actorSystem, gatewayConfig, proxyActor, streamingActor,
+                pubSubMediator, protocolAdapterProvider, headerTranslator);
+        startChildActor(DittoCoapServerActor.ACTOR_NAME, DittoCoapServerActor.props(routeForCoap));
+
         httpBinding = Http.get(actorSystem)
                 .newServerAt(hostname, httpConfig.getPort())
                 .bindFlow(HttpBindFlowProvider.get(actorSystem, dittoExtensionConfig).getFlow(rootRoute))
@@ -233,7 +238,7 @@ public final class GatewayRootActor extends DittoRootActor {
 
         final var commandConfig = gatewayConfig.getCommandConfig();
 
-        final var routeBaseProperties = RouteBaseProperties.newBuilder()
+        final var routeBaseProperties = RouteBaseProperties.newBuilder(false)
                 .actorSystem(actorSystem)
                 .proxyActor(proxyActor)
                 .httpConfig(httpConfig)
@@ -244,7 +249,7 @@ public final class GatewayRootActor extends DittoRootActor {
         final var customApiRoutesProvider =
                 CustomApiRoutesProvider.get(actorSystem, dittoExtensionConfig);
 
-        return RootRoute.getBuilder(httpConfig)
+        return RootRoute.getBuilder(httpConfig, false)
                 .statsRoute(new StatsRoute(routeBaseProperties, devopsAuthenticationDirective))
                 .statusRoute(new StatusRoute(clusterStateSupplier, healthCheckingActor, actorSystem))
                 .overallStatusRoute(new OverallStatusRoute(clusterStateSupplier,
@@ -276,6 +281,63 @@ public final class GatewayRootActor extends DittoRootActor {
                         authenticationDirectiveFactory.buildHttpAuthentication(jwtAuthenticationFactory))
                 .wsAuthenticationDirective(
                         authenticationDirectiveFactory.buildWsAuthentication(jwtAuthenticationFactory))
+                .dittoHeadersValidator(dittoHeadersValidator)
+                .customApiRoutesProvider(customApiRoutesProvider, routeBaseProperties)
+                .build();
+    }
+
+    private static Route createRouteForCoap(final ActorSystem actorSystem,
+            final GatewayConfig gatewayConfig,
+            final ActorRef proxyActor,
+            final ActorRef streamingActor,
+            final ActorRef pubSubMediator,
+            final ProtocolAdapterProvider protocolAdapterProvider,
+            final HeaderTranslator headerTranslator) {
+
+        final var dittoExtensionConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
+        final var authConfig = gatewayConfig.getAuthenticationConfig();
+
+        final var authenticationDirectiveFactory =
+                GatewayAuthenticationDirectiveFactory.get(actorSystem, dittoExtensionConfig);
+
+        final var httpConfig = gatewayConfig.getHttpConfig();
+
+        final var dittoHeadersValidator =
+                DittoHeadersValidator.get(actorSystem, dittoExtensionConfig);
+
+        final var streamingConfig = gatewayConfig.getStreamingConfig();
+        final var signalEnrichmentProvider =
+                GatewaySignalEnrichmentProvider.get(actorSystem, dittoExtensionConfig);
+
+        final var commandConfig = gatewayConfig.getCommandConfig();
+
+        final var routeBaseProperties = RouteBaseProperties.newBuilder(true)
+                .actorSystem(actorSystem)
+                .proxyActor(proxyActor)
+                .httpConfig(httpConfig)
+                .commandConfig(commandConfig)
+                .headerTranslator(headerTranslator)
+                .build();
+
+        final var customApiRoutesProvider =
+                CustomApiRoutesProvider.get(actorSystem, dittoExtensionConfig);
+
+        return RootRoute.getBuilder(httpConfig, true)
+                .policiesRoute(new PoliciesRoute(routeBaseProperties,
+                        OAuthTokenIntegrationSubjectIdFactory.of(authConfig.getOAuthConfig())))
+                .sseThingsRoute(
+                        ThingsSseRouteBuilder.getInstance(actorSystem, streamingActor, streamingConfig, pubSubMediator)
+                                .withProxyActor(proxyActor)
+                                .withSignalEnrichmentProvider(signalEnrichmentProvider))
+                .thingsRoute(new ThingsRoute(routeBaseProperties,
+                        gatewayConfig.getMessageConfig(),
+                        gatewayConfig.getClaimMessageConfig()))
+                .whoamiRoute(new WhoamiRoute(routeBaseProperties))
+                .cloudEventsRoute(new CloudEventsRoute(routeBaseProperties, gatewayConfig.getCloudEventsConfig()))
+                .supportedSchemaVersions(httpConfig.getSupportedSchemaVersions())
+                .protocolAdapterProvider(protocolAdapterProvider)
+                .headerTranslator(headerTranslator)
+                .httpAuthenticationDirective(authenticationDirectiveFactory.buildCoapAuthentication())
                 .dittoHeadersValidator(dittoHeadersValidator)
                 .customApiRoutesProvider(customApiRoutesProvider, routeBaseProperties)
                 .build();

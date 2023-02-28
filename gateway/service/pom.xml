@@ -50,6 +50,15 @@
         </dependency>
 
         <dependency>
+            <groupId>org.eclipse.californium</groupId>
+            <artifactId>californium-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.californium</groupId>
+            <artifactId>scandium</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-base-model</artifactId>
         </dependency>

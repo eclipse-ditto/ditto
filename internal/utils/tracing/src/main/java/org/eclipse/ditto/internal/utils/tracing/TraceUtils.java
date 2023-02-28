@@ -27,6 +27,7 @@ import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
 
 /**
@@ -58,8 +59,14 @@ public final class TraceUtils {
      * @return The prepared {@link PreparedTimer}
      */
     public static PreparedTimer newHttpRoundTripTimer(final HttpRequest request) {
+        final boolean isCoapRequest = request.getHeader("ditto-coap-proxy")
+                .map(HttpHeader::value)
+                .map(Boolean::parseBoolean)
+                .orElse(false);
+
         return newExpiringTimer(HTTP_ROUNDTRIP_METRIC_NAME)
                 .tags(getTraceInformationTags(request))
+                .tag(SpanTagKey.REQUEST_PROTOCOL.getTagForValue(isCoapRequest ? "CoAP" : "HTTP"))
                 .tag(SpanTagKey.REQUEST_METHOD_NAME.getTagForValue(request.method().name()))
                 .tag(SpanTagKey.CHANNEL.getTagForValue(determineChannel(request)));
     }

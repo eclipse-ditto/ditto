@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -82,28 +83,28 @@ public final class RootRoute extends AllDirectives {
     static final String HTTP_PATH_API_PREFIX = "api";
     static final String WS_PATH_PREFIX = "ws";
 
-    private final StatusRoute ownStatusRoute;
-    private final OverallStatusRoute overallStatusRoute;
-    private final CachingHealthRoute cachingHealthRoute;
-    private final DevOpsRoute devopsRoute;
+    @Nullable private final StatusRoute ownStatusRoute;
+    @Nullable private final OverallStatusRoute overallStatusRoute;
+    @Nullable private final CachingHealthRoute cachingHealthRoute;
+    @Nullable private final DevOpsRoute devopsRoute;
 
-    private final PoliciesRoute policiesRoute;
-    private final SseRouteBuilder sseThingsRouteBuilder;
-    private final ThingsRoute thingsRoute;
-    private final ThingSearchRoute thingSearchRoute;
-    private final ConnectionsRoute connectionsRoute;
-    private final WebSocketRouteBuilder websocketRouteBuilder;
-    private final StatsRoute statsRoute;
-    private final WhoamiRoute whoamiRoute;
-    private final CloudEventsRoute cloudEventsRoute;
+    @Nullable private final PoliciesRoute policiesRoute;
+    @Nullable private final SseRouteBuilder sseThingsRouteBuilder;
+    @Nullable private final ThingsRoute thingsRoute;
+    @Nullable private final ThingSearchRoute thingSearchRoute;
+    @Nullable private final ConnectionsRoute connectionsRoute;
+    @Nullable private final WebSocketRouteBuilder websocketRouteBuilder;
+    @Nullable private final StatsRoute statsRoute;
+    @Nullable private final WhoamiRoute whoamiRoute;
+    @Nullable private final CloudEventsRoute cloudEventsRoute;
 
     private final CustomApiRoutesProvider customApiRoutesProvider;
     private final RouteBaseProperties routeBaseProperties;
     private final GatewayAuthenticationDirective apiAuthenticationDirective;
     private final GatewayAuthenticationDirective wsAuthenticationDirective;
-    private final CorsEnablingDirective corsDirective;
-    private final HttpsEnsuringDirective httpsDirective;
-    private final RequestTimeoutHandlingDirective requestTimeoutHandlingDirective;
+    @Nullable private final CorsEnablingDirective corsDirective;
+    @Nullable private final HttpsEnsuringDirective httpsDirective;
+    @Nullable private final RequestTimeoutHandlingDirective requestTimeoutHandlingDirective;
     private final ExceptionHandler exceptionHandler;
     private final Map<Integer, JsonSchemaVersion> supportedSchemaVersions;
     private final ProtocolAdapterProvider protocolAdapterProvider;
@@ -114,6 +115,7 @@ public final class RootRoute extends AllDirectives {
 
     private RootRoute(final Builder builder) {
         final HttpConfig httpConfig = builder.httpConfig;
+        final boolean isCoapRoute = builder.isCoapRoute;
         ownStatusRoute = builder.statusRoute;
         overallStatusRoute = builder.overallStatusRoute;
         cachingHealthRoute = builder.cachingHealthRoute;
@@ -131,9 +133,9 @@ public final class RootRoute extends AllDirectives {
         routeBaseProperties = builder.routeBaseProperties;
         apiAuthenticationDirective = builder.httpAuthenticationDirective;
         wsAuthenticationDirective = builder.wsAuthenticationDirective;
-        requestTimeoutHandlingDirective = RequestTimeoutHandlingDirective.getInstance(httpConfig);
-        httpsDirective = HttpsEnsuringDirective.getInstance(httpConfig);
-        corsDirective = CorsEnablingDirective.getInstance(httpConfig);
+        requestTimeoutHandlingDirective = isCoapRoute ? null : RequestTimeoutHandlingDirective.getInstance(httpConfig);
+        httpsDirective = isCoapRoute ? null : HttpsEnsuringDirective.getInstance(httpConfig);
+        corsDirective = isCoapRoute ? null : CorsEnablingDirective.getInstance(httpConfig);
         supportedSchemaVersions = new HashMap<>(builder.supportedSchemaVersions);
         protocolAdapterProvider = builder.protocolAdapterProvider;
         dreToHttpResponse = DittoRuntimeExceptionToHttpResponse.getInstance(builder.headerTranslator);
@@ -148,8 +150,8 @@ public final class RootRoute extends AllDirectives {
                 builder.dittoHeadersValidator);
     }
 
-    public static RootRouteBuilder getBuilder(final HttpConfig httpConfig) {
-        return new Builder(httpConfig)
+    public static RootRouteBuilder getBuilder(final HttpConfig httpConfig, final boolean isCoapRoute) {
+        return new Builder(httpConfig, isCoapRoute)
                 .customHeadersHandler(NoopCustomHeadersHandler.getInstance())
                 .rejectionHandler(DittoRejectionHandlerFactory.createInstance());
     }
@@ -164,14 +166,14 @@ public final class RootRoute extends AllDirectives {
                 parameterMap(queryParameters ->
                         extractRequestContext(ctx ->
                                 concat(
-                                        statsRoute.buildStatsRoute(correlationId), // /stats
-                                        cachingHealthRoute.buildHealthRoute(), // /health
-                                        connections(ctx, correlationId, queryParameters), // /api/2/connections
+                                        null != statsRoute ? statsRoute.buildStatsRoute(correlationId) : reject(), // /stats
+                                        null != cachingHealthRoute ? cachingHealthRoute.buildHealthRoute() : reject(), // /health
+                                        null != connectionsRoute ? connections(ctx, correlationId, queryParameters) : reject(), // /api/2/connections
                                         api(ctx, correlationId, queryParameters), // /api
-                                        ws(ctx, correlationId, queryParameters), // /ws
-                                        ownStatusRoute.buildStatusRoute(), // /status
-                                        overallStatusRoute.buildOverallStatusRoute(), // /overall
-                                        devopsRoute.buildDevOpsRoute(ctx, queryParameters) // /devops
+                                        null != websocketRouteBuilder ? ws(ctx, correlationId, queryParameters) : reject(), // /ws
+                                        null != ownStatusRoute ? ownStatusRoute.buildStatusRoute() : reject(), // /status
+                                        null != overallStatusRoute ? overallStatusRoute.buildOverallStatusRoute() : reject(), // /overall
+                                        null != devopsRoute ? devopsRoute.buildDevOpsRoute(ctx, queryParameters) : reject() // /devops
                                 )
                         )
                 )
@@ -185,37 +187,43 @@ public final class RootRoute extends AllDirectives {
                    (which normally should not occur */
                 handleExceptions(exceptionHandler, () ->
                         CorrelationIdEnsuringDirective.ensureCorrelationId(
-                                correlationId -> requestTimeoutHandlingDirective
-                                        .handleRequestTimeout(correlationId, () ->
-                                                RequestTracingDirective.traceRequest(
-                                                        () -> RequestResultLoggingDirective.logRequestResult(
-                                                                correlationId,
-                                                                () -> innerRouteProvider.apply(correlationId)
-                                                        ),
-                                                        correlationId
-                                                )
-                                        )
+                                correlationId -> {
+                                    final Supplier<Route> inner = () ->
+                                            RequestTracingDirective.traceRequest(
+                                                    () -> RequestResultLoggingDirective.logRequestResult(
+                                                            correlationId,
+                                                            () -> innerRouteProvider.apply(correlationId)
+                                                    ),
+                                                    correlationId
+                                            );
+                                    return null != requestTimeoutHandlingDirective ?
+                                            requestTimeoutHandlingDirective.handleRequestTimeout(correlationId, inner) :
+                                            inner.get();
+                                }
                         )
                 );
 
         final Function<String, Route> innerRouteProvider = correlationId ->
                 EncodingEnsuringDirective.ensureEncoding(() ->
-                        httpsDirective.ensureHttps(correlationId, () ->
-                                corsDirective.enableCors(() ->
-                                        /* handling the rejections is done by akka automatically, but if we
-                                           do it here explicitly, we are able to log the status code for the
-                                           rejection (e.g. 404 or 405) in a wrapping directive. */
-                                        handleRejections(rejectionHandler, () ->
+                        {
+                             /* handling the rejections is done by akka automatically, but if we
+                                               do it here explicitly, we are able to log the status code for the
+                                               rejection (e.g. 404 or 405) in a wrapping directive. */
+                            final RouteAdapter innerAdapter = handleRejections(rejectionHandler, () ->
                                                 /* the inner handleExceptions is for handling exceptions
                                                    occurring in the route route. It makes sure that the
                                                    wrapping directives such as addSecurityResponseHeaders are
                                                    even called in an error case in the route route. */
-                                                handleExceptions(exceptionHandler, () ->
-                                                        rootRoute.apply(correlationId)
-                                                )
-                                        )
-                                )
-                        )
+                                    handleExceptions(exceptionHandler, () ->
+                                            rootRoute.apply(correlationId)
+                                    )
+                            );
+                            return null != httpsDirective ? httpsDirective.ensureHttps(correlationId, () ->
+                                    null != corsDirective ? corsDirective.enableCors(() ->
+                                            innerAdapter
+                                    ) : innerAdapter
+                            ) : innerAdapter;
+                        }
                 );
         return outerRouteProvider.apply(innerRouteProvider);
     }
@@ -242,8 +250,8 @@ public final class RootRoute extends AllDirectives {
                                                         .withRequestContext(ctx)
                                                         .withQueryParameters(queryParameters)
                                                         .build(CustomHeadersHandler.RequestType.API),
-                                                dittoHeaders -> connectionsRoute.buildConnectionsRoute(ctx,
-                                                        dittoHeaders)
+                                                dittoHeaders -> null != connectionsRoute ?
+                                                        connectionsRoute.buildConnectionsRoute(ctx, dittoHeaders) : reject()
                                         ).seal()
                                 // sealing here is important as we don't want to fall back to other routes if devops auth failed
                         )
@@ -313,25 +321,25 @@ public final class RootRoute extends AllDirectives {
 
         return concat(
                 // /api/{apiVersion}/policies
-                policiesRoute.buildPoliciesRoute(ctx, dittoHeaders, authenticationResult),
+                null != policiesRoute ? policiesRoute.buildPoliciesRoute(ctx, dittoHeaders, authenticationResult) : reject(),
                 // /api/{apiVersion}/things SSE support
-                buildSseThingsRoute(ctx, dittoHeaders),
+                null != sseThingsRouteBuilder ? buildSseThingsRoute(ctx, dittoHeaders) : reject(),
                 // /api/{apiVersion}/things
-                thingsRoute.buildThingsRoute(ctx, dittoHeaders),
+                null != thingsRoute ? thingsRoute.buildThingsRoute(ctx, dittoHeaders) : reject(),
                 // /api/{apiVersion}/search/things
-                thingSearchRoute.buildSearchRoute(ctx, dittoHeaders),
+                null != thingSearchRoute ? thingSearchRoute.buildSearchRoute(ctx, dittoHeaders) : reject(),
                 // /api/{apiVersion}/whoami
-                whoamiRoute.buildWhoamiRoute(ctx, dittoHeaders),
+                null != whoamiRoute ? whoamiRoute.buildWhoamiRoute(ctx, dittoHeaders) : reject(),
                 // /api/{apiVersion}/cloudevents
-                cloudEventsRoute.buildCloudEventsRoute(ctx, dittoHeaders)
+                null != cloudEventsRoute ? cloudEventsRoute.buildCloudEventsRoute(ctx, dittoHeaders) : reject()
         ).orElse(customApiSubRoutes);
     }
 
     private Route buildSseThingsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
 
         return handleExceptions(exceptionHandler,
-                () -> sseThingsRouteBuilder.build(ctx,
-                        () -> overwriteDittoHeadersForSse(ctx, dittoHeaders)));
+                () -> null != sseThingsRouteBuilder ? sseThingsRouteBuilder.build(ctx,
+                        () -> overwriteDittoHeadersForSse(ctx, dittoHeaders)) : reject());
     }
 
     private CompletionStage<DittoHeaders> overwriteDittoHeadersForSse(final RequestContext ctx,
@@ -364,8 +372,9 @@ public final class RootRoute extends AllDirectives {
                                         @Nullable final String userAgent = getUserAgentOrNull(ctx);
                                         final ProtocolAdapter chosenProtocolAdapter =
                                                 protocolAdapterProvider.getProtocolAdapter(userAgent);
-                                        return websocketRouteBuilder.build(wsVersion, correlationId, dittoHeaders,
-                                                chosenProtocolAdapter, ctx);
+                                        return null != websocketRouteBuilder ?
+                                                websocketRouteBuilder.build(wsVersion, correlationId, dittoHeaders,
+                                                chosenProtocolAdapter, ctx) : reject();
                                     });
                                 }
                         )
@@ -427,6 +436,7 @@ public final class RootRoute extends AllDirectives {
     private static final class Builder implements RootRouteBuilder {
 
         private final HttpConfig httpConfig;
+        private final boolean isCoapRoute;
         private StatusRoute statusRoute;
         private OverallStatusRoute overallStatusRoute;
         private CachingHealthRoute cachingHealthRoute;
@@ -455,8 +465,9 @@ public final class RootRoute extends AllDirectives {
 
         private DittoHeadersValidator dittoHeadersValidator;
 
-        private Builder(final HttpConfig httpConfig) {
+        private Builder(final HttpConfig httpConfig, final boolean isCoapRoute) {
             this.httpConfig = httpConfig;
+            this.isCoapRoute = isCoapRoute;
         }
 
         @Override

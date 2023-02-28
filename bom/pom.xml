@@ -59,6 +59,7 @@
         <reactive-streams.version>1.0.4</reactive-streams.version>
         <netty-bom.version>4.1.86.Final</netty-bom.version>
         <cloudevents.version>2.3.0</cloudevents.version>
+        <californium.version>3.8.0</californium.version>
 
         <slf4j.version>1.7.36</slf4j.version>
         <logback.version>1.2.11</logback.version>
@@ -261,6 +262,17 @@
                 <groupId>io.cloudevents</groupId>
                 <artifactId>cloudevents-http-basic</artifactId>
                 <version>${cloudevents.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.eclipse.californium</groupId>
+                <artifactId>californium-core</artifactId>
+                <version>${californium.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.californium</groupId>
+                <artifactId>scandium</artifactId>
+                <version>${californium.version}</version>
             </dependency>
 
             <!-- ### Indirect "runtime" dependencies we want to pin to a common version -->
