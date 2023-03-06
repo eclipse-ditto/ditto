@@ -351,12 +351,12 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     /**
      * Hook for handling unexpected PersistenceActor exceptions before response is sent back to the SupervisorActor.
      *
-     * @param error the error
-     * @param enforcedSignal the ditto headers from the initial command
+     * @param enforcedCommand the enforced initial command
+     * @param throwable the throwable
+     * @return a new {@link java.util.concurrent.CompletionStage} failed with the initial throwable.
      */
-    protected CompletionStage<Object> handleTargetActorException(final Throwable error,
-            final Signal<?> enforcedSignal) {
-        return CompletableFuture.failedFuture(error);
+    protected CompletionStage<Object> handleTargetActorException(final Object enforcedCommand, final Throwable throwable) {
+        return CompletableFuture.failedFuture(throwable);
     }
 
     /**
@@ -828,8 +828,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                             "forwarding to target actor, telling sender: {}", dre);
             sender.tell(dre, getSelf());
         } else if (response instanceof Status.Success success) {
-            log.debug("Ignoring Status.Success message as expected 'to be ignored' outcome: <{}>", success);
+            log.withCorrelationId(signal).debug("Ignoring Status.Success message as expected 'to be ignored' outcome: <{}>", success);
         } else if (null != response) {
+            log.withCorrelationId(signal).debug("Sending response: <{}> back to sender: <{}>", response, sender.path());
             sender.tell(response, getSelf());
         } else {
             log.withCorrelationId(signal)
@@ -903,6 +904,10 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                             dittoHeaders = tracedSignal.getDittoHeaders();
                         }
                         return enforcerResponseToTargetActor(dittoHeaders, enforcedCommand, sender)
+                                .exceptionallyCompose(error -> handleTargetActorException(enforcedCommand, error)
+                                        .thenApply(o -> new EnforcedSignalAndTargetActorResponse(null, null)))
+                                        // HandleTargetActorException will always return failed future thenApply only
+                                        // for compilation
                                 .whenComplete((result, error) -> {
                                     startedSpan.mark("processed");
                                     stopTimer(processingTimer).accept(result, error);
@@ -980,14 +985,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                             modifyTargetActorCommandResponse(enforcedSignal, response))
                     .thenApply(response ->
                             new EnforcedSignalAndTargetActorResponse(enforcedSignal, response)
-                    ).exceptionallyCompose(error -> {
-                        log.withCorrelationId(enforcedSignal)
-                                .error(error, "Unexpected target actor response error!");
-                        return handleTargetActorException(error, enforcedSignal)
-                                // Would never gon in apply as handleTargetActorException will always return failed future
-                                // Added only for compilation
-                                .thenApply(o -> new EnforcedSignalAndTargetActorResponse(null, null));
-                    });
+                    );
         } else if (enforcerResponse instanceof DistributedPubWithMessage distributedPubWithMessage) {
             return askTargetActor(distributedPubWithMessage,
                     distributedPubWithMessage.signal().getDittoHeaders().isResponseRequired(), sender

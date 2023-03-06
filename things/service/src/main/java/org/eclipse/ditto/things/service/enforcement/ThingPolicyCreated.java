@@ -18,11 +18,11 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 
-
-public record ThingPolicyCreated(ThingId thingId, PolicyId policyId, DittoHeaders dittoHeaders) {
-
-    public static ThingPolicyCreated of(final ThingId thingId, final PolicyId policyId, final DittoHeaders dittoHeaders) {
-        return new ThingPolicyCreated(thingId, policyId, dittoHeaders);
-    }
-
-}
+/**
+ * Used by the {@link org.eclipse.ditto.things.service.enforcement.ThingEnforcerActor} to notify the
+ * ThingSupervisorActor that a policy was created in result of ThingCreate enforcement.
+ * @param thingId thingId of the thing for which policy is created
+ * @param policyId the policyId of the created policy
+ * @param dittoHeaders dittoHeaders containing the correlationId of the initial command
+ */
+ public record ThingPolicyCreated(ThingId thingId, PolicyId policyId, DittoHeaders dittoHeaders) {}
