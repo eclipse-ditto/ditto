@@ -46,6 +46,10 @@ body {
     padding-top: 60px;
 }
 
+#authorizationModal label {
+    display: inline;
+}
+
 .toast-header {
     color: #842029;
     background-color: #f8d7da;
