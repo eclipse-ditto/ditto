@@ -67,7 +67,7 @@ For diving deeper into feature definitions, please have a look at [Basic concept
 
 However, nothing can stop you from enforcing types by yourself:
 
-  1. Use the [Ditto generator](http://vorto.eclipse.org/#/generators) to generate JSON schema files from your Vorto
+  1. Use the Ditto generator to generate JSON schema files from your Vorto
      model(s).
   2. Identify the schema files to be used by the Feature definition identifiers.
   3. Validate the JSON representation of your feature using the JSON schema before sending it over the wire.

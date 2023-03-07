@@ -48,7 +48,7 @@ There is a separate [blog post](2022-11-04-live-message-conditions.html) on this
 #### [Support AMQP Message Annotations when extracting values for Headers](https://github.com/eclipse-ditto/ditto/issues/1390)
 
 Ditto managed connections with the [AMQP 1.0](connectivity-protocol-bindings-amqp10.html) can now process 
-[AMQP 1.0 Message Annotations](http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-message-annotations)
+[AMQP 1.0 Message Annotations](https://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-message-annotations)
 by reading/writing them as if they would be message headers.
 
 #### [Let policies import other policies to enable re-use when securing things](https://github.com/eclipse-ditto/ditto/issues/298)

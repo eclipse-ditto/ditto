@@ -25,7 +25,7 @@ pattern they occur.
 
 Ditto uses Commands, Events,
 <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.cqrs}}">CQRS</a> and EventSourcing.
-[This page](http://cqrs.nu/Faq) provides a quite good explanation of the basic concepts on all of those aspects:
+[This page](https://cqrs.nu/Faq) provides a quite good explanation of the basic concepts on all of those aspects:
 
 ### Command
 
