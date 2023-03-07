@@ -361,6 +361,8 @@ public final class ThingEnforcerActor
             final CreateThing createThing) {
 
         if (policyResponse instanceof CreatePolicyResponse createPolicyResponse) {
+            getContext().getParent().tell(new ThingPolicyCreated(createThing.getEntityId(),
+                    createPolicyResponse.getEntityId(), createPolicy.getDittoHeaders()), getSelf());
             return createPolicyResponse.getPolicyCreated().orElseThrow();
         } else {
             if (shouldReportInitialPolicyCreationFailure(policyResponse)) {

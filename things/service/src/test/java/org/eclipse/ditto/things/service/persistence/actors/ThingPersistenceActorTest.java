@@ -20,6 +20,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -45,6 +46,9 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
+import org.eclipse.ditto.internal.utils.pubsubthings.LiveSignalPub;
 import org.eclipse.ditto.internal.utils.test.Retry;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonFactory;
@@ -63,6 +67,8 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyResponse;
 import org.eclipse.ditto.things.api.Permission;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
@@ -112,6 +118,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.things.model.signals.events.ThingCreated;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
+import org.eclipse.ditto.things.service.enforcement.TestSetup;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -124,12 +131,15 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
+import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
+import akka.japi.pf.ReceiveBuilder;
 import akka.testkit.TestActorRef;
+import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.PartialFunction;
 import scala.concurrent.Await;
@@ -2003,6 +2013,227 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             assertMetadataAsExpected(this, underTest, getIdOrThrow(thing), expectedEmptyMetadata);
         }};
     }
+
+    @Test
+    public void unavailableExpectedAndPolicyIsDeletedIfPersistenceActorFails() {
+        final DittoHeaders dittoHeaders = dittoHeadersV2.toBuilder()
+                .correlationId(UUID.randomUUID().toString())
+                .build();
+        final Policy inlinePolicy = PoliciesModelFactory.newPolicyBuilder(POLICY_ID)
+                .setRevision(1L)
+                .forLabel("authorize-self")
+                .setSubject(SubjectIssuer.newInstance("test"), AUTH_SUBJECT)
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .setGrantedPermissions(PoliciesResourceType.messageResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .build();
+        final CreatePolicyResponse createPolicyResponse = CreatePolicyResponse.of(POLICY_ID, inlinePolicy,
+                DittoHeaders.empty());
+        when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
+                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(inlinePolicy))));
+
+        final DeletePolicyResponse deletePolicyResponse = DeletePolicyResponse.of(POLICY_ID, dittoHeaders);
+
+        new TestKit(actorSystem) {
+            {
+                Thing thing = createThingV2WithRandomId().toBuilder().setPolicyId(null).build();
+                ThingId thingId = getIdOrThrow(thing);
+
+                ActorRef underTest = createSupervisorActorWithCustomPersistenceActor(thingId,
+                        (thingId1, mongoReadJournal, distributedPub, searchShardRegionProxy) -> FailingInCtorActor.props());
+
+                CreateThing createThing = CreateThing.of(thing, null, dittoHeaders);
+                underTest.tell(createThing, getRef());
+                policiesShardRegionTestProbe.expectMsgClass(CreatePolicy.class);
+                policiesShardRegionTestProbe.reply(createPolicyResponse);
+                policiesShardRegionTestProbe.expectMsgClass(DeletePolicy.class);
+                policiesShardRegionTestProbe.reply(deletePolicyResponse);
+                expectMsgClass(ThingUnavailableException.class);
+                expectNoMessage();
+
+            }
+        };
+    }
+
+    @Test
+    public void policyShouldNotBeDeletedOnThingRetrieveAndActorFail() {
+        final DittoHeaders dittoHeaders = dittoHeadersV2.toBuilder()
+                .correlationId(UUID.randomUUID().toString())
+                .build();
+        final Policy inlinePolicy = PoliciesModelFactory.newPolicyBuilder(POLICY_ID)
+                .setRevision(1L)
+                .forLabel("authorize-self")
+                .setSubject(SubjectIssuer.newInstance("test"), AUTH_SUBJECT)
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .setGrantedPermissions(PoliciesResourceType.messageResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .build();
+        when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
+                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(inlinePolicy))));
+
+        new TestKit(actorSystem) {
+            {
+                Thing thing = createThingV2WithRandomId().toBuilder().setPolicyId(null).build();
+                ThingId thingId = getIdOrThrow(thing);
+
+                ActorRef underTest = createSupervisorActorWithCustomPersistenceActor(thingId,
+                        (thingId1, mongoReadJournal, distributedPub, searchShardRegionProxy) -> FailingInCtorActor.props());
+
+                RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeaders);
+                underTest.tell(retrieveThing, getRef());
+                policiesShardRegionTestProbe.expectNoMessage();
+                expectMsgClass(ThingUnavailableException.class);
+                expectNoMessage();
+
+            }
+        };
+    }
+
+    @Test
+    public void policyShouldBeDeletedOnThingCreateAndErrorResponse() {
+        final DittoHeaders dittoHeaders = dittoHeadersV2.toBuilder()
+                .correlationId(UUID.randomUUID().toString())
+                .build();
+        final Policy inlinePolicy = PoliciesModelFactory.newPolicyBuilder(POLICY_ID)
+                .setRevision(1L)
+                .forLabel("authorize-self")
+                .setSubject(SubjectIssuer.newInstance("test"), AUTH_SUBJECT)
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .setGrantedPermissions(PoliciesResourceType.messageResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .build();
+        final CreatePolicyResponse createPolicyResponse = CreatePolicyResponse.of(POLICY_ID, inlinePolicy,
+                DittoHeaders.empty());
+        when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
+                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(inlinePolicy))));
+
+        final DeletePolicyResponse deletePolicyResponse = DeletePolicyResponse.of(POLICY_ID, dittoHeaders);
+
+        new TestKit(actorSystem) {
+            {
+                Thing thing = createThingV2WithRandomId().toBuilder().setPolicyId(null).build();
+                ThingId thingId = getIdOrThrow(thing);
+
+                TestProbe testProbe = TestProbe.apply("mock-thingPersistenceActorProbe", actorSystem);
+                ActorRef underTest = createSupervisorActorWithCustomPersistenceActor(thingId, testProbe.ref());
+
+                CreateThing createThing = CreateThing.of(thing, null, dittoHeaders);
+                underTest.tell(createThing, getRef());
+
+                testProbe.expectNoMsg();
+
+
+                policiesShardRegionTestProbe.expectMsgClass(CreatePolicy.class);
+                policiesShardRegionTestProbe.reply(createPolicyResponse);
+
+                testProbe.expectMsgClass(CreateThing.class);
+                testProbe.reply(ThingUnavailableException.newBuilder(thingId)
+                        .dittoHeaders(dittoHeaders)
+                        .message("Error in target persistent actor").build());
+
+                policiesShardRegionTestProbe.expectMsgClass(DeletePolicy.class);
+                policiesShardRegionTestProbe.reply(deletePolicyResponse);
+                expectMsgClass(ThingUnavailableException.class);
+                expectNoMessage();
+
+            }
+        };
+    }
+
+    public static final class FailingInCtorActor extends AbstractActor {
+
+        public FailingInCtorActor() {
+            super();
+            throw new RuntimeException("Failed to create PersistenceActor");
+        }
+
+        @Override
+        public Receive createReceive() {
+            return ReceiveBuilder.create().build();
+        }
+
+        private static Props props() {
+            return Props.create(FailingInCtorActor.class);
+        }
+    }
+
+    private ActorRef createSupervisorActorWithCustomPersistenceActor(final ThingId thingId,
+            final ThingPersistenceActorPropsFactory persistenceActorPropsFactory) {
+        final LiveSignalPub liveSignalPub = new TestSetup.DummyLiveSignalPub(pubSubMediator);
+        final Props props =
+                ThingSupervisorActor.props(pubSubMediator,
+                        policiesShardRegion,
+                        new DistributedPub<>() {
+
+                            @Override
+                            public ActorRef getPublisher() {
+                                return pubSubMediator;
+                            }
+
+                            @Override
+                            public Object wrapForPublication(final ThingEvent<?> message,
+                                    final CharSequence groupIndexKey) {
+                                return message;
+                            }
+
+                            @Override
+                            public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
+                                    final CharSequence groupIndexKey, final AckExtractor<S> ackExtractor) {
+                                return wrapForPublication(message, groupIndexKey);
+                            }
+                        },
+                        liveSignalPub,
+                        persistenceActorPropsFactory,
+                        null,
+                        policyEnforcerProvider,
+                        Mockito.mock(MongoReadJournal.class));
+
+        return actorSystem.actorOf(props, thingId.toString());
+    }
+
+    private ActorRef createSupervisorActorWithCustomPersistenceActor(final ThingId thingId,
+            final ActorRef persistenceActor) {
+        final LiveSignalPub liveSignalPub = new TestSetup.DummyLiveSignalPub(pubSubMediator);
+        final Props props =
+                ThingSupervisorActor.props(pubSubMediator,
+                        policiesShardRegion,
+                        new DistributedPub<>() {
+
+                            @Override
+                            public ActorRef getPublisher() {
+                                return pubSubMediator;
+                            }
+
+                            @Override
+                            public Object wrapForPublication(final ThingEvent<?> message,
+                                    final CharSequence groupIndexKey) {
+                                return message;
+                            }
+
+                            @Override
+                            public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
+                                    final CharSequence groupIndexKey, final AckExtractor<S> ackExtractor) {
+                                return wrapForPublication(message, groupIndexKey);
+                            }
+                        },
+                        liveSignalPub,
+                        persistenceActor,
+                        null,
+                        policyEnforcerProvider,
+                        Mockito.mock(MongoReadJournal.class));
+
+        return actorSystem.actorOf(props, thingId.toString());
+    }
+
 
     private void assertPublishEvent(final ThingEvent<?> event) {
         final ThingEvent<?> msg = pubSubTestProbe.expectMsgClass(ThingEvent.class);

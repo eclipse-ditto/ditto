@@ -47,6 +47,8 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConfli
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
@@ -450,6 +452,8 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
 
             thingPersistenceActorProbe.expectMsgClass(CreateThing.class);
             thingPersistenceActorProbe.reply(ThingNotModifiableException.newBuilder(thingId).build());
+            policiesShardRegionProbe.expectMsgClass(DeletePolicy.class);
+            policiesShardRegionProbe.reply(DeletePolicyResponse.of(policyId, DEFAULT_HEADERS));
 
             // THEN: initial requester receives error
             expectMsgClass(ThingNotModifiableException.class);
