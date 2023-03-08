@@ -21,6 +21,7 @@ let dom = {
   bearer: null,
   userName: null,
   password: null,
+  bearerDevOps: null,
   devOpsUserName: null,
   devOpsPassword: null,
   dittoPreAuthenticatedUsername: null,
@@ -30,24 +31,50 @@ let dom = {
 export function ready() {
   Utils.getAllElementsById(dom);
 
-  document.getElementById('authorizeBearer').onclick = () => {
-    Environments.current().useBasicAuth = false;
-    Environments.current().useDittoPreAuthenticatedAuth = false;
-    Environments.current().bearer = dom.bearer.value;
-    Environments.environmentsJsonChanged('authorization');
+  document.getElementById('authorize').onclick = () => {
+    let mainAuth = Environments.current().mainAuth;
+    let devopsAuth = Environments.current().devopsAuth;
+
+    if (!mainAuth) {
+      if (dom.dittoPreAuthenticatedUsername.value && dom.dittoPreAuthenticatedUsername.value.length > 0) {
+        mainAuth = 'pre';
+      } else if (dom.bearer.value && dom.bearer.value.length > 0) {
+        mainAuth = 'bearer';
+      } else if (dom.userName.value && dom.userName.value.length > 0) {
+        mainAuth = 'basic';
+      }
+    }
+    if (!devopsAuth) {
+      if (dom.bearerDevOps.value && dom.bearerDevOps.value.length > 0) {
+        devopsAuth = 'bearer';
+      } else if (dom.devOpsUserName.value && dom.devOpsUserName.value.length > 0) {
+        devopsAuth = 'basic';
+      }
+    }
+
+    const mainAuths = document.querySelectorAll('input[name="main-auth"]');
+    for(let i = 0; i < mainAuths.length; i++) {
+      mainAuths[i].checked = mainAuths[i].value === mainAuth;
+    }
+
+    const devopsAuths = document.querySelectorAll('input[name="devops-auth"]');
+    for(let i = 0; i < devopsAuths.length; i++) {
+      devopsAuths[i].checked = devopsAuths[i].value === devopsAuth;
+    }
+
   };
 
-  document.getElementById('authorizeBasic').onclick = () => {
-    Environments.current().useBasicAuth = true;
-    Environments.current().useDittoPreAuthenticatedAuth = false;
+  document.getElementById('authorizeSubmit').onclick = () => {
+    const mainAuthSelector = document.querySelector('input[name="main-auth"]:checked');
+    const mainAuth = mainAuthSelector ? mainAuthSelector.value : undefined;
+    const devopsAuthSelector = document.querySelector('input[name="devops-auth"]:checked');
+    const devopsAuth = devopsAuthSelector ? devopsAuthSelector.value : undefined;
+    Environments.current().mainAuth = mainAuth;
+    Environments.current().devopsAuth = devopsAuth;
     Environments.current().usernamePassword = dom.userName.value + ':' + dom.password.value;
     Environments.current().usernamePasswordDevOps = dom.devOpsUserName.value + ':' + dom.devOpsPassword.value;
-    Environments.environmentsJsonChanged('authorization');
-  };
-
-  document.getElementById('authorizePreAuthenticated').onclick = () => {
-    Environments.current().useBasicAuth = false;
-    Environments.current().useDittoPreAuthenticatedAuth = true;
+    Environments.current().bearer = dom.bearer.value;
+    Environments.current().bearerDevOps = dom.bearerDevOps.value;
     Environments.current().dittoPreAuthenticatedUsername = dom.dittoPreAuthenticatedUsername.value;
     Environments.environmentsJsonChanged();
   };
@@ -63,6 +90,7 @@ export function onEnvironmentChanged() {
   dom.devOpsUserName.value = usernamePassword.split(':')[0];
   dom.devOpsPassword.value = usernamePassword.split(':')[1];
   dom.bearer.value = Environments.current().bearer ? Environments.current().bearer : '';
+  dom.bearerDevOps.value = Environments.current().bearerDevOps ? Environments.current().bearerDevOps : '';
   dom.dittoPreAuthenticatedUsername.value = Environments.current().dittoPreAuthenticatedUsername ?
                                             Environments.current().dittoPreAuthenticatedUsername :
                                             '';

@@ -277,18 +277,25 @@ let authHeaderValue;
  * @param {boolean} forDevOps if true, the credentials for the dev ops api will be used.
  */
 export function setAuthHeader(forDevOps) {
-  if (forDevOps && Environments.current().useBasicAuth) {
-    authHeaderKey = 'Authorization';
-    authHeaderValue = 'Basic ' + window.btoa(Environments.current().usernamePasswordDevOps);
-  } else if (Environments.current().useBasicAuth) {
-    authHeaderKey = 'Authorization';
-    authHeaderValue = 'Basic ' + window.btoa(Environments.current().usernamePassword);
-  } else if (Environments.current().useDittoPreAuthenticatedAuth) {
-    authHeaderKey = 'x-ditto-pre-authenticated';
-    authHeaderValue = Environments.current().dittoPreAuthenticatedUsername;
+  if (forDevOps) {
+    if (Environments.current().devopsAuth === 'basic') {
+      authHeaderKey = 'Authorization';
+      authHeaderValue = 'Basic ' + window.btoa(Environments.current().usernamePasswordDevOps);
+    } else if (Environments.current().devopsAuth === 'bearer') {
+      authHeaderKey = 'Authorization';
+      authHeaderValue ='Bearer ' + Environments.current().bearerDevOps;
+    }
   } else {
-    authHeaderKey = 'Authorization';
-    authHeaderValue ='Bearer ' + Environments.current().bearer;
+    if (Environments.current().mainAuth === 'basic') {
+      authHeaderKey = 'Authorization';
+      authHeaderValue = 'Basic ' + window.btoa(Environments.current().usernamePassword);
+    } else if (Environments.current().mainAuth === 'pre') {
+      authHeaderKey = 'x-ditto-pre-authenticated';
+      authHeaderValue = Environments.current().dittoPreAuthenticatedUsername;
+    } else if (Environments.current().mainAuth === 'bearer') {
+      authHeaderKey = 'Authorization';
+      authHeaderValue ='Bearer ' + Environments.current().bearer;
+    }
   }
 }
 
