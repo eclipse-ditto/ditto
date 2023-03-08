@@ -18,78 +18,91 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <h5>Basic Auth</h5>
-                <hr />
                 <div class="row">
-                    <div class="col-md-5">
-                        <label>Main User</label>
-                    </div>
-                    <div class="col-md-7">
-                        <div class="input-group input-group-sm mb-1">
-                            <label class="input-group-text">Username</label>
-                            <input type="text" class="form-control form-control-sm" id="userName"></input>
+                    <h5>Main authentication</h5>
+                    <hr />
+                    <div class="row">
+                        <div class="col-md-5">
+                            <input type="radio" id="main-userpass" name="main-auth" value="basic"></input>
+                            <label for="main-userpass">Basic</label>
                         </div>
-                        <div class="input-group input-group-sm mb-1">
-                            <label class="input-group-text">Password</label>
-                            <input type="password" class="form-control form-control-sm" id="password"></input>
+                        <div class="col-md-7">
+                            <div class="input-group input-group-sm mb-1">
+                                <label for="userName" class="input-group-text">Username</label>
+                                <input type="text" class="form-control form-control-sm" id="userName"></input>
+                            </div>
+                            <div class="input-group input-group-sm mb-1">
+                                <label for="password" class="input-group-text">Password</label>
+                                <input type="password" class="form-control form-control-sm" id="password"></input>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row pt-2">
+                        <div class="col-md-5">
+                            <input type="radio" id="main-bearer" name="main-auth" value="bearer"></input>
+                            <label for="main-bearer">Bearer<br /><small>(JWT OAuth2.0 Bearer token)</small></label>
+                        </div>
+                        <div class="col-md-7">
+                            <div class="input-group input-group-sm mb-1">
+                                <label for="bearer" class="input-group-text">Bearer</label>
+                                <input type="password" class="form-control form-control-sm" id="bearer"></input>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row pt-2">
+                        <div class="col-md-5">
+                            <input type="radio" id="main-pre" name="main-auth" value="pre"></input>
+                            <label for="main-pre">Pre authenticated<br />
+                                <small>(via HTTP header 'x-ditto-pre-authenticated', must take the form
+                                    <code>prefix:suffix</code>)</small>
+                            </label>
+                        </div>
+                        <div class="col-md-7">
+                            <div class="input-group input-group-sm mb-1">
+                                <label for="dittoPreAuthenticatedUsername" class="input-group-text">prefix:suffix</label>
+                                <input type="text" class="form-control form-control-sm" id="dittoPreAuthenticatedUsername"></input>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col-md-5">
-                        <label>DevOps User<br /><small>(for Connections, optional)</small></label>
+                <div class="row mt-3">
+                    <h5>DevOps authentication</h5>
+                    <small>(for Connections and administrative tasks, optional)</small>
+                    <hr />
+                    <div class="row">
+                        <div class="col-md-5">
+                            <input type="radio" id="devops-userpass" name="devops-auth" value="basic"></input>
+                            <label for="devops-userpass">Basic<br /></label>
+                        </div>
+                        <div class="col-md-7">
+                            <div class="input-group input-group-sm mb-1">
+                                <label for="devOpsUserName" class="input-group-text">DevOps Username</label>
+                                <input type="text" class="form-control form-control-sm" id="devOpsUserName"></input>
+                            </div>
+                            <div class="input-group input-group-sm mb-1">
+                                <label for="devOpsPassword" class="input-group-text">DevOps Password</label>
+                                <input type="password" class="form-control form-control-sm" id="devOpsPassword"></input>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-7">
-                        <div class="input-group input-group-sm mb-1">
-                            <label class="input-group-text">DevOps Username</label>
-                            <input type="text" class="form-control form-control-sm" id="devOpsUserName"></input>
+                    <div class="row pt-2">
+                        <div class="col-md-5">
+                            <input type="radio" id="devops-bearer" name="devops-auth" value="bearer"></input>
+                            <label for="devops-bearer">Bearer<br /><small>(JWT OAuth2.0 Bearer token)</small></label>
                         </div>
-                        <div class="input-group input-group-sm mb-1">
-                            <label class="input-group-text">DevOps Password</label>
-                            <input type="password" class="form-control form-control-sm" id="devOpsPassword"></input>
+                        <div class="col-md-7">
+                            <div class="input-group input-group-sm mb-1">
+                                <label for="bearerDevOps" class="input-group-text">DevOps Bearer</label>
+                                <input type="password" class="form-control form-control-sm" id="bearerDevOps"></input>
+                            </div>
+                            <div class="input-group input-group-sm mb-1">
                         </div>
+                    </div>
                     </div>
                 </div>
                 <div class="input-group input-group-sm" style="flex-direction: row-reverse;">
                     <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal"
-                        id="authorizeBasic">Authorize</button>
-                </div>
-                <h5>Bearer</h5>
-                <hr />
-                <div class="row">
-                    <div class="col-md-5">
-                        <label>Main User<br /><small>(JWT OAuth2.0 Bearer token)</small></label>
-                    </div>
-                    <div class="col-md-7">
-                        <div class="input-group input-group-sm mb-1">
-                            <label class="input-group-text">Bearer</label>
-                            <input type="password" class="form-control form-control-sm" id="bearer"></input>
-                        </div>
-                    </div>
-                </div>
-                <div class="input-group input-group-sm" style="flex-direction: row-reverse;">
-                    <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal"
-                        id="authorizeBearer">Authorize</button>
-                </div>
-                <h5>Ditto Pre Authenticated</h5>
-                <hr />
-                <div class="row">
-                    <div class="col-md-5">
-                        <label>Main User<br />
-                            <small>(via HTTP header 'x-ditto-pre-authenticated', must take the form
-                                <code>prefix:suffix</code>)</small>
-                        </label>
-                    </div>
-                    <div class="col-md-7">
-                        <div class="input-group input-group-sm mb-1">
-                            <label class="input-group-text">Username</label>
-                            <input type="text" class="form-control form-control-sm" id="dittoPreAuthenticatedUsername"></input>
-                        </div>
-                    </div>
-                </div>
-                <div class="input-group input-group-sm" style="flex-direction: row-reverse;">
-                    <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal"
-                        id="authorizePreAuthenticated">Authorize</button>
+                        id="authorizeSubmit">Authorize</button>
                 </div>
             </div>
         </div>

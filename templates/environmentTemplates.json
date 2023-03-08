@@ -3,30 +3,33 @@
     "api_uri": "http://localhost:8080",
     "ditto_version": 3,
     "bearer": null,
+    "bearerDevOps": null,
     "defaultUsernamePassword": "ditto:ditto",
+    "defaultDittoPreAuthenticatedUsername": null,
     "defaultUsernamePasswordDevOps": "devops:foobar",
-    "useBasicAuth": true,
-    "useDittoPreAuthenticatedAuth": false,
-    "defaultDittoPreAuthenticatedUsername": null
+    "mainAuth": "basic",
+    "devopsAuth": "basic"
   },
   "local_ditto_ide": {
     "api_uri": "http://localhost:8080",
     "ditto_version": 3,
     "bearer": null,
+    "bearerDevOps": null,
     "defaultUsernamePassword": null,
-    "defaultUsernamePasswordDevOps": null,
-    "useBasicAuth": false,
-    "useDittoPreAuthenticatedAuth": true,
-    "defaultDittoPreAuthenticatedUsername": "pre:ditto"
+    "defaultDittoPreAuthenticatedUsername": "pre:ditto",
+    "defaultUsernamePasswordDevOps": "devops:foobar",
+    "mainAuth": "pre",
+    "devopsAuth": "basic"
   },
   "ditto_sandbox": {
     "api_uri": "https://ditto.eclipseprojects.io",
     "ditto_version": 3,
     "bearer": null,
+    "bearerDevOps": null,
     "defaultUsernamePassword": "ditto:ditto",
+    "defaultDittoPreAuthenticatedUsername": null,
     "defaultUsernamePasswordDevOps": null,
-    "useBasicAuth": true,
-    "useDittoPreAuthenticatedAuth": false,
-    "defaultDittoPreAuthenticatedUsername": null
+    "mainAuth": "basic",
+    "devopsAuth": null
   }
 }
