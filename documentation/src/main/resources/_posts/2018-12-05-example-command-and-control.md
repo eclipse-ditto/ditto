@@ -43,9 +43,9 @@ post.
 #### Create Hono device
 ```bash
 # setup a tenant
-$ curl -X POST -i -H 'Content-Type: application/json' -d '{"tenant-id": "org.eclipse.ditto"}' http://hono.eclipse.org:28080/tenant
+$ curl -X POST -i -H 'Content-Type: application/json' -d '{"tenant-id": "org.eclipse.ditto"}' https://hono.eclipseprojects.io:28080/tenant
 # create a device
-$ curl -X POST -i -H 'Content-Type: application/json' -d '{"device-id": "org.eclipse.ditto:teapot"}' http://hono.eclipse.org:28080/registration/org.eclipse.ditto
+$ curl -X POST -i -H 'Content-Type: application/json' -d '{"device-id": "org.eclipse.ditto:teapot"}' https://hono.eclipseprojects.io:28080/registration/org.eclipse.ditto
 # add device credentials
 $ PWD_HASH=$(echo -n 'teapot' | openssl dgst -binary -sha512 | base64 -w 0)
 $ curl -X POST -i -H 'Content-Type: application/json' -d '{
@@ -56,7 +56,7 @@ $ curl -X POST -i -H 'Content-Type: application/json' -d '{
       "hash-function" : "sha-512",
       "pwd-hash": "'$PWD_HASH'"
   }]
-}' http://hono.eclipse.org:28080/credentials/org.eclipse.ditto
+}' https://hono.eclipseprojects.io:28080/credentials/org.eclipse.ditto
 ```
 
 #### Create Ditto policy for digital twin
@@ -186,7 +186,7 @@ curl -X POST -i -u teapot@org.eclipse.ditto:teapot -H 'hono-ttd: 60' -H 'Content
            "path": "/features/water/properties/temperature",
            "value": 23
          }' \
-     http://hono.eclipse.org:8080/telemetry
+     https://hono.eclipseprojects.io:8080/telemetry
 ```
 
 The request is now open to receive a command for 60 seconds before it is terminated.
@@ -222,7 +222,7 @@ correlate the request and the response we are now going to send.
 ### Device sends a command response
 
 We use the header value of `hono-cmd-req-id` to construct the response address: 
-`http://hono.eclipse.org:8080/control/res/013command-and-controlreplies` 
+`https://hono.eclipseprojects.io:8080/control/res/013command-and-controlreplies` 
 
 Another curl command completes the roundtrip with a response from the simulated device:
 
@@ -240,7 +240,7 @@ curl -i -X POST -u teapot@org.eclipse.ditto:teapot \
            "value": { "eta": 56},
            "status": 200
          }' \
-     http://hono.eclipse.org:8080/control/res/013command-and-controlreplies
+     https://hono.eclipseprojects.io:8080/control/res/013command-and-controlreplies
 ```
 
 ### Message response is received at Ditto Message API

@@ -27,7 +27,7 @@ In previous versions, Ditto negatively settled messages consumed via AMQP 1.0 wh
 (e.g. because the received message could not be understood or permissions were missing) with `modified[undeliverable-here]`.
 
 This was changed to settle with `rejected` 
-(see [AMQP 1.0 spec](http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-rejected)) 
+(see [AMQP 1.0 spec](https://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-rejected)) 
 instead, as this is the more correct settlement outcome.
 
 #### [MongoDB for unit tests was increased to version 4.2](https://github.com/eclipse-ditto/ditto/pull/896)

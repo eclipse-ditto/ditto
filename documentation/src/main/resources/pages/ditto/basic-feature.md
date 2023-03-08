@@ -89,7 +89,7 @@ then be interpreted as the link to an Eclipse Vorto "function block" model.
 
 > Vorto is an open source tool that allows to create and manage technology agnostic, abstract device descriptions,
 so called information models. Information models describe the attributes and the capabilities of real world devices.
-Source: [http://www.eclipse.org/vorto/](http://www.eclipse.org/vorto/)
+Source: [https://www.eclipse.org/vorto/](https://www.eclipse.org/vorto/)
 
 {% include warning.html content="The Eclipse Vorto project is no longer actively maintained, so it can be seen
   as feature complete." %}

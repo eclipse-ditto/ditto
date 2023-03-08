@@ -27,7 +27,7 @@ or `WebSocket`.
 This blog post walks through the steps required to connect Ditto and Hono by adding a connection between the Hono and 
 Ditto sandboxes at
 
-* [hono.eclipse.org](http://hono.eclipse.org) 
+* [hono.eclipse.org](https://hono.eclipseprojects.io) 
 * [ditto.eclipseprojects.io](https://ditto.eclipseprojects.io)
 
 
@@ -79,7 +79,7 @@ the Hono documentation.
 First of all, create a new Hono tenant (we chose the tenant name `org.eclipse.ditto`):
 
 ```bash
-$ curl -X POST -i -H 'Content-Type: application/json' -d '{"tenant-id": "org.eclipse.ditto"}' http://hono.eclipse.org:28080/tenant
+$ curl -X POST -i -H 'Content-Type: application/json' -d '{"tenant-id": "org.eclipse.ditto"}' https://hono.eclipseprojects.io:28080/tenant
 ```
 
 ### Register a device
@@ -87,7 +87,7 @@ $ curl -X POST -i -H 'Content-Type: application/json' -d '{"tenant-id": "org.ecl
 Register a new device in Hono (we chose the device-id `demo-device`):
 
 ```bash
-$ curl -X POST -i -H 'Content-Type: application/json' -d '{"device-id": "demo-device"}' http://hono.eclipse.org:28080/registration/org.eclipse.ditto
+$ curl -X POST -i -H 'Content-Type: application/json' -d '{"device-id": "demo-device"}' https://hono.eclipseprojects.io:28080/registration/org.eclipse.ditto
 ```
 
 ### Add a device credential
@@ -107,7 +107,7 @@ $ curl -X POST -i -H 'Content-Type: application/json' -d '{
       "hash-function" : "sha-512",
       "pwd-hash": "'$PWD_HASH'"
   }]
-}' http://hono.eclipse.org:28080/credentials/org.eclipse.ditto
+}' https://hono.eclipseprojects.io:28080/credentials/org.eclipse.ditto
 ```
 
 ### Publish data
@@ -115,8 +115,8 @@ $ curl -X POST -i -H 'Content-Type: application/json' -d '{
 You are now able to publish `telemetry` (or also `event`) data via the Hono HTTP adapter:
 
 ```bash
-$ curl -X POST -i -u demo-device-auth@org.eclipse.ditto:demo-device-password -H 'Content-Type: application/json' -d '{"temp": 23.07}' http://hono.eclipse.org:8080/telemetry
-$ curl -X POST -i -u demo-device-auth@org.eclipse.ditto:demo-device-password -H 'Content-Type: application/json' -d '{"hum": 45.85}'  http://hono.eclipse.org:8080/telemetry
+$ curl -X POST -i -u demo-device-auth@org.eclipse.ditto:demo-device-password -H 'Content-Type: application/json' -d '{"temp": 23.07}' https://hono.eclipseprojects.io:8080/telemetry
+$ curl -X POST -i -u demo-device-auth@org.eclipse.ditto:demo-device-password -H 'Content-Type: application/json' -d '{"hum": 45.85}'  https://hono.eclipseprojects.io:8080/telemetry
 ```
 
 However as there is not yet a `consumer` listening for the messages, the Hono HTTP adapter will for example return an
@@ -736,10 +736,10 @@ Whenever the device now sends telemetry in its own JSON format
 Verify that by simulate sending telemetry using the Hono HTTP adapter:
 
 ```bash
-$ curl -X POST -i -u demo-device-auth@org.eclipse.ditto:demo-device-password -H 'Content-Type: application/json' -d '{"temp": 14.51}' http://hono.eclipse.org:8080/telemetry
-$ curl -X POST -i -u demo-device-auth@org.eclipse.ditto:demo-device-password -H 'Content-Type: application/json' -d '{"hum": 52.17}'  http://hono.eclipse.org:8080/telemetry
+$ curl -X POST -i -u demo-device-auth@org.eclipse.ditto:demo-device-password -H 'Content-Type: application/json' -d '{"temp": 14.51}' https://hono.eclipseprojects.io:8080/telemetry
+$ curl -X POST -i -u demo-device-auth@org.eclipse.ditto:demo-device-password -H 'Content-Type: application/json' -d '{"hum": 52.17}'  https://hono.eclipseprojects.io:8080/telemetry
 
-$ curl -X POST -i -u demo-device-auth@org.eclipse.ditto:demo-device-password -H 'Content-Type: application/json' -d '{"temp": 23.07, "hum": 45.85}'  http://hono.eclipse.org:8080/telemetry
+$ curl -X POST -i -u demo-device-auth@org.eclipse.ditto:demo-device-password -H 'Content-Type: application/json' -d '{"temp": 23.07, "hum": 45.85}'  https://hono.eclipseprojects.io:8080/telemetry
 ```
 
 <br/>
