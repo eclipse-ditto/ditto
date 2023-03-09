@@ -355,7 +355,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      * @param throwable the throwable
      * @return a new {@link java.util.concurrent.CompletionStage} failed with the initial throwable.
      */
-    protected CompletionStage<Object> handleTargetActorException(final Object enforcedCommand, final Throwable throwable) {
+    protected CompletionStage<Object> handleTargetActorAndEnforcerException(final Signal<?> enforcedCommand, final Throwable throwable) {
         return CompletableFuture.failedFuture(throwable);
     }
 
@@ -783,6 +783,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 final var syncCs = signalTransformer.apply(signal)
                         .whenComplete((result, error) -> handleOptionalTransformationException(signal, error, sender))
                         .thenCompose(transformed -> enforceSignalAndForwardToTargetActor((S) transformed, sender)
+                                .exceptionallyCompose(error -> handleTargetActorAndEnforcerException(signal, error))
                                 .whenComplete((response, throwable) ->
                                         handleSignalEnforcementResponse(response, throwable, transformed, sender)
                                 ))
@@ -889,7 +890,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             final StartedTimer rootTimer = createTimer(tracedSignal);
             final StartedTimer enforcementTimer = rootTimer.startNewSegment(ENFORCEMENT_TIMER_SEGMENT_ENFORCEMENT);
             return askEnforcerChild(tracedSignal)
-                    .thenCompose(this::modifyEnforcerActorEnforcedSignalResponse)
+                    .thenCompose(enforcedCommand1 -> modifyEnforcerActorEnforcedSignalResponse(enforcedCommand1))
                     .whenComplete((result, error) -> {
                         startedSpan.mark("enforced");
                         stopTimer(enforcementTimer).accept(result, error);
@@ -904,10 +905,6 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                             dittoHeaders = tracedSignal.getDittoHeaders();
                         }
                         return enforcerResponseToTargetActor(dittoHeaders, enforcedCommand, sender)
-                                .exceptionallyCompose(error -> handleTargetActorException(enforcedCommand, error)
-                                        .thenApply(o -> new EnforcedSignalAndTargetActorResponse(null, null)))
-                                        // HandleTargetActorException will always return failed future thenApply only
-                                        // for compilation
                                 .whenComplete((result, error) -> {
                                     startedSpan.mark("processed");
                                     stopTimer(processingTimer).accept(result, error);
