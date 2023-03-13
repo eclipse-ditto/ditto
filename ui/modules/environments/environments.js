@@ -304,12 +304,12 @@ async function loadEnvironmentTemplates() {
 }
 
 function onEditToggle(event) {
-  dom.inputApiUri.disabled = !event.detail;
-  dom.inputSearchNamespaces.disabled = !event.detail;
-  dom.selectDittoVersion.disabled = !event.detail;
-  settingsEditor.setReadOnly(!event.detail);
-  settingsEditor.renderer.setShowGutter(event.detail);
-  if (!event.detail) {
+  dom.inputApiUri.disabled = !event.detail.isEditing;
+  dom.inputSearchNamespaces.disabled = !event.detail.isEditing;
+  dom.selectDittoVersion.disabled = !event.detail.isEditing;
+  settingsEditor.setReadOnly(!event.detail.isEditing);
+  settingsEditor.renderer.setShowGutter(event.detail.isEditing);
+  if (!event.detail.isEditing) {
     updateEnvEditors();
   }
 }

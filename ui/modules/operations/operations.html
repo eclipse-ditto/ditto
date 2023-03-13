@@ -1,0 +1,50 @@
+<!--
+  ~ Copyright (c) 2022 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<h5>Ditto Services Logging</h5>
+<hr />
+<div class="row resizable_pane" style="height: 80vh">
+    <div class="col-md-6 resizable_flex_column">
+        <div class="input-group input-group-sm mt-1 mb-1" role="group">
+            <div style="flex-grow: 1;"></div>
+            <button class="btn btn-outline-primary btn-sm button_round_left" id="buttonLoadAllLogLevels">
+                <i class="bi bi-arrow-clockwise"></i>
+                Refresh
+            </button>
+        </div>
+        <div class="input-group has-validation">
+            <input class="form-control" id="tableValidationOpsLogging" hidden="true"></input>
+            <div class="invalid-feedback"></div>
+        </div>
+        <div class="table-wrap">
+            <table class="table table-striped table-hover table-sm">
+                <thead>
+                    <tr>
+                        <th>Service</th>
+                        <th>Level</th>
+                        <th>Logger</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyOpsLogging"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="col-md-6 resizable_flex_column">
+        <crud-toolbar label="Service Logging" id="crudOpsLoggingJson" style="flex-grow: 1;" disableCreate disableDelete>
+            <div class="ace_container" style="flex-grow: 1;">
+                <div>
+                    <div class="script_editor" id="opsLoggingEditor"></div>
+                </div>
+            </div>
+        </crud-toolbar>
+    <div>
+</div>

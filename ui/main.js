@@ -27,6 +27,7 @@ import * as MessagesIncoming from './modules/things/messagesIncoming.js';
 import * as Connections from './modules/connections/connections.js';
 import * as ConnectionsCRUD from './modules/connections/connectionsCRUD.js';
 import * as ConnectionsMonitor from './modules/connections/connectionsMonitor.js';
+import * as Operations from './modules/operations/operations.js';
 import * as Policies from './modules/policies/policies.js';
 import * as API from './modules/api.js';
 import * as Utils from './modules/utils.js';
@@ -40,10 +41,13 @@ document.addEventListener('DOMContentLoaded', async function() {
   document.getElementById('thingsHTML').innerHTML = await (await fetch('modules/things/things.html')).text();
   document.getElementById('fieldsHTML').innerHTML = await (await fetch('modules/things/fields.html')).text();
   document.getElementById('featuresHTML').innerHTML = await (await fetch('modules/things/features.html')).text();
-  document.getElementById('messagesIncomingHTML').innerHTML = await (await fetch('modules/things/messagesIncoming.html')).text();
+  document.getElementById('messagesIncomingHTML').innerHTML =
+      await (await fetch('modules/things/messagesIncoming.html')).text();
   document.getElementById('policyHTML').innerHTML = await (await fetch('modules/policies/policies.html')).text();
   document.getElementById('connectionsHTML').innerHTML =
       await (await fetch('modules/connections/connections.html')).text();
+  document.getElementById('operationsHTML').innerHTML =
+      await (await fetch('modules/operations/operations.html')).text();
   document.getElementById('environmentsHTML').innerHTML =
       await (await fetch('modules/environments/environments.html')).text();
   document.getElementById('authorizationHTML').innerHTML =
@@ -64,6 +68,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   Connections.ready();
   ConnectionsCRUD.ready();
   ConnectionsMonitor.ready();
+  Operations.ready();
   Authorization.ready();
   await Environments.ready();
 
@@ -94,7 +99,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     e.addEventListener('click', (event) => {
       mainNavbar.querySelectorAll('.nav-link,.active').forEach((n) => n.classList.remove('active'));
       event.currentTarget.classList.add('active');
-      API.setAuthHeader(event.currentTarget.parentNode.id === 'tabConnections');
+      API.setAuthHeader(event.currentTarget.parentNode.dataset.auth === 'devOps');
     });
   });
 

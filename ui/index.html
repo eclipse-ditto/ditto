@@ -72,9 +72,14 @@
                             Policies
                         </a>
                     </li>
-                    <li class="nav-item" id="tabConnections">
+                    <li class="nav-item" id="tabConnections" data-auth="devOps">
                         <a class="nav-link" data-bs-target="#collapseConnections:not(.show)" data-bs-toggle="collapse">
                             Connections
+                        </a>
+                    </li>
+                    <li class="nav-item" id="tabOperations" data-auth="devOps">
+                        <a class="nav-link" data-bs-target="#collapseOperations:not(.show)" data-bs-toggle="collapse">
+                            Operations
                         </a>
                     </li>
                     <li class="nav-item" id="tabEnvironments">
@@ -104,6 +109,9 @@
         </div>
         <div class="collapse" id=collapseConnections data-bs-parent="#page-content">
             <div id="connectionsHTML"></div>
+        </div>
+        <div class="collapse" id=collapseOperations data-bs-parent="#page-content">
+            <div id="operationsHTML"></div>
         </div>
         <div class="collapse" id="collapseSettings" data-bs-parent="#page-content">
             <div id="environmentsHTML"></div>
@@ -147,7 +155,7 @@
         <div class="input-group input-group-sm mb-1 mt-1 has-validation">
             <label class="input-group-text" id="label">Default</label>
             <input type="text" class="form-control" disabled id="inputIdValue">
-            <button class="btn btn-outline-primary btn-sm" id="buttonCrudEdit"
+            <button class="btn btn-outline-primary btn-sm" id="buttonEdit"
                 data-bs-toggle="tooltip" title="Edit">
                 Edit
             </button>
