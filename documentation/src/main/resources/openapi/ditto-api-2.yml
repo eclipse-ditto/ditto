@@ -6822,6 +6822,7 @@ paths:
       description: Returns all connections.
       security:
         - DevOpsBasic: []
+        - DevOpsBearer: []
       tags:
         - Connections
       parameters:
@@ -6874,6 +6875,7 @@ paths:
         Supported connection types are `amqp-091`, `amqp-10`, `mqtt`, `mqtt-5`, `kafka`, `hono` and `http-push`.
       security:
         - DevOpsBasic: []
+        - DevOpsBearer: []
       tags:
         - Connections
       parameters:
@@ -6970,6 +6972,7 @@ paths:
       description: Returns the connection identified by the `connectionId` path parameter.
       security:
         - DevOpsBasic: []
+        - DevOpsBearer: []
       tags:
         - Connections
       parameters:
@@ -7011,6 +7014,7 @@ paths:
       description: Update the connection identified by the `connectionId` path parameter.
       security:
         - DevOpsBasic: []
+        - DevOpsBearer: []
       tags:
         - Connections
       parameters:
@@ -7085,6 +7089,7 @@ paths:
       description: Delete the connection identified by the `connectionId` path parameter.
       security:
         - DevOpsBasic: []
+        - DevOpsBearer: []
       tags:
         - Connections
       parameters:
@@ -7124,6 +7129,7 @@ paths:
         path parameter.
       security:
         - DevOpsBasic: []
+        - DevOpsBearer: []
       tags:
         - Connections
       parameters:
@@ -7175,6 +7181,7 @@ paths:
       description: Returns the status of the connection identified by the `connectionId` path parameter.
       security:
         - DevOpsBasic: []
+        - DevOpsBearer: []
       tags:
         - Connections
       parameters:
@@ -7216,6 +7223,7 @@ paths:
       description: Returns the metrics of the connection identified by the `connectionId` path parameter.
       security:
         - DevOpsBasic: []
+        - DevOpsBearer: []
       tags:
         - Connections
       parameters:
@@ -7261,6 +7269,7 @@ paths:
         default. This allows to log possible errors on connection establishing.
       security:
         - DevOpsBasic: []
+        - DevOpsBearer: []
       tags:
         - Connections
       parameters:
@@ -9600,3 +9609,8 @@ components:
       type: http
       description: Eclipse Ditto devops user (devops) + password (foobar)
       scheme: basic
+    DevOpsBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: A JSON Web Token issued by a supported OAuth 2.0 Identity Provider for the Eclipse Ditto devops user.

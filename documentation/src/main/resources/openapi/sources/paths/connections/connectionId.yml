@@ -13,7 +13,8 @@ get:
   description: |-
     Returns the connection identified by the `connectionId` path parameter.
   security:
-    - DevOpsBasic: [ ]
+    - DevOpsBasic: []
+    - DevOpsBearer: []
   tags:
     - Connections
   parameters:
@@ -57,7 +58,8 @@ put:
   description: |-
     Update the connection identified by the `connectionId` path parameter.
   security:
-    - DevOpsBasic: [ ]
+    - DevOpsBasic: []
+    - DevOpsBearer: []
   tags:
     - Connections
   parameters:
@@ -147,7 +149,8 @@ delete:
   description: |-
     Delete the connection identified by the `connectionId` path parameter.
   security:
-    - DevOpsBasic: [ ]
+    - DevOpsBasic: []
+    - DevOpsBearer: []
   tags:
     - Connections
   parameters:
