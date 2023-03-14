@@ -13,7 +13,8 @@ get:
   description: |-
     Returns the metrics of the connection identified by the `connectionId` path parameter.
   security:
-    - DevOpsBasic: [ ]
+    - DevOpsBasic: []
+    - DevOpsBearer: []
   tags:
     - Connections
   parameters:
