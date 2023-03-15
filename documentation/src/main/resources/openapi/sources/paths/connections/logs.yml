@@ -16,7 +16,8 @@ get:
     `connectivity.commands:enableConnectionLogs`. When creating or opening an connection the logging is enabled per
     default. This allows to log possible errors on connection establishing.
   security:
-    - DevOpsBasic: [ ]
+    - DevOpsBasic: []
+    - DevOpsBearer: []
   tags:
     - Connections
   parameters:
