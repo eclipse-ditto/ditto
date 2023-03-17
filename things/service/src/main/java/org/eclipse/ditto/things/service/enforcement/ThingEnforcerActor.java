@@ -359,10 +359,14 @@ public final class ThingEnforcerActor
 
     private Policy handleCreatePolicyResponse(final CreatePolicy createPolicy, final Object policyResponse,
             final CreateThing createThing) {
-
+        //TODO do not leave this log after debugging.
+        log.withCorrelationId(createPolicy).info("T: {}, P: {}, PR: {}", createThing.getEntityId(),
+                createPolicy.getEntityId(), policyResponse);
         if (policyResponse instanceof CreatePolicyResponse createPolicyResponse) {
-            getContext().getParent().tell(new ThingPolicyCreated(createThing.getEntityId(),
-                    createPolicyResponse.getEntityId(), createPolicy.getDittoHeaders()), getSelf());
+            if (createPolicyResponse.getPolicyCreated().isPresent()){
+                getContext().getParent().tell(new ThingPolicyCreated(createThing.getEntityId(),
+                        createPolicyResponse.getEntityId(), createPolicy.getDittoHeaders()), getSelf());
+            }
             return createPolicyResponse.getPolicyCreated().orElseThrow();
         } else {
             if (shouldReportInitialPolicyCreationFailure(policyResponse)) {
