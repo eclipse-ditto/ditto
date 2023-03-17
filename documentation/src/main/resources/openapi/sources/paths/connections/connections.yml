@@ -13,7 +13,8 @@ get:
   description: |-
     Returns all connections.
   security:
-    - DevOpsBasic: [ ]
+    - DevOpsBasic: []
+    - DevOpsBearer: []
   tags:
     - Connections
   parameters:
@@ -68,7 +69,8 @@ post:
     prohibited.
     Supported connection types are `amqp-091`, `amqp-10`, `mqtt`, `mqtt-5`, `kafka`, `hono` and `http-push`.
   security:
-    - DevOpsBasic: [ ]
+    - DevOpsBasic: []
+    - DevOpsBearer: []
   tags:
     - Connections
   parameters:

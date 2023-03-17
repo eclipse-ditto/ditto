@@ -44,9 +44,13 @@ final class DefaultToThingDescriptionConfig implements ToThingDescriptionConfig 
 
     private DefaultToThingDescriptionConfig(final ScopedConfig scopedConfig) {
         basePrefix = scopedConfig.getString(ConfigValue.BASE_PREFIX.getConfigPath());
-        jsonTemplate = JsonFactory.readFrom(
-                scopedConfig.getValue(ConfigValue.JSON_TEMPLATE.getConfigPath()).render(ConfigRenderOptions.concise())
-        ).asObject();
+        final String jsonTemplateRendered =
+                scopedConfig.getValue(ConfigValue.JSON_TEMPLATE.getConfigPath()).render(ConfigRenderOptions.concise());
+        final String jsonTemplateStrippedStartEndQuotes =
+                (jsonTemplateRendered.startsWith("\"{") && jsonTemplateRendered.endsWith("}\"")) ?
+                jsonTemplateRendered.substring(1, jsonTemplateRendered.length()-1) : jsonTemplateRendered;
+        final String replaceEscapedQuotesJsonTemplate = jsonTemplateStrippedStartEndQuotes.replace("\\\"", "\"");
+        jsonTemplate = JsonFactory.readFrom(replaceEscapedQuotesJsonTemplate).asObject();
         placeholders = JsonFactory.readFrom(
                 scopedConfig.getValue(ConfigValue.PLACEHOLDERS.getConfigPath()).render(ConfigRenderOptions.concise())
         ).asObject()
