@@ -63,17 +63,14 @@ function createLoggerView(allLogLevels) {
       row.shadowRoot.append(dom.templateLogger.content.cloneNode(true));
       row.shadowRoot.getElementById('inputLogger').value = logConfig.logger;
       row.shadowRoot.getElementById(logConfig.level).setAttribute('checked', '');
-      Array.from(row.shadowRoot.querySelectorAll('.btn-check')).forEach(
-          (btn) => {
-            btn.service = service;
-            btn.logger = logConfig.logger;
-            btn.addEventListener('click', (event) => {
-              onUpdateLoggingClick(event.target.service, {
-                logger: event.target.logger,
-                level: event.target.id,
-              });
-            });
-          });
+      Array.from(row.shadowRoot.querySelectorAll('.btn-check')).forEach((btn) => {
+        btn.service = service;
+        btn.logger = logConfig.logger;
+        btn.addEventListener('click', (event) => onUpdateLoggingClick(event.target.service, {
+          logger: event.target.logger,
+          level: event.target.id,
+        }));
+      });
       dom.divLoggers.append(row);
     });
   });
