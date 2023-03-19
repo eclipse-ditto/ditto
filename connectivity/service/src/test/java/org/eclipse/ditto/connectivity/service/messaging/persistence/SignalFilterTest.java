@@ -78,11 +78,11 @@ public final class SignalFilterTest {
     private static final HeaderMapping HEADER_MAPPING =
             ConnectivityModelFactory.newHeaderMapping(Collections.singletonMap("reply-to", "{{fn:delete()}}"));
 
+    private static final Set<AuthorizationSubject> READ_SUBJECTS =
+            Sets.newSet(newAuthSubject("authorized"), newAuthSubject("ditto"));
+
     @Parameterized.Parameters(name = "topic={0}, readSubjects={1}, configuredTargets={2}, expectedTargets={3}")
     public static Collection<Object[]> data() {
-
-        final Set<AuthorizationSubject> readSubjects =
-                Sets.newSet(newAuthSubject("authorized"), newAuthSubject("ditto"));
 
         final Target twinAuthd = ConnectivityModelFactory.newTargetBuilder()
                 .address("twin/authorized")
@@ -196,38 +196,38 @@ public final class SignalFilterTest {
 
         final Collection<Object[]> params = new ArrayList<>();
 
-        params.add(new Object[]{TWIN_EVENTS, readSubjects, Lists.list(twinAuthd), Lists.list(twinAuthd)});
-        params.add(new Object[]{TWIN_EVENTS, readSubjects, Lists.list(twinAuthd, twinUnauthd), Lists.list(twinAuthd)});
-        params.add(new Object[]{TWIN_EVENTS, readSubjects, Lists.list(twinAuthd, twinUnauthd, liveAuthd),
+        params.add(new Object[]{TWIN_EVENTS, READ_SUBJECTS, Lists.list(twinAuthd), Lists.list(twinAuthd)});
+        params.add(new Object[]{TWIN_EVENTS, READ_SUBJECTS, Lists.list(twinAuthd, twinUnauthd), Lists.list(twinAuthd)});
+        params.add(new Object[]{TWIN_EVENTS, READ_SUBJECTS, Lists.list(twinAuthd, twinUnauthd, liveAuthd),
                 Lists.list(twinAuthd)});
-        params.add(new Object[]{TWIN_EVENTS, readSubjects, Lists.list(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd),
+        params.add(new Object[]{TWIN_EVENTS, READ_SUBJECTS, Lists.list(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd),
                 Lists.list(twinAuthd)});
-        params.add(new Object[]{TWIN_EVENTS, readSubjects,
+        params.add(new Object[]{TWIN_EVENTS, READ_SUBJECTS,
                 Lists.list(enrichedFiltered, enrichedNotFiltered1, enrichedNotFiltered2),
                 Lists.list(enrichedFiltered)});
-        params.add(new Object[]{TWIN_EVENTS, readSubjects,
+        params.add(new Object[]{TWIN_EVENTS, READ_SUBJECTS,
                 Lists.list(filteredEventTopicPath1, filteredEventTopicPath2, notFilteredEventTopicPath1, notFilteredEventTopicPath2),
                 Lists.list(filteredEventTopicPath1, filteredEventTopicPath2)});
 
-        params.add(new Object[]{LIVE_EVENTS, readSubjects, Lists.list(twinAuthd), emptyList()});
-        params.add(new Object[]{LIVE_EVENTS, readSubjects, Lists.list(twinAuthd, twinUnauthd), emptyList()});
-        params.add(new Object[]{LIVE_EVENTS, readSubjects, Lists.list(twinAuthd, twinUnauthd, liveAuthd),
+        params.add(new Object[]{LIVE_EVENTS, READ_SUBJECTS, Lists.list(twinAuthd), emptyList()});
+        params.add(new Object[]{LIVE_EVENTS, READ_SUBJECTS, Lists.list(twinAuthd, twinUnauthd), emptyList()});
+        params.add(new Object[]{LIVE_EVENTS, READ_SUBJECTS, Lists.list(twinAuthd, twinUnauthd, liveAuthd),
                 Lists.list(liveAuthd)});
-        params.add(new Object[]{LIVE_EVENTS, readSubjects, Lists.list(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd),
+        params.add(new Object[]{LIVE_EVENTS, READ_SUBJECTS, Lists.list(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd),
                 Lists.list(liveAuthd)});
 
-        params.add(new Object[]{LIVE_MESSAGES, readSubjects,
+        params.add(new Object[]{LIVE_MESSAGES, READ_SUBJECTS,
                 Lists.list(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd),
                 Lists.list(twinAuthd, liveAuthd)});
-        params.add(new Object[]{LIVE_MESSAGES, readSubjects,
+        params.add(new Object[]{LIVE_MESSAGES, READ_SUBJECTS,
                 Lists.list(filteredLiveMessageTopicPath1, filteredLiveMessageTopicPath2, notFilteredLiveMessageTopicPath),
                 Lists.list(filteredLiveMessageTopicPath1, filteredLiveMessageTopicPath2)});
 
-        params.add(new Object[]{POLICY_ANNOUNCEMENTS, readSubjects,
+        params.add(new Object[]{POLICY_ANNOUNCEMENTS, READ_SUBJECTS,
                 Lists.list(policyAuthd, policyUnauthd),
                 Lists.list(policyAuthd, policyUnauthd)});
 
-        params.add(new Object[]{CONNECTION_ANNOUNCEMENTS, readSubjects,
+        params.add(new Object[]{CONNECTION_ANNOUNCEMENTS, READ_SUBJECTS,
                 Lists.list(connectionAuthd, connectionUnauthd),
                 Lists.list(connectionAuthd, connectionUnauthd)});
 
@@ -273,7 +273,7 @@ public final class SignalFilterTest {
                         URI).targets(targets).build();
 
         final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
-        final List<Target> filteredTargets = signalFilter.filter(signal(signalTopic, readSubjects));
+        final List<Target> filteredTargets = signalFilter.filter(signal(signalTopic, READ_SUBJECTS));
         Assertions.assertThat(filteredTargets)
                 .isEqualTo(expectedTargets);
     }
@@ -346,4 +346,22 @@ public final class SignalFilterTest {
         }
     }
 
+    /**
+     * Test that target filtering works also for desired properties events. Issue #1599
+     */
+    @Test
+    public void testFilterFeatureDesiredPropertiesModified() {
+        Target target = ConnectivityModelFactory.newTargetBuilder().address("address")
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED, DUMMY))
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withFilter("like(resource:path,'/features/" + TestConstants.Feature.FEATURE_ID + "*')")
+                        .build()).build();
+        ConnectionId connectionId = ConnectionId.of("testFilterFeatureDesiredPropertiesModified");
+        Connection connection = TestConstants.createConnection(connectionId, target);
+        SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
+        Signal<?> signal = TestConstants.featureDesiredPropertiesModified(READ_SUBJECTS);
+
+        List<Target> filteredTargets = signalFilter.filter(signal);
+        Assertions.assertThat(filteredTargets).hasSize(1).contains(target);
+    }
 }
