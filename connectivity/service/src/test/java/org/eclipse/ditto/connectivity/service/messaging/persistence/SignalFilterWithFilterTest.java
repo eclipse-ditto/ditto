@@ -23,6 +23,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -253,4 +255,21 @@ public final class SignalFilterWithFilterTest {
                 targetD); // THEN: only targetA and targetD should be in the filtered targets
     }
 
+    /**
+     * Test that target filtering works also for desired properties events. Issue #1599
+     */
+    @Test
+    public void applySignalFilterOnFeatureDesiredPropertiesModified() {
+        Target target = ConnectivityModelFactory.newTargetBuilder().address("address")
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED))
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withFilter("like(resource:path,'/features/" + TestConstants.Feature.FEATURE_ID + "*')")
+                        .build()).build();
+        Connection connection = TestConstants.createConnection(CONNECTION_ID, target);
+        SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
+        Signal<?> signal = TestConstants.featureDesiredPropertiesModified(Collections.singletonList(AUTHORIZED));
+
+        List<Target> filteredTargets = signalFilter.filter(signal);
+        Assertions.assertThat(filteredTargets).hasSize(1).contains(target);
+    }
 }
