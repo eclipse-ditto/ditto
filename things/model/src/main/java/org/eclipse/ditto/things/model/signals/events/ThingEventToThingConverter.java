@@ -175,6 +175,25 @@ public final class ThingEventToThingConverter {
                         ((FeaturePropertyModified) te).getPropertyValue()).build());
         mappers.put(FeaturePropertyDeleted.class, (te, tb) -> tb.build());
 
+        mappers.put(FeatureDesiredPropertiesCreated.class, (te, tb) -> tb.setFeature(Feature.newBuilder()
+                .desiredProperties(((FeatureDesiredPropertiesCreated) te).getDesiredProperties())
+                .withId(((FeatureDesiredPropertiesCreated) te).getFeatureId())
+                .build()).build());
+        mappers.put(FeatureDesiredPropertiesModified.class, (te, tb) -> tb.setFeature(Feature.newBuilder()
+                .desiredProperties(((FeatureDesiredPropertiesModified) te).getDesiredProperties())
+                .withId(((FeatureDesiredPropertiesModified) te).getFeatureId())
+                .build()).build());
+        mappers.put(FeatureDesiredPropertiesDeleted.class, (te, tb) -> tb.build());
+        mappers.put(FeatureDesiredPropertyCreated.class, (te, tb) ->
+                tb.setFeatureDesiredProperty(((FeatureDesiredPropertyCreated) te).getFeatureId(),
+                        ((FeatureDesiredPropertyCreated) te).getDesiredPropertyPointer(),
+                        ((FeatureDesiredPropertyCreated) te).getDesiredPropertyValue()).build());
+        mappers.put(FeatureDesiredPropertyModified.class, (te, tb) ->
+                tb.setFeatureDesiredProperty(((FeatureDesiredPropertyModified) te).getFeatureId(),
+                        ((FeatureDesiredPropertyModified) te).getDesiredPropertyPointer(),
+                        ((FeatureDesiredPropertyModified) te).getDesiredPropertyValue()).build());
+        mappers.put(FeatureDesiredPropertyDeleted.class, (te, tb) -> tb.build());
+
         return mappers;
     }
 
