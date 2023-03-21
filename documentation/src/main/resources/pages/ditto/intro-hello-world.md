@@ -4,7 +4,7 @@ tags: [getting_started]
 permalink: intro-hello-world.html
 ---
 
-After [starting Ditto](installation-running.html), we have a HTTP and WebSocket API for your
+After [starting Ditto](installation-running.html), we have an HTTP and WebSocket API for your
 [digital twins](intro-digitaltwins.html) at our hands.
 
 ## Example
@@ -13,36 +13,102 @@ Assume we want to create a digital twin for a car. The twin should hold static m
 The state data should change as often as its real world counterpart does.
 
 Those static and dynamic types of data are mapped in the Ditto model to "attributes" (for static metadata), "features" 
-(for dynamic state data) and "definition" (to link a model the thing follows, 
-e.g. an [Eclipse Vorto](https://www.eclipse.org/vorto/) "information model").
+(for dynamic state data) and "definition" (to link a model the thing follows, e.g. a 
+[WoT (Web of Things)](basic-wot-integration.html) "Thing Model").  
 A JSON representation of some metadata and state data could for example look like this:
 
 ```json
 {
-  "definition": "digitaltwin:DigitaltwinExample:1.0.0",
+  "thingId": "io.eclipseprojects.ditto:floor-lamp-0815",
+  "policyId": "io.eclipseprojects.ditto:floor-lamp-0815",
+  "definition": "https://eclipse-ditto.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld",
   "attributes": {
-    "manufacturer": "ACME",
-    "VIN": "0815666337"
+    "manufacturer": "",
+    "serialNo": ""
   },
   "features": {
-    "transmission": {
+    "Spot1": {
+      "definition": [
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld",
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
+      ],
       "properties": {
-        "automatic": true,
-        "mode": "eco",
-        "cur_speed": 90,
-        "gear": 5
+        "dimmer-level": 0,
+        "color": {
+          "r": 0,
+          "g": 0,
+          "b": 0
+        },
+        "on": false
       }
     },
-    "environment-scanner": {
+    "Spot2": {
+      "definition": [
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld",
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
+      ],
       "properties": {
-        "temperature": 20.8,
-        "humidity": 73,
-        "barometricPressure": 970.7,
-        "location": {
-          "longitude": 47.682170,
-          "latitude": 9.386372
+        "dimmer-level": 0,
+        "color": {
+          "r": 0,
+          "g": 0,
+          "b": 0
         },
-        "altitude": 399
+        "on": false
+      }
+    },
+    "Spot3": {
+      "definition": [
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/dimmable-colored-lamp-1.0.0.tm.jsonld",
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
+      ],
+      "properties": {
+        "dimmer-level": 0,
+        "color": {
+          "r": 0,
+          "g": 0,
+          "b": 0
+        },
+        "on": false
+      }
+    },
+    "ConnectionStatus": {
+      "definition": [
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/connection-status-1.0.0.tm.jsonld"
+      ],
+      "properties": {
+        "readySince": "",
+        "readyUntil": ""
+      }
+    },
+    "PowerConsumptionAwareness": {
+      "definition": [
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/power-consumption-aware-1.0.0.tm.jsonld"
+      ],
+      "properties": {
+        "reportPowerConsumption": {}
+      }
+    },
+    "SmokeDetection": {
+      "definition": [
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/smoke-detector-1.0.0.tm.jsonld"
+      ]
+    },
+    "Status-LED": {
+      "definition": [
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/colored-lamp-1.0.0.tm.jsonld",
+        "https://eclipse-ditto.github.io/ditto-examples/wot/models/switchable-1.0.0.tm.jsonld"
+      ],
+      "properties": {
+        "color": {
+          "r": 0,
+          "g": 0,
+          "b": 0
+        },
+        "on": false
       }
     }
   }
@@ -53,7 +119,7 @@ Background: Ditto only knows about "attributes", "features" and the "definition"
 
 Inside "attributes" (the metadata) we can add as much JSON keys as we like with any JSON value we need.
 
-Inside "features" (the state data) we can add as much features as we like - but each feature needs to have 
+Inside "features" (the state data) we can add as many features as we like - but each feature needs to have 
 a "properties" JSON object. Inside that JSON object we can add as much JSON keys as we like with any JSON value we need. 
 
 Inside "definition" we can add one JSON string value. 
@@ -65,38 +131,16 @@ Those credentials have been created by default in the [nginx](https://github.com
 (See [ditto/deployment/docker/README.md](https://github.com/eclipse-ditto/ditto/blob/master/deployment/docker/README.md))
 
 ```bash
-curl -u ditto:ditto -X PUT -H 'Content-Type: application/json' -d '{
-   "definition": "digitaltwin:DigitaltwinExample:1.0.0",
+curl -u ditto:ditto -X POST -H 'Content-Type: application/json' -d '{
+   "definition": "https://eclipse-ditto.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld",
    "attributes": {
      "manufacturer": "ACME",
      "VIN": "0815666337"
-   },
-   "features": {
-     "transmission": {
-       "properties": {
-         "automatic": true, 
-         "mode": "eco",
-         "cur_speed": 90, 
-         "gear": 5
-       }
-     },
-     "environment-scanner": {
-       "properties": {
-         "temperature": 20.8,
-         "humidity": 73,
-         "barometricPressure": 970.7,
-         "location": {
-           "longitude": 47.682170,
-           "latitude": 9.386372
-         },
-         "altitude": 399
-       }
-     }
    }
- }' 'http://localhost:8080/api/2/things/org.eclipse.ditto:fancy-car'
+ }' 'http://localhost:8080/api/2/things'
 ```
 
-The result is a digital twin in Thing notation. The Thing ID is `org.eclipse.ditto:fancy-car`. 
+The result is a digital twin in Thing notation. The Thing ID is generated when using the `POST` HTTP verb.  
 An ID must always contain a namespace before the `:`. That way Things are easier to organize.
 
 ## Querying an existing Thing
@@ -108,6 +152,9 @@ For Things we know the ID of, we can simply query them by their ID:
 
 ```bash
 curl -u ditto:ditto -X GET 'http://localhost:8080/api/2/things/org.eclipse.ditto:fancy-car'
+
+# if you have jq installed, that's how to get a prettier response:
+curl -u ditto:ditto -X GET 'http://localhost:8080/api/2/things/org.eclipse.ditto:fancy-car' | jq
 
 # if you have python installed, that's how to get a prettier response:
 curl -u ditto:ditto -X GET 'http://localhost:8080/api/2/things/org.eclipse.ditto:fancy-car' | python -m json.tool
