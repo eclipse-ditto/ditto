@@ -336,7 +336,9 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         if (RollbackCreatedPolicy.shouldRollback(enforcedCommand, throwable) &&
                 enforcedCommand instanceof Signal<?> signal) {
             log.withCorrelationId(signal)
-                    .warning("Target actor exception received. Sending RollbackCreatedPolicy msg to self.");
+                    .info("Target actor exception received: <{}>. " +
+                            "Sending RollbackCreatedPolicy msg to self, potentially rolling back a created policy.",
+                            throwable.getClass().getSimpleName());
             final CompletableFuture<Object> responseFuture = new CompletableFuture<>();
             getSelf().tell(RollbackCreatedPolicy.of(signal, throwable, responseFuture), getSelf());
             return responseFuture;
@@ -347,9 +349,12 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     }
 
     private void handleRollbackCreatedPolicy(final RollbackCreatedPolicy rollback) {
+        final String correlationId = rollback.initialCommand().getDittoHeaders().getCorrelationId()
+                .orElse("unexpected:" + UUID.randomUUID());
         if (policyCreatedEvent != null) {
-            final String correlationId = rollback.initialCommand().getDittoHeaders().getCorrelationId()
-                    .orElse("unexpected:" + UUID.randomUUID());
+            log.withCorrelationId(correlationId)
+                    .warning("Rolling back created policy as consequence of received RollbackCreatedPolicy " +
+                            "message: {}", rollback);
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                     .correlationId(correlationId)
                     .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), "true")
@@ -358,14 +363,15 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             AskWithRetry.askWithRetry(policiesShardRegion, deletePolicy,
                     enforcementConfig.getAskWithRetryConfig(),
                     getContext().system(), response -> {
-                        log.withCorrelationId(dittoHeaders)
+                        log.withCorrelationId(correlationId)
                                 .info("Policy <{}> deleted after rolling back it's creation. " +
                                         "Policies shard region response: <{}>", deletePolicy.getEntityId(), response);
                         rollback.completeInitialResponse();
                         return response;
                     });
-
         } else {
+            log.withCorrelationId(correlationId)
+                    .debug("Not initiating policy rollback as none was created.");
             rollback.completeInitialResponse();
         }
         policyCreatedEvent = null;
