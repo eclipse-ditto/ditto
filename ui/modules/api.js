@@ -284,6 +284,9 @@ export function setAuthHeader(forDevOps) {
     } else if (Environments.current().devopsAuth === 'bearer') {
       authHeaderKey = 'Authorization';
       authHeaderValue ='Bearer ' + Environments.current().bearerDevOps;
+    } else {
+      authHeaderKey = 'Basic';
+      authHeaderValue = '';
     }
   } else {
     if (Environments.current().mainAuth === 'basic') {
@@ -295,6 +298,9 @@ export function setAuthHeader(forDevOps) {
     } else if (Environments.current().mainAuth === 'bearer') {
       authHeaderKey = 'Authorization';
       authHeaderValue ='Bearer ' + Environments.current().bearer;
+    } else {
+      authHeaderKey = 'Basic';
+      authHeaderValue = '';
     }
   }
 }

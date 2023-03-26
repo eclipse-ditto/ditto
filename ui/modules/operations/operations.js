@@ -15,8 +15,8 @@
 /* eslint-disable prefer-const */
 /* eslint-disable require-jsdoc */
 import * as API from '../api.js';
-import * as Environments from '../environments/environments.js';
 import * as Utils from '../utils.js';
+import {TabHandler} from '../utils/tabHandler.js';
 
 let dom = {
   buttonLoadAllLogLevels: null,
@@ -27,10 +27,9 @@ let dom = {
 };
 
 export async function ready() {
-  Environments.addChangeListener(onEnvironmentChanged);
   Utils.getAllElementsById(dom);
+  new TabHandler(dom.tabOperations, dom.collapseOperations, loadAllLogLevels, 'disableOperations');
 
-  dom.tabOperations.onclick = onTabActivated;
   dom.buttonLoadAllLogLevels.onclick = loadAllLogLevels;
 }
 
@@ -45,6 +44,7 @@ function loadAllLogLevels() {
   API.callDittoREST('GET', '/devops/logging', null, null, false, true)
       .then((result) => createLoggerView(result))
       .catch((error) => {
+        dom.divLoggers.innerHTML = '';
       });
 }
 
@@ -74,21 +74,4 @@ function createLoggerView(allLogLevels) {
       dom.divLoggers.append(row);
     });
   });
-}
-
-let viewDirty = false;
-
-function onTabActivated() {
-  if (viewDirty) {
-    loadAllLogLevels();
-    viewDirty = false;
-  }
-}
-
-function onEnvironmentChanged() {
-  if (dom.collapseOperations.classList.contains('show')) {
-    loadAllLogLevels();
-  } else {
-    viewDirty = true;
-  }
 }

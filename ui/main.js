@@ -29,7 +29,6 @@ import * as ConnectionsCRUD from './modules/connections/connectionsCRUD.js';
 import * as ConnectionsMonitor from './modules/connections/connectionsMonitor.js';
 import * as Operations from './modules/operations/operations.js';
 import * as Policies from './modules/policies/policies.js';
-import * as API from './modules/api.js';
 import * as Utils from './modules/utils.js';
 import {WoTDescription} from './modules/things/wotDescription.js';
 
@@ -99,7 +98,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     e.addEventListener('click', (event) => {
       mainNavbar.querySelectorAll('.nav-link,.active').forEach((n) => n.classList.remove('active'));
       event.currentTarget.classList.add('active');
-      API.setAuthHeader(event.currentTarget.parentNode.dataset.auth === 'devOps');
     });
   });
 
