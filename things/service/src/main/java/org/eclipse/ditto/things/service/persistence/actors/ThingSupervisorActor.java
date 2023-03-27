@@ -343,7 +343,8 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             getSelf().tell(RollbackCreatedPolicy.of(signal, throwable, responseFuture), getSelf());
             return responseFuture;
         } else {
-            log.warning(throwable, "Target actor exception received.");
+            log.withCorrelationId(enforcedCommand instanceof WithDittoHeaders wdh ? wdh.getDittoHeaders() : null)
+                    .info("Target actor exception received: <{}>", throwable.getClass().getSimpleName());
             return CompletableFuture.failedFuture(throwable);
         }
     }
