@@ -31,6 +31,7 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
@@ -101,7 +102,7 @@ public final class ConnectionSupervisorActor
             final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory,
             final MongoReadJournal mongoReadJournal) {
 
-        super(null, mongoReadJournal, CONNECTIVITY_DEFAULT_LOCAL_ASK_TIMEOUT);
+        super(null, mongoReadJournal);
         this.commandForwarderActor = commandForwarderActor;
         this.pubSubMediator = pubSubMediator;
         this.enforcerActorPropsFactory = enforcerActorPropsFactory;
@@ -203,6 +204,14 @@ public final class ConnectionSupervisorActor
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         ).getConnectionConfig();
         return connectionConfig.getSupervisorConfig().getExponentialBackOffConfig();
+    }
+
+    @Override
+    protected LocalAskTimeoutConfig getLocalAskTimeoutConfig() {
+        return DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
+                .getConnectionConfig()
+                .getSupervisorConfig()
+                .getLocalAskTimeoutConfig();
     }
 
     @Override

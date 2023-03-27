@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
@@ -62,7 +63,7 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
             final PolicyEnforcerProvider policyEnforcerProvider,
             final MongoReadJournal mongoReadJournal) {
 
-        super(blockedNamespaces, mongoReadJournal, DEFAULT_LOCAL_ASK_TIMEOUT);
+        super(blockedNamespaces, mongoReadJournal);
         this.policyEnforcerProvider = policyEnforcerProvider;
         this.pubSubMediator = pubSubMediator;
         final DittoPoliciesConfig policiesConfig = DittoPoliciesConfig.of(
@@ -126,6 +127,14 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
         );
 
         return policiesConfig.getPolicyConfig().getSupervisorConfig().getExponentialBackOffConfig();
+    }
+
+    @Override
+    protected LocalAskTimeoutConfig getLocalAskTimeoutConfig() {
+        return DittoPoliciesConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
+                .getPolicyConfig()
+                .getSupervisorConfig()
+                .getLocalAskTimeoutConfig();
     }
 
     @Override

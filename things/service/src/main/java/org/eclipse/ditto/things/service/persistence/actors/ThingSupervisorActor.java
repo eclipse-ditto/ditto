@@ -37,6 +37,7 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
 import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
@@ -120,7 +121,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final PolicyEnforcerProvider policyEnforcerProvider,
             final MongoReadJournal mongoReadJournal) {
 
-        super(blockedNamespaces, mongoReadJournal, DEFAULT_LOCAL_ASK_TIMEOUT);
+        super(blockedNamespaces, mongoReadJournal);
 
         this.policyEnforcerProvider = policyEnforcerProvider;
         this.pubSubMediator = pubSubMediator;
@@ -431,6 +432,14 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                 .getThingConfig()
                 .getSupervisorConfig()
                 .getExponentialBackOffConfig();
+    }
+
+    @Override
+    protected LocalAskTimeoutConfig getLocalAskTimeoutConfig() {
+        return DittoThingsConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
+                .getThingConfig()
+                .getSupervisorConfig()
+                .getLocalAskTimeoutConfig();
     }
 
     @Override
