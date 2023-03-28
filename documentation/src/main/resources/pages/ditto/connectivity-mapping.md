@@ -519,7 +519,7 @@ code execution.
 ### Constraints
 
 Rhino does not fully support EcmaScript 6. Check which language constructs are supported before using
-them in a mapping function. See [http://mozilla.github.io/rhino/compat/engines.html](http://mozilla.github.io/rhino/compat/engines.html).
+them in a mapping function. See [https://mozilla.github.io/rhino/compat/engines.html](https://mozilla.github.io/rhino/compat/engines.html).
 
 Ditto currently includes Rhino version `1.7.14` and has the `VERSION_ES6` flag enabled.
 

@@ -183,7 +183,7 @@ To describe geolocations you can use: [W3C Basic Geo (WGS84 lat/long) Vocabulary
 ```
 
 To describe units you can choose between:
-* [QUDT.org](http://www.qudt.org)  
+* [QUDT.org](https://www.qudt.org)  
   ```json
   {
     "@context": [

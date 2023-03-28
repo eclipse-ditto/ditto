@@ -127,9 +127,11 @@ import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.things.model.Attributes;
+import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
+import org.eclipse.ditto.things.model.signals.events.FeatureDesiredPropertiesModified;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 import org.mockito.Mockito;
@@ -323,6 +325,14 @@ public final class TestConstants {
         public static final String ID = "thing";
         public static final ThingId THING_ID = ThingId.of(NAMESPACE, ID);
         public static final Thing THING = Thing.newBuilder().setId(THING_ID).build();
+
+    }
+
+    public static final class Feature {
+
+        public static final String FEATURE_ID = "Feature";
+        public static final FeatureProperties FEATURE_DESIRED_PROPERTIES = FeatureProperties.newBuilder()
+                .set("property", "test").build();
 
     }
 
@@ -984,6 +994,12 @@ public final class TestConstants {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().readGrantedSubjects(readSubjects).build();
         return ThingModified.of(Things.THING.toBuilder().setAttributes(attributes).build(), 1,
                 TestConstants.INSTANT, dittoHeaders, TestConstants.METADATA);
+    }
+
+    public static ThingModifiedEvent<?> featureDesiredPropertiesModified(Collection<AuthorizationSubject> readSubjects) {
+        DittoHeaders dittoHeaders = DittoHeaders.newBuilder().readGrantedSubjects(readSubjects).build();
+        return FeatureDesiredPropertiesModified.of(Things.THING_ID, Feature.FEATURE_ID,
+                Feature.FEATURE_DESIRED_PROPERTIES, 1, null, dittoHeaders, null);
     }
 
     public static MessageCommand<?, ?> sendThingMessage(final Collection<AuthorizationSubject> readSubjects) {

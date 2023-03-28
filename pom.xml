@@ -86,8 +86,10 @@
         <developer>
             <id>tjaeckle</id>
             <name>Thomas Jaeckle</name>
-            <email>ditto@jaeckles.de</email>
+            <email>thomas.jaeckle@beyonnex.io</email>
             <url>https://github.com/thjaeckle</url>
+            <organization>beyonnex.io GmbH</organization>
+            <organizationUrl>https://beyonnex.io</organizationUrl>
             <roles>
                 <role>Lead</role>
                 <role>Committer</role>
@@ -130,10 +132,8 @@
         <developer>
             <id>jfickel</id>
             <name>Juergen Fickel</name>
-            <email>juergen.fickel@bosch.io</email>
+            <email>eclipse-foundation@retujo.de</email>
             <url>https://github.com/jufickel-b</url>
-            <organization>Bosch.IO GmbH</organization>
-            <organizationUrl>https://www.bosch.io</organizationUrl>
             <roles>
                 <role>Committer</role>
             </roles>
@@ -240,7 +240,7 @@
         <!-- globally set version for checking binary compatibility against -->
         <!-- whoever changes this to ${revision} or ${project.version} is responsible for API breakage caused by this! -->
         <!-- in other words: never do that here! exclude the 'breakages' locally in the japicmp maven plugin if you intentionally break something -->
-        <binary-compatibility-check.version>3.1.0</binary-compatibility-check.version>
+        <binary-compatibility-check.version>3.2.0</binary-compatibility-check.version>
 
         <maven.skins.fluido.version>1.7</maven.skins.fluido.version>
         <doxia.markdown.version>1.8</doxia.markdown.version>
