@@ -37,8 +37,10 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.policies.api.PoliciesValidator;
+import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.enforcement.AbstractEnforcementReloaded;
 import org.eclipse.ditto.policies.enforcement.AbstractPolicyLoadingEnforcerActor;
+import org.eclipse.ditto.policies.enforcement.Invalidatable;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
@@ -221,7 +223,24 @@ public final class ThingEnforcerActor
             final Policy defaultPolicy = getDefaultPolicy(createThing.getDittoHeaders(), createThing.getEntityId());
             policyCs = createPolicy(defaultPolicy, createThing);
         }
-        return policyCs.thenCompose(policy -> providePolicyEnforcer(policy.getEntityId().orElse(null)));
+        final String correlationId =
+                createThing.getDittoHeaders().getCorrelationId().orElse("unexpected:" + UUID.randomUUID());
+        return policyCs
+                .thenCompose(policy -> {
+                    if (policyEnforcerProvider instanceof Invalidatable invalidatable &&
+                            policy.getEntityId().isPresent() && policy.getRevision().isPresent()) {
+                        return invalidatable.invalidate(PolicyTag.of(policy.getEntityId().get(),
+                                        policy.getRevision().get().toLong()), correlationId, askWithRetryConfig.getAskTimeout())
+                                .thenApply(bool -> {
+                                    log.withCorrelationId(correlationId)
+                                            .debug("PolicyEnforcerCache invalidated. Previous entity was present: {}",
+                                                    bool);
+                                    return policy;
+                                });
+                    }
+                    return CompletableFuture.completedFuture(policy);
+                })
+                .thenCompose(policy -> providePolicyEnforcer(policy.getEntityId().orElse(null)));
     }
 
     private CompletionStage<Policy> getCopiedPolicy(final String policyIdOrPlaceholder,
