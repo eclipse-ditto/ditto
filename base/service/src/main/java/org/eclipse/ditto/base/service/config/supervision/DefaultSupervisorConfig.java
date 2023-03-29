@@ -30,9 +30,12 @@ public final class DefaultSupervisorConfig implements SupervisorConfig {
     private static final String CONFIG_PATH = "supervisor";
 
     private final ExponentialBackOffConfig exponentialBackOffConfig;
+    private final DefaultLocalAskTimeoutConfig localAskTimeoutConfig;
 
-    private DefaultSupervisorConfig(final ExponentialBackOffConfig theExponentialBackOffConfig) {
+    private DefaultSupervisorConfig(final ExponentialBackOffConfig theExponentialBackOffConfig,
+            final DefaultLocalAskTimeoutConfig theLocalAskTimeoutConfig) {
         exponentialBackOffConfig = theExponentialBackOffConfig;
+        localAskTimeoutConfig = theLocalAskTimeoutConfig;
     }
 
     /**
@@ -45,12 +48,18 @@ public final class DefaultSupervisorConfig implements SupervisorConfig {
     public static DefaultSupervisorConfig of(final Config config) {
         final ScopedConfig supervisorScopedConfig = DefaultScopedConfig.newInstance(config, CONFIG_PATH);
 
-        return new DefaultSupervisorConfig(DefaultExponentialBackOffConfig.of(supervisorScopedConfig));
+        return new DefaultSupervisorConfig(DefaultExponentialBackOffConfig.of(supervisorScopedConfig),
+                DefaultLocalAskTimeoutConfig.of(supervisorScopedConfig));
     }
 
     @Override
     public ExponentialBackOffConfig getExponentialBackOffConfig() {
         return exponentialBackOffConfig;
+    }
+
+    @Override
+    public LocalAskTimeoutConfig getLocalAskTimeoutConfig() {
+        return localAskTimeoutConfig;
     }
 
     @Override
