@@ -34,7 +34,7 @@ import org.eclipse.ditto.policies.model.PolicyId;
 public abstract class AbstractPolicyLoadingEnforcerActor<I extends EntityId, S extends Signal<?>, R extends CommandResponse<?>,
         E extends EnforcementReloaded<S, R>> extends AbstractEnforcerActor<I, S, R, E> {
 
-    private final PolicyEnforcerProvider policyEnforcerProvider;
+    protected final PolicyEnforcerProvider policyEnforcerProvider;
 
     protected AbstractPolicyLoadingEnforcerActor(final I entityId,
             final E enforcement,

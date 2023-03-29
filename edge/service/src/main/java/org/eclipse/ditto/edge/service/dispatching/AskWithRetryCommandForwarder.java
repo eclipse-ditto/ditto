@@ -208,7 +208,7 @@ public final class AskWithRetryCommandForwarder implements Extension {
                 : throwable;
         final var dre = DittoRuntimeException.asDittoRuntimeException(
                 error, t -> reportUnexpectedError(command, t));
-        LOGGER.info(" - {}: {}", dre.getClass().getSimpleName(), dre.getMessage());
+        LOGGER.withCorrelationId(command).info("{}: {}", dre.getClass().getSimpleName(), dre.getMessage());
         return dre;
     }
 

@@ -31,6 +31,7 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
@@ -72,12 +73,6 @@ public final class ConnectionSupervisorActor
 
     private static final Duration MAX_CONFIG_RETRIEVAL_DURATION = Duration.ofSeconds(5);
 
-    /**
-     * For connectivity, this local ask timeout has to be higher as e.g. "openConnection" commands performed in a
-     * "staged" way will lead to quite some response times.
-     */
-    private static final Duration CONNECTIVITY_DEFAULT_LOCAL_ASK_TIMEOUT = Duration.ofSeconds(50);
-
     private static final SupervisorStrategy SUPERVISOR_STRATEGY =
             new OneForOneStrategy(true,
                     DeciderBuilder.match(JMSRuntimeException.class, e ->
@@ -101,7 +96,7 @@ public final class ConnectionSupervisorActor
             final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory,
             final MongoReadJournal mongoReadJournal) {
 
-        super(null, mongoReadJournal, CONNECTIVITY_DEFAULT_LOCAL_ASK_TIMEOUT);
+        super(null, mongoReadJournal);
         this.commandForwarderActor = commandForwarderActor;
         this.pubSubMediator = pubSubMediator;
         this.enforcerActorPropsFactory = enforcerActorPropsFactory;
@@ -203,6 +198,14 @@ public final class ConnectionSupervisorActor
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         ).getConnectionConfig();
         return connectionConfig.getSupervisorConfig().getExponentialBackOffConfig();
+    }
+
+    @Override
+    protected LocalAskTimeoutConfig getLocalAskTimeoutConfig() {
+        return DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
+                .getConnectionConfig()
+                .getSupervisorConfig()
+                .getLocalAskTimeoutConfig();
     }
 
     @Override

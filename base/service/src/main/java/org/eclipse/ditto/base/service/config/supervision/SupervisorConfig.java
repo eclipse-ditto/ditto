@@ -27,4 +27,9 @@ public interface SupervisorConfig {
      */
     ExponentialBackOffConfig getExponentialBackOffConfig();
 
+    /** Returns the config for supervisor local ACK timeout calls.
+     * @return the config.
+     */
+    LocalAskTimeoutConfig getLocalAskTimeoutConfig();
+
 }

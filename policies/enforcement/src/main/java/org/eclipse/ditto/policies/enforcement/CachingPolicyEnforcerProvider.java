@@ -19,6 +19,8 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
@@ -47,7 +49,7 @@ import akka.pattern.Patterns;
 /**
  * Transparent caching layer for {@link org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider}
  */
-final class CachingPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider {
+final class CachingPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider implements Invalidatable {
 
     private static final Logger LOGGER = DittoLoggerFactory.getThreadSafeLogger(CachingPolicyEnforcerProvider.class);
     private static final Duration LOCAL_POLICY_RETRIEVAL_TIMEOUT = Duration.ofSeconds(60);
@@ -107,6 +109,22 @@ final class CachingPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider
                 });
     }
 
+    @Override
+    public CompletionStage<Boolean> invalidate(final PolicyTag policyTag, final String correlationId,
+            final Duration askTimeout) {
+        return Patterns.ask(cachingPolicyEnforcerProviderActor, new PolicyTagEnvelope(policyTag, correlationId),
+                        askTimeout)
+                .thenApply(result -> {
+                    if (result instanceof Boolean invalidated) {
+                        return invalidated;
+                    }
+                    throw DittoInternalErrorException.fromMessage(
+                            "Unexpected cachingPolicyEnforcerProviderActor response",
+                            DittoHeaders.newBuilder().correlationId(correlationId).build());
+                });
+    }
+
+    protected record PolicyTagEnvelope(PolicyTag policyTag, String correlationId){}
 
     /**
      * Actor which handles the actual cache lookup and invalidation.
@@ -145,6 +163,12 @@ final class CachingPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider
                     .match(PolicyId.class, this::doGetPolicyEnforcer)
                     .match(DistributedPubSubMediator.SubscribeAck.class, s -> log.debug("Got subscribeAck <{}>.", s))
                     .match(PolicyTag.class, policyTag -> policyEnforcerCache.invalidate(policyTag.getEntityId()))
+                    .match(PolicyTagEnvelope.class, policyTagEnvelope -> {
+                        log.withCorrelationId(policyTagEnvelope.correlationId()).debug(policyTagEnvelope.correlationId());
+                        final boolean invalidated =
+                                policyEnforcerCache.invalidate(policyTagEnvelope.policyTag().getEntityId());
+                        getSender().tell(invalidated, getSelf());
+                    })
                     .match(Replicator.Changed.class, this::handleChangedBlockedNamespaces)
                     .build();
         }

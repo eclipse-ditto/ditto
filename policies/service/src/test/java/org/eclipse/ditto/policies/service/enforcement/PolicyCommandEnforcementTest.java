@@ -17,7 +17,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,6 +40,7 @@ import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
@@ -786,7 +786,7 @@ public final class PolicyCommandEnforcementTest {
 
         private MockPolicyPersistenceSupervisor(final ActorRef pubSubMediator, final ActorRef policyPersistenceActor,
                 final PolicyEnforcerProvider policyEnforcerProvider) {
-            super(policyPersistenceActor, null, null, Mockito.mock(MongoReadJournal.class), Duration.ofSeconds(5));
+            super(policyPersistenceActor, null, null, Mockito.mock(MongoReadJournal.class));
             this.pubSubMediator = pubSubMediator;
             this.policyEnforcerProvider = policyEnforcerProvider;
         }
@@ -812,6 +812,14 @@ public final class PolicyCommandEnforcementTest {
                     DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
             );
             return policiesConfig.getPolicyConfig().getSupervisorConfig().getExponentialBackOffConfig();
+        }
+
+        @Override
+        protected LocalAskTimeoutConfig getLocalAskTimeoutConfig() {
+            return DittoPoliciesConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
+                    .getPolicyConfig()
+                    .getSupervisorConfig()
+                    .getLocalAskTimeoutConfig();
         }
 
         @Override
