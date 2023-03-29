@@ -73,5 +73,18 @@ function createLoggerView(allLogLevels) {
       });
       dom.divLoggers.append(row);
     });
+    let newLoggerRow = document.createElement('div');
+    newLoggerRow.attachShadow({mode: 'open'});
+    newLoggerRow.shadowRoot.append(dom.templateLogger.content.cloneNode(true));
+    let inputLoggerElement = newLoggerRow.shadowRoot.getElementById('inputLogger');
+    inputLoggerElement.disabled = false;
+    inputLoggerElement.placeholder = 'Add new logger name and choose log level';
+    Array.from(newLoggerRow.shadowRoot.querySelectorAll('.btn-check')).forEach((btn) => {
+      btn.addEventListener('click', (event) => onUpdateLoggingClick(service, {
+        logger: inputLoggerElement.value,
+        level: event.target.id,
+      }));
+    });
+    dom.divLoggers.append(newLoggerRow);
   });
 }
