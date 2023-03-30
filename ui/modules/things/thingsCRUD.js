@@ -165,7 +165,7 @@ function onThingChanged(thingJson) {
 }
 
 function onEditToggle(event) {
-  const isEditing = event.detail;
+  const isEditing = event.detail.isEditing;
   if (isEditing && Things.theThing) {
     API.callDittoREST('GET', `/things/${Things.theThing.thingId}`, null, null, true)
         .then((response) => {

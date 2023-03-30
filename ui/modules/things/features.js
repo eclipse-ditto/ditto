@@ -230,7 +230,7 @@ function onThingChanged(thing) {
 }
 
 function onEditToggle(event) {
-  const isEditing = event.detail;
+  const isEditing = event.detail.isEditing;
   if (isEditing && dom.crudFeature.idValue && dom.crudFeature.idValue !== '') {
     API.callDittoREST('GET', `/things/${Things.theThing.thingId}/features/${dom.crudFeature.idValue}`, null, null, true)
         .then((response) => {
