@@ -33,6 +33,7 @@ export function ready() {
  * @param {boolean} selected if true, the new row will be marked as selected
  * @param {boolean} withClipBoardCopy add a clipboard button at the last column of the row
  * @param {array} columnValues texts for additional columns of the row
+ * @return {Element} created row
  */
 export const addTableRow = function(table, key, selected, withClipBoardCopy, ...columnValues) {
   const row = table.insertRow();
@@ -47,6 +48,7 @@ export const addTableRow = function(table, key, selected, withClipBoardCopy, ...
   if (withClipBoardCopy) {
     addClipboardCopyToRow(row);
   }
+  return row;
 };
 
 /**

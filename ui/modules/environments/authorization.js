@@ -28,6 +28,13 @@ let dom = {
   collapseConnections: null,
 };
 
+let _forDevops = false;
+
+export function setForDevops(forDevops) {
+  _forDevops = forDevops;
+  API.setAuthHeader(_forDevops);
+}
+
 export function ready() {
   Utils.getAllElementsById(dom);
 
@@ -53,15 +60,14 @@ export function ready() {
     }
 
     const mainAuths = document.querySelectorAll('input[name="main-auth"]');
-    for(let i = 0; i < mainAuths.length; i++) {
+    for (let i = 0; i < mainAuths.length; i++) {
       mainAuths[i].checked = mainAuths[i].value === mainAuth;
     }
 
     const devopsAuths = document.querySelectorAll('input[name="devops-auth"]');
-    for(let i = 0; i < devopsAuths.length; i++) {
+    for (let i = 0; i < devopsAuths.length; i++) {
       devopsAuths[i].checked = devopsAuths[i].value === devopsAuth;
     }
-
   };
 
   document.getElementById('authorizeSubmit').onclick = () => {
@@ -94,5 +100,5 @@ export function onEnvironmentChanged() {
   dom.dittoPreAuthenticatedUsername.value = Environments.current().dittoPreAuthenticatedUsername ?
                                             Environments.current().dittoPreAuthenticatedUsername :
                                             '';
-  API.setAuthHeader(dom.collapseConnections.classList.contains('show'));
+  API.setAuthHeader(_forDevops);
 }

@@ -160,7 +160,7 @@ function attributeFromString(attribute) {
 }
 
 function onEditToggle(event) {
-  const isEditing = event.detail;
+  const isEditing = event.detail.isEditing;
   dom.inputAttributeValue.disabled = !isEditing;
   if (isEditing && dom.crudAttribute.idValue && dom.crudAttribute.idValue !== '') {
     API.callDittoREST('GET', `/things/${Things.theThing.thingId}/attributes/${dom.crudAttribute.idValue}`,

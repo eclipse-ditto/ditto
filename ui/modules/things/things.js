@@ -1,3 +1,4 @@
+/* eslint-disable new-cap */
 /*
 * Copyright (c) 2022 Contributors to the Eclipse Foundation
 *
@@ -14,8 +15,8 @@
 // @ts-check
 import * as API from '../api.js';
 
-import * as Environments from '../environments/environments.js';
 import * as Utils from '../utils.js';
+import {TabHandler} from '../utils/tabHandler.js';
 import * as ThingsSearch from './thingsSearch.js';
 
 export let theThing;
@@ -39,11 +40,8 @@ export function addChangeListener(observer) {
  * Initializes components. Should be called after DOMContentLoaded event
  */
 export async function ready() {
-  Environments.addChangeListener(onEnvironmentChanged);
-
   Utils.getAllElementsById(dom);
-
-  dom.tabThings.onclick = onTabActivated;
+  TabHandler(dom.tabThings, dom.collapseThings, refreshView);
 }
 
 /**
@@ -71,26 +69,6 @@ export function setTheThing(thingJson) {
   const isNewThingId = thingJson && (!theThing || theThing.thingId !== thingJson.thingId);
   theThing = thingJson;
   observers.forEach((observer) => observer.call(null, theThing, isNewThingId));
-}
-
-let viewDirty = false;
-
-function onTabActivated() {
-  if (viewDirty) {
-    refreshView();
-    viewDirty = false;
-  }
-  // dom.searchFilterEdit.focus();
-}
-
-function onEnvironmentChanged(modifiedField) {
-  if (!['pinnedThings', 'filterList', 'messageTemplates'].includes(modifiedField)) {
-    if (dom.collapseThings.classList.contains('show')) {
-      refreshView();
-    } else {
-      viewDirty = true;
-    }
-  }
 }
 
 function refreshView() {

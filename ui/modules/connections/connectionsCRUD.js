@@ -184,7 +184,7 @@ function setConnection(connection) {
 }
 
 function onEditToggle(event) {
-  const isEditing = event.detail;
+  const isEditing = event.detail.isEditing;
   dom.buttonConnectionTemplates.disabled = !isEditing;
   connectionEditor.setReadOnly(!isEditing);
   connectionEditor.renderer.setShowGutter(isEditing);
