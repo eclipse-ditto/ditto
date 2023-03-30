@@ -16,10 +16,12 @@ import * as Utils from '../utils.js';
 class CrudToolbar extends HTMLElement {
   isEditing = false;
   isEditDisabled = false;
+  isCreateDisabled = false;
+  isDeleteDisabled = false;
   dom = {
     label: null,
     inputIdValue: null,
-    buttonCrudEdit: null,
+    buttonEdit: null,
     buttonCreate: null,
     buttonUpdate: null,
     buttonDelete: null,
@@ -33,7 +35,7 @@ class CrudToolbar extends HTMLElement {
 
   set idValue(newValue) {
     this.dom.inputIdValue.value = newValue;
-    if (newValue && newValue !== '') {
+    if (!this.isDeleteDisabled && newValue && newValue !== '') {
       this.dom.buttonDelete.removeAttribute('hidden');
     } else {
       this.dom.buttonDelete.setAttribute('hidden', '');
@@ -44,17 +46,30 @@ class CrudToolbar extends HTMLElement {
     return this.isEditDisabled;
   }
 
+  set createDisabled(newValue) {
+    this.isCreateDisabled = newValue;
+    this.setButtonState(this.dom.buttonCreate, newValue);
+  }
+
+  set deleteDisabled(newValue) {
+    this.isDeleteDisabled = newValue;
+    this.setButtonState(this.dom.buttonDelete, newValue);
+  }
+
   set editDisabled(newValue) {
     this.isEditDisabled = newValue;
     if (!this.isEditing) {
-      if (this.isEditDisabled) {
-        this.dom.buttonCrudEdit.setAttribute('hidden', '');
-      } else {
-        this.dom.buttonCrudEdit.removeAttribute('hidden');
-      }
+      this.setButtonState(this.dom.buttonEdit, newValue);
     }
   }
 
+  setButtonState(button, isDisabled) {
+    if (isDisabled) {
+      button.setAttribute('hidden', '');
+    } else {
+      button.removeAttribute('hidden');
+    }
+  }
   get validationElement() {
     return this.dom.inputIdValue;
   }
@@ -68,8 +83,8 @@ class CrudToolbar extends HTMLElement {
     this.shadowRoot.append(document.getElementById('templateCrudToolbar').content.cloneNode(true));
     setTimeout(() => {
       Utils.getAllElementsById(this.dom, this.shadowRoot);
-      this.dom.buttonCrudEdit.onclick = () => this.toggleEdit();
-      this.dom.buttonCancel.onclick = () => this.toggleEdit();
+      this.dom.buttonEdit.onclick = () => this.toggleEdit(false);
+      this.dom.buttonCancel.onclick = () => this.toggleEdit(true);
       this.dom.label.innerText = this.getAttribute('label') || 'Label';
       this.dom.buttonCreate.onclick = this.eventDispatcher('onCreateClick');
       this.dom.buttonUpdate.onclick = this.eventDispatcher('onUpdateClick');
@@ -85,22 +100,22 @@ class CrudToolbar extends HTMLElement {
     };
   }
 
-  toggleEdit() {
+  toggleEdit(isCancel) {
     this.isEditing = !this.isEditing;
     document.getElementById('modalCrudEdit').classList.toggle('editBackground');
     this.dom.divRoot.classList.toggle('editForground');
 
     if (this.isEditing || this.isEditDisabled) {
-      this.dom.buttonCrudEdit.setAttribute('hidden', '');
+      this.dom.buttonEdit.setAttribute('hidden', '');
     } else {
-      this.dom.buttonCrudEdit.removeAttribute('hidden');
+      this.dom.buttonEdit.removeAttribute('hidden');
     }
     this.dom.buttonCancel.toggleAttribute('hidden');
 
     if (this.isEditing) {
       if (this.dom.inputIdValue.value) {
         this.dom.buttonUpdate.toggleAttribute('hidden');
-      } else {
+      } else if (!this.isCreateDisabled) {
         this.dom.buttonCreate.toggleAttribute('hidden');
       }
     } else {
@@ -114,7 +129,10 @@ class CrudToolbar extends HTMLElement {
     this.dom.inputIdValue.disabled = !allowIdChange;
     this.dispatchEvent(new CustomEvent('onEditToggle', {
       composed: true,
-      detail: this.isEditing,
+      detail: {
+        isEditing: this.isEditing,
+        isCancel: isCancel,
+      },
     }));
   }
 }

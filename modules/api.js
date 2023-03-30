@@ -284,6 +284,9 @@ export function setAuthHeader(forDevOps) {
     } else if (Environments.current().devopsAuth === 'bearer') {
       authHeaderKey = 'Authorization';
       authHeaderValue ='Bearer ' + Environments.current().bearerDevOps;
+    } else {
+      authHeaderKey = 'Basic';
+      authHeaderValue = '';
     }
   } else {
     if (Environments.current().mainAuth === 'basic') {
@@ -295,6 +298,9 @@ export function setAuthHeader(forDevOps) {
     } else if (Environments.current().mainAuth === 'bearer') {
       authHeaderKey = 'Authorization';
       authHeaderValue ='Bearer ' + Environments.current().bearer;
+    } else {
+      authHeaderKey = 'Basic';
+      authHeaderValue = '';
     }
   }
 }
@@ -306,12 +312,13 @@ export function setAuthHeader(forDevOps) {
  * @param {Object} body payload for the api call
  * @param {Object} additionalHeaders object with additional header fields
  * @param {boolean} returnHeaders request full response instead of json content
+ * @param {boolean} devOps default: false. Set true to avoid /api/2 path
  * @return {Object} result as json object
  */
-export async function callDittoREST(method, path, body, additionalHeaders, returnHeaders = false) {
+export async function callDittoREST(method, path, body, additionalHeaders, returnHeaders = false, devOps = false) {
   let response;
   try {
-    response = await fetch(Environments.current().api_uri + '/api/2' + path, {
+    response = await fetch(Environments.current().api_uri + (devOps ? '' : '/api/2') + path, {
       method: method,
       headers: {
         'Content-Type': 'application/json',

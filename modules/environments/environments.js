@@ -36,6 +36,9 @@ let dom = {
   inputApiUri: null,
   inputSearchNamespaces: null,
   selectDittoVersion: null,
+  inputTabPolicies: null,
+  inputTabConnections: null,
+  inputTabOperations: null,
 };
 
 let observers = [];
@@ -170,6 +173,9 @@ function onUpdateEnvironmentClick(event) {
     environments[selectedEnvName].api_uri = dom.inputApiUri.value;
     environments[selectedEnvName].searchNamespaces = dom.inputSearchNamespaces.value;
     environments[selectedEnvName].ditto_version = dom.selectDittoVersion.value;
+    environments[selectedEnvName].disablePolicies = !dom.inputTabPolicies.checked;
+    environments[selectedEnvName].disableConnections = !dom.inputTabConnections.checked;
+    environments[selectedEnvName].disableOperations = !dom.inputTabOperations.checked;
   } else {
     environments[selectedEnvName] = JSON.parse(settingsEditor.getValue());
   }
@@ -223,6 +229,9 @@ function updateEnvEditors() {
     dom.inputApiUri.value = selectedEnvironment.api_uri;
     dom.inputSearchNamespaces.value = selectedEnvironment.searchNamespaces ?? '';
     dom.selectDittoVersion.value = selectedEnvironment.ditto_version ? selectedEnvironment.ditto_version : '3';
+    dom.inputTabPolicies.checked = !selectedEnvironment.disablePolicies;
+    dom.inputTabConnections.checked = !selectedEnvironment.disableConnections;
+    dom.inputTabOperations.checked = !selectedEnvironment.disableOperations;
   } else {
     dom.crudEnvironmentFields.idValue = null;
     dom.crudEnvironmentJson.idValue = null;
@@ -230,6 +239,9 @@ function updateEnvEditors() {
     dom.inputApiUri.value = null;
     dom.inputSearchNamespaces.value = null;
     dom.selectDittoVersion.value = 3;
+    dom.inputTabPolicies.checked = true;
+    dom.inputTabConnections.checked = true;
+    dom.inputTabOperations.checked = true;
   }
 }
 
@@ -304,12 +316,15 @@ async function loadEnvironmentTemplates() {
 }
 
 function onEditToggle(event) {
-  dom.inputApiUri.disabled = !event.detail;
-  dom.inputSearchNamespaces.disabled = !event.detail;
-  dom.selectDittoVersion.disabled = !event.detail;
-  settingsEditor.setReadOnly(!event.detail);
-  settingsEditor.renderer.setShowGutter(event.detail);
-  if (!event.detail) {
+  dom.inputApiUri.disabled = !event.detail.isEditing;
+  dom.inputSearchNamespaces.disabled = !event.detail.isEditing;
+  dom.selectDittoVersion.disabled = !event.detail.isEditing;
+  dom.inputTabPolicies.disabled = !event.detail.isEditing;
+  dom.inputTabConnections.disabled = !event.detail.isEditing;
+  dom.inputTabOperations.disabled = !event.detail.isEditing;
+  settingsEditor.setReadOnly(!event.detail.isEditing);
+  settingsEditor.renderer.setShowGutter(event.detail.isEditing);
+  if (!event.detail.isEditing) {
     updateEnvEditors();
   }
 }

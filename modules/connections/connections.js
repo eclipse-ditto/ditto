@@ -15,8 +15,8 @@
 /* eslint-disable no-invalid-this */
 /* eslint-disable require-jsdoc */
 import * as API from '../api.js';
-import * as Environments from '../environments/environments.js';
 import * as Utils from '../utils.js';
+import {TabHandler} from '../utils/tabHandler.js';
 
 const observers = [];
 
@@ -39,13 +39,11 @@ let dom = {
 let selectedConnectionId;
 
 export function ready() {
-  Environments.addChangeListener(onEnvironmentChanged);
-
   Utils.getAllElementsById(dom);
+  new TabHandler(dom.tabConnections, dom.collapseConnections, refreshTab, 'disableConnections');
 
   Utils.addValidatorToTable(dom.tbodyConnections, dom.tableValidationConnections);
 
-  dom.tabConnections.onclick = onTabActivated;
   dom.buttonLoadConnections.onclick = loadConnections;
   dom.tbodyConnections.addEventListener('click', onConnectionsTableClick);
 }
@@ -100,21 +98,10 @@ function onConnectionsTableClick(event) {
   }
 }
 
-let viewDirty = false;
-
-function onTabActivated() {
-  if (viewDirty) {
-    loadConnections();
-    viewDirty = false;
-  }
-}
-
-function onEnvironmentChanged() {
-  if (dom.collapseConnections.classList.contains('show')) {
+function refreshTab(otherEnvironment) {
+  if (otherEnvironment) {
     selectedConnectionId = null;
     setConnection(null);
-    loadConnections();
-  } else {
-    viewDirty = true;
   }
+  loadConnections();
 }
