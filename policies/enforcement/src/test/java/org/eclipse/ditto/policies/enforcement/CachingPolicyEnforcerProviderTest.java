@@ -20,6 +20,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -73,6 +74,27 @@ public final class CachingPolicyEnforcerProviderTest {
             TestKit.shutdownActorSystem(actorSystem);
         }
         actorSystem = null;
+    }
+
+    @Test
+    public void callingInvalidateReturnsCachingActorResponse() {
+        final ActorSystem system = mock(ActorSystem.class);
+        when(system.actorOf(any())).thenReturn(cachingActorTestProbe.ref());
+        final var underTest = new CachingPolicyEnforcerProvider(
+                system,
+                cache,
+                blockedNamespaces,
+                pubSubMediatorProbe.ref()
+        );
+
+        new TestKit(actorSystem) {{
+            final var policyEnforcer = underTest.invalidate(PolicyTag.of(PolicyId.of("ns:id"), 1L), "correlationId",
+                    Duration.ofSeconds(1L));
+            cachingActorTestProbe.expectMsgClass(CachingPolicyEnforcerProvider.PolicyTagEnvelope.class);
+            cachingActorTestProbe.reply(true);
+            assertThat(policyEnforcer.toCompletableFuture().join()).isTrue();
+            cachingActorTestProbe.expectNoMsg();
+        }};
     }
 
     @Test

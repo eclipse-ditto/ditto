@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -36,6 +37,7 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
 import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
@@ -72,6 +74,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.AskTimeoutException;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
@@ -118,7 +121,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final PolicyEnforcerProvider policyEnforcerProvider,
             final MongoReadJournal mongoReadJournal) {
 
-        super(blockedNamespaces, mongoReadJournal, DEFAULT_LOCAL_ASK_TIMEOUT);
+        super(blockedNamespaces, mongoReadJournal);
 
         this.policyEnforcerProvider = policyEnforcerProvider;
         this.pubSubMediator = pubSubMediator;
@@ -319,7 +322,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                             pair.response() instanceof RetrieveThingResponse retrieveThingResponse) {
                         return inlinePolicyEnrichment.enrichPolicy(retrieveThing, retrieveThingResponse)
                                 .map(Object.class::cast);
-                    } else if (RollbackCreatedPolicy.shouldRollback(pair.command(), pair.response())) {
+                    } else if (RollbackCreatedPolicy.shouldRollbackBasedOnTargetActorResponse(pair.command(), pair.response())) {
                         final CompletableFuture<Object> responseF = new CompletableFuture<>();
                         getSelf().tell(RollbackCreatedPolicy.of(pair.command(), pair.response(), responseF), getSelf());
                         return Source.completionStage(responseF);
@@ -332,24 +335,29 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     }
 
     @Override
-    protected CompletableFuture<Object> handleTargetActorException(final Object enforcedCommand, final Throwable throwable) {
-        if (RollbackCreatedPolicy.shouldRollback(enforcedCommand, throwable) &&
-                enforcedCommand instanceof Signal<?> signal) {
+    protected CompletableFuture<Object> handleTargetActorAndEnforcerException(final Signal<?> signal, final Throwable throwable) {
+        if (RollbackCreatedPolicy.shouldRollbackBasedOnException(signal, throwable)) {
             log.withCorrelationId(signal)
-                    .warning("Target actor exception received. Sending RollbackCreatedPolicy msg to self.");
+                    .info("Target actor exception received: <{}>. " +
+                            "Sending RollbackCreatedPolicy msg to self, potentially rolling back a created policy.",
+                            throwable.getClass().getSimpleName());
             final CompletableFuture<Object> responseFuture = new CompletableFuture<>();
             getSelf().tell(RollbackCreatedPolicy.of(signal, throwable, responseFuture), getSelf());
             return responseFuture;
         } else {
-            log.warning(throwable, "Target actor exception received.");
+            log.withCorrelationId(signal)
+                    .debug("Target actor exception received: <{}>", throwable.getClass().getSimpleName());
             return CompletableFuture.failedFuture(throwable);
         }
     }
 
     private void handleRollbackCreatedPolicy(final RollbackCreatedPolicy rollback) {
+        final String correlationId = rollback.initialCommand().getDittoHeaders().getCorrelationId()
+                .orElse("unexpected:" + UUID.randomUUID());
         if (policyCreatedEvent != null) {
-            final String correlationId = rollback.initialCommand().getDittoHeaders().getCorrelationId()
-                    .orElse("unexpected:" + UUID.randomUUID());
+            log.withCorrelationId(correlationId)
+                    .warning("Rolling back created policy as consequence of received RollbackCreatedPolicy " +
+                            "message: {}", rollback);
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                     .correlationId(correlationId)
                     .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), "true")
@@ -358,14 +366,20 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             AskWithRetry.askWithRetry(policiesShardRegion, deletePolicy,
                     enforcementConfig.getAskWithRetryConfig(),
                     getContext().system(), response -> {
-                        log.withCorrelationId(dittoHeaders)
+                        log.withCorrelationId(correlationId)
                                 .info("Policy <{}> deleted after rolling back it's creation. " +
                                         "Policies shard region response: <{}>", deletePolicy.getEntityId(), response);
                         rollback.completeInitialResponse();
                         return response;
-                    });
+                    }).exceptionally(throwable -> {
+                log.withCorrelationId(correlationId).error(throwable, "Failed to rollback Policy Create");
+                rollback.completeInitialResponse();
+                return null;
+            });
 
         } else {
+            log.withCorrelationId(correlationId)
+                    .debug("Not initiating policy rollback as none was created.");
             rollback.completeInitialResponse();
         }
         policyCreatedEvent = null;
@@ -418,6 +432,14 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                 .getThingConfig()
                 .getSupervisorConfig()
                 .getExponentialBackOffConfig();
+    }
+
+    @Override
+    protected LocalAskTimeoutConfig getLocalAskTimeoutConfig() {
+        return DittoThingsConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
+                .getThingConfig()
+                .getSupervisorConfig()
+                .getLocalAskTimeoutConfig();
     }
 
     @Override
@@ -478,41 +500,54 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
         /**
          * Evaluates if a failure in the creation of a thing should lead to deleting of that thing's policy.
+         * Should be used only to evaluate exceptions from the target actor not the enforcement actor.
          * @param command the initial command.
          * @param response the response from the {@link org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceActor}.
          * @return if the thing's policy is to be deleted.
          */
-        public static boolean shouldRollback(final Signal<?> command, @Nullable final Object response) {
-            return shouldRollback(command, response, null);
+        private static boolean shouldRollbackBasedOnTargetActorResponse(final Signal<?> command, @Nullable final Object response) {
+            return command instanceof CreateThing && response instanceof DittoRuntimeException;
         }
 
         /**
          * Evaluates if a failure in the creation of a thing should lead to deleting of that thing's policy.
-         * @param command the initial command.
+         * @param signal the initial signal.
          * @param throwable the throwable received from the Persistence Actor
          * @return if the thing's policy is to be deleted.
          */
-        public static boolean shouldRollback(final Object command, @Nullable final Throwable throwable) {
-            if (command instanceof Signal<?> signal) {
-                return shouldRollback(signal, null, throwable);
-            } else {
-                return false;
-            }
+        private static boolean shouldRollbackBasedOnException(final Signal<?> signal, @Nullable final Throwable throwable) {
+                return signal instanceof CreateThing && ((throwable instanceof CompletionException ce1 &&  ce1.getCause() instanceof ThingUnavailableException)
+                        || throwable instanceof AskTimeoutException
+                        || (throwable instanceof CompletionException ce && ce.getCause() instanceof AskTimeoutException)
+                );
         }
-        private static boolean shouldRollback(final Signal<?> command, @Nullable final Object response, @Nullable final Throwable throwable) {
-            return  command instanceof CreateThing && (response instanceof DittoRuntimeException || throwable != null);
+
+        /**
+         * Completes the responseFuture with the response which in turn should send the Persistence actor response to
+         * the initial sender. If an additional exception occurs during policy rollback the responseFuture will be
+         * completed with that exception and adding the target actor exception as suppressed warning.
+         *
+         * @param throwable the additional optional exception occurred during the rollback process.
+         */
+        private void completeInitialResponse(@Nullable final Throwable throwable) {
+            if (response instanceof Throwable t) {
+                if (throwable != null) {
+                    throwable.addSuppressed(t);
+                    responseFuture.completeExceptionally(throwable);
+                } else {
+                    responseFuture.completeExceptionally(t);
+                }
+            } else {
+                responseFuture.complete(response);
+            }
         }
 
         /**
          * Completes the responseFuture with the response which in turn should send the Persistence actor response to
          * the initial sender.
          */
-        void completeInitialResponse() {
-            if (response instanceof Throwable t) {
-                responseFuture.completeExceptionally(t);
-            } else {
-                responseFuture.complete(response);
-            }
+        private void completeInitialResponse() {
+            completeInitialResponse(null);
         }
     }
 }

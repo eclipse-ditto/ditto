@@ -14,7 +14,8 @@ post:
     Sends the command specified in the body to the connection identified by the `connectionId`
     path parameter.
   security:
-    - DevOpsBasic: [ ]
+    - DevOpsBasic: []
+    - DevOpsBearer: []
   tags:
     - Connections
   parameters:

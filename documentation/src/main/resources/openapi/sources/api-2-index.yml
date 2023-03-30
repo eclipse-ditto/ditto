@@ -399,3 +399,5 @@ components:
       $ref: './security/google.yml'
     DevOpsBasic:
       $ref: './security/devOpsBasic.yml'
+    DevOpsBearer:
+      $ref: './security/devOpsBearer.yml'

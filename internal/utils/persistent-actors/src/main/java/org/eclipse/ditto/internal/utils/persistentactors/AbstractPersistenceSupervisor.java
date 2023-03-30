@@ -45,6 +45,7 @@ import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformers;
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
@@ -100,12 +101,6 @@ import akka.stream.javadsl.StreamRefs;
 public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extends Signal<?>>
         extends AbstractActorWithStashWithTimers {
 
-    /**
-     * Timeout for local actor invocations - a small timeout should be more than sufficient as those are just method
-     * calls.
-     */
-    protected static final Duration DEFAULT_LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5);
-
     private static final String ENFORCEMENT_TIMER = "enforcement";
     private static final String ENFORCEMENT_TIMER_SEGMENT_ENFORCEMENT = "enf";
     private static final String ENFORCEMENT_TIMER_SEGMENT_PROCESSING = "process";
@@ -134,7 +129,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     @Nullable protected ActorRef persistenceActorChild;
     @Nullable protected ActorRef enforcerChild;
 
-    private final Duration defaultLocalAskTimeout;
+    private final Duration localAskTimeout;
 
     private final ExponentialBackOffConfig exponentialBackOffConfig;
     private final SignalTransformer signalTransformer;
@@ -145,16 +140,14 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     private int sudoOpCounter = 0;
 
     protected AbstractPersistenceSupervisor(@Nullable final BlockedNamespaces blockedNamespaces,
-            final MongoReadJournal mongoReadJournal,
-            final Duration defaultLocalAskTimeout) {
-        this(null, null, blockedNamespaces, mongoReadJournal, defaultLocalAskTimeout);
+            final MongoReadJournal mongoReadJournal) {
+        this(null, null, blockedNamespaces, mongoReadJournal);
     }
 
     protected AbstractPersistenceSupervisor(@Nullable final ActorRef persistenceActorChild,
             @Nullable final ActorRef enforcerChild,
             @Nullable final BlockedNamespaces blockedNamespaces,
-            final MongoReadJournal mongoReadJournal,
-            final Duration defaultLocalAskTimeout) {
+            final MongoReadJournal mongoReadJournal) {
 
         final ActorSystem system = context().system();
         final Config dittoExtensionsConfig = ScopedConfig.dittoExtension(system.settings().config());
@@ -163,10 +156,10 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         this.enforcerChild = enforcerChild;
         this.blockedNamespaces = blockedNamespaces;
         this.mongoReadJournal = mongoReadJournal;
-        this.defaultLocalAskTimeout = defaultLocalAskTimeout;
-        exponentialBackOffConfig = getExponentialBackOffConfig();
-        backOff = ExponentialBackOff.initial(exponentialBackOffConfig);
-        supervisorStrategy = new OneForOneStrategy(
+        this.localAskTimeout = getLocalAskTimeoutConfig().getLocalAckTimeout();
+        this.exponentialBackOffConfig = getExponentialBackOffConfig();
+        this.backOff = ExponentialBackOff.initial(exponentialBackOffConfig);
+        this.supervisorStrategy = new OneForOneStrategy(
                 DeciderBuilder
                         .matchAny(error -> {
                             log.error(error, "Got error in child. Stopping child actor for entityID <{}>.", entityId);
@@ -205,6 +198,12 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      * @return exponential backoff configuration read from the actor system's settings.
      */
     protected abstract ExponentialBackOffConfig getExponentialBackOffConfig();
+
+    /**
+     * Read from actor context. Called in constructor.
+     * @return local ASK timeout config;
+     */
+    protected abstract LocalAskTimeoutConfig getLocalAskTimeoutConfig();
 
     /**
      * Get the shutdown behavior appropriate for this actor.
@@ -355,7 +354,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      * @param throwable the throwable
      * @return a new {@link java.util.concurrent.CompletionStage} failed with the initial throwable.
      */
-    protected CompletionStage<Object> handleTargetActorException(final Object enforcedCommand, final Throwable throwable) {
+    protected CompletionStage<Object> handleTargetActorAndEnforcerException(final Signal<?> enforcedCommand,
+            final Throwable throwable) {
         return CompletableFuture.failedFuture(throwable);
     }
 
@@ -426,7 +426,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      * failed due to lacking permissions.
      */
     protected CompletionStage<Object> askEnforcerChild(final Signal<?> signal) {
-        return Patterns.ask(enforcerChild, signal, DEFAULT_LOCAL_ASK_TIMEOUT);
+        return Patterns.ask(enforcerChild, signal, localAskTimeout);
     }
 
     /**
@@ -561,7 +561,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                     new TargetActorWithMessage(
                             persistenceActorChild,
                             message,
-                            shouldSendResponse ? defaultLocalAskTimeout : Duration.ZERO,
+                            shouldSendResponse ? localAskTimeout : Duration.ZERO,
                             Function.identity()
                     ));
         } else {
@@ -783,6 +783,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 final var syncCs = signalTransformer.apply(signal)
                         .whenComplete((result, error) -> handleOptionalTransformationException(signal, error, sender))
                         .thenCompose(transformed -> enforceSignalAndForwardToTargetActor((S) transformed, sender)
+                                .exceptionallyCompose(error -> handleTargetActorAndEnforcerException(signal, error))
                                 .whenComplete((response, throwable) ->
                                         handleSignalEnforcementResponse(response, throwable, transformed, sender)
                                 ))
@@ -904,10 +905,6 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                             dittoHeaders = tracedSignal.getDittoHeaders();
                         }
                         return enforcerResponseToTargetActor(dittoHeaders, enforcedCommand, sender)
-                                .exceptionallyCompose(error -> handleTargetActorException(enforcedCommand, error)
-                                        .thenApply(o -> new EnforcedSignalAndTargetActorResponse(null, null)))
-                                        // HandleTargetActorException will always return failed future thenApply only
-                                        // for compilation
                                 .whenComplete((result, error) -> {
                                     startedSpan.mark("processed");
                                     stopTimer(processingTimer).accept(result, error);

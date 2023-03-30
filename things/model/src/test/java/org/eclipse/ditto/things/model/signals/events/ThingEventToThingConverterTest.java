@@ -21,11 +21,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.things.model.Attributes;
-import org.eclipse.ditto.things.model.Feature;
-import org.eclipse.ditto.things.model.FeatureProperties;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingRevision;
+import org.eclipse.ditto.things.model.*;
 import org.junit.Test;
 
 /**
@@ -38,6 +34,8 @@ public final class ThingEventToThingConverterTest {
 
     private static final String ATTR_KEY_CITY = "city";
     private static final String KNOWN_CITY = "Immenstaad am Bodensee";
+
+    private static final JsonPointer DESIRED_PROPERTY_POINTER = JsonPointer.of("target_year_1");
 
     @Test
     public void ensureMergeWithExtraFieldsMergesCorrectly() {
@@ -123,5 +121,105 @@ public final class ThingEventToThingConverterTest {
         assertThat(thing.getEntityId()).contains(TestConstants.Thing.THING_ID);
         assertThat(thing.getRevision()).contains(ThingRevision.newInstance(revision));
         assertThat(thing.getAttributes()).contains(Attributes.newBuilder().set("foo", "bar").build());
+    }
+
+    @Test
+    public void testThingEventToThingConvertsFeatureDesiredPropertiesCreated() {
+        long revision = 23L;
+        FeatureDesiredPropertiesCreated desiredPropertiesCreated = FeatureDesiredPropertiesCreated.of(
+                TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES, revision,null, DittoHeaders.empty(), null);
+
+        Optional<Thing> thingOpt = ThingEventToThingConverter.thingEventToThing(desiredPropertiesCreated);
+        assertThat(thingOpt).isPresent();
+        Thing thing = thingOpt.get();
+        assertThat(thing.getEntityId()).contains(TestConstants.Thing.THING_ID);
+        assertThat(thing.getRevision()).contains(ThingRevision.newInstance(revision));
+        FeatureProperties desiredProperties = getDesiredProperties(thing);
+        assertThat(desiredProperties).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+    }
+
+    private FeatureProperties getDesiredProperties(Thing thing) {
+        Optional<Features> featuresOpt = thing.getFeatures();
+        assertThat(featuresOpt).isPresent();
+        Optional<Feature> featureOpt = featuresOpt.get().getFeature(TestConstants.Feature.FLUX_CAPACITOR_ID);
+        assertThat(featureOpt).isPresent();
+        Optional<FeatureProperties> desiredPropertiesOpt = featureOpt.get().getDesiredProperties();
+        assertThat(desiredPropertiesOpt).isPresent();
+        return desiredPropertiesOpt.get();
+    }
+
+    @Test
+    public void testThingEventToThingConvertsFeatureDesiredPropertiesModified() {
+        long revision = 23L;
+        FeatureDesiredPropertiesModified desiredPropertiesModified = FeatureDesiredPropertiesModified.of(
+                TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES, revision,null, DittoHeaders.empty(), null);
+
+        Optional<Thing> thingOpt = ThingEventToThingConverter.thingEventToThing(desiredPropertiesModified);
+        assertThat(thingOpt).isPresent();
+        Thing thing = thingOpt.get();
+        assertThat(thing.getEntityId()).contains(TestConstants.Thing.THING_ID);
+        assertThat(thing.getRevision()).contains(ThingRevision.newInstance(revision));
+        FeatureProperties desiredProperties = getDesiredProperties(thing);
+        assertThat(desiredProperties).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+    }
+
+    @Test
+    public void testThingEventToThingConvertsFeatureDesiredPropertiesDeleted() {
+        long revision = 23L;
+        FeatureDesiredPropertiesDeleted desiredPropertiesDeleted = FeatureDesiredPropertiesDeleted.of(
+                TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID, revision,null,
+                DittoHeaders.empty(), null);
+        Optional<Thing> thingOpt = ThingEventToThingConverter.thingEventToThing(desiredPropertiesDeleted);
+        assertThat(thingOpt).isPresent();
+        Thing thing = thingOpt.get();
+        assertThat(thing.getEntityId()).contains(TestConstants.Thing.THING_ID);
+        assertThat(thing.getRevision()).contains(ThingRevision.newInstance(revision));
+    }
+
+    @Test
+    public void testThingEventToThingConvertsFeatureDesiredPropertyCreated() {
+        long revision = 23L;
+        JsonValue value = JsonValue.of(1955);
+        FeatureDesiredPropertyCreated desiredPropertyCreated = FeatureDesiredPropertyCreated.of(
+                TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID, DESIRED_PROPERTY_POINTER, value,
+                revision, null, DittoHeaders.empty(), null);
+        Optional<Thing> thingOpt = ThingEventToThingConverter.thingEventToThing(desiredPropertyCreated);
+        assertThat(thingOpt).isPresent();
+        Thing thing = thingOpt.get();
+        assertThat(thing.getEntityId()).contains(TestConstants.Thing.THING_ID);
+        assertThat(thing.getRevision()).contains(ThingRevision.newInstance(revision));
+        FeatureProperties desiredProperties = getDesiredProperties(thing);
+        assertThat(desiredProperties).isEqualTo(FeatureProperties.newBuilder().set("target_year_1", 1955).build());
+    }
+
+    @Test
+    public void testThingEventToThingConvertsFeatureDesiredPropertyModified() {
+        long revision = 23L;
+        JsonValue value = JsonValue.of(1955);
+        FeatureDesiredPropertyModified desiredPropertyModified = FeatureDesiredPropertyModified.of(
+                TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID, DESIRED_PROPERTY_POINTER, value,
+                revision, null, DittoHeaders.empty(), null);
+        Optional<Thing> thingOpt = ThingEventToThingConverter.thingEventToThing(desiredPropertyModified);
+        assertThat(thingOpt).isPresent();
+        Thing thing = thingOpt.get();
+        assertThat(thing.getEntityId()).contains(TestConstants.Thing.THING_ID);
+        assertThat(thing.getRevision()).contains(ThingRevision.newInstance(revision));
+        FeatureProperties desiredProperties = getDesiredProperties(thing);
+        assertThat(desiredProperties).isEqualTo(FeatureProperties.newBuilder().set("target_year_1", 1955).build());
+    }
+
+    @Test
+    public void testThingEventToThingConvertsFeatureDesiredPropertyDeleted() {
+        long revision = 23L;
+        FeatureDesiredPropertyDeleted desiredPropertyDeleted = FeatureDesiredPropertyDeleted.of(
+                TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID, DESIRED_PROPERTY_POINTER, revision,
+                null, DittoHeaders.empty(), null);
+        Optional<Thing> thingOpt = ThingEventToThingConverter.thingEventToThing(desiredPropertyDeleted);
+        assertThat(thingOpt).isPresent();
+        Thing thing = thingOpt.get();
+        assertThat(thing.getEntityId()).contains(TestConstants.Thing.THING_ID);
+        assertThat(thing.getRevision()).contains(ThingRevision.newInstance(revision));
     }
 }

@@ -35,7 +35,7 @@ public interface SupervisedStream {
      * @return the source queue.
      */
     static Source<SessionedJsonifiable, WithQueue> sourceQueue(final int queueSize) {
-        return Source.<SessionedJsonifiable>queue(queueSize, OverflowStrategy.fail().withLogLevel(Logging.WarningLevel()))
+        return Source.<SessionedJsonifiable>queue(queueSize, OverflowStrategy.backpressure().withLogLevel(Logging.WarningLevel()))
                 .viaMat(KillSwitches.single(), Keep.both())
                 .mapMaterializedValue(pair -> {
                     final SourceQueueWithComplete<SessionedJsonifiable> sourceQueue = pair.first();
