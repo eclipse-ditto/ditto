@@ -30,6 +30,8 @@
     "defaultDittoPreAuthenticatedUsername": null,
     "defaultUsernamePasswordDevOps": null,
     "mainAuth": "basic",
-    "devopsAuth": null
+    "devopsAuth": null,
+    "disableConnections": true,
+    "disableOperations": true  
   }
 }

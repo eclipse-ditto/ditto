@@ -46,14 +46,27 @@
                             title="A comma-separated list of namespaces (e.g. com.example.namespace). The given namespaces are used as a parameter for the Things search">Search Namespaces</label>
                         <input type="text" class="form-control form-control-sm" spellcheck="false" id="inputSearchNamespaces" disabled></input>
                     </div>
-                    <div class="input-group input-group-sm mt-1">
+                    <div class="input-group input-group-sm mt-1 mb-3">
                         <label class="input-group-text">Ditto Version</label>
                         <select class="form-select form-select-sm" id="selectDittoVersion" disabled>
                             <option selecte value="3">3</option>
                             <option value="2">2</option>
                         </select>
                     </div>    
-                </crud-toolbar>
+                    <label class="form-label">Optional Tabs</label>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="inputTabPolicies" disabled>
+                        <label class="form-check-label" for="inputTabPolicies">Policies</label>
+                      </div>
+                      <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="inputTabConnections" disabled>
+                        <label class="form-check-label" for="inputTabConnections">Connections</label>
+                      </div>
+                      <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="inputTabOperations" disabled>
+                        <label class="form-check-label" for="inputTabOperations">Operations</label>
+                      </div>
+            </crud-toolbar>
             </div>
             <div class="tab-pane container no-margin" id="tabEnvJson">
                 <crud-toolbar label="Name" id="crudEnvironmentJson" allowIdChange>

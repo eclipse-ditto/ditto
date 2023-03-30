@@ -4,8 +4,8 @@
 /* eslint-disable require-jsdoc */
 import * as Utils from '../utils.js';
 import * as API from '../api.js';
-import * as Environments from '../environments/environments.js';
 import * as Things from '../things/things.js';
+import {TabHandler} from '../utils/tabHandler.js';
 
 let thePolicy;
 let selectedEntry;
@@ -13,6 +13,8 @@ let selectedSubject;
 let selectedResource;
 
 let policyTemplates;
+
+let tabHandler;
 
 let dom = {
   inputPolicyId: null,
@@ -44,9 +46,9 @@ let subjectEditor;
 let resourceEditor;
 
 export function ready() {
-  Environments.addChangeListener(onEnvironmentChanged);
-
   Utils.getAllElementsById(dom);
+  tabHandler = new TabHandler(dom.tabPolicies, dom.collapsePolicies, refreshAll, 'disablePolicies');
+
 
   loadPolicyTemplates();
 
@@ -56,8 +58,6 @@ export function ready() {
 
   subjectEditor = Utils.createAceEditor('subjectEditor', 'ace/mode/json');
   resourceEditor = Utils.createAceEditor('resourceEditor', 'ace/mode/json');
-
-  dom.tabPolicies.onclick = onTabActivated;
 
   dom.buttonLoadPolicy.onclick = () => {
     Utils.assert(dom.inputPolicyId.value, 'Please enter a policyId', dom.inputPolicyId);
@@ -220,7 +220,7 @@ function validations(entryFilled, entrySelected, subjectFilled, subjectSelected,
 
 function onThingChanged(thing) {
   dom.inputPolicyId.value = (thing && thing.policyId) ? thing.policyId : null;
-  viewDirty = true;
+  tabHandler.viewDirty = true;
 }
 
 function refreshWhoAmI() {
@@ -311,26 +311,13 @@ function modifyPolicyEntry(type, key, value) {
   ).then(() => refreshPolicy(thePolicy.policyId));
 };
 
-let viewDirty = false;
-
-function onTabActivated() {
-  if (viewDirty) {
-    refreshWhoAmI();
-    if (dom.inputPolicyId.value) {
-      refreshPolicy(dom.inputPolicyId.value);
-    }
-    viewDirty = false;
-  }
-}
-
-function onEnvironmentChanged(modifiedField) {
-  if (!['pinnedThings', 'filterList', 'authorization'].includes(modifiedField)) {
+function refreshAll(otherEnvironment) {
+  refreshWhoAmI();
+  if (otherEnvironment) {
     setThePolicy(null);
   }
-  if (dom.collapsePolicies.classList.contains('show')) {
-    refreshWhoAmI();
-  } else {
-    viewDirty = true;
+  if (dom.inputPolicyId.value) {
+    refreshPolicy(dom.inputPolicyId.value);
   }
 }
 
