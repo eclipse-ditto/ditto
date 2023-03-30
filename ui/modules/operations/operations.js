@@ -51,28 +51,38 @@ function loadAllLogLevels() {
 function createLoggerView(allLogLevels) {
   dom.divLoggers.innerHTML = '';
   Object.keys(allLogLevels).sort().forEach((service, i) => {
+    addHeading(service, i);
+    Object.values(allLogLevels[service])[0].loggerConfigs.forEach((logConfig) => {
+      addLoggerRowForConfig(service, logConfig);
+    });
+    addLoggerRowForNew(service);
+  });
+
+  function addHeading(service, i) {
     let heading = document.createElement('h6');
     heading.innerText = service;
     if (i > 0) {
       heading.classList.add('mt-3');
     }
     dom.divLoggers.append(heading);
-    Object.values(allLogLevels[service])[0].loggerConfigs.forEach((logConfig) => {
-      let row = document.createElement('div');
-      row.attachShadow({mode: 'open'});
-      row.shadowRoot.append(dom.templateLogger.content.cloneNode(true));
-      row.shadowRoot.getElementById('inputLogger').value = logConfig.logger;
-      row.shadowRoot.getElementById(logConfig.level).setAttribute('checked', '');
-      Array.from(row.shadowRoot.querySelectorAll('.btn-check')).forEach((btn) => {
-        btn.service = service;
-        btn.logger = logConfig.logger;
-        btn.addEventListener('click', (event) => onUpdateLoggingClick(event.target.service, {
-          logger: event.target.logger,
-          level: event.target.id,
-        }));
-      });
-      dom.divLoggers.append(row);
+  }
+
+  function addLoggerRowForConfig(service, logConfig) {
+    let row = document.createElement('div');
+    row.attachShadow({mode: 'open'});
+    row.shadowRoot.append(dom.templateLogger.content.cloneNode(true));
+    row.shadowRoot.getElementById('inputLogger').value = logConfig.logger;
+    row.shadowRoot.getElementById(logConfig.level).setAttribute('checked', '');
+    Array.from(row.shadowRoot.querySelectorAll('.btn-check')).forEach((btn) => {
+      btn.addEventListener('click', (event) => onUpdateLoggingClick(service, {
+        logger: logConfig.logger,
+        level: event.target.id,
+      }));
     });
+    dom.divLoggers.append(row);
+  }
+
+  function addLoggerRowForNew(service) {
     let newLoggerRow = document.createElement('div');
     newLoggerRow.attachShadow({mode: 'open'});
     newLoggerRow.shadowRoot.append(dom.templateLogger.content.cloneNode(true));
@@ -86,5 +96,5 @@ function createLoggerView(allLogLevels) {
       }));
     });
     dom.divLoggers.append(newLoggerRow);
-  });
+  }
 }
