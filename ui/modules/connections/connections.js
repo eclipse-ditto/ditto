@@ -67,7 +67,7 @@ export function loadConnections() {
         },
         id);
       } else {
-        row.insertCell(0).innerHTML = connection.name;
+        row.insertCell(0).innerHTML = connection.name ? connection.name : id;
       }
       API.callConnectionsAPI('retrieveStatus', (status) => {
         row.insertCell(-1).innerHTML = status.liveStatus;
