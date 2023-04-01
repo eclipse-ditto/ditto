@@ -50,6 +50,10 @@ function Environment(env) {
       enumerable: false,
       writable: true,
     },
+    bearerDevOps: {
+      enumerable: false,
+      writable: true,
+    },
     usernamePassword: {
       value: this.defaultUsernamePassword,
       enumerable: false,
