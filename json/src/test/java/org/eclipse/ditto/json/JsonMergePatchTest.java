@@ -447,4 +447,81 @@ public final class JsonMergePatchTest {
         Assertions.assertThat(mergedObject).isEqualTo(expectedObject);
     }
 
+    @Test
+    public void removeFieldsUsingRegexWithNullValue() {
+        final JsonObject originalObject = JsonFactory.newObjectBuilder()
+                .set("a", JsonFactory.newObjectBuilder()
+                        .set("2023-04-01", JsonValue.of(true))
+                        .set("2023-04-02", JsonValue.of("hello"))
+                        .set("2023-04-03", JsonValue.of("darkness"))
+                        .set("2023-04-04", JsonValue.of("my"))
+                        .set("2023-04-05", JsonValue.of("old"))
+                        .set("2023-04-06", JsonValue.of("friend"))
+                        .build())
+                .set("b", JsonFactory.newObjectBuilder()
+                        .set("2023-04-01", JsonValue.of(true))
+                        .set("2023-04-02", JsonValue.of("hello"))
+                        .set("2023-04-03", JsonValue.of("darkness"))
+                        .set("2023-04-04", JsonValue.of("my"))
+                        .set("2023-04-05", JsonValue.of("old"))
+                        .set("2023-04-06", JsonValue.of("friend"))
+                        .build())
+                .set("c", JsonFactory.newObjectBuilder()
+                        .set("some", JsonValue.of(true))
+                        .set("2023-04-02", JsonValue.of("hello"))
+                        .set("totally-other", JsonValue.of("darkness"))
+                        .set("foo", JsonValue.of("my"))
+                        .build())
+                .build();
+
+        final JsonObject objectToPatch = JsonFactory.newObjectBuilder()
+                .set("a", JsonFactory.newObjectBuilder()
+                        .set("{{ /2023-04-.*/ }}", JsonValue.nullLiteral())
+                        .set("2023-05-01", JsonValue.of("new"))
+                        .set("2023-05-02", JsonValue.of("catch"))
+                        .set("2023-05-03", JsonValue.of("phrase"))
+                        .build())
+                .set("b", JsonFactory.newObjectBuilder()
+                        .set("{{ /2023-04-01/ }}", JsonValue.nullLiteral())
+                        .set("{{ /^2023-04-03$/ }}", JsonValue.nullLiteral())
+                        .set("{{ /[0-9]{4}-04-.+4/ }}", JsonValue.nullLiteral())
+                        .set("2023-05-01", JsonValue.of("new"))
+                        .set("2023-05-02", JsonValue.of("catch"))
+                        .set("2023-05-03", JsonValue.of("phrase"))
+                        .build())
+                .set("c", JsonFactory.newObjectBuilder()
+                        .set("{{ /.*/ }}", JsonValue.nullLiteral())
+                        .set("2023-05-01", JsonValue.of("new"))
+                        .set("2023-05-02", JsonValue.of("catch"))
+                        .set("2023-05-03", JsonValue.of("phrase"))
+                        .build())
+                .build();
+
+        final JsonValue expectedObject = JsonFactory.newObjectBuilder()
+                .set("a", JsonFactory.newObjectBuilder()
+                        .set("2023-05-01", JsonValue.of("new"))
+                        .set("2023-05-02", JsonValue.of("catch"))
+                        .set("2023-05-03", JsonValue.of("phrase"))
+                        .build())
+                .set("b", JsonFactory.newObjectBuilder()
+                        .set("2023-04-02", JsonValue.of("hello"))
+                        .set("2023-04-05", JsonValue.of("old"))
+                        .set("2023-04-06", JsonValue.of("friend"))
+                        .set("2023-05-01", JsonValue.of("new"))
+                        .set("2023-05-02", JsonValue.of("catch"))
+                        .set("2023-05-03", JsonValue.of("phrase"))
+                        .build())
+                .set("c", JsonFactory.newObjectBuilder()
+                        .set("2023-05-01", JsonValue.of("new"))
+                        .set("2023-05-02", JsonValue.of("catch"))
+                        .set("2023-05-03", JsonValue.of("phrase"))
+                        .build())
+                .build();
+
+        final JsonValue mergedObject = JsonMergePatch.of(objectToPatch).applyOn(originalObject);
+
+        Assertions.assertThat(mergedObject).isEqualTo(expectedObject);
+    }
+
+
 }
