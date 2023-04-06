@@ -12,9 +12,11 @@
  */
 package org.eclipse.ditto.json;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -165,14 +167,41 @@ public final class JsonMergePatch {
             }
         });
 
+        final List<JsonKey> toBeNulledKeysByRegex = determineToBeNulledKeysByRegex(jsonObject1, jsonObject2);
+
         // add fields of jsonObject2 not present in jsonObject1
         jsonObject2.forEach(jsonField -> {
-            if (!jsonObject1.contains(jsonField.getKey())) {
+            if (!jsonObject1.contains(jsonField.getKey()) && !toBeNulledKeysByRegex.contains(jsonField.getKey())) {
                 builder.set(jsonField);
             }
         });
 
         return builder.build();
+    }
+
+    private static List<JsonKey> determineToBeNulledKeysByRegex(
+            final JsonObject jsonObject1,
+            final JsonObject jsonObject2) {
+
+        final List<JsonKey> toBeNulledKeysByRegex = new ArrayList<>();
+        final List<JsonKey> keyRegexes = jsonObject1.getKeys().stream()
+                .filter(key -> key.toString().startsWith("{{") && key.toString().endsWith("}}"))
+                .collect(Collectors.toList());
+        keyRegexes.forEach(keyRegex -> {
+            final String keyRegexWithoutCurly = keyRegex.toString().substring(2, keyRegex.length() - 2).trim();
+            if (keyRegexWithoutCurly.startsWith("/") && keyRegexWithoutCurly.endsWith("/")) {
+                final String regexStr = keyRegexWithoutCurly.substring(1, keyRegexWithoutCurly.length() - 1);
+                final Pattern pattern = Pattern.compile(regexStr);
+                jsonObject1.getValue(keyRegex)
+                        .filter(JsonValue::isNull) // only support deletion via regex, so only support "null" values
+                        .ifPresent(keyRegexValue ->
+                                jsonObject2.getKeys().stream()
+                                        .filter(key -> pattern.matcher(key).matches())
+                                        .forEach(toBeNulledKeysByRegex::add)
+                );
+            }
+        });
+        return toBeNulledKeysByRegex;
     }
 
     /**

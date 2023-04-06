@@ -393,6 +393,82 @@ interpreted as delete in contrast to `PUT` requests where `null` values have no 
 Like `PUT` requests, `PATCH` requests can be applied at any level of the JSON structure of a thing, e.g. patching a
 complete thing at root level or patching a single property value at property level.
 
+### Removing fields in a merge update with a regex
+
+{% include note.html content="This is an addition to the JSON merge patch (RFC-7396), enhancing using `null` values
+    for deleting certain parts of JSON objects specified with a regular expression before applying new fields to it." %}
+
+The merge patch functionality in Ditto solves a common problem to the JSON merge patch (RFC-7396): whenever a JSON object
+shall be patched, all the old json fields are merged with all the new json fields, unless the exact field names are 
+specified in the patch with `"<field>": null`.  
+This would however require to know all existing fields upfront, which for a merge patch can not be assumed.
+
+The solution is a little enhancement to Ditto's merge patch functionality: The ability to delete arbitrary parts from
+JSON objects using a regular expression **before** applying all other patch values.
+
+The syntax for this function is rather specific (so that no "normally" occurring JSON keys match the same syntax):
+```json
+{
+  "{%raw%}{{ /.*/ }}{%endraw%}": null
+}
+```
+
+When such a `{%raw%}{{ /<regex>/ }}{%endraw%}` with the value `null` is detected in the merge patch, the content between the 2 `/` is 
+interpreted as regular expression to apply for finding keys to delete from the target object.  
+As a result, using `"{%raw%}{{ /.*/ }}{%endraw%}": null` would delete all the values inside a JSON object before applying the new 
+values provided in the patch.
+
+Example:  
+Assuming that inside a JSON object every month some aggregated data is stored with the year and month:  
+```json
+{
+  "thingId": "{thingId}",
+  "policyId": "{policyId}",
+  "features": {
+    "aggregated-history": {
+      "properties": {
+        "2022-11": 42.3,
+        "2022-12": 54.3,
+        "2023-01": 80.2,
+        "2023-02": 99.9
+      }
+    }
+  }
+}
+```
+
+Then the data from "last year" could be purged with the following patch, while adding a new value to the existing ones
+of this year:
+```json
+{
+  "features": {
+    "aggregated-history": {
+      "properties": {
+        "{%raw%}{{ /2022-.*/ }}{%endraw%}": null,
+        "2023-03": 105.21
+      }
+    }
+  }
+}
+```
+
+The resulting Thing JSON after applying the patch would then look like:
+```json
+{
+  "thingId": "{thingId}",
+  "policyId": "{policyId}",
+  "features": {
+    "aggregated-history": {
+      "properties": {
+        "2023-01": 80.2,
+        "2023-02": 99.9,
+        "2023-03": 105.21
+      }
+    }
+  }
+}
+```
+
 ### Permissions required for merge update
 
 To successfully execute merge update the authorized subject needs to have *WRITE* permission on *all* resources 

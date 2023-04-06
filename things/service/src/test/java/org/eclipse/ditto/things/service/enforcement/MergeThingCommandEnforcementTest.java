@@ -32,6 +32,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
@@ -41,6 +42,7 @@ import org.eclipse.ditto.policies.model.enforcers.trie.TrieBasedPolicyEnforcer;
 import org.eclipse.ditto.things.api.Permission;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -117,6 +119,44 @@ final class MergeThingCommandEnforcementTest {
         final TrieBasedPolicyEnforcer policyEnforcer = TrieBasedPolicyEnforcer.newInstance(arg.getPolicy());
         assertThatExceptionOfType(ThingNotModifiableException.class).isThrownBy(
                 () -> ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, arg.getMergeThing()));
+    }
+
+    @Test
+    void acceptUsingRegexInPolicy() {
+        final TestArgument testArgument = TestArgument.of("/",
+                Set.of("/", "/attributes/complex"),
+                Set.of("/attributes/simple")
+        );
+        final TrieBasedPolicyEnforcer policyEnforcer = TrieBasedPolicyEnforcer.newInstance(testArgument.getPolicy());
+        final JsonObject patch = JsonObject.newBuilder()
+                .set("attributes", JsonObject.newBuilder()
+                        .set("complex", JsonObject.newBuilder()
+                                .set("{{ /.*/ }}", JsonValue.nullLiteral())
+                                .build()
+                        )
+                        .set("another", 42)
+                        .build())
+                .build();
+        final MergeThing mergeThing = MergeThing.of(TestSetup.THING_ID, JsonPointer.empty(), patch, TestArgument.headers());
+        final MergeThing authorizedMergeThing =
+                ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, mergeThing);
+        assertThat(authorizedMergeThing.getDittoHeaders().getAuthorizationContext()).isNotNull();
+    }
+
+    @Test
+    void rejectUsingRegexWithRevokesInPolicy() {
+        final TestArgument testArgument = TestArgument.of("/", Set.of("/"), Set.of("/attributes/complex/nested/secret"));
+        final TrieBasedPolicyEnforcer policyEnforcer = TrieBasedPolicyEnforcer.newInstance(testArgument.getPolicy());
+        final JsonObject patch = JsonObject.newBuilder()
+                .set("attributes", JsonObject.newBuilder()
+                        .set("{{ /.*/ }}", JsonValue.nullLiteral())
+                        .set("simple", "value")
+                        .set("another", 42)
+                        .build())
+                .build();
+        final MergeThing mergeThing = MergeThing.of(TestSetup.THING_ID, JsonPointer.empty(), patch, TestArgument.headers());
+        assertThatExceptionOfType(ThingNotModifiableException.class).isThrownBy(
+                () -> ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, mergeThing));
     }
 
     /**
@@ -244,7 +284,7 @@ final class MergeThingCommandEnforcementTest {
             return MergeThing.of(TestSetup.THING_ID, path, patch.getValue(path).orElseThrow(), headers());
         }
 
-        private static DittoHeaders headers() {
+        static DittoHeaders headers() {
             return DittoHeaders.newBuilder()
                     .authorizationContext(
                             AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,

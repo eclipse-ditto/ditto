@@ -37,6 +37,7 @@ import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonPointerInvalidException;
@@ -503,7 +504,15 @@ final class ThingCommandEnforcement
     private static Set<ResourceKey> calculateLeaves(final JsonPointer path, final JsonValue value) {
         if (value.isObject()) {
             return value.asObject().stream()
-                    .map(f -> calculateLeaves(path.append(f.getKey().asPointer()), f.getValue()))
+                    .map(f -> {
+                        final JsonKey key = f.getKey();
+                        if (isMergeWithNulledKeysByRegex(key, f.getValue())) {
+                            // if regex is contained, writing all below that path must be granted in the policy:
+                            return Set.of(PoliciesResourceType.thingResource(path));
+                        } else {
+                            return calculateLeaves(path.append(key.asPointer()), f.getValue());
+                        }
+                    })
                     .reduce(new HashSet<>(), ThingCommandEnforcement::addAll, ThingCommandEnforcement::addAll);
         } else {
             return Set.of(PoliciesResourceType.thingResource(path));
@@ -513,6 +522,17 @@ final class ThingCommandEnforcement
     private static Set<ResourceKey> addAll(final Set<ResourceKey> result, final Set<ResourceKey> toBeAdded) {
         result.addAll(toBeAdded);
         return result;
+    }
+
+    private static boolean isMergeWithNulledKeysByRegex(final JsonKey key, final JsonValue value) {
+        final String keyString = key.toString();
+        if (keyString.startsWith("{{") && keyString.endsWith("}}")) {
+            final String keyRegexWithoutCurly = keyString.substring(2, keyString.length() - 2).trim();
+            return keyRegexWithoutCurly.startsWith("/") && keyRegexWithoutCurly.endsWith("/") &&
+                    value.isNull();
+        } else {
+            return false;
+        }
     }
 
 }
