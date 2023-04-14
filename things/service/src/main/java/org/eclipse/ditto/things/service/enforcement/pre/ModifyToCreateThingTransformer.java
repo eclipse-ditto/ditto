@@ -12,21 +12,28 @@
  */
 package org.eclipse.ditto.things.service.enforcement.pre;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 
 import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
 /**
- * Transforms a ModifyThing into a CreateThing if the thing does not exist already.
+ * Transforms a ModifyThing and a MergeThing command into a CreateThing if the thing does not exist already.
  */
 public final class ModifyToCreateThingTransformer implements SignalTransformer {
 
@@ -42,28 +49,42 @@ public final class ModifyToCreateThingTransformer implements SignalTransformer {
 
     @Override
     public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
+        return calculateInputParams(signal)
+                .map(input -> existenceChecker.checkExistence(input.thingModifyCommand())
+                        .thenApply(exists -> {
+                            if (Boolean.FALSE.equals(exists)) {
+                                final var newThing = input.thing().toBuilder()
+                                        .setId(input.thingModifyCommand().getEntityId())
+                                        .build();
+                                return CreateThing.of(newThing, input.initialPolicy(), input.policyIdOrPlaceholder(),
+                                        input.thingModifyCommand().getDittoHeaders());
+                            } else {
+                                return (Signal<?>) input.thingModifyCommand();
+                            }
+                        })
+                ).orElse(CompletableFuture.completedStage(signal));
+    }
+
+    private static Optional<InputParams> calculateInputParams(final Signal<?> signal) {
         if (signal instanceof ModifyThing modifyThing) {
-            return existenceChecker.checkExistence(modifyThing)
-                    .thenApply(exists -> {
-                        if (Boolean.FALSE.equals(exists)) {
-                            final JsonObject initialPolicy = modifyThing.getInitialPolicy().orElse(null);
-                            final String policyIdOrPlaceholder = modifyThing.getPolicyIdOrPlaceholder().orElse(null);
-                            final var newThing = modifyThing.getThing().toBuilder()
-                                    .setId(modifyThing.getEntityId())
-                                    .build();
-                            return CreateThing.of(
-                                    newThing,
-                                    initialPolicy,
-                                    policyIdOrPlaceholder,
-                                    modifyThing.getDittoHeaders()
-                            );
-                        } else {
-                            return modifyThing;
-                        }
-                    });
+            return Optional.of(new InputParams(modifyThing,
+                    modifyThing.getThing(),
+                    modifyThing.getInitialPolicy().orElse(null),
+                    modifyThing.getPolicyIdOrPlaceholder().orElse(null)
+            ));
+        } else if (signal instanceof MergeThing mergeThing && mergeThing.getPath().isEmpty()) {
+            final JsonObject mergeThingObject = mergeThing.getValue().asObject();
+            return Optional.of(new InputParams(mergeThing,
+                    ThingsModelFactory.newThing(mergeThingObject),
+                    mergeThing.getInitialPolicy().orElse(null),
+                    mergeThing.getPolicyIdOrPlaceholder().orElse(null)
+            ));
         } else {
-            return CompletableFuture.completedStage(signal);
+            return Optional.empty();
         }
     }
 
+    private record InputParams(ThingModifyCommand<?> thingModifyCommand, Thing thing,
+            @Nullable JsonObject initialPolicy,
+            @Nullable String policyIdOrPlaceholder) {}
 }

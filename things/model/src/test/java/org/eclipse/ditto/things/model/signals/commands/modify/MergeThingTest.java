@@ -62,7 +62,7 @@ public final class MergeThingTest {
     public void assertImmutability() {
         assertInstancesOf(MergeThing.class,
                 areImmutable(),
-                provided(JsonPointer.class, JsonValue.class, ThingId.class).isAlsoImmutable());
+                provided(JsonPointer.class, JsonValue.class, ThingId.class, JsonObject.class).isAlsoImmutable());
     }
 
     @Test
