@@ -79,6 +79,7 @@ public final class ImmutableDittoHeadersTest {
             EntityTagMatchers.fromCommaSeparatedString("\"oneValue\",\"anotherValue\"");
     private static final EntityTagMatchers KNOWN_IF_NONE_MATCH =
             EntityTagMatchers.fromCommaSeparatedString("\"notOneValue\",\"notAnotherValue\"");
+    private static final IfEqualOption KNOWN_IF_EQUAL_OPTION = IfEqualOption.SKIP;
     private static final EntityTag KNOWN_ETAG = EntityTag.fromString("\"-12124212\"");
     private static final Collection<AuthorizationSubject> KNOWN_READ_GRANTED_SUBJECTS =
             Lists.list(AuthorizationModelFactory.newAuthSubject("knownGrantedSubject1"),
@@ -172,6 +173,7 @@ public final class ImmutableDittoHeadersTest {
                 .eTag(KNOWN_ETAG)
                 .ifMatch(KNOWN_IF_MATCH)
                 .ifNoneMatch(KNOWN_IF_NONE_MATCH)
+                .ifEqual(KNOWN_IF_EQUAL_OPTION)
                 .origin(KNOWN_ORIGIN)
                 .contentType(KNOWN_CONTENT_TYPE)
                 .replyTarget(Integer.valueOf(KNOWN_REPLY_TARGET))
@@ -502,6 +504,7 @@ public final class ImmutableDittoHeadersTest {
                         authorizationSubjectsToJsonArray(KNOWN_READ_REVOKED_SUBJECTS))
                 .set(DittoHeaderDefinition.IF_MATCH.getKey(), KNOWN_IF_MATCH.toString())
                 .set(DittoHeaderDefinition.IF_NONE_MATCH.getKey(), KNOWN_IF_NONE_MATCH.toString())
+                .set(DittoHeaderDefinition.IF_EQUAL.getKey(), KNOWN_IF_EQUAL_OPTION.toString())
                 .set(DittoHeaderDefinition.ETAG.getKey(), KNOWN_ETAG.toString())
                 .set(DittoHeaderDefinition.ORIGIN.getKey(), KNOWN_ORIGIN)
                 .set(DittoHeaderDefinition.CONTENT_TYPE.getKey(), KNOWN_CONTENT_TYPE)
@@ -739,6 +742,7 @@ public final class ImmutableDittoHeadersTest {
                 authorizationSubjectsToJsonArray(KNOWN_READ_REVOKED_SUBJECTS).toString());
         result.put(DittoHeaderDefinition.IF_MATCH.getKey(), KNOWN_IF_MATCH.toString());
         result.put(DittoHeaderDefinition.IF_NONE_MATCH.getKey(), KNOWN_IF_NONE_MATCH.toString());
+        result.put(DittoHeaderDefinition.IF_EQUAL.getKey(), KNOWN_IF_EQUAL_OPTION.toString());
         result.put(DittoHeaderDefinition.ETAG.getKey(), KNOWN_ETAG.toString());
         result.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), KNOWN_CONTENT_TYPE);
         result.put(DittoHeaderDefinition.ACCEPT.getKey(), KNOWN_ACCEPT);

@@ -190,6 +190,16 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R exte
     B ifNoneMatch(EntityTagMatchers entityTags);
 
     /**
+     * Sets the If-Equal option.
+     *
+     * @param ifEqualOption The if-equal option to set defining what to do with a value to update which is equal to
+     * its previous value.
+     * @return this builder for Method Chaining
+     * @since 3.3.0
+     */
+    B ifEqual(IfEqualOption ifEqualOption);
+
+    /**
      * Sets the inbound {@code MessageMapper} ID value.
      *
      * @param inboundPayloadMapperId the inbound {@code MessageMapper} ID which mapped incoming arbitrary payload from external sources. If null, the header will be removed.

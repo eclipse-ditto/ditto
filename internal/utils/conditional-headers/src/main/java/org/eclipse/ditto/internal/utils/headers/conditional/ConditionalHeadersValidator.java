@@ -19,6 +19,7 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.entity.Entity;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -47,8 +48,8 @@ public final class ConditionalHeadersValidator {
          * @param actual the actual ETag value.
          * @return the builder.
          */
-        DittoRuntimeExceptionBuilder<?> createPreconditionFailedExceptionBuilder(final String conditionalHeaderName,
-                final String expected, final String actual);
+        DittoRuntimeExceptionBuilder<?> createPreconditionFailedExceptionBuilder(String conditionalHeaderName,
+                String expected, String actual);
 
         /**
          * Returns a builder for a {@link DittoRuntimeException} in case status {@code 304 (Not Modified)} should be
@@ -58,8 +59,18 @@ public final class ConditionalHeadersValidator {
          * @param matched the matched value.
          * @return the builder.
          */
-        DittoRuntimeExceptionBuilder<?> createPreconditionNotModifiedExceptionBuilder(final String expectedNotToMatch,
-                final String matched);
+        DittoRuntimeExceptionBuilder<?> createPreconditionNotModifiedExceptionBuilder(String expectedNotToMatch,
+                String matched);
+
+        /**
+         * Returns a builder for a {@link DittoRuntimeException} in case status {@code 304 (Not Modified)} should be
+         * returned for when an updated value was equal to its previous value and the {@code if-equal} condition was
+         * set to "skip".
+         *
+         * @return the builder.
+         * @since 3.3.0
+         */
+        DittoRuntimeExceptionBuilder<?> createPreconditionNotModifiedForEqualityExceptionBuilder();
     }
 
     private final ValidationSettings validationSettings;
@@ -118,6 +129,26 @@ public final class ConditionalHeadersValidator {
         checkIfNoneMatch(command, currentETagValue);
     }
 
+    /**
+     * Checks if the in the given {@code command} contained
+     * {@link org.eclipse.ditto.base.model.headers.DittoHeaderDefinition#IF_EQUAL if-equal header} defines whether to
+     * skip an update for when the value to update is the same as before.
+     * Throws a "*PreconditionNotModifiedException" for the respective entity.
+     *
+     * @param command The command that potentially contains the if-equal header.
+     * @param currentEntity the current entity targeted by the given {@code command}.
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoRuntimeException when a condition fails (the concrete
+     * subclass is defined by {@link ValidationSettings}).
+     */
+    public <C extends Command<?>> C applyIfEqualHeader(final C command, @Nullable final Entity<?> currentEntity) {
+
+        if (skipPreconditionHeaderCheck(command, null)) {
+            return command;
+        }
+
+        return applyIfEqual(command, currentEntity);
+    }
+
     private boolean skipPreconditionHeaderCheck(final Command<?> command, @Nullable final EntityTag
             currentETagValue) {
         return (currentETagValue == null &&
@@ -150,6 +181,12 @@ public final class ConditionalHeadersValidator {
         });
     }
 
+    private <C extends Command<?>> C applyIfEqual(final C command, @Nullable final Entity<?> entity) {
+        return IfEqualPreconditionHeader.fromDittoHeaders(command, validationSettings)
+                .map(ifEqual -> ifEqual.handleCommand(() -> ifEqual.meetsConditionFor(entity)))
+                .orElse(command);
+    }
+
     private DittoRuntimeException buildPreconditionFailedException(
             final PreconditionHeader<?> preconditionHeader,
             final DittoHeaders dittoHeaders, @Nullable final EntityTag currentETagValue) {
@@ -168,6 +205,12 @@ public final class ConditionalHeadersValidator {
                 .createPreconditionNotModifiedExceptionBuilder(preconditionHeader.getValue(),
                         String.valueOf(currentETagValue))
                 .dittoHeaders(appendETagIfNotNull(dittoHeaders, currentETagValue))
+                .build();
+    }
+
+    private DittoRuntimeException buildNotModifiedForEqualityException() {
+        return validationSettings
+                .createPreconditionNotModifiedForEqualityExceptionBuilder()
                 .build();
     }
 

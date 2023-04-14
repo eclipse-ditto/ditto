@@ -19,12 +19,12 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.PolicyException;
 
 
@@ -58,7 +58,17 @@ public final class PolicyPreconditionNotModifiedException extends DittoRuntimeEx
     }
 
     /**
-     * A mutable builder for a {@link org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyPreconditionNotModifiedException}.
+     * A mutable builder for a {@link PolicyPreconditionNotModifiedException}.
+     *
+     * @return the builder.
+     * @since 3.3.0
+     */
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+    
+    /**
+     * A mutable builder for a {@link PolicyPreconditionNotModifiedException}.
      *
      * @param expectedNotToMatch the value which was expected not to match {@code matched} value.
      * @param matched the matched value.
@@ -82,7 +92,7 @@ public final class PolicyPreconditionNotModifiedException extends DittoRuntimeEx
     }
 
     /**
-     * Constructs a new {@link org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyPreconditionNotModifiedException} object with the exception message extracted from
+     * Constructs a new {@link PolicyPreconditionNotModifiedException} object with the exception message extracted from
      * the given JSON object.
      *
      * @param jsonObject the JSON to read the
@@ -111,7 +121,7 @@ public final class PolicyPreconditionNotModifiedException extends DittoRuntimeEx
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyPreconditionNotModifiedException}.
+     * A mutable builder with a fluent API for a {@link PolicyPreconditionNotModifiedException}.
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<PolicyPreconditionNotModifiedException> {
