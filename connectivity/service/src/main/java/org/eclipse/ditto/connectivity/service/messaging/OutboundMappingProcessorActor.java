@@ -349,13 +349,21 @@ public final class OutboundMappingProcessorActor
     }
 
     @Override
-    protected void messageDiscarded(OutboundSignal message,  QueueOfferResult result) {
+    protected void messageDiscarded(final OutboundSignal message, final QueueOfferResult result) {
+        final Set<ConnectionMonitor> monitorsForOutboundSignal =
+                getMonitorsForOutboundSignal(message, MAPPED, LogType.MAPPED, responseMappedMonitor);
         if (QueueOfferResult.dropped().equals(result)) {
-            responseDispatchedMonitor.failure(message.getSource(), "Message is dropped as a result of backpressure strategy!");
+            monitorsForOutboundSignal.forEach(monitor ->
+                    monitor.failure(message.getSource(), "Message is dropped as a result of backpressure strategy!")
+            );
         } else if (result instanceof final QueueOfferResult.Failure failure) {
-            responseDispatchedMonitor.failure(message.getSource(), "Enqueue failed! - failure: {}", failure.cause());
+            monitorsForOutboundSignal.forEach(monitor ->
+                    monitor.failure(message.getSource(), "Enqueue failed! - failure: {}", failure.cause())
+            );
         } else {
-            responseDispatchedMonitor.failure(message.getSource(), "Enqueue failed without acknowledgement!");
+            monitorsForOutboundSignal.forEach(monitor ->
+                    monitor.failure(message.getSource(), "Enqueue failed without acknowledgement!")
+            );
         }
     }
 
