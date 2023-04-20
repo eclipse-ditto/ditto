@@ -125,9 +125,9 @@ paths:
   '/policies/{policyId}/entries/{label}/resources/{resourcePath}':
     $ref: "./paths/policies/resource.yml"
   '/policies/{policyId}/imports':
-    $ref: './paths/policies/imports.yml'
+    $ref: "./paths/policies/imports.yml"
   '/policies/{policyId}/imports/{importedPolicyId}':
-    $ref: './paths/policies/import.yml'
+    $ref: "./paths/policies/import.yml"
 
   ###
   ### Who Am I
@@ -153,17 +153,17 @@ paths:
   ### Connections
   ###
   '/connections':
-    $ref: './paths/connections/connections.yml'
+    $ref: "./paths/connections/connections.yml"
   '/connections/{connectionId}':
-    $ref: './paths/connections/connectionId.yml'
+    $ref: "./paths/connections/connectionId.yml"
   '/connections/{connectionId}/command':
-    $ref: './paths/connections/command.yml'
+    $ref: "./paths/connections/command.yml"
   '/connections/{connectionId}/status':
-    $ref: './paths/connections/status.yml'
+    $ref: "./paths/connections/status.yml"
   '/connections/{connectionId}/metrics':
-    $ref: './paths/connections/metrics.yml'
+    $ref: "./paths/connections/metrics.yml"
   '/connections/{connectionId}/logs':
-    $ref: './paths/connections/logs.yml'
+    $ref: "./paths/connections/logs.yml"
 
 
 components:
@@ -272,7 +272,7 @@ components:
     TimeoutParam:
       $ref: "./parameters/timeoutParam.yml"
     ConnectionIdPathParam:
-      $ref: './parameters/connectionIdPathParam.yml'
+      $ref: "./parameters/connectionIdPathParam.yml"
     ConnectionFieldsQueryParam:
       $ref: "./parameters/connectionFieldsQueryParam.yml"
 
@@ -332,57 +332,57 @@ components:
     Features:
       $ref: "./schemas/features/features.yml"
     Connection:
-      $ref: './schemas/connections/connection.yml'
+      $ref: "./schemas/connections/connection.yml"
     NewConnection:
-      $ref: './schemas/connections/newConnection.yml'
+      $ref: "./schemas/connections/newConnection.yml"
     Sources:
-      $ref: './schemas/connections/sources.yml'
+      $ref: "./schemas/connections/sources.yml"
     Source:
-      $ref: './schemas/connections/source.yml'
+      $ref: "./schemas/connections/source.yml"
     Targets:
-      $ref: './schemas/connections/targets.yml'
+      $ref: "./schemas/connections/targets.yml"
     Target:
-      $ref: './schemas/connections/target.yml'
+      $ref: "./schemas/connections/target.yml"
     ConnectionType:
-      $ref: './schemas/connections/connectionType.yml'
+      $ref: "./schemas/connections/connectionType.yml"
     ConnectivityStatus:
-      $ref: './schemas/connections/connectivityStatus.yml'
+      $ref: "./schemas/connections/connectivityStatus.yml"
     PayloadMappingDefinitions:
-      $ref: './schemas/connections/payloadMappingDefinitions.yml'
+      $ref: "./schemas/connections/payloadMappingDefinitions.yml"
     PayloadMappingDefinition:
-      $ref: './schemas/connections/payloadMappingDefinition.yml'
+      $ref: "./schemas/connections/payloadMappingDefinition.yml"
     MappingContext:
-      $ref: './schemas/connections/mappingContext.yml'
+      $ref: "./schemas/connections/mappingContext.yml"
     ConnectionStatus:
-      $ref: './schemas/connections/connectionStatus.yml'
+      $ref: "./schemas/connections/connectionStatus.yml"
     ResourceStatus:
-      $ref: './schemas/connections/resourceStatus.yml'
+      $ref: "./schemas/connections/resourceStatus.yml"
     ConnectionMetrics:
-      $ref: './schemas/connections/connectionMetrics.yml'
+      $ref: "./schemas/connections/connectionMetrics.yml"
     OverallConnectionMetrics:
-      $ref: './schemas/connections/overallConnectionMetrics.yml'
+      $ref: "./schemas/connections/overallConnectionMetrics.yml"
     SourceMetrics:
-      $ref: './schemas/connections/sourceMetrics.yml'
+      $ref: "./schemas/connections/sourceMetrics.yml"
     TargetMetrics:
-      $ref: './schemas/connections/targetMetrics.yml'
+      $ref: "./schemas/connections/targetMetrics.yml"
     InboundMetrics:
-      $ref: './schemas/connections/inboundMetrics.yml'
+      $ref: "./schemas/connections/inboundMetrics.yml"
     OutboundMetrics:
-      $ref: './schemas/connections/outboundMetrics.yml'
+      $ref: "./schemas/connections/outboundMetrics.yml"
     TypedMetric:
-      $ref: './schemas/connections/typedMetric.yml'
+      $ref: "./schemas/connections/typedMetric.yml"
     SingleMetric:
-      $ref: './schemas/connections/singleMetric.yml'
+      $ref: "./schemas/connections/singleMetric.yml"
     ConnectionLogs:
-      $ref: './schemas/connections/connectionLogs.yml'
+      $ref: "./schemas/connections/connectionLogs.yml"
     LogEntry:
-      $ref: './schemas/connections/logEntry.yml'
+      $ref: "./schemas/connections/logEntry.yml"
     LogCategory:
-      $ref: './schemas/connections/logCategory.yml'
+      $ref: "./schemas/connections/logCategory.yml"
     LogType:
-      $ref: './schemas/connections/logType.yml'
+      $ref: "./schemas/connections/logType.yml"
     LogLevel:
-      $ref: './schemas/connections/logLevel.yml'
+      $ref: "./schemas/connections/logLevel.yml"
     WhoAmI:
       $ref: "./schemas/whoami/whoami.yml"
     WhoAmISubject:
@@ -392,12 +392,12 @@ components:
 
   securitySchemes:
     NginxBasic:
-      $ref: './security/nginxBasic.yml'
+      $ref: "./security/nginxBasic.yml"
     Bearer:
-      $ref: './security/bearerAuth.yml'
+      $ref: "./security/bearerAuth.yml"
     Google:
-      $ref: './security/google.yml'
+      $ref: "./security/google.yml"
     DevOpsBasic:
-      $ref: './security/devOpsBasic.yml'
+      $ref: "./security/devOpsBasic.yml"
     DevOpsBearer:
-      $ref: './security/devOpsBearer.yml'
+      $ref: "./security/devOpsBearer.yml"
