@@ -2068,7 +2068,6 @@ paths:
         - Features
       parameters:
         - $ref: '#/components/parameters/ThingIdPathParam'
-        - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
