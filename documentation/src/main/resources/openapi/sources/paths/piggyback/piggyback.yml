@@ -1,0 +1,107 @@
+# Copyright (c) 2017 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+post:
+  summary: Send a piggyback command
+  description: Send a piggyback command to Akka’s pub-sub-mediator
+  tags:
+    - Piggyback Commands
+  parameters:
+    - $ref: '../../parameters/timeoutParam.yml'
+  requestBody:
+    description: Fields to send a command
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../schemas/piggyback/basePiggybackCommandRequestSchema.yml'
+        examples:
+          blockNamespace:
+            description: Block all messages to a namespace
+            value: |-
+              {
+                "targetActorSelection": "/system/distributedPubSubMediator",
+                "headers": {
+                  "aggregate": false
+                },
+                "piggybackCommand": {
+                  "type": "namespaces.commands:blockNamespace",
+                  "namespace": "namespaceToBlock"
+                }
+              }
+          shutdown:
+            description: Shutdown all actors in a namespace
+            value: |-
+              {
+                "targetActorSelection": "/system/distributedPubSubMediator",
+                "piggybackCommand": {
+                  "type": "common.commands:shutdown",
+                  "reason": {
+                    "type": "purge-namespace",
+                    "details": "namespaceToShutdown"
+                  }
+                }
+              }
+          purgeNamespace:
+            description: Erase all data in a namespace from the persistence
+            value: |-
+              {
+                "targetActorSelection": "/system/distributedPubSubMediator",
+                "headers": {
+                  "aggregate": true,
+                  "is-group-topic": true
+                },
+                "piggybackCommand": {
+                  "type": "namespaces.commands:purgeNamespace",
+                  "namespace": "namespaceToPurge"
+                }
+              }
+          unblockNamespace:
+            description: Unblock messages to a namespace
+            value: |-
+              {
+                "targetActorSelection": "/system/distributedPubSubMediator",
+                "headers": {
+                  "aggregate": false
+                },
+                "piggybackCommand": {
+                  "type": "namespaces.commands:unblockNamespace",
+                  "namespace": "namespaceToUnblock"
+                }
+              }
+  responses:
+    '200':
+      description: |-
+        Response of command
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/piggyback/piggybackManagingBackgroundCleanup.yml'
+          examples:
+            blockNamespace:
+              value: |-
+                {
+                  "type": "namespaces.responses:blockNamespace",
+                  "status": 200,
+                  "namespace": "namespaceToBlock",
+                  "resourceType": "namespaces"
+                }
+    '400':
+      description: The request could not be completed. At least one of the defined query parameters was invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        text/plain:
+          schema:
+            $ref: '../../schemas/errors/textUnauthorizeError.yml'

@@ -1,0 +1,120 @@
+# Copyright (c) 2017 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+openapi: 3.0.0
+info:
+  title: Eclipse Ditto™ HTTP devops API
+  version: "2"
+  description: |-
+    JSON-based, REST-like API for Eclipse Ditto
+
+    The Eclipse Ditto HTTP API uses response status codes (see [RFC 7231](https://tools.ietf.org/html/rfc7231#section-6))
+    to indicate whether a specific request has been successfully completed, or not.
+
+    The information Ditto provides additionally to the status code (e.g. in API docs, or error codes like. "things:thing.tooLarge") might change without advance notice.
+    These are not be considered as official API, and must therefore not be applied in your applications or tests.
+
+servers:
+  - url: https://ditto.eclipseprojects.io/devops
+    description: "online Ditto Sandbox"
+  - url: /devops
+    description: "local Ditto"
+
+tags:
+  # change tag name
+  - name: Logging
+    description: Manage Log Levels in runtime
+  - name: Service Configuration
+    description: Manage service configuration in runtime
+  - name: Piggyback Commands
+    description: Manage Piggyback commands
+
+security:
+  - DevOpsBasic: []
+  - DevOpsBearer: []
+
+paths:
+
+  ###
+  ### Logging
+  ###
+  /logging:
+    $ref: "./paths/logging/logging.yml"
+  '/logging/{moduleName}':
+    $ref: "./paths/logging/moduleName.yml"
+  /config:
+    $ref: "./paths/config/config.yml"
+  '/config/{moduleName}/{podName}':
+    $ref: "./paths/config/podName.yml"
+  /piggyback:
+    $ref: "./paths/piggyback/piggyback.yml"
+  '/piggyback/{serviceName}':
+    $ref: "./paths/piggyback/serviceName.yml"
+  '/piggyback/{serviceName}/{instanceIndex}':
+    $ref: "./paths/piggyback/instanceIndex.yml"
+
+components:
+  responses:
+    SuccessUpdateLogLevel:
+      $ref: "./responses/successUpdateLogLevel.yml"
+    SuccessUpdateLogLevelSinglePod:
+      $ref: "./responses/successUpdateLogLevelSinglePod.yml"
+
+  parameters:
+    LoggingFieldsQueryParam:
+      $ref: "./parameters/loggingFieldsQueryParam.yml"
+    TimeoutParam:
+      $ref: "./parameters/timeoutParam.yml"
+    ModuleNamePathParam:
+      $ref: "./parameters/moduleNamePathParam.yml"
+    PathParam:
+      $ref: "./parameters/pathParam.yml"
+    NamePodParam:
+      $ref: "./parameters/namePodParam.yml"
+    ServiceNameParam:
+      $ref: "./parameters/serviceNameParam.yml"
+    InstanceIndex:
+      $ref: "./parameters/instanceIndexParam.yml"
+
+  schemas:
+    AdvancedError:
+      $ref: "./schemas/errors/advancedError.yml"
+    TextUnauthorizeError:
+      $ref: "./schemas/errors/textUnauthorizeError.yml"
+    RetrieveConfig:
+      $ref: "./schemas/config/retrieveConfig.yml"
+    RetrieveLoggingConfig:
+      $ref: "./schemas/logging/retrieveLoggingConfig.yml"
+    Module:
+      $ref: "./schemas/logging/module.yml"
+    LoggingUpdateFields:
+      $ref: "./schemas/logging/loggingUpdateFields.yml"
+    UpdatedLogLevel:
+      $ref: "./schemas/logging/updatedLogLevel.yml"
+    ModuleUpdatedLogLevel:
+      $ref: "./schemas/logging/moduleUpdatedLogLevel.yml"
+    ResultUpdateRequest:
+      $ref: "./schemas/logging/resultUpdateRequest.yml"
+    ModuleConfigService:
+      $ref: "./schemas/config/moduleConfigService.yml"
+    ResultConfigService:
+      $ref: "./schemas/config/resultConfigService.yml"
+    RetrieveConfigService:
+      $ref: "./schemas/config/retrieveConfigService.yml"
+    BasePiggybackCommandRequestSchema:
+      $ref: "./schemas/piggyback/basePiggybackCommandRequestSchema.yml"
+    PiggybackManagingBackgroundCleanup:
+      $ref: "./schemas/piggyback/piggybackManagingBackgroundCleanup.yml"
+
+  securitySchemes:
+    DevOpsBasic:
+      $ref: "./security/devOpsBasic.yml"
+    DevOpsBearer:
+      $ref: "./security/devOpsBearer.yml"

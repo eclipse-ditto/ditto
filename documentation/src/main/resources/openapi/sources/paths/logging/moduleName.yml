@@ -1,0 +1,63 @@
+# Copyright (c) 2017 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+get:
+  summary: Retrieve currently configured log levels for a specific module
+  description: |-
+    Return the configured log
+  tags:
+    - Logging
+  parameters:
+    - $ref: '../../parameters/moduleNamePathParam.yml'
+    - $ref: '../../parameters/loggingFieldsQueryParam.yml'
+  responses:
+    '200':
+      description: |-
+        Return The current value of logging level
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/logging/module.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        text/plain:
+          schema:
+            $ref: '../../schemas/errors/textUnauthorizeError.yml'
+put:
+  summary: Update log levels for a specific module
+  description: |-
+    Return outcome modify log level for a specific module
+  tags:
+    - Logging
+  parameters:
+    - $ref: '../../parameters/moduleNamePathParam.yml'
+  requestBody:
+    description: Fields to update level log for module
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../schemas/logging/loggingUpdateFields.yml'
+        example: |-
+          {
+            "level": "info",
+            "logger": "akka.actor.CoordinatedShutdown"
+          }
+  responses:
+    '201':
+      $ref: '../../responses/successUpdateLogLevelSinglePod.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        text/plain:
+          schema:
+            $ref: '../../schemas/errors/textUnauthorizeError.yml'
+
