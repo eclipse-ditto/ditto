@@ -43,7 +43,7 @@ A "microservice" in Ditto is defined as:
 ## Communication
 
 All microservices can communicate asynchronously in a Ditto cluster. Communication is done via 
-[Akka remoting](https://doc.akka.io/docs/akka/current/general/remoting.html) which means that each service acts as server, 
+[Akka remoting](https://doc.akka.io/docs/akka/current/remoting-artery.html) which means that each service acts as server, 
 providing a TCP endpoint, as well as client sending data to other services.
 
 All messages which are sent between Ditto microservices must in a way be serializable and deserializable.  
