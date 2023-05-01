@@ -63,11 +63,11 @@ import akka.actor.Props;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
-@FixMethodOrder(MethodSorters.DEFAULT)
 /**
  * Tests in addition to {@link MessageMappingProcessorActorTest}
  * for {@link OutboundMappingProcessorActor} only.
  */
+@FixMethodOrder(MethodSorters.DEFAULT)
 public final class OutboundMappingProcessorActorTest {
 
     @ClassRule
