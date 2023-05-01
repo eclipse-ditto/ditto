@@ -12,6 +12,9 @@ get:
   summary: Retrieve currently configured log levels for a specific module
   description: |-
     Return the configured log
+  security:
+    - DevOpsBasic: []
+    - DevOpsBearer: []
   tags:
     - Logging
   parameters:
@@ -35,6 +38,9 @@ put:
   summary: Update log levels for a specific module
   description: |-
     Return outcome modify log level for a specific module
+  security:
+    - DevOpsBasic: []
+    - DevOpsBearer: []
   tags:
     - Logging
   parameters:

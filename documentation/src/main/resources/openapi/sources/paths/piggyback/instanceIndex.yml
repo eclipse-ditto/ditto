@@ -11,6 +11,9 @@
 post:
   summary: Send a piggyback command to a specific instance of service
   description: Send a piggyback command to a specific instance of service
+  security:
+    - DevOpsBasic: []
+    - DevOpsBearer: []
   tags:
     - Piggyback Commands
   parameters:

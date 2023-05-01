@@ -12,6 +12,9 @@ get:
   summary: Retrieving the configuration of a specific service instance.
   description: |-
     Return the configuration of a specific service instance.
+  security:
+    - DevOpsBasic: []
+    - DevOpsBearer: []
   tags:
     - Service Configuration
   parameters:

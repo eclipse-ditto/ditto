@@ -11,6 +11,9 @@
 get:
   summary: Retrieve all currently configured log levels
   description: Return configured log level for all ditto cluster pod
+  security:
+    - DevOpsBasic: []
+    - DevOpsBearer: []
   tags:
     - Logging
   parameters:
@@ -33,6 +36,9 @@ put:
   summary: Update log levels
   description: |-
     Modify log level for eatch pods menaged
+  security:
+    - DevOpsBasic: []
+    - DevOpsBearer: []
   tags:
     - Logging
   requestBody:

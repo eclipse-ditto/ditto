@@ -22,9 +22,9 @@ info:
     These are not be considered as official API, and must therefore not be applied in your applications or tests.
 
 servers:
-  - url: https://ditto.eclipseprojects.io/api/2
+  - url: https://ditto.eclipseprojects.io/
     description: "online Ditto Sandbox"
-  - url: /api/2
+  - url: /
     description: "local Ditto"
 
 tags:
@@ -42,6 +42,12 @@ tags:
     description: Process CloudEvents in Ditto
   - name: Connections
     description: Manage connections
+  - name: Logging
+    description: Manage Log Levels in runtime
+  - name: Service Configuration
+    description: Manage service configuration in runtime
+  - name: Piggyback Commands
+    description: Manage Piggyback commands
 
 security:
   - Google:
@@ -54,117 +60,142 @@ paths:
   ###
   ### Things
   ###
-  /things:
+  /api/2/things:
     $ref: "./paths/things/index.yml"
-  '/things/{thingId}':
+  '/api/2/things/{thingId}':
     $ref: "./paths/things/thing.yml"
-  '/things/{thingId}/definition':
+  '/api/2/things/{thingId}/definition':
     $ref: "./paths/things/definition.yml"
-  '/things/{thingId}/policyId':
+  '/api/2/things/{thingId}/policyId':
     $ref: "./paths/things/policyId.yml"
-  '/things/{thingId}/attributes':
+  '/api/2/things/{thingId}/attributes':
     $ref: "./paths/things/attributes.yml"
-  '/things/{thingId}/attributes/{attributePath}':
+  '/api/2/things/{thingId}/attributes/{attributePath}':
     $ref: "./paths/things/attribute.yml"
 
   ###
   ### Features
   ###
-  '/things/{thingId}/features':
+  '/api/2/things/{thingId}/features':
     $ref: "./paths/features/index.yml"
-  '/things/{thingId}/features/{featureId}':
+  '/api/2/things/{thingId}/features/{featureId}':
     $ref: "./paths/features/feature.yml"
-  '/things/{thingId}/features/{featureId}/definition':
+  '/api/2/things/{thingId}/features/{featureId}/definition':
     $ref: "./paths/features/definition.yml"
-  '/things/{thingId}/features/{featureId}/properties':
+  '/api/2/things/{thingId}/features/{featureId}/properties':
     $ref: "./paths/features/properties.yml"
-  '/things/{thingId}/features/{featureId}/properties/{propertyPath}':
+  '/api/2/things/{thingId}/features/{featureId}/properties/{propertyPath}':
     $ref: "./paths/features/property.yml"
-  '/things/{thingId}/features/{featureId}/desiredProperties':
+  '/api/2/things/{thingId}/features/{featureId}/desiredProperties':
     $ref: "./paths/features/desiredProperties.yml"
-  '/things/{thingId}/features/{featureId}/desiredProperties/{propertyPath}':
+  '/api/2/things/{thingId}/features/{featureId}/desiredProperties/{propertyPath}':
     $ref: "./paths/features/desiredProperty.yml"
 
   ###
   ### Messages
   ###
-  '/things/{thingId}/inbox/claim':
+  '/api/2/things/{thingId}/inbox/claim':
     $ref: "./paths/messages/inbox-claim.yml"
-  '/things/{thingId}/inbox/messages/{messageSubject}':
+  '/api/2/things/{thingId}/inbox/messages/{messageSubject}':
     $ref: "./paths/messages/inbox-message.yml"
-  '/things/{thingId}/outbox/messages/{messageSubject}':
+  '/api/2/things/{thingId}/outbox/messages/{messageSubject}':
     $ref: "./paths/messages/outbox-message.yml"
-  '/things/{thingId}/features/{featureId}/inbox/messages/{messageSubject}':
+  '/api/2/things/{thingId}/features/{featureId}/inbox/messages/{messageSubject}':
     $ref: "./paths/messages/feature-inbox-message.yml"
-  '/things/{thingId}/features/{featureId}/outbox/messages/{messageSubject}':
+  '/api/2/things/{thingId}/features/{featureId}/outbox/messages/{messageSubject}':
     $ref: "./paths/messages/feature-outbox-message.yml"
 
   ###
   ### Policies
   ###
-  '/policies/{policyId}':
+  '/api/2/policies/{policyId}':
     $ref: "./paths/policies/policy.yml"
-  '/policies/{policyId}/actions/activateTokenIntegration':
+  '/api/2/policies/{policyId}/actions/activateTokenIntegration':
     $ref: "./paths/policies/activateTokenIntegration.yml"
-  '/policies/{policyId}/actions/deactivateTokenIntegration':
+  '/api/2/policies/{policyId}/actions/deactivateTokenIntegration':
     $ref: "./paths/policies/deactivateTokenIntegration.yml"
-  '/policies/{policyId}/entries':
+  '/api/2/policies/{policyId}/entries':
     $ref: "./paths/policies/entries.yml"
-  '/policies/{policyId}/entries/{label}':
+  '/api/2/policies/{policyId}/entries/{label}':
     $ref: "./paths/policies/entry.yml"
-  '/policies/{policyId}/entries/{label}/actions/activateTokenIntegration':
+  '/api/2/policies/{policyId}/entries/{label}/actions/activateTokenIntegration':
     $ref: "./paths/policies/activateTokenIntegrationForEntry.yml"
-  '/policies/{policyId}/entries/{label}/actions/deactivateTokenIntegration':
+  '/api/2/policies/{policyId}/entries/{label}/actions/deactivateTokenIntegration':
     $ref: "./paths/policies/deactivateTokenIntegrationForEntry.yml"
-  '/policies/{policyId}/entries/{label}/subjects':
+  '/api/2/policies/{policyId}/entries/{label}/subjects':
     $ref: "./paths/policies/subjects.yml"
-  '/policies/{policyId}/entries/{label}/subjects/{subjectId}':
+  '/api/2/policies/{policyId}/entries/{label}/subjects/{subjectId}':
     $ref: "./paths/policies/subject.yml"
-  '/policies/{policyId}/entries/{label}/resources':
+  '/api/2/policies/{policyId}/entries/{label}/resources':
     $ref: "./paths/policies/resources.yml"
-  '/policies/{policyId}/entries/{label}/resources/{resourcePath}':
+  '/api/2/policies/{policyId}/entries/{label}/resources/{resourcePath}':
     $ref: "./paths/policies/resource.yml"
-  '/policies/{policyId}/imports':
+  '/api/2/policies/{policyId}/imports':
     $ref: "./paths/policies/imports.yml"
-  '/policies/{policyId}/imports/{importedPolicyId}':
+  '/api/2/policies/{policyId}/imports/{importedPolicyId}':
     $ref: "./paths/policies/import.yml"
 
   ###
   ### Who Am I
   ###
-  '/whoami':
+  '/api/2/whoami':
     $ref: "./paths/whoami/index.yml"
 
   ###
   ### Things-Search
   ###
-  /search/things:
+  /api/2/search/things:
     $ref: "./paths/search/things.yml"
-  /search/things/count:
+  /api/2/search/things/count:
     $ref: "./paths/search/things-count.yml"
 
   ###
   ### CloudEvents
   ###
-  '/cloudevents':
+  '/api/2/cloudevents':
     $ref: "./paths/cloudevents/cloudevents.yml"
 
   ###
   ### Connections
   ###
-  '/connections':
+  '/api/2/connections':
     $ref: "./paths/connections/connections.yml"
-  '/connections/{connectionId}':
+  '/api/2/connections/{connectionId}':
     $ref: "./paths/connections/connectionId.yml"
-  '/connections/{connectionId}/command':
+  '/api/2/connections/{connectionId}/command':
     $ref: "./paths/connections/command.yml"
-  '/connections/{connectionId}/status':
+  '/api/2/connections/{connectionId}/status':
     $ref: "./paths/connections/status.yml"
-  '/connections/{connectionId}/metrics':
+  '/api/2/connections/{connectionId}/metrics':
     $ref: "./paths/connections/metrics.yml"
-  '/connections/{connectionId}/logs':
+  '/api/2/connections/{connectionId}/logs':
     $ref: "./paths/connections/logs.yml"
 
+  ###
+  ### Logging
+  ###
+  /devops/logging:
+    $ref: "./paths/logging/logging.yml"
+  '/devops/logging/{moduleName}':
+    $ref: "./paths/logging/moduleName.yml"
+
+  ###
+  ### Service Configuration
+  ###
+  /devops/config:
+    $ref: "./paths/config/config.yml"
+  '/devops/config/{moduleName}/{podName}':
+    $ref: "./paths/config/podName.yml"
+
+  ###
+  ### Piggyback Commands
+  ###
+  /devops/piggyback:
+    $ref: "./paths/piggyback/piggyback.yml"
+  '/devops/piggyback/{serviceName}':
+    $ref: "./paths/piggyback/serviceName.yml"
+  '/devops/piggyback/{serviceName}/{instanceIndex}':
+    $ref: "./paths/piggyback/instanceIndex.yml"
 
 components:
 
@@ -193,6 +224,10 @@ components:
       $ref: "./responses/preconditionFailed.yml"
     DependencyFailed:
       $ref: "./responses/dependencyFailed.yml"
+    SuccessUpdateLogLevel:
+      $ref: "./responses/successUpdateLogLevel.yml"
+    SuccessUpdateLogLevelSinglePod:
+      $ref: "./responses/successUpdateLogLevelSinglePod.yml"
 
   parameters:
     AllowPolicyLockoutParam:
@@ -275,6 +310,18 @@ components:
       $ref: "./parameters/connectionIdPathParam.yml"
     ConnectionFieldsQueryParam:
       $ref: "./parameters/connectionFieldsQueryParam.yml"
+    LoggingFieldsQueryParam:
+      $ref: "./parameters/loggingFieldsQueryParam.yml"
+    ModuleNamePathParam:
+      $ref: "./parameters/moduleNamePathParam.yml"
+    PathParam:
+      $ref: "./parameters/pathParam.yml"
+    NamePodParam:
+      $ref: "./parameters/namePodParam.yml"
+    ServiceNameParam:
+      $ref: "./parameters/serviceNameParam.yml"
+    InstanceIndex:
+      $ref: "./parameters/instanceIndexParam.yml"
 
   schemas:
     Error:
@@ -389,6 +436,32 @@ components:
       $ref: "./schemas/whoami/whoamiSubject.yml"
     WotThingDescription:
       $ref: "./schemas/wot-thingDescription.yml"
+    TextUnauthorizeError:
+      $ref: "./schemas/errors/textUnauthorizeError.yml"
+    RetrieveConfig:
+      $ref: "./schemas/config/retrieveConfig.yml"
+    RetrieveLoggingConfig:
+      $ref: "./schemas/logging/retrieveLoggingConfig.yml"
+    Module:
+      $ref: "./schemas/logging/module.yml"
+    LoggingUpdateFields:
+      $ref: "./schemas/logging/loggingUpdateFields.yml"
+    UpdatedLogLevel:
+      $ref: "./schemas/logging/updatedLogLevel.yml"
+    ModuleUpdatedLogLevel:
+      $ref: "./schemas/logging/moduleUpdatedLogLevel.yml"
+    ResultUpdateRequest:
+      $ref: "./schemas/logging/resultUpdateRequest.yml"
+    ModuleConfigService:
+      $ref: "./schemas/config/moduleConfigService.yml"
+    ResultConfigService:
+      $ref: "./schemas/config/resultConfigService.yml"
+    RetrieveConfigService:
+      $ref: "./schemas/config/retrieveConfigService.yml"
+    BasePiggybackCommandRequestSchema:
+      $ref: "./schemas/piggyback/basePiggybackCommandRequestSchema.yml"
+    PiggybackManagingBackgroundCleanup:
+      $ref: "./schemas/piggyback/piggybackManagingBackgroundCleanup.yml"
 
   securitySchemes:
     NginxBasic:

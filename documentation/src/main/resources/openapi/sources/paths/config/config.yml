@@ -13,6 +13,9 @@ get:
   description: |-
     It is recommended to not omit the query parameter path.
     Otherwise, the full configurations of all services are aggregated in the response, which can become megabytes big.
+  security:
+    - DevOpsBasic: []
+    - DevOpsBearer: []
   tags:
     - Service Configuration
   parameters:
