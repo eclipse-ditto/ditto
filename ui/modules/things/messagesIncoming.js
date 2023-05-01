@@ -14,6 +14,7 @@
 import * as Utils from '../utils.js';
 import * as Things from './things.js';
 import * as ThingsSSE from './thingsSSE.js';
+import messagesIncomingHTML from './messagesIncoming.html';
 /* eslint-disable prefer-const */
 /* eslint-disable max-len */
 /* eslint-disable no-invalid-this */
@@ -28,6 +29,9 @@ let dom = {
 let messages = [];
 let messageDetail;
 let currentThingId;
+
+document.getElementById('messagesIncomingHTML').innerHTML = messagesIncomingHTML;
+
 
 export function ready() {
   ThingsSSE.addChangeListener(onMessage);

@@ -31,27 +31,11 @@ import * as Operations from './modules/operations/operations.js';
 import * as Policies from './modules/policies/policies.js';
 import * as Utils from './modules/utils.js';
 import {WoTDescription} from './modules/things/wotDescription.js';
-
-
+import './modules/utils/crudToolbar.js';
 let resized = false;
 let mainNavbar;
 
 document.addEventListener('DOMContentLoaded', async function() {
-  document.getElementById('thingsHTML').innerHTML = await (await fetch('modules/things/things.html')).text();
-  document.getElementById('fieldsHTML').innerHTML = await (await fetch('modules/things/fields.html')).text();
-  document.getElementById('featuresHTML').innerHTML = await (await fetch('modules/things/features.html')).text();
-  document.getElementById('messagesIncomingHTML').innerHTML =
-      await (await fetch('modules/things/messagesIncoming.html')).text();
-  document.getElementById('policyHTML').innerHTML = await (await fetch('modules/policies/policies.html')).text();
-  document.getElementById('connectionsHTML').innerHTML =
-      await (await fetch('modules/connections/connections.html')).text();
-  document.getElementById('operationsHTML').innerHTML =
-      await (await fetch('modules/operations/operations.html')).text();
-  document.getElementById('environmentsHTML').innerHTML =
-      await (await fetch('modules/environments/environments.html')).text();
-  document.getElementById('authorizationHTML').innerHTML =
-      await (await fetch('modules/environments/authorization.html')).text();
-
   Utils.ready();
   await Things.ready();
   ThingsSearch.ready();

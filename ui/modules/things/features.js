@@ -12,15 +12,19 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-import {JSONPath} from 'https://cdn.jsdelivr.net/npm/jsonpath-plus@5.0.3/dist/index-browser-esm.min.js';
+import {JSONPath} from 'jsonpath-plus';
 import * as API from '../api.js';
 /* eslint-disable comma-dangle */
 /* eslint-disable new-cap */
 import * as Utils from '../utils.js';
 import * as Fields from './fields.js';
 import * as Things from './things.js';
+import featuresHTML from './features.html';
 
 const observers = [];
+
+document.getElementById('featuresHTML').innerHTML = featuresHTML;
+
 
 export function addChangeListener(observer) {
   observers.push(observer);

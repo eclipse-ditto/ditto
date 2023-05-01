@@ -14,6 +14,7 @@
 import * as API from '../api.js';
 import * as Utils from '../utils.js';
 import * as Connections from './connections.js';
+import connectionTemplates from './connectionTemplates.json';
 /* eslint-disable prefer-const */
 /* eslint-disable max-len */
 /* eslint-disable no-invalid-this */
@@ -34,14 +35,13 @@ let outgoingEditor;
 let theConnection;
 let hasErrors;
 
-let connectionTemplates;
 
 export function ready() {
   Connections.addChangeListener(setConnection);
 
   Utils.getAllElementsById(dom);
 
-  loadConnectionTemplates();
+  Utils.addDropDownEntries(dom.ulConnectionTemplates, Object.keys(connectionTemplates));
 
   connectionEditor = Utils.createAceEditor('connectionEditor', 'ace/mode/json', true);
   incomingEditor = Utils.createAceEditor('connectionIncomingScript', 'ace/mode/javascript', true);
@@ -154,16 +154,6 @@ function onConnectionTemplatesClick(event) {
   setConnection(newConnection);
   dom.editorValidationConnection.classList.remove('is-invalid');
   connectionEditor.session.getUndoManager().markClean();
-}
-
-function loadConnectionTemplates() {
-  fetch('templates/connectionTemplates.json')
-      .then((response) => {
-        response.json().then((loadedTemplates) => {
-          connectionTemplates = loadedTemplates;
-          Utils.addDropDownEntries(dom.ulConnectionTemplates, Object.keys(connectionTemplates));
-        });
-      });
 }
 
 function setConnection(connection) {

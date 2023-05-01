@@ -17,6 +17,7 @@
 import * as API from '../api.js';
 import * as Utils from '../utils.js';
 import {TabHandler} from '../utils/tabHandler.js';
+import operationsHTML from './operations.html';
 
 let dom = {
   buttonLoadAllLogLevels: null,
@@ -25,6 +26,8 @@ let dom = {
   tabOperations: null,
   collapseOperations: null,
 };
+
+document.getElementById('operationsHTML').innerHTML = operationsHTML;
 
 export async function ready() {
   Utils.getAllElementsById(dom);

@@ -13,6 +13,7 @@
 
 import * as Environments from '../environments/environments.js';
 import * as Utils from '../utils.js';
+import fieldsHTML from './fields.html';
 
 let theFieldIndex = -1;
 
@@ -22,6 +23,8 @@ const dom = {
   fieldList: null,
   fieldsModal: null,
 };
+
+document.getElementById('fieldsHTML').innerHTML = fieldsHTML;
 
 /**
  * Create a Ditto search query parameter from the active fields

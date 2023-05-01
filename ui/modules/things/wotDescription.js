@@ -15,6 +15,7 @@
 import * as API from '../api.js';
 import * as Utils from '../utils.js';
 import * as Things from './things.js';
+import wotDescriptionHTML from './wotDescription.html';
 
 export function WoTDescription(targetTab, forFeature) {
   let tabLink;
@@ -28,7 +29,7 @@ export function WoTDescription(targetTab, forFeature) {
         document.getElementById(targetTab.itemsId),
         document.getElementById(targetTab.contentId),
         'WoT TD',
-        await( await fetch('modules/things/wotDescription.html')).text(),
+        wotDescriptionHTML,
         'Generated WoT Thing Description. This requires a valid reference to a WoT Thing Model in the ' +
         (forFeature ? 'Feature' : 'Thing') +
         ' definition. The Ditto environment must have WoT support enabled.'

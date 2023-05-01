@@ -17,10 +17,9 @@ import * as API from '../api.js';
 import * as Utils from '../utils.js';
 import * as ThingsSearch from './thingsSearch.js';
 import * as Things from './things.js';
+import thingTemplates from './thingTemplates.json';
 
 let thingJsonEditor;
-
-let thingTemplates;
 
 let eTag;
 
@@ -42,7 +41,7 @@ export async function ready() {
 
   thingJsonEditor = Utils.createAceEditor('thingJsonEditor', 'ace/mode/json', true);
 
-  loadThingTemplates();
+  Utils.addDropDownEntries(dom.ulThingDefinitions, Object.keys(thingTemplates));
 
   dom.ulThingDefinitions.addEventListener('click', onThingDefinitionsClick);
   dom.crudThings.addEventListener('onCreateClick', onCreateThingClick);
@@ -109,16 +108,6 @@ function onThingDefinitionsClick(event) {
   // isEditing = true;
   dom.inputThingDefinition.value = event.target.textContent;
   thingJsonEditor.setValue(JSON.stringify(thingTemplates[event.target.textContent], null, 2), -1);
-}
-
-function loadThingTemplates() {
-  fetch('templates/thingTemplates.json')
-      .then((response) => {
-        response.json().then((loadedTemplates) => {
-          thingTemplates = loadedTemplates;
-          Utils.addDropDownEntries(dom.ulThingDefinitions, Object.keys(thingTemplates));
-        });
-      });
 }
 
 /**

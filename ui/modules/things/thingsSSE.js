@@ -42,7 +42,7 @@ function notifyAll(thingJson) {
 
 function onThingsTableChanged(thingIds, fieldsQueryParameter) {
   stopSSE(thingsTableEventSource);
-  if (thingIds) {
+  if (thingIds && thingIds.length > 0) {
     console.log('SSE Start: THINGS TABLE');
     thingsTableEventSource = API.getEventSource(thingIds, fieldsQueryParameter);
     thingsTableEventSource.onmessage = onMessageThingsTable;
