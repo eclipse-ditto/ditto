@@ -1,0 +1,292 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+{{- if .Values.policies.enabled -}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ditto.fullname" . }}-policies
+  labels:
+    app.kubernetes.io/name: {{ include "ditto.name" . }}-policies
+{{ include "ditto.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.policies.replicaCount }}
+  strategy:
+  {{- with .Values.policies.updateStrategy }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  minReadySeconds: {{ .Values.policies.minReadySeconds }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "ditto.name" . }}-policies
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "ditto.name" . }}-policies
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        actorSystemName: {{ .Values.akka.actorSystemName }}
+        {{- with .Values.policies.additionalLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        {{- if .Values.global.prometheus.enabled }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "{{ .Values.global.prometheus.path }}"
+        prometheus.io/port: "{{ .Values.global.prometheus.port }}"
+        {{- end }}
+        checksum/mongodb-config: {{ include (print $.Template.BasePath "/mongodb-secret.yaml") . | sha256sum }}
+        {{- with .Values.policies.additionalAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if .Values.rbac.enabled }}
+      serviceAccountName: {{ template "ditto.serviceAccountName" . }}
+      {{- end }}
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+        {{- if .Values.global.logging.logFiles.enabled }}
+        - name: change-volume-owner
+          image: busybox
+          securityContext:
+            runAsUser: 0
+          command: [ "sh", "-c", "chown -R 1000:1000 /var/log/ditto && echo 'changed ownership of /var/log/ditto to 1000:1000'" ]
+          volumeMounts:
+            - name: ditto-log-files-directory
+              mountPath: /var/log/ditto
+        {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}-policies
+          image: {{ printf "%s:%s" .Values.policies.image.repository ( default .Chart.AppVersion ( default .Values.dittoTag .Values.policies.image.tag ) ) }}
+          imagePullPolicy: {{ .Values.policies.image.pullPolicy }}
+          env:
+            {{- if not .Values.global.logging.customConfigFile.enabled }}
+            - name: DITTO_LOGGING_DISABLE_SYSOUT_LOG
+              value: "{{ if .Values.global.logging.sysout.enabled }}false{{ else }}true{{ end }}"
+            - name: DITTO_LOGGING_FILE_APPENDER
+              value: "{{ if .Values.global.logging.logFiles.enabled }}true{{ else }}false{{ end }}"
+            {{- end }}
+            - name: DITTO_TRACING_ENABLED
+              value: "{{ .Values.global.tracing.enabled }}"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "{{ .Values.global.tracing.otelExporterOtlpEndpoint }}"
+            - name: DITTO_TRACING_SAMPLER
+              value: "{{ .Values.global.tracing.sampler }}"
+            - name: DITTO_TRACING_RANDOM_SAMPLER_PROBABILITY
+              value: "{{ .Values.global.tracing.randomSampler.probability }}"
+            - name: DITTO_TRACING_ADAPTIVE_SAMPLER_THROUGHPUT
+              value: "{{ .Values.global.tracing.adaptiveSampler.throughput }}"
+            {{- if .Values.global.logging.logstash.enabled }}
+            - name: DITTO_LOGGING_LOGSTASH_SERVER
+              value: "{{ .Values.global.logging.logstash.endpoint }}"
+            {{- end }}
+            - name: POD_LABEL_SELECTOR
+              value: "app.kubernetes.io/name=%s"
+            - name: POD_NAMESPACE
+              value: {{.Release.Namespace}}
+            - name: INSTANCE_INDEX
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+            - name: DISCOVERY_METHOD
+              value: "kubernetes-api"
+            - name: TZ
+              value: "{{ .Values.global.timezone }}"
+            - name: JAVA_TOOL_OPTIONS
+              value: >
+                {{ .Values.global.jvmOptions }}
+                -XX:ActiveProcessorCount={{ .Values.policies.jvm.activeProcessorCount }}
+                -XX:MaxRAMPercentage={{ .Values.policies.jvm.heapRamPercentage }}
+                -XX:InitialRAMPercentage={{ .Values.policies.jvm.heapRamPercentage }}
+                -XX:MaxGCPauseMillis={{ .Values.policies.jvm.maxGcPauseMillis }}
+                {{ .Values.policies.additionalJvmOptions }}
+                {{- .Values.global.akkaOptions }}
+                {{- if .Values.global.logging.customConfigFile.enabled }}
+                -Dlogback.configurationFile=/opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
+                {{- end }}
+                {{- range $index, $header := .Values.policies.config.persistence.events.historicalHeadersToPersist }}
+                "{{ printf "%s%d=%s" "-Dditto.policies.policy.event.historical-headers-to-persist." $index $header }}"
+                {{- end }}
+                {{ join " " .Values.policies.systemProps }}
+            - name: MONGO_DB_SSL_ENABLED
+              value: "{{ if .Values.dbconfig.policies.ssl }}true{{ else }}false{{ end }}"
+            - name: MONGO_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.dbconfig.uriSecret | default ( printf "%s-mongodb-secret" ( include "ditto.fullname" . )) }}
+                  key: policies-uri
+            - name: MONGO_DB_CONNECTION_MIN_POOL_SIZE
+              value: "{{ .Values.policies.config.mongodb.minPoolSize }}"
+            - name: MONGO_DB_CONNECTION_POOL_SIZE
+              value: "{{ .Values.policies.config.mongodb.maxPoolSize }}"
+            - name: MONGO_DB_CONNECTION_POOL_IDLE_TIME
+              value: "{{ .Values.policies.config.mongodb.maxPoolIdleTime }}"
+            {{- if .Values.global.prometheus.enabled }}
+            - name: PROMETHEUS_PORT
+              value: "{{ .Values.global.prometheus.port }}"
+            {{- end }}
+            - name: CLUSTER_BS_REQUIRED_CONTACTS
+              value: "{{ .Values.global.cluster.requiredContactPoints }}"
+            - name: DITTO_DDATA_NUMBER_OF_SHARDS
+              value: "{{ .Values.global.cluster.ddata.numberOfShards }}"
+            - name: DITTO_DDATA_MAX_DELTA_ELEMENTS
+              value: "{{ .Values.global.cluster.ddata.maxDeltaElements }}"
+            - name: CLUSTER_NUMBER_OF_SHARDS
+              value: "{{ .Values.global.cluster.numberOfShards }}"
+            - name: CLUSTER_DOWNING_STABLE_AFTER
+              value: "{{ .Values.global.cluster.downingStableAfter }}"
+            - name: CLUSTER_DOWNING_DOWN_ALL_WHEN_UNSTABLE
+              value: "{{ .Values.global.cluster.downAllWhenUnstable }}"
+            - name: AKKA_PERSISTENCE_MONGO_JOURNAL_WRITE_CONCERN
+              value: "{{ .Values.policies.config.mongodb.journalWriteConcern }}"
+            - name: AKKA_PERSISTENCE_MONGO_SNAPS_WRITE_CONCERN
+              value: "{{ .Values.policies.config.mongodb.snapsWriteConcern }}"
+            - name: BREAKER_MAXTRIES
+              value: "{{ .Values.policies.config.mongodb.journalCircuitBreaker.maxTries }}"
+            - name: BREAKER_TIMEOUT
+              value: "{{ .Values.policies.config.mongodb.journalCircuitBreaker.timeout }}"
+            - name: BREAKER_RESET
+              value: "{{ .Values.policies.config.mongodb.journalCircuitBreaker.reset }}"
+            - name: SNAPSHOT_BREAKER_MAXTRIES
+              value: "{{ .Values.policies.config.mongodb.snapsCircuitBreaker.maxTries }}"
+            - name: SNAPSHOT_BREAKER_TIMEOUT
+              value: "{{ .Values.policies.config.mongodb.snapsCircuitBreaker.timeout }}"
+            - name: SNAPSHOT_BREAKER_RESET
+              value: "{{ .Values.policies.config.mongodb.snapsCircuitBreaker.reset }}"
+            - name: POLICY_ACTIVITY_CHECK_INTERVAL
+              value: "{{ .Values.policies.config.persistence.activityCheckInterval }}"
+            - name: HEALTH_CHECK_METRICS_REPORTER_RESOLUTION
+              value: "{{ .Values.policies.config.cleanup.metricsReporter.resolution }}"
+            - name: HEALTH_CHECK_METRICS_REPORTER_HISTORY
+              value: "{{ .Values.policies.config.cleanup.metricsReporter.history }}"
+            - name: CLEANUP_ENABLED
+              value: "{{ .Values.policies.config.cleanup.enabled }}"
+            - name: CLEANUP_QUIET_PERIOD
+              value: "{{ .Values.policies.config.cleanup.quietPeriod }}"
+            - name: CLEANUP_HISTORY_RETENTION_DURATION
+              value: "{{ .Values.policies.config.cleanup.history.retentionDuration }}"
+            - name: CLEANUP_INTERVAL
+              value: "{{ .Values.policies.config.cleanup.interval }}"
+            - name: CLEANUP_TIMER_THRESHOLD
+              value: "{{ .Values.policies.config.cleanup.timerThreshold }}"
+            - name: CLEANUP_CREDITS_PER_BATCH
+              value: "{{ .Values.policies.config.cleanup.creditsPerBatch }}"
+            - name: POLICIES_PERSISTENCE_PING_RATE_FREQUENCY
+              value: "{{ .Values.policies.config.persistence.pingRate.frequency }}"
+            - name: POLICIES_PERSISTENCE_PING_RATE_ENTITIES
+              value: "{{ .Values.policies.config.persistence.pingRate.entities }}"
+            - name: POLICY_SNAPSHOT_INTERVAL
+              value: "{{ .Values.policies.config.persistence.snapshots.interval }}"
+            - name: POLICY_SNAPSHOT_THRESHOLD
+              value: "{{ .Values.policies.config.persistence.snapshots.threshold }}"
+            {{- if .Values.policies.extraEnv }}
+              {{- toYaml .Values.policies.extraEnv | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: remoting
+              containerPort: {{ .Values.akka.remoting.port }}
+              protocol: TCP
+            - name: management
+              containerPort: {{ .Values.akka.mgmthttp.port }}
+              protocol: TCP
+            {{- if .Values.global.prometheus.enabled }}
+            - name: prometheus
+              protocol: TCP
+              containerPort: {{ .Values.global.prometheus.port }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              port: management
+              path: /ready
+            initialDelaySeconds: {{ .Values.policies.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.policies.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.policies.readinessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.policies.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.policies.readinessProbe.failureThreshold }}
+          livenessProbe:
+            httpGet:
+              port: management
+              path: /alive
+            initialDelaySeconds: {{ .Values.policies.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.policies.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.policies.livenessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.policies.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.policies.livenessProbe.failureThreshold }}
+          volumeMounts:
+            {{- if .Values.global.logging.customConfigFile.enabled }}
+            - name: ditto-custom-log-config
+              mountPath: /opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
+              subPath: {{ .Values.global.logging.customConfigFile.fileName }}
+            {{- end }}
+            {{- if .Values.global.logging.logFiles.enabled }}
+            - name: ditto-log-files-directory
+              mountPath: /var/log/ditto
+            {{- end }}
+          resources:
+            requests:
+              cpu: {{ mulf .Values.policies.resources.cpu 1000 }}m
+              memory: {{ .Values.policies.resources.memoryMi }}Mi
+            limits:
+              # ## no cpu limit to avoid CFS scheduler limits
+              # ref: https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+              # cpu: ""
+              memory: {{ .Values.policies.resources.memoryMi }}Mi
+          {{- if .Values.openshift.enabled }}
+          {{- with .Values.openshift.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 8 }}
+          {{- end }}
+          {{- else }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+          {{- end }}
+      {{- with .Values.policies.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.policies.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.policies.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        {{- if .Values.global.logging.customConfigFile.enabled }}
+        - name: ditto-custom-log-config
+          configMap:
+            name: {{ .Release.Name }}-logback-config-policies-xml
+        {{- end }}
+        {{- if .Values.global.logging.logFiles.enabled }}
+        - name: ditto-log-files-directory
+          hostPath:
+            path: /var/log/ditto
+            type: DirectoryOrCreate
+        {{- end }}
+{{- end }}
