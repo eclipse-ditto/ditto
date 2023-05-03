@@ -15,7 +15,7 @@ get:
     - DevOpsBasic: []
     - DevOpsBearer: []
   tags:
-    - Logging
+    - Devops
   parameters:
     - $ref: '../../parameters/loggingFieldsQueryParam.yml'
   responses:
@@ -40,7 +40,7 @@ put:
     - DevOpsBasic: []
     - DevOpsBearer: []
   tags:
-    - Logging
+    - Devops
   requestBody:
     description: Fields to update level log for each pods
     required: true

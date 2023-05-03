@@ -16,7 +16,7 @@ get:
     - DevOpsBasic: []
     - DevOpsBearer: []
   tags:
-    - Service Configuration
+    - Devops
   parameters:
     - $ref: '../../parameters/moduleNamePathParam.yml'
     - $ref: '../../parameters/namePodParam.yml'

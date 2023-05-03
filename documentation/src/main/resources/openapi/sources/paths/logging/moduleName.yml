@@ -16,7 +16,7 @@ get:
     - DevOpsBasic: []
     - DevOpsBearer: []
   tags:
-    - Logging
+    - Devops
   parameters:
     - $ref: '../../parameters/moduleNamePathParam.yml'
     - $ref: '../../parameters/loggingFieldsQueryParam.yml'
@@ -42,7 +42,7 @@ put:
     - DevOpsBasic: []
     - DevOpsBearer: []
   tags:
-    - Logging
+    - Devops
   parameters:
     - $ref: '../../parameters/moduleNamePathParam.yml'
   requestBody:

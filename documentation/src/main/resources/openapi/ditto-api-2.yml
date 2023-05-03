@@ -30,12 +30,8 @@ tags:
     description: Process CloudEvents in Ditto
   - name: Connections
     description: Manage connections
-  - name: Logging
-    description: Manage Log Levels in runtime
-  - name: Service Configuration
-    description: Manage service configuration in runtime
-  - name: Piggyback Commands
-    description: Manage Piggyback commands
+  - name: Devops
+    description: Devops APIs to manage log levels and configuration in runtime and send piggyback command
 security:
   - Google:
       - openid
@@ -7318,7 +7314,7 @@ paths:
         - DevOpsBasic: []
         - DevOpsBearer: []
       tags:
-        - Logging
+        - Devops
       parameters:
         - $ref: '#/components/parameters/LoggingFieldsQueryParam'
       responses:
@@ -7341,7 +7337,7 @@ paths:
         - DevOpsBasic: []
         - DevOpsBearer: []
       tags:
-        - Logging
+        - Devops
       requestBody:
         description: Fields to update level log for each pods
         required: true
@@ -7371,7 +7367,7 @@ paths:
         - DevOpsBasic: []
         - DevOpsBearer: []
       tags:
-        - Logging
+        - Devops
       parameters:
         - $ref: '#/components/parameters/ModuleNamePathParam'
         - $ref: '#/components/parameters/LoggingFieldsQueryParam'
@@ -7395,7 +7391,7 @@ paths:
         - DevOpsBasic: []
         - DevOpsBearer: []
       tags:
-        - Logging
+        - Devops
       parameters:
         - $ref: '#/components/parameters/ModuleNamePathParam'
       requestBody:
@@ -7429,7 +7425,7 @@ paths:
         - DevOpsBasic: []
         - DevOpsBearer: []
       tags:
-        - Service Configuration
+        - Devops
       parameters:
         - $ref: '#/components/parameters/PathParam'
       responses:
@@ -7453,7 +7449,7 @@ paths:
         - DevOpsBasic: []
         - DevOpsBearer: []
       tags:
-        - Service Configuration
+        - Devops
       parameters:
         - $ref: '#/components/parameters/ModuleNamePathParam'
         - $ref: '#/components/parameters/NamePodParam'
@@ -7542,7 +7538,7 @@ paths:
         - DevOpsBasic: []
         - DevOpsBearer: []
       tags:
-        - Piggyback Commands
+        - Devops
       parameters:
         - $ref: '#/components/parameters/TimeoutParam'
       requestBody:
@@ -7642,7 +7638,7 @@ paths:
         - DevOpsBasic: []
         - DevOpsBearer: []
       tags:
-        - Piggyback Commands
+        - Devops
       parameters:
         - $ref: '#/components/parameters/ServiceNameParam'
         - $ref: '#/components/parameters/TimeoutParam'
@@ -7711,7 +7707,7 @@ paths:
         - DevOpsBasic: []
         - DevOpsBearer: []
       tags:
-        - Piggyback Commands
+        - Devops
       parameters:
         - $ref: '#/components/parameters/ServiceNameParam'
         - $ref: '#/components/parameters/InstanceIndex'
