@@ -1,0 +1,34 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: object
+description: Details of logging configuration
+properties:
+  type:
+    type: string
+    description: devops.responses:retrieveLoggerConfig
+  status:
+    type: integer
+    description: The HTTP status
+  serviceName:
+    type: string
+    description: name of service
+  instance:
+    type: string
+    description: instance of module
+  loggerConfigs:
+    type: array
+    items:
+      type: object
+      properties:
+        level:
+          type: string
+        logger:
+          type: string

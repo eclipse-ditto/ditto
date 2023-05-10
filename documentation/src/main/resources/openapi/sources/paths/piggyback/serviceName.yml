@@ -1,0 +1,80 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+post:
+  summary: Send a piggyback command to a specific service
+  description: Send a piggyback command to a specific service
+  security:
+    - DevOpsBasic: []
+    - DevOpsBearer: []
+  tags:
+    - Devops
+  parameters:
+    - $ref: '../../parameters/serviceNameParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+  requestBody:
+    description: Fields to send a command
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../schemas/piggyback/basePiggybackCommandRequestSchema.yml'
+        examples: 
+          persistenceCleanup:
+            description: Query background cleanup coordinator state
+            value: |-
+              {
+                "targetActorSelection": "/user/<SERVICE_NAME>Root/persistenceCleanup",
+                "headers": {},
+                "piggybackCommand": {
+                  "type": "status.commands:retrieveHealth"
+                }
+              }
+
+  responses:
+    '200':
+      description: |-
+        Return The current value of logging level
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/piggyback/piggybackManagingBackgroundCleanup.yml'
+          example: |-
+            {
+              "things": {
+                "ditto-things-65f6dd5d7-htkwt": {
+                  "type": "status.responses:retrieveHealth",
+                  "status": 200,
+                  "statusInfo": {
+                    "status": "UP",
+                    "details": [
+                      {
+                        "INFO": {
+                          "state": "IN_QUIET_PERIOD",
+                          "pid": ""
+                          }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+    '400':
+      description: The request could not be completed. At least one of the defined query parameters was invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/errors/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        text/plain:
+          schema:
+            $ref: '../../schemas/errors/textUnauthorizeError.yml'

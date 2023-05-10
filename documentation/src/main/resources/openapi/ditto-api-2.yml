@@ -11,9 +11,9 @@ info:
     The information Ditto provides additionally to the status code (e.g. in API docs, or error codes like. "things:thing.tooLarge") might change without advance notice.
     These are not be considered as official API, and must therefore not be applied in your applications or tests.
 servers:
-  - url: 'https://ditto.eclipseprojects.io/api/2'
+  - url: 'https://ditto.eclipseprojects.io/'
     description: online Ditto Sandbox
-  - url: /api/2
+  - url: /
     description: local Ditto
 tags:
   - name: Things
@@ -30,13 +30,15 @@ tags:
     description: Process CloudEvents in Ditto
   - name: Connections
     description: Manage connections
+  - name: Devops
+    description: Devops APIs to manage log levels and configuration in runtime and send piggyback command
 security:
   - Google:
       - openid
   - NginxBasic: []
   - Bearer: []
 paths:
-  /things:
+  /api/2/things:
     get:
       summary: Retrieve visible things or things with specified IDs
       description: |-
@@ -199,7 +201,7 @@ paths:
                       waterAmount: 731
                       temperature: 44
         description: 'JSON representation of the thing to be created. Use ''{}'' to create an empty thing with a default policy.'
-  '/things/{thingId}':
+  '/api/2/things/{thingId}':
     get:
       summary: Retrieve a specific thing
       description: |-
@@ -716,7 +718,7 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '424':
           $ref: '#/components/responses/DependencyFailed'
-  '/things/{thingId}/definition':
+  '/api/2/things/{thingId}/definition':
     get:
       summary: Retrieve the definition of a specific thing
       description: Returns the definition of the thing identified by the `thingId` path parameter.
@@ -1012,7 +1014,7 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '424':
           $ref: '#/components/responses/DependencyFailed'
-  '/things/{thingId}/policyId':
+  '/api/2/things/{thingId}/policyId':
     get:
       summary: Retrieve the policy ID of a thing
       description: Returns the policy ID of the thing identified by the `thingId` path parameter.
@@ -1216,7 +1218,7 @@ paths:
 
           The ID of a policy needs to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
         required: true
-  '/things/{thingId}/attributes':
+  '/api/2/things/{thingId}/attributes':
     get:
       summary: List all attributes of a specific thing
       description: Returns all attributes of the thing identified by the `thingId` path parameter.
@@ -1504,7 +1506,7 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '424':
           $ref: '#/components/responses/DependencyFailed'
-  '/things/{thingId}/attributes/{attributePath}':
+  '/api/2/things/{thingId}/attributes/{attributePath}':
     get:
       summary: Retrieve a specific attribute of a specific thing
       description: |-
@@ -1796,7 +1798,7 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '424':
           $ref: '#/components/responses/DependencyFailed'
-  '/things/{thingId}/features':
+  '/api/2/things/{thingId}/features':
     get:
       summary: List all features of a specific thing
       description: Returns all features of the thing identified by the `thingId` path parameter.
@@ -2068,7 +2070,6 @@ paths:
         - Features
       parameters:
         - $ref: '#/components/parameters/ThingIdPathParam'
-        - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -2199,7 +2200,7 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '424':
           $ref: '#/components/responses/DependencyFailed'
-  '/things/{thingId}/features/{featureId}':
+  '/api/2/things/{thingId}/features/{featureId}':
     get:
       summary: Retrieve a specific feature of a specific thing
       description: |-
@@ -2549,7 +2550,7 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '424':
           $ref: '#/components/responses/DependencyFailed'
-  '/things/{thingId}/features/{featureId}/definition':
+  '/api/2/things/{thingId}/features/{featureId}/definition':
     get:
       summary: List the definition of a feature
       description: Returns the complete definition field of the feature identified by the `thingId` and `featureId` path parameter.
@@ -2850,7 +2851,7 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '424':
           $ref: '#/components/responses/DependencyFailed'
-  '/things/{thingId}/features/{featureId}/properties':
+  '/api/2/things/{thingId}/features/{featureId}/properties':
     get:
       summary: List all properties of a feature
       description: Returns all properties of the feature identified by the `thingId` and `featureId` path parameter.
@@ -3165,7 +3166,7 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '424':
           $ref: '#/components/responses/DependencyFailed'
-  '/things/{thingId}/features/{featureId}/properties/{propertyPath}':
+  '/api/2/things/{thingId}/features/{featureId}/properties/{propertyPath}':
     get:
       summary: Retrieve a specific property of a feature
       description: |-
@@ -3458,7 +3459,7 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '424':
           $ref: '#/components/responses/DependencyFailed'
-  '/things/{thingId}/features/{featureId}/desiredProperties':
+  '/api/2/things/{thingId}/features/{featureId}/desiredProperties':
     get:
       summary: List all desired properties of a feature
       description: Returns all desired properties of the feature identified by the `thingId` and `featureId` path parameter.
@@ -3773,7 +3774,7 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '424':
           $ref: '#/components/responses/DependencyFailed'
-  '/things/{thingId}/features/{featureId}/desiredProperties/{propertyPath}':
+  '/api/2/things/{thingId}/features/{featureId}/desiredProperties/{propertyPath}':
     get:
       summary: Retrieve a specific desired property of a feature
       description: |-
@@ -4070,7 +4071,7 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '424':
           $ref: '#/components/responses/DependencyFailed'
-  '/things/{thingId}/inbox/claim':
+  '/api/2/things/{thingId}/inbox/claim':
     post:
       summary: Initiates claiming a specific thing in order to gain access
       description: |-
@@ -4167,7 +4168,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
-  '/things/{thingId}/inbox/messages/{messageSubject}':
+  '/api/2/things/{thingId}/inbox/messages/{messageSubject}':
     post:
       summary: Send a message TO a specific thing
       description: |-
@@ -4262,7 +4263,7 @@ paths:
           $ref: '#/components/responses/DependencyFailed'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
-  '/things/{thingId}/outbox/messages/{messageSubject}':
+  '/api/2/things/{thingId}/outbox/messages/{messageSubject}':
     post:
       summary: Send a message FROM a specific thing
       description: |-
@@ -4344,7 +4345,7 @@ paths:
           $ref: '#/components/responses/DependencyFailed'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
-  '/things/{thingId}/features/{featureId}/inbox/messages/{messageSubject}':
+  '/api/2/things/{thingId}/features/{featureId}/inbox/messages/{messageSubject}':
     post:
       summary: Send a message TO a specific feature of a specific thing
       description: |-
@@ -4430,7 +4431,7 @@ paths:
           $ref: '#/components/responses/DependencyFailed'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
-  '/things/{thingId}/features/{featureId}/outbox/messages/{messageSubject}':
+  '/api/2/things/{thingId}/features/{featureId}/outbox/messages/{messageSubject}':
     post:
       summary: Send a message FROM a specific feature of a specific thing
       description: |-
@@ -4514,7 +4515,7 @@ paths:
           $ref: '#/components/responses/DependencyFailed'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
-  '/policies/{policyId}':
+  '/api/2/policies/{policyId}':
     get:
       summary: Retrieve a specific policy
       description: |-
@@ -4811,7 +4812,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
-  '/policies/{policyId}/actions/activateTokenIntegration':
+  '/api/2/policies/{policyId}/actions/activateTokenIntegration':
     post:
       summary: Activate subjects for this policy derived from the token
       description: |-
@@ -4856,7 +4857,7 @@ paths:
             * containing a `READ` permission granted to a `thing:/` resource path
       requestBody:
         $ref: '#/components/requestBodies/ActivateTokenIntegration'
-  '/policies/{policyId}/actions/deactivateTokenIntegration':
+  '/api/2/policies/{policyId}/actions/deactivateTokenIntegration':
     post:
       summary: Deactivate subjects for this policy derived from the token
       description: |-
@@ -4897,7 +4898,7 @@ paths:
           description: |-
             The request could not be completed because no policy entry matched the following conditions:
             * containing a a subject ID matching the JWT's authenticated subject
-  '/policies/{policyId}/entries':
+  '/api/2/policies/{policyId}/entries':
     get:
       summary: Retrieve the entries of a specific policy
       description: |-
@@ -5048,7 +5049,7 @@ paths:
           Use the placeholder `{{ request:subjectId }}` in order to let the
           backend insert the authenticated subjectId of the HTTP request.
         required: true
-  '/policies/{policyId}/entries/{label}':
+  '/api/2/policies/{policyId}/entries/{label}':
     get:
       summary: Retrieve the entries of a specific Label of a specific policy
       description: |-
@@ -5301,7 +5302,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
-  '/policies/{policyId}/entries/{label}/actions/activateTokenIntegration':
+  '/api/2/policies/{policyId}/entries/{label}/actions/activateTokenIntegration':
     post:
       summary: Activate a subject for this policy entry derived from the token
       description: |-
@@ -5347,7 +5348,7 @@ paths:
             * containing a `READ` permission granted to a `thing:/` resource path
       requestBody:
         $ref: '#/components/requestBodies/ActivateTokenIntegration'
-  '/policies/{policyId}/entries/{label}/actions/deactivateTokenIntegration':
+  '/api/2/policies/{policyId}/entries/{label}/actions/deactivateTokenIntegration':
     post:
       summary: Deactivate a subject for this policy entry derived from the token
       description: |-
@@ -5387,7 +5388,7 @@ paths:
           description: |-
             The request could not be completed because this policy entry did not match the following conditions:
             * containing a a subject ID matching the JWT's authenticated subject
-  '/policies/{policyId}/entries/{label}/subjects':
+  '/api/2/policies/{policyId}/entries/{label}/subjects':
     get:
       summary: Retrieve all Subjects for a specific Label of a specific policy
       description: |-
@@ -5532,7 +5533,7 @@ paths:
           Use the placeholder `{{ request:subjectId }}` in order to let the
           backend insert the authenticated subjectId of the HTTP request.
         required: true
-  '/policies/{policyId}/entries/{label}/subjects/{subjectId}':
+  '/api/2/policies/{policyId}/entries/{label}/subjects/{subjectId}':
     get:
       summary: Retrieve one specific Subject for a specific Label of a specific policy
       description: |-
@@ -5738,7 +5739,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
-  '/policies/{policyId}/entries/{label}/resources':
+  '/api/2/policies/{policyId}/entries/{label}/resources':
     get:
       summary: Retrieve all Resources for a specific Label of a specific policy
       description: |-
@@ -5914,7 +5915,7 @@ paths:
               $ref: '#/components/schemas/Resources'
         description: JSON representation of the Resources
         required: true
-  '/policies/{policyId}/entries/{label}/resources/{resourcePath}':
+  '/api/2/policies/{policyId}/entries/{label}/resources/{resourcePath}':
     get:
       summary: Retrieve one specific Resource for a specific Label of a specific policy
       description: |-
@@ -6120,7 +6121,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
-  '/policies/{policyId}/imports':
+  '/api/2/policies/{policyId}/imports':
     get:
       summary: Retrieve the imports of a specific policy
       description: |-
@@ -6265,7 +6266,7 @@ paths:
               'com.acme:imported2': {}
         description: JSON representation of the policy imports.
         required: true
-  '/policies/{policyId}/imports/{importedPolicyId}':
+  '/api/2/policies/{policyId}/imports/{importedPolicyId}':
     get:
       summary: Retrieve a specific policy import.
       description: |-
@@ -6492,7 +6493,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
-  /whoami:
+  /api/2/whoami:
     get:
       summary: Retrieve information about the current caller
       description: 'Get information about the current caller, e.g. the auth subjects that are generated for the caller.'
@@ -6511,7 +6512,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
-  /search/things:
+  /api/2/search/things:
     get:
       summary: Search for things
       description: |-
@@ -6610,7 +6611,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
-  /search/things/count:
+  /api/2/search/things/count:
     get:
       summary: Count things
       description: |-
@@ -6665,7 +6666,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
-  /cloudevents:
+  /api/2/cloudevents:
     post:
       summary: Processes a CloudEvent sent in Ditto Protocol
       description: |-
@@ -6816,7 +6817,7 @@ paths:
         description: |-
           The [Ditto Protocol JSON](https://www.eclipse.org/ditto/protocol-specification.html) payload defining which
           command to process.
-  /connections:
+  /api/2/connections:
     get:
       summary: Retrieve all connections
       description: Returns all connections.
@@ -6966,7 +6967,7 @@ paths:
                   headerMapping: {}
         description: The example below shows a connection to Eclipse Hono.
         required: true
-  '/connections/{connectionId}':
+  '/api/2/connections/{connectionId}':
     get:
       summary: Retrieve a specific connection
       description: Returns the connection identified by the `connectionId` path parameter.
@@ -7121,7 +7122,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
-  '/connections/{connectionId}/command':
+  '/api/2/connections/{connectionId}/command':
     post:
       summary: Send a command to a specific connection
       description: |-
@@ -7175,7 +7176,7 @@ paths:
             * `connectivity.commands:enableConnectionLogs`
             * `connectivity.commands:resetConnectionLogs`
         required: true
-  '/connections/{connectionId}/status':
+  '/api/2/connections/{connectionId}/status':
     get:
       summary: Retrieve status of a specific connection
       description: Returns the status of the connection identified by the `connectionId` path parameter.
@@ -7217,7 +7218,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
-  '/connections/{connectionId}/metrics':
+  '/api/2/connections/{connectionId}/metrics':
     get:
       summary: Retrieve metrics of a specific connection
       description: Returns the metrics of the connection identified by the `connectionId` path parameter.
@@ -7259,7 +7260,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
-  '/connections/{connectionId}/logs':
+  '/api/2/connections/{connectionId}/logs':
     get:
       summary: Retrieve logs of a specific connection
       description: |-
@@ -7305,6 +7306,456 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+  /devops/logging:
+    get:
+      summary: Retrieve all currently configured log levels
+      description: Return configured log level for all ditto cluster pod
+      security:
+        - DevOpsBasic: []
+        - DevOpsBearer: []
+      tags:
+        - Devops
+      parameters:
+        - $ref: '#/components/parameters/LoggingFieldsQueryParam'
+      responses:
+        '200':
+          description: Return The current value of logging level
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetrieveLoggingConfig'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/TextUnauthorizeError'
+    put:
+      summary: Update log levels
+      description: Modify log level for eatch pods menaged
+      security:
+        - DevOpsBasic: []
+        - DevOpsBearer: []
+      tags:
+        - Devops
+      requestBody:
+        description: Fields to update level log for each pods
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoggingUpdateFields'
+            example: |-
+              {
+                "level": "info",
+                "logger": "akka.actor.CoordinatedShutdown"
+              }
+      responses:
+        '201':
+          $ref: '#/components/responses/SuccessUpdateLogLevel'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/TextUnauthorizeError'
+  '/devops/logging/{moduleName}':
+    get:
+      summary: Retrieve currently configured log levels for a specific module
+      description: Return the configured log
+      security:
+        - DevOpsBasic: []
+        - DevOpsBearer: []
+      tags:
+        - Devops
+      parameters:
+        - $ref: '#/components/parameters/ModuleNamePathParam'
+        - $ref: '#/components/parameters/LoggingFieldsQueryParam'
+      responses:
+        '200':
+          description: Return The current value of logging level
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Module'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/TextUnauthorizeError'
+    put:
+      summary: Update log levels for a specific module
+      description: Return outcome modify log level for a specific module
+      security:
+        - DevOpsBasic: []
+        - DevOpsBearer: []
+      tags:
+        - Devops
+      parameters:
+        - $ref: '#/components/parameters/ModuleNamePathParam'
+      requestBody:
+        description: Fields to update level log for module
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoggingUpdateFields'
+            example: |-
+              {
+                "level": "info",
+                "logger": "akka.actor.CoordinatedShutdown"
+              }
+      responses:
+        '201':
+          $ref: '#/components/responses/SuccessUpdateLogLevelSinglePod'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/TextUnauthorizeError'
+  /devops/config:
+    get:
+      summary: Retrieve the configuration at the specified path parameter
+      description: |-
+        It is recommended to not omit the query parameter path.
+        Otherwise, the full configurations of all services are aggregated in the response, which can become megabytes big.
+      security:
+        - DevOpsBasic: []
+        - DevOpsBearer: []
+      tags:
+        - Devops
+      parameters:
+        - $ref: '#/components/parameters/PathParam'
+      responses:
+        '200':
+          description: Return the configuration at the path
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetrieveConfig'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/TextUnauthorizeError'
+  '/devops/config/{moduleName}/{podName}':
+    get:
+      summary: Retrieving the configuration of a specific service instance.
+      description: Return the configuration of a specific service instance.
+      security:
+        - DevOpsBasic: []
+        - DevOpsBearer: []
+      tags:
+        - Devops
+      parameters:
+        - $ref: '#/components/parameters/ModuleNamePathParam'
+        - $ref: '#/components/parameters/NamePodParam'
+        - $ref: '#/components/parameters/PathParam'
+      responses:
+        '200':
+          description: Return The current value of specific service instance.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RetrieveConfigService'
+              example: |-
+                {
+                  "gateway": {
+                    "podName": {
+                      "type": "common.responses:retrieveConfig",
+                      "status": 200,
+                      "config": {
+                        "cluster": {
+                          "cluster-status-roles-blocklist": [
+                              "cluster1",
+                              "......" ,
+                              "clusterN"
+                          ],
+                          "number-of-shards": 20
+                        },
+                        "ddata": {
+                          "vm arg1": "string",
+                          ".............": "string",
+                          "vm argn" : "string"
+                        },
+                        "devops": {
+                          "feature": {
+                            "merge-things-enabled": true
+                          },
+                          "namespace": {
+                            "block-time": "string"
+                          }
+                        },
+                        "gateway": {
+                          "authentication": {
+                            "devops": {
+                              "devops-authentication-method": "string",
+                              "password": "string",
+                              "secured": true,
+                              "status-authentication-method": "string",
+                              "statusPassword": "string"
+                            },
+                            "http": {
+                              "proxy": {
+                                "enabled": false
+                              }
+                            },
+                            "oauth": {
+                              "allowed-clock-skew": "string",
+                              "openid-connect-issuers": {
+                                "google": {
+                                  "issuer": "string"
+                                }
+                              },
+                              "protocol": "https",
+                              "token-integration-subject": "string"
+                            },
+                            "pre-authentication": {
+                              "enabled": "true"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/TextUnauthorizeError'
+  /devops/piggyback:
+    post:
+      summary: Send a piggyback command
+      description: Send a piggyback command to Akka’s pub-sub-mediator
+      security:
+        - DevOpsBasic: []
+        - DevOpsBearer: []
+      tags:
+        - Devops
+      parameters:
+        - $ref: '#/components/parameters/TimeoutParam'
+      requestBody:
+        description: Fields to send a command
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BasePiggybackCommandRequestSchema'
+            examples:
+              blockNamespace:
+                description: Block all messages to a namespace
+                value: |-
+                  {
+                    "targetActorSelection": "/system/distributedPubSubMediator",
+                    "headers": {
+                      "aggregate": false
+                    },
+                    "piggybackCommand": {
+                      "type": "namespaces.commands:blockNamespace",
+                      "namespace": "namespaceToBlock"
+                    }
+                  }
+              shutdown:
+                description: Shutdown all actors in a namespace
+                value: |-
+                  {
+                    "targetActorSelection": "/system/distributedPubSubMediator",
+                    "piggybackCommand": {
+                      "type": "common.commands:shutdown",
+                      "reason": {
+                        "type": "purge-namespace",
+                        "details": "namespaceToShutdown"
+                      }
+                    }
+                  }
+              purgeNamespace:
+                description: Erase all data in a namespace from the persistence
+                value: |-
+                  {
+                    "targetActorSelection": "/system/distributedPubSubMediator",
+                    "headers": {
+                      "aggregate": true,
+                      "is-group-topic": true
+                    },
+                    "piggybackCommand": {
+                      "type": "namespaces.commands:purgeNamespace",
+                      "namespace": "namespaceToPurge"
+                    }
+                  }
+              unblockNamespace:
+                description: Unblock messages to a namespace
+                value: |-
+                  {
+                    "targetActorSelection": "/system/distributedPubSubMediator",
+                    "headers": {
+                      "aggregate": false
+                    },
+                    "piggybackCommand": {
+                      "type": "namespaces.commands:unblockNamespace",
+                      "namespace": "namespaceToUnblock"
+                    }
+                  }
+      responses:
+        '200':
+          description: Response of command
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PiggybackManagingBackgroundCleanup'
+              examples:
+                blockNamespace:
+                  value: |-
+                    {
+                      "type": "namespaces.responses:blockNamespace",
+                      "status": 200,
+                      "namespace": "namespaceToBlock",
+                      "resourceType": "namespaces"
+                    }
+        '400':
+          description: The request could not be completed. At least one of the defined query parameters was invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/TextUnauthorizeError'
+  '/devops/piggyback/{serviceName}':
+    post:
+      summary: Send a piggyback command to a specific service
+      description: Send a piggyback command to a specific service
+      security:
+        - DevOpsBasic: []
+        - DevOpsBearer: []
+      tags:
+        - Devops
+      parameters:
+        - $ref: '#/components/parameters/ServiceNameParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+      requestBody:
+        description: Fields to send a command
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BasePiggybackCommandRequestSchema'
+            examples:
+              persistenceCleanup:
+                description: Query background cleanup coordinator state
+                value: |-
+                  {
+                    "targetActorSelection": "/user/<SERVICE_NAME>Root/persistenceCleanup",
+                    "headers": {},
+                    "piggybackCommand": {
+                      "type": "status.commands:retrieveHealth"
+                    }
+                  }
+      responses:
+        '200':
+          description: Return The current value of logging level
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PiggybackManagingBackgroundCleanup'
+              example: |-
+                {
+                  "things": {
+                    "ditto-things-65f6dd5d7-htkwt": {
+                      "type": "status.responses:retrieveHealth",
+                      "status": 200,
+                      "statusInfo": {
+                        "status": "UP",
+                        "details": [
+                          {
+                            "INFO": {
+                              "state": "IN_QUIET_PERIOD",
+                              "pid": ""
+                              }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+        '400':
+          description: The request could not be completed. At least one of the defined query parameters was invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/TextUnauthorizeError'
+  '/devops/piggyback/{serviceName}/{instanceIndex}':
+    post:
+      summary: Send a piggyback command to a specific instance of service
+      description: Send a piggyback command to a specific instance of service
+      security:
+        - DevOpsBasic: []
+        - DevOpsBearer: []
+      tags:
+        - Devops
+      parameters:
+        - $ref: '#/components/parameters/ServiceNameParam'
+        - $ref: '#/components/parameters/InstanceIndex'
+        - $ref: '#/components/parameters/TimeoutParam'
+      requestBody:
+        description: Fields to send a command
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BasePiggybackCommandRequestSchema'
+            examples:
+              cleanup:
+                description: Cleanup events and snapshots of an entity
+                value: |-
+                  {
+                    "targetActorSelection": "/system/sharding/thing",
+                    "headers": {
+                      "aggregate": false
+                    },
+                    "piggybackCommand": {
+                      "type": "cleanup.sudo.commands:cleanupPersistence",
+                      "entityId": "ditto:thing1"
+                    }
+                  }
+      responses:
+        '200':
+          description: response of command
+          content:
+            application/json:
+              example: |-
+                {
+                  "type": "cleanup.sudo.responses:cleanupPersistence",
+                  "status": 200,
+                  "entityId": "thing:ditto:thing1"
+                }
+        '400':
+          description: The request could not be completed. At least one of the defined query parameters was invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/TextUnauthorizeError'
 components:
   requestBodies:
     Attributes:
@@ -7490,6 +7941,20 @@ components:
               acknnowledgementLabelN:
                 status: 403
                 payload: Forbidden
+    SuccessUpdateLogLevel:
+      description: Return The summary of the outcome of all modified pods
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/ResultUpdateRequest'
+    SuccessUpdateLogLevelSinglePod:
+      description: Return The summary of the outcome of modified pod
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ModuleUpdatedLogLevel'
   parameters:
     AllowPolicyLockoutParam:
       name: allow-policy-lockout
@@ -8221,6 +8686,55 @@ components:
 
         * `?fields=id,_revision,sources`
       required: false
+      schema:
+        type: string
+    LoggingFieldsQueryParam:
+      name: includeDisabledLoggers
+      in: query
+      description: Include disabled loggers
+      required: false
+      schema:
+        type: boolean
+    ModuleNamePathParam:
+      name: moduleName
+      in: path
+      description: The name of module
+      required: true
+      schema:
+        type: string
+        example: gateway
+    PathParam:
+      name: path
+      in: query
+      description: 'The path points to information on service name, service instance index, JVM arguments and environment variables.'
+      schema:
+        type: string
+        example: ditto.info
+      required: false
+    NamePodParam:
+      name: podName
+      in: path
+      description: The name of pod
+      required: true
+      schema:
+        type: string
+        example: ditto-gateway-764fc5f474-qrm2r
+    ServiceNameParam:
+      name: serviceName
+      in: path
+      description: Specified service target for the command execution
+      required: true
+      schema:
+        type: string
+        enum:
+          - things
+          - policies
+          - connectivity
+    InstanceIndex:
+      name: instanceIndex
+      in: path
+      description: The index of the current instance
+      required: true
       schema:
         type: string
   schemas:
@@ -9585,6 +10099,206 @@ components:
         - security
         - securityDefinitions
       additionalProperties: true
+    TextUnauthorizeError:
+      type: string
+      example: The supplied authentication is invalid
+    RetrieveConfig:
+      type: object
+      properties:
+        gateway:
+          type: object
+          description: Module
+          properties:
+            pod:
+              type: object
+              description: Return the configuration at the path ditto.info
+              properties:
+                type:
+                  type: string
+                  description: 'devops.responses:ResultConfig'
+                status:
+                  type: integer
+                  description: The HTTP status
+                config:
+                  type: object
+                  description: name of service
+                  properties:
+                    env:
+                      items:
+                        type: string
+                      properties:
+                        PATH:
+                          type: string
+                    service:
+                      items:
+                        type: string
+                      properties:
+                        instance-index:
+                          type: integer
+                        service-name:
+                          type: string
+                    vm-args:
+                      items:
+                        type: string
+    RetrieveLoggingConfig:
+      properties:
+        gateway:
+          $ref: '#/components/schemas/Module'
+    Module:
+      type: object
+      description: Module
+      properties:
+        pod:
+          type: object
+          description: Details of logging configuration
+          properties:
+            type:
+              type: string
+              description: 'devops.responses:retrieveLoggerConfig'
+            status:
+              type: integer
+              description: The HTTP status
+            serviceName:
+              type: string
+              description: name of service
+            instance:
+              type: string
+              description: instance of module
+            loggerConfigs:
+              type: array
+              items:
+                type: object
+                properties:
+                  level:
+                    type: string
+                  logger:
+                    type: string
+    LoggingUpdateFields:
+      properties:
+        level:
+          type: string
+        logger:
+          type: string
+          description: class where apply logger level
+    UpdatedLogLevel:
+      type: object
+      description: Details of logging configuration
+      properties:
+        type:
+          type: string
+          description: 'devops.responses:changeLogLevel'
+        status:
+          type: integer
+          description: http code 200 for success operation
+        serviceName:
+          type: string
+          description: name of service that has been updated
+        instance:
+          type: string
+          description: identifier of pod instance
+        successfull:
+          type: boolean
+          description: outcome of the change
+    ModuleUpdatedLogLevel:
+      type: object
+      description: Module that has been updated
+      properties:
+        pod:
+          $ref: '#/components/schemas/UpdatedLogLevel'
+    ResultUpdateRequest:
+      type: object
+      properties:
+        gateway:
+          $ref: '#/components/schemas/ModuleUpdatedLogLevel'
+        things-search:
+          $ref: '#/components/schemas/ModuleUpdatedLogLevel'
+        policies:
+          $ref: '#/components/schemas/ModuleUpdatedLogLevel'
+        things:
+          $ref: '#/components/schemas/ModuleUpdatedLogLevel'
+        connectivity:
+          $ref: '#/components/schemas/ModuleUpdatedLogLevel'
+    ModuleConfigService:
+      type: object
+      description: Module
+      properties:
+        pod:
+          $ref: '#/components/schemas/ResultConfigService'
+    ResultConfigService:
+      type: object
+      description: Details of specific service instance.
+      properties:
+        type:
+          type: string
+          description: 'devops.responses:ResultConfigService'
+        status:
+          type: integer
+          description: The HTTP status
+        config:
+          type: object
+          description: name of service
+          properties:
+            cluster:
+              items:
+                type: string
+              properties:
+                number-of-shards:
+                  type: integer
+            gateway:
+              items:
+                type: object
+              properties:
+                authentication:
+                  type: object
+                  properties:
+                    devops:
+                      type: object
+                      properties:
+                        password:
+                          type: string
+                        secured:
+                          type: boolean
+    RetrieveConfigService:
+      type: object
+      properties:
+        gateway:
+          $ref: '#/components/schemas/ModuleConfigService'
+    BasePiggybackCommandRequestSchema:
+      properties:
+        targetActorSelection:
+          type: string
+        headers:
+          type: object
+          properties:
+            aggregate:
+              type: boolean
+              default: false
+            is-group-topic:
+              type: boolean
+              default: true
+        piggybackCommand:
+          type: object
+          properties:
+            type:
+              type: string
+    PiggybackManagingBackgroundCleanup:
+      properties:
+        targetActorSelection:
+          type: string
+        headers:
+          type: object
+          properties:
+            aggregate:
+              type: boolean
+              default: false
+            is-group-topic:
+              type: boolean
+              default: true
+        piggybackCommand:
+          type: object
+          properties:
+            type:
+              type: string
   securitySchemes:
     NginxBasic:
       type: http
