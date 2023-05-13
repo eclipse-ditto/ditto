@@ -12,6 +12,7 @@
  */
 
 /* eslint-disable quotes */
+import autoComplete from "@tarekraafat/autocomplete.js";
 
 const dom = {
   modalBodyConfirm: null,

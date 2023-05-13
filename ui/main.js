@@ -11,6 +11,9 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 /* eslint-disable new-cap */
+import 'bootstrap/dist/css/bootstrap.min.css';
+import './main.scss';
+import {Dropdown} from 'bootstrap';
 
 import * as Authorization from './modules/environments/authorization.js';
 import * as Environments from './modules/environments/environments.js';
@@ -70,7 +73,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   featureDescription.ready();
 
   // make dropdowns not cutting off
-  new bootstrap.Dropdown(document.querySelector('.dropdown-toggle'), {
+  new Dropdown(document.querySelector('.dropdown-toggle'), {
     popperConfig: {
       strategy: 'fixed',
     },
