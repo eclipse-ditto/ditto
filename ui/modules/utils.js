@@ -13,6 +13,8 @@
 
 /* eslint-disable quotes */
 import autoComplete from "@tarekraafat/autocomplete.js";
+import {Toast, Modal} from 'bootstrap';
+
 
 const dom = {
   modalBodyConfirm: null,
@@ -228,7 +230,7 @@ export function showError(message, header, status = '') {
   domToast.addEventListener("hidden.bs.toast", () => {
     domToast.remove();
   });
-  const bsToast = new bootstrap.Toast(domToast);
+  const bsToast = new Toast(domToast);
   bsToast.show();
 }
 
@@ -286,7 +288,7 @@ let modalConfirm;
  * @param {function} callback true if confirmed
  */
 export function confirm(message, action, callback) {
-  modalConfirm = modalConfirm ?? new bootstrap.Modal('#modalConfirm');
+  modalConfirm = modalConfirm ?? new Modal('#modalConfirm');
   dom.modalBodyConfirm.innerHTML = message;
   dom.buttonConfirmed.innerText = action;
   dom.buttonConfirmed.onclick = callback;
