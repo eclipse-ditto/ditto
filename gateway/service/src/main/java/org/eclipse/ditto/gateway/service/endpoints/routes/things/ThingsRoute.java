@@ -352,6 +352,8 @@ public final class ThingsRoute extends AbstractRoute {
                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                         thingJson -> MergeThing.withThing(thingId,
                                                 thingFromJsonForPatch(thingJson, thingId, dittoHeaders),
+                                                createInlinePolicyJson(thingJson),
+                                                getCopyPolicyFrom(thingJson),
                                                 dittoHeaders)))
                         ),
                         // DELETE /things/<thingId>

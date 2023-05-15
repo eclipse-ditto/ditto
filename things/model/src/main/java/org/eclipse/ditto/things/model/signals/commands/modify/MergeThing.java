@@ -21,6 +21,7 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.Placeholders;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
@@ -36,6 +37,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.AttributesModelFactory;
@@ -50,6 +52,7 @@ import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.PoliciesConflictingException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingIdNotExplicitlySettableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingMergeInvalidException;
 
@@ -75,16 +78,51 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
+    /**
+     * Json Field definition for the optional initial "inline" policy for usage in getEntity().
+     */
+    public static final JsonFieldDefinition<JsonObject> JSON_INLINE_POLICY =
+            JsonFactory.newJsonObjectFieldDefinition(Policy.INLINED_FIELD_NAME, FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    /**
+     * Json Field definition for the optional feature to copy an existing policy.
+     */
+    public static final JsonFieldDefinition<String> JSON_COPY_POLICY_FROM =
+            JsonFactory.newStringFieldDefinition("_copyPolicyFrom", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final JsonFieldDefinition<JsonObject> JSON_INITIAL_POLICY =
+            JsonFactory.newJsonObjectFieldDefinition("initialPolicy", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final JsonFieldDefinition<String> JSON_POLICY_ID_OR_PLACEHOLDER =
+            JsonFactory.newStringFieldDefinition("policyIdOrPlaceholder", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
     private final ThingId thingId;
     private final JsonPointer path;
     private final JsonValue value;
 
+    @Nullable private final JsonObject initialPolicy;
+    @Nullable private final String policyIdOrPlaceholder;
+
     private MergeThing(final ThingId thingId, final JsonPointer path, final JsonValue value,
+            @Nullable final JsonObject initialPolicy,
+            @Nullable final String policyIdOrPlaceholder,
             final DittoHeaders dittoHeaders) {
         super(TYPE, FeatureToggle.checkMergeFeatureEnabled(TYPE, dittoHeaders));
         this.thingId = checkNotNull(thingId, "thingId");
         this.path = checkNotNull(path, "path");
         this.value = checkJsonSize(checkNotNull(value, "value"), dittoHeaders);
+
+        if (policyIdOrPlaceholder != null && initialPolicy != null) {
+            throw PoliciesConflictingException.newBuilder(thingId).dittoHeaders(dittoHeaders).build();
+        }
+
+        if (policyIdOrPlaceholder != null && !Placeholders.containsAnyPlaceholder(policyIdOrPlaceholder)) {
+            PolicyId.of(policyIdOrPlaceholder); //validates
+        }
+
+        this.initialPolicy = initialPolicy;
+        this.policyIdOrPlaceholder = policyIdOrPlaceholder;
+
         checkSchemaVersion();
     }
 
@@ -100,7 +138,15 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      */
     public static MergeThing of(final ThingId thingId, final JsonPointer path, final JsonValue value,
             final DittoHeaders dittoHeaders) {
-        return new MergeThing(thingId, path, value, dittoHeaders);
+        if (path.isEmpty() && value.isObject()) {
+            final JsonObject object = value.asObject();
+            final Optional<JsonObject> initialPolicy = initialPolicyForMergeThingFrom(object);
+            final Optional<String> policyIdOrPlaceholder = policyIdOrPlaceholderForMergeThingFrom(object);
+            return new MergeThing(thingId, path, value, initialPolicy.orElse(null),
+                    policyIdOrPlaceholder.orElse(null), dittoHeaders);
+        } else {
+            return new MergeThing(thingId, path, value, null, null, dittoHeaders);
+        }
     }
 
     /**
@@ -115,7 +161,32 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
         ensureThingIdMatches(thingId, thing);
         ensureThingIsNotNullOrEmpty(thing, dittoHeaders);
         final JsonObject mergePatch = thing.toJson();
-        return new MergeThing(thingId, JsonPointer.empty(), mergePatch, dittoHeaders);
+        return new MergeThing(thingId, JsonPointer.empty(), mergePatch, null, null, dittoHeaders);
+    }
+
+    /**
+     * Creates a command for merging the thing identified by {@code thingId} with the given {@code thing}.
+     * Only one of the arguments initialPolicy and policyIdOrPlaceholder must not be null. They are both allowed to be
+     * null, but not both to not be null at the same time.
+     *
+     * @param thingId the thing id.
+     * @param thing the thing that is merged with the existing thing.
+     * @param policyIdOrPlaceholder the policy id of the {@code Policy} to copy and set for the Thing when creating it.
+     * If it's a placeholder it will be resolved to a policy id.
+     * Placeholder must be of the syntax: {@code {{ ref:things/<theThingId>/policyId }} }.
+     * @param initialPolicy the initial {@code Policy} to set for the Thing when creating it - may be null.
+     * @param dittoHeaders the ditto headers.
+     * @return the created {@link MergeThing} command.
+     * @since 3.3.0
+     */
+    public static MergeThing withThing(final ThingId thingId, final Thing thing,
+            @Nullable final JsonObject initialPolicy, @Nullable final String policyIdOrPlaceholder,
+            final DittoHeaders dittoHeaders) {
+        ensureThingIdMatches(thingId, thing);
+        ensureThingIsNotNullOrEmpty(thing, dittoHeaders);
+        final JsonObject mergePatch = thing.toJson();
+        return new MergeThing(thingId, JsonPointer.empty(), mergePatch, initialPolicy, policyIdOrPlaceholder,
+                dittoHeaders);
     }
 
     /**
@@ -129,7 +200,8 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
     public static MergeThing withPolicyId(final ThingId thingId, final PolicyId policyId,
             final DittoHeaders dittoHeaders) {
         checkNotNull(policyId, "policyId");
-        return new MergeThing(thingId, Thing.JsonFields.POLICY_ID.getPointer(), JsonValue.of(policyId), dittoHeaders);
+        return new MergeThing(thingId, Thing.JsonFields.POLICY_ID.getPointer(), JsonValue.of(policyId),
+                null, null, dittoHeaders);
     }
 
     /**
@@ -143,7 +215,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
     public static MergeThing withThingDefinition(final ThingId thingId, final ThingDefinition thingDefinition,
             final DittoHeaders dittoHeaders) {
         return new MergeThing(thingId, Thing.JsonFields.DEFINITION.getPointer(), thingDefinition.toJson(),
-                dittoHeaders);
+                null, null, dittoHeaders);
     }
 
     /**
@@ -156,7 +228,8 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      */
     public static MergeThing withAttributes(final ThingId thingId, final Attributes attributes,
             final DittoHeaders dittoHeaders) {
-        return new MergeThing(thingId, Thing.JsonFields.ATTRIBUTES.getPointer(), attributes.toJson(), dittoHeaders);
+        return new MergeThing(thingId, Thing.JsonFields.ATTRIBUTES.getPointer(), attributes.toJson(),
+                null, null, dittoHeaders);
     }
 
     /**
@@ -173,7 +246,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
             final JsonValue attributeValue, final DittoHeaders dittoHeaders) {
         final JsonPointer absolutePath =
                 Thing.JsonFields.ATTRIBUTES.getPointer().append(checkAttributePointer(attributePath, dittoHeaders));
-        return new MergeThing(thingId, absolutePath, checkAttributeValue(attributeValue), dittoHeaders);
+        return new MergeThing(thingId, absolutePath, checkAttributeValue(attributeValue), null, null, dittoHeaders);
     }
 
     /**
@@ -187,7 +260,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
     public static MergeThing withFeatures(final ThingId thingId, final Features features,
             final DittoHeaders dittoHeaders) {
         final JsonPointer absolutePath = Thing.JsonFields.FEATURES.getPointer();
-        return new MergeThing(thingId, absolutePath, features.toJson(), dittoHeaders);
+        return new MergeThing(thingId, absolutePath, features.toJson(), null, null, dittoHeaders);
     }
 
     /**
@@ -201,7 +274,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
     public static MergeThing withFeature(final ThingId thingId, final Feature feature,
             final DittoHeaders dittoHeaders) {
         final JsonPointer absolutePath = Thing.JsonFields.FEATURES.getPointer().append(JsonPointer.of(feature.getId()));
-        return new MergeThing(thingId, absolutePath, feature.toJson(), dittoHeaders);
+        return new MergeThing(thingId, absolutePath, feature.toJson(), null, null, dittoHeaders);
     }
 
     /**
@@ -220,7 +293,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
         final JsonPointer absolutePath = Thing.JsonFields.FEATURES.getPointer()
                 .append(JsonPointer.of(featureId))
                 .append(Feature.JsonFields.DEFINITION.getPointer());
-        return new MergeThing(thingId, absolutePath, featureDefinition.toJson(), dittoHeaders);
+        return new MergeThing(thingId, absolutePath, featureDefinition.toJson(), null, null, dittoHeaders);
     }
 
     /**
@@ -239,7 +312,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
         final JsonPointer absolutePath = Thing.JsonFields.FEATURES.getPointer()
                 .append(JsonPointer.of(featureId))
                 .append(Feature.JsonFields.PROPERTIES.getPointer());
-        return new MergeThing(thingId, absolutePath, featureProperties.toJson(), dittoHeaders);
+        return new MergeThing(thingId, absolutePath, featureProperties.toJson(), null, null, dittoHeaders);
     }
 
     /**
@@ -260,7 +333,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
                 .append(JsonPointer.of(featureId))
                 .append(Feature.JsonFields.PROPERTIES.getPointer())
                 .append(checkPropertyPointer(propertyPath));
-        return new MergeThing(thingId, absolutePath, checkPropertyValue(propertyValue), dittoHeaders);
+        return new MergeThing(thingId, absolutePath, checkPropertyValue(propertyValue), null, null, dittoHeaders);
     }
 
     /**
@@ -279,7 +352,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
         final JsonPointer absolutePath = Thing.JsonFields.FEATURES.getPointer()
                 .append(JsonPointer.of(featureId))
                 .append(Feature.JsonFields.DESIRED_PROPERTIES.getPointer());
-        return new MergeThing(thingId, absolutePath, desiredFeatureProperties.toJson(), dittoHeaders);
+        return new MergeThing(thingId, absolutePath, desiredFeatureProperties.toJson(), null, null, dittoHeaders);
     }
 
     /**
@@ -300,7 +373,30 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
                 .append(JsonPointer.of(featureId))
                 .append(Feature.JsonFields.DESIRED_PROPERTIES.getPointer())
                 .append(checkPropertyPointer(propertyPath));
-        return new MergeThing(thingId, absolutePath, checkPropertyValue(propertyValue), dittoHeaders);
+        return new MergeThing(thingId, absolutePath, checkPropertyValue(propertyValue), null, null, dittoHeaders);
+    }
+
+    /**
+     * Retrieves a potentially included "inline policy" from the {@link #JSON_INLINE_POLICY _policy} field of the passed
+     * {@code jsonObject}.
+     *
+     * @param jsonObject the JSON object to look for an inline policy in.
+     * @return the potentially contained inline policy as JSON object.
+     */
+    public static Optional<JsonObject> initialPolicyForMergeThingFrom(final JsonObject jsonObject) {
+        return jsonObject.getValue(JSON_INLINE_POLICY)
+                .map(JsonValue::asObject);
+    }
+
+    /**
+     * Retrieves a potentially included "policy id or placeholder" to copy a policy from the
+     * {@link #JSON_COPY_POLICY_FROM _copyPolicyFrom} field of the passed {@code jsonObject}.
+     *
+     * @param jsonObject the JSON object to look for the policy id or placeholder in.
+     * @return the potentially contained policy id or placeholder.
+     */
+    public static Optional<String> policyIdOrPlaceholderForMergeThingFrom(final JsonObject jsonObject) {
+        return jsonObject.getValue(JSON_COPY_POLICY_FROM);
     }
 
     private static JsonPointer checkPropertyPointer(final JsonPointer propertyPointer) {
@@ -379,8 +475,11 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
             final String thingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final String path = jsonObject.getValueOrThrow(JsonFields.JSON_PATH);
             final JsonValue jsonValue = jsonObject.getValueOrThrow(JsonFields.JSON_VALUE);
+            final JsonObject initialPolicyObject = jsonObject.getValue(JSON_INITIAL_POLICY).orElse(null);
+            final String policyIdOrPlaceholder = jsonObject.getValue(JSON_POLICY_ID_OR_PLACEHOLDER).orElse(null);
 
-            return of(ThingId.of(thingId), JsonPointer.of(path), jsonValue, dittoHeaders);
+            return new MergeThing(ThingId.of(thingId), JsonPointer.of(path), jsonValue, initialPolicyObject,
+                    policyIdOrPlaceholder, dittoHeaders);
         });
     }
 
@@ -411,6 +510,23 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
         return path;
     }
 
+    /**
+     * @return the initial {@code Policy} if there should be one applied when creating the Thing.
+     * @since 3.3.0
+     */
+    public Optional<JsonObject> getInitialPolicy() {
+        return Optional.ofNullable(initialPolicy);
+    }
+
+    /**
+     * @return The policy id of the {@code Policy} to copy and set for the Thing when creating it.
+     * Could also be a placeholder like: {{ ref:things/theThingId/policyId }}.
+     * @since 3.3.0
+     */
+    public Optional<String> getPolicyIdOrPlaceholder() {
+        return Optional.ofNullable(policyIdOrPlaceholder);
+    }
+
     @Override
     public boolean changesAuthorization() {
         return Thing.JsonFields.POLICY_ID.getPointer().equals(path) || path.isEmpty() && value.isObject() &&
@@ -419,12 +535,12 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
 
     @Override
     public Category getCategory() {
-        return Category.MODIFY;
+        return Category.MERGE;
     }
 
     @Override
     public MergeThing setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, path, value, dittoHeaders);
+        return new MergeThing(thingId, path, value, initialPolicy, policyIdOrPlaceholder, dittoHeaders);
     }
 
     @Override
@@ -434,6 +550,12 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
         jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JsonFields.JSON_PATH, path.toString(), predicate);
         jsonObjectBuilder.set(JsonFields.JSON_VALUE, value, predicate);
+        if (initialPolicy != null) {
+            jsonObjectBuilder.set(JSON_INITIAL_POLICY, initialPolicy, predicate);
+        }
+        if (policyIdOrPlaceholder != null) {
+            jsonObjectBuilder.set(JSON_POLICY_ID_OR_PLACEHOLDER, policyIdOrPlaceholder, predicate);
+        }
     }
 
     @Override
@@ -484,8 +606,12 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
             return false;
         }
         final MergeThing that = (MergeThing) o;
-        return that.canEqual(this) && thingId.equals(that.thingId) && path.equals(that.path) &&
-                value.equals(that.value);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(path, that.path) &&
+                Objects.equals(value, that.value) &&
+                Objects.equals(initialPolicy, that.initialPolicy) &&
+                Objects.equals(policyIdOrPlaceholder, that.policyIdOrPlaceholder);
     }
 
     @Override
@@ -495,7 +621,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), thingId, path, value);
+        return Objects.hash(super.hashCode(), thingId, path, value, initialPolicy, policyIdOrPlaceholder);
     }
 
     @Override
@@ -505,6 +631,8 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
                 ", thingId=" + thingId +
                 ", path=" + path +
                 ", value=" + value +
+                ", initialPolicy=" + initialPolicy +
+                ", policyIdOrPlaceholder=" + policyIdOrPlaceholder +
                 "]";
     }
 }

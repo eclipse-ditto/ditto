@@ -460,18 +460,20 @@ paths:
                       temperature: 44
         description: JSON representation of the thing to be modified.
     patch:
-      summary: Patch a thing with a specified ID
+      summary: Create or patch a thing with a specified ID
       description: |-
-        Patch an existing thing specified by the `thingId` path parameter.
+        Create or patch an existing thing specified by the `thingId` path parameter.
 
-        Patching a thing will merge the provided request body with the exisiting thing.
+        If the thing did not yet exist, it will be created.
+        For an existing thing, patching a thing will merge the provided request body with the existing thing values.
         This makes it possible to change only some parts of a thing in single request without providing the full thing
         structure in the request body.
 
 
         ### Patch a thing
 
-        With this resource it is possible to add, update or delete parts of an existing thing.
+        With this resource it is possible to add, update or delete parts of an existing thing or to create the thing if it
+        does not yet exist.
         The request body provided in *JSON merge patch* (RFC-7396) format will be merged with the existing thing.
         Notice that the `null` value in the JSON body will delete the specified JSON key from the thing.
         For further documentation of JSON merge patch see [RFC 7396](https://tools.ietf.org/html/rfc7396).
@@ -597,6 +599,23 @@ paths:
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
       responses:
+        '201':
+          description: The thing was successfully created.
+          headers:
+            ETag:
+              description: |-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+            Location:
+              description: The location of the created thing resource
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Thing'
         '204':
           description: The thing was successfully patched.
           headers:
