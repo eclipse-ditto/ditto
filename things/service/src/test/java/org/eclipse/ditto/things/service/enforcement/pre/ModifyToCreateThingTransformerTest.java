@@ -24,7 +24,9 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.junit.Before;
@@ -56,6 +58,36 @@ public final class ModifyToCreateThingTransformerTest {
 
         assertThat(result).isSameAs(modifyThing);
         verify(existenceChecker).checkExistence(modifyThing);
+    }
+
+    @Test
+    public void mergeThingBecomesCreateThingPolicyWhenNotYetExisting() {
+        final var thingId = ThingId.generateRandom();
+        final var mergeThing = MergeThing.withThing(thingId, Thing.newBuilder().setId(thingId).build(),
+                DittoHeaders.of(Map.of("foo", "bar")));
+        when(existenceChecker.checkExistence(mergeThing)).thenReturn(CompletableFuture.completedStage(false));
+
+        final Signal<?> result = underTest.apply(mergeThing).toCompletableFuture().join();
+
+        assertThat(result).isInstanceOf(CreateThing.class);
+        final CreateThing createThing = (CreateThing) result;
+        assertThat(createThing.getEntityId().toString()).hasToString(thingId.toString());
+        assertThat(createThing.getThing()).isEqualTo(ThingsModelFactory.newThing(mergeThing.getValue().asObject()));
+        assertThat(createThing.getDittoHeaders()).isSameAs(mergeThing.getDittoHeaders());
+        verify(existenceChecker).checkExistence(mergeThing);
+    }
+
+    @Test
+    public void mergeThingStaysMergeThingWhenAlreadyExisting() {
+        final var thingId = ThingId.generateRandom();
+        final var mergeThing = MergeThing.withThing(thingId, Thing.newBuilder().setId(thingId).build(),
+                DittoHeaders.of(Map.of("foo", "bar")));
+        when(existenceChecker.checkExistence(mergeThing)).thenReturn(CompletableFuture.completedStage(true));
+
+        final Signal<?> result = underTest.apply(mergeThing).toCompletableFuture().join();
+
+        assertThat(result).isSameAs(mergeThing);
+        verify(existenceChecker).checkExistence(mergeThing);
     }
 
     @Test

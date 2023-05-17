@@ -23,7 +23,7 @@ import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
@@ -62,7 +62,7 @@ final class ThingExistenceChecker {
                 thingsShardRegion);
     }
 
-    public CompletionStage<Boolean> checkExistence(final ModifyThing signal) {
+    public CompletionStage<Boolean> checkExistence(final ThingModifyCommand<?> signal) {
         try {
             return thingIdLoader.asyncLoad(signal.getEntityId(),
                             actorSystem.dispatchers().lookup(ENFORCEMENT_CACHE_DISPATCHER))
