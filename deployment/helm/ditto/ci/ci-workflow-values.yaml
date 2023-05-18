@@ -1,0 +1,51 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+---
+
+# profile for installing Ditto
+# - with Ingress enabled and low cpu requests
+
+## ingress configuration
+ingress:
+  enabled: true
+  host: ditto.example.com
+  annotations:
+    # kubernetes.io/tls-acme: "true"
+  tls:
+    - secretName: ditto-tls
+      hosts:
+        - ditto.example.com
+
+connectivity:
+  resources:
+    requests:
+      cpu: 150m
+
+gateway:
+  resources:
+    requests:
+      cpu: 150m
+
+policies:
+  resources:
+    requests:
+      cpu: 150m
+
+things:
+  resources:
+    requests:
+      cpu: 150m
+
+thingsSearch:
+  resources:
+    requests:
+      cpu: 150m
