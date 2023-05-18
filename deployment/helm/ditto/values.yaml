@@ -182,11 +182,11 @@ ingress:
       charset utf-8;
       default_type application/json;
       chunked_transfer_encoding off;
-      
+
       send_timeout 70; # seconds, default: 60
       client_header_buffer_size 8k; # allow longer URIs + headers (default: 1k)
       large_client_header_buffers 4 16k;
-      
+
       proxy_http_version 1.1;
       proxy_set_header X-Forwarded-Host $http_host;
       proxy_set_header X-Forwarded-Proto $scheme;
@@ -210,20 +210,20 @@ ingress:
         backendSuffix: gateway
     # annotations defines k8s annotations to add to the Ingress
     annotations:
-      nginx.ingress.kubernetes.io/proxy-connect-timeout: "10" # seconds, default: 60
-      nginx.ingress.kubernetes.io/proxy-send-timeout: "70" # seconds, default: 60
-      nginx.ingress.kubernetes.io/proxy-read-timeout: "70" # seconds, default: 60
+      nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "70"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "70"
       nginx.ingress.kubernetes.io/proxy-next-upstream: "error timeout http_502"
       nginx.ingress.kubernetes.io/proxy-next-upstream-tries: "4"
       nginx.ingress.kubernetes.io/proxy-next-upstream-timeout: "50"
       nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
       nginx.ingress.kubernetes.io/configuration-snippet: |
         set $cors '1';
-        
+
         if ($request_method = 'OPTIONS') {
           set $cors "${cors}o";
         }
-        
+
         if ($cors = '1') {
           add_header 'Access-Control-Allow-Origin' '$http_origin' always;
           add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, PATCH, DELETE, OPTIONS' always;
@@ -231,7 +231,7 @@ ingress:
           add_header 'Access-Control-Allow-Headers' '$http_access_control_request_headers' always;
           add_header 'Access-Control-Expose-Headers' '*' always;
         }
-        
+
         if ($cors = '1o') {
           # Tell client that this pre-flight info is valid for 20 days
           add_header 'Access-Control-Max-Age' 1728000;
@@ -244,12 +244,12 @@ ingress:
           add_header 'Content-Length' 0;
           return 200;
         }
-        
+
         if ($request_method = 'OPTIONS') {
           add_header 'Content-Type' 'text/plain charset=UTF-8';
           return 405 "Origin $http_origin is not in CORS allow-list, contact your admin to get it added";
         }
-        
+
         # security relevant headers:
         add_header "Content-Security-Policy" "default-src 'none'; frame-ancestors 'none'" always;
         add_header "Strict-Transport-Security" "max-age=63072000; includeSubdomains;" always;
@@ -265,8 +265,8 @@ ingress:
         backendSuffix: gateway
     # annotations defines k8s annotations to add to the Ingress
     annotations:
-      nginx.ingress.kubernetes.io/proxy-send-timeout: "86400" # seconds, default: 60
-      nginx.ingress.kubernetes.io/proxy-read-timeout: "86400" # seconds, default: 60
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "86400"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "86400"
       nginx.ingress.kubernetes.io/proxy-next-upstream: "error timeout http_502"
       nginx.ingress.kubernetes.io/proxy-next-upstream-tries: "4"
       nginx.ingress.kubernetes.io/proxy-next-upstream-timeout: "50"
@@ -1473,9 +1473,9 @@ dittoui:
       maxSurge: 1
       maxUnavailable: 0
   # additionalLabels on Ditto UI pods
-  additionalLabels: { }
+  additionalLabels: {}
   # additionalAnnotations on Ditto UI pods
-  additionalAnnotations: { }
+  additionalAnnotations: {}
   image:
     # repository for the Ditto UI docker image
     repository: docker.io/eclipse/ditto-ui
@@ -1506,7 +1506,7 @@ dittoui:
     # port of the Ditto UI service
     port: 8080
     # annotations to add arbitrary annotations to Ditto UI service
-    annotations: { }
+    annotations: {}
 
 ## ----------------------------------------------------------------------------
 ## swaggerui configuration
