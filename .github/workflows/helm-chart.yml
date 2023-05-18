@@ -20,6 +20,8 @@ on:
     paths:
       - 'deployment/helm/**'
       - '.github/workflows/helm-chart.yml'
+      - '.github/ct.yml'
+      - '.github/kubeval.sh'
 
 jobs:
   lint-chart:
