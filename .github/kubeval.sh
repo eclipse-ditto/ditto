@@ -17,7 +17,7 @@
 set -o errexit
 set -o pipefail
 
-CHART_DIR=deployment/helm
+CHART_DIR=deployment/helm/ditto
 KUBEVAL_VERSION="v0.16.1"
 SCHEMA_LOCATION="https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/"
 
