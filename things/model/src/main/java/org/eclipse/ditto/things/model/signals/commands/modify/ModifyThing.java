@@ -35,6 +35,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
@@ -86,7 +87,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
      * Json Field definition for the optional initial "inline" policy for usage in getEntity().
      */
     public static final JsonFieldDefinition<JsonObject> JSON_INLINE_POLICY =
-            JsonFactory.newJsonObjectFieldDefinition("_policy", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFactory.newJsonObjectFieldDefinition(Policy.INLINED_FIELD_NAME, FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final ThingId thingId;
     private final Thing thing;

@@ -1,0 +1,43 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: object
+description: Details of specific service instance.
+properties:
+  type:
+    type: string
+    description: devops.responses:ResultConfigService
+  status:
+    type: integer
+    description: The HTTP status
+  config:
+    type: object
+    description: name of service
+    properties:
+      cluster:
+        items:
+          type: string
+        properties:
+          number-of-shards:
+            type: integer
+      gateway:
+        items:
+          type: object
+        properties:
+          authentication:
+            type: object
+            properties:
+              devops:
+                type: object
+                properties:
+                  password:
+                    type: string
+                  secured:
+                    type: boolean

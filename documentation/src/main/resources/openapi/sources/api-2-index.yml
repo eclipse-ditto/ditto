@@ -22,9 +22,9 @@ info:
     These are not be considered as official API, and must therefore not be applied in your applications or tests.
 
 servers:
-  - url: https://ditto.eclipseprojects.io/api/2
+  - url: https://ditto.eclipseprojects.io/
     description: "online Ditto Sandbox"
-  - url: /api/2
+  - url: /
     description: "local Ditto"
 
 tags:
@@ -42,6 +42,8 @@ tags:
     description: Process CloudEvents in Ditto
   - name: Connections
     description: Manage connections
+  - name: Devops
+    description: Devops APIs to manage log levels and configuration in runtime and send piggyback command
 
 security:
   - Google:
@@ -54,117 +56,142 @@ paths:
   ###
   ### Things
   ###
-  /things:
+  /api/2/things:
     $ref: "./paths/things/index.yml"
-  '/things/{thingId}':
+  '/api/2/things/{thingId}':
     $ref: "./paths/things/thing.yml"
-  '/things/{thingId}/definition':
+  '/api/2/things/{thingId}/definition':
     $ref: "./paths/things/definition.yml"
-  '/things/{thingId}/policyId':
+  '/api/2/things/{thingId}/policyId':
     $ref: "./paths/things/policyId.yml"
-  '/things/{thingId}/attributes':
+  '/api/2/things/{thingId}/attributes':
     $ref: "./paths/things/attributes.yml"
-  '/things/{thingId}/attributes/{attributePath}':
+  '/api/2/things/{thingId}/attributes/{attributePath}':
     $ref: "./paths/things/attribute.yml"
 
   ###
   ### Features
   ###
-  '/things/{thingId}/features':
+  '/api/2/things/{thingId}/features':
     $ref: "./paths/features/index.yml"
-  '/things/{thingId}/features/{featureId}':
+  '/api/2/things/{thingId}/features/{featureId}':
     $ref: "./paths/features/feature.yml"
-  '/things/{thingId}/features/{featureId}/definition':
+  '/api/2/things/{thingId}/features/{featureId}/definition':
     $ref: "./paths/features/definition.yml"
-  '/things/{thingId}/features/{featureId}/properties':
+  '/api/2/things/{thingId}/features/{featureId}/properties':
     $ref: "./paths/features/properties.yml"
-  '/things/{thingId}/features/{featureId}/properties/{propertyPath}':
+  '/api/2/things/{thingId}/features/{featureId}/properties/{propertyPath}':
     $ref: "./paths/features/property.yml"
-  '/things/{thingId}/features/{featureId}/desiredProperties':
+  '/api/2/things/{thingId}/features/{featureId}/desiredProperties':
     $ref: "./paths/features/desiredProperties.yml"
-  '/things/{thingId}/features/{featureId}/desiredProperties/{propertyPath}':
+  '/api/2/things/{thingId}/features/{featureId}/desiredProperties/{propertyPath}':
     $ref: "./paths/features/desiredProperty.yml"
 
   ###
   ### Messages
   ###
-  '/things/{thingId}/inbox/claim':
+  '/api/2/things/{thingId}/inbox/claim':
     $ref: "./paths/messages/inbox-claim.yml"
-  '/things/{thingId}/inbox/messages/{messageSubject}':
+  '/api/2/things/{thingId}/inbox/messages/{messageSubject}':
     $ref: "./paths/messages/inbox-message.yml"
-  '/things/{thingId}/outbox/messages/{messageSubject}':
+  '/api/2/things/{thingId}/outbox/messages/{messageSubject}':
     $ref: "./paths/messages/outbox-message.yml"
-  '/things/{thingId}/features/{featureId}/inbox/messages/{messageSubject}':
+  '/api/2/things/{thingId}/features/{featureId}/inbox/messages/{messageSubject}':
     $ref: "./paths/messages/feature-inbox-message.yml"
-  '/things/{thingId}/features/{featureId}/outbox/messages/{messageSubject}':
+  '/api/2/things/{thingId}/features/{featureId}/outbox/messages/{messageSubject}':
     $ref: "./paths/messages/feature-outbox-message.yml"
 
   ###
   ### Policies
   ###
-  '/policies/{policyId}':
+  '/api/2/policies/{policyId}':
     $ref: "./paths/policies/policy.yml"
-  '/policies/{policyId}/actions/activateTokenIntegration':
+  '/api/2/policies/{policyId}/actions/activateTokenIntegration':
     $ref: "./paths/policies/activateTokenIntegration.yml"
-  '/policies/{policyId}/actions/deactivateTokenIntegration':
+  '/api/2/policies/{policyId}/actions/deactivateTokenIntegration':
     $ref: "./paths/policies/deactivateTokenIntegration.yml"
-  '/policies/{policyId}/entries':
+  '/api/2/policies/{policyId}/entries':
     $ref: "./paths/policies/entries.yml"
-  '/policies/{policyId}/entries/{label}':
+  '/api/2/policies/{policyId}/entries/{label}':
     $ref: "./paths/policies/entry.yml"
-  '/policies/{policyId}/entries/{label}/actions/activateTokenIntegration':
+  '/api/2/policies/{policyId}/entries/{label}/actions/activateTokenIntegration':
     $ref: "./paths/policies/activateTokenIntegrationForEntry.yml"
-  '/policies/{policyId}/entries/{label}/actions/deactivateTokenIntegration':
+  '/api/2/policies/{policyId}/entries/{label}/actions/deactivateTokenIntegration':
     $ref: "./paths/policies/deactivateTokenIntegrationForEntry.yml"
-  '/policies/{policyId}/entries/{label}/subjects':
+  '/api/2/policies/{policyId}/entries/{label}/subjects':
     $ref: "./paths/policies/subjects.yml"
-  '/policies/{policyId}/entries/{label}/subjects/{subjectId}':
+  '/api/2/policies/{policyId}/entries/{label}/subjects/{subjectId}':
     $ref: "./paths/policies/subject.yml"
-  '/policies/{policyId}/entries/{label}/resources':
+  '/api/2/policies/{policyId}/entries/{label}/resources':
     $ref: "./paths/policies/resources.yml"
-  '/policies/{policyId}/entries/{label}/resources/{resourcePath}':
+  '/api/2/policies/{policyId}/entries/{label}/resources/{resourcePath}':
     $ref: "./paths/policies/resource.yml"
-  '/policies/{policyId}/imports':
-    $ref: './paths/policies/imports.yml'
-  '/policies/{policyId}/imports/{importedPolicyId}':
-    $ref: './paths/policies/import.yml'
+  '/api/2/policies/{policyId}/imports':
+    $ref: "./paths/policies/imports.yml"
+  '/api/2/policies/{policyId}/imports/{importedPolicyId}':
+    $ref: "./paths/policies/import.yml"
 
   ###
   ### Who Am I
   ###
-  '/whoami':
+  '/api/2/whoami':
     $ref: "./paths/whoami/index.yml"
 
   ###
   ### Things-Search
   ###
-  /search/things:
+  /api/2/search/things:
     $ref: "./paths/search/things.yml"
-  /search/things/count:
+  /api/2/search/things/count:
     $ref: "./paths/search/things-count.yml"
 
   ###
   ### CloudEvents
   ###
-  '/cloudevents':
+  '/api/2/cloudevents':
     $ref: "./paths/cloudevents/cloudevents.yml"
 
   ###
   ### Connections
   ###
-  '/connections':
-    $ref: './paths/connections/connections.yml'
-  '/connections/{connectionId}':
-    $ref: './paths/connections/connectionId.yml'
-  '/connections/{connectionId}/command':
-    $ref: './paths/connections/command.yml'
-  '/connections/{connectionId}/status':
-    $ref: './paths/connections/status.yml'
-  '/connections/{connectionId}/metrics':
-    $ref: './paths/connections/metrics.yml'
-  '/connections/{connectionId}/logs':
-    $ref: './paths/connections/logs.yml'
+  '/api/2/connections':
+    $ref: "./paths/connections/connections.yml"
+  '/api/2/connections/{connectionId}':
+    $ref: "./paths/connections/connectionId.yml"
+  '/api/2/connections/{connectionId}/command':
+    $ref: "./paths/connections/command.yml"
+  '/api/2/connections/{connectionId}/status':
+    $ref: "./paths/connections/status.yml"
+  '/api/2/connections/{connectionId}/metrics':
+    $ref: "./paths/connections/metrics.yml"
+  '/api/2/connections/{connectionId}/logs':
+    $ref: "./paths/connections/logs.yml"
 
+  ###
+  ### Logging
+  ###
+  /devops/logging:
+    $ref: "./paths/logging/logging.yml"
+  '/devops/logging/{moduleName}':
+    $ref: "./paths/logging/moduleName.yml"
+
+  ###
+  ### Service Configuration
+  ###
+  /devops/config:
+    $ref: "./paths/config/config.yml"
+  '/devops/config/{moduleName}/{podName}':
+    $ref: "./paths/config/podName.yml"
+
+  ###
+  ### Piggyback Commands
+  ###
+  /devops/piggyback:
+    $ref: "./paths/piggyback/piggyback.yml"
+  '/devops/piggyback/{serviceName}':
+    $ref: "./paths/piggyback/serviceName.yml"
+  '/devops/piggyback/{serviceName}/{instanceIndex}':
+    $ref: "./paths/piggyback/instanceIndex.yml"
 
 components:
 
@@ -193,6 +220,10 @@ components:
       $ref: "./responses/preconditionFailed.yml"
     DependencyFailed:
       $ref: "./responses/dependencyFailed.yml"
+    SuccessUpdateLogLevel:
+      $ref: "./responses/successUpdateLogLevel.yml"
+    SuccessUpdateLogLevelSinglePod:
+      $ref: "./responses/successUpdateLogLevelSinglePod.yml"
 
   parameters:
     AllowPolicyLockoutParam:
@@ -272,9 +303,21 @@ components:
     TimeoutParam:
       $ref: "./parameters/timeoutParam.yml"
     ConnectionIdPathParam:
-      $ref: './parameters/connectionIdPathParam.yml'
+      $ref: "./parameters/connectionIdPathParam.yml"
     ConnectionFieldsQueryParam:
       $ref: "./parameters/connectionFieldsQueryParam.yml"
+    LoggingFieldsQueryParam:
+      $ref: "./parameters/loggingFieldsQueryParam.yml"
+    ModuleNamePathParam:
+      $ref: "./parameters/moduleNamePathParam.yml"
+    PathParam:
+      $ref: "./parameters/pathParam.yml"
+    NamePodParam:
+      $ref: "./parameters/namePodParam.yml"
+    ServiceNameParam:
+      $ref: "./parameters/serviceNameParam.yml"
+    InstanceIndex:
+      $ref: "./parameters/instanceIndexParam.yml"
 
   schemas:
     Error:
@@ -332,72 +375,98 @@ components:
     Features:
       $ref: "./schemas/features/features.yml"
     Connection:
-      $ref: './schemas/connections/connection.yml'
+      $ref: "./schemas/connections/connection.yml"
     NewConnection:
-      $ref: './schemas/connections/newConnection.yml'
+      $ref: "./schemas/connections/newConnection.yml"
     Sources:
-      $ref: './schemas/connections/sources.yml'
+      $ref: "./schemas/connections/sources.yml"
     Source:
-      $ref: './schemas/connections/source.yml'
+      $ref: "./schemas/connections/source.yml"
     Targets:
-      $ref: './schemas/connections/targets.yml'
+      $ref: "./schemas/connections/targets.yml"
     Target:
-      $ref: './schemas/connections/target.yml'
+      $ref: "./schemas/connections/target.yml"
     ConnectionType:
-      $ref: './schemas/connections/connectionType.yml'
+      $ref: "./schemas/connections/connectionType.yml"
     ConnectivityStatus:
-      $ref: './schemas/connections/connectivityStatus.yml'
+      $ref: "./schemas/connections/connectivityStatus.yml"
     PayloadMappingDefinitions:
-      $ref: './schemas/connections/payloadMappingDefinitions.yml'
+      $ref: "./schemas/connections/payloadMappingDefinitions.yml"
     PayloadMappingDefinition:
-      $ref: './schemas/connections/payloadMappingDefinition.yml'
+      $ref: "./schemas/connections/payloadMappingDefinition.yml"
     MappingContext:
-      $ref: './schemas/connections/mappingContext.yml'
+      $ref: "./schemas/connections/mappingContext.yml"
     ConnectionStatus:
-      $ref: './schemas/connections/connectionStatus.yml'
+      $ref: "./schemas/connections/connectionStatus.yml"
     ResourceStatus:
-      $ref: './schemas/connections/resourceStatus.yml'
+      $ref: "./schemas/connections/resourceStatus.yml"
     ConnectionMetrics:
-      $ref: './schemas/connections/connectionMetrics.yml'
+      $ref: "./schemas/connections/connectionMetrics.yml"
     OverallConnectionMetrics:
-      $ref: './schemas/connections/overallConnectionMetrics.yml'
+      $ref: "./schemas/connections/overallConnectionMetrics.yml"
     SourceMetrics:
-      $ref: './schemas/connections/sourceMetrics.yml'
+      $ref: "./schemas/connections/sourceMetrics.yml"
     TargetMetrics:
-      $ref: './schemas/connections/targetMetrics.yml'
+      $ref: "./schemas/connections/targetMetrics.yml"
     InboundMetrics:
-      $ref: './schemas/connections/inboundMetrics.yml'
+      $ref: "./schemas/connections/inboundMetrics.yml"
     OutboundMetrics:
-      $ref: './schemas/connections/outboundMetrics.yml'
+      $ref: "./schemas/connections/outboundMetrics.yml"
     TypedMetric:
-      $ref: './schemas/connections/typedMetric.yml'
+      $ref: "./schemas/connections/typedMetric.yml"
     SingleMetric:
-      $ref: './schemas/connections/singleMetric.yml'
+      $ref: "./schemas/connections/singleMetric.yml"
     ConnectionLogs:
-      $ref: './schemas/connections/connectionLogs.yml'
+      $ref: "./schemas/connections/connectionLogs.yml"
     LogEntry:
-      $ref: './schemas/connections/logEntry.yml'
+      $ref: "./schemas/connections/logEntry.yml"
     LogCategory:
-      $ref: './schemas/connections/logCategory.yml'
+      $ref: "./schemas/connections/logCategory.yml"
     LogType:
-      $ref: './schemas/connections/logType.yml'
+      $ref: "./schemas/connections/logType.yml"
     LogLevel:
-      $ref: './schemas/connections/logLevel.yml'
+      $ref: "./schemas/connections/logLevel.yml"
     WhoAmI:
       $ref: "./schemas/whoami/whoami.yml"
     WhoAmISubject:
       $ref: "./schemas/whoami/whoamiSubject.yml"
     WotThingDescription:
       $ref: "./schemas/wot-thingDescription.yml"
+    TextUnauthorizeError:
+      $ref: "./schemas/errors/textUnauthorizeError.yml"
+    RetrieveConfig:
+      $ref: "./schemas/config/retrieveConfig.yml"
+    RetrieveLoggingConfig:
+      $ref: "./schemas/logging/retrieveLoggingConfig.yml"
+    Module:
+      $ref: "./schemas/logging/module.yml"
+    LoggingUpdateFields:
+      $ref: "./schemas/logging/loggingUpdateFields.yml"
+    UpdatedLogLevel:
+      $ref: "./schemas/logging/updatedLogLevel.yml"
+    ModuleUpdatedLogLevel:
+      $ref: "./schemas/logging/moduleUpdatedLogLevel.yml"
+    ResultUpdateRequest:
+      $ref: "./schemas/logging/resultUpdateRequest.yml"
+    ModuleConfigService:
+      $ref: "./schemas/config/moduleConfigService.yml"
+    ResultConfigService:
+      $ref: "./schemas/config/resultConfigService.yml"
+    RetrieveConfigService:
+      $ref: "./schemas/config/retrieveConfigService.yml"
+    BasePiggybackCommandRequestSchema:
+      $ref: "./schemas/piggyback/basePiggybackCommandRequestSchema.yml"
+    PiggybackManagingBackgroundCleanup:
+      $ref: "./schemas/piggyback/piggybackManagingBackgroundCleanup.yml"
 
   securitySchemes:
     NginxBasic:
-      $ref: './security/nginxBasic.yml'
+      $ref: "./security/nginxBasic.yml"
     Bearer:
-      $ref: './security/bearerAuth.yml'
+      $ref: "./security/bearerAuth.yml"
     Google:
-      $ref: './security/google.yml'
+      $ref: "./security/google.yml"
     DevOpsBasic:
-      $ref: './security/devOpsBasic.yml'
+      $ref: "./security/devOpsBasic.yml"
     DevOpsBearer:
-      $ref: './security/devOpsBearer.yml'
+      $ref: "./security/devOpsBearer.yml"

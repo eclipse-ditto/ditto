@@ -291,7 +291,6 @@ patch:
     - Features
   parameters:
     - $ref: '../../parameters/thingIdPathParam.yml'
-    - $ref: '../../parameters/featureIdPathPathParam.yml'
     - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
     - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
     - $ref: '../../parameters/requestedAcksParam.yml'

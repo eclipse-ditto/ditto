@@ -16,19 +16,22 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.exceptions.UnsupportedMediaTypeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.JsonifiableMapper;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.JsonifiableMapper;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyIdNotDeletableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingIdNotDeletableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingMergeInvalidException;
@@ -70,7 +73,9 @@ final class ThingMergeCommandMappingStrategies extends AbstractThingMappingStrat
 
     private static MergeThing mergeThing(final Adaptable adaptable) {
         checkContentTypeHeader(adaptable.getDittoHeaders());
-        return MergeThing.withThing(thingIdFrom(adaptable), thingForMergeFrom(adaptable), dittoHeadersFrom(adaptable));
+        return MergeThing.withThing(thingIdFrom(adaptable), thingForMergeFrom(adaptable),
+                initialPolicyForMergeThingFrom(adaptable), policyIdOrPlaceholderForMergeThingFrom(adaptable),
+                dittoHeadersFrom(adaptable));
     }
 
     private static MergeThing mergeThingWithPolicyId(final Adaptable adaptable) {
@@ -226,4 +231,23 @@ final class ThingMergeCommandMappingStrategies extends AbstractThingMappingStrat
         }
     }
 
+    @Nullable
+    private static JsonObject initialPolicyForMergeThingFrom(final Adaptable adaptable) {
+        return adaptable.getPayload()
+                .getValue()
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .flatMap(MergeThing::initialPolicyForMergeThingFrom)
+                .orElse(null);
+    }
+
+    @Nullable
+    private static String policyIdOrPlaceholderForMergeThingFrom(final Adaptable adaptable) {
+        return adaptable.getPayload()
+                .getValue()
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .flatMap(MergeThing::policyIdOrPlaceholderForMergeThingFrom)
+                .orElse(null);
+    }
 }
