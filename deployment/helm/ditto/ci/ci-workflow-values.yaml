@@ -41,7 +41,7 @@ policies:
 ## ref: https://www.eclipse.org/ditto/architecture-services-things.html
 things:
   resources:
-    cpu: 0.2
+    cpu: 0.15
     memoryMi: 512
   jvm:
     activeProcessorCount: 2
@@ -84,11 +84,23 @@ gateway:
 ## nginx configuration
 nginx:
   resources:
-    cpu: 0.1
+    cpu: 0.05
     memoryMi: 64
   initContainers:
     waitForGateway:
       enabled: false
+
+## ----------------------------------------------------------------------------
+## swaggerui configuration
+swaggerui:
+  resources:
+    cpu: 0.05
+
+## ----------------------------------------------------------------------------
+## dittoui configuration
+dittoui:
+  resources:
+    cpu: 0.05
 
 ## ----------------------------------------------------------------------------
 ## mongodb dependency chart configuration
