@@ -25,27 +25,87 @@ ingress:
       hosts:
         - ditto.example.com
 
-connectivity:
-  resources:
-    requests:
-      cpu: 150m
-
-gateway:
-  resources:
-    requests:
-      cpu: 150m
-
+## ----------------------------------------------------------------------------
+## policies configuration
+## ref: https://www.eclipse.org/ditto/architecture-services-policies.html
 policies:
   resources:
-    requests:
-      cpu: 150m
+    cpu: 0.15
+    memoryMi: 512
+  jvm:
+    activeProcessorCount: 2
+    heapRamPercentage: 50
 
+## ----------------------------------------------------------------------------
+## things configuration
+## ref: https://www.eclipse.org/ditto/architecture-services-things.html
 things:
   resources:
-    requests:
-      cpu: 150m
+    cpu: 0.2
+    memoryMi: 512
+  jvm:
+    activeProcessorCount: 2
+    heapRamPercentage: 50
 
+## ----------------------------------------------------------------------------
+## things-search configuration
+## ref: https://www.eclipse.org/ditto/architecture-services-things-search.html
 thingsSearch:
   resources:
+    cpu: 0.15
+    memoryMi: 512
+  jvm:
+    activeProcessorCount: 2
+    heapRamPercentage: 50
+
+## ----------------------------------------------------------------------------
+## connectivity configuration
+## ref: https://www.eclipse.org/ditto/architecture-services-connectivity.html
+connectivity:
+  resources:
+    cpu: 0.15
+    memoryMi: 768
+  jvm:
+    activeProcessorCount: 2
+    heapRamPercentage: 55
+
+## ----------------------------------------------------------------------------
+## gateway configuration
+## ref: https://www.eclipse.org/ditto/architecture-services-gateway.html
+gateway:
+  resources:
+    cpu: 0.15
+    memoryMi: 512
+  jvm:
+    activeProcessorCount: 2
+    heapRamPercentage: 50
+
+## ----------------------------------------------------------------------------
+## nginx configuration
+nginx:
+  resources:
+    cpu: 0.1
+    memoryMi: 64
+  initContainers:
+    waitForGateway:
+      enabled: false
+
+## ----------------------------------------------------------------------------
+## mongodb dependency chart configuration
+mongodb:
+  enabled: true
+  resources:
+    limits:
+      cpu: 100m
+      memory: 256Mi
     requests:
-      cpu: 150m
+      cpu: 100m
+      memory: 256Mi
+  readinessProbe:
+    enabled: false
+  livenessProbe:
+    enabled: false
+  auth:
+    enabled: false
+  persistence:
+    enabled: false
