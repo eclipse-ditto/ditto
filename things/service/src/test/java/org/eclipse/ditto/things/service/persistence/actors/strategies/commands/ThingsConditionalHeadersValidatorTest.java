@@ -15,6 +15,7 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 import static java.text.MessageFormat.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.eclipse.ditto.base.model.signals.commands.Command.Category.DELETE;
 import static org.eclipse.ditto.base.model.signals.commands.Command.Category.MODIFY;
 import static org.eclipse.ditto.base.model.signals.commands.Command.Category.QUERY;
@@ -30,15 +31,22 @@ import javax.annotation.Nullable;
 import org.assertj.core.api.ThrowableAssertAlternative;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.IfEqualOption;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.Command.Category;
 import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingPreconditionFailedException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingPreconditionNotModifiedException;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.junit.Test;
 
@@ -157,6 +165,75 @@ public class ThingsConditionalHeadersValidatorTest {
                         .withMessage(expectedMessage);
 
         assertion.satisfies(exception -> assertETagHeaderInDre(exception, actualEntityTag));
+    }
+
+    @Test
+    public void ifEqualDoesThrowExceptionWhenIfEqualSkipAndValueIsEqual() {
+        final ThingId thingId = ThingId.generateRandom();
+        final JsonPointer attributePath = JsonPointer.of("foo/bar");
+        final JsonValue attributeValue = JsonValue.of(false);
+        final Thing thing = Thing.newBuilder()
+                .setId(thingId)
+                .setAttribute(attributePath, attributeValue)
+                .build();
+        final ModifyAttribute command = ModifyAttribute.of(thingId, attributePath, attributeValue,
+                DittoHeaders.newBuilder().ifEqual(IfEqualOption.SKIP).build());
+
+        assertThatExceptionOfType(ThingPreconditionNotModifiedException.class)
+                .isThrownBy(() -> SUT.applyIfEqualHeader(command, thing))
+                .withMessage("The previous value was equal to the new value and the 'if-equal' header was set to 'skip'.");
+    }
+
+    @Test
+    public void ifEqualDoesThrowExceptionWhenIfEqualSkipAndValueIsEqualUsingMerge() {
+        final ThingId thingId = ThingId.generateRandom();
+        final JsonPointer attributePath = JsonPointer.of("foo/bar");
+        final JsonValue attributeValue = JsonValue.of(false);
+        final Thing thing = Thing.newBuilder()
+                .setId(thingId)
+                .setAttribute(attributePath, attributeValue)
+                .build();
+        final MergeThing command = MergeThing.of(thingId, JsonPointer.empty(), thing.toJson(),
+                DittoHeaders.newBuilder().ifEqual(IfEqualOption.SKIP).build());
+
+        assertThatExceptionOfType(ThingPreconditionNotModifiedException.class)
+                .isThrownBy(() -> SUT.applyIfEqualHeader(command, thing))
+                .withMessage("The previous value was equal to the new value and the 'if-equal' header was set to 'skip'.");
+    }
+
+    @Test
+    public void ifEqualDoesNotThrowExceptionWhenIfEqualSkipAndValueIsNotEqual() {
+        final ThingId thingId = ThingId.generateRandom();
+        final JsonPointer attributePath = JsonPointer.of("foo/bar");
+        final JsonValue attributeValue = JsonValue.of(false);
+        final Thing thing = Thing.newBuilder()
+                .setId(thingId)
+                .setAttribute(attributePath, attributeValue)
+                .build();
+        final ModifyAttribute command = ModifyAttribute.of(thingId, attributePath, JsonValue.of(true),
+                DittoHeaders.newBuilder().ifEqual(IfEqualOption.SKIP).build());
+
+        assertThatNoException()
+                .isThrownBy(() -> SUT.applyIfEqualHeader(command, thing));
+    }
+
+    @Test
+    public void ifEqualDoesNotThrowExceptionWhenIfEqualUpdateAndValueIsEqual() {
+        final ThingId thingId = ThingId.generateRandom();
+        final JsonPointer attributePath = JsonPointer.of("foo/bar");
+        final JsonValue attributeValue = JsonObject.newBuilder()
+                .set("foo", false)
+                .set("bar", "yeesss")
+                .build();
+        final Thing thing = Thing.newBuilder()
+                .setId(thingId)
+                .setAttribute(attributePath, attributeValue)
+                .build();
+        final ModifyAttribute command = ModifyAttribute.of(thingId, attributePath, attributeValue,
+                DittoHeaders.newBuilder().ifEqual(IfEqualOption.UPDATE).build());
+
+        assertThatNoException()
+                .isThrownBy(() -> SUT.applyIfEqualHeader(command, thing));
     }
 
     private RetrieveThing createRetrieveThingCommand(final String ifNoneMatchHeaderValue, final String selectedFields) {

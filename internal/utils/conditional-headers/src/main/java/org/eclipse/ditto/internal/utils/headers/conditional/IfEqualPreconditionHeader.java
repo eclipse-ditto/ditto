@@ -17,6 +17,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -24,10 +25,14 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.entity.Entity;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.IfEqualOption;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
@@ -38,6 +43,7 @@ import org.eclipse.ditto.json.JsonValue;
  * after the change.
  *
  * @param <C> the type of the handled {@link Command}.
+ * @since 3.3.0
  */
 @Immutable
 public final class IfEqualPreconditionHeader<C extends Command<?>> implements PreconditionHeader<Entity<?>> {
@@ -107,7 +113,10 @@ public final class IfEqualPreconditionHeader<C extends Command<?>> implements Pr
                     command instanceof WithOptionalEntity withOptionalEntity) {
                 return withOptionalEntity.getEntity()
                         .map(newValue -> {
-                            final Optional<JsonValue> previousValue = entity.toJson()
+                            final Predicate<JsonField> nonHiddenAndNamespace =
+                                    FieldType.notHidden()
+                                            .or(jsonField -> jsonField.getKey().equals(JsonKey.of("_namespace")));
+                            final Optional<JsonValue> previousValue = entity.toJson(JsonSchemaVersion.LATEST, nonHiddenAndNamespace)
                                     .getValue(command.getResourcePath());
                             return previousValue.filter(jsonValue -> jsonValue.equals(newValue))
                                     .isPresent();
