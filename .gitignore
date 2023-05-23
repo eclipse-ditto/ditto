@@ -22,6 +22,5 @@ deployment/helm/eclipse-ditto/requirements.lock
 deployment/helm/eclipse-ditto/charts/*
 .factorypath
 ui/node_modules
-ui/package.json
-ui/package-lock.json
+ui/dist
 

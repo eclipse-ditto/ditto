@@ -16,6 +16,7 @@ import * as Utils from '../utils.js';
 /* eslint-disable prefer-const */
 /* eslint-disable require-jsdoc */
 import * as Environments from './environments.js';
+import authorizationHTML from './authorization.html';
 
 let dom = {
   bearer: null,
@@ -29,6 +30,8 @@ let dom = {
 };
 
 let _forDevops = false;
+
+document.getElementById('authorizationHTML').innerHTML = authorizationHTML;
 
 export function setForDevops(forDevops) {
   _forDevops = forDevops;

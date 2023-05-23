@@ -16,6 +16,9 @@
 /* eslint-disable require-jsdoc */
 import * as Authorization from '../environments/authorization.js';
 import * as Utils from '../utils.js';
+import defaultTemplates from './environmentTemplates.json';
+import environmentsHTML from './environments.html';
+
 
 const URL_PRIMARY_ENVIRONMENT_NAME = 'primaryEnvironmentName';
 const URL_ENVIRONMENTS = 'environmentsURL';
@@ -42,6 +45,8 @@ let dom = {
 };
 
 let observers = [];
+
+document.getElementById('environmentsHTML').innerHTML = environmentsHTML;
 
 function Environment(env) {
   Object.assign(this, env);
@@ -194,7 +199,7 @@ function onUpdateEnvironmentClick(event) {
 }
 
 export function environmentsJsonChanged(modifiedField) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(environments));
+  environments && localStorage.setItem(STORAGE_KEY, JSON.stringify(environments));
 
   updateEnvSelector();
   updateEnvEditors();
@@ -250,7 +255,6 @@ function updateEnvEditors() {
 }
 
 async function loadEnvironmentTemplates() {
-  let fromTemplates = await (await fetch('templates/environmentTemplates.json')).json();
   let fromURL;
   let fromLocalStorage;
 
@@ -287,7 +291,7 @@ async function loadEnvironmentTemplates() {
   } else if (fromLocalStorage) {
     result = fromLocalStorage;
   } else {
-    result = fromTemplates;
+    result = defaultTemplates;
   }
 
   Object.keys(result).forEach((env) => {

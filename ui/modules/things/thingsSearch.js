@@ -19,7 +19,7 @@
 // @ts-check
 
 // @ts-ignore
-import {JSONPath} from 'https://cdn.jsdelivr.net/npm/jsonpath-plus@5.0.3/dist/index-browser-esm.min.js';
+import {JSONPath} from 'jsonpath-plus';
 
 import * as API from '../api.js';
 

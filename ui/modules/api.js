@@ -14,6 +14,8 @@
 
 import * as Environments from './environments/environments.js';
 import * as Utils from './utils.js';
+import {EventSourcePolyfill} from 'event-source-polyfill';
+
 
 const config = {
   things: {
