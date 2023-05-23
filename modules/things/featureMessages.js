@@ -17,6 +17,7 @@ import * as Environments from '../environments/environments.js';
 import * as Utils from '../utils.js';
 import * as Things from './things.js';
 import * as Features from './features.js';
+import featureMessagesHTML from './featureMessages.html';
 
 let theFeatureId;
 
@@ -45,7 +46,7 @@ export async function ready() {
       document.getElementById('tabItemsFeatures'),
       document.getElementById('tabContentFeatures'),
       'Message to Feature',
-      await( await fetch('modules/things/featureMessages.html')).text(),
+      featureMessagesHTML,
   );
 
   Utils.getAllElementsById(dom);

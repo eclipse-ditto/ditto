@@ -14,7 +14,4 @@ FROM nginxinc/nginx-unprivileged:alpine
 WORKDIR /usr/share/nginx/html
 
 COPY ./index.html           .
-COPY ./index.css            .
-COPY ./main.js              .
-COPY ./modules              ./modules
-COPY ./templates            ./templates
+COPY ./dist                 ./dist

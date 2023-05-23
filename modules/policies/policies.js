@@ -6,13 +6,13 @@ import * as Utils from '../utils.js';
 import * as API from '../api.js';
 import * as Things from '../things/things.js';
 import {TabHandler} from '../utils/tabHandler.js';
+import policyTemplates from './policyTemplates.json';
+import policyHTML from './policies.html';
 
 let thePolicy;
 let selectedEntry;
 let selectedSubject;
 let selectedResource;
-
-let policyTemplates;
 
 let tabHandler;
 
@@ -45,12 +45,13 @@ let dom = {
 let subjectEditor;
 let resourceEditor;
 
+document.getElementById('policyHTML').innerHTML = policyHTML;
+
 export function ready() {
   Utils.getAllElementsById(dom);
   tabHandler = new TabHandler(dom.tabPolicies, dom.collapsePolicies, refreshAll, 'disablePolicies');
 
-
-  loadPolicyTemplates();
+  Utils.addDropDownEntries(dom.ulResourceTemplates, Object.keys(policyTemplates.resources));
 
   Utils.addValidatorToTable(dom.tbodyPolicyEntries, dom.tableValidationEntries);
   Utils.addValidatorToTable(dom.tbodyPolicySubjects, dom.tableValidationSubjects);
@@ -319,15 +320,5 @@ function refreshAll(otherEnvironment) {
   if (dom.inputPolicyId.value) {
     refreshPolicy(dom.inputPolicyId.value);
   }
-}
-
-function loadPolicyTemplates() {
-  fetch('templates/policyTemplates.json')
-      .then((response) => {
-        response.json().then((loadedTemplates) => {
-          policyTemplates = loadedTemplates;
-          Utils.addDropDownEntries(dom.ulResourceTemplates, Object.keys(policyTemplates.resources));
-        });
-      });
 }
 

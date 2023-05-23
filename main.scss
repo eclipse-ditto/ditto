@@ -1,0 +1,198 @@
+/*
+ *
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+
+@import "bootstrap/scss/bootstrap";
+
+// $body-bg: #fff;
+
+.table {
+    --bs-table-active-bg: #3a8c9a;
+    --bs-table-active-color: white;
+}
+
+.table-active {
+    --bs-table-striped-bg: #3a8c9a;
+    --bs-table-striped-color: white;
+    --bs-table-hover-bg: #3a8c9a;
+    --bs-table-hover-color: white;
+}
+
+td {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 15em;
+}
+
+thead {
+    position: sticky;
+    top: 0;
+    background-color: white;
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4);
+}
+
+tbody {
+    border-top: 0 !important;
+}
+
+body { 
+    padding-top: 60px;
+}
+
+#authorizationModal label {
+    display: inline;
+}
+
+.toast-header {
+    color: #842029;
+    background-color: #f8d7da;
+    border-color: #f5c2c7;
+}
+
+textarea {
+    white-space: pre;
+    overflow-wrap:    normal;
+    overflow-x:  scroll;
+    font-family: Monospace;
+}
+
+.bg-info {
+    background-color: #3a8c9a !important;
+    color: white !important;
+}
+
+.badge-info {
+    background-color: #3a8c9a !important;
+}
+
+.nav-tabs > li > a {
+    color: #3a8c9a;
+}
+
+.nav-link {
+    padding-top: 0.1rem;
+    padding-bottom: 0.1rem;
+}
+
+.tab-pane {
+    max-width: none;
+}
+
+.no-margin {
+    margin-left: 0px;
+    padding-left: 0px;
+}
+
+.table-wrap {
+    height: 100%;
+    overflow-y: scroll;
+    border: 1px solid #ced4da;
+}
+
+.ace_container {
+    position: relative;
+    border: 1px solid #ced4da;
+}
+
+.button_round_right {
+    border-bottom-right-radius: 0.2rem !important;
+    border-top-right-radius: 0.2rem !important;
+    border-bottom-left-radius: 0 !important;
+    border-top-left-radius: 0 !important;
+}
+
+.button_round_left {
+    border-bottom-right-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-left-radius: 0.2rem !important;
+    border-top-left-radius: 0.2rem !important;
+}
+
+.button_round_both {
+    border-bottom-right-radius: 0.2rem !important;
+    border-top-right-radius: 0.2rem !important;
+    border-bottom-left-radius: 0.2rem !important;
+    border-top-left-radius: 0.2rem !important;
+}
+
+.resizable_pane {
+    overflow: auto;
+    resize: vertical;
+}
+
+.resizable_flex_column {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.flex_column_part {
+    flex-grow: 1;
+    flex-basis: 0;
+    overflow: hidden;
+}
+
+.script_editor {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+h5, h6 {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+hr {
+    margin: 0.25rem;
+}
+
+.editBackground {
+    display: block;
+    position: fixed;
+    z-index: 1100;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgb(0,0,0);
+    background-color: rgba(0,0,0,0.4);
+}
+
+.editForground {
+    z-index: 1200;
+    position: relative;
+    background-color: white;
+}
+
+.dropdown-menu {
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+h5>.badge {
+    vertical-align: top;
+    font-size: 0.6em;
+}
+
+.autoComplete_wrapper {
+    flex-grow: 1;
+}
+
+.autoComplete_wrapper ul > li[aria-selected="true"] {
+    background-color: rgba(123, 123, 123, 0.1);
+}

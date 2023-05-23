@@ -1,0 +1,259 @@
+{
+  "version": "10.2.7",
+  "name": "@tarekraafat/autocomplete.js",
+  "description": "Simple autocomplete pure vanilla Javascript library.",
+  "keywords": [
+    "simple",
+    "complete",
+    "autocomplete",
+    "autocompletion",
+    "autoComplete.js",
+    "light",
+    "blazing",
+    "fast",
+    "speed",
+    "lightning",
+    "lightweight",
+    "modern",
+    "versatile",
+    "customizable",
+    "hackable",
+    "easy",
+    "javascript",
+    "scalable",
+    "extensible",
+    "autoCompleteJS",
+    "autosuggestion",
+    "autosuggest",
+    "search",
+    "dropdown"
+  ],
+  "homepage": "https://tarekraafat.github.io/autoComplete.js",
+  "author": {
+    "name": "Tarek Raafat",
+    "email": "tarek.m.raafat@gmail.com",
+    "url": "https://www.tarekraafat.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TarekRaafat/autoComplete.js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TarekRaafat/autoComplete.js/issues",
+    "email": "tarek.m.raafat@gmail.com"
+  },
+  "demo": "https://tarekraafat.github.io/autoComplete.js/demo",
+  "download": "https://raw.githubusercontent.com/TarekRaafat/autoComplete.js/master/dist/autoComplete.min.js",
+  "directories": {
+    "src": "src",
+    "dist": "dist",
+    "lib": "dist",
+    "doc": "docs",
+    "example": "docs/demo"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "main": "dist/autoComplete.js",
+  "browser": "dist/autoComplete.min.js",
+  "unpkg": "dist/autoComplete.min.js",
+  "module": "dist/autoComplete.min.js",
+  "devDependencies": {
+    "@babel/core": "^7.13.10",
+    "@babel/preset-env": "^7.13.10",
+    "@rollup/plugin-babel": "^5.2.3",
+    "acorn": "^8.1.0",
+    "rollup": "^2.41.0",
+    "rollup-plugin-analyzer": "^4.0.0",
+    "rollup-plugin-cleanup": "^3.2.1",
+    "rollup-plugin-gzip": "^3.0.1",
+    "rollup-plugin-livereload": "^2.0.0",
+    "rollup-plugin-nodent": "^0.2.2",
+    "rollup-plugin-serve": "^1.1.0",
+    "rollup-plugin-sizes": "^1.0.4",
+    "rollup-plugin-terser": "^7.0.2"
+  },
+  "scripts": {
+    "dev": "NODE_ENV=development rollup -c -w",
+    "build": "NODE_ENV=production rollup -c",
+    "docs": "jsdoc -c jsdocs.json"
+  },
+  "license": "Apache-2.0",
+  "contributors": [
+    {
+      "name": "Tarek Raafat",
+      "email": "tarek.m.raafat@gmail.com"
+    },
+    {
+      "name": "Pirulax",
+      "url": "https://github.com/Pirulax"
+    },
+    {
+      "name": "Fred Luetkemeier",
+      "url": "https://github.com/fredluetkemeier"
+    },
+    {
+      "name": "Zeeshan Ahmad",
+      "url": "https://github.com/ziishaned"
+    },
+    {
+      "name": "Sakurai Kenji",
+      "url": "https://github.com/sakuraineed"
+    },
+    {
+      "name": "Simon Martineau",
+      "url": "https://github.com/marsimeau"
+    },
+    {
+      "name": "Johannes Kinast",
+      "url": "https://github.com/goaround"
+    },
+    {
+      "name": "RobinLawinsky",
+      "url": "https://github.com/RobinLawinsky"
+    },
+    {
+      "name": "maciek_grzybek",
+      "url": "https://github.com/maciekgrzybek"
+    },
+    {
+      "name": "Eliazer Braun",
+      "url": "https://github.com/adardesign"
+    },
+    {
+      "name": "mshakarov",
+      "url": "https://github.com/mshakarov"
+    },
+    {
+      "name": "Hideki Ikemoto",
+      "url": "https://github.com/ikemo3"
+    },
+    {
+      "name": "Karol Tatała",
+      "url": "https://github.com/latata"
+    },
+    {
+      "name": "Olena Sovyn",
+      "url": "https://github.com/Kiwka"
+    },
+    {
+      "name": "Mostafa Hefny",
+      "url": "https://github.com/Brostafa"
+    },
+    {
+      "name": "Johann-S",
+      "url": "https://github.com/Johann-S"
+    },
+    {
+      "name": "Isabel C",
+      "url": "https://github.com/isabelc"
+    },
+    {
+      "name": "Barnaby Knowles",
+      "url": "https://github.com/barns101"
+    },
+    {
+      "name": "Viet Nguyen",
+      "url": "https://github.com/g-viet"
+    },
+    {
+      "name": "Oluwaseyi Adeogun",
+      "url": "https://github.com/asyncdeveloper"
+    },
+    {
+      "name": "Richard Dobroň",
+      "url": "https://github.com/richardDobron"
+    },
+    {
+      "name": "Mrwan Ashraf",
+      "url": "https://github.com/mrwanashraf"
+    },
+    {
+      "name": "Dan Keefe",
+      "url": "https://github.com/Peritract"
+    },
+    {
+      "name": "René K.",
+      "url": "https://github.com/rene78"
+    },
+    {
+      "name": "John Osterman",
+      "url": "https://github.com/ostermanj"
+    },
+    {
+      "name": "Aaron",
+      "url": "https://github.com/aarongerig"
+    },
+    {
+      "name": "Nicolas Hart",
+      "url": "https://github.com/nclsHart"
+    },
+    {
+      "name": "John Kristensen",
+      "url": "https://github.com/jerrykan"
+    },
+    {
+      "name": "rhoit",
+      "url": "https://github.com/rhoit"
+    },
+    {
+      "name": "rho",
+      "url": "https://github.com/rhoit"
+    },
+    {
+      "name": "Bogdan",
+      "url": "https://github.com/mynameisbogdan"
+    },
+    {
+      "name": "Liano",
+      "url": "https://github.com/Liano"
+    },
+    {
+      "name": "Adan Ferguson",
+      "url": "https://github.com/adan-ferguson"
+    },
+    {
+      "name": "Cody Peterson",
+      "email": "cody@humanshapes.co",
+      "url": "https://github.com/codyjames"
+    },
+    {
+      "name": "folk",
+      "url": "https://github.com/folknor"
+    },
+    {
+      "name": "Nicolas Perriault",
+      "email": "nicolas@perriault.net",
+      "url": "https://github.com/n1k0"
+    },
+    {
+      "name": "Waranyoo Butsingkorn",
+      "url": "https://github.com/50kudos"
+    },
+    {
+      "name": "sunshineplan",
+      "url": "https://github.com/sunshineplan"
+    }
+  ],
+  "maintainers": [
+    {
+      "name": "Tarek Raafat",
+      "email": "tarek.m.raafat@gmail.com"
+    }
+  ],
+  "funding": [
+    {
+      "type": "opencollective",
+      "url": "https://opencollective.com/autocompletejs"
+    },
+    {
+      "type": "liberapay",
+      "url": "https://liberapay.com/TarekRaafat"
+    },
+    {
+      "type": "patreon",
+      "url": "https://patreon.com/TarekRaafat"
+    }
+  ]
+}
