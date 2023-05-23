@@ -18,21 +18,21 @@ TL;DR:
 * have a correctly configured [`kubectl`](https://kubernetes.io/docs/tasks/tools/#kubectl) (either against a local or remote k8s cluster)
 * have [Helm installed](https://helm.sh/docs/intro/)
 
-The Helm chart is being tested to successfully install on the three most recent Kubernetes versions.
+The Helm chart is being tested to successfully install on the most recent Kubernetes versions.
 
 ## Installing the Chart
 
 The instructions below illustrate how Ditto can be installed to the `ditto` namespace in a Kubernetes cluster using
 release name `eclipse-ditto`.  
-The commands can easily be adapted to use a different name space or release name.
+The commands can easily be adapted to use a different namespace or release name.
 
-The target name space in Kubernetes only needs to be created if it doesn't exist yet:
+The target namespace in Kubernetes only needs to be created if it doesn't exist yet:
 
 ```bash
 kubectl create namespace ditto
 ```
 
-The chart can then be installed to name space `ditto` using release name `my-ditto`:
+The chart can then be installed to namespace `ditto` using release name `my-ditto`:
 
 ```bash
 helm install --dependency-update -n ditto my-ditto oci://registry-1.docker.io/eclipse/ditto --version <version> --wait
@@ -112,7 +112,7 @@ The documentation on how this works can be found in the
 [HOCON documentation](https://github.com/lightbend/config/blob/main/HOCON.md#conventional-override-by-system-properties),
 which is the configuration format Ditto uses.
 
-E.g. if you want to would like to adjust the `journal-collection` name which the `things` service uses to write its
+E.g. if you want to adjust the `journal-collection` name which the `things` service uses to write its
 journal entries to MongoDB (which can be found [here](https://github.com/eclipse-ditto/ditto/blob/33a38bc04b47d0167ba0e99fe76d96a54aa3d162/things/service/src/main/resources/things.conf#L268)),
 simply configure:
 
