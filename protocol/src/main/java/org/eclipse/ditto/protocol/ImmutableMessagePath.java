@@ -72,6 +72,27 @@ final class ImmutableMessagePath implements MessagePath {
     }
 
     @Override
+    public Optional<String> getMessageSubject() {
+        if (isInboxOutboxMessage()) {
+            return Optional.ofNullable(
+                    jsonPointer.getRoot()
+                        .flatMap(MessagePath::jsonKeyToDirection)
+                        .flatMap(direction -> jsonPointer.getSubPointer(2))
+                        .orElseGet(() -> jsonPointer.getRoot()
+                                .filter(FEATURES::equals)
+                                .flatMap(features -> jsonPointer.get(2))
+                                .flatMap(MessagePath::jsonKeyToDirection)
+                                .flatMap(direction -> jsonPointer.getSubPointer(4))
+                                .orElse(null)
+                        )
+            ).map(JsonPointer::toString)
+                    .map(s -> s.startsWith("/") ? s.substring(1) : s);
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    @Override
     public JsonPointer addLeaf(final JsonKey key) {
         return jsonPointer.addLeaf(key);
     }
