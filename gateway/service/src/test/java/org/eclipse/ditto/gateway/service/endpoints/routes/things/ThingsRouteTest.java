@@ -19,8 +19,8 @@ import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.things.model.signals.commands.exceptions.MissingThingIdsException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotCreatableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyPolicyId;
@@ -158,7 +158,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
     public void getThingsWithEmptyIdsList() {
         final var result = underTest.run(HttpRequest.GET("/things?ids="));
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
-        final var expectedEx = MissingThingIdsException.newBuilder()
+        final var expectedEx = ThingIdInvalidException.newBuilder("")
                 .dittoHeaders(dittoHeaders)
                 .build();
         result.assertEntity(expectedEx.toJsonString());

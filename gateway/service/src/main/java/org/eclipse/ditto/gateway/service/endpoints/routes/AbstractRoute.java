@@ -17,6 +17,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -136,11 +137,15 @@ public abstract class AbstractRoute extends AllDirectives {
     /**
      * Calculates a JsonFieldSelector from the passed {@code fieldsString}.
      *
-     * @param fieldsString the fields as string.
+     * @param fields the fields as potentially comma separated strings.
      * @return the Optional JsonFieldSelector
      */
-    protected static Optional<JsonFieldSelector> calculateSelectedFields(final Optional<String> fieldsString) {
-        return fieldsString.map(fs -> JsonFactory.newFieldSelector(fs, JSON_FIELD_SELECTOR_PARSE_OPTIONS));
+    protected static Optional<JsonFieldSelector> calculateSelectedFields(final List<String> fields) {
+        if (fields.isEmpty()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(JsonFactory.newFieldSelector(fields, JSON_FIELD_SELECTOR_PARSE_OPTIONS));
+        }
     }
 
     /**

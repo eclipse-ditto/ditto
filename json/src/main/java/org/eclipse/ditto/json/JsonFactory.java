@@ -27,6 +27,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -612,6 +614,44 @@ public final class JsonFactory {
         }
 
         return result;
+    }
+
+    /**
+     * Returns a new JSON field selector by parsing the given string. If the JSON field selector string is {@code null}
+     * or empty this means that no fields were selected thus this method returns an empty JSON field selector.
+     * <p>
+     * For example, the field selector string
+     * </p>
+     * <pre>
+     * "thingId,attributes(acceleration,someData(foo,bar/baz)),features/key"
+     * </pre>
+     * would lead to a JSON field selector which consists of the following JSON pointers:
+     * <ul>
+     * <li>{@code "thingId"},</li>
+     * <li>{@code "attributes/acceleration"},</li>
+     * <li>{@code "attributes/someData/foo"},</li>
+     * <li>{@code "attributes/someData/bar/baz"},</li>
+     * <li>{@code "features/key"}.</li>
+     * </ul>
+     *
+     * @param fieldSelectorStrings strings to be transformed into a JSON field selector object.
+     * @param options the JsonParseOptions to apply when parsing the {@code fieldSelectorString}.
+     * @return a new JSON field selector.
+     * @throws JsonFieldSelectorInvalidException if {@code fieldSelectorString} is empty or if
+     * {@code fieldSelectorString} does not contain a closing parenthesis ({@code )}) for each opening parenthesis
+     * ({@code (}).
+     * @throws IllegalStateException if {@code fieldSelectorStrings} cannot be decoded as UTF-8.
+     * @since 3.3.0
+     */
+    public static JsonFieldSelector newFieldSelector(final Iterable<String> fieldSelectorStrings,
+            final JsonParseOptions options) {
+
+        final Collection<JsonPointer> selectors = StreamSupport.stream(fieldSelectorStrings.spliterator(), false)
+                .map(fieldSelectorString -> ImmutableJsonFieldSelectorFactory.newInstance(fieldSelectorString, options))
+                .map(ImmutableJsonFieldSelectorFactory::newJsonFieldSelector)
+                .flatMap(foo -> foo.getPointers().stream())
+                .collect(Collectors.toList());
+        return newFieldSelector(selectors);
     }
 
     /**

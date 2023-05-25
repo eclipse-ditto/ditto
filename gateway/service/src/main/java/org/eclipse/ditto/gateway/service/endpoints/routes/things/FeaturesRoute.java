@@ -105,9 +105,9 @@ final class FeaturesRoute extends AbstractRoute {
         return pathEndOrSingleSlash(() ->
                 concat(
                         // GET /features?fields=<fieldsString>
-                        get(() -> parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
+                        get(() -> parameterList(ThingsParameter.FIELDS.toString(), fields ->
                                         handlePerRequest(ctx, RetrieveFeatures.of(thingId,
-                                                calculateSelectedFields(fieldsString).orElse(null),
+                                                calculateSelectedFields(fields).orElse(null),
                                                 dittoHeaders))
                                 )
                         ),
@@ -143,9 +143,9 @@ final class FeaturesRoute extends AbstractRoute {
                 pathEndOrSingleSlash(() ->
                         concat(
                                 // GET /features/{featureId}?fields=<fieldsString>
-                                get(() -> parameterOptional(ThingsParameter.FIELDS.toString(),
-                                                fieldsString -> handlePerRequest(ctx, RetrieveFeature.of(thingId, featureId,
-                                                        calculateSelectedFields(fieldsString).orElse(null),
+                                get(() -> parameterList(ThingsParameter.FIELDS.toString(), fields ->
+                                                handlePerRequest(ctx, RetrieveFeature.of(thingId, featureId,
+                                                        calculateSelectedFields(fields).orElse(null),
                                                         dittoHeaders))
                                         )
                                 ),
@@ -235,10 +235,10 @@ final class FeaturesRoute extends AbstractRoute {
                         pathEndOrSingleSlash(() ->
                                 concat(
                                         // GET /features/{featureId}/properties?fields=<fieldsString>
-                                        get(() -> parameterOptional(ThingsParameter.FIELDS.toString(),
-                                                        fieldsString -> handlePerRequest(ctx,
+                                        get(() -> parameterList(ThingsParameter.FIELDS.toString(), fields ->
+                                                        handlePerRequest(ctx,
                                                                 RetrieveFeatureProperties.of(thingId, featureId,
-                                                                        calculateSelectedFields(fieldsString).orElse(null),
+                                                                        calculateSelectedFields(fields).orElse(null),
                                                                         dittoHeaders))
                                                 )
                                         ),
@@ -334,10 +334,10 @@ final class FeaturesRoute extends AbstractRoute {
                         pathEndOrSingleSlash(() ->
                                 concat(
                                         // GET /features/{featureId}/desiredProperties?fields=<fieldsString>
-                                        get(() -> parameterOptional(ThingsParameter.FIELDS.toString(),
-                                                        fieldsString -> handlePerRequest(ctx,
+                                        get(() -> parameterList(ThingsParameter.FIELDS.toString(), fields ->
+                                                        handlePerRequest(ctx,
                                                                 RetrieveFeatureDesiredProperties.of(thingId, featureId,
-                                                                        calculateSelectedFields(fieldsString).orElse(null),
+                                                                        calculateSelectedFields(fields).orElse(null),
                                                                         dittoHeaders))
                                                 )
                                         ),
