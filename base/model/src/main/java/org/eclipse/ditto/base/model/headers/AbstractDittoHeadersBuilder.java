@@ -411,8 +411,8 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
-    public S ifEqual(final IfEqualOption ifEqualOption) {
-        putCharSequence(DittoHeaderDefinition.IF_EQUAL, ifEqualOption.toString());
+    public S ifEqual(final IfEqual ifEqual) {
+        putCharSequence(DittoHeaderDefinition.IF_EQUAL, ifEqual.toString());
         return myself;
     }
 

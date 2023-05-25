@@ -20,7 +20,7 @@ import java.util.Optional;
  *
  * @since 3.3.0
  */
-public enum IfEqualOption {
+public enum IfEqual {
 
     /**
      * Option which updates a value, even if the value is the same (via {@code equal()}) than the value before.
@@ -36,7 +36,7 @@ public enum IfEqualOption {
 
     private final String option;
 
-    IfEqualOption(final String option) {
+    IfEqual(final String option) {
         this.option = option;
     }
 
@@ -51,7 +51,7 @@ public enum IfEqualOption {
      * @param option the option.
      * @return the option with the given option string if any exists.
      */
-    public static Optional<IfEqualOption> forOption(final String option) {
+    public static Optional<IfEqual> forOption(final String option) {
         return Arrays.stream(values())
                 .filter(strategy -> strategy.toString().equals(option))
                 .findAny();

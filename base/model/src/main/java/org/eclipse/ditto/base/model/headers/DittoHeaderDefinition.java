@@ -197,18 +197,18 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
 
     /**
      * Header definition for "If-Equal".
-     * Can hold one of the values: {@code update}, {@code skip}, {@code update-metadata-only}.
+     * Can hold one of the values: {@code update}, {@code skip}.
      * <p>
      * Key: {@code "If-Equal"}, Java type: {@link String}.
      * </p>
      * @since 3.3.0
      */
     IF_EQUAL("if-equal",
-            IfEqualOption.class,
+            IfEqual.class,
             String.class,
             true,
             false,
-            HeaderValueValidators.getEnumValidator(IfEqualOption.values())),
+            HeaderValueValidators.getEnumValidator(IfEqual.values())),
 
     /**
      * Header definition for the internal header "ditto-reply-target". This header is evaluated for responses to be

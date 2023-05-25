@@ -314,9 +314,9 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
     }
 
     @Override
-    public Optional<IfEqualOption> getIfEqual() {
+    public Optional<IfEqual> getIfEqual() {
         return getStringForDefinition(DittoHeaderDefinition.IF_EQUAL)
-                .flatMap(IfEqualOption::forOption);
+                .flatMap(IfEqual::forOption);
     }
 
     @Override

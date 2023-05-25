@@ -31,7 +31,7 @@ import javax.annotation.Nullable;
 import org.assertj.core.api.ThrowableAssertAlternative;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.IfEqualOption;
+import org.eclipse.ditto.base.model.headers.IfEqual;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -177,7 +177,7 @@ public class ThingsConditionalHeadersValidatorTest {
                 .setAttribute(attributePath, attributeValue)
                 .build();
         final ModifyAttribute command = ModifyAttribute.of(thingId, attributePath, attributeValue,
-                DittoHeaders.newBuilder().ifEqual(IfEqualOption.SKIP).build());
+                DittoHeaders.newBuilder().ifEqual(IfEqual.SKIP).build());
 
         assertThatExceptionOfType(ThingPreconditionNotModifiedException.class)
                 .isThrownBy(() -> SUT.applyIfEqualHeader(command, thing))
@@ -194,7 +194,7 @@ public class ThingsConditionalHeadersValidatorTest {
                 .setAttribute(attributePath, attributeValue)
                 .build();
         final MergeThing command = MergeThing.of(thingId, JsonPointer.empty(), thing.toJson(),
-                DittoHeaders.newBuilder().ifEqual(IfEqualOption.SKIP).build());
+                DittoHeaders.newBuilder().ifEqual(IfEqual.SKIP).build());
 
         assertThatExceptionOfType(ThingPreconditionNotModifiedException.class)
                 .isThrownBy(() -> SUT.applyIfEqualHeader(command, thing))
@@ -211,7 +211,7 @@ public class ThingsConditionalHeadersValidatorTest {
                 .setAttribute(attributePath, attributeValue)
                 .build();
         final ModifyAttribute command = ModifyAttribute.of(thingId, attributePath, JsonValue.of(true),
-                DittoHeaders.newBuilder().ifEqual(IfEqualOption.SKIP).build());
+                DittoHeaders.newBuilder().ifEqual(IfEqual.SKIP).build());
 
         assertThatNoException()
                 .isThrownBy(() -> SUT.applyIfEqualHeader(command, thing));
@@ -230,7 +230,7 @@ public class ThingsConditionalHeadersValidatorTest {
                 .setAttribute(attributePath, attributeValue)
                 .build();
         final ModifyAttribute command = ModifyAttribute.of(thingId, attributePath, attributeValue,
-                DittoHeaders.newBuilder().ifEqual(IfEqualOption.UPDATE).build());
+                DittoHeaders.newBuilder().ifEqual(IfEqual.UPDATE).build());
 
         assertThatNoException()
                 .isThrownBy(() -> SUT.applyIfEqualHeader(command, thing));

@@ -24,7 +24,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.Entity;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.base.model.headers.IfEqualOption;
+import org.eclipse.ditto.base.model.headers.IfEqual;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
@@ -37,9 +37,9 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
 /**
- * Custom Ditto {@code if-equal} precondition header supporting available strategies defined in {@link IfEqualOption}.
- * The default is to always {@link IfEqualOption#UPDATE update} the entity, no matter if the update will lead to the
- * same state. Another option is to {@link IfEqualOption#SKIP skip} updating an entity when it would be {@code equal}
+ * Custom Ditto {@code if-equal} precondition header supporting available strategies defined in {@link org.eclipse.ditto.base.model.headers.IfEqual}.
+ * The default is to always {@link IfEqual#UPDATE update} the entity, no matter if the update will lead to the
+ * same state. Another option is to {@link IfEqual#SKIP skip} updating an entity when it would be {@code equal}
  * after the change.
  *
  * @param <C> the type of the handled {@link Command}.
@@ -51,13 +51,13 @@ public final class IfEqualPreconditionHeader<C extends Command<?>> implements Pr
     private static final String IF_EQUAL_KEY = DittoHeaderDefinition.IF_EQUAL.getKey();
 
     private final C command;
-    private final IfEqualOption ifEqualOption;
+    private final IfEqual ifEqual;
     private final ConditionalHeadersValidator.ValidationSettings validationSettings;
 
-    private IfEqualPreconditionHeader(final C command, final IfEqualOption ifEqualOption,
+    private IfEqualPreconditionHeader(final C command, final IfEqual ifEqual,
             final ConditionalHeadersValidator.ValidationSettings validationSettings) {
         this.command = checkNotNull(command, "command");
-        this.ifEqualOption = checkNotNull(ifEqualOption, "ifEqualOption");
+        this.ifEqual = checkNotNull(ifEqual, "ifEqual");
         this.validationSettings = checkNotNull(validationSettings, "validationSettings");
     }
 
@@ -90,7 +90,7 @@ public final class IfEqualPreconditionHeader<C extends Command<?>> implements Pr
 
     @Override
     public String getValue() {
-        return ifEqualOption.toString();
+        return ifEqual.toString();
     }
 
     /**
@@ -108,7 +108,7 @@ public final class IfEqualPreconditionHeader<C extends Command<?>> implements Pr
             return false;
         }
 
-        if (ifEqualOption == IfEqualOption.SKIP) {
+        if (ifEqual == IfEqual.SKIP) {
             if (command.getCategory() == Command.Category.MODIFY &&
                     command instanceof WithOptionalEntity withOptionalEntity) {
                 return withOptionalEntity.getEntity()
@@ -167,10 +167,10 @@ public final class IfEqualPreconditionHeader<C extends Command<?>> implements Pr
     C handleCommand(final BooleanSupplier isCompletelyEqualSupplier) {
 
         final C potentiallyAdjustedCommand;
-        if (ifEqualOption == IfEqualOption.UPDATE) {
+        if (ifEqual == IfEqual.UPDATE) {
             // default behavior - no change, just use the complete modify command, not matter what:
             potentiallyAdjustedCommand = command;
-        } else if (ifEqualOption == IfEqualOption.SKIP) {
+        } else if (ifEqual == IfEqual.SKIP) {
             // lazily check for equality as this might be expensive to do:
             final boolean completelyEqual = isCompletelyEqualSupplier.getAsBoolean();
             final Command.Category category = command.getCategory();

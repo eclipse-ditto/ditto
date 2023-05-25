@@ -32,7 +32,7 @@ import javax.annotation.Nullable;
 import org.assertj.core.api.ThrowableAssertAlternative;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.IfEqualOption;
+import org.eclipse.ditto.base.model.headers.IfEqual;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -149,7 +149,7 @@ public class PoliciesConditionalHeadersValidatorTest {
                 .setPolicyImport(policyImport)
                 .build();
         final ModifyPolicyImport command = ModifyPolicyImport.of(policyId, policyImport,
-                DittoHeaders.newBuilder().ifEqual(IfEqualOption.SKIP).build());
+                DittoHeaders.newBuilder().ifEqual(IfEqual.SKIP).build());
 
         assertThatExceptionOfType(PolicyPreconditionNotModifiedException.class)
                 .isThrownBy(() -> SUT.applyIfEqualHeader(command, policy))
@@ -167,7 +167,7 @@ public class PoliciesConditionalHeadersValidatorTest {
                 .build();
         final ModifyPolicyImport command = ModifyPolicyImport.of(policyId,  PolicyImport.newInstance(PolicyId.of("some.policy:one"), EffectedImports.newInstance(
                         List.of(Label.of("OTHER")))),
-                DittoHeaders.newBuilder().ifEqual(IfEqualOption.SKIP).build());
+                DittoHeaders.newBuilder().ifEqual(IfEqual.SKIP).build());
 
         assertThatNoException()
                 .isThrownBy(() -> SUT.applyIfEqualHeader(command, policy));
@@ -183,7 +183,7 @@ public class PoliciesConditionalHeadersValidatorTest {
                 .setPolicyImport(policyImport)
                 .build();
         final ModifyPolicyImport command = ModifyPolicyImport.of(policyId,  policyImport,
-                DittoHeaders.newBuilder().ifEqual(IfEqualOption.UPDATE).build());
+                DittoHeaders.newBuilder().ifEqual(IfEqual.UPDATE).build());
 
         assertThatNoException()
                 .isThrownBy(() -> SUT.applyIfEqualHeader(command, policy));

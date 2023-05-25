@@ -79,7 +79,7 @@ public final class ImmutableDittoHeadersTest {
             EntityTagMatchers.fromCommaSeparatedString("\"oneValue\",\"anotherValue\"");
     private static final EntityTagMatchers KNOWN_IF_NONE_MATCH =
             EntityTagMatchers.fromCommaSeparatedString("\"notOneValue\",\"notAnotherValue\"");
-    private static final IfEqualOption KNOWN_IF_EQUAL_OPTION = IfEqualOption.SKIP;
+    private static final IfEqual KNOWN_IF_EQUAL_OPTION = IfEqual.SKIP;
     private static final EntityTag KNOWN_ETAG = EntityTag.fromString("\"-12124212\"");
     private static final Collection<AuthorizationSubject> KNOWN_READ_GRANTED_SUBJECTS =
             Lists.list(AuthorizationModelFactory.newAuthSubject("knownGrantedSubject1"),

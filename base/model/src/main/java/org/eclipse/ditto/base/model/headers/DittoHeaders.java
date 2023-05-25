@@ -267,13 +267,12 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     Optional<EntityTagMatchers> getIfNoneMatch();
 
     /**
-     * Returns the "If-Equal" option header defining whether to update a value if it was equal to the previous value
-     * or not.
+     * Returns the "If-Equal" header defining whether to update a value if it was equal to the previous value or not.
      *
-     * @return the if-equal option header.
+     * @return the if-equal header.
      * @since 3.3.0
      */
-    Optional<IfEqualOption> getIfEqual();
+    Optional<IfEqual> getIfEqual();
 
     /**
      * Returns the inbound {@code MessageMapper} ID which mapped incoming arbitrary payload from external sources.
