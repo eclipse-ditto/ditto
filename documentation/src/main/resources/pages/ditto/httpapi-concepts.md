@@ -624,8 +624,8 @@ The following request headers can be used to issue a conditional request:
 * `if-equal`:
    * The `if-equal` header can take the values `'update'` (which is the default if omitted) or `'skip'`
    * Write the resource only
-      * in case `if-equal: 'update'` is defined - even if the entity will be equal than before the update.
-      * in case `if-equal: 'skip'` is defined, the entity will not be updated if it will be equal than before the update.  
+      * in case `if-equal: 'update'` is defined - even if the entity is equal before the update.
+      * in case `if-equal: 'skip'` is defined, the entity will not be updated if it is equal before the update.  
         In this case a 'Not Modified' 304 status is returned.
 
 Note that the Ditto HTTP API always provides a `strong` entity-tag in the `ETag` header, thus you will never receive a

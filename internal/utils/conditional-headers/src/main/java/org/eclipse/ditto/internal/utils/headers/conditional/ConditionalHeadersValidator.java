@@ -208,12 +208,6 @@ public final class ConditionalHeadersValidator {
                 .build();
     }
 
-    private DittoRuntimeException buildNotModifiedForEqualityException() {
-        return validationSettings
-                .createPreconditionNotModifiedForEqualityExceptionBuilder()
-                .build();
-    }
-
     private DittoHeaders appendETagIfNotNull(final DittoHeaders dittoHeaders, @Nullable final EntityTag entityTag) {
         if (entityTag == null) {
             return dittoHeaders;

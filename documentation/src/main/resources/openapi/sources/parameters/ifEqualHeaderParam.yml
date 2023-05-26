@@ -12,8 +12,8 @@ name: if-equal
 in: header
 description: >-
   The `if-equal` header can take the values 'update' (which is the default if omitted) or 'skip'.
-  If 'update' is defined, the entity will always be updated, even if it will be equal than before the update.
-  If 'skip' is defined, the entity not be updated if it will be equal than before the update. 
+  If 'update' is defined, the entity will always be updated, even if it is equal before the update.
+  If 'skip' is defined, the entity not be updated if it is equal before the update. 
   In this case a 'Not Modified' 304 status is returned.
 required: false
 schema:
