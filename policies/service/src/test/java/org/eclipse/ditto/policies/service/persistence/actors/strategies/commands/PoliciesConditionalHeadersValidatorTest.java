@@ -15,6 +15,7 @@ package org.eclipse.ditto.policies.service.persistence.actors.strategies.command
 import static java.text.MessageFormat.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.eclipse.ditto.base.model.signals.commands.Command.Category.DELETE;
 import static org.eclipse.ditto.base.model.signals.commands.Command.Category.MODIFY;
 import static org.eclipse.ditto.base.model.signals.commands.Command.Category.QUERY;
@@ -23,6 +24,7 @@ import static org.mockito.Mockito.when;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -30,14 +32,21 @@ import javax.annotation.Nullable;
 import org.assertj.core.api.ThrowableAssertAlternative;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.IfEqual;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.Command.Category;
 import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.policies.model.EffectedImports;
+import org.eclipse.ditto.policies.model.Label;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyPreconditionFailedException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyPreconditionNotModifiedException;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImport;
 import org.junit.Test;
 
 /**
@@ -129,6 +138,57 @@ public class PoliciesConditionalHeadersValidatorTest {
 
         assertNotModified(ifMatchHeaderValue, ifNoneMatchHeaderValue, actualEntityTag, expectedMessage, null);
     }
+
+    @Test
+    public void ifEqualDoesThrowExceptionWhenIfEqualSkipAndValueIsEqual() {
+        final PolicyId policyId = PolicyId.generateRandom();
+        final PolicyImport policyImport = PolicyImport.newInstance(PolicyId.of("some.policy:one"), EffectedImports.newInstance(
+                List.of(Label.of("SOME"))));
+        final Policy policy = Policy.newBuilder()
+                .setId(policyId)
+                .setPolicyImport(policyImport)
+                .build();
+        final ModifyPolicyImport command = ModifyPolicyImport.of(policyId, policyImport,
+                DittoHeaders.newBuilder().ifEqual(IfEqual.SKIP).build());
+
+        assertThatExceptionOfType(PolicyPreconditionNotModifiedException.class)
+                .isThrownBy(() -> SUT.applyIfEqualHeader(command, policy))
+                .withMessage("The previous value was equal to the new value and the 'if-equal' header was set to 'skip'.");
+    }
+
+    @Test
+    public void ifEqualDoesNotThrowExceptionWhenIfEqualSkipAndValueIsNotEqual() {
+        final PolicyId policyId = PolicyId.generateRandom();
+        final PolicyImport policyImport = PolicyImport.newInstance(PolicyId.of("some.policy:one"), EffectedImports.newInstance(
+                List.of(Label.of("SOME"))));
+        final Policy policy = Policy.newBuilder()
+                .setId(policyId)
+                .setPolicyImport(policyImport)
+                .build();
+        final ModifyPolicyImport command = ModifyPolicyImport.of(policyId,  PolicyImport.newInstance(PolicyId.of("some.policy:one"), EffectedImports.newInstance(
+                        List.of(Label.of("OTHER")))),
+                DittoHeaders.newBuilder().ifEqual(IfEqual.SKIP).build());
+
+        assertThatNoException()
+                .isThrownBy(() -> SUT.applyIfEqualHeader(command, policy));
+    }
+
+    @Test
+    public void ifEqualDoesNotThrowExceptionWhenIfEqualUpdateAndValueIsEqual() {
+        final PolicyId policyId = PolicyId.generateRandom();
+        final PolicyImport policyImport = PolicyImport.newInstance(PolicyId.of("some.policy:one"), EffectedImports.newInstance(
+                List.of(Label.of("SOME"))));
+        final Policy policy = Policy.newBuilder()
+                .setId(policyId)
+                .setPolicyImport(policyImport)
+                .build();
+        final ModifyPolicyImport command = ModifyPolicyImport.of(policyId,  policyImport,
+                DittoHeaders.newBuilder().ifEqual(IfEqual.UPDATE).build());
+
+        assertThatNoException()
+                .isThrownBy(() -> SUT.applyIfEqualHeader(command, policy));
+    }
+
 
     private Command createCommandMock(final Category commandCategory, final String ifMatchHeaderValue,
             final String ifNoneMatchHeaderValue, final @Nullable JsonObject selectedFields) {

@@ -19,12 +19,12 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingException;
 
 
@@ -55,6 +55,16 @@ public final class ThingPreconditionNotModifiedException extends DittoRuntimeExc
             @Nullable final Throwable cause,
             @Nullable final URI href) {
         super(ERROR_CODE, HttpStatus.NOT_MODIFIED, dittoHeaders, message, description, cause, href);
+    }
+
+    /**
+     * A mutable builder for a {@link ThingPreconditionNotModifiedException}.
+     *
+     * @return the builder.
+     * @since 3.3.0
+     */
+    public static Builder newBuilder() {
+        return new Builder();
     }
 
     /**

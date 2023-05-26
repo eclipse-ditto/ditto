@@ -351,6 +351,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParam'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -591,6 +592,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParam'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -821,6 +823,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -911,6 +914,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -1109,6 +1113,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -1181,6 +1186,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -1313,6 +1319,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -1402,6 +1409,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -1615,6 +1623,7 @@ paths:
         - $ref: '#/components/parameters/AttributesPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -1705,6 +1714,7 @@ paths:
         - $ref: '#/components/parameters/AttributesPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -1944,6 +1954,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -2091,6 +2102,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -2322,6 +2334,7 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -2445,6 +2458,7 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -2528,6 +2542,7 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -2580,6 +2595,7 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/GetMetadataParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
@@ -2649,6 +2665,7 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -2750,6 +2767,7 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -2950,6 +2968,7 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -3057,6 +3076,7 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -3274,6 +3294,7 @@ paths:
         - $ref: '#/components/parameters/PropertyPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -3362,6 +3383,7 @@ paths:
         - $ref: '#/components/parameters/PropertyPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -3558,6 +3580,7 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -3665,6 +3688,7 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -3884,6 +3908,7 @@ paths:
         - $ref: '#/components/parameters/PropertyPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -3971,6 +3996,7 @@ paths:
         - $ref: '#/components/parameters/PropertyPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -4673,6 +4699,7 @@ paths:
         - $ref: '#/components/parameters/PolicyIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParam'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
         - $ref: '#/components/parameters/AllowPolicyLockoutParam'
@@ -4987,6 +5014,7 @@ paths:
         - $ref: '#/components/parameters/PolicyIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
@@ -5142,6 +5170,7 @@ paths:
         - $ref: '#/components/parameters/LabelPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
@@ -5490,6 +5519,7 @@ paths:
         - $ref: '#/components/parameters/LabelPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
@@ -5624,6 +5654,7 @@ paths:
         - $ref: '#/components/parameters/SubjectIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
@@ -5876,6 +5907,7 @@ paths:
         - $ref: '#/components/parameters/LabelPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
@@ -6008,6 +6040,7 @@ paths:
         - $ref: '#/components/parameters/ResourcePathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
@@ -6215,6 +6248,7 @@ paths:
         - $ref: '#/components/parameters/PolicyIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
@@ -6298,6 +6332,7 @@ paths:
         - $ref: '#/components/parameters/ImportedPolicyIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
@@ -6368,6 +6403,7 @@ paths:
         - $ref: '#/components/parameters/ImportedPolicyIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
@@ -8227,6 +8263,16 @@ components:
       required: false
       schema:
         type: string
+    IfEqualHeaderParam:
+      name: if-equal
+      in: header
+      description: 'The `if-equal` header can take the values ''update'' (which is the default if omitted) or ''skip''. If ''update'' is defined, the entity will always be updated, even if it is equal before the update. If ''skip'' is defined, the entity not be updated if it is equal before the update.  In this case a ''Not Modified'' 304 status is returned.'
+      required: false
+      schema:
+        type: string
+        enum:
+          - update
+          - skip
     ImportedPolicyIdPathParam:
       name: importedPolicyId
       in: path

@@ -20,6 +20,7 @@ get:
     - $ref: '../../parameters/importedPolicyIdPathParam.yml'
     - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
     - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/ifEqualHeaderParam.yml'
     - $ref: '../../parameters/timeoutParam.yml'
   responses:
     '200':
@@ -91,6 +92,7 @@ put:
     - $ref: '../../parameters/importedPolicyIdPathParam.yml'
     - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
     - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/ifEqualHeaderParam.yml'
     - $ref: '../../parameters/timeoutParam.yml'
     - $ref: '../../parameters/responseRequiredParam.yml'
   responses:

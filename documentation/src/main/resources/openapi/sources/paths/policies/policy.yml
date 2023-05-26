@@ -146,6 +146,7 @@ put:
     - $ref: '../../parameters/policyIdPathParam.yml'
     - $ref: '../../parameters/ifMatchHeaderParam.yml'
     - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/ifEqualHeaderParam.yml'
     - $ref: '../../parameters/timeoutParam.yml'
     - $ref: '../../parameters/responseRequiredParam.yml'
     - $ref: '../../parameters/allowPolicyLockoutParam.yml'
