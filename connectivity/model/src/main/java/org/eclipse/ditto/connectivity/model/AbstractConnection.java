@@ -128,13 +128,16 @@ abstract class AbstractConnection implements Connection {
                 .map(AbstractConnection::tryToParseInstant).ifPresent(builder::modified);
         jsonObject.getValue(JsonFields.CREATED)
                 .map(AbstractConnection::tryToParseInstant).ifPresent(builder::created);
-        jsonObject.getValue(JsonFields.CREDENTIALS).ifPresent(builder::credentialsFromJson);
+        jsonObject.getValue(JsonFields.CREDENTIALS)
+                .filter(f -> !f.isNull())
+                .ifPresent(builder::credentialsFromJson);
         jsonObject.getValue(JsonFields.CLIENT_COUNT).ifPresent(builder::clientCount);
         jsonObject.getValue(JsonFields.FAILOVER_ENABLED).ifPresent(builder::failoverEnabled);
         jsonObject.getValue(JsonFields.VALIDATE_CERTIFICATES).ifPresent(builder::validateCertificate);
         jsonObject.getValue(JsonFields.PROCESSOR_POOL_SIZE).ifPresent(builder::processorPoolSize);
         jsonObject.getValue(JsonFields.TRUSTED_CERTIFICATES).ifPresent(builder::trustedCertificates);
         jsonObject.getValue(JsonFields.SSH_TUNNEL)
+                .filter(f -> !f.isNull())
                 .ifPresent(jsonFields -> builder.sshTunnel(ImmutableSshTunnel.fromJson(jsonFields)));
     }
 
@@ -175,6 +178,7 @@ abstract class AbstractConnection implements Connection {
 
     private static Map<String, String> getSpecificConfiguration(final JsonObject jsonObject) {
         return jsonObject.getValue(JsonFields.SPECIFIC_CONFIG)
+                .filter(f -> !f.isNull())
                 .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
                 .map(JsonObject::stream)
@@ -185,6 +189,7 @@ abstract class AbstractConnection implements Connection {
 
     private static Set<String> getTags(final JsonObject jsonObject) {
         return jsonObject.getValue(JsonFields.TAGS)
+                .filter(f -> !f.isNull())
                 .map(array -> array.stream()
                         .filter(JsonValue::isString)
                         .map(JsonValue::asString)

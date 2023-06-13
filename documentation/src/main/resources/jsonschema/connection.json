@@ -9,7 +9,7 @@
       "title": "Connection ID",
       "description": "The self assigned unique identifier of the connection",
       "examples": [
-        "myConnection"
+        "my-connection"
       ]
     },
     "name": {
@@ -36,7 +36,7 @@
       "title": "Connection type",
       "description": "The type determining the connection's underlying transport protocol",
       "examples": [
-        "amqp-10"
+        "kafka"
       ]
     },
     "connectionStatus": {
@@ -427,14 +427,17 @@
                   "description": "A filter that must match the input value for a message to be accepted. You can use the placeholders `{{ thing:id }}`, `{{ thing:name }}` or `{{ thing:namespace }}` in a filter."
                 }
               }
-            }
+            },
+            "additionalProperties": false,
+            "required": [
+              "input"
+            ]
           },
           "acknowledgementRequests": {
             "$id": "/properties/sources/items/properties/acknowledgementRequests",
             "type": "object",
             "title": "Acknowledgement requests configuration",
             "description": "Contains requests to acknowledgements which must be fulfilled before a message consumed from this source is technically settled/ACKed at the e.g. message broker.",
-            "additionalProperties": false,
             "properties": {
               "includes": {
                 "$id": "/properties/sources/items/properties/acknowledgementRequests/includes",
@@ -456,6 +459,7 @@
                 ]
               }
             },
+            "additionalProperties": false,
             "required": [
               "includes"
             ]
@@ -546,11 +550,18 @@
                 }
               }
             },
+            "additionalProperties": false,
             "required": [
+              "enabled",
               "address"
             ]
           }
-        }
+        },
+        "additionalProperties": false,
+        "required": [
+          "addresses",
+          "authorizationContext"
+        ]
       }
     },
     "targets": {
@@ -642,7 +653,13 @@
               }
             }
           }
-        }
+        },
+        "additionalProperties": false,
+        "required": [
+          "address",
+          "authorizationContext",
+          "topics"
+        ]
       }
     },
     "clientCount": {
@@ -652,7 +669,7 @@
       "description": "The client count defines how many clients are instantiated for this connection. Each client opens a separate 'physical' connection and thus raises the overall availability and throughput of the connection. Clients are always instantiated on separate AKKA cluster nodes while having only a single client per node. Therefore the max client count is limited by the number of cluster nodes.",
       "default": 1,
       "minimum": 1,
-      "maximum": "#clusterNodes",
+      "maximum": 9,
       "examples": [
         1,
         2,
