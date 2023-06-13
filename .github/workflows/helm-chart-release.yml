@@ -28,7 +28,7 @@ jobs:
           repository: eclipse
           name: ditto
           tag: ${{ inputs.chartVersion }}
-          path: deployment/helm/ditto
+          path: ./deployment/helm/ditto
           registry: registry-1.docker.io
           registry_username: eclipsedittobot
           registry_password: ${{ secrets.DOCKER_HUB_TOKEN }}

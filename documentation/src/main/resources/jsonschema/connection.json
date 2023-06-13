@@ -601,7 +601,7 @@
             "$id": "/properties/targets/items/properties/authorizationContext",
             "type": "array",
             "title": "The authorization context",
-            "description": "The authorization context defines all authorization subjects associated for this target. ",
+            "description": "The authorization context defines all authorization subjects associated for this target.",
             "uniqueItems": true,
             "items": {
               "$id": "/properties/authorizationContext/items",
@@ -617,7 +617,7 @@
             "$id": "/properties/targets/items/properties/issuedAcknowledgementLabel",
             "type": "string",
             "title": "Issued acknowledgement label for this target",
-            "description": "the optional label of an acknowledgement which should automatically be issued by this target based on the technical settlement/ACK the connection channel provides."
+            "description": "The optional label of an acknowledgement which should automatically be issued by this target based on the technical settlement/ACK the connection channel provides."
           },
           "payloadMapping": {
             "$id": "/properties/targets/items/properties/payloadMapping",
@@ -732,114 +732,113 @@
         },
         "additionalProperties": false,
         "required": [
-          "mappingEngine"
+          "mappingEngine",
+          "options"
         ]
       }
     },
     "sshTunnel": {
       "$id": "/properties/sshTunnel",
       "type": "object",
-      "additionalProperties": {
-        "type": "object",
-        "description": "The configuration of a local SSH port forwarding used to tunnel the connection to the actual endpoint.",
-        "properties": {
-          "enabled": {
-            "$id": "/properties/sshTunnel/properties/enabled",
-            "type": "boolean",
-            "title": "Whether the tunnel is enabled.",
-            "description": "This flag controls whether Ditto establishes an SSH tunnel before connecting to the actual endpoint."
-          },
-          "uri": {
-            "$id": "/properties/sshTunnel/properties/uri",
-            "type": "string",
-            "title": "SSH host",
-            "description": "The URI of the SSH host."
-          },
-          "credentials": {
-            "$id": "/properties/sshTunnel/properties/credentials",
-            "type": "object",
-            "title": "Credentials",
-            "description": "Credentials with which Ditto authenticates itself at the SSH host.",
-            "properties": {
-              "type": {
-                "$id": "/properties/sshTunnel/properties/credentials/properties/type",
-                "type": "string",
-                "enum": [
-                  "password",
-                  "public-key"
-                ],
-                "title": "Type of credentials",
-                "description": "Type of credentials",
-                "examples": [
-                  "password",
-                  "public-key"
-                ]
-              },
-              "username": {
-                "$id": "/properties/sshTunnel/properties/credentials/properties/username",
-                "type": "string",
-                "title": "The username for authentication.",
-                "description": "A valid username.",
-                "examples": [
-                  "tunnel-user"
-                ]
-              },
-              "password": {
-                "$id": "/properties/sshTunnel/properties/credentials/properties/password",
-                "type": "string",
-                "title": "The password for authentication.",
-                "description": "A valid password. Only required for type `plain`.",
-                "examples": [
-                  "*****"
-                ]
-              },
-              "publicKey": {
-                "$id": "/properties/sshTunnel/properties/credentials/properties/publicKey",
-                "type": "string",
-                "title": "Public key for credentials type `public-key`.",
-                "description": "Public key for type `public-key` in PEM-format.",
-                "examples": [
-                  "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----\n"
-                ]
-              },
-              "privateKey": {
-                "$id": "/properties/sshTunnel/properties/credentials/properties/privateKey",
-                "type": "string",
-                "title": "Private key for credentials type `public-key`.",
-                "description": "Unencrypted private key for type `public-key` as PKCS8 in PEM-format.",
-                "examples": [
-                  "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-                ]
-              }
-            }
-          },
-          "validateHost": {
-            "$id": "/properties/sshTunnel/properties/validateHost",
-            "type": "boolean",
-            "title": "Whether the SSH host is verified.",
-            "description": "This flag controls whether Ditto verifies the SSH host used for tunneling by checking the public key provided by the host against the given public key fingerprints."
-          },
-          "knownHosts": {
-            "$id": "/properties/sshTunnel/properties/knownHosts",
-            "type": "array",
-            "title": "A list of accepted fingerprints.",
-            "description": "One of these fingerprints must match the fingerprint of the public key the SSH host provides.",
-            "uniqueItems": true,
-            "items": {
-              "$id": "/properties/sshTunnel/properties/knownHosts/items",
+      "description": "The configuration of a local SSH port forwarding used to tunnel the connection to the actual endpoint.",
+      "properties": {
+        "enabled": {
+          "$id": "/properties/sshTunnel/properties/enabled",
+          "type": "boolean",
+          "title": "Whether the tunnel is enabled.",
+          "description": "This flag controls whether Ditto establishes an SSH tunnel before connecting to the actual endpoint."
+        },
+        "uri": {
+          "$id": "/properties/sshTunnel/properties/uri",
+          "type": "string",
+          "title": "SSH host",
+          "description": "The URI of the SSH host."
+        },
+        "credentials": {
+          "$id": "/properties/sshTunnel/properties/credentials",
+          "type": "object",
+          "title": "Credentials",
+          "description": "Credentials with which Ditto authenticates itself at the SSH host.",
+          "properties": {
+            "type": {
+              "$id": "/properties/sshTunnel/properties/credentials/properties/type",
               "type": "string",
-              "title": "Fingerprint",
-              "description": "A public key fingerprint in the format the command line tool `ssh-keygen` produces, e.g. `MD5:e0:3a:34:1c:68:ed:c6:bc:7c:ca:a8:67:c7:45:2b:19`. The fingerprint is prefixed with the hash algorithm used to calculate the fingerprint. Supported algorithms are `MD5`, `SHA1`, `SHA224`, `SHA256`, `SHA384` and `SHA512`"
+              "enum": [
+                "password",
+                "public-key"
+              ],
+              "title": "Type of credentials",
+              "description": "Type of credentials",
+              "examples": [
+                "password",
+                "public-key"
+              ]
             },
-            "additionalProperties": false,
-            "required": [
-              "enabled",
-              "uri",
-              "credentials"
-            ]
+            "username": {
+              "$id": "/properties/sshTunnel/properties/credentials/properties/username",
+              "type": "string",
+              "title": "The username for authentication.",
+              "description": "A valid username.",
+              "examples": [
+                "tunnel-user"
+              ]
+            },
+            "password": {
+              "$id": "/properties/sshTunnel/properties/credentials/properties/password",
+              "type": "string",
+              "title": "The password for authentication.",
+              "description": "A valid password. Only required for type `plain`.",
+              "examples": [
+                "*****"
+              ]
+            },
+            "publicKey": {
+              "$id": "/properties/sshTunnel/properties/credentials/properties/publicKey",
+              "type": "string",
+              "title": "Public key for credentials type `public-key`.",
+              "description": "Public key for type `public-key` in PEM-format.",
+              "examples": [
+                "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----\n"
+              ]
+            },
+            "privateKey": {
+              "$id": "/properties/sshTunnel/properties/credentials/properties/privateKey",
+              "type": "string",
+              "title": "Private key for credentials type `public-key`.",
+              "description": "Unencrypted private key for type `public-key` as PKCS8 in PEM-format.",
+              "examples": [
+                "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+              ]
+            }
+          }
+        },
+        "validateHost": {
+          "$id": "/properties/sshTunnel/properties/validateHost",
+          "type": "boolean",
+          "title": "Whether the SSH host is verified.",
+          "description": "This flag controls whether Ditto verifies the SSH host used for tunneling by checking the public key provided by the host against the given public key fingerprints."
+        },
+        "knownHosts": {
+          "$id": "/properties/sshTunnel/properties/knownHosts",
+          "type": "array",
+          "title": "A list of accepted fingerprints.",
+          "description": "One of these fingerprints must match the fingerprint of the public key the SSH host provides.",
+          "uniqueItems": true,
+          "items": {
+            "$id": "/properties/sshTunnel/properties/knownHosts/items",
+            "type": "string",
+            "title": "Fingerprint",
+            "description": "A public key fingerprint in the format the command line tool `ssh-keygen` produces, e.g. `MD5:e0:3a:34:1c:68:ed:c6:bc:7c:ca:a8:67:c7:45:2b:19`. The fingerprint is prefixed with the hash algorithm used to calculate the fingerprint. Supported algorithms are `MD5`, `SHA1`, `SHA224`, `SHA256`, `SHA384` and `SHA512`"
           }
         }
-      }
+      },
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "uri",
+        "credentials",
+        "validateHost"
+      ]
     },
     "_revision": {
       "type": "integer",
@@ -861,7 +860,6 @@
     "id",
     "connectionType",
     "connectionStatus",
-    "uri",
-    "authorizationContext"
+    "uri"
   ]
 }
