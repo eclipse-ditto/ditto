@@ -1,0 +1,174 @@
+<!doctype html>
+<html>
+<head>
+  <title>Eclipse Ditto</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+
+  <style>
+    body {
+      text-align: center;
+      padding: 150px;
+    }
+
+    h1 {
+      font-size: 50px;
+    }
+
+    body {
+      font: 20px Helvetica, sans-serif;
+      color: #333;
+    }
+
+    article {
+      display: block;
+      text-align: left;
+      width: 750px;
+      margin: 0 auto;
+    }
+
+    a {
+      color: #dc8100;
+      text-decoration: none;
+    }
+
+    a:hover {
+      color: #333;
+      text-decoration: none;
+    }
+
+    .stats {
+      line-height: 3em;
+    }
+
+    .stats-count {
+      font: normal 2em Abel;
+      color: #3a8c9a;
+      font-weight: bold;
+      text-align: center;
+      margin: 5px;
+      clear: left;
+      float: left;
+      width: 5em;
+      background-color: lightgray;
+    }
+
+    .stats-count-text {
+      padding-left: 1em;
+      vertical-align: middle;
+    }
+
+    .health {
+      background-size: contain;
+      height: 30px;
+      width: 30px;
+      float: left;
+    }
+
+    .health-up {
+      background-image: url(ditto-up.svg);
+    }
+
+    .health-down {
+      background-image: url(ditto-down.svg);
+    }
+
+    .health-list li {
+      clear: both;
+      line-height: 30px;
+      padding-bottom: 5px;
+    }
+
+    .health-key {
+      float: left;
+      width: 9em;
+    }
+
+    .health-status {
+      line-height: 30px;
+      padding-left: 1em;
+    }
+  </style>
+</head>
+<body>
+
+<article>
+  <h1>Eclipse Ditto</h1>
+  <div>
+    <p>From here, you can:
+    <ul>
+      <li><a href="./ui/">visit the Eclipse Ditto™ UI to administer Ditto</a></li>
+      <li><a href="./apidoc/">interactively explore the Eclipse Ditto™ OpenAPI documentation</a></li>
+    </ul>
+  </div>
+  <h2 style="clear: both">Health</h2>
+  <div id="health-content">
+  </div>
+  <h2>Statistics</h2>
+  <div>
+    <div class="stats">
+      <span id="total-things-count" class="stats-count"></span><span
+      class="stats-count-text"> persisted <em>Things</em></span>
+    </div>
+    <div class="stats">
+      <span id="hot-things-count" class="stats-count"></span><span class="stats-count-text"> currently "hot" <em>Things</em> (loaded in memory)</span>
+    </div>
+  </div>
+</article>
+
+<script>
+  function update_count(selector, count) {
+    $(selector).animate({
+                          counter: count
+                        }, {
+                          duration: 3000,
+                          easing: 'swing',
+                          step: function (now) {
+                            $(this).text(Math.ceil(now));
+                          }
+                        });
+  }
+
+  function calcHealthStatusClass(status) {
+    let healthStatusClass;
+    if (status === "UP") {
+      healthStatusClass = "health-up";
+    } else if (status === "DOWN") {
+      healthStatusClass = "health-down";
+    } else {
+      healthStatusClass = "health-down";
+    }
+    return healthStatusClass;
+  }
+
+  function calculateHealth(data) {
+    let overallStatus = data.status;
+    $(`<p>
+            <span class="health-key"></span>
+            <span class="health ${calcHealthStatusClass(overallStatus)}"></span>
+            <span class="health-status">${overallStatus}</span>
+        </p>`).appendTo("#health-content");
+  }
+
+  $.getJSON("./stats/search", function (data) {
+    let allThingsCount = data.allThingsCount;
+    update_count('#total-things-count', allThingsCount);
+  }).fail(function () {
+    update_count('#total-things-count', 0);
+  });
+  $.getJSON("./stats/things", function (data) {
+    let hotThings = data.hotThings;
+    update_count('#hot-things-count', hotThings);
+  }).fail(function () {
+    update_count('#hot-things-count', 0);
+  });
+  $.getJSON("./health", function (data) {
+    calculateHealth(data);
+  }).fail(function (jqXHR, textStatus, errorThrown) {
+    calculateHealth(jqXHR.responseJSON);
+  })
+</script>
+
+</body>
+</html>
+

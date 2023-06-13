@@ -1,0 +1,149 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+{{- if .Values.nginx.enabled -}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ditto.fullname" . }}-nginx
+  labels:
+    app.kubernetes.io/name: {{ include "ditto.name" . }}-nginx
+{{ include "ditto.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.nginx.replicaCount }}
+  strategy:
+  {{- with .Values.nginx.updateStrategy }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "ditto.name" . }}-nginx
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "ditto.name" . }}-nginx
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        {{- with .Values.nginx.additionalLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/nginx-conf: {{ include (print $.Template.BasePath "/nginx-configmap.yaml") . | sha256sum }}
+        checksum/nginx-config: {{ include (print $.Template.BasePath "/nginx-config.yaml") . | sha256sum }}
+        checksum/nginx-auth: {{ include (print $.Template.BasePath "/nginx-auth.yaml") . | sha256sum }}
+        {{- with .Values.nginx.additionalAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.nginx.initContainers.waitForGateway.enabled }}
+      initContainers:
+        - name: {{ .Values.nginx.initContainers.waitForGateway.name }}
+          image: {{ .Values.nginx.initContainers.waitForGateway.image }}
+          args:
+            - /bin/sh
+            - -c
+            - >
+              set -x;
+              while [[ "$(curl -sL -w "%{http_code}\n" http://{{ include "ditto.fullname" . }}-gateway:8080/health -o /dev/null)" != "200" ]]; do
+                echo '.'
+                sleep 1;
+              done
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}-nginx
+          image: "{{ .Values.nginx.image.repository }}:{{ .Values.nginx.image.tag }}"
+          imagePullPolicy: {{ .Values.nginx.image.pullPolicy }}
+          env:
+          {{- if .Values.nginx.extraEnv }}
+            {{- toYaml .Values.nginx.extraEnv | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          {{- if .Values.nginx.readinessProbe }}
+          readinessProbe:
+            {{- toYaml .Values.nginx.readinessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.nginx.livenessProbe }}
+          livenessProbe:
+            {{- toYaml .Values.nginx.livenessProbe | nindent 12 }}
+          {{- end }}
+          resources:
+            requests:
+              cpu: {{ mulf .Values.nginx.resources.cpu 1000 }}m
+              memory: {{ .Values.nginx.resources.memoryMi }}Mi
+            limits:
+              # cpu: ""
+              memory: {{ .Values.nginx.resources.memoryMi }}Mi
+          volumeMounts:
+            - name: nginx-conf
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+            - name: nginx-htpasswd
+              mountPath: /etc/nginx/nginx.htpasswd
+              subPath: nginx.htpasswd
+            - name: nginx-cors
+              mountPath: /etc/nginx/nginx-cors.conf
+              subPath: nginx-cors.conf
+            - name: nginx-index
+              mountPath: /etc/nginx/html/index.html
+              subPath: index.html
+            - name: nginx-ditto-down
+              mountPath: /etc/nginx/html/ditto-down.svg
+              subPath: ditto-down.svg
+            - name: nginx-ditto-up
+              mountPath: /etc/nginx/html/ditto-up.svg
+              subPath: ditto-up.svg
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /run/nginx
+      volumes:
+        - name: nginx-conf
+          configMap:
+            name: {{ .Release.Name }}-nginx-conf
+        - name: nginx-htpasswd
+          secret:
+            secretName: {{ .Release.Name }}-nginx-config-nginx-htpasswd
+        - name: nginx-cors
+          configMap:
+            name: {{ .Release.Name }}-nginx-config-nginx-cors-conf
+        - name: nginx-index
+          configMap:
+            name: {{ .Release.Name }}-nginx-config-index-html
+        - name: nginx-ditto-down
+          configMap:
+            name: {{ .Release.Name }}-nginx-config-ditto-down-svg
+        - name: nginx-ditto-up
+          configMap:
+            name: {{ .Release.Name }}-nginx-config-ditto-up-svg
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
+      {{- with .Values.nginx.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nginx.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nginx.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

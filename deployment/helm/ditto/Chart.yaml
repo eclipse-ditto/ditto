@@ -1,0 +1,36 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+---
+apiVersion: v2
+name: ditto
+description: |
+  Eclipse Ditto™ is a technology in the IoT implementing a software pattern called “digital twins”.
+  A digital twin is a virtual, cloud based, representation of his real world counterpart
+  (real world “Things”, e.g. devices like sensors, smart heating, connected cars, smart grids, EV charging stations etc).
+type: application
+version: 0.0.1  # chart version is set by release-job
+appVersion: 3.2.1
+keywords:
+  - iot-chart
+  - digital-twin
+  - IoT
+home: https://www.eclipse.org/ditto
+sources:
+  - https://github.com/eclipse-ditto/ditto
+icon: https://www.eclipse.org/ditto/images/ditto.svg
+maintainers:
+  - name: thjaeckle
+    email: thomas.jaeckle@beyonnex.io
+dependencies:
+  - name: mongodb
+    repository: https://charts.bitnami.com/bitnami
+    version: ^12.x
+    condition: mongodb.enabled

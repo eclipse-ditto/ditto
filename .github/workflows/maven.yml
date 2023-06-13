@@ -18,6 +18,13 @@ on:
 
   # Run build for any PR
   pull_request:
+    paths-ignore:
+      - 'README.md'
+      - 'RELEASE.md'
+      - 'CONTRIBUTING.md'
+      - 'SECURITY.md'
+      - 'deployment/**'
+      - 'documentation/**'
 
 jobs:
   build:

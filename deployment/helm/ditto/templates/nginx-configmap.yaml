@@ -1,0 +1,242 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+{{- if .Values.nginx.enabled -}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-nginx-conf
+  labels:
+    app.kubernetes.io/name: {{ include "ditto.name" . }}-nginx-conf
+{{ include "ditto.labels" . | indent 4 }}
+data:
+  nginx.conf: |-
+    worker_processes auto;
+
+    events {
+      worker_connections 1024;
+    }
+    
+    http {
+      charset utf-8;
+      default_type application/json;
+      include mime.types;
+    
+      # timeouts are configured slightly higher than ditto-eclipse-ditto-gateway read-timeout of 60 seconds
+      proxy_connect_timeout 70; # seconds, default: 60
+      proxy_send_timeout 70; # seconds, default: 60
+      proxy_read_timeout 70; # seconds, default: 60
+      # will try another upstream if an error or timeout occurred during the connection
+      # or if the upstream returns 502 response
+      proxy_next_upstream error timeout http_502;
+      # will retry up to 3 times to find another upstream to connect to
+      proxy_next_upstream_tries 3;
+      # will try for max. 20s to find another upstream to connect to
+      proxy_next_upstream_timeout 20;
+
+      send_timeout 70; # seconds, default: 60
+    
+      client_header_buffer_size 8k; # allow longer URIs + headers (default: 1k)
+      large_client_header_buffers 4 16k;
+    
+      merge_slashes off; # allow multiple slashes for CRS Authentication
+
+      map $http_authorization $authentication {
+        default "Authentication required";
+        "~Bearer" "off";
+        # the above means: if we get a request containing an "Authorization: Bearer ..." header, set "off" to $authentication
+      }
+
+      map $http_authorization $nginx_auth_user {
+        default "nginx:${remote_user}";
+        "~Bearer" "";
+      }
+    
+      upstream {{ include "ditto.fullname" . }}-gateway {
+        server {{ include "ditto.fullname" . }}-gateway:8080;
+      }
+
+      {{ if .Values.dittoui.enabled -}}
+      upstream {{ include "ditto.fullname" . }}-dittoui {
+        server {{ include "ditto.fullname" . }}-dittoui:8080;
+      }
+      {{- end }}
+
+      {{ if .Values.swaggerui.enabled -}}
+      upstream {{ include "ditto.fullname" . }}-swaggerui {
+        server {{ include "ditto.fullname" . }}-swaggerui:8080;
+      }
+      {{- end }}
+
+      log_format jsonlog escape=json '{'
+        '"@timestamp":"$time_iso8601",'
+        '"remote_addr":"$remote_addr",'
+        '"remote_user":"$remote_user",'
+        '"request":"$request",'
+        '"status": "$status",'
+        '"body_bytes_sent":"$body_bytes_sent",'
+        '"request_time":"$request_time",'
+        '"upstream_response_time":"$upstream_response_time",'
+        '"http_referrer":"$http_referer",'
+        '"http_user_agent":"$http_user_agent",'
+        '"correlation-id":"$http_correlation_id"'
+      '}';
+      access_log /var/log/nginx/access.log jsonlog;
+
+      server {
+        listen 8080;
+        server_name localhost;
+
+        location / {
+          index index.html;
+        }
+    
+        # api
+        location /api {
+          include nginx-cors.conf;
+
+          {{ if .Values.global.jwtOnly -}}
+          proxy_pass_request_headers    on;
+          proxy_set_header              Authorization             $http_authorization;
+          {{ else }}
+          auth_basic                    $authentication;
+          auth_basic_user_file          nginx.htpasswd;
+          proxy_set_header              X-Forwarded-User          $remote_user;
+          proxy_set_header              x-ditto-pre-authenticated $nginx_auth_user;
+          {{- end }}
+        
+          proxy_pass                    http://{{ include "ditto.fullname" . }}-gateway;
+          proxy_http_version            1.1;
+          proxy_set_header              Host                      $http_host;
+          proxy_set_header              X-Real-IP                 $remote_addr;
+          proxy_set_header              X-Forwarded-For           $proxy_add_x_forwarded_for;
+    
+          proxy_set_header Connection  '';
+          chunked_transfer_encoding    off;
+          proxy_buffering              off;
+          proxy_cache                  off;
+        }
+    
+        # ws
+        location /ws {
+
+          {{ if .Values.global.jwtOnly -}}
+          proxy_pass_request_headers    on;
+          proxy_set_header              Authorization             $http_authorization;
+          {{ else }}
+          auth_basic                    $authentication;
+          auth_basic_user_file          nginx.htpasswd;
+          proxy_set_header              X-Forwarded-User          $remote_user;
+          proxy_set_header              x-ditto-pre-authenticated $nginx_auth_user;
+          {{- end }}
+          
+          proxy_pass                    http://{{ include "ditto.fullname" . }}-gateway;
+          proxy_http_version            1.1;
+          proxy_set_header              Host                      $http_host;
+          proxy_set_header              X-Real-IP                 $remote_addr;
+          proxy_set_header              X-Forwarded-For           $proxy_add_x_forwarded_for;
+    
+          proxy_set_header              Upgrade                   $http_upgrade;
+          proxy_set_header              Connection                "upgrade";
+          proxy_read_timeout            1d;
+          proxy_send_timeout            1d;
+        }
+    
+        # health
+        location /health {
+          include nginx-cors.conf;
+
+          # exclude health checks from being logged in access log:
+          access_log off;
+    
+          proxy_pass                    http://{{ include "ditto.fullname" . }}-gateway/health;
+          proxy_http_version            1.1;
+          proxy_set_header              Host                      $http_host;
+          proxy_set_header              X-Real-IP                 $remote_addr;
+          proxy_set_header              X-Forwarded-For           $proxy_add_x_forwarded_for;
+          proxy_set_header              X-Forwarded-User          $remote_user;
+        }
+    
+        # status
+        location /status {
+          include nginx-cors.conf;
+
+          # exclude status access from being logged in access log:
+          access_log off;
+    
+          proxy_pass                    http://{{ include "ditto.fullname" . }}-gateway/overall/status;
+          proxy_http_version            1.1;
+          proxy_set_header              Host                      $http_host;
+          proxy_set_header              X-Real-IP                 $remote_addr;
+          proxy_set_header              X-Forwarded-For           $proxy_add_x_forwarded_for;
+          proxy_set_header              X-Forwarded-User          $remote_user;
+        }
+
+        # stats
+        location /stats {
+          include nginx-cors.conf;
+
+          # exclude stats access from being logged in access log:
+          access_log off;
+
+          proxy_pass                    http://{{ include "ditto.fullname" . }}-gateway/stats;
+          proxy_http_version            1.1;
+          proxy_set_header              Host                      $http_host;
+          proxy_set_header              X-Real-IP                 $remote_addr;
+          proxy_set_header              X-Forwarded-For           $proxy_add_x_forwarded_for;
+          proxy_set_header              X-Forwarded-User          $remote_user;
+        }
+    
+        # devops
+        location /devops {
+          include nginx-cors.conf;
+
+          proxy_pass                    http://{{ include "ditto.fullname" . }}-gateway/devops;
+          proxy_http_version            1.1;
+          proxy_set_header              Host                      $http_host;
+          proxy_set_header              X-Real-IP                 $remote_addr;
+          proxy_set_header              X-Forwarded-For           $proxy_add_x_forwarded_for;
+          proxy_set_header              X-Forwarded-User          $remote_user;
+        }
+
+        # connections api using devops user configured in Ditto
+        location /api/2/connections {
+          include nginx-cors.conf;
+
+          proxy_pass                    http://{{ include "ditto.fullname" . }}-gateway;
+          proxy_http_version            1.1;
+          proxy_set_header              Host                $http_host;
+          proxy_set_header              X-Real-IP           $remote_addr;
+          proxy_set_header              X-Forwarded-For     $proxy_add_x_forwarded_for;
+          proxy_set_header              X-Forwarded-User    $remote_user;
+        }
+
+        {{ if .Values.dittoui.enabled -}}
+        location /ui/ {
+          proxy_pass                    http://{{ include "ditto.fullname" . }}-dittoui/;
+          proxy_http_version            1.1;
+          proxy_set_header              Host                $http_host;
+        }
+        {{- end }}
+
+        {{ if .Values.swaggerui.enabled -}}
+        # swagger
+        # access API doc on: /apidoc/
+        location /apidoc/ {
+          proxy_pass                    http://{{ include "ditto.fullname" . }}-swaggerui/;
+          proxy_http_version            1.1;
+          proxy_set_header              Host                $http_host;
+        }
+        {{- end }}
+      }
+    }
+
+{{- end }}
