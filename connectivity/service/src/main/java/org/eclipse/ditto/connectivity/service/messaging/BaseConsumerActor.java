@@ -186,18 +186,8 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
             } else {
                 // don't count this as "failure" in the "source consumed" metric as the consumption
                 // itself was successful
-                final var dittoRuntimeException = DittoRuntimeException.asDittoRuntimeException(error, rootCause -> {
-
-                    // Redeliver and pray this unexpected error goes away
-                    log().debug("Rejecting [redeliver=true] due to error <{}>. " +
-                            "ResponseCollector=<{}>", rootCause, responseCollector);
-                    ackTimer.tag(getAckSuccessTag(false));
-                    ackTimer.tag(getAckRedeliverTag(true));
-                    ackTimer.stop();
-                    ackCounter.decrement();
-                    acknowledgeableMessage.reject(true);
-                    return null;
-                });
+                final var dittoRuntimeException = DittoRuntimeException
+                        .asDittoRuntimeException(error, rootCause -> null);
                 if (dittoRuntimeException != null) {
                     if (isConsideredSuccess(dittoRuntimeException)) {
                         ackTimer.tag(getAckSuccessTag(true));
