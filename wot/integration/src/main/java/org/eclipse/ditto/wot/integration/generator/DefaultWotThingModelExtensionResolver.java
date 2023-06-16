@@ -14,10 +14,12 @@ package org.eclipse.ditto.wot.integration.generator;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -39,6 +41,8 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
     private static final String TM_EXTENDS = "tm:extends";
     private static final String TM_REF = "tm:ref";
 
+    private static final Duration MAX_FETCH_MODEL_DURATION = Duration.ofSeconds(30);
+
     private final WotThingModelFetcher thingModelFetcher;
     private final Executor executor;
 
@@ -57,12 +61,14 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
                                     .filter(baseLink -> baseLink.getRel().filter(TM_EXTENDS::equals).isPresent())
                                     .map(extendsLink -> thingModelFetcher.fetchThingModel(extendsLink.getHref(), dittoHeaders))
                                     .map(CompletionStage::toCompletableFuture)
+                                    .map(cf -> cf.orTimeout(MAX_FETCH_MODEL_DURATION.toSeconds(), TimeUnit.SECONDS))
                                     .toList();
                             final CompletableFuture<Void> allModelFuture =
                                     CompletableFuture.allOf(fetchedModelFutures.toArray(new CompletableFuture[0]));
-                            return allModelFuture.thenApplyAsync(aVoid -> fetchedModelFutures.stream()
-                                            .map(CompletableFuture::join) // joining does not block anything here as "allOf" already guaranteed that all futures are ready
-                                            .toList(), executor)
+                            return allModelFuture
+                                    .thenApplyAsync(aVoid -> fetchedModelFutures.stream()
+                                        .map(CompletableFuture::join) // joining does not block anything here as "allOf" already guaranteed that all futures are ready
+                                        .toList(), executor)
                                     .join();
                         }
                 )
@@ -111,13 +117,17 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
             throw WotThingModelRefInvalidException.newBuilder(tmRef).dittoHeaders(dittoHeaders).build();
         }
         final JsonObject refObject = thingModelFetcher.fetchThingModel(IRI.of(urlAndPointer[0]), dittoHeaders)
+                .toCompletableFuture()
+                .orTimeout(MAX_FETCH_MODEL_DURATION.toSeconds(), TimeUnit.SECONDS)
                 .thenApply(thingModel -> thingModel.getValue(JsonPointer.of(urlAndPointer[1])))
                 .thenComposeAsync(optJsonValue -> optJsonValue
                                 .filter(JsonValue::isObject)
                                 .map(JsonValue::asObject)
                                 .map(CompletableFuture::completedStage)
                                 .orElseGet(() -> CompletableFuture.completedStage(null))
-                        , executor).toCompletableFuture().join();
+                        , executor)
+                .toCompletableFuture()
+                .join();
 
         return JsonFactory.mergeJsonValues(objectWithTmRef.remove(TM_REF), refObject).asObject();
     }

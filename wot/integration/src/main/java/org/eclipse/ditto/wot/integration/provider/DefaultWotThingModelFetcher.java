@@ -79,7 +79,7 @@ final class DefaultWotThingModelFetcher implements WotThingModelFetcher {
         thingModelCache = CacheFactory.createCache(loader,
                 wotConfig.getCacheConfig(),
                 "ditto_wot_thing_model_cache",
-                actorSystem.dispatchers().lookup("wot-dispatcher"));
+                actorSystem.dispatchers().lookup("wot-dispatcher-cache-loader"));
     }
 
     @Override
