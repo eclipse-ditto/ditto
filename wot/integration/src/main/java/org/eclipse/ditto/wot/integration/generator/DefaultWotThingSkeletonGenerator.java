@@ -67,6 +67,7 @@ import org.eclipse.ditto.wot.model.SingleDataSchema;
 import org.eclipse.ditto.wot.model.StringSchema;
 import org.eclipse.ditto.wot.model.ThingDefinitionInvalidException;
 import org.eclipse.ditto.wot.model.ThingModel;
+import org.eclipse.ditto.wot.model.TmOptional;
 import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
 
 import akka.actor.ActorSystem;
@@ -120,7 +121,11 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                     final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
                     final Map<String, JsonObjectBuilder> attributesCategories = new LinkedHashMap<>();
 
-                    fillPropertiesInOptionalCategories(properties, jsonObjectBuilder, attributesCategories,
+                    fillPropertiesInOptionalCategories(
+                            properties,
+                            thingModelWithExtensionsAndImports.getTmOptional().orElse(null),
+                            jsonObjectBuilder,
+                            attributesCategories,
                             property -> dittoExtensionPrefix.flatMap(prefix ->
                                     property.getValue(prefix + ":" + DittoWotExtension.DITTO_WOT_EXTENSION_CATEGORY)
                             )
@@ -145,25 +150,35 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
     }
 
     private static void fillPropertiesInOptionalCategories(final Properties properties,
+            @Nullable final TmOptional tmOptionalElements,
             final JsonObjectBuilder jsonObjectBuilder,
             final Map<String, JsonObjectBuilder> propertiesCategories,
             final Function<Property, Optional<String>> propertyCategoryExtractor) {
 
-        properties.values().forEach(property ->
-                determineInitialPropertyValue(property).ifPresent(val ->
-                                propertyCategoryExtractor.apply(property)
-                                .ifPresentOrElse(attributeCategory -> {
-                                        if (!propertiesCategories.containsKey(attributeCategory)) {
-                                            propertiesCategories.put(attributeCategory,
-                                                    JsonObject.newBuilder());
-                                        }
-                                        propertiesCategories.get(attributeCategory)
-                                                .set(property.getPropertyName(), val);
-                                }, () ->
-                                        jsonObjectBuilder.set(property.getPropertyName(), val)
+        properties.values().stream()
+                // filter out optional elements - don't create skeleton values for those:
+                .filter(property -> Optional.ofNullable(tmOptionalElements)
+                        .stream()
+                        .noneMatch(optionals -> optionals.stream()
+                                .anyMatch(optionalEl ->
+                                        optionalEl.toString().equals("/properties/" + property.getPropertyName())
                                 )
+                        )
                 )
-        );
+                .forEach(property -> determineInitialPropertyValue(property).ifPresent(val ->
+                                propertyCategoryExtractor.apply(property)
+                                        .ifPresentOrElse(attributeCategory -> {
+                                                    if (!propertiesCategories.containsKey(attributeCategory)) {
+                                                        propertiesCategories.put(attributeCategory,
+                                                                JsonObject.newBuilder());
+                                                    }
+                                                    propertiesCategories.get(attributeCategory)
+                                                            .set(property.getPropertyName(), val);
+                                                }, () ->
+                                                        jsonObjectBuilder.set(property.getPropertyName(), val)
+                                        )
+                        )
+                );
     }
 
     private Optional<Features> createFeaturesFromSubmodels(final ThingModel thingModel,
@@ -254,7 +269,11 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                     final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
                     final Map<String, JsonObjectBuilder> propertiesCategories = new LinkedHashMap<>();
 
-                    fillPropertiesInOptionalCategories(properties, jsonObjectBuilder, propertiesCategories,
+                    fillPropertiesInOptionalCategories(
+                            properties,
+                            thingModelWithExtensionsAndImports.getTmOptional().orElse(null),
+                            jsonObjectBuilder,
+                            propertiesCategories,
                             property -> dittoExtensionPrefix.flatMap(prefix ->
                                             property.getValue(prefix + ":" + DittoWotExtension.DITTO_WOT_EXTENSION_CATEGORY)
                                     )
