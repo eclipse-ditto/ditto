@@ -37,6 +37,25 @@ public interface MessagePath extends JsonPointer {
      */
     Optional<MessageDirection> getDirection();
 
+    /**
+     * Retrieves the "Message" subject in case the path is a message FROM/TO a thing
+     * (meaning that also {@link #getDirection()} is present).
+     *
+     * @return the "Message" subject in case the path is a message FROM/TO a thing.
+     * @since 3.3.0
+     */
+    Optional<String> getMessageSubject();
+
+    /**
+     * Determines whether this instance represents a path for a Ditto inbox/outbox "message" or not.
+     *
+     * @return whether this instance represents a path for a Ditto inbox/outbox "message" or not.
+     * @since 3.3.0
+     */
+    default boolean isInboxOutboxMessage() {
+        return getDirection().isPresent();
+    }
+
     static Optional<MessageDirection> jsonKeyToDirection(final JsonKey jsonKey) {
         switch (jsonKey.toString()) {
             case "inbox":
