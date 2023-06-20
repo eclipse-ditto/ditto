@@ -47,7 +47,7 @@ import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.internal.utils.health.status.StatusSupplierActor;
 import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig;
-import org.eclipse.ditto.internal.utils.metrics.prometheus.PrometheusReporterRoute;
+import org.eclipse.ditto.internal.utils.metrics.service.prometheus.PrometheusReporterRoute;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

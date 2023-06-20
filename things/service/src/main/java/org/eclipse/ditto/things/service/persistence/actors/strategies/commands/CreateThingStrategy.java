@@ -23,6 +23,7 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -42,9 +43,6 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingCreated;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
-import org.eclipse.ditto.wot.integration.provider.WotThingDescriptionProvider;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * This strategy handles the {@link CreateThingStrategy} command.
@@ -52,16 +50,13 @@ import org.apache.pekko.actor.ActorSystem;
 @Immutable
 final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing> {
 
-    private final WotThingDescriptionProvider wotThingDescriptionProvider;
-
     /**
      * Constructs a new {@link CreateThingStrategy} object.
      *
      * @param actorSystem the actor system to use for loading the WoT extension.
      */
     CreateThingStrategy(final ActorSystem actorSystem) {
-        super(CreateThing.class);
-        wotThingDescriptionProvider = WotThingDescriptionProvider.get(actorSystem);
+        super(CreateThing.class, actorSystem);
     }
 
     @Override
@@ -110,7 +105,7 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
         final Instant now = Instant.now();
 
         final Thing finalNewThing = newThing;
-        final CompletionStage<Thing> thingStage = wotThingDescriptionProvider.provideThingSkeletonForCreation(
+        final CompletionStage<Thing> thingStage = wotThingSkeletonGenerator.provideThingSkeletonForCreation(
                         command.getEntityId(),
                         newThing.getDefinition().orElse(null),
                         commandHeaders

@@ -21,6 +21,10 @@ import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.testkit.TestKit;
+import org.eclipse.ditto.internal.utils.json.CborFactoryLoader;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.junit.AfterClass;
@@ -28,9 +32,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.ExtendedActorSystem;
-import org.apache.pekko.testkit.TestKit;
 import scala.concurrent.duration.FiniteDuration;
 
 /**

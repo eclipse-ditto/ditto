@@ -16,13 +16,13 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;
-
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.http.javadsl.Http;
 import org.apache.pekko.http.javadsl.model.HttpRequest;
 import org.apache.pekko.http.javadsl.model.HttpResponse;
 import org.apache.pekko.http.javadsl.settings.ConnectionPoolSettings;
+import org.eclipse.ditto.internal.utils.config.http.HttpProxyBaseConfig;
+import org.eclipse.ditto.internal.utils.http.config.HttpProxyConfig;
 
 /**
  * Default implementation of {@link HttpClientFacade}.
@@ -49,7 +49,7 @@ public final class DefaultHttpClientFacade implements HttpClientFacade {
      * @return the instance.
      */
     public static DefaultHttpClientFacade getInstance(final ActorSystem actorSystem,
-            final HttpProxyConfig httpProxyConfig) {
+            final HttpProxyBaseConfig httpProxyConfig) {
 
         // the HttpClientProvider is only configured at the very first invocation of getInstance(Config) as we can
         // assume that the config does not change during runtime
@@ -62,10 +62,10 @@ public final class DefaultHttpClientFacade implements HttpClientFacade {
     }
 
     private static DefaultHttpClientFacade createInstance(final ActorSystem actorSystem,
-            final HttpProxyConfig proxyConfig) {
+            final HttpProxyBaseConfig proxyConfig) {
         ConnectionPoolSettings connectionPoolSettings = ConnectionPoolSettings.create(actorSystem);
-        if (proxyConfig.isEnabled()) {
-            connectionPoolSettings = connectionPoolSettings.withTransport(proxyConfig.toClientTransport());
+        if (proxyConfig.isEnabled() && proxyConfig instanceof HttpProxyConfig pekkoHttpProxyConfig) {
+            connectionPoolSettings = connectionPoolSettings.withTransport(pekkoHttpProxyConfig.toClientTransport());
         }
         return new DefaultHttpClientFacade(actorSystem, connectionPoolSettings);
     }

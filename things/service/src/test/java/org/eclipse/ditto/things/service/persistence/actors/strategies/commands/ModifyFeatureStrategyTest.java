@@ -17,6 +17,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.Feature;
@@ -26,14 +27,12 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
 import org.eclipse.ditto.things.model.signals.events.FeatureCreated;
 import org.eclipse.ditto.things.model.signals.events.FeatureModified;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
-import org.eclipse.ditto.wot.integration.provider.WotThingDescriptionProvider;
+import org.eclipse.ditto.wot.api.generator.WotThingDescriptionGenerator;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Unit test for {@link ModifyFeatureStrategy}.
@@ -58,7 +57,7 @@ public final class ModifyFeatureStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void assertImmutability() {
         assertInstancesOf(ModifyFeatureStrategy.class, areImmutable(),
-                provided(WotThingDescriptionProvider.class).areAlsoImmutable());
+                provided(WotThingDescriptionGenerator.class).areAlsoImmutable());
     }
 
     @Test
@@ -86,7 +85,7 @@ public final class ModifyFeatureStrategyTest extends AbstractCommandStrategyTest
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeature command = ModifyFeature.of(context.getState(), modifiedFeature, DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2, command,
+        assertStagedModificationResult(underTest, THING_V2, command,
                 FeatureModified.class,
                 ETagTestUtils.modifyFeatureResponse(context.getState(), command.getFeature(), command.getDittoHeaders(), false));
     }

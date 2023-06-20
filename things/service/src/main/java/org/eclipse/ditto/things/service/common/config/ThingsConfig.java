@@ -19,7 +19,7 @@ import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.internal.utils.health.config.WithHealthCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.operations.WithPersistenceOperationsConfig;
-import org.eclipse.ditto.wot.integration.config.WotConfig;
+import org.eclipse.ditto.wot.api.config.WotConfig;
 
 /**
  * Provides the configuration settings of the Things service.

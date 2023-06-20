@@ -16,10 +16,12 @@ import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFa
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -46,9 +48,11 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
 
     /**
      * Constructs a new {@code ModifyThingStrategy} object.
+     *
+     * @param actorSystem the actor system to use for loading the WoT extension.
      */
-    ModifyThingStrategy() {
-        super(ModifyThing.class);
+    ModifyThingStrategy(final ActorSystem actorSystem) {
+        super(ModifyThing.class, actorSystem);
     }
 
     @Override
@@ -94,13 +98,19 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final Thing modifiedThing = applyThingModifications(command.getThing(), thing, eventTs, nextRevision);
+        // validate based on potentially referenced Thing WoT TM/TD
+        final CompletionStage<Void> validatedStage = wotThingModelValidator
+                .validateThing(modifiedThing, command.getDittoHeaders());
 
-        final ThingEvent<?> event =
-                ThingModified.of(modifiedThing, nextRevision, eventTs, dittoHeaders, metadata);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyThingResponse.modified(context.getState(), dittoHeaders), modifiedThing);
+        final CompletionStage<ThingEvent<?>> eventStage =
+                validatedStage.thenApply(aVoid ->
+                        ThingModified.of(modifiedThing, nextRevision, eventTs, dittoHeaders, metadata));
+        final CompletionStage<WithDittoHeaders> responseStage =
+                validatedStage.thenApply(aVoid ->
+                        appendETagHeaderIfProvided(command,
+                                ModifyThingResponse.modified(context.getState(), dittoHeaders), modifiedThing));
 
-        return ResultFactory.newMutationResult(command, event, response);
+        return ResultFactory.newMutationResult(command, eventStage, responseStage);
     }
 
     /**

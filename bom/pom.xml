@@ -27,7 +27,7 @@
 
     <properties>
         <scala.version>2.13</scala.version> <!-- for scala libraries the scala version is used in their artifactId -->
-        <scala.full.version>2.13.12</scala.full.version>
+        <scala.full.version>2.13.14</scala.full.version>
         <scala-parser-combinators.version>1.1.2</scala-parser-combinators.version>
         <scala-java8-compat.version>1.0.2</scala-java8-compat.version>
 
@@ -37,6 +37,7 @@
         <!-- ### Compile dependencies versions -->
         <minimal-json.version>0.9.5</minimal-json.version>
         <jackson-bom.version>2.16.1</jackson-bom.version>
+        <json-schema-validator.version>1.4.0</json-schema-validator.version>
         <typesafe-config.version>1.4.3</typesafe-config.version>
         <ssl-config-core.version>0.6.1</ssl-config-core.version>
         <kafka-client.version>3.6.1</kafka-client.version>
@@ -78,7 +79,7 @@
         <janino.version>3.1.11</janino.version>
 
         <!-- ### Metrics and Tracing -->
-        <kamon.version>2.7.0</kamon.version>
+        <kamon.version>2.7.1</kamon.version>
 
         <jsr305.version>3.0.2</jsr305.version>
 
@@ -131,6 +132,22 @@
                 <version>${jackson-bom.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.networknt</groupId>
+                <artifactId>json-schema-validator</artifactId>
+                <version>${json-schema-validator.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.fasterxml.jackson.dataformat</groupId>
+                        <artifactId>jackson-dataformat-yaml</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.commons</groupId>
+                        <artifactId>commons-lang3</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
@@ -542,7 +559,17 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-wot-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-wot-model</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-wot-validation</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -620,6 +647,11 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-internal-utils-json</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-internal-utils-jwt</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -666,6 +698,11 @@
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-internal-utils-metrics</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-internal-utils-metrics-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

@@ -17,6 +17,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
@@ -37,9 +38,11 @@ final class RetrievePolicyIdStrategy extends AbstractThingCommandStrategy<Retrie
 
     /**
      * Constructs a new {@code RetrievePolicyIdStrategy} object.
+     *
+     * @param actorSystem the actor system to use for loading the WoT extension.
      */
-    RetrievePolicyIdStrategy() {
-        super(RetrievePolicyId.class);
+    RetrievePolicyIdStrategy(final ActorSystem actorSystem) {
+        super(RetrievePolicyId.class, actorSystem);
     }
 
     @Override
