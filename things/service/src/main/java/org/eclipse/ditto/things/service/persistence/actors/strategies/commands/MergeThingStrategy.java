@@ -19,6 +19,7 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -53,9 +54,11 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
 
     /**
      * Constructs a new {@code MergeThingStrategy} object.
+     *
+     * @param actorSystem the actor system to use for loading the WoT extension.
      */
-    MergeThingStrategy() {
-        super(MergeThing.class);
+    MergeThingStrategy(final ActorSystem actorSystem) {
+        super(MergeThing.class, actorSystem);
     }
 
     @Override

@@ -16,6 +16,7 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
@@ -30,6 +31,8 @@ import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Unit test for {@link ModifyFeatureDefinitionStrategy}.
@@ -49,7 +52,8 @@ public final class ModifyFeatureDefinitionStrategyTest extends AbstractCommandSt
 
     @Before
     public void setUp() {
-        underTest = new ModifyFeatureDefinitionStrategy();
+        final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
+        underTest = new ModifyFeatureDefinitionStrategy(system);
     }
 
     @Test

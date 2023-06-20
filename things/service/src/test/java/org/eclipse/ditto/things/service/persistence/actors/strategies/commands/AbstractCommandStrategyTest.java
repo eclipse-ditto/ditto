@@ -104,6 +104,19 @@ public abstract class AbstractCommandStrategyTest {
             @Nullable final Thing thing,
             final C command,
             final Class<T> expectedEventClass,
+            final CommandResponse<?> expectedCommandResponse) {
+
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final Result<ThingEvent<?>> result = applyStrategy(underTest, context, thing, command);
+
+        return assertStagedModificationResult(result, expectedEventClass, expectedCommandResponse, false);
+    }
+
+    protected static <C extends Command<?>, T extends ThingModifiedEvent<?>> T assertStagedModificationResult(
+            final CommandStrategy<C, Thing, ThingId, ThingEvent<?>> underTest,
+            @Nullable final Thing thing,
+            final C command,
+            final Class<T> expectedEventClass,
             final CommandResponse<?> expectedCommandResponse,
             final boolean becomeDeleted) {
 

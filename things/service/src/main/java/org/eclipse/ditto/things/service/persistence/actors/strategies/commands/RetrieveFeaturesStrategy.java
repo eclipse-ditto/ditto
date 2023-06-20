@@ -18,6 +18,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
@@ -43,9 +44,11 @@ final class RetrieveFeaturesStrategy extends AbstractThingCommandStrategy<Retrie
 
     /**
      * Constructs a new {@code RetrieveFeaturesStrategy} object.
+     *
+     * @param actorSystem the actor system to use for loading the WoT extension.
      */
-    RetrieveFeaturesStrategy() {
-        super(RetrieveFeatures.class);
+    RetrieveFeaturesStrategy(final ActorSystem actorSystem) {
+        super(RetrieveFeatures.class, actorSystem);
     }
 
     @Override

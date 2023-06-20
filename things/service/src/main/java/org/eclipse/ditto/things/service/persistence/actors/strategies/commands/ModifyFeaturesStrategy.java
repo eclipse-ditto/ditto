@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -47,9 +48,6 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeaturesResp
 import org.eclipse.ditto.things.model.signals.events.FeaturesCreated;
 import org.eclipse.ditto.things.model.signals.events.FeaturesModified;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
-import org.eclipse.ditto.wot.integration.provider.WotThingDescriptionProvider;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatures} command.
@@ -57,16 +55,13 @@ import org.apache.pekko.actor.ActorSystem;
 @Immutable
 final class ModifyFeaturesStrategy extends AbstractThingCommandStrategy<ModifyFeatures> {
 
-    private final WotThingDescriptionProvider wotThingDescriptionProvider;
-
     /**
      * Constructs a new {@code ModifyFeaturesStrategy} object.
      *
      * @param actorSystem the actor system to use for loading the WoT extension.
      */
     ModifyFeaturesStrategy(final ActorSystem actorSystem) {
-        super(ModifyFeatures.class);
-        wotThingDescriptionProvider = WotThingDescriptionProvider.get(actorSystem);
+        super(ModifyFeatures.class, actorSystem);
     }
 
     @Override
@@ -120,7 +115,7 @@ final class ModifyFeaturesStrategy extends AbstractThingCommandStrategy<ModifyFe
 
         final List<CompletionStage<Feature>> featureStages = command.getFeatures()
                 .stream()
-                .map(feature -> wotThingDescriptionProvider.provideFeatureSkeletonForCreation(
+                .map(feature -> wotThingSkeletonGenerator.provideFeatureSkeletonForCreation(
                                         feature.getId(),
                                         feature.getDefinition().orElse(null),
                                         dittoHeaders
@@ -153,7 +148,7 @@ final class ModifyFeaturesStrategy extends AbstractThingCommandStrategy<ModifyFe
                 .toList();
 
         final CompletableFuture<Features> featuresStage =
-                CompletableFuture.allOf(featureStages.toArray(new CompletableFuture[0]))
+                CompletableFuture.allOf(featureStages.toArray(CompletableFuture[]::new))
                         .thenApply(aVoid ->
                                 ThingsModelFactory.newFeatures(
                                         featureStages.stream()

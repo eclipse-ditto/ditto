@@ -30,8 +30,8 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.operations.DefaultPersistenceOperationsConfig;
 import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
 import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
-import org.eclipse.ditto.wot.integration.config.DefaultWotConfig;
-import org.eclipse.ditto.wot.integration.config.WotConfig;
+import org.eclipse.ditto.wot.api.config.DefaultWotConfig;
+import org.eclipse.ditto.wot.api.config.WotConfig;
 
 /**
  * This class implements the config of the Ditto Things service.

@@ -14,12 +14,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <artifactId>ditto-internal-utils</artifactId>
         <groupId>org.eclipse.ditto</groupId>
         <version>${revision}</version>
     </parent>
-    <modelVersion>4.0.0</modelVersion>
 
     <artifactId>ditto-internal-utils-metrics</artifactId>
     <name>Eclipse Ditto :: Internal :: Utils :: Metrics</name>
@@ -36,37 +37,6 @@
         <dependency>
             <groupId>io.kamon</groupId>
             <artifactId>kamon-core_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-prometheus_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-executors_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.pekko</groupId>
-            <artifactId>pekko-actor_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.pekko</groupId>
-            <artifactId>pekko-http_${scala.version}</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <!-- This dependency is required to build the MongoMetricsBuilder. It should be provided, because
-             parent is using mongodb -->
-            <groupId>com.github.scullxbones</groupId>
-            <artifactId>pekko-persistence-mongodb_${scala.version}</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <!-- This dependency is required to build the ScalaDriverPersistenceExtension. Otherwise
-             java.lang.ClassNotFoundException: nl.grons.metrics4.scala.BaseBuilder is thrown -->
-            <groupId>nl.grons</groupId>
-            <artifactId>metrics4-scala_${scala.version}</artifactId>
         </dependency>
     </dependencies>
 

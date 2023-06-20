@@ -17,15 +17,16 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeatures;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeaturesResponse;
 import org.eclipse.ditto.things.model.signals.events.FeaturesDeleted;
@@ -39,9 +40,11 @@ final class DeleteFeaturesStrategy extends AbstractThingCommandStrategy<DeleteFe
 
     /**
      * Constructs a new {@code DeleteFeaturesStrategy} object.
+     *
+     * @param actorSystem the actor system to use for loading the WoT extension.
      */
-    DeleteFeaturesStrategy() {
-        super(DeleteFeatures.class);
+    DeleteFeaturesStrategy(final ActorSystem actorSystem) {
+        super(DeleteFeatures.class, actorSystem);
     }
 
     @Override

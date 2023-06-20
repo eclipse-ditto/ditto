@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.UUID;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.json.JsonObject;
@@ -36,6 +37,8 @@ import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
+
 /**
  * Unit test for {@link MergeThingStrategy}.
  */
@@ -45,7 +48,8 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
 
     @Before
     public void setUp() {
-        underTest = new MergeThingStrategy();
+        final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
+        underTest = new MergeThingStrategy(system);
     }
 
     @Test

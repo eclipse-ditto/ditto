@@ -39,7 +39,6 @@ import org.apache.pekko.japi.Pair;
 import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
@@ -50,6 +49,7 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnec
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
+import org.eclipse.ditto.internal.utils.config.http.HttpProxyBaseConfig;
 
 import com.typesafe.config.Config;
 
@@ -215,7 +215,7 @@ public final class HttpPushClientActor extends BaseClientActor {
     }
 
     private CompletionStage<Status.Status> connectViaProxy(final String hostWithoutLookup, final int port) {
-        final HttpProxyConfig httpProxyConfig = this.httpPushConfig.getHttpProxyConfig();
+        final HttpProxyBaseConfig httpProxyConfig = this.httpPushConfig.getHttpProxyConfig();
         try (final Socket proxySocket = new Socket(httpProxyConfig.getHostname(), httpProxyConfig.getPort())) {
             String proxyConnect = "CONNECT " + hostWithoutLookup + ":" + port + " HTTP/1.1\n";
             proxyConnect += "Host: " + hostWithoutLookup + ":" + port;

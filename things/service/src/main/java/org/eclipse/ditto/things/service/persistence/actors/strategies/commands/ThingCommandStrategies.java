@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.AbstractCommandStrategies;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
@@ -23,8 +24,6 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * The collection of the command strategies of {@code ThingPersistenceActor}.
@@ -42,14 +41,14 @@ public final class ThingCommandStrategies
     private ThingCommandStrategies(final ActorSystem system) {
         super(Command.class);
         addThingStrategies(system);
-        addPolicyStrategies();
-        addAttributesStrategies();
-        addDefinitionStrategies();
+        addPolicyStrategies(system);
+        addAttributesStrategies(system);
+        addDefinitionStrategies(system);
         addFeaturesStrategies(system);
-        addFeatureDefinitionStrategies();
-        addFeaturePropertiesStrategies();
-        addFeatureDesiredPropertiesStrategies();
-        addSudoStrategies();
+        addFeatureDefinitionStrategies(system);
+        addFeaturePropertiesStrategies(system);
+        addFeatureDesiredPropertiesStrategies(system);
+        addSudoStrategies(system);
     }
 
     /**
@@ -83,68 +82,68 @@ public final class ThingCommandStrategies
     }
 
     private void addThingStrategies(final ActorSystem system) {
-        addStrategy(new ThingConflictStrategy());
-        addStrategy(new ModifyThingStrategy());
+        addStrategy(new ThingConflictStrategy(system));
+        addStrategy(new ModifyThingStrategy(system));
         addStrategy(new RetrieveThingStrategy(system));
-        addStrategy(new DeleteThingStrategy());
-        addStrategy(new MergeThingStrategy());
+        addStrategy(new DeleteThingStrategy(system));
+        addStrategy(new MergeThingStrategy(system));
     }
 
-    private void addPolicyStrategies() {
-        addStrategy(new RetrievePolicyIdStrategy());
-        addStrategy(new ModifyPolicyIdStrategy());
+    private void addPolicyStrategies(final ActorSystem system) {
+        addStrategy(new RetrievePolicyIdStrategy(system));
+        addStrategy(new ModifyPolicyIdStrategy(system));
     }
 
-    private void addAttributesStrategies() {
-        addStrategy(new ModifyAttributesStrategy());
-        addStrategy(new ModifyAttributeStrategy());
-        addStrategy(new RetrieveAttributesStrategy());
-        addStrategy(new RetrieveAttributeStrategy());
-        addStrategy(new DeleteAttributesStrategy());
-        addStrategy(new DeleteAttributeStrategy());
+    private void addAttributesStrategies(final ActorSystem system) {
+        addStrategy(new ModifyAttributesStrategy(system));
+        addStrategy(new ModifyAttributeStrategy(system));
+        addStrategy(new RetrieveAttributesStrategy(system));
+        addStrategy(new RetrieveAttributeStrategy(system));
+        addStrategy(new DeleteAttributesStrategy(system));
+        addStrategy(new DeleteAttributeStrategy(system));
     }
 
-    private void addDefinitionStrategies() {
-        addStrategy(new ModifyThingDefinitionStrategy());
-        addStrategy(new RetrieveThingDefinitionStrategy());
-        addStrategy(new DeleteThingDefinitionStrategy());
+    private void addDefinitionStrategies(final ActorSystem system) {
+        addStrategy(new ModifyThingDefinitionStrategy(system));
+        addStrategy(new RetrieveThingDefinitionStrategy(system));
+        addStrategy(new DeleteThingDefinitionStrategy(system));
     }
 
     private void addFeaturesStrategies(final ActorSystem system) {
         addStrategy(new ModifyFeaturesStrategy(system));
         addStrategy(new ModifyFeatureStrategy(system));
-        addStrategy(new RetrieveFeaturesStrategy());
+        addStrategy(new RetrieveFeaturesStrategy(system));
         addStrategy(new RetrieveFeatureStrategy(system));
-        addStrategy(new DeleteFeaturesStrategy());
-        addStrategy(new DeleteFeatureStrategy());
+        addStrategy(new DeleteFeaturesStrategy(system));
+        addStrategy(new DeleteFeatureStrategy(system));
     }
 
-    private void addFeatureDefinitionStrategies() {
-        addStrategy(new ModifyFeatureDefinitionStrategy());
-        addStrategy(new RetrieveFeatureDefinitionStrategy());
-        addStrategy(new DeleteFeatureDefinitionStrategy());
+    private void addFeatureDefinitionStrategies(final ActorSystem system) {
+        addStrategy(new ModifyFeatureDefinitionStrategy(system));
+        addStrategy(new RetrieveFeatureDefinitionStrategy(system));
+        addStrategy(new DeleteFeatureDefinitionStrategy(system));
     }
 
-    private void addFeaturePropertiesStrategies() {
-        addStrategy(new ModifyFeaturePropertiesStrategy());
-        addStrategy(new ModifyFeaturePropertyStrategy());
-        addStrategy(new RetrieveFeaturePropertiesStrategy());
-        addStrategy(new RetrieveFeaturePropertyStrategy());
-        addStrategy(new DeleteFeaturePropertiesStrategy());
-        addStrategy(new DeleteFeaturePropertyStrategy());
+    private void addFeaturePropertiesStrategies(final ActorSystem system) {
+        addStrategy(new ModifyFeaturePropertiesStrategy(system));
+        addStrategy(new ModifyFeaturePropertyStrategy(system));
+        addStrategy(new RetrieveFeaturePropertiesStrategy(system));
+        addStrategy(new RetrieveFeaturePropertyStrategy(system));
+        addStrategy(new DeleteFeaturePropertiesStrategy(system));
+        addStrategy(new DeleteFeaturePropertyStrategy(system));
     }
 
-    private void addFeatureDesiredPropertiesStrategies() {
-        addStrategy(new ModifyFeatureDesiredPropertiesStrategy());
-        addStrategy(new ModifyFeatureDesiredPropertyStrategy());
-        addStrategy(new RetrieveFeatureDesiredPropertiesStrategy());
-        addStrategy(new RetrieveFeatureDesiredPropertyStrategy());
-        addStrategy(new DeleteFeatureDesiredPropertiesStrategy());
-        addStrategy(new DeleteFeatureDesiredPropertyStrategy());
+    private void addFeatureDesiredPropertiesStrategies(final ActorSystem system) {
+        addStrategy(new ModifyFeatureDesiredPropertiesStrategy(system));
+        addStrategy(new ModifyFeatureDesiredPropertyStrategy(system));
+        addStrategy(new RetrieveFeatureDesiredPropertiesStrategy(system));
+        addStrategy(new RetrieveFeatureDesiredPropertyStrategy(system));
+        addStrategy(new DeleteFeatureDesiredPropertiesStrategy(system));
+        addStrategy(new DeleteFeatureDesiredPropertyStrategy(system));
     }
 
-    private void addSudoStrategies() {
-        addStrategy(new SudoRetrieveThingStrategy());
+    private void addSudoStrategies(final ActorSystem system) {
+        addStrategy(new SudoRetrieveThingStrategy(system));
     }
 
     @Override

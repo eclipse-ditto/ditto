@@ -15,11 +15,11 @@ package org.eclipse.ditto.internal.utils.cluster;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.eclipse.ditto.internal.utils.json.CborFactoryLoader;
 import org.eclipse.ditto.json.CborFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-
-import org.apache.pekko.actor.ExtendedActorSystem;
 
 /**
  * Serializer of Eclipse Ditto for Jsonifiables via CBOR-based {@code ditto-json}.
