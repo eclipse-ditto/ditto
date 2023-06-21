@@ -106,7 +106,7 @@ public final class TesterBuilder {
                         Arrays.asList(
                                 SingleUriAtContext.W3ORG_2022_WOT_TD_V11,
                                 SinglePrefixedAtContext.of("ditto",
-                                        SingleUriAtContext.of("https://www.eclipse.org/ditto/ctx"))
+                                        SingleUriAtContext.of("https://www.eclipse.dev/ditto/ctx"))
                         )
                 ))
                 .setId(IRI.of("urn:org.eclipse.ditto:333-WoTLamp-1234"))

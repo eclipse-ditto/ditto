@@ -44,7 +44,7 @@ public final class PolicyIdInvalidException extends EntityIdInvalidException imp
     private static final String DEFAULT_DESCRIPTION =
             "It must conform to the namespaced entity ID notation (see Ditto documentation)";
 
-    private static final URI DEFAULT_HREF = URI.create("https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id");
+    private static final URI DEFAULT_HREF = URI.create("https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id");
 
     private static final long serialVersionUID = 8154256308793903738L;
 

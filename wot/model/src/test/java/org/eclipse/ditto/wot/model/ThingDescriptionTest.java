@@ -69,7 +69,7 @@ public final class ThingDescriptionTest {
         assertThat(thingDescription.getAtContext()).isEqualTo(MultipleAtContext.of(
                 Arrays.asList(
                         SingleUriAtContext.W3ORG_2022_WOT_TD_V11,
-                        SinglePrefixedAtContext.of("ditto", SingleUriAtContext.of("https://www.eclipse.org/ditto/ctx")),
+                        SinglePrefixedAtContext.of("ditto", SingleUriAtContext.of("https://www.eclipse.dev/ditto/ctx")),
                         SinglePrefixedAtContext.of("ace", SingleUriAtContext.of("http://www.example.org/ace-security#"))
                 )
         ));
@@ -137,7 +137,7 @@ public final class ThingDescriptionTest {
         final List<BaseLink<?>> expectedLinks = new ArrayList<>();
         expectedLinks.add(Link.newBuilder()
                 .setRel("service-doc")
-                .setHref(IRI.of("https://eclipse.org/ditto/some-pdf.pdf"))
+                .setHref(IRI.of("https://eclipse.dev/ditto/some-pdf.pdf"))
                 .setType("application/pdf")
                 .setHreflang(Hreflang.newSingleHreflang("de-CH-1996"))
                 .build()
@@ -161,7 +161,7 @@ public final class ThingDescriptionTest {
                         Arrays.asList(
                                 SingleUriAtContext.W3ORG_2022_WOT_TD_V11,
                                 SinglePrefixedAtContext.of("ditto",
-                                        SingleUriAtContext.of("https://www.eclipse.org/ditto/ctx")),
+                                        SingleUriAtContext.of("https://www.eclipse.dev/ditto/ctx")),
                                 SinglePrefixedAtContext.of("ace",
                                         SingleUriAtContext.of("http://www.example.org/ace-security#"))
                         )
@@ -203,7 +203,7 @@ public final class ThingDescriptionTest {
                 )))
                 .setLinks(Links.of(Collections.singletonList(Link.newBuilder()
                         .setRel("service-doc")
-                        .setHref(IRI.of("https://eclipse.org/ditto/some-pdf.pdf"))
+                        .setHref(IRI.of("https://eclipse.dev/ditto/some-pdf.pdf"))
                         .setType("application/pdf")
                         .setHreflang(Hreflang.newSingleHreflang("de-CH-1996"))
                         .build()

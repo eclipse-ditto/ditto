@@ -16,7 +16,7 @@ description: |
   A digital twin is a virtual, cloud based, representation of his real world counterpart
   (real world “Things”, e.g. devices like sensors, smart heating, connected cars, smart grids, EV charging stations etc).
 type: application
-version: 0.0.2  # chart version is set by release-job
+version: 0.0.4  # chart version is set by release-job
 appVersion: 3.2.1
 keywords:
   - iot-chart
@@ -25,7 +25,7 @@ keywords:
 home: https://www.eclipse.org/ditto
 sources:
   - https://github.com/eclipse-ditto/ditto
-icon: https://www.eclipse.org/ditto/images/ditto.svg
+icon: https://www.eclipse.dev/ditto/images/ditto.svg
 maintainers:
   - name: thjaeckle
     email: thomas.jaeckle@beyonnex.io

@@ -55,7 +55,7 @@ get:
         The request could not be completed. Possible reasons:
 
         * the `thingId` does not conform to the namespaced entity ID notation
-        (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+        (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
       content:
         application/json:
           schema:
@@ -135,7 +135,7 @@ put:
         The request could not be completed. Possible reasons:
 
           * the `thingId` does not conform to the namespaced entity ID notation
-            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
           * the JSON was invalid
           * the request body was not a JSON object.
       content:
@@ -210,7 +210,7 @@ patch:
         The request could not be completed. Possible reasons:
 
           * the `thingId` does not conform to the namespaced entity ID notation
-            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
           * the JSON was invalid
           * the request body was not a JSON object.
       content:
@@ -282,7 +282,7 @@ delete:
     '400':
       description: |-
         The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
-        (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+        (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
       content:
         application/json:
           schema:
