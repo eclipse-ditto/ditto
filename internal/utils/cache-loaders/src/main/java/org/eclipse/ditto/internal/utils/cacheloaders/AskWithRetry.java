@@ -25,6 +25,8 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.AskException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
@@ -196,9 +198,21 @@ public final class AskWithRetry {
                             ThreadSafeDittoLogger l = LOGGER;
                             if (null != dittoHeaders) {
                                 l = LOGGER.withCorrelationId(dittoHeaders);
+                            } else if (message instanceof WithDittoHeaders withDittoHeaders) {
+                                l = LOGGER.withCorrelationId(withDittoHeaders.getDittoHeaders());
                             }
-                            l.warn("Got AskTimeout during ask for message <{}> - retrying.. : <{}>",
-                                    message.getClass().getSimpleName(), throwable.getMessage());
+                            final EntityId entityId;
+                            if (message instanceof WithEntityId withEntityId) {
+                                entityId = withEntityId.getEntityId();
+                            } else {
+                                entityId = null;
+                            }
+                            l.warn("Got AskTimeout during ask for message <{}> and entityId <{} / {}> - retrying.. : <{}>",
+                                    message.getClass().getSimpleName(),
+                                    entityId,
+                                    entityId != null ? entityId.getEntityType() : null,
+                                    throwable.getMessage()
+                            );
                         }
                         // all non-known RuntimeException should be handled by the "Patterns.retry" with a retry:
                         throw new UnknownAskRuntimeException(throwable);
