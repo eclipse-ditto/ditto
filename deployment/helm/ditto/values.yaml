@@ -169,8 +169,15 @@ dbconfig:
 ingress:
   # enabled whether Ingress should be enabled as alternative to the contained nginx
   enabled: false
+  # namespace for ingress controller, must exist
+  namespace: ingress-nginx
+  # Ingress-NGINX version
+  nginxIngressVersion: v1.8.0
+  # Nginx Version
+  nginxVersion: "1.21.6"
+
   # className is the 'ingressClassName' to configure in the Ingress spec
-  className: nginx
+  className: ingress-nginx
   # host the hostname of the Ingress shared for all: api, ws and ui
   host: localhost
   # defaultBackendSuffix the suffix to add to the internal fullname to use as Ingress "defaultBackend"
