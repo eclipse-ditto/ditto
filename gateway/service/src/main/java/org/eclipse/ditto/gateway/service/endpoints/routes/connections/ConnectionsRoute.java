@@ -145,10 +145,10 @@ public final class ConnectionsRoute extends AbstractRoute {
                 concat(
                         get(() -> // GET /connections?ids-only=false
                                 parameterOptional(ConnectionsParameter.IDS_ONLY.toString(), idsOnly ->
-                                        parameterOptional(ConnectionsParameter.FIELDS.toString(), fieldsString ->
+                                        parameterList(ConnectionsParameter.FIELDS.toString(), fields ->
                                                 {
                                                     final Optional<JsonFieldSelector> selectedFields =
-                                                            calculateSelectedFields(fieldsString);
+                                                            calculateSelectedFields(fields);
                                                     return handlePerRequest(ctx, RetrieveConnections.newInstance(
                                                             idsOnly.map(Boolean::valueOf).orElseGet(() -> selectedFields
                                                                     .filter(sf -> sf.getPointers().size() == 1 &&
@@ -219,9 +219,9 @@ public final class ConnectionsRoute extends AbstractRoute {
                                 )
                         ),
                         get(() -> // GET /connections/<connectionId>
-                                parameterOptional(ConnectionsParameter.FIELDS.toString(), fieldsString ->
+                                parameterList(ConnectionsParameter.FIELDS.toString(), fields ->
                                         handlePerRequest(ctx, RetrieveConnection.of(connectionId,
-                                                calculateSelectedFields(fieldsString).orElse(null),
+                                                calculateSelectedFields(fields).orElse(null),
                                                 dittoHeaders)
                                         )
                                 )

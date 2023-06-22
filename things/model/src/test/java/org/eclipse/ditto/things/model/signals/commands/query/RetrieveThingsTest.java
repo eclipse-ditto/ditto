@@ -183,7 +183,7 @@ public final class RetrieveThingsTest {
 
     @Test
     public void checkRetrieveThingsWithEmptyJsonFieldSelectorBehavesEquallyAsOmittingFields() {
-        final JsonFieldSelector selectedFields = JsonFactory.newFieldSelector(null, JSON_PARSE_OPTIONS);
+        final JsonFieldSelector selectedFields = JsonFactory.newFieldSelector((String) null, JSON_PARSE_OPTIONS);
         final RetrieveThings retrieveThings = RetrieveThings
                 .getBuilder(TestConstants.Thing.THING_ID, ThingId.inDefaultNamespace("AnotherThingId"))
                 .selectedFields(selectedFields)

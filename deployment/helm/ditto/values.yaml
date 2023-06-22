@@ -440,11 +440,6 @@ policies:
     timeoutSeconds: 5
     successThreshold: 1
     failureThreshold: 4
-  # networkPolicy configuration for policies
-  #  ref: https://kubernetes.io/docs/concepts/services-networking/network-policies/
-  networkPolicy:
-    # enabled controls whether policies related NetworkPolicy should be created
-    enabled: true
   # podDisruptionBudget configuration for policies
   #  ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
   podDisruptionBudget:
@@ -622,11 +617,6 @@ things:
     timeoutSeconds: 5
     successThreshold: 1
     failureThreshold: 4
-  # networkPolicy configuration for things
-  #  ref: https://kubernetes.io/docs/concepts/services-networking/network-policies/
-  networkPolicy:
-    # enabled controls whether things related NetworkPolicy should be created
-    enabled: true
   # podDisruptionBudget configuration for things
   #  ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
   podDisruptionBudget:
@@ -826,11 +816,6 @@ thingsSearch:
     timeoutSeconds: 5
     successThreshold: 1
     failureThreshold: 4
-  # networkPolicy configuration for things-search
-  #  ref: https://kubernetes.io/docs/concepts/services-networking/network-policies/
-  networkPolicy:
-    # enabled controls whether things-search related NetworkPolicy should be created
-    enabled: true
   # podDisruptionBudget configuration for things-search
   #  ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
   podDisruptionBudget:
@@ -1006,11 +991,6 @@ connectivity:
     timeoutSeconds: 5
     successThreshold: 1
     failureThreshold: 4
-  # networkPolicy configuration for connectivity
-  #  ref: https://kubernetes.io/docs/concepts/services-networking/network-policies/
-  networkPolicy:
-    # enabled controls whether connectivity related NetworkPolicy should be created
-    enabled: true
   # podDisruptionBudget configuration for connectivity
   #  ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
   podDisruptionBudget:
@@ -1270,11 +1250,6 @@ gateway:
     port: 8080
     # annotations to add arbitrary annotations to nginx service
     annotations: {}
-  # networkPolicy configuration for gateway
-  #  ref: https://kubernetes.io/docs/concepts/services-networking/network-policies/
-  networkPolicy:
-    # enabled controls whether gateway related NetworkPolicy should be created
-    enabled: true
   # podDisruptionBudget configuration for gateway
   #  ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
   podDisruptionBudget:
@@ -1439,10 +1414,6 @@ nginx:
     #  nodePort: 30080
     # annotations to add arbitrary annotations to nginx service
     annotations: {}
-  # networkPolicy ref: https://kubernetes.io/docs/concepts/services-networking/network-policies/
-  networkPolicy:
-    # enabled controls whether policies related NetworkPolicy should be created
-    enabled: true
   # nodeSelector configuration for nginx
   #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
   nodeSelector: {}
@@ -1491,10 +1462,6 @@ dittoui:
     cpu: 0.1
     # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
     memoryMi: 64
-  # networkPolicy ref: https://kubernetes.io/docs/concepts/services-networking/network-policies/
-  networkPolicy:
-    # enabled controls whether Ditto UI related NetworkPolicy should be created
-    enabled: true
   # podDisruptionBudget ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
   podDisruptionBudget:
     # enabled controls whether Ditto UI related PodDisruptionBudget should be created
@@ -1541,10 +1508,6 @@ swaggerui:
     cpu: 0.1
     # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
     memoryMi: 64
-  # networkPolicy ref: https://kubernetes.io/docs/concepts/services-networking/network-policies/
-  networkPolicy:
-    # enabled controls whether swagger ui related NetworkPolicy should be created
-    enabled: true
   # podDisruptionBudget ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
   podDisruptionBudget:
     # enabled controls whether swagger ui related PodDisruptionBudget should be created
