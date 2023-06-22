@@ -150,9 +150,9 @@ public final class PoliciesRoute extends AbstractRoute {
         return pathEndOrSingleSlash(() ->
                 concat(
                         // GET /policies/<policyId>?fields=<fieldsString>
-                        get(() -> parameterOptional(PoliciesParameter.FIELDS.toString(), fieldsString ->
+                        get(() -> parameterList(PoliciesParameter.FIELDS.toString(), fields ->
                                 handlePerRequest(ctx, RetrievePolicy.of(policyId, dittoHeaders,
-                                        calculateSelectedFields(fieldsString).orElse(null)))
+                                        calculateSelectedFields(fields).orElse(null)))
                         )),
                         put(() -> // PUT /policies/<policyId>
                                 ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,

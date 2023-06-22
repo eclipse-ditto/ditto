@@ -15,10 +15,12 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
@@ -104,47 +106,59 @@ public final class ThingSearchRoute extends AbstractRoute {
     }
 
     private Route thingSearchParameterOptional(
-            final Function<EnumMap<ThingSearchParameter, Optional<String>>, Route> inner) {
+            final Function<EnumMap<ThingSearchParameter, List<String>>, Route> inner) {
         return thingSearchParameterOptionalImpl(ThingSearchParameter.values(),
                 new EnumMap<>(ThingSearchParameter.class), inner);
     }
 
     private Route thingSearchParameterOptionalImpl(final ThingSearchParameter[] values,
-            final EnumMap<ThingSearchParameter, Optional<String>> accumulator,
-            final Function<EnumMap<ThingSearchParameter, Optional<String>>, Route> inner) {
+            final EnumMap<ThingSearchParameter, List<String>> accumulator,
+            final Function<EnumMap<ThingSearchParameter, List<String>>, Route> inner) {
         if (accumulator.size() >= values.length) {
             return inner.apply(accumulator);
         } else {
             final ThingSearchParameter parameter = values[accumulator.size()];
-            return parameterOptional(parameter.toString(), parameterValueOptional -> {
-                accumulator.put(parameter, parameterValueOptional);
+            return parameterList(parameter.toString(), parameterValues -> {
+                accumulator.put(parameter, parameterValues);
                 return thingSearchParameterOptionalImpl(values, accumulator, inner);
             });
         }
     }
 
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    private static String calculateFilter(final Optional<String> filterString) {
-        return filterString.orElse(null);
+    @Nullable
+    private static String calculateFilter(final List<String> filterString) {
+        if (filterString.isEmpty()) {
+            return null;
+        }
+        return filterString.stream()
+                .collect(Collectors.joining(",", "and(", ")"));
     }
 
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    public static Set<String> calculateNamespaces(final Optional<String> namespacesString) {
-        final Function<String, Set<String>> splitAndRemoveEmpty =
+    @Nullable
+    public static Set<String> calculateNamespaces(final List<String> namespacesStrings) {
+        final Function<String, Stream<String>> splitAndRemoveEmpty =
                 s -> Arrays.stream(s.split(","))
-                        .filter(segment -> !segment.isEmpty())
-                        .collect(Collectors.toSet());
+                        .filter(segment -> !segment.isEmpty());
 
         // if no namespaces are given explicitly via query parameter,
         // return null to signify the lack of namespace restriction
-        return namespacesString.map(splitAndRemoveEmpty).orElse(null);
+        if (namespacesStrings.isEmpty()) {
+            return null;
+        }
+        return namespacesStrings.stream()
+                .flatMap(splitAndRemoveEmpty)
+                .collect(Collectors.toSet());
     }
 
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    public static List<String> calculateOptions(final Optional<String> optionsString) {
+    @Nullable
+    public static List<String> calculateOptions(final List<String> optionsString) {
+        if (optionsString.isEmpty()) {
+            return null;
+        }
         return optionsString
-                .map(s -> Arrays.asList(s.split(",")))
-                .orElse(null);
+                .stream()
+                .flatMap(s -> Arrays.stream(s.split(",")))
+                .toList();
     }
 
 }
