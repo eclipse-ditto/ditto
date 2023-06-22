@@ -751,7 +751,7 @@ function mapToDittoProtocolMsg(
   // ### Insert/adapt your mapping logic here.
   // Use helper function Ditto.buildDittoProtocolMsg to build Ditto protocol message
   // based on incoming payload.
-  // See https://www.eclipse.org/ditto/connectivity-mapping.html#helper-functions for details.
+  // See https://www.eclipse.dev/ditto/connectivity-mapping.html#helper-functions for details.
 
   // ### example code assuming the Ditto protocol content type for incoming messages.
   if (contentType === 'application/vnd.eclipse.ditto+json') {
