@@ -56,7 +56,7 @@ public final class NamespacedEntityIdInvalidException extends EntityIdInvalidExc
                     "length of 256 characters.";
 
     private static final URI DEFAULT_HREF =
-            URI.create("https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id");
+            URI.create("https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id");
 
     private static final long serialVersionUID = -8903476318490123234L;
 

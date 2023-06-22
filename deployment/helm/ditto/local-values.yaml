@@ -25,7 +25,7 @@ global:
 
 ## ----------------------------------------------------------------------------
 ## policies configuration
-## ref: https://www.eclipse.org/ditto/architecture-services-policies.html
+## ref: https://www.eclipse.dev/ditto/architecture-services-policies.html
 policies:
   resources:
     cpu: 0.2
@@ -43,7 +43,7 @@ policies:
 
 ## ----------------------------------------------------------------------------
 ## things configuration
-## ref: https://www.eclipse.org/ditto/architecture-services-things.html
+## ref: https://www.eclipse.dev/ditto/architecture-services-things.html
 things:
   resources:
     cpu: 0.2
@@ -61,7 +61,7 @@ things:
 
 ## ----------------------------------------------------------------------------
 ## things-search configuration
-## ref: https://www.eclipse.org/ditto/architecture-services-things-search.html
+## ref: https://www.eclipse.dev/ditto/architecture-services-things-search.html
 thingsSearch:
   resources:
     cpu: 0.2
@@ -72,7 +72,7 @@ thingsSearch:
 
 ## ----------------------------------------------------------------------------
 ## connectivity configuration
-## ref: https://www.eclipse.org/ditto/architecture-services-connectivity.html
+## ref: https://www.eclipse.dev/ditto/architecture-services-connectivity.html
 connectivity:
   resources:
     cpu: 0.2
@@ -83,7 +83,7 @@ connectivity:
 
 ## ----------------------------------------------------------------------------
 ## gateway configuration
-## ref: https://www.eclipse.org/ditto/architecture-services-gateway.html
+## ref: https://www.eclipse.dev/ditto/architecture-services-gateway.html
 gateway:
   resources:
     cpu: 0.2

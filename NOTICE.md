@@ -1,6 +1,6 @@
 This content is produced and maintained by the Eclipse Ditto project.
 
-* Project home: https://www.eclipse.org/ditto
+* Project home: https://www.eclipse.dev/ditto
 
 # Trademarks
 

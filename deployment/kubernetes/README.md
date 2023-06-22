@@ -53,7 +53,7 @@ In case you already have a MongoDB in the cloud or elsewhere it is possible to c
 This can be done by setting the MongoDB URI via env variable "MONGO_DB_URI" in the 
 `deployment/kubernetes/deploymentFiles/ditto/ditto-cluster.yml` for all services except the `gateway`.
 Other MongoDB settings can be set via env variables and are documented in
-[Operating Ditto](https://www.eclipse.org/ditto/installation-operating.html) section.
+[Operating Ditto](https://www.eclipse.dev/ditto/installation-operating.html) section.
 
 In case your "MONGO_DB_URI" contains sensitive information like username and password it is recommended to use
 a kubernetes secret. 

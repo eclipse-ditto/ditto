@@ -14,10 +14,10 @@ Ditto releases are tracked and planned here: https://projects.eclipse.org/projec
       * First close the staging repo (after all artifacts are there, e.g. also the client artifacts)
       * Then release the staging repo
       * Then it will take a few hours until those changes are synced successfully to Maven central
-* Write Release notes, e.g. like for 3.1.0: https://www.eclipse.org/ditto/release_notes_310.html
+* Write Release notes, e.g. like for 3.1.0: https://www.eclipse.dev/ditto/release_notes_310.html
    * New features, changes, bug fixes to last release / milestone release
    * Add migration notes (if there are any)
-* Write a Blog post announcement, e.g. like for: https://www.eclipse.org/ditto/2022-12-16-release-announcement-310.html
+* Write a Blog post announcement, e.g. like for: https://www.eclipse.dev/ditto/2022-12-16-release-announcement-310.html
 * Close GitHub milestone (and assign all Issues/PRs which were still included in that milestone): https://github.com/eclipse-ditto/ditto/milestones
 * Create a GitHub release: https://github.com/eclipse-ditto/ditto/releases (based on the Tags which was pushed during release job)
 * Write a mail to the "ditto-dev" mailing list

@@ -2,7 +2,7 @@
 
 ## Introduction
 
-[Eclipse Ditto™](https://www.eclipse.org/ditto/) is a technology in the IoT implementing a software pattern
+[Eclipse Ditto™](https://www.eclipse.dev/ditto/) is a technology in the IoT implementing a software pattern
 called “digital twins”. A digital twin is a virtual, cloud based, representation of his real world counterpart
 (real world “Things”, e.g. devices like sensors, smart heating, connected cars, smart grids, EV charging stations, …).
 

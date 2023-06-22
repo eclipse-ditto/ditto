@@ -23,29 +23,32 @@ entries:
       - title: Release Notes
         output: web
         folderitems:
+          - title: 3.3.0
+            url: /release_notes_330.html
+            output: web
           - title: 3.2.1
             url: /release_notes_321.html
             output: web
           - title: 3.2.0
             url: /release_notes_320.html
             output: web
-          - title: 3.1.2
-            url: /release_notes_312.html
-            output: web
-          - title: 3.1.1
-            url: /release_notes_311.html
-            output: web
-          - title: 3.1.0
-            url: /release_notes_310.html
-            output: web
-          - title: 3.0.0
-            url: /release_notes_300.html
-            output: web
 
             subfolders:
               - title: Archive
                 output: web
                 subfolderitems:
+                  - title: 3.1.2
+                    url: /release_notes_312.html
+                    output: web
+                  - title: 3.1.1
+                    url: /release_notes_311.html
+                    output: web
+                  - title: 3.1.0
+                    url: /release_notes_310.html
+                    output: web
+                  - title: 3.0.0
+                    url: /release_notes_300.html
+                    output: web
                   - title: 2.4.2
                     url: /release_notes_242.html
                     output: web
