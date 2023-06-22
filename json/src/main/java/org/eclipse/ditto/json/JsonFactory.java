@@ -647,6 +647,7 @@ public final class JsonFactory {
             final JsonParseOptions options) {
 
         final Collection<JsonPointer> selectors = StreamSupport.stream(fieldSelectorStrings.spliterator(), false)
+                .filter(fieldSelectorString -> !fieldSelectorString.isEmpty())
                 .map(fieldSelectorString -> ImmutableJsonFieldSelectorFactory.newInstance(fieldSelectorString, options))
                 .map(ImmutableJsonFieldSelectorFactory::newJsonFieldSelector)
                 .flatMap(foo -> foo.getPointers().stream())
