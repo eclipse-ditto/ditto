@@ -61,7 +61,7 @@ global:
   hashedBasicAuthUsers: []
   # jwtOnly controls whether only OpenID-Connect authentication is supported
   #  if false, both OpenID-Connect and basicAuth via nginx (see above "basicAuthUsers" and "hashedBasicAuthUsers") is used
-  #  ref: https://www.eclipse.org/ditto/installation-operating.html#openid-connect
+  #  ref: https://www.eclipse.dev/ditto/installation-operating.html#openid-connect
   jwtOnly: true
   # jvmOptions defines the JVM options applied to all Ditto services running in the JVM, it is put in JAVA_TOOL_OPTIONS
   jvmOptions: >
@@ -365,12 +365,12 @@ akka:
 
 # Set "dittoTag" in order to specify another Ditto version to use for all Ditto services:
 # you may also use "1" (for latest Ditto 1.x.x) or "1.5" (for latest Ditto 1.5.x)
-# dittoTag: 3.2.0
+# dittoTag: 3.3.0
 
 
 ## ----------------------------------------------------------------------------
 ## policies configuration
-##  ref: https://www.eclipse.org/ditto/architecture-services-policies.html
+##  ref: https://www.eclipse.dev/ditto/architecture-services-policies.html
 policies:
   # enabled controls whether policies related resources should be created
   enabled: true
@@ -395,13 +395,13 @@ policies:
     # repository for the policies docker image
     repository: docker.io/eclipse/ditto-policies
     # tag for the policies docker image - overwrite to specify something else than Chart.AppVersion
-    # tag: 3.2.0
+    # tag: 3.3.0
     # pullPolicy for the policies docker image
     pullPolicy: IfNotPresent
   # additionalJvmOptions JVM options to put into JAVA_TOOL_OPTIONS
   additionalJvmOptions: ""
   # systemProps used to define arbitrary system properties for policies service
-  #  ref: https://www.eclipse.org/ditto/installation-operating.html#configuration
+  #  ref: https://www.eclipse.dev/ditto/installation-operating.html#configuration
   systemProps:
   # extraEnv to add arbitrary environment variable to policies container
   extraEnv:
@@ -547,7 +547,7 @@ policies:
 
 ## ----------------------------------------------------------------------------
 ## things configuration
-##  ref: https://www.eclipse.org/ditto/architecture-services-things.html
+##  ref: https://www.eclipse.dev/ditto/architecture-services-things.html
 things:
   # enabled controls whether things related resources should be created
   enabled: true
@@ -572,13 +572,13 @@ things:
     # repository for the things docker image
     repository: docker.io/eclipse/ditto-things
     # tag for the things docker image - overwrite to specify something else than Chart.AppVersion
-    # tag: 3.2.0
+    # tag: 3.3.0
     # pullPolicy for the things docker image
     pullPolicy: IfNotPresent
   # additionalJvmOptions JVM options to put into JAVA_TOOL_OPTIONS
   additionalJvmOptions: ""
   # systemProps used to define arbitrary system properties for things service
-  #  ref: https://www.eclipse.org/ditto/installation-operating.html#configuration
+  #  ref: https://www.eclipse.dev/ditto/installation-operating.html#configuration
   systemProps:
   # extraEnv to add arbitrary environment variable to things container
   extraEnv:
@@ -741,12 +741,12 @@ things:
             }
           },
           "security": "basic_sc",
-          "support": "https://www.eclipse.org/ditto/"
+          "support": "https://www.eclipse.dev/ditto/"
         }
 
 ## ----------------------------------------------------------------------------
 ## things-search configuration
-##  ref: https://www.eclipse.org/ditto/architecture-services-things-search.html
+##  ref: https://www.eclipse.dev/ditto/architecture-services-things-search.html
 thingsSearch:
   # enabled controls whether things-search related resources should be created
   enabled: true
@@ -771,13 +771,13 @@ thingsSearch:
     # repository for the things-search docker image
     repository: docker.io/eclipse/ditto-things-search
     # tag for the things-search docker image - overwrite to specify something else than Chart.AppVersion
-    # tag: 3.2.0
+    # tag: 3.3.0
     # pullPolicy for the things-search docker image
     pullPolicy: IfNotPresent
   # additional JVM options to put into JAVA_TOOL_OPTIONS
   additionalJvmOptions: ""
   # systemProps used to define arbitrary system properties for things-search service
-  #  ref: https://www.eclipse.org/ditto/installation-operating.html#configuration
+  #  ref: https://www.eclipse.dev/ditto/installation-operating.html#configuration
   systemProps:
   # extraEnv to add arbitrary environment variable to things-search container
   extraEnv:
@@ -855,7 +855,7 @@ thingsSearch:
       #  one of: unacknowledged | acknowledged | majority | journaled | w1 | w2 | w3
       searchWriteConcern: "acknowledged"
       # searchWithAcksWriteConcern configures the MongoDB write concern for commands sent with "search-persisted" ACK
-      #  ref: https://www.eclipse.org/ditto/basic-acknowledgements.html#built-in-acknowledgement-labels
+      #  ref: https://www.eclipse.dev/ditto/basic-acknowledgements.html#built-in-acknowledgement-labels
       #  one of: unacknowledged | acknowledged | majority | journaled | w1 | w2 | w3
       searchWithAcksWriteConcern: "majority"
       # queryReadConcern configures the MongoDB read concern for doing queries / performing searches
@@ -921,7 +921,7 @@ thingsSearch:
 
 ## ----------------------------------------------------------------------------
 ## connectivity configuration
-##  ref: https://www.eclipse.org/ditto/architecture-services-connectivity.html
+##  ref: https://www.eclipse.dev/ditto/architecture-services-connectivity.html
 connectivity:
   # enabled controls whether connectivity related resources should be created
   enabled: true
@@ -946,13 +946,13 @@ connectivity:
     # repository for the connectivity docker image
     repository: docker.io/eclipse/ditto-connectivity
     # tag for the connectivity docker image - overwrite to specify something else than Chart.AppVersion
-    # tag: 3.2.0
+    # tag: 3.3.0
     # pullPolicy for the connectivity docker image
     pullPolicy: IfNotPresent
   # additional JVM options to put into JAVA_TOOL_OPTIONS
   additionalJvmOptions: ""
   # systemProps used to define arbitrary system properties for connectivity service
-  #  ref: https://www.eclipse.org/ditto/installation-operating.html#configuration
+  #  ref: https://www.eclipse.dev/ditto/installation-operating.html#configuration
   systemProps:
   # extraEnv to add arbitrary environment variable to connectivity container
   extraEnv:
@@ -1154,7 +1154,7 @@ connectivity:
 
 ## ----------------------------------------------------------------------------
 ## gateway configuration
-##  ref: https://www.eclipse.org/ditto/architecture-services-gateway.html
+##  ref: https://www.eclipse.dev/ditto/architecture-services-gateway.html
 gateway:
   # enabled controls whether gateway related resources should be created
   enabled: true
@@ -1181,11 +1181,11 @@ gateway:
     # repository for the gateway docker image
     repository: docker.io/eclipse/ditto-gateway
     # tag for the gateway docker image - overwrite to specify something else than Chart.AppVersion
-    # tag: 3.2.0
+    # tag: 3.3.0
     # pullPolicy for the gateway docker image
     pullPolicy: IfNotPresent
   # systemProps used to define arbitrary system properties configuration for gateway
-  #  ref: https://www.eclipse.org/ditto/installation-operating.html#configuration
+  #  ref: https://www.eclipse.dev/ditto/installation-operating.html#configuration
   systemProps:
     - "-Dditto.protocol.blocklist.0=raw-request-uri"
     - "-Dditto.protocol.blocklist.1=cache-control"
@@ -1277,7 +1277,7 @@ gateway:
     # authentication contains the settings regarding authentication against the gateway
     authentication:
       # enablePreAuthentication whether Ditto "pre-authentication" should be enabled
-      #  ref: https://www.eclipse.org/ditto/installation-operating.html#pre-authentication
+      #  ref: https://www.eclipse.dev/ditto/installation-operating.html#pre-authentication
       enablePreAuthentication: false
       # oauth contains the OAuth2.0 / OpenID Connect related configuration
       oauth:
@@ -1451,7 +1451,7 @@ dittoui:
     # repository for the Ditto UI docker image
     repository: docker.io/eclipse/ditto-ui
     # tag for the Ditto UI image - overwrite to specify something else than Chart.AppVersion
-    # tag: 3.2.0
+    # tag: 3.3.0
     # pullPolicy for the Ditto UI docker image
     pullPolicy: IfNotPresent
   # extraEnv to add arbitrary environment variable to Ditto UI container
