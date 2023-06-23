@@ -61,6 +61,6 @@ spec:
               cpu: {{ mulf .Values.dittoui.resources.cpu 1000 }}m
               memory: {{ .Values.dittoui.resources.memoryMi }}Mi
             limits:
-              # cpu: ""
+              cpu: {{ mulf .Values.dittoui.resources.cpu 1000 }}m
               memory: {{ .Values.dittoui.resources.memoryMi }}Mi
 {{- end }}

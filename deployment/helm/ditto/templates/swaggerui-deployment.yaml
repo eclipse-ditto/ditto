@@ -97,7 +97,7 @@ spec:
               cpu: {{ mulf .Values.swaggerui.resources.cpu 1000 }}m
               memory: {{ .Values.swaggerui.resources.memoryMi }}Mi
             limits:
-              # cpu: ""
+              cpu: {{ mulf .Values.swaggerui.resources.cpu 1000 }}m
               memory: {{ .Values.swaggerui.resources.memoryMi }}Mi
           volumeMounts:
             - name: swagger-ui-init-config
