@@ -22,7 +22,7 @@
 
     <name>Eclipse Ditto</name>
     <description>Eclipse Ditto is a framework for creating and managing digital twins in the IoT.</description>
-    <url>https://eclipse.org/ditto/</url>
+    <url>https://eclipse.dev/ditto/</url>
     <inceptionYear>2017</inceptionYear>
 
     <organization>
@@ -455,7 +455,7 @@
                         <instructions>
                             <Bundle-Vendor>Eclipse Ditto</Bundle-Vendor>
                             <Bundle-License>EPL-2.0</Bundle-License>
-                            <Bundle-DocURL>https://eclipse.org/ditto/</Bundle-DocURL>
+                            <Bundle-DocURL>https://eclipse.dev/ditto/</Bundle-DocURL>
                             <_noee>true</_noee>
                             <!-- stays at 1.8 as all exported bundles (json, model, protocol-adapter, signals, ...) are 1.8 -->
                             <Bundle-RequiredExecutionEnvironment>JavaSE-1.8</Bundle-RequiredExecutionEnvironment>

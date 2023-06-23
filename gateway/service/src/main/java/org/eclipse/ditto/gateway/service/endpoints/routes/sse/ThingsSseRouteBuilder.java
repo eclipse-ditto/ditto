@@ -267,7 +267,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                     // /things/<thingId>
                     rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), thingId ->
                             parameterMap(parameters -> {
-                                final HashMap<String, String> params = new HashMap<>(parameters);
+                                final Map<String, String> params = new HashMap<>(parameters);
                                 params.put(ThingsParameter.IDS.toString(), thingId);
 
                                 return concat(

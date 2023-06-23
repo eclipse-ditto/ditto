@@ -15,7 +15,7 @@ over at the [Eclipse Ditto examples repository](https://github.com/eclipse-ditto
 Right from the project's description:
 
 >This example shows how to leverage the powers of combining the REST and
- WebSocket Messages API of [Eclipse Ditto](https://www.eclipse.org/ditto/).
+ WebSocket Messages API of [Eclipse Ditto](https://www.eclipse.dev/ditto/).
  It demonstrates how to send direct Messages to a *live* Thing, as well as
  updating the *twin* representation of a Thing inside Ditto.
 <br/> 
@@ -35,7 +35,7 @@ caption="Source: https://github.com/eclipse-ditto/ditto-examples" %}
 
 If you have any wishes, improvements, are missing something
 or just want to get in touch with us, you can use one of
-our [feedback channels](https://www.eclipse.org/ditto/feedback.html).
+our [feedback channels](https://www.eclipse.dev/ditto/feedback.html).
 
 {% include image.html file="ditto.svg" alt="Ditto" max-width=500 %}
 --<br/>

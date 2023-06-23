@@ -1,6 +1,6 @@
 ## Eclipse Ditto :: Documentation
 
-This folder contains the documentation and [static website of Eclipse Ditto](https://www.eclipse.org/ditto/).
+This folder contains the documentation and [static website of Eclipse Ditto](https://www.eclipse.dev/ditto/).
 
 The documentation is based on [Jekyll](https://jekyllrb.com) and the fabulous [Jekyll Documentation Theme 6.0](http://idratherbewriting.com/documentation-theme-jekyll/).
 

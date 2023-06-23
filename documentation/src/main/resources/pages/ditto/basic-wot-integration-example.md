@@ -239,7 +239,7 @@ That should result in an HTTP status code `200` (OK) and return the following bo
       "scheme": "basic"
     }
   },
-  "support": "https://www.eclipse.org/ditto/",
+  "support": "https://www.eclipse.dev/ditto/",
   "created": "2022-02-16T11:48:22.192286Z",
   "forms": [
     {
@@ -570,7 +570,7 @@ That should result in an HTTP status code `200` (OK) and return the following bo
       "scheme": "basic"
     }
   },
-  "support": "https://www.eclipse.org/ditto/",
+  "support": "https://www.eclipse.dev/ditto/",
   "created": "2022-02-16T11:48:22.192286Z",
   "forms": [
     {

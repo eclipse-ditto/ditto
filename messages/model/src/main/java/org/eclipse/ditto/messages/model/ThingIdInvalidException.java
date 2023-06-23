@@ -44,7 +44,7 @@ public final class ThingIdInvalidException extends EntityIdInvalidException impl
             "It must conform to the namespaced entity ID notation (see Ditto documentation)";
 
     private static final URI DEFAULT_HREF =
-            URI.create("https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id");
+            URI.create("https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id");
 
     private static final long serialVersionUID = -2426810319409279256L;
 
