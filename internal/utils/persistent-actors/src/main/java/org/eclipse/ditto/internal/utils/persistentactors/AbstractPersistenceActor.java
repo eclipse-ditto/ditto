@@ -15,6 +15,7 @@ package org.eclipse.ditto.internal.utils.persistentactors;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -518,18 +519,20 @@ public abstract class AbstractPersistenceActor<
      * @param event   the event to persist and apply.
      * @param handler what happens afterwards.
      */
-    protected void persistAndApplyEvent(final E event, final BiConsumer<E, S> handler) {
+    protected void persistAndApplyEvent(final CompletionStage<E> event, final BiConsumer<E, S> handler) {
 
-        final E modifiedEvent = modifyEventBeforePersist(event);
-        if (modifiedEvent.getDittoHeaders().isDryRun()) {
-            handler.accept(modifiedEvent, entity);
-        } else {
-            persistEvent(modifiedEvent, persistedEvent -> {
-                // after the event was persisted, apply the event on the current actor state
-                applyEvent(persistedEvent);
-                handler.accept(persistedEvent, entity);
-            });
-        }
+        event.thenAccept(completedEvent -> {
+            final E modifiedEvent = modifyEventBeforePersist(completedEvent);
+            if (modifiedEvent.getDittoHeaders().isDryRun()) {
+                handler.accept(modifiedEvent, entity);
+            } else {
+                persistEvent(modifiedEvent, persistedEvent -> {
+                    // after the event was persisted, apply the event on the current actor state
+                    applyEvent(persistedEvent);
+                    handler.accept(persistedEvent, entity);
+                });
+            }
+        });
     }
 
     /**
@@ -670,8 +673,9 @@ public abstract class AbstractPersistenceActor<
     }
 
     @Override
-    public void onMutation(final Command<?> command, final E event, final WithDittoHeaders response,
-                           final boolean becomeCreated, final boolean becomeDeleted) {
+    public void onMutation(final Command<?> command, final CompletionStage<E> event,
+            final CompletionStage<WithDittoHeaders> response,
+            final boolean becomeCreated, final boolean becomeDeleted) {
 
         persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
             if (shouldSendResponse(command.getDittoHeaders())) {
@@ -800,6 +804,10 @@ public abstract class AbstractPersistenceActor<
 
     private void notifySender(final WithDittoHeaders message) {
         notifySender(getSender(), message);
+    }
+
+    private void notifySender(final CompletionStage<WithDittoHeaders> message) {
+        message.thenAccept(msg -> notifySender(getSender(), msg));
     }
 
     private void takeSnapshotByInterval(final Control takeSnapshot) {
@@ -980,8 +988,8 @@ public abstract class AbstractPersistenceActor<
         }
 
         @Override
-        public void onMutation(final Command<?> command, final E event,
-                final WithDittoHeaders response,
+        public void onMutation(final Command<?> command, final CompletionStage<E> event,
+                final CompletionStage<WithDittoHeaders> response,
                 final boolean becomeCreated, final boolean becomeDeleted) {
             throw new UnsupportedOperationException("Mutating historical entity not supported.");
         }

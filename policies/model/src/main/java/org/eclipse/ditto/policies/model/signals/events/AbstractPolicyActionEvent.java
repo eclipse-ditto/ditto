@@ -67,10 +67,10 @@ abstract class AbstractPolicyActionEvent<T extends AbstractPolicyActionEvent<T>>
      */
     protected SubjectsModifiedPartially aggregateWithSubjectCreatedOrModified(
             final Map<Label, Collection<Subject>> initialModifiedSubjects,
-            final Collection<PolicyActionEvent<?>> otherEvents) {
+            final Collection<PolicyActionEvent> otherEvents) {
 
         final Map<Label, Collection<Subject>> modifiedSubjects = new LinkedHashMap<>(initialModifiedSubjects);
-        for (final PolicyActionEvent<?> event : otherEvents) {
+        for (final PolicyActionEvent event : otherEvents) {
             if (event instanceof SubjectCreated) {
                 final SubjectCreated subjectCreated = (SubjectCreated) event;
                 final Set<Subject> mergedSubjects =
@@ -99,10 +99,10 @@ abstract class AbstractPolicyActionEvent<T extends AbstractPolicyActionEvent<T>>
      */
     protected SubjectsDeletedPartially aggregateWithSubjectDeleted(
             final Map<Label, Collection<SubjectId>> initialDeletedSubjectIds,
-            final Collection<PolicyActionEvent<?>> otherEvents) {
+            final Collection<PolicyActionEvent> otherEvents) {
 
         final Map<Label, Collection<SubjectId>> deletedSubjectIds = new LinkedHashMap<>(initialDeletedSubjectIds);
-        for (final PolicyActionEvent<?> event : otherEvents) {
+        for (final PolicyActionEvent event : otherEvents) {
             if (event instanceof SubjectDeleted) {
                 final SubjectDeleted subjectDeleted = (SubjectDeleted) event;
                 final Collection<SubjectId> existingSubjectIds = deletedSubjectIds.get(subjectDeleted.getLabel());

@@ -202,7 +202,7 @@ public final class SubjectCreated extends AbstractPolicyActionEvent<SubjectCreat
     }
 
     @Override
-    public SubjectsModifiedPartially aggregateWith(final Collection<PolicyActionEvent<?>> otherPolicyActionEvents) {
+    public SubjectsModifiedPartially aggregateWith(final Collection<PolicyActionEvent> otherPolicyActionEvents) {
         final Map<Label, Collection<Subject>> initialCreatedSubjects =
                 Stream.of(0).collect(Collectors.toMap(i -> label, i -> Collections.singleton(subject),
                         (u, v) -> {

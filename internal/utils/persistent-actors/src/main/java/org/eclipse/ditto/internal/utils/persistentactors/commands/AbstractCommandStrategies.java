@@ -97,7 +97,7 @@ public abstract class AbstractCommandStrategies<C extends Command<?>, S, K, E ex
         if (commandStrategy != null) {
             context.getLog().withCorrelationId(command)
                     .debug("Applying command <{}>", command);
-            return commandStrategy.apply(context, entity, nextRevision, command).map(x -> x);
+            return (Result<E>) commandStrategy.apply(context, entity, nextRevision, command);
         } else {
             // this may happen when subclasses override the "isDefined" condition.
             return unhandled(context, entity, nextRevision, command);

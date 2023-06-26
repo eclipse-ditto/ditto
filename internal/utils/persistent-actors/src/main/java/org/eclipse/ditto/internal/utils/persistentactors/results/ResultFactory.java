@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.internal.utils.persistentactors.results;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -41,6 +44,23 @@ public final class ResultFactory {
     public static <E extends Event<?>> Result<E> newMutationResult(final Command<?> command, final E eventToPersist,
             final WithDittoHeaders response) {
 
+        return newMutationResult(command, CompletableFuture.completedStage(eventToPersist),
+                CompletableFuture.completedStage(response));
+    }
+
+    /**
+     * Create a mutation result.
+     *
+     * @param command command that caused the mutation.
+     * @param eventToPersist event of the mutation.
+     * @param response response of the command.
+     * @param <E> type of the event.
+     * @return the result.
+     */
+    public static <E extends Event<?>> Result<E> newMutationResult(final Command<?> command,
+            final CompletionStage<E> eventToPersist,
+            final CompletionStage<WithDittoHeaders> response) {
+
         return new MutationResult<>(command, eventToPersist, response, false, false);
     }
 
@@ -58,6 +78,27 @@ public final class ResultFactory {
     public static <E extends Event<?>> Result<E> newMutationResult(final Command<?> command,
             final E eventToPersist,
             final WithDittoHeaders response,
+            final boolean becomeCreated,
+            final boolean becomeDeleted) {
+
+        return newMutationResult(command, CompletableFuture.completedStage(eventToPersist),
+                CompletableFuture.completedStage(response), becomeCreated, becomeDeleted);
+    }
+
+    /**
+     * Create a mutation result.
+     *
+     * @param command command that caused the mutation.
+     * @param eventToPersist event of the mutation.
+     * @param response response of the command.
+     * @param becomeCreated whether the actor should behave as if the entity is created.
+     * @param becomeDeleted whether the actor should behave as if the entity is deleted.
+     * @param <E> type of the event.
+     * @return the result.
+     */
+    public static <E extends Event<?>> Result<E> newMutationResult(final Command<?> command,
+            final CompletionStage<E> eventToPersist,
+            final CompletionStage<WithDittoHeaders> response,
             final boolean becomeCreated,
             final boolean becomeDeleted) {
 

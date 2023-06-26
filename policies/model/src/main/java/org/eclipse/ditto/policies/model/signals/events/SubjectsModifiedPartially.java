@@ -184,7 +184,7 @@ public final class SubjectsModifiedPartially extends AbstractPolicyActionEvent<S
     }
 
     @Override
-    public SubjectsModifiedPartially aggregateWith(final Collection<PolicyActionEvent<?>> otherPolicyActionEvents) {
+    public SubjectsModifiedPartially aggregateWith(final Collection<PolicyActionEvent> otherPolicyActionEvents) {
         return aggregateWithSubjectCreatedOrModified(modifiedSubjects, otherPolicyActionEvents);
     }
 

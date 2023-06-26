@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.persistentactors.results;
 
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.signals.events.Event;
@@ -36,7 +37,7 @@ public interface Result<E extends Event<?>> {
      * @return the new result.
      * @since 2.0.0
      */
-    <F extends Event<?>> Result<F> map(Function<E, F> mappingFunction);
+    <F extends Event<?>> Result<F> map(Function<CompletionStage<E>, CompletionStage<F>> mappingFunction);
 
     /**
      * @return the empty result

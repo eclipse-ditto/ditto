@@ -188,7 +188,7 @@ public final class SubjectDeleted extends AbstractPolicyActionEvent<SubjectDelet
     }
 
     @Override
-    public SubjectsDeletedPartially aggregateWith(final Collection<PolicyActionEvent<?>> otherPolicyActionEvents) {
+    public SubjectsDeletedPartially aggregateWith(final Collection<PolicyActionEvent> otherPolicyActionEvents) {
         final Map<Label, Collection<SubjectId>> initialDeletedSubjectId =
                 Stream.of(0).collect(Collectors.toMap(i -> label, i -> Collections.singleton(subjectId),
                         (u, v) -> {

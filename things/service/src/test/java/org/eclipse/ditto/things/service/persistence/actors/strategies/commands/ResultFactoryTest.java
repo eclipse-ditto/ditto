@@ -13,13 +13,18 @@
 
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.concurrent.CompletionStage;
+
+import org.assertj.core.api.CompletableFutureAssert;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
@@ -30,6 +35,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 /**
  * Unit tests for {@link org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory}.
@@ -84,8 +90,20 @@ public final class ResultFactoryTest {
                         becomeCreated,
                         becomeDeleted);
         result.accept(mock);
-        verify(mock).onMutation(eq(thingModifyCommand), eq(thingModifiedEvent), eq(response), eq(becomeCreated),
-                eq(becomeDeleted));
+
+        final ArgumentCaptor<CompletionStage<ThingEvent<?>>> eventStage = ArgumentCaptor.forClass(CompletionStage.class);
+        final ArgumentCaptor<CompletionStage<WithDittoHeaders>> responseStage = ArgumentCaptor.forClass(CompletionStage.class);
+
+        verify(mock).onMutation(eq(thingModifyCommand), eventStage.capture(),
+                responseStage.capture(), eq(becomeCreated), eq(becomeDeleted));
+
+        assertThat(eventStage.getValue()).isInstanceOf(CompletionStage.class);
+        CompletableFutureAssert.assertThatCompletionStage(eventStage.getValue())
+                .isCompletedWithValue(thingModifiedEvent);
+
+        assertThat(responseStage.getValue()).isInstanceOf(CompletionStage.class);
+        CompletableFutureAssert.assertThatCompletionStage(responseStage.getValue())
+                .isCompletedWithValue(response);
     }
 
     interface Dummy extends ResultVisitor<ThingEvent<?>> {

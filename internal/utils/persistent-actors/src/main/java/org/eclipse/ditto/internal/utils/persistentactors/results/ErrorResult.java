@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.persistentactors.results;
 
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -45,7 +46,7 @@ public final class ErrorResult<E extends Event<?>> implements Result<E> {
     }
 
     @Override
-    public <F extends Event<?>> Result<F> map(final Function<E, F> mappingFunction) {
+    public <F extends Event<?>> Result<F> map(final Function<CompletionStage<E>, CompletionStage<F>> mappingFunction) {
         return new ErrorResult<>(dittoRuntimeException, errorCausingCommand);
     }
 }

@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.persistentactors.results;
 
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -26,28 +27,30 @@ import org.eclipse.ditto.base.model.signals.events.Event;
 public final class MutationResult<E extends Event<?>> implements Result<E> {
 
     private final Command<?> command;
-    private final E eventToPersist;
-    private final WithDittoHeaders response;
+    private final CompletionStage<E> eventToPersistStage;
+    private final CompletionStage<WithDittoHeaders> responseStage;
     private final boolean becomeCreated;
     private final boolean becomeDeleted;
 
-    MutationResult(final Command<?> command, final E eventToPersist, final WithDittoHeaders response,
+    MutationResult(final Command<?> command,
+            final CompletionStage<E> eventToPersistStage,
+            final CompletionStage<WithDittoHeaders> responseStage,
             final boolean becomeCreated, final boolean becomeDeleted) {
         this.command = command;
-        this.eventToPersist = eventToPersist;
-        this.response = response;
+        this.eventToPersistStage = eventToPersistStage;
+        this.responseStage = responseStage;
         this.becomeCreated = becomeCreated;
         this.becomeDeleted = becomeDeleted;
     }
 
     @Override
     public void accept(final ResultVisitor<E> visitor) {
-        visitor.onMutation(command, eventToPersist, response, becomeCreated, becomeDeleted);
+        visitor.onMutation(command, eventToPersistStage, responseStage, becomeCreated, becomeDeleted);
     }
 
     @Override
-    public <F extends Event<?>> Result<F> map(final Function<E, F> mappingFunction) {
-        return new MutationResult<>(command, mappingFunction.apply(eventToPersist), response, becomeCreated,
+    public <F extends Event<?>> Result<F> map(final Function<CompletionStage<E>, CompletionStage<F>> mappingFunction) {
+        return new MutationResult<>(command, mappingFunction.apply(eventToPersistStage), responseStage, becomeCreated,
                 becomeDeleted);
     }
 
@@ -55,8 +58,8 @@ public final class MutationResult<E extends Event<?>> implements Result<E> {
     public String toString() {
         return this.getClass().getSimpleName() + " [" +
                 "command=" + command +
-                ", eventToPersist=" + eventToPersist +
-                ", response=" + response +
+                ", eventToPersistStage=" + eventToPersistStage +
+                ", response=" + responseStage +
                 ", becomeCreated=" + becomeCreated +
                 ", becomeDeleted=" + becomeDeleted +
                 ']';

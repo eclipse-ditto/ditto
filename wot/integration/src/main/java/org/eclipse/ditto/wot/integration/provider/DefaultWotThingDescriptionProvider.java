@@ -17,7 +17,9 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.net.URL;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
@@ -119,7 +121,7 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
     }
 
     @Override
-    public Optional<Thing> provideThingSkeletonForCreation(final ThingId thingId,
+    public CompletionStage<Optional<Thing>> provideThingSkeletonForCreation(final ThingId thingId,
             @Nullable final ThingDefinition thingDefinition,
             final DittoHeaders dittoHeaders) {
 
@@ -133,31 +135,31 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
                 try {
                     logger.debug("Fetching ThingModel from <{}> in order to create Thing skeleton for new Thing " +
                             "with id <{}>", url, thingId);
-                    final Optional<Thing> thingSkeleton = thingModelFetcher.fetchThingModel(url, dittoHeaders)
+                    return thingModelFetcher.fetchThingModel(url, dittoHeaders)
                             .thenApplyAsync(thingModel -> thingSkeletonGenerator
                                             .generateThingSkeleton(thingId, thingModel, url, dittoHeaders),
                                     executor
                             )
-                            .toCompletableFuture()
-                            .orTimeout(MAX_JOIN_WAIT_DURATION.toSeconds(), TimeUnit.SECONDS)
-                            .join();
-                    logger.debug("Created Thing skeleton for new Thing with id <{}>: <{}>", thingId, thingSkeleton);
-                    return thingSkeleton;
+                            .thenApply(thingSkeleton -> {
+                                logger.debug("Created Thing skeleton for new Thing with id <{}>: <{}>", thingId,
+                                        thingSkeleton);
+                                return thingSkeleton;
+                            });
                 } catch (final DittoRuntimeException | CompletionException e) {
                     logger.info("Could not fetch ThingModel or generate Feature skeleton based on it due to: <{}: {}>",
                             e.getClass().getSimpleName(), e.getMessage(), e);
-                    return Optional.empty();
+                    return CompletableFuture.completedStage(Optional.empty());
                 }
             } else {
-                return Optional.empty();
+                return CompletableFuture.completedStage(Optional.empty());
             }
         } else {
-            return Optional.empty();
+            return CompletableFuture.completedStage(Optional.empty());
         }
     }
 
     @Override
-    public Optional<Feature> provideFeatureSkeletonForCreation(final String featureId,
+    public CompletionStage<Optional<Feature>> provideFeatureSkeletonForCreation(final String featureId,
             @Nullable final FeatureDefinition featureDefinition, final DittoHeaders dittoHeaders) {
 
         final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(dittoHeaders);
@@ -170,27 +172,26 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
                 try {
                     logger.debug("Fetching ThingModel from <{}> in order to create Feature skeleton for new Feature " +
                             "with id <{}>", url, featureId);
-                    final Optional<Feature> featureSkeleton = thingModelFetcher.fetchThingModel(url, dittoHeaders)
+                    return thingModelFetcher.fetchThingModel(url, dittoHeaders)
                             .thenApplyAsync(thingModel -> thingSkeletonGenerator
                                             .generateFeatureSkeleton(featureId, thingModel, url, dittoHeaders),
                                     executor
                             )
-                            .toCompletableFuture()
-                            .orTimeout(MAX_JOIN_WAIT_DURATION.toSeconds(), TimeUnit.SECONDS)
-                            .join();
-                    logger.debug("Created Feature skeleton for new Feature with id <{}>: <{}>", featureId,
-                            featureSkeleton);
-                    return featureSkeleton;
+                            .thenApply(featureSkeleton -> {
+                                logger.debug("Created Feature skeleton for new Feature with id <{}>: <{}>", featureId,
+                                        featureSkeleton);
+                                return featureSkeleton;
+                            });
                 } catch (final DittoRuntimeException | CompletionException e) {
                     logger.info("Could not fetch ThingModel or generate Feature skeleton based on it due to: <{}: {}>",
                             e.getClass().getSimpleName(), e.getMessage(), e);
-                    return Optional.empty();
+                    return CompletableFuture.completedStage(Optional.empty());
                 }
             } else {
-                return Optional.empty();
+                return CompletableFuture.completedStage(Optional.empty());
             }
         } else {
-            return Optional.empty();
+            return CompletableFuture.completedStage(Optional.empty());
         }
     }
 

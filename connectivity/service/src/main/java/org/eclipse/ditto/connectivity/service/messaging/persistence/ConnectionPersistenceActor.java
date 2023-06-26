@@ -571,8 +571,9 @@ public final class ConnectionPersistenceActor
     }
 
     @Override
-    public void onMutation(final Command<?> command, final ConnectivityEvent<?> event,
-            final WithDittoHeaders response, final boolean becomeCreated, final boolean becomeDeleted) {
+    public void onMutation(final Command<?> command, final CompletionStage<ConnectivityEvent<?>> event,
+            final CompletionStage<WithDittoHeaders> response, final boolean becomeCreated,
+            final boolean becomeDeleted) {
         if (command instanceof StagedCommand stagedCommand) {
             interpretStagedCommand(stagedCommand.withSenderUnlessDefined(getSender()));
         } else {
@@ -612,7 +613,7 @@ public final class ConnectionPersistenceActor
                             "Failed to handle staged command because required event wasn't present: <{}>",
                             command));
             case PERSIST_AND_APPLY_EVENT -> command.getEvent().ifPresentOrElse(
-                    event -> persistAndApplyEvent(event,
+                    event -> persistAndApplyEvent(CompletableFuture.completedStage(event),
                             (unusedEvent, connection) -> interpretStagedCommand(command.next())),
                     () -> log.error("Failed to handle staged command because required event wasn't present: <{}>",
                             command));

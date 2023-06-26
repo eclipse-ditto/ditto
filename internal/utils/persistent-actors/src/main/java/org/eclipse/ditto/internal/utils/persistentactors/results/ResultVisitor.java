@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.internal.utils.persistentactors.results;
 
+import java.util.concurrent.CompletionStage;
+
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -40,8 +42,8 @@ public interface ResultVisitor<E extends Event<?>> {
      * @param becomeCreated whether the actor should behave as if the entity is created.
      * @param becomeDeleted whether the actor should behave as if the entity is deleted.
      */
-    void onMutation(Command<?> command, E event, WithDittoHeaders response, boolean becomeCreated,
-            boolean becomeDeleted);
+    void onMutation(Command<?> command, CompletionStage<E> event, CompletionStage<WithDittoHeaders> response,
+            boolean becomeCreated, boolean becomeDeleted);
 
     /**
      * Evaluate a query result.
