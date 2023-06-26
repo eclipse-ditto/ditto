@@ -63,4 +63,12 @@ spec:
             limits:
               # cpu: ""
               memory: {{ .Values.dittoui.resources.memoryMi }}Mi
+          volumeMounts:
+            - name: dittoui-nginx-conf
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+      volumes:
+        - name: dittoui-nginx-conf
+          configMap:
+            name: {{ .Release.Name }}-dittoui-config-nginx-conf
 {{- end }}
