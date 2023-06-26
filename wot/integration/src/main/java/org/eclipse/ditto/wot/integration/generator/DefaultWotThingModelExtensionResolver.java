@@ -41,7 +41,8 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
     private static final String TM_EXTENDS = "tm:extends";
     private static final String TM_REF = "tm:ref";
 
-    private static final Duration MAX_FETCH_MODEL_DURATION = Duration.ofSeconds(30);
+    private static final Duration MAX_FETCH_MODEL_DURATION = Duration.ofSeconds(10);
+    private static final Duration MAX_JOIN_WAIT_DURATION = Duration.ofSeconds(20);
 
     private final WotThingModelFetcher thingModelFetcher;
     private final Executor executor;
@@ -69,6 +70,7 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
                                     .thenApplyAsync(aVoid -> fetchedModelFutures.stream()
                                         .map(CompletableFuture::join) // joining does not block anything here as "allOf" already guaranteed that all futures are ready
                                         .toList(), executor)
+                                    .orTimeout(MAX_JOIN_WAIT_DURATION.toSeconds(), TimeUnit.SECONDS)
                                     .join();
                         }
                 )
@@ -127,6 +129,7 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
                                 .orElseGet(() -> CompletableFuture.completedStage(null))
                         , executor)
                 .toCompletableFuture()
+                .orTimeout(MAX_JOIN_WAIT_DURATION.toSeconds(), TimeUnit.SECONDS)
                 .join();
 
         return JsonFactory.mergeJsonValues(objectWithTmRef.remove(TM_REF), refObject).asObject();

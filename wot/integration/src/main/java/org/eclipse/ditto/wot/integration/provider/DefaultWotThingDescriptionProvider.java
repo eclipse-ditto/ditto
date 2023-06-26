@@ -15,8 +15,11 @@ package org.eclipse.ditto.wot.integration.provider;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.net.URL;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -57,16 +60,20 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
 
     public static final String MODEL_PLACEHOLDERS_KEY = "model-placeholders";
 
+    private static final Duration MAX_JOIN_WAIT_DURATION = Duration.ofSeconds(20);
+
     private final WotConfig wotConfig;
     private final WotThingModelFetcher thingModelFetcher;
     private final WotThingDescriptionGenerator thingDescriptionGenerator;
     private final WotThingSkeletonGenerator thingSkeletonGenerator;
+    private final Executor executor;
 
     private DefaultWotThingDescriptionProvider(final ActorSystem actorSystem, final WotConfig wotConfig) {
         this.wotConfig = checkNotNull(wotConfig, "wotConfig");
         thingModelFetcher = new DefaultWotThingModelFetcher(actorSystem, wotConfig);
         thingDescriptionGenerator = WotThingDescriptionGenerator.of(actorSystem, wotConfig, thingModelFetcher);
         thingSkeletonGenerator = WotThingSkeletonGenerator.of(actorSystem, thingModelFetcher);
+        executor = actorSystem.dispatchers().lookup("wot-dispatcher");
     }
 
     /**
@@ -127,9 +134,12 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
                     logger.debug("Fetching ThingModel from <{}> in order to create Thing skeleton for new Thing " +
                             "with id <{}>", url, thingId);
                     final Optional<Thing> thingSkeleton = thingModelFetcher.fetchThingModel(url, dittoHeaders)
-                            .thenApply(thingModel -> thingSkeletonGenerator
-                                    .generateThingSkeleton(thingId, thingModel, url, dittoHeaders))
+                            .thenApplyAsync(thingModel -> thingSkeletonGenerator
+                                            .generateThingSkeleton(thingId, thingModel, url, dittoHeaders),
+                                    executor
+                            )
                             .toCompletableFuture()
+                            .orTimeout(MAX_JOIN_WAIT_DURATION.toSeconds(), TimeUnit.SECONDS)
                             .join();
                     logger.debug("Created Thing skeleton for new Thing with id <{}>: <{}>", thingId, thingSkeleton);
                     return thingSkeleton;
@@ -161,9 +171,12 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
                     logger.debug("Fetching ThingModel from <{}> in order to create Feature skeleton for new Feature " +
                             "with id <{}>", url, featureId);
                     final Optional<Feature> featureSkeleton = thingModelFetcher.fetchThingModel(url, dittoHeaders)
-                            .thenApply(thingModel -> thingSkeletonGenerator
-                                    .generateFeatureSkeleton(featureId, thingModel, url, dittoHeaders))
+                            .thenApplyAsync(thingModel -> thingSkeletonGenerator
+                                            .generateFeatureSkeleton(featureId, thingModel, url, dittoHeaders),
+                                    executor
+                            )
                             .toCompletableFuture()
+                            .orTimeout(MAX_JOIN_WAIT_DURATION.toSeconds(), TimeUnit.SECONDS)
                             .join();
                     logger.debug("Created Feature skeleton for new Feature with id <{}>: <{}>", featureId,
                             featureSkeleton);
@@ -194,7 +207,7 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
             final URL url = urlOpt.get();
             try {
                 return thingModelFetcher.fetchThingModel(url, dittoHeaders)
-                        .thenApply(thingModel -> thingDescriptionGenerator
+                        .thenApplyAsync(thingModel -> thingDescriptionGenerator
                                 .generateThingDescription(thingId,
                                         thing,
                                         Optional.ofNullable(thing)
@@ -206,9 +219,12 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
                                         null,
                                         thingModel,
                                         url,
-                                        dittoHeaders)
+                                        dittoHeaders
+                                ),
+                                executor
                         )
                         .toCompletableFuture()
+                        .orTimeout(MAX_JOIN_WAIT_DURATION.toSeconds(), TimeUnit.SECONDS)
                         .join();
             } catch (final Exception e) {
                 throw DittoRuntimeException.asDittoRuntimeException(e, throwable ->
@@ -240,7 +256,7 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
             final URL url = urlOpt.get();
             try {
                 return thingModelFetcher.fetchThingModel(url, dittoHeaders)
-                        .thenApply(thingModel -> thingDescriptionGenerator
+                        .thenApplyAsync(thingModel -> thingDescriptionGenerator
                                 .generateThingDescription(thingId,
                                         thing,
                                         feature.getProperties()
@@ -251,9 +267,12 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
                                         feature.getId(),
                                         thingModel,
                                         url,
-                                        dittoHeaders)
+                                        dittoHeaders
+                                ),
+                                executor
                         )
                         .toCompletableFuture()
+                        .orTimeout(MAX_JOIN_WAIT_DURATION.toSeconds(), TimeUnit.SECONDS)
                         .join();
             } catch (final Exception e) {
                 throw DittoRuntimeException.asDittoRuntimeException(e, throwable ->

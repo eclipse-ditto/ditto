@@ -87,7 +87,8 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
     private static final String TM_SUBMODEL = "tm:submodel";
     private static final String TM_SUBMODEL_INSTANCE_NAME = "instanceName";
 
-    private static final Duration MAX_FETCH_MODEL_DURATION = Duration.ofSeconds(30);
+    private static final Duration MAX_FETCH_MODEL_DURATION = Duration.ofSeconds(10);
+    private static final Duration MAX_JOIN_WAIT_DURATION = Duration.ofSeconds(20);
 
 
     private final WotThingModelFetcher thingModelFetcher;
@@ -223,12 +224,15 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                 .toList();
 
         final List<Feature> features = CompletableFuture.allOf(futureList.toArray(CompletableFuture<?>[]::new))
-                .thenApply(v -> futureList.stream()
+                .thenApplyAsync(v -> futureList.stream()
                         .map(CompletableFuture::join)
                         .filter(Optional::isPresent)
                         .map(Optional::get)
-                        .toList()
-                ).join();
+                        .toList(),
+                        executor
+                )
+                .orTimeout(MAX_JOIN_WAIT_DURATION.toSeconds(), TimeUnit.SECONDS)
+                .join();
 
         if (features.isEmpty()) {
             return Optional.empty();
@@ -480,6 +484,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                                                 dittoHeaders
                                         ), executor)
                                 .toCompletableFuture()
+                                .orTimeout(MAX_JOIN_WAIT_DURATION.toSeconds(), TimeUnit.SECONDS)
                                 .join();
                 final List<DefinitionIdentifier> combinedIdentifiers = new ArrayList<>();
                 combinedIdentifiers.add(ThingsModelFactory.newFeatureDefinitionIdentifier(link.getHref()));
