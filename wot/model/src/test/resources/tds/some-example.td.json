@@ -2,7 +2,7 @@
   "@context": [
     "https://www.w3.org/2022/wot/td/v1.1",
     {
-      "ditto": "https://www.eclipse.org/ditto/ctx",
+      "ditto": "https://www.eclipse.dev/ditto/ctx",
       "ace": "http://www.example.org/ace-security#"
     }
   ],
@@ -46,7 +46,7 @@
   },
   "links": [{
     "rel": "service-doc",
-    "href": "https://eclipse.org/ditto/some-pdf.pdf",
+    "href": "https://eclipse.dev/ditto/some-pdf.pdf",
     "type": "application/pdf",
     "hreflang" : "de-CH-1996"
   }]

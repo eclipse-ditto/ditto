@@ -10,9 +10,11 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
+import {Modal} from 'bootstrap';
 
 import * as Environments from '../environments/environments.js';
 import * as Utils from '../utils.js';
+import fieldsHTML from './fields.html';
 
 let theFieldIndex = -1;
 
@@ -22,6 +24,8 @@ const dom = {
   fieldList: null,
   fieldsModal: null,
 };
+
+document.getElementById('fieldsHTML').innerHTML = fieldsHTML;
 
 /**
  * Create a Ditto search query parameter from the active fields
@@ -45,7 +49,7 @@ export function proposeNewField(fieldPath) {
   dom.fieldPath.value = fieldPath;
   dom.fieldLabel.value = null;
   if (!bsFieldsModal) {
-    bsFieldsModal = new bootstrap.Modal(dom.fieldsModal);
+    bsFieldsModal = new Modal(dom.fieldsModal);
   }
   bsFieldsModal.show();
 }

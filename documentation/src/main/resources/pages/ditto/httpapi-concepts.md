@@ -621,6 +621,12 @@ The following request headers can be used to issue a conditional request:
               information and the current entity-tag of the resource as `ETag` header
             * for read requests, status `304 (Not Modified)` without response body, with the current entity-tag of the
               resource as `ETag` header
+* `if-equal`:
+   * The `if-equal` header can take the values `'update'` (which is the default if omitted) or `'skip'`
+   * Write the resource only
+      * in case `if-equal: 'update'` is defined - even if the entity is equal before the update.
+      * in case `if-equal: 'skip'` is defined, the entity will not be updated if it is equal before the update.  
+        In this case a 'Not Modified' 304 status is returned.
 
 Note that the Ditto HTTP API always provides a `strong` entity-tag in the `ETag` header, thus you will never receive a
 `weak` entity-tag (see [RFC-7232 Section 2.1](https://tools.ietf.org/html/rfc7232#section-2.1)). If you convert this

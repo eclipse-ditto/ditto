@@ -17,8 +17,11 @@
 import * as API from '../api.js';
 import * as Utils from '../utils.js';
 import {TabHandler} from '../utils/tabHandler.js';
+import connectionsHTML from './connections.html';
 
 const observers = [];
+
+document.getElementById('connectionsHTML').innerHTML = connectionsHTML;
 
 export function addChangeListener(observer) {
   observers.push(observer);

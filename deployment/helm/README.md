@@ -1,21 +1,20 @@
 # Eclipse Ditto :: Helm
 
-The Ditto Helm chart is managed at the [Eclipse IoT Packages](https://github.com/eclipse/packages/tree/master/charts/ditto) project.
+The official Ditto Helm chart is managed here, in folder [ditto](ditto/).  
+It is deployed as "OCI artifact" to Docker Hub at: https://hub.docker.com/r/eclipse/ditto
 
 ## Install Ditto via Helm Chart
 
 To install the chart with the release name eclipse-ditto, run the following commands:
 
 ```shell script
-helm repo add eclipse-iot https://www.eclipse.org/packages/charts/
-helm repo update
-helm install eclipse-ditto eclipse-iot/ditto
+helm install -n ditto my-ditto oci://registry-1.docker.io/eclipse/ditto --version <version> --wait
 ```
 
 # Uninstall the Helm Chart
 
-To uninstall/delete the eclipse-ditto deployment:
+To uninstall/delete the `my-ditto` deployment:
 
 ```shell script
-helm delete eclipse-ditto
+helm uninstall my-ditto
 ```

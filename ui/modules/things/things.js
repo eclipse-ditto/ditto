@@ -18,6 +18,7 @@ import * as API from '../api.js';
 import * as Utils from '../utils.js';
 import {TabHandler} from '../utils/tabHandler.js';
 import * as ThingsSearch from './thingsSearch.js';
+import thingsHTML from './things.html';
 
 export let theThing;
 
@@ -27,6 +28,9 @@ const dom = {
   collapseThings: null,
   tabThings: null,
 };
+
+document.getElementById('thingsHTML').innerHTML = thingsHTML;
+
 
 /**
  * Adds a listener function for the currently selected thing

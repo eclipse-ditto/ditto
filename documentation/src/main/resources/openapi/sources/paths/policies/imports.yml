@@ -41,7 +41,7 @@ get:
       description: |-
         The request could not be completed. Possible reasons:
 
-          * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+          * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
       content:
         application/json:
           schema:
@@ -84,6 +84,7 @@ put:
     - $ref: '../../parameters/policyIdPathParam.yml'
     - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
     - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/ifEqualHeaderParam.yml'
     - $ref: '../../parameters/timeoutParam.yml'
     - $ref: '../../parameters/responseRequiredParam.yml'
   responses:
@@ -100,7 +101,7 @@ put:
       description: |-
         The request could not be completed. Possible reasons:
 
-          * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+          * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
           * the JSON body of the policy imports to be created/modified is invalid
       content:
         application/json:

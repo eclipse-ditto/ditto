@@ -14,12 +14,12 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.things;
 
 import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -177,23 +177,29 @@ public final class ThingsRoute extends AbstractRoute {
     }
 
     private Route buildRetrieveThingsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        // GET /things?ids=...
-        return parameter(ThingsParameter.IDS.toString(), idsString ->
-                parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
-                        handlePerRequest(ctx, RetrieveThings.getBuilder(splitThingIdString(idsString))
-                                        .selectedFields(calculateSelectedFields(fieldsString))
+
+        return parameterList(ThingsParameter.IDS.toString(), idsStrings -> {
+            if (!idsStrings.isEmpty()) {
+                // GET /things?ids=...
+                return parameterList(ThingsParameter.FIELDS.toString(), fields ->
+                        handlePerRequest(ctx, RetrieveThings.getBuilder(splitThingIdStrings(idsStrings))
+                                        .selectedFields(calculateSelectedFields(fields))
                                         .dittoHeaders(dittoHeaders)
                                         .build(),
                                 (responseValue, response) ->
-                                        response.withEntity(determineResponseContentType(ctx), responseValue.toString())
+                                        response.withEntity(determineResponseContentType(ctx),
+                                                responseValue.toString())
                         )
-                )
-        ).orElse( // GET /things
-                thingSearchParameterOptional(params ->
-                        parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
-                                handlePerRequest(ctx, QueryThings.of(null, // allow filter only on /search/things but not here
-                                                ThingSearchRoute.calculateOptions(params.get(ThingSearchParameter.OPTION)),
-                                                calculateSelectedFields(fieldsString).orElse(null),
+                );
+            } else {
+                // GET /things
+                return thingSearchParameterOptional(params ->
+                        parameterList(ThingsParameter.FIELDS.toString(), fields ->
+                                handlePerRequest(ctx,
+                                        QueryThings.of(null, // allow filter only on /search/things but not here
+                                                ThingSearchRoute.calculateOptions(
+                                                        params.get(ThingSearchParameter.OPTION)),
+                                                calculateSelectedFields(fields).orElse(null),
                                                 ThingSearchRoute.calculateNamespaces(
                                                         params.get(ThingSearchParameter.NAMESPACES)),
                                                 dittoHeaders),
@@ -201,25 +207,26 @@ public final class ThingsRoute extends AbstractRoute {
                                                 transformQueryThingsResult(ctx, responseValue, response)
                                 )
                         )
-                )
-        );
+                );
+            }
+        });
     }
 
     private Route thingSearchParameterOptional(
-            final Function<EnumMap<ThingSearchParameter, Optional<String>>, Route> inner) {
+            final Function<EnumMap<ThingSearchParameter, List<String>>, Route> inner) {
         return thingSearchParameterOptionalImpl(ThingSearchParameter.values(),
                 new EnumMap<>(ThingSearchParameter.class), inner);
     }
 
     private Route thingSearchParameterOptionalImpl(final ThingSearchParameter[] values,
-            final EnumMap<ThingSearchParameter, Optional<String>> accumulator,
-            final Function<EnumMap<ThingSearchParameter, Optional<String>>, Route> inner) {
+            final EnumMap<ThingSearchParameter, List<String>> accumulator,
+            final Function<EnumMap<ThingSearchParameter, List<String>>, Route> inner) {
         if (accumulator.size() >= values.length) {
             return inner.apply(accumulator);
         } else {
             final ThingSearchParameter parameter = values[accumulator.size()];
-            return parameterOptional(parameter.toString(), parameterValueOptional -> {
-                accumulator.put(parameter, parameterValueOptional);
+            return parameterList(parameter.toString(), parameterValues -> {
+                accumulator.put(parameter, parameterValues);
                 return thingSearchParameterOptionalImpl(values, accumulator, inner);
             });
         }
@@ -271,12 +278,13 @@ public final class ThingsRoute extends AbstractRoute {
         return contentType;
     }
 
-    private static List<ThingId> splitThingIdString(final String thingIdString) {
+    private static List<ThingId> splitThingIdStrings(final List<String> thingIdStrings) {
         final List<ThingId> result;
-        if (thingIdString.isEmpty()) {
+        if (thingIdStrings.isEmpty()) {
             result = List.of();
         } else {
-            result = Stream.of(thingIdString.split(","))
+            result = thingIdStrings.stream()
+                    .flatMap(tid -> Arrays.stream(tid.split(",")))
                     .map(ThingId::of)
                     .toList();
         }
@@ -329,9 +337,9 @@ public final class ThingsRoute extends AbstractRoute {
         return pathEndOrSingleSlash(() ->
                 concat(
                         // GET /things/<thingId>?fields=<fieldsString>
-                        get(() -> parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
+                        get(() -> parameterList(ThingsParameter.FIELDS.toString(), fields ->
                                         handlePerRequest(ctx, RetrieveThing.getBuilder(thingId, dittoHeaders)
-                                                .withSelectedFields(calculateSelectedFields(fieldsString)
+                                                .withSelectedFields(calculateSelectedFields(fields)
                                                         .orElse(null))
                                                 .build())
                                 )
@@ -433,9 +441,9 @@ public final class ThingsRoute extends AbstractRoute {
                 pathEndOrSingleSlash(() ->
                         concat(
                                 // GET /things/<thingId>/attributes?fields=<fieldsString>
-                                get(() -> parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
+                                get(() -> parameterList(ThingsParameter.FIELDS.toString(), fields ->
                                                 handlePerRequest(ctx, RetrieveAttributes.of(thingId,
-                                                        calculateSelectedFields(fieldsString).orElse(null),
+                                                        calculateSelectedFields(fields).orElse(null),
                                                         dittoHeaders))
                                         )
                                 ),

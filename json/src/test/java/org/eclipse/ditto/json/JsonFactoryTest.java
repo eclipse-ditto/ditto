@@ -381,7 +381,15 @@ public final class JsonFactoryTest {
 
     @Test
     public void newFieldSelectorFromNullStringIsEmpty() {
-        final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector(null,
+        final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector((String) null,
+                JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build());
+
+        assertThat(fieldSelector).isEmpty();
+    }
+
+    @Test
+    public void newFieldSelectorFromEmptyStringListIsEmpty() {
+        final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector(Collections.emptyList(),
                 JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build());
 
         assertThat(fieldSelector).isEmpty();

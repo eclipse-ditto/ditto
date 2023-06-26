@@ -49,7 +49,7 @@ curl http://devops:foobar@localhost:8080/devops/config/gateway/?path=ditto
 ```
 
 Or by going through the configuration files in this repository, all available configuration files are 
-[linked here](https://www.eclipse.org/ditto/installation-operating.html#ditto-configuration).
+[linked here](https://www.eclipse.dev/ditto/installation-operating.html#ditto-configuration).
 
 ## Start Eclipse Ditto
 

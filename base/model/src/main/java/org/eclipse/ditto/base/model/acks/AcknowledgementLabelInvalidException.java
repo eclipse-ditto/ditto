@@ -19,12 +19,12 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Thrown if an AcknowledgementLabel is not valid, for example because it did not comply to the AcknowledgmentLabel
@@ -48,7 +48,7 @@ public final class AcknowledgementLabelInvalidException extends DittoRuntimeExce
             "An acknowledgement label must conform to the regular expression of Ditto documentation.";
 
     private static final URI DEFAULT_HREF = URI.create(
-            "https://www.eclipse.org/ditto/protocol-specification-topic.html#acknowledgement-criterion-actions");
+            "https://www.eclipse.dev/ditto/protocol-specification-topic.html#acknowledgement-criterion-actions");
 
     private static final long serialVersionUID = -2385649293006205966L;
 

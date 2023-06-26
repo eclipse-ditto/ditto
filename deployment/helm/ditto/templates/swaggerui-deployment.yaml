@@ -1,0 +1,114 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+{{- if .Values.swaggerui.enabled -}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ditto.fullname" . }}-swaggerui
+  labels:
+    app.kubernetes.io/name: {{ include "ditto.name" . }}-swaggerui
+{{ include "ditto.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.swaggerui.replicaCount }}
+  strategy:
+  {{- with .Values.swaggerui.updateStrategy }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "ditto.name" . }}-swaggerui
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "ditto.name" . }}-swaggerui
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        {{- with .Values.swaggerui.additionalLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        {{- with .Values.swaggerui.additionalAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        - name: {{ .Chart.Name }}-swaggerui-init
+          image: "docker.io/boky/alpine-bootstrap:latest"
+          imagePullPolicy: {{ .Values.swaggerui.image.pullPolicy }}
+          command:
+            - sh
+            - -ec
+            - |
+               mkdir -p /usr/share/nginx/html/openapi
+               curl -sL https://raw.githubusercontent.com/eclipse/ditto/{{ .Chart.AppVersion }}/documentation/src/main/resources/openapi/ditto-api-2.yml -o /usr/share/nginx/html/openapi/ditto-api-2.yml
+               sed --in-place "\=- url: 'https://ditto.eclipseprojects.io/api/2'=d" /usr/share/nginx/html/openapi/ditto-api-2.yml
+               sed --in-place "/description: online Ditto Sandbox/d" /usr/share/nginx/html/openapi/ditto-api-2.yml
+               echo "removing Google auth from ditto-api-2.yml"
+               sed --in-place "/- Google:/,+1d" /usr/share/nginx/html/openapi/ditto-api-2.yml
+               sed --in-place "/    Google:/,+9d" /usr/share/nginx/html/openapi/ditto-api-2.yml
+               {{- if not .Values.gateway.config.authentication.enablePreAuthentication }}
+               echo "removing NginxBasic auth from ditto-api-2.yml"
+               sed --in-place "/- NginxBasic: \[]/d" /usr/share/nginx/html/openapi/ditto-api-2.yml
+               sed --in-place "/    NginxBasic:/,+3d" /usr/share/nginx/html/openapi/ditto-api-2.yml
+               {{- end }}
+               {{- if eq .Values.gateway.config.authentication.devops.authMethod "oauth2" }}
+               echo "removing DevOpsBasic auth from ditto-api-2.yml"
+               sed --in-place "/- DevOpsBasic: \[]/d" /usr/share/nginx/html/openapi/ditto-api-2.yml
+               sed --in-place "/    DevOpsBasic:/,+3d" /usr/share/nginx/html/openapi/ditto-api-2.yml
+               {{- else }}
+               echo "removing DevOpsBearer auth from ditto-api-2.yml"
+               sed --in-place "/- DevOpsBearer: \[]/d" /usr/share/nginx/html/openapi/ditto-api-2.yml
+               sed --in-place "/    DevOpsBearer:/,+4d" /usr/share/nginx/html/openapi/ditto-api-2.yml
+               {{- end }}
+               sed --in-place "s=- url: /api/2=- url: {{ .Values.global.proxyPart }}/api/2=g" /usr/share/nginx/html/openapi/ditto-api-2.yml
+               cp -rv /usr/share/nginx/html/openapi/. /init-config/
+          volumeMounts:
+            - name: swagger-ui-init-config
+              mountPath: /init-config
+      containers:
+        - name: {{ .Chart.Name }}-swaggerui
+          image: "{{ .Values.swaggerui.image.repository }}:{{ .Values.swaggerui.image.tag }}"
+          imagePullPolicy: {{ .Values.swaggerui.image.pullPolicy }}
+          env:
+            - name: QUERY_CONFIG_ENABLED
+              value: "true"
+            {{- if .Values.swaggerui.extraEnv }}
+              {{- toYaml .Values.swaggerui.extraEnv | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          resources:
+            requests:
+              cpu: {{ mulf .Values.swaggerui.resources.cpu 1000 }}m
+              memory: {{ .Values.swaggerui.resources.memoryMi }}Mi
+            limits:
+              # cpu: ""
+              memory: {{ .Values.swaggerui.resources.memoryMi }}Mi
+          volumeMounts:
+            - name: swagger-ui-init-config
+              mountPath: /usr/share/nginx/html/openapi
+            - name: swaggerui-index
+              mountPath: /usr/share/nginx/html/index.html
+              subPath: index.html
+      volumes:
+        - name: swagger-ui-init-config
+          emptyDir: {}
+        - name: swaggerui-index
+          configMap:
+            name: {{ .Release.Name }}-swaggerui-config-index-html
+{{- end }}

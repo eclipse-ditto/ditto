@@ -314,6 +314,12 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
     }
 
     @Override
+    public Optional<IfEqual> getIfEqual() {
+        return getStringForDefinition(DittoHeaderDefinition.IF_EQUAL)
+                .flatMap(IfEqual::forOption);
+    }
+
+    @Override
     public Optional<String> getInboundPayloadMapper() {
         return getStringForDefinition(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER);
     }

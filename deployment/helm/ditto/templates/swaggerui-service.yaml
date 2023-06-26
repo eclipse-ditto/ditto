@@ -1,0 +1,33 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+{{- if .Values.swaggerui.enabled -}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ditto.fullname" . }}-swaggerui
+  labels:
+    app.kubernetes.io/name: {{ include "ditto.name" . }}-swaggerui
+{{ include "ditto.labels" . | indent 4 }}
+  {{- with .Values.swaggerui.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ports:
+    - port: {{ .Values.swaggerui.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: {{ include "ditto.name" . }}-swaggerui
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}

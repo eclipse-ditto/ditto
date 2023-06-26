@@ -45,7 +45,7 @@ post:
     '400':
       description: |-
         The request could not be completed. Possible reasons:
-          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           * at least one of the defined path parameters is invalid.
       content:
         application/json:

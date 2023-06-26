@@ -1,0 +1,66 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+{{- if .Values.dittoui.enabled -}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ditto.fullname" . }}-dittoui
+  labels:
+    app.kubernetes.io/name: {{ include "ditto.name" . }}-dittoui
+{{ include "ditto.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.dittoui.replicaCount }}
+  strategy:
+  {{- with .Values.dittoui.updateStrategy }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "ditto.name" . }}-dittoui
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "ditto.name" . }}-dittoui
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        {{- with .Values.dittoui.additionalLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        {{- with .Values.dittoui.additionalAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}-dittoui
+          image: {{ printf "%s:%s" .Values.dittoui.image.repository ( default .Chart.AppVersion ( default .Values.dittoTag .Values.dittoui.image.tag ) ) }}
+          imagePullPolicy: {{ .Values.dittoui.image.pullPolicy }}
+          env:
+            {{- if .Values.dittoui.extraEnv }}
+              {{- toYaml .Values.dittoui.extraEnv | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          resources:
+            requests:
+              cpu: {{ mulf .Values.dittoui.resources.cpu 1000 }}m
+              memory: {{ .Values.dittoui.resources.memoryMi }}Mi
+            limits:
+              # cpu: ""
+              memory: {{ .Values.dittoui.resources.memoryMi }}Mi
+{{- end }}

@@ -11,6 +11,9 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 /* eslint-disable new-cap */
+import 'bootstrap/dist/css/bootstrap.min.css';
+import './main.scss';
+import {Dropdown} from 'bootstrap';
 
 import * as Authorization from './modules/environments/authorization.js';
 import * as Environments from './modules/environments/environments.js';
@@ -31,27 +34,11 @@ import * as Operations from './modules/operations/operations.js';
 import * as Policies from './modules/policies/policies.js';
 import * as Utils from './modules/utils.js';
 import {WoTDescription} from './modules/things/wotDescription.js';
-
-
+import './modules/utils/crudToolbar.js';
 let resized = false;
 let mainNavbar;
 
 document.addEventListener('DOMContentLoaded', async function() {
-  document.getElementById('thingsHTML').innerHTML = await (await fetch('modules/things/things.html')).text();
-  document.getElementById('fieldsHTML').innerHTML = await (await fetch('modules/things/fields.html')).text();
-  document.getElementById('featuresHTML').innerHTML = await (await fetch('modules/things/features.html')).text();
-  document.getElementById('messagesIncomingHTML').innerHTML =
-      await (await fetch('modules/things/messagesIncoming.html')).text();
-  document.getElementById('policyHTML').innerHTML = await (await fetch('modules/policies/policies.html')).text();
-  document.getElementById('connectionsHTML').innerHTML =
-      await (await fetch('modules/connections/connections.html')).text();
-  document.getElementById('operationsHTML').innerHTML =
-      await (await fetch('modules/operations/operations.html')).text();
-  document.getElementById('environmentsHTML').innerHTML =
-      await (await fetch('modules/environments/environments.html')).text();
-  document.getElementById('authorizationHTML').innerHTML =
-      await (await fetch('modules/environments/authorization.html')).text();
-
   Utils.ready();
   await Things.ready();
   ThingsSearch.ready();
@@ -86,7 +73,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   featureDescription.ready();
 
   // make dropdowns not cutting off
-  new bootstrap.Dropdown(document.querySelector('.dropdown-toggle'), {
+  new Dropdown(document.querySelector('.dropdown-toggle'), {
     popperConfig: {
       strategy: 'fixed',
     },

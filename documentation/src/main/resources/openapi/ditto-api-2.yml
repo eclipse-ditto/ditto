@@ -257,7 +257,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
               * at least one of the defined query parameters is invalid
           content:
             application/json:
@@ -351,6 +351,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParam'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -389,7 +390,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
               * the JSON body of the thing to be created/modified is invalid
               * the JSON body of the thing to be created/modified contains a `thingId`
               which does not match the ID in the path
@@ -591,6 +592,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParam'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -707,7 +709,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -782,7 +784,7 @@ paths:
             The request could not be completed. Possible reasons:
 
             * the `thingId` does not conform to the namespaced entity ID notation
-            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -821,6 +823,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -860,7 +863,7 @@ paths:
             The request could not be completed. Possible reasons:
 
               * the `thingId` does not conform to the namespaced entity ID notation
-                (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+                (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
               * the JSON was invalid
               * the request body was not a JSON object.
           content:
@@ -911,6 +914,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -933,7 +937,7 @@ paths:
             The request could not be completed. Possible reasons:
 
               * the `thingId` does not conform to the namespaced entity ID notation
-                (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+                (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
               * the JSON was invalid
               * the request body was not a JSON object.
           content:
@@ -1003,7 +1007,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
-            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -1076,7 +1080,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -1109,6 +1113,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -1130,7 +1135,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
           content:
             application/json:
               schema:
@@ -1165,7 +1170,7 @@ paths:
           The policy is used for controlling access to this thing. It is managed by
           resource `/policies/{policyId}`.
 
-          The ID of a policy needs to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          The ID of a policy needs to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
         required: true
     patch:
       summary: Patch the policy ID of a thing
@@ -1181,6 +1186,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -1202,7 +1208,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
               * the `policyId` can not be removed from a thing.
           content:
             application/json:
@@ -1235,7 +1241,7 @@ paths:
         description: |-
           The policy is used for controlling access to this thing. It is managed by resource `/policies/{policyId}`.
 
-          The ID of a policy needs to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          The ID of a policy needs to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
         required: true
   '/api/2/things/{thingId}/attributes':
     get:
@@ -1282,7 +1288,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-            * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+            * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
           content:
             application/json:
               schema:
@@ -1313,6 +1319,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -1350,7 +1357,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * the JSON body of the attributes to be created/modified is invalid
           content:
             application/json:
@@ -1402,6 +1409,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -1422,7 +1430,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * the JSON body of the attributes to be patched is invalid
           content:
             application/json:
@@ -1495,7 +1503,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -1573,7 +1581,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -1615,6 +1623,7 @@ paths:
         - $ref: '#/components/parameters/AttributesPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -1648,7 +1657,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -1705,6 +1714,7 @@ paths:
         - $ref: '#/components/parameters/AttributesPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -1725,7 +1735,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -1787,7 +1797,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -1875,7 +1885,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * at least one of the defined query parameters is invalid.
           content:
             application/json:
@@ -1944,6 +1954,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -1980,7 +1991,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * the JSON body of the feature to be created/modified is invalid
           content:
             application/json:
@@ -2091,6 +2102,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -2109,7 +2121,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * the JSON body of the feature to be created/modified is invalid
           content:
             application/json:
@@ -2187,7 +2199,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -2269,7 +2281,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * at least one of the defined query parameters is invalid.
           content:
             application/json:
@@ -2322,6 +2334,7 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -2359,7 +2372,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * the JSON body of the feature to be created/modified is invalid
           content:
             application/json:
@@ -2445,6 +2458,7 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -2465,7 +2479,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * the JSON body of the feature to be created/modified is invalid
           content:
             application/json:
@@ -2528,6 +2542,7 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -2539,7 +2554,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -2580,6 +2595,7 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/GetMetadataParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
@@ -2613,7 +2629,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * at least one of the defined query parameters is invalid.
           content:
             application/json:
@@ -2649,6 +2665,7 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -2686,7 +2703,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * the JSON body is invalid
           content:
             application/json:
@@ -2750,6 +2767,7 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -2770,7 +2788,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * the JSON body is invalid
           content:
             application/json:
@@ -2838,7 +2856,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -2915,7 +2933,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * at least one of the defined query parameters is invalid.
           content:
             application/json:
@@ -2950,6 +2968,7 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -2983,7 +3002,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * the JSON body of the feature properties to be created/modified is invalid
           content:
             application/json:
@@ -3057,6 +3076,7 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -3077,7 +3097,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * the JSON body of the feature properties to be created/modified is invalid
           content:
             application/json:
@@ -3153,7 +3173,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -3233,7 +3253,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -3274,6 +3294,7 @@ paths:
         - $ref: '#/components/parameters/PropertyPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -3303,7 +3324,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * the JSON body is invalid
           content:
             application/json:
@@ -3362,6 +3383,7 @@ paths:
         - $ref: '#/components/parameters/PropertyPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -3382,7 +3404,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * the JSON body is invalid
           content:
             application/json:
@@ -3446,7 +3468,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -3523,7 +3545,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * at least one of the defined query parameters is invalid.
           content:
             application/json:
@@ -3558,6 +3580,7 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -3591,7 +3614,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * the JSON body of the desired feature roperties to be created/modified is invalid
           content:
             application/json:
@@ -3665,6 +3688,7 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -3685,7 +3709,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * the JSON body of the desired feature roperties to be created/modified is invalid
           content:
             application/json:
@@ -3761,7 +3785,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -3842,7 +3866,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -3884,6 +3908,7 @@ paths:
         - $ref: '#/components/parameters/PropertyPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -3913,7 +3938,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * the JSON body is invalid
           content:
             application/json:
@@ -3971,6 +3996,7 @@ paths:
         - $ref: '#/components/parameters/PropertyPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
         - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
@@ -3991,7 +4017,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * the JSON body is invalid
           content:
             application/json:
@@ -4058,7 +4084,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           content:
             application/json:
               schema:
@@ -4121,7 +4147,7 @@ paths:
         No special permission is required to issue a claim message.
 
         ### Example
-        See [Claiming](https://www.eclipse.org/ditto/protocol-specification-things-messages.html#sending-and-handling-claim-messages) concept in detail and example in GitHub.
+        See [Claiming](https://www.eclipse.dev/ditto/protocol-specification-things-messages.html#sending-and-handling-claim-messages) concept in detail and example in GitHub.
         However, in that scenario, the policy should grant you READ and WRITE permission on
         the "message:/" resource in order to be able to send the message and read the response.
         Further, the things-client which handles the "claim" message, needs permission to change the policy itself
@@ -4147,7 +4173,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * at least one of the defined path parameters is invalid
           content:
             application/json:
@@ -4238,7 +4264,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * at least one of the defined path parameters is invalid
           content:
             application/json:
@@ -4320,7 +4346,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * at least one of the defined path parameters is invalid.
           content:
             application/json:
@@ -4406,7 +4432,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * at least one of the defined path parameters is invalid.
           content:
             application/json:
@@ -4490,7 +4516,7 @@ paths:
         '400':
           description: |-
             The request could not be completed. Possible reasons:
-              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+              * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
               * at least one of the defined path parameters is valid.
           content:
             application/json:
@@ -4578,7 +4604,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
           content:
             application/json:
               schema:
@@ -4673,6 +4699,7 @@ paths:
         - $ref: '#/components/parameters/PolicyIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParam'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
         - $ref: '#/components/parameters/AllowPolicyLockoutParam'
@@ -4707,7 +4734,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
               * the JSON body of the policy to be created/modified is invalid
           content:
             application/json:
@@ -4800,7 +4827,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
           content:
             application/json:
               schema:
@@ -4952,7 +4979,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
           content:
             application/json:
               schema:
@@ -4987,6 +5014,7 @@ paths:
         - $ref: '#/components/parameters/PolicyIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
@@ -5003,7 +5031,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
               * the JSON body of the policy to be created/modified is invalid
           content:
             application/json:
@@ -5105,7 +5133,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
           content:
             application/json:
               schema:
@@ -5142,6 +5170,7 @@ paths:
         - $ref: '#/components/parameters/LabelPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
@@ -5175,7 +5204,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
             * the JSON body of the policy entry to be created/modified is invalid
           content:
             application/json:
@@ -5290,7 +5319,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
           content:
             application/json:
               schema:
@@ -5442,7 +5471,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-               * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+               * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
           content:
             application/json:
               schema:
@@ -5490,6 +5519,7 @@ paths:
         - $ref: '#/components/parameters/LabelPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
@@ -5506,7 +5536,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-               * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+               * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
              * the JSON body of the policy subjects to be created/modified is invalid
           content:
             application/json:
@@ -5589,7 +5619,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
           content:
             application/json:
               schema:
@@ -5624,6 +5654,7 @@ paths:
         - $ref: '#/components/parameters/SubjectIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
@@ -5657,7 +5688,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)))
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)))
             * the JSON body of the policy subject to be created/modified is invalid.
           content:
             application/json:
@@ -5726,7 +5757,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
           content:
             application/json:
               schema:
@@ -5793,7 +5824,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
           content:
             application/json:
               schema:
@@ -5876,6 +5907,7 @@ paths:
         - $ref: '#/components/parameters/LabelPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
@@ -5892,7 +5924,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
               * the JSON is invalid, or no valid Resources JSON object.
           content:
             application/json:
@@ -5972,7 +6004,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
           content:
             application/json:
               schema:
@@ -6008,6 +6040,7 @@ paths:
         - $ref: '#/components/parameters/ResourcePathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
@@ -6043,7 +6076,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-             * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+             * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
               * the JSON is invalid, or no valid Resource JSON object.
           content:
             application/json:
@@ -6108,7 +6141,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
           content:
             application/json:
               schema:
@@ -6173,7 +6206,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
           content:
             application/json:
               schema:
@@ -6215,6 +6248,7 @@ paths:
         - $ref: '#/components/parameters/PolicyIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
@@ -6231,7 +6265,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
               * the JSON body of the policy imports to be created/modified is invalid
           content:
             application/json:
@@ -6298,6 +6332,7 @@ paths:
         - $ref: '#/components/parameters/ImportedPolicyIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
@@ -6319,7 +6354,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `policyId` or the `importedPolicyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `policyId` or the `importedPolicyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
           content:
             application/json:
               schema:
@@ -6368,6 +6403,7 @@ paths:
         - $ref: '#/components/parameters/ImportedPolicyIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/IfEqualHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
@@ -6401,7 +6437,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `policyId` or the `importedPolicyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `policyId` or the `importedPolicyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
               * the JSON body of the policy import to be created/modified is invalid
           content:
             application/json:
@@ -6475,7 +6511,7 @@ paths:
           description: |-
             The request could not be completed. Possible reasons:
 
-              * the `policyId` or the `importedPolicyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+              * the `policyId` or the `importedPolicyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id))
           content:
             application/json:
               schema:
@@ -6690,11 +6726,11 @@ paths:
       summary: Processes a CloudEvent sent in Ditto Protocol
       description: |-
         Provides an endpoint accepting [CloudEvents via its HTTP protocol binding](https://github.com/cloudevents/spec/blob/v1.0/http-protocol-binding.md)
-        in [Ditto Protocol JSON](https://www.eclipse.org/ditto/protocol-specification.html).
+        in [Ditto Protocol JSON](https://www.eclipse.dev/ditto/protocol-specification.html).
 
         The endpoint can also directly be configured as a [Knative eventing](https://knative.dev/docs/eventing/) destination.
 
-        Find more documentation on that [here](https://www.eclipse.org/ditto/httpapi-protocol-bindings-cloudevents.html).
+        Find more documentation on that [here](https://www.eclipse.dev/ditto/httpapi-protocol-bindings-cloudevents.html).
       tags:
         - CloudEvents
       parameters:
@@ -6748,7 +6784,7 @@ paths:
             The request could not be completed. Possible reasons:
               * the CloudEvent could not be parsed as some mandatory CloudEvent headers were missing from the request
               * the payload was missing from the CloudEvent
-              * the [Ditto Protocol JSON](https://www.eclipse.org/ditto/protocol-specification.html) message could not be parsed or was missing a required field
+              * the [Ditto Protocol JSON](https://www.eclipse.dev/ditto/protocol-specification.html) message could not be parsed or was missing a required field
           content:
             application/json:
               schema:
@@ -6834,7 +6870,7 @@ paths:
                 attributes:
                   foo: 42
         description: |-
-          The [Ditto Protocol JSON](https://www.eclipse.org/ditto/protocol-specification.html) payload defining which
+          The [Ditto Protocol JSON](https://www.eclipse.dev/ditto/protocol-specification.html) payload defining which
           command to process.
   /api/2/connections:
     get:
@@ -8227,11 +8263,21 @@ components:
       required: false
       schema:
         type: string
+    IfEqualHeaderParam:
+      name: if-equal
+      in: header
+      description: 'The `if-equal` header can take the values ''update'' (which is the default if omitted) or ''skip''. If ''update'' is defined, the entity will always be updated, even if it is equal before the update. If ''skip'' is defined, the entity not be updated if it is equal before the update.  In this case a ''Not Modified'' 304 status is returned.'
+      required: false
+      schema:
+        type: string
+        enum:
+          - update
+          - skip
     ImportedPolicyIdPathParam:
       name: importedPolicyId
       in: path
       description: |-
-        The ID of the imported policy needs to follow the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+        The ID of the imported policy needs to follow the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
 
         The namespace needs to:
         * conform to the reverse domain name notation
@@ -8375,7 +8421,7 @@ components:
       name: policyId
       in: path
       description: |-
-        The ID of the policy needs to follow the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+        The ID of the policy needs to follow the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
 
         The namespace needs to:
         * conform to the reverse domain name notation
@@ -8638,7 +8684,7 @@ components:
     ThingIdPathParam:
       name: thingId
       in: path
-      description: 'The ID of a thing needs to follow the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).'
+      description: 'The ID of a thing needs to follow the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).'
       required: true
       schema:
         type: string
@@ -10055,7 +10101,7 @@ components:
         support:
           type: string
           format: iri-reference
-          example: 'https://www.eclipse.org/ditto/'
+          example: 'https://www.eclipse.dev/ditto/'
         created:
           type: string
           format: date-time

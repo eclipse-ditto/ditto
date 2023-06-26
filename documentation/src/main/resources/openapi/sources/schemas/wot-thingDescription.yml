@@ -102,7 +102,7 @@ properties:
   support:
     type: string
     format: iri-reference
-    example: "https://www.eclipse.org/ditto/"
+    example: "https://www.eclipse.dev/ditto/"
   created:
     type: string
     format: date-time

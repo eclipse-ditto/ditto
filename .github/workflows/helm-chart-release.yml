@@ -1,0 +1,56 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+name: Release and publish Helm chart
+
+env:
+  VERSION_HELM: "v3.11.2"
+on:
+  workflow_dispatch:
+    inputs:
+      chartVersion:
+        description: 'Helm chart version'
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: ${{ env.VERSION_HELM }}
+
+      - name: Helm | Login
+        shell: bash
+        run: echo ${{ secrets.DOCKER_HUB_TOKEN }} | helm registry login -u eclipsedittobot --password-stdin registry-1.docker.io
+
+      - name: Helm | Package
+        shell: bash
+        run: helm package deployment/helm/ditto --dependency-update --version ${{ inputs.chartVersion }}
+
+      - name: Helm | Push
+        shell: bash
+        run: helm push ditto-${{ inputs.chartVersion }}.tgz oci://registry-1.docker.io/eclipse
+
+      - name: Helm | Logout
+        shell: bash
+        run: helm registry logout registry-1.docker.io
+
+      - name: Helm | Output
+        id: output
+        shell: bash
+        run: echo "image=registry-1.docker.io/eclipse/ditto:${{ inputs.chartVersion }}" >> $GITHUB_OUTPUT

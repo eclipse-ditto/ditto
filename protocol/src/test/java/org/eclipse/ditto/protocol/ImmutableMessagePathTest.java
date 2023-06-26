@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.assertj.core.api.AbstractBooleanAssert;
 import org.assertj.core.api.OptionalAssert;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.messages.model.MessageDirection;
@@ -68,11 +69,36 @@ public class ImmutableMessagePathTest {
         assertFeatureId("features/water-tank/inbox/messages/heatUp").contains("water-tank");
     }
 
+    @Test
+    public void parseMessageSubject() {
+        assertMessageSubject("/outbox/message/ask").contains("ask");
+        assertMessageSubject("/attributes/hello").isEmpty();
+        assertMessageSubject("/features/water-tank/properties/temperature").isEmpty();
+        assertMessageSubject("features/water-tank/inbox/messages/heatUp").contains("heatUp");
+        assertMessageSubject("/features/water-tank/inbox/messages/heatUp/subMsg").contains("heatUp/subMsg");
+    }
+
+    @Test
+    public void parseIsInboxOutboxMessage() {
+        assertIsInboxOutboxMessage("/outbox/message/ask").isTrue();
+        assertIsInboxOutboxMessage("/attributes/hello").isFalse();
+        assertIsInboxOutboxMessage("/features/water-tank/properties/temperature").isFalse();
+        assertIsInboxOutboxMessage("features/water-tank/inbox/messages/heatUp").isTrue();
+    }
+
     private static OptionalAssert<MessageDirection> assertDirection(final String jsonPointer) {
         return assertThat(ImmutableMessagePath.of(JsonPointer.of(jsonPointer)).getDirection());
     }
 
     private static OptionalAssert<String> assertFeatureId(final String jsonPointer) {
         return assertThat(ImmutableMessagePath.of(JsonPointer.of(jsonPointer)).getFeatureId());
+    }
+
+    private static OptionalAssert<String> assertMessageSubject(final String jsonPointer) {
+        return assertThat(ImmutableMessagePath.of(JsonPointer.of(jsonPointer)).getMessageSubject());
+    }
+
+    private static AbstractBooleanAssert<?> assertIsInboxOutboxMessage(final String jsonPointer) {
+        return assertThat(ImmutableMessagePath.of(JsonPointer.of(jsonPointer)).isInboxOutboxMessage());
     }
 }

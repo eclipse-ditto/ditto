@@ -1,0 +1,23 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+name: if-equal
+in: header
+description: >-
+  The `if-equal` header can take the values 'update' (which is the default if omitted) or 'skip'.
+  If 'update' is defined, the entity will always be updated, even if it is equal before the update.
+  If 'skip' is defined, the entity not be updated if it is equal before the update. 
+  In this case a 'Not Modified' 304 status is returned.
+required: false
+schema:
+  type: string
+  enum:
+    - update
+    - skip

@@ -12,6 +12,7 @@
  */
 /* eslint-disable require-jsdoc */
 import * as Utils from '../utils.js';
+import crudToolbarHTML from './crudToolbar.html';
 
 class CrudToolbar extends HTMLElement {
   isEditing = false;
@@ -34,11 +35,12 @@ class CrudToolbar extends HTMLElement {
   }
 
   set idValue(newValue) {
-    this.dom.inputIdValue.value = newValue;
+    this.shadowRoot.getElementById('inputIdValue').value = newValue;
+    const buttonDelete = this.shadowRoot.getElementById('buttonDelete');
     if (!this.isDeleteDisabled && newValue && newValue !== '') {
-      this.dom.buttonDelete.removeAttribute('hidden');
+      buttonDelete.removeAttribute('hidden');
     } else {
-      this.dom.buttonDelete.setAttribute('hidden', '');
+      buttonDelete.setAttribute('hidden', '');
     }
   }
 
@@ -48,22 +50,24 @@ class CrudToolbar extends HTMLElement {
 
   set createDisabled(newValue) {
     this.isCreateDisabled = newValue;
-    this.setButtonState(this.dom.buttonCreate, newValue);
+    this.setButtonState('buttonCreate', newValue);
   }
 
   set deleteDisabled(newValue) {
     this.isDeleteDisabled = newValue;
-    this.setButtonState(this.dom.buttonDelete, newValue);
+    this.setButtonState('buttonDelete', newValue);
   }
 
   set editDisabled(newValue) {
     this.isEditDisabled = newValue;
     if (!this.isEditing) {
-      this.setButtonState(this.dom.buttonEdit, newValue);
+      this.setButtonState('buttonEdit', newValue);
     }
   }
 
-  setButtonState(button, isDisabled) {
+  setButtonState(buttonId, isDisabled) {
+    const button = this.shadowRoot.getElementById(buttonId);
+
     if (isDisabled) {
       button.setAttribute('hidden', '');
     } else {
@@ -80,9 +84,11 @@ class CrudToolbar extends HTMLElement {
   }
 
   connectedCallback() {
-    this.shadowRoot.append(document.getElementById('templateCrudToolbar').content.cloneNode(true));
+    this.shadowRoot.innerHTML = crudToolbarHTML;
+
     setTimeout(() => {
       Utils.getAllElementsById(this.dom, this.shadowRoot);
+
       this.dom.buttonEdit.onclick = () => this.toggleEdit(false);
       this.dom.buttonCancel.onclick = () => this.toggleEdit(true);
       this.dom.label.innerText = this.getAttribute('label') || 'Label';

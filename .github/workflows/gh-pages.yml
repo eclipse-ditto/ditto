@@ -30,6 +30,16 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}
     steps:
       - uses: actions/checkout@v3
+      - name: Use Node.js 18.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Install npm dependencies
+        run: npm install
+        working-directory: ./ui
+      - name: Build UI with node
+        run: npm run build
+        working-directory: ./ui
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:

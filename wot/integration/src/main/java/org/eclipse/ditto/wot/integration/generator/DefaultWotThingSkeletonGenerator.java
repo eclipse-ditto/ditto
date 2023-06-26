@@ -16,6 +16,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -24,6 +25,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -67,6 +69,7 @@ import org.eclipse.ditto.wot.model.SingleDataSchema;
 import org.eclipse.ditto.wot.model.StringSchema;
 import org.eclipse.ditto.wot.model.ThingDefinitionInvalidException;
 import org.eclipse.ditto.wot.model.ThingModel;
+import org.eclipse.ditto.wot.model.TmOptional;
 import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
 
 import akka.actor.ActorSystem;
@@ -84,6 +87,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
     private static final String TM_SUBMODEL = "tm:submodel";
     private static final String TM_SUBMODEL_INSTANCE_NAME = "instanceName";
 
+    private static final Duration MAX_FETCH_MODEL_DURATION = Duration.ofSeconds(30);
 
 
     private final WotThingModelFetcher thingModelFetcher;
@@ -120,7 +124,11 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                     final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
                     final Map<String, JsonObjectBuilder> attributesCategories = new LinkedHashMap<>();
 
-                    fillPropertiesInOptionalCategories(properties, jsonObjectBuilder, attributesCategories,
+                    fillPropertiesInOptionalCategories(
+                            properties,
+                            thingModelWithExtensionsAndImports.getTmOptional().orElse(null),
+                            jsonObjectBuilder,
+                            attributesCategories,
                             property -> dittoExtensionPrefix.flatMap(prefix ->
                                     property.getValue(prefix + ":" + DittoWotExtension.DITTO_WOT_EXTENSION_CATEGORY)
                             )
@@ -145,25 +153,35 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
     }
 
     private static void fillPropertiesInOptionalCategories(final Properties properties,
+            @Nullable final TmOptional tmOptionalElements,
             final JsonObjectBuilder jsonObjectBuilder,
             final Map<String, JsonObjectBuilder> propertiesCategories,
             final Function<Property, Optional<String>> propertyCategoryExtractor) {
 
-        properties.values().forEach(property ->
-                determineInitialPropertyValue(property).ifPresent(val ->
-                                propertyCategoryExtractor.apply(property)
-                                .ifPresentOrElse(attributeCategory -> {
-                                        if (!propertiesCategories.containsKey(attributeCategory)) {
-                                            propertiesCategories.put(attributeCategory,
-                                                    JsonObject.newBuilder());
-                                        }
-                                        propertiesCategories.get(attributeCategory)
-                                                .set(property.getPropertyName(), val);
-                                }, () ->
-                                        jsonObjectBuilder.set(property.getPropertyName(), val)
+        properties.values().stream()
+                // filter out optional elements - don't create skeleton values for those:
+                .filter(property -> Optional.ofNullable(tmOptionalElements)
+                        .stream()
+                        .noneMatch(optionals -> optionals.stream()
+                                .anyMatch(optionalEl ->
+                                        optionalEl.toString().equals("/properties/" + property.getPropertyName())
                                 )
+                        )
                 )
-        );
+                .forEach(property -> determineInitialPropertyValue(property).ifPresent(val ->
+                                propertyCategoryExtractor.apply(property)
+                                        .ifPresentOrElse(attributeCategory -> {
+                                                    if (!propertiesCategories.containsKey(attributeCategory)) {
+                                                        propertiesCategories.put(attributeCategory,
+                                                                JsonObject.newBuilder());
+                                                    }
+                                                    propertiesCategories.get(attributeCategory)
+                                                            .set(property.getPropertyName(), val);
+                                                }, () ->
+                                                        jsonObjectBuilder.set(property.getPropertyName(), val)
+                                        )
+                        )
+                );
     }
 
     private Optional<Features> createFeaturesFromSubmodels(final ThingModel thingModel,
@@ -192,11 +210,14 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                 )
                 .orElseGet(Stream::empty)
                 .map(submodel -> thingModelFetcher.fetchThingModel(submodel.href, dittoHeaders)
+                        .toCompletableFuture()
+                        .orTimeout(MAX_FETCH_MODEL_DURATION.toSeconds(), TimeUnit.SECONDS)
                         .thenApplyAsync(subThingModel ->
                                 generateFeatureSkeleton(submodel.instanceName,
                                         subThingModel,
                                         submodel.href,
-                                        dittoHeaders), executor)
+                                        dittoHeaders
+                                ), executor)
                         .toCompletableFuture()
                 )
                 .toList();
@@ -254,7 +275,11 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                     final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
                     final Map<String, JsonObjectBuilder> propertiesCategories = new LinkedHashMap<>();
 
-                    fillPropertiesInOptionalCategories(properties, jsonObjectBuilder, propertiesCategories,
+                    fillPropertiesInOptionalCategories(
+                            properties,
+                            thingModelWithExtensionsAndImports.getTmOptional().orElse(null),
+                            jsonObjectBuilder,
+                            propertiesCategories,
                             property -> dittoExtensionPrefix.flatMap(prefix ->
                                             property.getValue(prefix + ":" + DittoWotExtension.DITTO_WOT_EXTENSION_CATEGORY)
                                     )
@@ -447,6 +472,8 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                 final BaseLink<?> link = extendsLink.get();
                 final List<DefinitionIdentifier> recursedSubmodels =
                         thingModelFetcher.fetchThingModel(link.getHref(), dittoHeaders)
+                                .toCompletableFuture()
+                                .orTimeout(MAX_FETCH_MODEL_DURATION.toSeconds(), TimeUnit.SECONDS)
                                 .thenApplyAsync(subThingModel ->
                                         determineFurtherFeatureDefinitionIdentifiers( // recurse!
                                                 subThingModel,

@@ -171,6 +171,19 @@ jobs:
             eclipse/ditto-connectivity:${{ env.IMAGE_MAJOR_TAG }}
             eclipse/ditto-connectivity:latest
       -
+        name: Use Node.js 18.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      -
+        name: Install npm dependencies
+        run: npm install
+        working-directory: ./ui
+      -
+        name: Build UI with node
+        run: npm run build
+        working-directory: ./ui
+      -
         name: Build and push ditto-ui
         if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG && inputs.dittoImage == 'ditto-ui'
         uses: docker/build-push-action@v3

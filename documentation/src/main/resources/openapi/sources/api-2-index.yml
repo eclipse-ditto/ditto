@@ -256,6 +256,8 @@ components:
       $ref: "./parameters/ifMatchHeaderParamHash.yml"
     IfNoneMatchHeaderParam:
       $ref: "./parameters/ifNoneMatchHeaderParam.yml"
+    IfEqualHeaderParam:
+      $ref: "./parameters/ifEqualHeaderParam.yml"
     ImportedPolicyIdPathParam:
       $ref: "./parameters/importedPolicyIdPathParam.yml"
     LabelPathParam:

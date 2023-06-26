@@ -1,0 +1,1535 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+---
+# Default values for ditto.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+serviceAccount:
+  # create controls whether a service account should be created
+  create: true
+  # name is the name of the service account to use
+  #  If not set and create is true, a name is generated using the fullname template
+  name:
+
+rbac:
+  # enabled controls whether RBAC resources will be created
+  enabled: true
+
+nameOverride: ""
+fullnameOverride: ""
+
+## ----------------------------------------------------------------------------
+## global configuration shared by all components
+global:
+  # cluster holds the configuration for the Ditto/Akka cluster
+  cluster:
+    # requiredContactPoints defines the total amount of replicas in the Ditto cluster
+    #  only if this amount is "seen" during cluster formation, the cluster can form itself
+    requiredContactPoints: 5
+    # ddata holds the "Distributed Data" configuration:
+    ddata:
+      # numberOfShards defines whether ddata structures should be shared (if >1)
+      #  this is needed in case a lot of event subscribers (thousands) are connected simultaneously
+      numberOfShards: 1
+      # maxDeltaElements defines how many elements should be synced with a single cluster message
+      #  if numberOfShards is > 1, it makes sense to keep maxDeltaElements lower
+      #  so that the message size for remoting is not exceeding the configured max message size
+      maxDeltaElements: 1
+    # numberOfShards configures the sharding applied for things/policies/connections based on their ID
+    #  as a rule of thumb: should be factor ten of the amount of cluster replicas for an entity
+    numberOfShards: 50
+    # downingStableAfter is a configuration of the Akka SBR (split brain resolver)
+    #  how to find the right value: https://doc.akka.io/docs/akka/current/split-brain-resolver.html
+    downingStableAfter: 15s
+    # downAllWhenUnstable is a configuration of the Akka SBR (split brain resolver)
+    downAllWhenUnstable: "on"
+  # basicAuthUsers configures (as a map) several user/password combinations which the nginx of the Ditto chart will authenticate
+  basicAuthUsers: {}
+  # ditto:
+  #   user: ditto
+  #   password: ditto
+  # hashedBasicAuthUsers configures a list of hashed .htpasswd username/password entries
+  hashedBasicAuthUsers: []
+  # jwtOnly controls whether only OpenID-Connect authentication is supported
+  #  if false, both OpenID-Connect and basicAuth via nginx (see above "basicAuthUsers" and "hashedBasicAuthUsers") is used
+  #  ref: https://www.eclipse.dev/ditto/installation-operating.html#openid-connect
+  jwtOnly: true
+  # jvmOptions defines the JVM options applied to all Ditto services running in the JVM, it is put in JAVA_TOOL_OPTIONS
+  jvmOptions: >
+    -XX:+ExitOnOutOfMemoryError
+    -XX:+UseContainerSupport
+    -XX:+UseStringDeduplication
+    -Xss512k
+    -XX:MaxMetaspaceSize=256m
+    -XX:+UseG1GC
+    -Djava.net.preferIPv4Stack=true
+  akkaOptions: >
+    -Dakka.management.cluster.bootstrap.contact-point-discovery.port-name=management
+    -Dakka.cluster.failure-detector.threshold=15.0
+    -Dakka.cluster.failure-detector.expected-response-after=3s
+    -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s
+    -Dakka.persistence.journal-plugin-fallback.recovery-event-timeout=30s
+    -Dakka.persistence.max-concurrent-recoveries=100
+    -Dakka.cluster.sharding.updating-state-timeout=20s
+    -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
+  # timezone defines the timezone to configure the JVM with
+  timezone: Europe/Berlin
+  # imagePullSecrets will be added to every deployment
+  imagePullSecrets: []
+  # proxyPart configures a reverse proxy part to be added in front of the Ditto API endpoints:
+  proxyPart: ""
+  # prometheus holds the Prometheus specific configuration
+  prometheus:
+    # enabled controls whether scrape config annotation will be added to pod templates
+    enabled: true
+    # path where prometheus metric will be provided
+    path: "/"
+    # port where prometheus metrics will be provided
+    port: 9095
+  # logging the logging configuration for Ditto
+  logging:
+    # sysout holds the logging to SYSOUT config
+    sysout:
+      # enabled defines whether to log to SYSOUT
+      enabled: true
+    # logstash configures if logs should be pushed to a logstash endpoint
+    logstash:
+      # enabled defines whether to log to logstash
+      enabled: false
+      # endpoint configures the logstash endpoint to send logs to
+      endpoint: ""
+    # logFiles defines logging to log files config
+    logFiles:
+      # enabled whether to write logs to log files
+      #  log files can be found on the host under /var/log/ditto
+      enabled: false
+    # customConfigFile configures that a custom "Logback" config file should be used instead of the one bundled
+    #  with Ditto on the classpath
+    customConfigFile:
+      # enabled if enabled, a custom logback.xml file added to the Ditto containers will be used for logging configuration
+      enabled: true
+      # fileName passed as Java system property "-Dlogback.configurationFile"
+      fileName: logback.xml
+  # tracing configuration for Ditto
+  tracing:
+    # enabled whether tracing (via OpenTelemetry) is enabled
+    enabled: false
+    # otelExporterOtlpEndpoint the OTLP endpoint to report traces to
+    otelExporterOtlpEndpoint: "http://localhost:4317"
+    # sampler the tracing sampler to use
+    #  can be one of:
+    #   - always: report all traces.
+    #   - never:  don't report any trace.
+    #   - random: randomly decide using the probability defined in the random-sampler.probability setting.
+    #   - adaptive: keeps dynamic samplers for each operation while trying to achieve a set throughput goal.
+    sampler: never
+    # randomSampler configures the 'random' sampler
+    randomSampler:
+      # probability configures the probability of a span being sampled, must be a value between 0 and 1
+      probability: 0.01
+    # adaptiveSampler configures the 'adaptive' sampler
+    adaptiveSampler:
+      # throughput the throughput goal trying to achieve with the adaptive sampler
+      throughput: 600
+
+## ----------------------------------------------------------------------------
+## dbconfig for mongodb connections
+##  will be handled as k8s secret as connection uri might contain auth credentials
+dbconfig:
+  # policies the MongoDB configuration for Ditto "policies" service
+  policies:
+    uri: mongodb://#{PLACEHOLDER_MONGODB_HOSTNAME}#:27017/ditto
+    ssl: false
+  # things the MongoDB configuration for Ditto "things" service
+  things:
+    uri: mongodb://#{PLACEHOLDER_MONGODB_HOSTNAME}#:27017/ditto
+    ssl: false
+  # connectivity the MongoDB configuration for Ditto "connectivity" service
+  connectivity:
+    uri: mongodb://#{PLACEHOLDER_MONGODB_HOSTNAME}#:27017/ditto
+    ssl: false
+  # thingsSearch the MongoDB configuration for Ditto "things-search" service
+  thingsSearch:
+    uri: mongodb://#{PLACEHOLDER_MONGODB_HOSTNAME}#:27017/ditto
+    ssl: false
+  ## If following property is set, an existing secret will be used to retrieve the mongodb connectionUris from.
+  # uriSecret: my-uri-secret
+
+## ----------------------------------------------------------------------------
+## ingress configures the Ingress
+ingress:
+  # enabled whether Ingress should be enabled as alternative to the contained nginx
+  enabled: false
+  # className is the 'ingressClassName' to configure in the Ingress spec
+  className: nginx
+  # host the hostname of the Ingress shared for all: api, ws and ui
+  host: localhost
+  # defaultBackendSuffix the suffix to add to the internal fullname to use as Ingress "defaultBackend"
+  defaultBackendSuffix: nginx
+  # annotations common annotations for all 3 Ingresses of Ditto
+  annotations:
+    nginx.ingress.kubernetes.io/service-upstream: "true"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      charset utf-8;
+      default_type application/json;
+      chunked_transfer_encoding off;
+
+      send_timeout 70; # seconds, default: 60
+      client_header_buffer_size 8k; # allow longer URIs + headers (default: 1k)
+      large_client_header_buffers 4 16k;
+
+      proxy_http_version 1.1;
+      proxy_set_header X-Forwarded-Host $http_host;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_set_header X-Forwarded-For $remote_addr;
+      proxy_set_header Host $host;
+  # api the /api, /devops, /status, /overall and /health Ingress configuration
+  api:
+    # paths configures ingress paths
+    paths:
+      - path: /api
+        backendSuffix: gateway
+      - path: /devops
+        backendSuffix: gateway
+      - path: /status
+        backendSuffix: gateway
+      - path: /stats
+        backendSuffix: gateway
+      - path: /overall
+        backendSuffix: gateway
+      - path: /health
+        backendSuffix: gateway
+    # annotations defines k8s annotations to add to the Ingress
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "70"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "70"
+      nginx.ingress.kubernetes.io/proxy-next-upstream: "error timeout http_502"
+      nginx.ingress.kubernetes.io/proxy-next-upstream-tries: "4"
+      nginx.ingress.kubernetes.io/proxy-next-upstream-timeout: "50"
+      nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
+      nginx.ingress.kubernetes.io/configuration-snippet: |
+        set $cors '1';
+
+        if ($request_method = 'OPTIONS') {
+          set $cors "${cors}o";
+        }
+
+        if ($cors = '1') {
+          add_header 'Access-Control-Allow-Origin' '$http_origin' always;
+          add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, PATCH, DELETE, OPTIONS' always;
+          add_header 'Access-Control-Allow-Credentials' 'true' always;
+          add_header 'Access-Control-Allow-Headers' '$http_access_control_request_headers' always;
+          add_header 'Access-Control-Expose-Headers' '*' always;
+        }
+
+        if ($cors = '1o') {
+          # Tell client that this pre-flight info is valid for 20 days
+          add_header 'Access-Control-Max-Age' 1728000;
+          add_header 'Access-Control-Allow-Origin' '$http_origin' always;
+          add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, PATCH, DELETE, OPTIONS' always;
+          add_header 'Access-Control-Allow-Credentials' 'true' always;
+          add_header 'Access-Control-Allow-Headers' '$http_access_control_request_headers' always;
+          add_header 'Access-Control-Expose-Headers' '*' always;
+          add_header 'Content-Type' 'text/plain charset=UTF-8';
+          add_header 'Content-Length' 0;
+          return 200;
+        }
+
+        if ($request_method = 'OPTIONS') {
+          add_header 'Content-Type' 'text/plain charset=UTF-8';
+          return 405 "Origin $http_origin is not in CORS allow-list, contact your admin to get it added";
+        }
+
+        # security relevant headers:
+        add_header "Content-Security-Policy" "default-src 'none'; frame-ancestors 'none'" always;
+        add_header "Strict-Transport-Security" "max-age=63072000; includeSubdomains;" always;
+        add_header "Cache-Control" "no-cache" always;
+        add_header "X-Content-Type-Options" "nosniff" always;
+        add_header "X-Frame-Options" "SAMEORIGIN" always;
+        add_header "X-XSS-Protection" "1; mode=block" always;
+  # ws the /ws (WebSocket) Ingress configuration
+  ws:
+    # paths configures ingress paths
+    paths:
+      - path: /ws
+        backendSuffix: gateway
+    # annotations defines k8s annotations to add to the Ingress
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "86400"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "86400"
+      nginx.ingress.kubernetes.io/proxy-next-upstream: "error timeout http_502"
+      nginx.ingress.kubernetes.io/proxy-next-upstream-tries: "4"
+      nginx.ingress.kubernetes.io/proxy-next-upstream-timeout: "50"
+      nginx.ingress.kubernetes.io/proxy-buffering: "off"
+  # the / Ingress configuration for serving the landing page and static resources
+  root:
+    # paths configures ingress paths
+    paths:
+      - path: /
+        pathType: Exact
+        backendSuffix: nginx
+      - path: /index.html
+        pathType: Exact
+        backendSuffix: nginx
+      - path: /ditto-up.svg
+        pathType: Exact
+        backendSuffix: nginx
+      - path: /ditto-down.svg
+        pathType: Exact
+        backendSuffix: nginx
+    # annotations defines k8s annotations to add to the Ingress
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+      nginx.ingress.kubernetes.io/configuration-snippet: |
+        # security relevant headers:
+        add_header "Content-Security-Policy" "default-src 'self'; script-src-elem 'self' 'sha256-Kq9eqc/CtX2tgHPLJUEf8vDO9eNiGaRBrwAYYXTroVc='  https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; worker-src 'self' blob:; object-src 'none';" always;
+        add_header "Strict-Transport-Security" "max-age=63072000; includeSubdomains;" always;
+        add_header "Cache-Control" "no-cache" always;
+        add_header "X-Content-Type-Options" "nosniff" always;
+        add_header "X-Frame-Options" "SAMEORIGIN" always;
+        add_header "X-XSS-Protection" "1; mode=block" always;
+  # ui the /ui and /apidoc Ingress configuration
+  ui:
+    # paths configures ingress paths
+    paths:
+      - path: /
+        pathType: Exact
+        backendSuffix: nginx
+      - path: /apidoc(/|$)(.*)
+        backendSuffix: swaggerui
+      - path: /ui(/|$)(.*)
+        backendSuffix: dittoui
+    # annotations defines k8s annotations to add to the Ingress
+    annotations:
+      nginx.ingress.kubernetes.io/use-regex: "true"
+      nginx.ingress.kubernetes.io/rewrite-target: /$2
+      nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+      nginx.ingress.kubernetes.io/configuration-snippet: |
+        # security relevant headers:
+        add_header "Content-Security-Policy" "default-src 'self'; script-src-elem 'self' 'sha256-Ve/Ec/6YDEeTc+9y+QCJ+e9OhyGWAj3bYxCzNGfOn6U=' 'sha256-Kq9eqc/CtX2tgHPLJUEf8vDO9eNiGaRBrwAYYXTroVc=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; img-src 'self' data: https://raw.githubusercontent.com; font-src 'self' https://cdnjs.cloudflare.com; worker-src 'self' blob:; connect-src 'self' localhost http://localhost:8080; object-src 'none';" always;
+        add_header "Strict-Transport-Security" "max-age=63072000; includeSubdomains;" always;
+        add_header "Cache-Control" "no-cache" always;
+        add_header "X-Content-Type-Options" "nosniff" always;
+        add_header "X-Frame-Options" "SAMEORIGIN" always;
+        add_header "X-XSS-Protection" "1; mode=block" always;
+  # tls configures the TLS for ingress
+  tls: []
+  #  - secretName: ditto-tls
+  #    hosts:
+  #      - localhost
+
+
+## ----------------------------------------------------------------------------
+## openshift configures the OpenShift deployment
+openshift:
+  # enabled whether to deploy to OpenShift
+  enabled: false
+  # routes the OpenShift Routes
+  routes:
+    # enabled whether OpenShift routes are enabled
+    enabled: false
+    # annotations define k8s annotations to apply for the routes
+    annotations: {}
+    # host: ""
+    # targetPort configures the target port
+    targetPort: http
+    # tlsTermination: "edge"
+    # tlsInsecurePolicy: "Redirect"
+  # securityContext the security context for OpenShift
+  securityContext: {}
+
+## ----------------------------------------------------------------------------
+## akka holds the Akka actor configuration
+##  ref: https://doc.akka.io/docs/akka/current/typed/index.html
+akka:
+  # actorSystemName defines the actor/cluster name of the Ditto cluster
+  actorSystemName: ditto-cluster
+  # remoting holds configuration for the Akka cluster remoting
+  remoting:
+    # port defines the Port to use for remoting
+    port: 2551
+  # mgmthttp holds configuration for the Akka cluster management
+  mgmthttp:
+    # port defines the Port to use for akka http management
+    port: 8558
+
+# Set "dittoTag" in order to specify another Ditto version to use for all Ditto services:
+# you may also use "1" (for latest Ditto 1.x.x) or "1.5" (for latest Ditto 1.5.x)
+# dittoTag: 3.3.0
+
+
+## ----------------------------------------------------------------------------
+## policies configuration
+##  ref: https://www.eclipse.dev/ditto/architecture-services-policies.html
+policies:
+  # enabled controls whether policies related resources should be created
+  enabled: true
+  # replicaCount configuration for policies
+  replicaCount: 1
+  # updateStrategy configuration for policies
+  #  ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  # minReadySeconds configures the minimum number of seconds for which a newly created Pod should be ready without any
+  #  of its containers crashing, for it to be considered available
+  #  ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#min-ready-seconds
+  minReadySeconds: 10
+  # additionalLabels configuration for policies
+  additionalLabels: {}
+  # additionalAnnotations configuration for policies
+  additionalAnnotations: {}
+  image:
+    # repository for the policies docker image
+    repository: docker.io/eclipse/ditto-policies
+    # tag for the policies docker image - overwrite to specify something else than Chart.AppVersion
+    # tag: 3.3.0
+    # pullPolicy for the policies docker image
+    pullPolicy: IfNotPresent
+  # additionalJvmOptions JVM options to put into JAVA_TOOL_OPTIONS
+  additionalJvmOptions: ""
+  # systemProps used to define arbitrary system properties for policies service
+  #  ref: https://www.eclipse.dev/ditto/installation-operating.html#configuration
+  systemProps:
+  # extraEnv to add arbitrary environment variable to policies container
+  extraEnv:
+  # - name: LOG_LEVEL_APPLICATION
+  #   value: "DEBUG"
+  # resources configures the resources available/to use for the policies service
+  resources:
+    # cpu defines the "required" CPU of a node so that the service is placed there
+    cpu: 0.5
+    # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
+    memoryMi: 1024
+  # jvm contains JVM specific scaling/tuning configuration of e.g. processors and garbage collector settings
+  jvm:
+    # activeProcessorCount defines how many processors the JVM should be configured to use
+    #  this is e.g. relevant for the GC which calculates the amount of asynchronous threads for GC based on the processor count
+    activeProcessorCount: 2
+    # heapRamPercentage defines how much memory of the configured "resources.memoryMi" can be used by the JVM heap space
+    #  be aware that the JVM also requires memory for "off heap" (and also stack) space + the container needs memory as well
+    heapRamPercentage: 60
+    # maxGcPauseMillis configures the used G1 GC "target for the maximum GC pause time"
+    #  default (by JVM if not set): 200
+    maxGcPauseMillis: 150
+  # readinessProbe configuration for policies
+  #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
+  # livenessProbe configuration for policies
+  #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  livenessProbe:
+    initialDelaySeconds: 160
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 4
+  # podDisruptionBudget configuration for policies
+  #  ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
+  podDisruptionBudget:
+    # enabled controls whether policies related PodDisruptionBudget should be created
+    enabled: true
+    # minAvailable number of replicas during voluntary disruptions
+    minAvailable: 1
+  # nodeSelector configuration for policies
+  #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+  nodeSelector: {}
+  # tolerations configuration for policies
+  #  ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+  # affinity configuration for policies
+  #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+  # podMonitor configuration for policies
+  podMonitor:
+    # enabled configures whether Pod Monitor is enabled, then a resource to scrape policies metrics will be created
+    enabled: false
+    # interval: 30s
+    # scrapeTimeout: 15s
+  # config holds policies specific configuration
+  config:
+    # mongodb holds mongodb specific configuration of policies
+    mongodb:
+      # minPoolSize configures the minimum number of connections in the connection pool
+      minPoolSize: 10
+      # maxPoolSize configures the minimum number of connections in the connection pool
+      maxPoolSize: 200
+      # maxPoolIdleTime configures the maximum amount of time a pooled connection is allowed to idle before closing the connection
+      maxPoolIdleTime: 10m
+      # journalWriteConcern the MongoDB write concern to apply for writing operations on the event journal
+      #  one of: Unacknowledged | Acknowledged | Journaled | ReplicaAcknowledged
+      journalWriteConcern: "Journaled"
+      # snapsWriteConcern the MongoDB write concern to apply for writing operations on the snapshots persistence
+      #  one of: Unacknowledged | Acknowledged | Journaled | ReplicaAcknowledged
+      snapsWriteConcern: "Journaled"
+      # journalCircuitBreaker configures the circuit breaker for MongoDB operations on the event journal
+      journalCircuitBreaker:
+        # maxTries opens the circuit breaker if an exception during persisting an event occurs this often
+        #  a successful write resets the counter
+        maxTries: 10
+        # timeout configures the MongoDB write timeouts also causing the circuit breaker to open
+        timeout: 10s
+        # reset after this time in "Open" state, the circuit breaker is "Half-opened" again
+        reset: 5s
+      # snapsCircuitBreaker configures the circuit breaker for MongoDB operations on the snapshots persistence
+      snapsCircuitBreaker:
+        # maxTries opens the circuit breaker if an exception during persisting a snapshot occurs this often
+        #  a successful write resets the counter
+        maxTries: 10
+        # timeout configures the MongoDB write timeouts also causing the circuit breaker to open
+        timeout: 20s
+        # reset after this time in "Open" state, the circuit breaker is "Half-opened" again
+        reset: 8s
+    # cleanup contains the configuration for the background cleanup of stale snapshots and events
+    cleanup:
+      # enabled configures whether background cleanup is enabled or not
+      #  if enabled, stale "snapshot" and "journal" entries will be cleaned up from the MongoDB by a background process:
+      enabled: false
+      # quietPeriod defines how long to stay in a state where the background cleanup is not yet started
+      quietPeriod: 5m
+      # history contains configuration regarding the event history
+      history:
+        # retentionDuration configures the duration of how long to "keep" events and snapshots before being allowed to remove them in scope of cleanup
+        retentionDuration: 30d
+      # metricsReporter config of MongoMetricsReporter which is used by policies in order to report current persistence
+      #  roundtrip times in order to determine credits to cleanup stale data (journal entries, snapshots)
+      metricsReporter:
+        # resolution configures how far apart each measurement should be done
+        resolution: 1s
+        # history configures how many historical items to keep
+        history: 5
+      # interval configures how often a "credit decision" is made
+      interval: 1s
+      # timerThreshold configures the maximum database latency to give out credit for cleanup actions
+      timerThreshold: 100ms
+      # creditsPerBatch configures how many "cleanup credits" should be generated per "interval" as long as the
+      creditsPerBatch: 5
+    # persistence holds configuration regarding (akka) persistence of policies (event journal and snapshots)
+    persistence:
+      # activityCheckInterval configures to keep policies for that amount of time in memory when no other use did happen:
+      activityCheckInterval: 2d
+      # pingRate used to throttle pinging of PolicyPersistenceActors, so that not all PolicyPersistenceActors are recovered at the same time:
+      pingRate:
+        # frequency the frequency of sent "pings" to PolicyPersistenceActors
+        frequency: 1s
+        # entities the amount of entities to wake up per "frequency" interval
+        entities: 50
+      # events contains event journal specific configuration
+      events:
+        # historicalHeadersToPersist define the DittoHeaders to persist when persisting events to the journal
+        # those can e.g. be retrieved as additional "audit log" information when accessing a historical Policy revision
+        historicalHeadersToPersist:
+        # - "ditto-originator"
+        # - "ditto-origin"
+        # - "correlation-id"
+      # snapshots contains snapshots persistence specific configuration
+      snapshots:
+        # interval configures the interval when to do snapshot for a Policy which had changes to it
+        interval: 15m
+        # threshold configures the threshold after how many changes to a Policy to do a snapshot
+        threshold: 5
+
+## ----------------------------------------------------------------------------
+## things configuration
+##  ref: https://www.eclipse.dev/ditto/architecture-services-things.html
+things:
+  # enabled controls whether things related resources should be created
+  enabled: true
+  # replicaCount configuration for things
+  replicaCount: 1
+  # updateStrategy configuration for things
+  #  ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  # minReadySeconds configures the minimum number of seconds for which a newly created Pod should be ready without any
+  #  of its containers crashing, for it to be considered available
+  #  ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#min-ready-seconds
+  minReadySeconds: 10
+  # additionalLabels configuration for things
+  additionalLabels: {}
+  # additionalAnnotations configuration for things
+  additionalAnnotations: {}
+  image:
+    # repository for the things docker image
+    repository: docker.io/eclipse/ditto-things
+    # tag for the things docker image - overwrite to specify something else than Chart.AppVersion
+    # tag: 3.3.0
+    # pullPolicy for the things docker image
+    pullPolicy: IfNotPresent
+  # additionalJvmOptions JVM options to put into JAVA_TOOL_OPTIONS
+  additionalJvmOptions: ""
+  # systemProps used to define arbitrary system properties for things service
+  #  ref: https://www.eclipse.dev/ditto/installation-operating.html#configuration
+  systemProps:
+  # extraEnv to add arbitrary environment variable to things container
+  extraEnv:
+  # - name: LOG_LEVEL_APPLICATION
+  #   value: "DEBUG"
+  # resources configures the resources available/to use for the things service
+  resources:
+    # cpu defines the "required" CPU of a node so that the service is placed there
+    cpu: 0.5
+    # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
+    memoryMi: 1024
+  # jvm contains JVM specific scaling/tuning configuration of e.g. processors and garbage collector settings
+  jvm:
+    # activeProcessorCount defines how many processors the JVM should be configured to use
+    #  this is e.g. relevant for the GC which calculates the amount of asynchronous threads for GC based on the processor count
+    activeProcessorCount: 2
+    # heapRamPercentage defines how much memory of the configured "resources.memoryMi" can be used by the JVM heap space
+    #  be aware that the JVM also requires memory for "off heap" (and also stack) space + the container needs memory as well
+    heapRamPercentage: 60
+    # maxGcPauseMillis configures the used G1 GC "target for the maximum GC pause time"
+    #  default (by JVM if not set): 200
+    maxGcPauseMillis: 150
+  # readinessProbe configuration for things
+  #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
+  # livenessProbe configuration for things
+  #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  livenessProbe:
+    initialDelaySeconds: 160
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 4
+  # podDisruptionBudget configuration for things
+  #  ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
+  podDisruptionBudget:
+    # enabled controls whether things related PodDisruptionBudget should be created
+    enabled: true
+    # minAvailable number of replicas during voluntary disruptions
+    minAvailable: 1
+  # nodeSelector configuration for things
+  #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+  nodeSelector: {}
+  # tolerations configuration for things
+  #  ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+  # affinity configuration for things
+  #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+  # podMonitor configuration for things
+  podMonitor:
+    # enabled configures whether Pod Monitor is enabled, then a resource to scrape things metrics will be created
+    enabled: false
+    # interval: 30s
+    # scrapeTimeout: 15s
+  # config holds things specific configuration
+  config:
+    # mongodb holds mongodb specific configuration of things
+    mongodb:
+      # minPoolSize configures the minimum number of connections in the connection pool
+      minPoolSize: 10
+      # maxPoolSize configures the minimum number of connections in the connection pool
+      maxPoolSize: 200
+      # maxPoolIdleTime configures the maximum amount of time a pooled connection is allowed to idle before closing the connection
+      maxPoolIdleTime: 10m
+      # journalWriteConcern the MongoDB write concern to apply for writing operations on the event journal
+      #  one of: Unacknowledged | Acknowledged | Journaled | ReplicaAcknowledged
+      journalWriteConcern: "Acknowledged"
+      # snapsWriteConcern the MongoDB write concern to apply for writing operations on the snapshots persistence
+      #  one of: Unacknowledged | Acknowledged | Journaled | ReplicaAcknowledged
+      snapsWriteConcern: "Acknowledged"
+      # journalCircuitBreaker configures the circuit breaker for MongoDB operations on the event journal
+      journalCircuitBreaker:
+        # maxTries opens the circuit breaker if an exception during persisting an event occurs this often
+        #  a successful write resets the counter
+        maxTries: 10
+        # timeout configures the MongoDB write timeouts also causing the circuit breaker to open
+        timeout: 10s
+        # reset after this time in "Open" state, the circuit breaker is "Half-opened" again
+        reset: 5s
+      # snapsCircuitBreaker configures the circuit breaker for MongoDB operations on the snapshots persistence
+      snapsCircuitBreaker:
+        # maxTries opens the circuit breaker if an exception during persisting a snapshot occurs this often
+        #  a successful write resets the counter
+        maxTries: 10
+        # timeout configures the MongoDB write timeouts also causing the circuit breaker to open
+        timeout: 20s
+        # reset after this time in "Open" state, the circuit breaker is "Half-opened" again
+        reset: 8s
+    # cleanup contains the configuration for the background cleanup of stale snapshots and events
+    cleanup:
+      # enabled configures whether background cleanup is enabled or not
+      #  if enabled, stale "snapshot" and "journal" entries will be cleaned up from the MongoDB by a background process:
+      enabled: true
+      # quietPeriod defines how long to stay in a state where the background cleanup is not yet started
+      quietPeriod: 5m
+      # history contains configuration regarding the event history
+      history:
+        # retentionDuration configures the duration of how long to "keep" events and snapshots before being allowed to remove them in scope of cleanup
+        retentionDuration: 30d
+      # metricsReporter config of MongoMetricsReporter which is used by policies in order to report current persistence
+      #  roundtrip times in order to determine credits to cleanup stale data (journal entries, snapshots)
+      metricsReporter:
+        # resolution configures how far apart each measurement should be done
+        resolution: 1s
+        # history configures how many historical items to keep
+        history: 5
+      # interval configures how often a "credit decision" is made
+      interval: 1s
+      # timerThreshold configures the maximum database latency to give out credit for cleanup actions
+      timerThreshold: 100ms
+      # creditsPerBatch configures how many "cleanup credits" should be generated per "interval" as long as the
+      creditsPerBatch: 5
+    # persistence holds configuration regarding (akka) persistence of things (event journal and snapshots)
+    persistence:
+      # activityCheckInterval configures to keep things for that amount of time in memory when no other use did happen
+      activityCheckInterval: 2d
+      # events contains event journal specific configuration
+      events:
+        # historicalHeadersToPersist define the DittoHeaders to persist when persisting events to the journal
+        #  those can e.g. be retrieved as additional "audit log" information when accessing a historical Thing revision
+        historicalHeadersToPersist:
+        # - "ditto-originator"
+        # - "ditto-origin"
+        # - "correlation-id"
+      # snapshots contains snapshots persistence specific configuration
+      snapshots:
+        # the interval when to do snapshot for a Thing which had changes to it
+        interval: 15m
+        # the threshold after how many changes to a Thing to do a snapshot
+        threshold: 50
+    # policiesEnforcer contains configuration for Ditto "Policy Enforcers", e.g. regarding caching
+    policiesEnforcer:
+      # cache holds the configuration of policy enforcer caching
+      cache:
+        # enabled whether caching of policy enforcers should be enabled
+        enabled: true
+        # maxSize the maximum size of policy enforcers to keep in the cache
+        maxSize: 50000
+        # expireAfterWrite the maximum duration of inconsistency after losing a cache invalidation
+        expireAfterWrite: 8h
+        # expireAfterAccess prolonged on each cache access by that duration
+        expireAfterAccess: 4h
+    # wot contains Web of Things (WoT) specific configuration
+    wot:
+      # tdBasePrefix is the base to use where the Ditto endpoint is located in order to be injected into TDs:
+      tdBasePrefix: "http://localhost:8080"
+      # tdJsonTemplate contains a json template added to generated TDs, e.g. containing security information:
+      tdJsonTemplate: >-
+        {
+          "securityDefinitions": {
+            "basic_sc": {
+              "scheme": "basic",
+              "in": "header"
+            }
+          },
+          "security": "basic_sc",
+          "support": "https://www.eclipse.dev/ditto/"
+        }
+
+## ----------------------------------------------------------------------------
+## things-search configuration
+##  ref: https://www.eclipse.dev/ditto/architecture-services-things-search.html
+thingsSearch:
+  # enabled controls whether things-search related resources should be created
+  enabled: true
+  # replicaCount configuration for things-search
+  replicaCount: 1
+  # updateStrategy configuration for things-search
+  #  ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  # minReadySeconds configures the minimum number of seconds for which a newly created Pod should be ready without any
+  #  of its containers crashing, for it to be considered available
+  #  ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#min-ready-seconds
+  minReadySeconds: 10
+  # additionalLabels configuration for things-search
+  additionalLabels: {}
+  # additionalAnnotations configuration for things-search
+  additionalAnnotations: {}
+  image:
+    # repository for the things-search docker image
+    repository: docker.io/eclipse/ditto-things-search
+    # tag for the things-search docker image - overwrite to specify something else than Chart.AppVersion
+    # tag: 3.3.0
+    # pullPolicy for the things-search docker image
+    pullPolicy: IfNotPresent
+  # additional JVM options to put into JAVA_TOOL_OPTIONS
+  additionalJvmOptions: ""
+  # systemProps used to define arbitrary system properties for things-search service
+  #  ref: https://www.eclipse.dev/ditto/installation-operating.html#configuration
+  systemProps:
+  # extraEnv to add arbitrary environment variable to things-search container
+  extraEnv:
+  # - name: LOG_LEVEL_APPLICATION
+  #   value: "DEBUG"
+  # resources configures the resources available/to use for the things search service
+  resources:
+    # cpu defines the "required" CPU of a node so that the service is placed there
+    cpu: 0.5
+    # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
+    memoryMi: 1024
+  # jvm contains JVM specific scaling/tuning configuration of e.g. processors and garbage collector settings
+  jvm:
+    # activeProcessorCount defines how many processors the JVM should be configured to use
+    #  this is e.g. relevant for the GC which calculates the amount of asynchronous threads for GC based on the processor count
+    activeProcessorCount: 2
+    # heapRamPercentage defines how much memory of the configured "resources.memoryMi" can be used by the JVM heap space
+    #  be aware that the JVM also requires memory for "off heap" (and also stack) space + the container needs memory as well
+    heapRamPercentage: 60
+    # maxGcPauseMillis configures the used G1 GC "target for the maximum GC pause time"
+    #  default (by JVM if not set): 200
+    maxGcPauseMillis: 150
+  # readinessProbe configuration for things-search
+  #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
+  # livenessProbe configuration for things-search
+  #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  livenessProbe:
+    initialDelaySeconds: 160
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 4
+  # podDisruptionBudget configuration for things-search
+  #  ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
+  podDisruptionBudget:
+    # enabled controls whether things-search related PodDisruptionBudget should be created
+    enabled: true
+    # minAvailable number of replicas during voluntary disruptions
+    minAvailable: 1
+  # nodeSelector configuration for things-search
+  #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+  nodeSelector: {}
+  # tolerations configuration for things-search
+  #  ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+  # affinity configuration for things-search
+  #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+  # podMonitor configuration for things-search
+  podMonitor:
+    # enabled configures whether Pod Monitor is enabled, then a resource to scrape things search metrics will be created
+    enabled: false
+    # interval: 30s
+    # scrapeTimeout: 15s
+  # config holds things-search specific configuration
+  config:
+    # mongodb holds mongodb specific configuration of things-search
+    mongodb:
+      # minPoolSize configures the minimum number of connections in the connection pool
+      minPoolSize: 10
+      # maxPoolSize configures the minimum number of connections in the connection pool
+      maxPoolSize: 100
+      # maxPoolIdleTime configures the maximum amount of time a pooled connection is allowed to idle before closing the connection
+      maxPoolIdleTime: 10m
+      # searchReadPreference configures the overall MongoDB read preference
+      #  one of: primary | primaryPreferred | secondary | secondaryPreferred | nearest
+      searchReadPreference: "primary"
+      # searchWriteConcern configures the overall MongoDB write concern
+      #  one of: unacknowledged | acknowledged | majority | journaled | w1 | w2 | w3
+      searchWriteConcern: "acknowledged"
+      # searchWithAcksWriteConcern configures the MongoDB write concern for commands sent with "search-persisted" ACK
+      #  ref: https://www.eclipse.dev/ditto/basic-acknowledgements.html#built-in-acknowledgement-labels
+      #  one of: unacknowledged | acknowledged | majority | journaled | w1 | w2 | w3
+      searchWithAcksWriteConcern: "majority"
+      # queryReadConcern configures the MongoDB read concern for doing queries / performing searches
+      #  only if this is "linearizable" in combination with the searchWithAcksWriteConcern: "majority" a strong consistency
+      #  for commands using the "search-persisted" requested ACK is guaranteed
+      #  one of: default | local | majority | linearizable | snapshot | available
+      queryReadConcern: "linearizable"
+      # updaterPersistenceReadConcern configures the MongoDB read concern for the "ThingUpdater"
+      #  one of: default | local | majority | linearizable | snapshot | available
+      updaterPersistenceReadConcern: "local"
+      # updaterPersistenceReadPreference configures the MongoDB read preference for the "ThingUpdater"
+      updaterPersistenceReadPreference: "primaryPreferred"
+    # updater contains configuration for the "Things Updater" of things-search service
+    updater:
+      # activityCheckInterval configures to keep thing updaters for that amount of time in memory when no update did happen:
+      activityCheckInterval: 2h
+      # stream contains streaming configuration settings of the things-search service
+      stream:
+        # retrievalParallelism configures the upper bound of parallel SudoRetrieveThing commands
+        #  (by extension, parallel loads of policy enforcer cache)
+        retrievalParallelism: 64
+        persistence:
+          # parallelism configures how much bulk writes to request in parallel - must be a power of 2
+          parallelism: 16
+        # policiesEnforcer contains configuration for Ditto "Policy Enforcers", e.g. regarding caching
+        policiesEnforcer:
+          # cache holds the configuration of policy enforcer caching
+          cache:
+            # maxSize the maximum size of policy enforcers to keep in the cache
+            maxSize: 30000
+            # expireAfterWrite the maximum duration of inconsistency after losing a cache invalidation
+            expireAfterWrite: 12h
+            # expireAfterAccess prolonged on each cache access by that duration
+            expireAfterAccess: 6h
+        # thingCache configures the cache configuration for caching of things in things-search
+        thingCache:
+          # maxSize defines how many things to cache
+          maxSize: 30000
+          # expireAfterWrite defines how long at most to keep things in the cache after loading them into the cache
+          expireAfterWrite: 12h
+          # expireAfterWrite defines how long at most to keep things in the cache after last accessing them from the cache
+          expireAfterAccess: 6h
+      # backgroundSync contains the configuration for the "background sync" responsible for continuously streaming
+      #  over snapshot entries of things to ensure the eventual consistency of the search index
+      backgroundSync:
+        # enabled whether background sync is turned on
+        enabled: true
+        # quietPeriod the duration between service start-up and the beginning of background sync
+        quietPeriod: 5m
+        # idleTimeout how soon to close the remote stream if no element passed through it
+        idleTimeout: 5m
+        # toleranceWindow how long to wait before reacting to out-of-date search index entries
+        toleranceWindow: 20m
+        # keepEvents how many events to keep in the actor state
+        keepEvents: 2
+        # throttle contains the background sync throttling configuration
+        throttle:
+          # throughput how many things to update per throttle period
+          throughput: 100
+          # period the throttle period
+          period: 30s
+
+
+## ----------------------------------------------------------------------------
+## connectivity configuration
+##  ref: https://www.eclipse.dev/ditto/architecture-services-connectivity.html
+connectivity:
+  # enabled controls whether connectivity related resources should be created
+  enabled: true
+  # replicaCount configuration for connectivity
+  replicaCount: 1
+  # updateStrategy configuration for connectivity
+  #  ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  # minReadySeconds configures the minimum number of seconds for which a newly created Pod should be ready without any
+  #  of its containers crashing, for it to be considered available
+  #  ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#min-ready-seconds
+  minReadySeconds: 10
+  # additionalLabels configuration for connectivity
+  additionalLabels: {}
+  # additionalAnnotations configuration for connectivity
+  additionalAnnotations: {}
+  image:
+    # repository for the connectivity docker image
+    repository: docker.io/eclipse/ditto-connectivity
+    # tag for the connectivity docker image - overwrite to specify something else than Chart.AppVersion
+    # tag: 3.3.0
+    # pullPolicy for the connectivity docker image
+    pullPolicy: IfNotPresent
+  # additional JVM options to put into JAVA_TOOL_OPTIONS
+  additionalJvmOptions: ""
+  # systemProps used to define arbitrary system properties for connectivity service
+  #  ref: https://www.eclipse.dev/ditto/installation-operating.html#configuration
+  systemProps:
+  # extraEnv to add arbitrary environment variable to connectivity container
+  extraEnv:
+  # - name: LOG_LEVEL_APPLICATION
+  #   value: "DEBUG"
+  # resources configures the resources available/to use for the connectivity service
+  resources:
+    # cpu defines the "required" CPU of a node so that the service is placed there
+    cpu: 0.5
+    # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
+    memoryMi: 1024
+  # jvm contains JVM specific scaling/tuning configuration of e.g. processors and garbage collector settings
+  jvm:
+    # activeProcessorCount defines how many processors the JVM should be configured to use
+    #  this is e.g. relevant for the GC which calculates the amount of asynchronous threads for GC based on the processor count
+    activeProcessorCount: 2
+    # heapRamPercentage defines how much memory of the configured "resources.memoryMi" can be used by the JVM heap space
+    #  be aware that the JVM also requires memory for "off heap" (and also stack) space + the container needs memory as well
+    heapRamPercentage: 60
+    # maxGcPauseMillis configures the used G1 GC "target for the maximum GC pause time"
+    #  default (by JVM if not set): 200
+    maxGcPauseMillis: 150
+  # readinessProbe configuration for connectivity
+  #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
+  # livenessProbe configuration for connectivity
+  #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  livenessProbe:
+    initialDelaySeconds: 160
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 4
+  # podDisruptionBudget configuration for connectivity
+  #  ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
+  podDisruptionBudget:
+    # enabled controls whether connectivity related PodDisruptionBudget should be created
+    enabled: true
+    # minAvailable number of replicas during voluntary disruptions
+    minAvailable: 1
+  # nodeSelector configuration for connectivity
+  #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+  nodeSelector: {}
+  # tolerations configuration for connectivity
+  #  ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+  # affinity configuration for connectivity
+  #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+  # podMonitor configuration for connectivity
+  podMonitor:
+    # enabled configures whether Pod Monitor is enabled, then a resource to scrape connectivity metrics will be created
+    enabled: false
+    # interval: 30s
+    # scrapeTimeout: 15s
+  # config holds connectivity specific configuration
+  config:
+    # mongodb holds mongodb specific configuration of connectivity
+    mongodb:
+      # minPoolSize configures the minimum number of connections in the connection pool
+      minPoolSize: 10
+      # maxPoolSize configures the minimum number of connections in the connection pool
+      maxPoolSize: 50
+      # maxPoolIdleTime configures the maximum amount of time a pooled connection is allowed to idle before closing the connection
+      maxPoolIdleTime: 10m
+      # journalWriteConcern the MongoDB write concern to apply for writing operations on the event journal
+      #  one of: Unacknowledged | Acknowledged | Journaled | ReplicaAcknowledged
+      journalWriteConcern: "Journaled"
+      # snapsWriteConcern the MongoDB write concern to apply for writing operations on the snapshots persistence
+      #  one of: Unacknowledged | Acknowledged | Journaled | ReplicaAcknowledged
+      snapsWriteConcern: "Journaled"
+      # journalCircuitBreaker configures the circuit breaker for MongoDB operations on the event journal
+      journalCircuitBreaker:
+        # maxTries opens the circuit breaker if an exception during persisting an event occurs this often
+        #  a successful write resets the counter
+        maxTries: 10
+        # timeout configures the MongoDB write timeouts also causing the circuit breaker to open
+        timeout: 10s
+        # reset after this time in "Open" state, the circuit breaker is "Half-opened" again
+        reset: 5s
+      # snapsCircuitBreaker configures the circuit breaker for MongoDB operations on the snapshots persistence
+      snapsCircuitBreaker:
+        # maxTries opens the circuit breaker if an exception during persisting a snapshot occurs this often
+        #  a successful write resets the counter
+        maxTries: 10
+        # timeout configures the MongoDB write timeouts also causing the circuit breaker to open
+        timeout: 20s
+        # reset after this time in "Open" state, the circuit breaker is "Half-opened" again
+        reset: 8s
+    # policiesEnforcer contains configuration for Ditto "Policy Enforcers", e.g. regarding caching
+    policiesEnforcer:
+      # cache holds the configuration of policy enforcer caching
+      cache:
+        # enabled whether caching of policy enforcers should be enabled
+        enabled: true
+        # maxSize the maximum size of policy enforcers to keep in the cache
+        maxSize: 1000
+        # expireAfterWrite the maximum duration of inconsistency after losing a cache invalidation
+        expireAfterWrite: 8h
+        # expireAfterAccess prolonged on each cache access by that duration
+        expireAfterAccess: 4h
+    # cleanup contains the configuration for the background cleanup of stale snapshots and events
+    cleanup:
+      # enabled configures whether background cleanup is enabled or not
+      #  if enabled, stale "snapshot" and "journal" entries will be cleaned up from the MongoDB by a background process:
+      enabled: false
+      # quietPeriod defines how long to stay in a state where the background cleanup is not yet started
+      quietPeriod: 5m
+      # history contains configuration regarding the event history
+      history:
+        # retentionDuration configures the duration of how long to "keep" events and snapshots before being allowed to remove them in scope of cleanup
+        retentionDuration: 30d
+      # metricsReporter config of MongoMetricsReporter which is used by policies in order to report current persistence
+      #  roundtrip times in order to determine credits to cleanup stale data (journal entries, snapshots)
+      metricsReporter:
+        # resolution configures how far apart each measurement should be done
+        resolution: 1s
+        # history configures how many historical items to keep
+        history: 5
+      # interval configures how often a "credit decision" is made
+      interval: 10s
+      # timerThreshold configures the maximum database latency to give out credit for cleanup actions
+      timerThreshold: 100ms
+      # creditsPerBatch configures how many "cleanup credits" should be generated per "interval" as long as the
+      creditsPerBatch: 5
+    # persistence holds configuration regarding (akka) persistence of connections (event journal and snapshots)
+    persistence:
+      # keep closed, inactive connections for that amount of time in memory when no other use did happen:
+      activityCheckInterval: 45m
+      # events contains event journal specific configuration
+      events:
+        # historicalHeadersToPersist define the DittoHeaders to persist when persisting events to the journal
+        # those can e.g. be retrieved as additional "audit log" information when accessing a historical Connection revision
+        historicalHeadersToPersist:
+        # - "ditto-originator"
+        # - "ditto-origin"
+        # - "correlation-id"
+      # snapshots contains snapshots persistence specific configuration
+      snapshots:
+        # interval the interval when to do snapshot for a Connection which had changes to it
+        interval: 15m
+        # threshold the threshold after how many changes to a Connection to do a snapshot
+        threshold: 5
+    # connections holds configuration regarding connections
+    connections:
+      # reconnect configures pinging of connections, so that not all connections are recovered at the same time
+      reconnect:
+        # rate configures the rate in which frequency to ping/wake up how many entities (connections)
+        rate:
+          # frequency the frequency of how often to wake up connections after restart
+          frequency: 1s
+          # entities the amount of entities to wake up per "frequency" interval
+          entities: 10
+      # allowedHostnames contains a comma separated list of explicitly allowed hostnames
+      allowedHostnames: ""
+      # blockedHostnames contains a comma separated list of blocked hostnames
+      blockedHostnames: "localhost"
+      # blockedSubnets holds a comma separated string of blocked subnets
+      #  specify subnets to block in CIDR format e.g. "11.1.0.0/16"
+      blockedSubnets: ""
+      # blockedHostRegex contains the regex for blocked hostnames
+      blockedHostRegex: ^.*\\.svc.cluster.local$
+      limits:
+        # maxSources contains the max number of sources per connection
+        maxSources: 5
+        # maxTargets contains the max number of targets per connection
+        maxTargets: 5
+      enrichment:
+        # the buffer size used for the queue in the message mapping processor actor
+        bufferSize: 200
+      # kafka contains the configuration specific to Ditto connections to Apache Kafka
+      kafka:
+        # consumer contains configuration for consuming messages from Kafka
+        consumer:
+          # throttling contains configuration for applying throttling when consuming from a single Kafka connection
+          throttling:
+            # enabled defines whether throttling should be applied when consuming messages from a Kafka source
+            enabled: true
+            # interval the interval at which the consumer is throttled - must be > 0s
+            interval: 1s
+            # limit defines the maximum number of messages the consumer is allowed to receive within the configured
+            #  throttling "interval" e.g. 100 msgs/s - must be > 0
+            limit: 500
+            # maxInflightFactor configures how many unacknowledged messages are allowed at any time as factor of
+            #  ${limit} - must be >= 1.0
+            #  This limit couples latency with throughput (long latency before ack -> lower throughput)
+            maxInflightFactor: 2.0
+        # producer contains configuration for publishing messages to Kafka
+        producer:
+          # If a message can't be published it is put in a queue. Further messages are dropped when the queue is full.
+          queueSize: 1000
+          # Messages to publish in parallel per Kafka-Publisher (one per connectivity client)
+          parallelism: 10
+
+## ----------------------------------------------------------------------------
+## gateway configuration
+##  ref: https://www.eclipse.dev/ditto/architecture-services-gateway.html
+gateway:
+  # enabled controls whether gateway related resources should be created
+  enabled: true
+  # replicaCount configuration for gateway
+  replicaCount: 1
+  # updateStrategy configuration for gateway
+  #  ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  # minReadySeconds configures the minimum number of seconds for which a newly created Pod should be ready without any
+  #  of its containers crashing, for it to be considered available
+  #  ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#min-ready-seconds
+  minReadySeconds: 10
+  # additionalLabels configuration for gateway
+  additionalLabels: {}
+  # additionalAnnotations configuration for gateway
+  additionalAnnotations: {}
+  # additional JVM options to put into JAVA_TOOL_OPTIONS
+  additionalJvmOptions: ""
+  image:
+    # repository for the gateway docker image
+    repository: docker.io/eclipse/ditto-gateway
+    # tag for the gateway docker image - overwrite to specify something else than Chart.AppVersion
+    # tag: 3.3.0
+    # pullPolicy for the gateway docker image
+    pullPolicy: IfNotPresent
+  # systemProps used to define arbitrary system properties configuration for gateway
+  #  ref: https://www.eclipse.dev/ditto/installation-operating.html#configuration
+  systemProps:
+    - "-Dditto.protocol.blocklist.0=raw-request-uri"
+    - "-Dditto.protocol.blocklist.1=cache-control"
+    - "-Dditto.protocol.blocklist.2=connection"
+    - "-Dditto.protocol.blocklist.3=timeout-access"
+    - "-Dditto.protocol.blocklist.4=accept-encoding"
+    - "-Dditto.protocol.blocklist.5=x-forwarded-scheme"
+    - "-Dditto.protocol.blocklist.6=x-forwarded-port"
+    - "-Dditto.protocol.blocklist.7=x-forwarded-for"
+    - "-Dditto.protocol.blocklist.8=forwarded=for"
+    - "-Dditto.protocol.blocklist.9=sec-fetch-mode"
+    - "-Dditto.protocol.blocklist.10=sec-fetch-site"
+    - "-Dditto.protocol.blocklist.11=authorization"
+    - "-Dditto.protocol.blocklist.12=accept-language"
+    - "-Dditto.protocol.blocklist.13=host"
+    - "-Dditto.protocol.blocklist.14=via"
+    - "-Dditto.protocol.blocklist.15=sec-ch-ua"
+    - "-Dditto.protocol.blocklist.16=sec-ch-ua-mobile"
+    - "-Dditto.protocol.blocklist.17=sec-ch-ua-platform"
+    - "-Dditto.protocol.blocklist.18=sec-fetch-dest"
+    - "-Dditto.protocol.blocklist.19=user-agent"
+  # extraEnv to add arbitrary environment variables to gateway container
+  extraEnv:
+  # - name: LOG_LEVEL_APPLICATION
+  #   value: "DEBUG"
+  # resources configures the resources available/to use for the gateway service
+  resources:
+    # cpu defines the "required" CPU of a node so that the service is placed there
+    cpu: 0.5
+    # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
+    memoryMi: 1024
+  # jvm contains JVM specific scaling/tuning configuration of e.g. processors and garbage collector settings
+  jvm:
+    # activeProcessorCount defines how many processors the JVM should be configured to use
+    #  this is e.g. relevant for the GC which calculates the amount of asynchronous threads for GC based on the processor count
+    activeProcessorCount: 2
+    # heapRamPercentage defines how much memory of the configured "resources.memoryMi" can be used by the JVM heap space
+    #  be aware that the JVM also requires memory for "off heap" (and also stack) space + the container needs memory as well
+    heapRamPercentage: 60
+    # maxGcPauseMillis configures the used G1 GC "target for the maximum GC pause time"
+    #  default (by JVM if not set): 200
+    maxGcPauseMillis: 150
+  # readinessProbe configuration for gateway
+  # ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
+  # livenessProbe configuration for gateway
+  #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  livenessProbe:
+    initialDelaySeconds: 160
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 4
+  # service configuration of the k8s service of the gateway
+  service:
+    # port number configuration for gateway
+    port: 8080
+    # annotations to add arbitrary annotations to nginx service
+    annotations: {}
+  # podDisruptionBudget configuration for gateway
+  #  ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
+  podDisruptionBudget:
+    # enabled controls whether gateway related PodDisruptionBudget should be created
+    enabled: true
+    # minAvailable number of replicas during voluntary disruptions
+    minAvailable: 1
+  # nodeSelector configuration for gateway
+  #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+  nodeSelector: {}
+  # tolerations configuration for gateway
+  #  ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+  # affinity configuration for gateway
+  #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+  # podMonitor configuration for gateway
+  podMonitor:
+    # enabled configures whether Pod Monitor is enabled, then a resource to scrape gateway metrics will be created
+    enabled: false
+    # interval: 30s
+    # scrapeTimeout: 15s
+  # config holds gateway specific configuration
+  config:
+    # authentication contains the settings regarding authentication against the gateway
+    authentication:
+      # enablePreAuthentication whether Ditto "pre-authentication" should be enabled
+      #  ref: https://www.eclipse.dev/ditto/installation-operating.html#pre-authentication
+      enablePreAuthentication: false
+      # oauth contains the OAuth2.0 / OpenID Connect related configuration
+      oauth:
+        # allowedClockSkew configures the amount of clock skew in seconds to tolerate when verifying the local time against the exp and nbf claims
+        allowedClockSkew: 20s
+        # openidConnectIssuers holds a map of issuer-prefixes as key (e.g. "example")
+        #  and OAuth "issuer" and "authSubjects" list containing which claims to extract from a JWT issued by the issuer
+        openidConnectIssuers:
+        #  example:
+        #    issuer: "example.com"
+        #    authSubjects:
+        #    - "{{ jwt:sub }}"
+        #    - "{{ jwt:groups }}"
+      # devops contains the configuration of the gateway's "/devops" API, e.g. access to it
+      devops:
+        # secured this controls whether "/devops" and "/api/2/connections" resources are secured or not
+        secured: true
+        # authMethod declares the authentication method to apply for authenticating the "/devops" and "/api/2/connections" resources
+        #  one of: "basic" | "oauth2"
+        authMethod: "basic"
+        # oauth contains the OAuth2.0 / OpenID Connect related configuration applied when "authMethod" above is "oauth2"
+        oauth:
+          # allowedClockSkew configures the amount of clock skew in seconds to tolerate when verifying the local time against the exp and nbf claims
+          allowedClockSkew: 20s
+          # openidConnectIssuers holds a map of issuer-prefixes as key (e.g. "example")
+          #  and OAuth "issuer" and "authSubjects" list containing which claims to extract from a JWT issued by the issuer
+          openidConnectIssuers:
+          #  example-ops:
+          #    issuer: "example.com"
+          #    authSubjects:
+          #    - "{{ jwt:sub }}"
+          #    - "{{ jwt:groups }}"
+        # oauthSubjects contains list of subjects authorized to use "/devops" and "/api/2/connections" resources
+        oauthSubjects:
+        # - "example-ops:devops-admin"
+        # statusSecured controls whether the "/status" and "/status/health" resources are secured or not
+        statusSecured: true
+        # statusAuthMethod declares the authentication method to apply for authenticating the "/status" and "/status/health" resources
+        #  one of: "basic" | "oauth2"
+        statusAuthMethod: "basic"
+        # statusOauthSubjects contains list of subjects authorized to use "/status" API
+        statusOauthSubjects:
+        # - "example-ops:devops-admin"
+        # existingSecret contains the name of existing secret containing status and devops passwords
+        #  if not set then default secret is created - useful for managing secrets with external secrets manager
+        existingSecret:
+        # devopsPassword the password to use for accessing "/devops" and "/api/2/connections" resources
+        #  when "authMethod": "basic" (with username: devops)
+        #  if not set a random password will be generated and used
+        devopsPassword:
+        # statusPassword will be used for accessing "/status" and "/status/health" resources
+        #  when "statusAuthMethod": "basic" (with username: devops)
+        #  if not set a random password will be set
+        statusPassword:
+    # websocket contains the gateway websocket configuration
+    websocket:
+      # subscriber contains the configuration for receiving data via the websocket
+      subscriber:
+        # backpressureQueueSize is the max queue size of how many inflight commands a single websocket client can have
+        backpressureQueueSize: 100
+      # publisher contains the configuration for sending/publishing data via the websocket
+      publisher:
+        # backpressureBufferSize is the max buffer size of how many outstanding CommandResponses and Events a single
+        #  websocket client can have - additional CommandResponses and Events are dropped if this size is reached
+        backpressureBufferSize: 200
+      # throttling contains the throttling configuration of a single websocket session
+      throttling:
+        # enabled whether throttling message consumption via a single websocket session is enabled
+        enabled: true
+        # interval is the interval at which a single websocket session is rate-limited - must be > 0s
+        interval: 1s
+        # limit is the maximum number of messages the websocket session is allowed to receive within the configured
+        #  throttling interval e.g. 100 msgs/s
+        limit: 100
+    # websocket contains the gateway SSE (server sent events) configuration
+    sse:
+      # throttling contains the throttling configuration of a single SSE session (only applies for search via SSE)
+      throttling:
+        # enabled whether throttling message publishing via a single websocket session is enabled
+        enabled: true
+        # interval is the interval at which a single SSE session is rate-limited - must be > 0s
+        interval: 1s
+        # limit is the maximum number of messages the SSE session is allowed to receive within the configured
+        #  throttling interval e.g. 100 msgs/s
+        limit: 100
+
+## ----------------------------------------------------------------------------
+## nginx configuration
+nginx:
+  # enabled controls whether nginx related resources should be created
+  enabled: true
+  # replicaCount for nginx
+  replicaCount: 1
+  # updateStrategy for nginx
+  #  ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  # additionalLabels on nginx pods
+  additionalLabels: {}
+  # additionalAnnotations on nginx pods
+  additionalAnnotations: {}
+  image:
+    # repository for the nginx docker image
+    repository: docker.io/nginx
+    # tag for the nginx docker image
+    tag: 1.23
+    # pullPolicy for the nginx docker image
+    pullPolicy: IfNotPresent
+  # extraEnv to add arbitrary environment variables to nginx container
+  extraEnv: []
+  # resources configures the resources available/to use for nginx
+  resources:
+    # cpu defines the "required" CPU of a node so that the service is placed there
+    cpu: 0.2
+    # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
+    memoryMi: 64
+  # readinessProbe configuration for nginx
+  #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  readinessProbe: {}
+  # livenessProbe configuration for nginx
+  #  ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  livenessProbe: {}
+  # service configuration of the k8s service of the nginx
+  service:
+    # type of the nginx service
+    type: ClusterIP
+    # port of the nginx service
+    port: 8080
+    # in case of <type> NodePort the <nodePort> may additionally be set
+    #  type: NodePort
+    #  nodePort: 30080
+    # annotations to add arbitrary annotations to nginx service
+    annotations: {}
+  # nodeSelector configuration for nginx
+  #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+  nodeSelector: {}
+  # tolerations configuration for nginx
+  #  ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+  # affinity configuration for nginx
+  #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+  # init containers for nginx
+  initContainers:
+    waitForGateway:
+      enabled: true
+      name: wait-for-gateway
+      image: rancher/curlimages-curl:7.73.0
+
+## ----------------------------------------------------------------------------
+## Ditto UI configuration
+dittoui:
+  enabled: true
+  # replicaCount for Ditto UI service
+  replicaCount: 1
+  # updateStrategy for Ditto UI service
+  #  ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  # additionalLabels on Ditto UI pods
+  additionalLabels: {}
+  # additionalAnnotations on Ditto UI pods
+  additionalAnnotations: {}
+  image:
+    # repository for the Ditto UI docker image
+    repository: docker.io/eclipse/ditto-ui
+    # tag for the Ditto UI image - overwrite to specify something else than Chart.AppVersion
+    # tag: 3.3.0
+    # pullPolicy for the Ditto UI docker image
+    pullPolicy: IfNotPresent
+  # extraEnv to add arbitrary environment variable to Ditto UI container
+  extraEnv: []
+  # resources configures the resources available/to use for the Ditto UI container
+  resources:
+    # cpu defines the "required" CPU of a node so that the service is placed there
+    cpu: 0.1
+    # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
+    memoryMi: 64
+  # podDisruptionBudget ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
+  podDisruptionBudget:
+    # enabled controls whether Ditto UI related PodDisruptionBudget should be created
+    enabled: true
+    # minAvailable number of replicas during voluntary disruptions
+    minAvailable: 1
+  # service configuration of the k8s service of the Ditto UI
+  service:
+    # port of the Ditto UI service
+    port: 8080
+    # annotations to add arbitrary annotations to Ditto UI service
+    annotations: {}
+
+## ----------------------------------------------------------------------------
+## swaggerui configuration
+swaggerui:
+  # enabled controls whether swagger ui related resources should be created
+  enabled: true
+  # replicaCount for swagger ui service
+  replicaCount: 1
+  # updateStrategy for swagger ui service
+  #  ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  # additionalLabels on swagger ui pods
+  additionalLabels: {}
+  # additionalAnnotations on swagger ui pods
+  additionalAnnotations: {}
+  image:
+    # repository for the swagger ui docker image
+    repository: docker.io/swaggerapi/swagger-ui
+    # tag for the swagger ui docker image
+    tag: v4.15.5
+    # pullPolicy for the swagger ui docker image
+    pullPolicy: IfNotPresent
+  # extraEnv to add arbitrary environment variable to swagger ui container
+  extraEnv: []
+  # resources configures the resources available/to use for the swagger ui container
+  resources:
+    # cpu defines the "required" CPU of a node so that the service is placed there
+    cpu: 0.1
+    # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
+    memoryMi: 64
+  # podDisruptionBudget ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
+  podDisruptionBudget:
+    # enabled controls whether swagger ui related PodDisruptionBudget should be created
+    enabled: true
+    # minAvailable number of replicas during voluntary disruptions
+    minAvailable: 1
+  # service configuration of the k8s service of the swagger ui
+  service:
+    # port of the swagger ui service
+    port: 8080
+    # annotations to add arbitrary annotations to swagger ui service
+    annotations: {}
+
+## ----------------------------------------------------------------------------
+## mongodb dependency chart configuration
+mongodb:
+  # enabled controls whether mongodb should be started as part of the Helm chart or not
+  enabled: true
+  # fullnameOverride: ditto-mongodb
+  auth:
+    enabled: false
+  securityContext:
+    enabled: false
+  persistence:
+    enabled: false

@@ -60,6 +60,16 @@ public final class ConnectionPreconditionNotModifiedException extends DittoRunti
     /**
      * A mutable builder for a {@link ConnectionPreconditionNotModifiedException}.
      *
+     * @return the builder.
+     * @since 3.3.0
+     */
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+
+    /**
+     * A mutable builder for a {@link ConnectionPreconditionNotModifiedException}.
+     *
      * @param expectedNotToMatch the value which was expected not to match {@code matched} value.
      * @param matched the matched value.
      * @return the builder.

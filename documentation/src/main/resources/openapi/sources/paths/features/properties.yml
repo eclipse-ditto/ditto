@@ -55,7 +55,7 @@ get:
     '400':
       description: |-
         The request could not be completed. Possible reasons:
-          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           * at least one of the defined query parameters is invalid.
       content:
         application/json:
@@ -90,6 +90,7 @@ put:
     - $ref: '../../parameters/featureIdPathPathParam.yml'
     - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
     - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/ifEqualHeaderParam.yml'
     - $ref: '../../parameters/putMetadataParam.yml'
     - $ref: '../../parameters/deleteMetadataParam.yml'
     - $ref: '../../parameters/requestedAcksParam.yml'
@@ -123,7 +124,7 @@ put:
     '400':
       description: |-
         The request could not be completed. Possible reasons:
-          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           * the JSON body of the feature properties to be created/modified is invalid
       content:
         application/json:
@@ -201,6 +202,7 @@ patch:
     - $ref: '../../parameters/featureIdPathPathParam.yml'
     - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
     - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/ifEqualHeaderParam.yml'
     - $ref: '../../parameters/putMetadataParam.yml'
     - $ref: '../../parameters/deleteMetadataParam.yml'
     - $ref: '../../parameters/requestedAcksParam.yml'
@@ -221,7 +223,7 @@ patch:
     '400':
       description: |-
         The request could not be completed. Possible reasons:
-          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
           * the JSON body of the feature properties to be created/modified is invalid
       content:
         application/json:
@@ -299,7 +301,7 @@ delete:
     '400':
       description: |-
         The request could not be completed. Possible reasons:
-          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).
       content:
         application/json:
           schema:

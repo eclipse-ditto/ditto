@@ -253,18 +253,26 @@ final class ImmutableSource implements Source {
                         authorizationSubjects);
 
         final Enforcement readEnforcement =
-                jsonObject.getValue(JsonFields.ENFORCEMENT).map(ImmutableEnforcement::fromJson).orElse(null);
+                jsonObject.getValue(JsonFields.ENFORCEMENT)
+                        .filter(f -> !f.isNull())
+                        .map(ImmutableEnforcement::fromJson)
+                        .orElse(null);
 
         final FilteredAcknowledgementRequest readAcknowledgementRequests =
                 jsonObject.getValue(JsonFields.ACKNOWLEDGEMENT_REQUESTS)
+                        .filter(f -> !f.isNull())
                         .map(FilteredAcknowledgementRequest::fromJson)
                         .orElse(null);
 
         final HeaderMapping readHeaderMapping =
-                jsonObject.getValue(JsonFields.HEADER_MAPPING).map(ImmutableHeaderMapping::fromJson).orElse(null);
+                jsonObject.getValue(JsonFields.HEADER_MAPPING)
+                        .filter(f -> !f.isNull())
+                        .map(ImmutableHeaderMapping::fromJson)
+                        .orElse(null);
 
         final PayloadMapping readPayloadMapping =
                 jsonObject.getValue(JsonFields.PAYLOAD_MAPPING)
+                        .filter(f -> !f.isNull())
                         .map(ImmutablePayloadMapping::fromJson)
                         .orElse(ConnectivityModelFactory.emptyPayloadMapping());
 
@@ -273,6 +281,7 @@ final class ImmutableSource implements Source {
 
         final ReplyTarget readReplyTarget =
                 jsonObject.getValue(JsonFields.REPLY_TARGET)
+                        .filter(f -> !f.isNull())
                         .flatMap(ImmutableReplyTarget::fromJsonOptional)
                         .orElse(null);
 

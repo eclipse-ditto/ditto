@@ -411,6 +411,12 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S ifEqual(final IfEqual ifEqual) {
+        putCharSequence(DittoHeaderDefinition.IF_EQUAL, ifEqual.toString());
+        return myself;
+    }
+
+    @Override
     public S inboundPayloadMapper(@Nullable final String inboundPayloadMapperId) {
         putCharSequence(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER, inboundPayloadMapperId);
         return myself;

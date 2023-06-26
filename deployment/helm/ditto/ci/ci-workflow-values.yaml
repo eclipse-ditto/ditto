@@ -1,0 +1,123 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+---
+
+# profile for installing Ditto
+# - with Ingress enabled and low cpu requests
+
+## ingress configuration
+ingress:
+  enabled: true
+  host: ditto.example.com
+  annotations:
+    # kubernetes.io/tls-acme: "true"
+  tls:
+    - secretName: ditto-tls
+      hosts:
+        - ditto.example.com
+
+## ----------------------------------------------------------------------------
+## policies configuration
+## ref: https://www.eclipse.dev/ditto/architecture-services-policies.html
+policies:
+  resources:
+    cpu: 0.15
+    memoryMi: 512
+  jvm:
+    activeProcessorCount: 2
+    heapRamPercentage: 50
+
+## ----------------------------------------------------------------------------
+## things configuration
+## ref: https://www.eclipse.dev/ditto/architecture-services-things.html
+things:
+  resources:
+    cpu: 0.15
+    memoryMi: 512
+  jvm:
+    activeProcessorCount: 2
+    heapRamPercentage: 50
+
+## ----------------------------------------------------------------------------
+## things-search configuration
+## ref: https://www.eclipse.dev/ditto/architecture-services-things-search.html
+thingsSearch:
+  resources:
+    cpu: 0.15
+    memoryMi: 512
+  jvm:
+    activeProcessorCount: 2
+    heapRamPercentage: 50
+
+## ----------------------------------------------------------------------------
+## connectivity configuration
+## ref: https://www.eclipse.dev/ditto/architecture-services-connectivity.html
+connectivity:
+  resources:
+    cpu: 0.15
+    memoryMi: 768
+  jvm:
+    activeProcessorCount: 2
+    heapRamPercentage: 55
+
+## ----------------------------------------------------------------------------
+## gateway configuration
+## ref: https://www.eclipse.dev/ditto/architecture-services-gateway.html
+gateway:
+  resources:
+    cpu: 0.15
+    memoryMi: 512
+  jvm:
+    activeProcessorCount: 2
+    heapRamPercentage: 50
+
+## ----------------------------------------------------------------------------
+## nginx configuration
+nginx:
+  resources:
+    cpu: 0.05
+    memoryMi: 64
+  initContainers:
+    waitForGateway:
+      enabled: false
+
+## ----------------------------------------------------------------------------
+## swaggerui configuration
+swaggerui:
+  resources:
+    cpu: 0.05
+
+## ----------------------------------------------------------------------------
+## dittoui configuration
+dittoui:
+  resources:
+    cpu: 0.05
+
+## ----------------------------------------------------------------------------
+## mongodb dependency chart configuration
+mongodb:
+  enabled: true
+  resources:
+    limits:
+      cpu: 100m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  readinessProbe:
+    enabled: false
+  livenessProbe:
+    enabled: false
+  auth:
+    enabled: false
+  persistence:
+    enabled: false

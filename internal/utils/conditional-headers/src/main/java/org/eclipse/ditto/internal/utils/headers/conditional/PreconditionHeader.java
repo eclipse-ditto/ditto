@@ -41,5 +41,5 @@ public interface PreconditionHeader<T> {
      * @param objectToCheck The object for which this {@link PreconditionHeader} should meet the condition.
      * @return True if this {@link PreconditionHeader} meets the condition. False if not.
      */
-    boolean meetsConditionFor(@Nullable final T objectToCheck);
+    boolean meetsConditionFor(@Nullable T objectToCheck);
 }

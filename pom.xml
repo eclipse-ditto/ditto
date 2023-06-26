@@ -22,7 +22,7 @@
 
     <name>Eclipse Ditto</name>
     <description>Eclipse Ditto is a framework for creating and managing digital twins in the IoT.</description>
-    <url>https://eclipse.org/ditto/</url>
+    <url>https://eclipse.dev/ditto/</url>
     <inceptionYear>2017</inceptionYear>
 
     <organization>
@@ -240,7 +240,7 @@
         <!-- globally set version for checking binary compatibility against -->
         <!-- whoever changes this to ${revision} or ${project.version} is responsible for API breakage caused by this! -->
         <!-- in other words: never do that here! exclude the 'breakages' locally in the japicmp maven plugin if you intentionally break something -->
-        <binary-compatibility-check.version>3.2.0</binary-compatibility-check.version>
+        <binary-compatibility-check.version>3.3.0</binary-compatibility-check.version>
 
         <maven.skins.fluido.version>1.7</maven.skins.fluido.version>
         <doxia.markdown.version>1.8</doxia.markdown.version>
@@ -455,7 +455,7 @@
                         <instructions>
                             <Bundle-Vendor>Eclipse Ditto</Bundle-Vendor>
                             <Bundle-License>EPL-2.0</Bundle-License>
-                            <Bundle-DocURL>https://eclipse.org/ditto/</Bundle-DocURL>
+                            <Bundle-DocURL>https://eclipse.dev/ditto/</Bundle-DocURL>
                             <_noee>true</_noee>
                             <!-- stays at 1.8 as all exported bundles (json, model, protocol-adapter, signals, ...) are 1.8 -->
                             <Bundle-RequiredExecutionEnvironment>JavaSE-1.8</Bundle-RequiredExecutionEnvironment>

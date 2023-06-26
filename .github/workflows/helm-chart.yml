@@ -1,0 +1,129 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+name: Lint and test Helm chart
+
+env:
+  CONFIG_OPTION_CHART_TESTING: "--config .github/ct.yml"
+  VERSION_CHART_TESTING: "v3.8.0"
+  VERSION_HELM: "v3.11.2"
+  VERSION_PYTHON: "3.9"
+on:
+  pull_request:
+    paths:
+      - 'deployment/helm/**'
+      - '.github/workflows/helm-chart.yml'
+      - '.github/ct.yml'
+      - '.github/kubeval.sh'
+
+jobs:
+  lint-chart:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: ${{ env.VERSION_HELM }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.VERSION_PYTHON }}
+          check-latest: true
+      - name: Set up chart-testing
+        uses: helm/chart-testing-action@v2.4.0
+        with:
+          version: ${{ env.VERSION_CHART_TESTING }}
+      - name: Run chart-testing (list-changed)
+        id: list-changed
+        run: |
+          changed=$(ct list-changed ${{ env.CONFIG_OPTION_CHART_TESTING }} --target-branch ${{ github.event.repository.default_branch }})
+          if [[ -n "$changed" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run chart-testing (lint)
+        if: steps.list-changed.outputs.changed == 'true'
+        run: ct lint ${{ env.CONFIG_OPTION_CHART_TESTING }} --target-branch ${{ github.event.repository.default_branch }}
+
+  kubeval-chart:
+    runs-on: ubuntu-latest
+    needs: lint-chart
+    strategy:
+      matrix:
+        # the versions supported by kubeval are the ones for
+        # which a folder exists at
+        # https://github.com/yannh/kubernetes-json-schema/
+        k8s:
+          - v1.25.2
+          - v1.26.4
+          - v1.27.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Fetch history for chart testing
+        run: git fetch --prune --unshallow
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: ${{ env.VERSION_HELM }}
+      - name: Run kubeval
+        env:
+          KUBERNETES_VERSION: ${{ matrix.k8s }}
+        run: .github/kubeval.sh
+
+  install-chart:
+    name: install-chart
+    runs-on: ubuntu-latest
+    needs:
+      - lint-chart
+      - kubeval-chart
+    strategy:
+      matrix:
+        # the versions supported by chart-testing are the tags
+        # available for the docker.io/kindest/node image
+        # https://hub.docker.com/r/kindest/node/tags
+        k8s:
+          - v1.25.2
+          - v1.26.4
+          - v1.27.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Fetch history for chart testing
+        run: git fetch --prune --unshallow
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: ${{ env.VERSION_HELM }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.VERSION_PYTHON }}
+          check-latest: true
+      - name: Set up chart-testing
+        uses: helm/chart-testing-action@v2.4.0
+        with:
+          version: ${{ env.VERSION_CHART_TESTING }}
+      - name: Run chart-testing (list-changed)
+        id: list-changed
+        run: |
+          changed=$(ct list-changed ${{ env.CONFIG_OPTION_CHART_TESTING }} --target-branch ${{ github.event.repository.default_branch }})
+          if [[ -n "$changed" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Create kind ${{ matrix.k8s }} cluster
+        if: steps.list-changed.outputs.changed == 'true'
+        uses: helm/kind-action@v1.4.0
+        with:
+          node_image: kindest/node:${{ matrix.k8s }}
+      - name: Run chart-testing (install)
+        if: steps.list-changed.outputs.changed == 'true'
+        run: ct install ${{ env.CONFIG_OPTION_CHART_TESTING }} --target-branch ${{ github.event.repository.default_branch }}

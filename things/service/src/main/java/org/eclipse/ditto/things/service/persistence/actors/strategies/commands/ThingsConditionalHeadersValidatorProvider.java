@@ -68,6 +68,13 @@ final class ThingsConditionalHeadersValidatorProvider {
                 final String expectedNotToMatch, final String matched) {
             return ThingPreconditionNotModifiedException.newBuilder(expectedNotToMatch, matched);
         }
+
+        @Override
+        public DittoRuntimeExceptionBuilder<?> createPreconditionNotModifiedForEqualityExceptionBuilder() {
+            return ThingPreconditionNotModifiedException.newBuilder()
+                    .message("The previous value was equal to the new value and the 'if-equal' header was set to 'skip'.")
+                    .description("Your changes were not applied, which is probably the expected outcome.");
+        }
     }
 
     private static final Set<JsonPointer> EXEMPTED_FIELDS = Collections.singleton(JsonPointer.of("_policy"));

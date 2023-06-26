@@ -1,0 +1,20 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+
+# consider helm install to be failed after 10 minutes
+helm-extra-args: --timeout 10m
+check-version-increment: true
+debug: true
+chart-dirs:
+  - deployment/helm
+chart-repos:
+  - stable=https://charts.helm.sh/stable
+  - bitnami=https://charts.bitnami.com/bitnami

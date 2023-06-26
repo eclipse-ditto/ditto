@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2023 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<configuration>
+    <appender name="jsonConsoleAppender" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <excludeMdcKeyName>sourceActorSystem</excludeMdcKeyName>
+            <excludeMdcKeyName>akkaUid</excludeMdcKeyName>
+            <excludeMdcKeyName>akkaTimestamp</excludeMdcKeyName>
+            <mdcKeyFieldName>x-correlation-id=correlation-id</mdcKeyFieldName>
+        </encoder>
+    </appender>
+
+    <!-- Do not print INFO cluster messages of mongo driver: -->
+    <logger name="org.mongodb.driver" level="WARN"/>
+
+    <logger name="akka.management.cluster.bootstrap.contactpoint.HttpClusterBootstrapRoutes" level="WARN"/>
+    <logger name="akka.management.cluster.bootstrap.internal.BootstrapCoordinator" level="WARN"/>
+    <logger name="akka.actor.CoordinatedShutdown" level="INFO"/>
+
+    <!-- Log level for the application -->
+    <logger name="org.eclipse.ditto" level="${LOG_LEVEL_APPLICATION:-INFO}"/>
+
+    <root level="${LOG_LEVEL:-INFO}">
+        <appender-ref ref="jsonConsoleAppender"/>
+    </root>
+</configuration>

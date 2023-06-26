@@ -193,11 +193,13 @@ final class ImmutableTarget implements Target {
 
         final HeaderMapping readHeaderMapping =
                 jsonObject.getValue(JsonFields.HEADER_MAPPING)
+                        .filter(f -> !f.isNull())
                         .map(ImmutableHeaderMapping::fromJson)
                         .orElse(null);
 
         final PayloadMapping readMapping =
                 jsonObject.getValue(JsonFields.PAYLOAD_MAPPING)
+                        .filter(f -> !f.isNull())
                         .map(ImmutablePayloadMapping::fromJson)
                         .orElse(ConnectivityModelFactory.emptyPayloadMapping());
 

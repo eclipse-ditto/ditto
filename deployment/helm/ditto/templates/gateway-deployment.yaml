@@ -1,0 +1,293 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+{{- if .Values.gateway.enabled -}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ditto.fullname" . }}-gateway
+  labels:
+    app.kubernetes.io/name: {{ include "ditto.name" . }}-gateway
+{{ include "ditto.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.gateway.replicaCount }}
+  strategy:
+  {{- with .Values.gateway.updateStrategy }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  minReadySeconds: {{ .Values.gateway.minReadySeconds }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "ditto.name" . }}-gateway
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "ditto.name" . }}-gateway
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        actorSystemName: {{ .Values.akka.actorSystemName }}
+        {{- with .Values.gateway.additionalLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        {{- if .Values.global.prometheus.enabled }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "{{ .Values.global.prometheus.path }}"
+        prometheus.io/port: "{{ .Values.global.prometheus.port }}"
+        {{- end }}
+        checksum/password-config: {{ include (print $.Template.BasePath "/gateway-secret.yaml") . | sha256sum }}
+        checksum/mongodb-config: {{ include (print $.Template.BasePath "/mongodb-secret.yaml") . | sha256sum }}
+        {{- with .Values.gateway.additionalAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if .Values.rbac.enabled }}
+      serviceAccountName: {{ template "ditto.serviceAccountName" . }}
+      {{- end }}
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+        {{- if .Values.global.logging.logFiles.enabled }}
+        - name: change-volume-owner
+          image: busybox
+          securityContext:
+            runAsUser: 0
+          command: [ "sh", "-c", "chown -R 1000:1000 /var/log/ditto && echo 'changed ownership of /var/log/ditto to 1000:1000'" ]
+          volumeMounts:
+            - name: ditto-log-files-directory
+              mountPath: /var/log/ditto
+        {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}-gateway
+          image: {{ printf "%s:%s" .Values.gateway.image.repository ( default .Chart.AppVersion ( default .Values.dittoTag .Values.gateway.image.tag ) ) }}
+          imagePullPolicy: {{ .Values.gateway.image.pullPolicy }}
+          env:
+            {{- if not .Values.global.logging.customConfigFile.enabled }}
+            - name: DITTO_LOGGING_DISABLE_SYSOUT_LOG
+              value: "{{ if .Values.global.logging.sysout.enabled }}false{{ else }}true{{ end }}"
+            - name: DITTO_LOGGING_FILE_APPENDER
+              value: "{{ if .Values.global.logging.logFiles.enabled }}true{{ else }}false{{ end }}"
+            {{- end }}
+            - name: DITTO_TRACING_ENABLED
+              value: "{{ .Values.global.tracing.enabled }}"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "{{ .Values.global.tracing.otelExporterOtlpEndpoint }}"
+            - name: DITTO_TRACING_SAMPLER
+              value: "{{ .Values.global.tracing.sampler }}"
+            - name: DITTO_TRACING_RANDOM_SAMPLER_PROBABILITY
+              value: "{{ .Values.global.tracing.randomSampler.probability }}"
+            - name: DITTO_TRACING_ADAPTIVE_SAMPLER_THROUGHPUT
+              value: "{{ .Values.global.tracing.adaptiveSampler.throughput }}"
+            {{- if .Values.global.logging.logstash.enabled }}
+            - name: DITTO_LOGGING_LOGSTASH_SERVER
+              value: "{{ .Values.global.logging.logstash.endpoint }}"
+            {{- end }}
+            - name: POD_LABEL_SELECTOR
+              value: "app.kubernetes.io/name=%s"
+            - name: POD_NAMESPACE
+              value: {{ .Release.Namespace }}
+            - name: INSTANCE_INDEX
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+            - name: DISCOVERY_METHOD
+              value: "kubernetes-api"
+            - name: TZ
+              value: "{{ .Values.global.timezone }}"
+            - name: JAVA_TOOL_OPTIONS
+              value: >
+                {{ .Values.global.jvmOptions }}
+                -XX:ActiveProcessorCount={{ .Values.gateway.jvm.activeProcessorCount }}
+                -XX:MaxRAMPercentage={{ .Values.gateway.jvm.heapRamPercentage }}
+                -XX:InitialRAMPercentage={{ .Values.gateway.jvm.heapRamPercentage }}
+                -XX:MaxGCPauseMillis={{ .Values.gateway.jvm.maxGcPauseMillis }}
+                {{ .Values.gateway.additionalJvmOptions }}
+                {{- .Values.global.akkaOptions }}
+                {{- if .Values.global.logging.customConfigFile.enabled }}
+                -Dlogback.configurationFile=/opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
+                {{- end }}
+                {{- range $key, $value := .Values.gateway.config.authentication.oauth.openidConnectIssuers }}
+                "{{ printf "%s%s%s=%s" "-Dditto.gateway.authentication.oauth.openid-connect-issuers." $key ".issuer" $value.issuer }}"
+                {{- range $index, $subject := $value.authSubjects }}
+                "{{ printf "%s%s%s%d=%s" "-Dditto.gateway.authentication.oauth.openid-connect-issuers." $key ".auth-subjects." $index $subject }}"
+                {{- end }}
+                {{- end }}
+                {{- range $key, $value := .Values.gateway.config.authentication.devops.oauth.openidConnectIssuers }}
+                "{{ printf "%s%s%s=%s" "-Dditto.gateway.authentication.devops.oauth.openid-connect-issuers." $key ".issuer" $value.issuer }}"
+                {{- range $index, $subject := $value.authSubjects }}
+                "{{ printf "%s%s%s%d=%s" "-Dditto.gateway.authentication.devops.oauth.openid-connect-issuers." $key ".auth-subjects." $index $subject }}"
+                {{- end }}
+                {{- end }}
+                {{ join " " .Values.gateway.systemProps }}
+            - name: CLUSTER_BS_REQUIRED_CONTACTS
+              value: "{{ .Values.global.cluster.requiredContactPoints }}"
+            - name: DITTO_DDATA_NUMBER_OF_SHARDS
+              value: "{{ .Values.global.cluster.ddata.numberOfShards }}"
+            - name: DITTO_DDATA_MAX_DELTA_ELEMENTS
+              value: "{{ .Values.global.cluster.ddata.maxDeltaElements }}"
+            - name: CLUSTER_NUMBER_OF_SHARDS
+              value: "{{ .Values.global.cluster.numberOfShards }}"
+            - name: CLUSTER_DOWNING_STABLE_AFTER
+              value: "{{ .Values.global.cluster.downingStableAfter }}"
+            - name: CLUSTER_DOWNING_DOWN_ALL_WHEN_UNSTABLE
+              value: "{{ .Values.global.cluster.downAllWhenUnstable }}"
+            {{- if .Values.global.prometheus.enabled }}
+            - name: PROMETHEUS_PORT
+              value: "{{ .Values.global.prometheus.port }}"
+            {{- end }}
+            - name: ENABLE_PRE_AUTHENTICATION
+              value: "{{ .Values.gateway.config.authentication.enablePreAuthentication }}"
+            - name: DEVOPS_SECURED
+              value: "{{ .Values.gateway.config.authentication.devops.secured }}"
+            - name: DEVOPS_AUTHENTICATION_METHOD
+              value: "{{ .Values.gateway.config.authentication.devops.authMethod }}"
+            - name: DEVOPS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.gateway.config.authentication.devops.existingSecret | default ( printf "%s-gateway-secret" ( include "ditto.fullname" . )) }}
+                  key: devops-password
+            {{- range $index, $oauthSubject := .Values.gateway.config.authentication.devops.oauthSubjects }}
+            - name: DEVOPS_OAUTH2_SUBJECTS.{{ $index }}
+              value: "{{ $oauthSubject }}"
+            {{- end }}
+            - name: DEVOPS_STATUS_SECURED
+              value: "{{ .Values.gateway.config.authentication.devops.statusSecured }}"
+            - name: STATUS_AUTHENTICATION_METHOD
+              value: "{{ .Values.gateway.config.authentication.devops.statusAuthMethod }}"
+            - name: STATUS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.gateway.config.authentication.devops.existingSecret | default ( printf "%s-gateway-secret" ( include "ditto.fullname" . )) }}
+                  key: status-password
+            {{- range $index, $oauthSubject := .Values.gateway.config.authentication.devops.statusOauthSubjects }}
+            - name: STATUS_OAUTH2_SUBJECTS.{{ $index }}
+              value: "{{ $oauthSubject }}"
+            {{- end }}
+            - name: WS_SUBSCRIBER_BACKPRESSURE
+              value: "{{ .Values.gateway.config.websocket.subscriber.backpressureQueueSize }}"
+            - name: WS_PUBLISHER_BACKPRESSURE
+              value: "{{ .Values.gateway.config.websocket.publisher.backpressureBufferSize }}"
+            - name: GATEWAY_WEBSOCKET_THROTTLING_ENABLED
+              value: "{{ .Values.gateway.config.websocket.throttling.enabled }}"
+            - name: GATEWAY_WEBSOCKET_THROTTLING_INTERVAL
+              value: "{{ .Values.gateway.config.websocket.throttling.interval }}"
+            - name: GATEWAY_WEBSOCKET_THROTTLING_LIMIT
+              value: "{{ .Values.gateway.config.websocket.throttling.limit }}"
+            - name: GATEWAY_SSE_THROTTLING_ENABLED
+              value: "{{ .Values.gateway.config.sse.throttling.enabled }}"
+            - name: GATEWAY_SSE_THROTTLING_INTERVAL
+              value: "{{ .Values.gateway.config.sse.throttling.interval }}"
+            - name: GATEWAY_SSE_THROTTLING_LIMIT
+              value: "{{ .Values.gateway.config.sse.throttling.limit }}"
+            - name: OAUTH_ALLOWED_CLOCK_SKEW
+              value: "{{ .Values.gateway.config.authentication.oauth.allowedClockSkew }}"
+            {{- if .Values.gateway.extraEnv }}
+              {{- toYaml .Values.gateway.extraEnv | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.gateway.service.port }}
+              protocol: TCP
+            - name: remoting
+              containerPort: {{ .Values.akka.remoting.port }}
+              protocol: TCP
+            - name: management
+              containerPort: {{ .Values.akka.mgmthttp.port }}
+              protocol: TCP
+            {{- if .Values.global.prometheus.enabled }}
+            - name: prometheus
+              protocol: TCP
+              containerPort: {{ .Values.global.prometheus.port }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              port: management
+              path: /ready
+            initialDelaySeconds: {{ .Values.gateway.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.gateway.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.gateway.readinessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.gateway.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.gateway.readinessProbe.failureThreshold }}
+          livenessProbe:
+            httpGet:
+              port: management
+              path: /alive
+            initialDelaySeconds: {{ .Values.gateway.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.gateway.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.gateway.livenessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.gateway.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.gateway.livenessProbe.failureThreshold }}
+          volumeMounts:
+            {{- if .Values.global.logging.customConfigFile.enabled }}
+            - name: ditto-custom-log-config
+              mountPath: /opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
+              subPath: {{ .Values.global.logging.customConfigFile.fileName }}
+            {{- end }}
+            {{- if .Values.global.logging.logFiles.enabled }}
+            - name: ditto-log-files-directory
+              mountPath: /var/log/ditto
+            {{- end }}
+          resources:
+            requests:
+              cpu: {{ mulf .Values.gateway.resources.cpu 1000 }}m
+              memory: {{ .Values.gateway.resources.memoryMi }}Mi
+            limits:
+              # ## no cpu limit to avoid CFS scheduler limits
+              # ref: https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+              # cpu: ""
+              memory: {{ .Values.gateway.resources.memoryMi }}Mi
+          {{- if .Values.openshift.enabled }}
+          {{- with .Values.openshift.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 8 }}
+          {{- end }}
+          {{- else }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+          {{- end }}
+      {{- with .Values.gateway.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.gateway.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.gateway.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        {{- if .Values.global.logging.customConfigFile.enabled }}
+        - name: ditto-custom-log-config
+          configMap:
+            name: {{ .Release.Name }}-logback-config-gateway-xml
+        {{- end }}
+        {{- if .Values.global.logging.logFiles.enabled }}
+        - name: ditto-log-files-directory
+          hostPath:
+            path: /var/log/ditto
+            type: DirectoryOrCreate
+        {{- end }}
+{{- end }}

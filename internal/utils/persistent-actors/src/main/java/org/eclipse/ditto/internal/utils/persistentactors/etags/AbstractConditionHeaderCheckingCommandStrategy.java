@@ -82,9 +82,12 @@ public abstract class AbstractConditionHeaderCheckingCommandStrategy<
         context.getLog().withCorrelationId(command)
                 .debug("Validating conditional headers with currentETagValue <{}> on command <{}>.",
                         currentETagValue, command);
+
+        final C adjustedCommand;
         try {
             getValidator().checkConditionalHeaders(command, currentETagValue);
-            context.getLog().withCorrelationId(command)
+            adjustedCommand = getValidator().applyIfEqualHeader(command, entity);
+            context.getLog().withCorrelationId(adjustedCommand)
                     .debug("Validating conditional headers succeeded.");
         } catch (final DittoRuntimeException dre) {
             context.getLog().withCorrelationId(command)
@@ -92,7 +95,7 @@ public abstract class AbstractConditionHeaderCheckingCommandStrategy<
             return ResultFactory.newErrorResult(dre, command);
         }
 
-        return super.apply(context, entity, nextRevision, command);
+        return super.apply(context, entity, nextRevision, adjustedCommand);
     }
 
     @Override

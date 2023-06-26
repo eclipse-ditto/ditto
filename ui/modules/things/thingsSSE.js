@@ -18,6 +18,7 @@ import * as Environments from '../environments/environments.js';
 
 import * as Things from './things.js';
 import * as ThingsSearch from './thingsSearch.js';
+import merge from 'lodash/merge';
 
 let selectedThingEventSource;
 let thingsTableEventSource;
@@ -42,7 +43,7 @@ function notifyAll(thingJson) {
 
 function onThingsTableChanged(thingIds, fieldsQueryParameter) {
   stopSSE(thingsTableEventSource);
-  if (thingIds) {
+  if (thingIds && thingIds.length > 0) {
     console.log('SSE Start: THINGS TABLE');
     thingsTableEventSource = API.getEventSource(thingIds, fieldsQueryParameter);
     thingsTableEventSource.onmessage = onMessageThingsTable;
@@ -77,7 +78,7 @@ function onEnvironmentChanged(modifiedField) {
 
 function onMessageSelectedThing(event) {
   if (event.data && event.data !== '') {
-    const merged = _.merge(Things.theThing, JSON.parse(event.data));
+    const merged = merge(Things.theThing, JSON.parse(event.data));
     Things.setTheThing(merged);
     notifyAll(JSON.parse(event.data));
   }
