@@ -19,10 +19,10 @@ metadata:
 {{ include "ditto.labels" . | indent 4 }}
 data:
   nginx.conf: |-
-    worker_processes auto;
+    worker_processes {{ .Values.nginx.config.workerProcesses }};
 
     events {
-      worker_connections 1024;
+      worker_connections {{ .Values.nginx.config.workerConnections }};
     }
     
     http {
