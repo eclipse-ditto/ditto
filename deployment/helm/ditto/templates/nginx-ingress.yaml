@@ -11,6 +11,13 @@
 {{- if .Values.ingress.enabled -}}
 ---
 apiVersion: v1
+kind: Namespace
+metadata:
+  name: "{{ .Values.ingress.namespace }}"
+  labels:
+    name: "{{ .Values.ingress.namespace }}"
+---
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: nginx-node-health-check-conf
