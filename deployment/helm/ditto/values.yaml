@@ -860,9 +860,10 @@ thingsSearch:
       searchWithAcksWriteConcern: "majority"
       # queryReadConcern configures the MongoDB read concern for doing queries / performing searches
       #  only if this is "linearizable" in combination with the searchWithAcksWriteConcern: "majority" a strong consistency
+      #  if used in a replicated MongoDB setup, this should be changed to `queryReadConcern: "linearizable"`
       #  for commands using the "search-persisted" requested ACK is guaranteed
       #  one of: default | local | majority | linearizable | snapshot | available
-      queryReadConcern: "linearizable"
+      queryReadConcern: "local"
       # updaterPersistenceReadConcern configures the MongoDB read concern for the "ThingUpdater"
       #  one of: default | local | majority | linearizable | snapshot | available
       updaterPersistenceReadConcern: "local"
