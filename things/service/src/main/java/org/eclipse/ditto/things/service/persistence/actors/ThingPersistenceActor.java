@@ -13,6 +13,7 @@
 package org.eclipse.ditto.things.service.persistence.actors;
 
 import java.time.Instant;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
@@ -118,18 +119,25 @@ public final class ThingPersistenceActor
     }
 
     @Override
-    public void onQuery(final Command<?> command, final WithDittoHeaders response) {
-        if (response.getDittoHeaders().didLiveChannelConditionMatch()) {
-            final var liveChannelTimeoutStrategy = response.getDittoHeaders()
-                    .getLiveChannelTimeoutStrategy()
-                    .orElse(LiveChannelTimeoutStrategy.FAIL);
-            if (liveChannelTimeoutStrategy != LiveChannelTimeoutStrategy.USE_TWIN &&
-                    response instanceof ThingQueryCommandResponse<?> queryResponse) {
-                super.onQuery(command, queryResponse.setEntity(JsonFactory.nullLiteral()));
-                return;
+    public void onQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
+        final ActorRef sender = getSender();
+        response.thenAccept(r -> {
+            if (r.getDittoHeaders().didLiveChannelConditionMatch()) {
+                final var liveChannelTimeoutStrategy = r.getDittoHeaders()
+                        .getLiveChannelTimeoutStrategy()
+                        .orElse(LiveChannelTimeoutStrategy.FAIL);
+                if (liveChannelTimeoutStrategy != LiveChannelTimeoutStrategy.USE_TWIN &&
+                        r instanceof ThingQueryCommandResponse<?> queryResponse &&
+                        command.getDittoHeaders().isResponseRequired()) {
+                    notifySender(sender, queryResponse.setEntity(JsonFactory.nullLiteral()));
+                    return;
+                }
             }
-        }
-        super.onQuery(command, response);
+
+            if (command.getDittoHeaders().isResponseRequired()) {
+                notifySender(sender, r);
+            }
+        });
     }
 
     @Override

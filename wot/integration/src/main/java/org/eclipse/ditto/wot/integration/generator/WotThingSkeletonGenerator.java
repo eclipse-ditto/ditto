@@ -14,6 +14,7 @@ package org.eclipse.ditto.wot.integration.generator;
 
 import java.net.URL;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.Feature;
@@ -50,7 +51,7 @@ public interface WotThingSkeletonGenerator {
      * @throws org.eclipse.ditto.wot.model.WotThingModelInvalidException if the WoT ThingModel did not contain the
      * mandatory {@code "@type"} being {@code "tm:ThingModel"}
      */
-    Optional<Thing> generateThingSkeleton(ThingId thingId,
+    CompletionStage<Optional<Thing>> generateThingSkeleton(ThingId thingId,
             ThingModel thingModel,
             URL thingModelUrl,
             DittoHeaders dittoHeaders);
@@ -71,7 +72,7 @@ public interface WotThingSkeletonGenerator {
      * @throws org.eclipse.ditto.wot.model.WotThingModelInvalidException if the WoT ThingModel did not contain the
      * mandatory {@code "@type"} being {@code "tm:ThingModel"}
      */
-    Optional<Feature> generateFeatureSkeleton(String featureId,
+    CompletionStage<Optional<Feature>> generateFeatureSkeleton(String featureId,
             ThingModel thingModel,
             URL thingModelUrl,
             DittoHeaders dittoHeaders);

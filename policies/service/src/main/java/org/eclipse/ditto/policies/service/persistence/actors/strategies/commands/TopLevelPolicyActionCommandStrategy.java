@@ -197,7 +197,7 @@ final class TopLevelPolicyActionCommandStrategy
         }
 
         @Override
-        public void onQuery(final Command<?> command, final WithDittoHeaders response) {
+        public void onQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
             // do nothing
         }
 

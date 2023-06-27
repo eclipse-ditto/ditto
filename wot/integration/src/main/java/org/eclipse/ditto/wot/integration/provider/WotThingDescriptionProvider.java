@@ -53,7 +53,7 @@ public interface WotThingDescriptionProvider extends Extension {
      * @throws org.eclipse.ditto.wot.model.WotThingModelNotAccessibleException if the ThingModel could not be accessed/
      * downloaded.
      */
-    ThingDescription provideThingTD(@Nullable ThingDefinition thingDefinition,
+    CompletionStage<ThingDescription> provideThingTD(@Nullable ThingDefinition thingDefinition,
             ThingId thingId,
             @Nullable Thing thing,
             DittoHeaders dittoHeaders);
@@ -72,7 +72,7 @@ public interface WotThingDescriptionProvider extends Extension {
      * @throws org.eclipse.ditto.wot.model.WotThingModelNotAccessibleException if the ThingModel could not be accessed/
      * downloaded.
      */
-    ThingDescription provideFeatureTD(ThingId thingId,
+    CompletionStage<ThingDescription> provideFeatureTD(ThingId thingId,
             @Nullable Thing thing,
             Feature feature,
             DittoHeaders dittoHeaders);

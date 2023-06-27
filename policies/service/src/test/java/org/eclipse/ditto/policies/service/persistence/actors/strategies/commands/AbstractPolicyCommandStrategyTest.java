@@ -215,7 +215,7 @@ public abstract class AbstractPolicyCommandStrategyTest {
             }
 
             @Override
-            public void onQuery(final Command<?> command, final WithDittoHeaders response) {
+            public void onQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
                 throw new AssertionError("Expect mutation result, got query response: " + response);
             }
 

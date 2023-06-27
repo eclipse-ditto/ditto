@@ -59,7 +59,7 @@ public final class MutationResult<E extends Event<?>> implements Result<E> {
         return this.getClass().getSimpleName() + " [" +
                 "command=" + command +
                 ", eventToPersistStage=" + eventToPersistStage +
-                ", response=" + responseStage +
+                ", responseStage=" + responseStage +
                 ", becomeCreated=" + becomeCreated +
                 ", becomeDeleted=" + becomeDeleted +
                 ']';

@@ -51,7 +51,7 @@ public interface ResultVisitor<E extends Event<?>> {
      * @param command the query command.
      * @param response the response.
      */
-    void onQuery(Command<?> command, WithDittoHeaders response);
+    void onQuery(Command<?> command, CompletionStage<WithDittoHeaders> response);
 
     /**
      * Evaluate an error result.

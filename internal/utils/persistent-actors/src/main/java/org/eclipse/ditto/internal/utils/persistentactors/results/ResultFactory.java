@@ -128,6 +128,19 @@ public final class ResultFactory {
      */
     public static <E extends Event<?>> Result<E> newQueryResult(final Command<?> command,
             final WithDittoHeaders response) {
+        return newQueryResult(command, CompletableFuture.completedStage(response));
+    }
+
+    /**
+     * Create a query result.
+     *
+     * @param command the query command.
+     * @param response the response.
+     * @param <E> type of events (irrelevant).
+     * @return the result.
+     */
+    public static <E extends Event<?>> Result<E> newQueryResult(final Command<?> command,
+            final CompletionStage<WithDittoHeaders> response) {
         return new QueryResult<>(command, response);
     }
 

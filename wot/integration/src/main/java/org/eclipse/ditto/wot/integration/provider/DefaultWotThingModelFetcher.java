@@ -15,10 +15,12 @@ package org.eclipse.ditto.wot.integration.provider;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
@@ -63,6 +65,8 @@ final class DefaultWotThingModelFetcher implements WotThingModelFetcher {
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(DefaultWotThingModelFetcher.class);
 
+    private static final Duration MAX_FETCH_MODEL_DURATION = Duration.ofSeconds(10);
+
     private static final HttpHeader ACCEPT_HEADER = Accept.create(
             MediaRanges.create(MediaTypes.applicationWithOpenCharset("tm+json")),
             MediaRanges.create(MediaTypes.APPLICATION_JSON)
@@ -98,7 +102,8 @@ final class DefaultWotThingModelFetcher implements WotThingModelFetcher {
         LOGGER.withCorrelationId(dittoHeaders)
                 .debug("Fetching ThingModel (from cache or downloading as fallback) from URL: <{}>", url);
         return thingModelCache.get(url)
-                .thenApply(optTm -> resolveThingModel(optTm.orElse(null), url, dittoHeaders));
+                .thenApply(optTm -> resolveThingModel(optTm.orElse(null), url, dittoHeaders))
+                .orTimeout(MAX_FETCH_MODEL_DURATION.toSeconds(), TimeUnit.SECONDS);
     }
 
     private ThingModel resolveThingModel(@Nullable final ThingModel thingModel,

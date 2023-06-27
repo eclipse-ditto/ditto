@@ -15,6 +15,7 @@ package org.eclipse.ditto.internal.utils.persistentactors;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -26,6 +27,7 @@ import org.bson.BsonDocument;
 import org.eclipse.ditto.base.api.commands.sudo.SudoCommand;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -532,7 +534,7 @@ public abstract class AbstractPersistenceActor<
                     handler.accept(persistedEvent, entity);
                 });
             }
-        });
+        }).toCompletableFuture().join(); // TODO TJ is this bad or not? - propbably yes :/
     }
 
     /**
@@ -662,9 +664,14 @@ public abstract class AbstractPersistenceActor<
         try {
             result = strategy.apply(getStrategyContext(), workEntity, getNextRevisionNumber(), (T) tracedCommand);
             result.accept(this);
-        } catch (final DittoRuntimeException e) {
+        } catch (final CompletionException | DittoRuntimeException e) {
+            final DittoRuntimeException dittoRuntimeException =
+                    DittoRuntimeException.asDittoRuntimeException(e, throwable ->
+                            DittoInternalErrorException.newBuilder()
+                                    .dittoHeaders(command.getDittoHeaders())
+                                    .build());
             startedSpan.tagAsFailed(e);
-            result = ResultFactory.newErrorResult(e, tracedCommand);
+            result = ResultFactory.newErrorResult(dittoRuntimeException, tracedCommand);
             result.accept(this);
         } finally {
             startedSpan.finish();
@@ -677,9 +684,10 @@ public abstract class AbstractPersistenceActor<
             final CompletionStage<WithDittoHeaders> response,
             final boolean becomeCreated, final boolean becomeDeleted) {
 
+        final ActorRef sender = getSender();
         persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
             if (shouldSendResponse(command.getDittoHeaders())) {
-                notifySender(response);
+                notifySender(sender, response);
             }
             if (becomeDeleted) {
                 becomeDeletedHandler();
@@ -691,9 +699,10 @@ public abstract class AbstractPersistenceActor<
     }
 
     @Override
-    public void onQuery(final Command<?> command, final WithDittoHeaders response) {
+    public void onQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
         if (command.getDittoHeaders().isResponseRequired()) {
-            notifySender(response);
+            final ActorRef sender = getSender();
+            response.thenAccept(r -> notifySender(sender, r));
         }
     }
 
@@ -806,8 +815,8 @@ public abstract class AbstractPersistenceActor<
         notifySender(getSender(), message);
     }
 
-    private void notifySender(final CompletionStage<WithDittoHeaders> message) {
-        message.thenAccept(msg -> notifySender(getSender(), msg));
+    private void notifySender(final ActorRef sender, final CompletionStage<WithDittoHeaders> message) {
+        message.thenAccept(msg -> notifySender(sender, msg));
     }
 
     private void takeSnapshotByInterval(final Control takeSnapshot) {
@@ -995,20 +1004,22 @@ public abstract class AbstractPersistenceActor<
         }
 
         @Override
-        public void onQuery(final Command<?> command, final WithDittoHeaders response) {
+        public void onQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
             if (command.getDittoHeaders().isResponseRequired()) {
-                final WithDittoHeaders theResponseToSend;
-                if (response instanceof DittoHeadersSettable<?> dittoHeadersSettable) {
-                    final DittoHeaders queryCommandHeaders = response.getDittoHeaders();
-                    final DittoHeaders adjustedHeaders = queryCommandHeaders.toBuilder()
-                            .putHeader(DittoHeaderDefinition.HISTORICAL_HEADERS.getKey(),
-                                    historicalDittoHeaders.toJson().toString())
-                            .build();
-                    theResponseToSend = dittoHeadersSettable.setDittoHeaders(adjustedHeaders);
-                } else {
-                    theResponseToSend = response;
-                }
-                notifySender(sender, theResponseToSend);
+                response.thenAccept(r -> {
+                    final WithDittoHeaders theResponseToSend;
+                    if (response instanceof DittoHeadersSettable<?> dittoHeadersSettable) {
+                        final DittoHeaders queryCommandHeaders = r.getDittoHeaders();
+                        final DittoHeaders adjustedHeaders = queryCommandHeaders.toBuilder()
+                                .putHeader(DittoHeaderDefinition.HISTORICAL_HEADERS.getKey(),
+                                        historicalDittoHeaders.toJson().toString())
+                                .build();
+                        theResponseToSend = dittoHeadersSettable.setDittoHeaders(adjustedHeaders);
+                    } else {
+                        theResponseToSend = r;
+                    }
+                    notifySender(sender, theResponseToSend);
+                });
             }
         }
 

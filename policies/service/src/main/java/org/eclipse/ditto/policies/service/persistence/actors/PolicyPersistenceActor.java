@@ -250,9 +250,10 @@ public final class PolicyPersistenceActor
             final CompletionStage<WithDittoHeaders> response,
             final boolean becomeCreated, final boolean becomeDeleted) {
 
+        final ActorRef sender = getSender();
         persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
             if (shouldSendResponse(command.getDittoHeaders())) {
-                response.thenAccept(rsp -> notifySender(getSender(), rsp));
+                response.thenAccept(rsp -> notifySender(sender, rsp));
             }
             if (becomeDeleted) {
                 becomeDeletedHandler();

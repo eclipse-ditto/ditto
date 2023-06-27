@@ -58,7 +58,14 @@ public final class ResultFactoryTest {
     public void notifyQueryResponse() {
         final Result<ThingEvent<?>> result = ResultFactory.newQueryResult(thingQueryCommand, response);
         result.accept(mock);
-        verify(mock).onQuery(eq(thingQueryCommand), eq(response));
+        final ArgumentCaptor<CompletionStage<WithDittoHeaders>> responseStage =
+                ArgumentCaptor.forClass(CompletionStage.class);
+
+        verify(mock).onQuery(eq(thingQueryCommand), responseStage.capture());
+
+        assertThat(responseStage.getValue()).isInstanceOf(CompletionStage.class);
+        CompletableFutureAssert.assertThatCompletionStage(responseStage.getValue())
+                .isCompletedWithValue(response);
     }
 
     @Test

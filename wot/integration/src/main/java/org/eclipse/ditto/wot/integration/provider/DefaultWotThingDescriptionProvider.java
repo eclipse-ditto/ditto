@@ -15,12 +15,10 @@ package org.eclipse.ditto.wot.integration.provider;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.net.URL;
-import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -61,8 +59,6 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
 
     public static final String MODEL_PLACEHOLDERS_KEY = "model-placeholders";
 
-    private static final Duration MAX_JOIN_WAIT_DURATION = Duration.ofSeconds(20);
-
     private final WotConfig wotConfig;
     private final WotThingModelFetcher thingModelFetcher;
     private final WotThingDescriptionGenerator thingDescriptionGenerator;
@@ -90,7 +86,7 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
     }
 
     @Override
-    public ThingDescription provideThingTD(@Nullable final ThingDefinition thingDefinition,
+    public CompletionStage<ThingDescription> provideThingTD(@Nullable final ThingDefinition thingDefinition,
             final ThingId thingId,
             @Nullable final Thing thing,
             final DittoHeaders dittoHeaders) {
@@ -104,7 +100,7 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
     }
 
     @Override
-    public ThingDescription provideFeatureTD(final ThingId thingId,
+    public CompletionStage<ThingDescription> provideFeatureTD(final ThingId thingId,
             @Nullable final Thing thing,
             final Feature feature,
             final DittoHeaders dittoHeaders) {
@@ -134,7 +130,7 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
                 logger.debug("Fetching ThingModel from <{}> in order to create Thing skeleton for new Thing " +
                         "with id <{}>", url, thingId);
                 return thingModelFetcher.fetchThingModel(url, dittoHeaders)
-                        .thenApplyAsync(thingModel -> thingSkeletonGenerator
+                        .thenComposeAsync(thingModel -> thingSkeletonGenerator
                                         .generateThingSkeleton(thingId, thingModel, url, dittoHeaders),
                                 executor
                         )
@@ -144,7 +140,7 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
                             return thingSkeleton;
                         })
                         .exceptionally(throwable -> {
-                            logger.info("Could not fetch ThingModel or generate Feature skeleton based on it due " +
+                            logger.info("Could not fetch ThingModel or generate Thing skeleton based on it due " +
                                             "to: <{}: {}>",
                                     throwable.getClass().getSimpleName(),throwable.getMessage(), throwable);
                             return Optional.empty();
@@ -172,7 +168,7 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
                 logger.debug("Fetching ThingModel from <{}> in order to create Feature skeleton for new Feature " +
                         "with id <{}>", url, featureId);
                 return thingModelFetcher.fetchThingModel(url, dittoHeaders)
-                        .thenApplyAsync(thingModel -> thingSkeletonGenerator
+                        .thenComposeAsync(thingModel -> thingSkeletonGenerator
                                         .generateFeatureSkeleton(featureId, thingModel, url, dittoHeaders),
                                 executor
                         )
@@ -198,7 +194,7 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
     /**
      * Download TM, add it to local cache + build TD + return it
      */
-    private ThingDescription getWotThingDescriptionForThing(final ThingDefinition definitionIdentifier,
+    private CompletionStage<ThingDescription> getWotThingDescriptionForThing(final ThingDefinition definitionIdentifier,
             final ThingId thingId,
             @Nullable final Thing thing,
             final DittoHeaders dittoHeaders) {
@@ -206,35 +202,30 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
         final Optional<URL> urlOpt = definitionIdentifier.getUrl();
         if (urlOpt.isPresent()) {
             final URL url = urlOpt.get();
-            try {
-                return thingModelFetcher.fetchThingModel(url, dittoHeaders)
-                        .thenApplyAsync(thingModel -> thingDescriptionGenerator
-                                .generateThingDescription(thingId,
-                                        thing,
-                                        Optional.ofNullable(thing)
-                                                .flatMap(Thing::getAttributes)
-                                                .flatMap(a -> a.getValue(MODEL_PLACEHOLDERS_KEY))
-                                                .filter(JsonValue::isObject)
-                                                .map(JsonValue::asObject)
-                                                .orElse(null),
-                                        null,
-                                        thingModel,
-                                        url,
-                                        dittoHeaders
-                                ),
-                                executor
-                        )
-                        .toCompletableFuture()
-                        .orTimeout(MAX_JOIN_WAIT_DURATION.toSeconds(), TimeUnit.SECONDS)
-                        .join();
-            } catch (final Exception e) {
-                throw DittoRuntimeException.asDittoRuntimeException(e, throwable ->
-                        WotInternalErrorException.newBuilder()
-                                .dittoHeaders(dittoHeaders)
-                                .cause(e)
-                                .build()
-                );
-            }
+            return thingModelFetcher.fetchThingModel(url, dittoHeaders)
+                    .thenComposeAsync(thingModel -> thingDescriptionGenerator
+                            .generateThingDescription(thingId,
+                                    thing,
+                                    Optional.ofNullable(thing)
+                                            .flatMap(Thing::getAttributes)
+                                            .flatMap(a -> a.getValue(MODEL_PLACEHOLDERS_KEY))
+                                            .filter(JsonValue::isObject)
+                                            .map(JsonValue::asObject)
+                                            .orElse(null),
+                                    null,
+                                    thingModel,
+                                    url,
+                                    dittoHeaders
+                            ),
+                            executor
+                    )
+                    .exceptionally(throwable -> {
+                        throw DittoRuntimeException.asDittoRuntimeException(throwable, t ->
+                                WotInternalErrorException.newBuilder()
+                                        .dittoHeaders(dittoHeaders)
+                                        .cause(t)
+                                        .build());
+                    });
         } else {
             throw ThingDefinitionInvalidException.newBuilder(definitionIdentifier)
                     .dittoHeaders(dittoHeaders)
@@ -245,7 +236,7 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
     /**
      * Download TM, add it to local cache + build TD + return it
      */
-    private ThingDescription getWotThingDescriptionForFeature(final ThingId thingId,
+    private CompletionStage<ThingDescription> getWotThingDescriptionForFeature(final ThingId thingId,
             @Nullable final Thing thing,
             final Feature feature,
             final DittoHeaders dittoHeaders) {
@@ -255,34 +246,29 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
         final Optional<URL> urlOpt = definitionIdentifier.flatMap(DefinitionIdentifier::getUrl);
         if (urlOpt.isPresent()) {
             final URL url = urlOpt.get();
-            try {
-                return thingModelFetcher.fetchThingModel(url, dittoHeaders)
-                        .thenApplyAsync(thingModel -> thingDescriptionGenerator
-                                .generateThingDescription(thingId,
-                                        thing,
-                                        feature.getProperties()
-                                                .flatMap(p -> p.getValue(MODEL_PLACEHOLDERS_KEY))
-                                                .filter(JsonValue::isObject)
-                                                .map(JsonValue::asObject)
-                                                .orElse(null),
-                                        feature.getId(),
-                                        thingModel,
-                                        url,
-                                        dittoHeaders
-                                ),
-                                executor
-                        )
-                        .toCompletableFuture()
-                        .orTimeout(MAX_JOIN_WAIT_DURATION.toSeconds(), TimeUnit.SECONDS)
-                        .join();
-            } catch (final Exception e) {
-                throw DittoRuntimeException.asDittoRuntimeException(e, throwable ->
-                        WotInternalErrorException.newBuilder()
-                                .dittoHeaders(dittoHeaders)
-                                .cause(e)
-                                .build()
-                );
-            }
+            return thingModelFetcher.fetchThingModel(url, dittoHeaders)
+                    .thenComposeAsync(thingModel -> thingDescriptionGenerator
+                            .generateThingDescription(thingId,
+                                    thing,
+                                    feature.getProperties()
+                                            .flatMap(p -> p.getValue(MODEL_PLACEHOLDERS_KEY))
+                                            .filter(JsonValue::isObject)
+                                            .map(JsonValue::asObject)
+                                            .orElse(null),
+                                    feature.getId(),
+                                    thingModel,
+                                    url,
+                                    dittoHeaders
+                            ),
+                            executor
+                    )
+                    .exceptionally(throwable -> {
+                        throw DittoRuntimeException.asDittoRuntimeException(throwable, t ->
+                                WotInternalErrorException.newBuilder()
+                                        .dittoHeaders(dittoHeaders)
+                                        .cause(t)
+                                        .build());
+                    });
         } else {
             throw ThingDefinitionInvalidException.newBuilder(definitionIdentifier.orElse(null))
                     .dittoHeaders(dittoHeaders)

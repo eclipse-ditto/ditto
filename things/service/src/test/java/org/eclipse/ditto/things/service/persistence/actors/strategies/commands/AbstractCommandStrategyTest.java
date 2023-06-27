@@ -128,9 +128,20 @@ public abstract class AbstractCommandStrategyTest {
         final Result<ThingEvent<?>> thingEventResult = applyStrategy(underTest, getDefaultContext(), thing, command);
         final ResultVisitor<ThingEvent<?>> mock = mock(Dummy.class);
         thingEventResult.accept(mock);
-        final ArgumentCaptor<CommandResponse<?>> captor = ArgumentCaptor.forClass(CommandResponse.class);
-        verify(mock).onQuery(any(), captor.capture());
-        commandResponseAssertions.accept(captor.getValue());
+        final ArgumentCaptor<CompletionStage<WithDittoHeaders>> responseStage =
+                ArgumentCaptor.forClass(CompletionStage.class);
+        verify(mock).onQuery(any(), responseStage.capture());
+
+        assertThat(responseStage.getValue()).isInstanceOf(CompletionStage.class);
+        CompletableFutureAssert.assertThatCompletionStage(responseStage.getValue())
+                .isCompletedWithValueMatching(p -> {
+                    try {
+                        commandResponseAssertions.accept((CommandResponse<?>) p);
+                        return true;
+                    } catch (final AssertionError ae) {
+                        return false;
+                    }
+                });
     }
 
 
@@ -170,7 +181,14 @@ public abstract class AbstractCommandStrategyTest {
     private static void assertInfoResult(final Result<ThingEvent<?>> result, final WithDittoHeaders infoResponse) {
         final ResultVisitor<ThingEvent<?>> mock = mock(Dummy.class);
         result.accept(mock);
-        verify(mock).onQuery(any(), eq(infoResponse));
+        final ArgumentCaptor<CompletionStage<WithDittoHeaders>> responseStage =
+                ArgumentCaptor.forClass(CompletionStage.class);
+
+        verify(mock).onQuery(any(), responseStage.capture());
+
+        assertThat(responseStage.getValue()).isInstanceOf(CompletionStage.class);
+        CompletableFutureAssert.assertThatCompletionStage(responseStage.getValue())
+                .isCompletedWithValue(infoResponse);
     }
 
     private static <C extends Command<?>> Result<ThingEvent<?>> applyStrategy(
