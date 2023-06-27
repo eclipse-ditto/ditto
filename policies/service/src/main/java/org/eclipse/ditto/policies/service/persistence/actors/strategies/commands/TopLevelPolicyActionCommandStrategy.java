@@ -18,9 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
@@ -104,12 +102,11 @@ final class TopLevelPolicyActionCommandStrategy
             if (visitor.error != null) {
                 return ResultFactory.newErrorResult(visitor.error, command);
             } else {
-                final Optional<CompletionStage<PolicyEvent<?>>> event = visitor.aggregateEvents();
+                final Optional<PolicyEvent<?>> event = visitor.aggregateEvents();
                 if (event.isPresent()) {
                     final TopLevelPolicyActionCommandResponse response =
                             TopLevelPolicyActionCommandResponse.of(context.getState(), dittoHeaders);
-                    return ResultFactory.newMutationResult(command, event.get(),
-                            CompletableFuture.completedFuture(response));
+                    return ResultFactory.newMutationResult(command, event.get(), response);
                 } else {
                     // builds an internal server error, 500
                     final PolicyActionFailedException exception = PolicyActionFailedException.newBuilder()
@@ -165,39 +162,46 @@ final class TopLevelPolicyActionCommandStrategy
     private static final class ResultCollectionVisitor implements ResultVisitor<PolicyActionEvent<?>> {
 
         @Nullable private DittoRuntimeException error;
-        @Nullable private CompletionStage<PolicyActionEvent<?>> firstEvent;
-        private final List<CompletableFuture<PolicyActionEvent>> otherEvents = new ArrayList<>();
+        @Nullable private PolicyActionEvent<?> firstEvent;
+        private final List<PolicyActionEvent<?>> otherEvents = new ArrayList<>();
 
-        private Optional<CompletionStage<PolicyEvent<?>>> aggregateEvents() {
+        private Optional<PolicyEvent<?>> aggregateEvents() {
             if (firstEvent == null) {
                 return Optional.empty();
             } else {
-                return Optional.of(
-                        firstEvent.thenCompose(fe ->
-                                CompletableFuture.allOf(otherEvents.toArray(new CompletableFuture[0]))
-                                        .thenApply(aVoid -> fe.aggregateWith(otherEvents.stream()
-                                                .map(CompletableFuture::join)
-                                                .filter(Objects::nonNull)
-                                                .toList()
-                                        ))
-                        )
-                );
+                return Optional.of(firstEvent.aggregateWith(otherEvents));
             }
         }
 
         @Override
-        public void onMutation(final Command<?> command, final CompletionStage<PolicyActionEvent<?>> event,
-                final CompletionStage<WithDittoHeaders> response, final boolean becomeCreated,
+        public void onMutation(final Command<?> command, final PolicyActionEvent<?> event,
+                final WithDittoHeaders response, final boolean becomeCreated,
                 final boolean becomeDeleted) {
             if (firstEvent == null) {
                 firstEvent = event;
             } else {
-                otherEvents.add(event.thenApply(x -> (PolicyActionEvent) x).toCompletableFuture());
+                otherEvents.add(event);
             }
         }
 
         @Override
-        public void onQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
+        public void onStagedMutation(final Command<?> command, final CompletionStage<PolicyActionEvent<?>> event,
+                final CompletionStage<WithDittoHeaders> response, final boolean becomeCreated,
+                final boolean becomeDeleted) {
+            if (firstEvent == null) {
+                firstEvent = event.toCompletableFuture().join();
+            } else {
+                otherEvents.add(event.thenApply(x -> (PolicyActionEvent<?>) x).toCompletableFuture().join());
+            }
+        }
+
+        @Override
+        public void onQuery(final Command<?> command, final WithDittoHeaders response) {
+            // do nothing
+        }
+
+        @Override
+        public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
             // do nothing
         }
 

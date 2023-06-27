@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.persistentactors.results;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.concurrent.Immutable;
@@ -44,8 +43,8 @@ public final class ResultFactory {
     public static <E extends Event<?>> Result<E> newMutationResult(final Command<?> command, final E eventToPersist,
             final WithDittoHeaders response) {
 
-        return newMutationResult(command, CompletableFuture.completedStage(eventToPersist),
-                CompletableFuture.completedStage(response));
+        return new MutationResult<>(command, eventToPersist, response, null, null,
+                false, false);
     }
 
     /**
@@ -61,7 +60,8 @@ public final class ResultFactory {
             final CompletionStage<E> eventToPersist,
             final CompletionStage<WithDittoHeaders> response) {
 
-        return new MutationResult<>(command, eventToPersist, response, false, false);
+        return new MutationResult<>(command, null, null, eventToPersist, response,
+                false, false);
     }
 
     /**
@@ -81,8 +81,8 @@ public final class ResultFactory {
             final boolean becomeCreated,
             final boolean becomeDeleted) {
 
-        return newMutationResult(command, CompletableFuture.completedStage(eventToPersist),
-                CompletableFuture.completedStage(response), becomeCreated, becomeDeleted);
+        return new MutationResult<>(command, eventToPersist, response, null, null,
+                becomeCreated, becomeDeleted);
     }
 
     /**
@@ -102,7 +102,8 @@ public final class ResultFactory {
             final boolean becomeCreated,
             final boolean becomeDeleted) {
 
-        return new MutationResult<>(command, eventToPersist, response, becomeCreated, becomeDeleted);
+        return new MutationResult<>(command, null, null, eventToPersist, response,
+                becomeCreated, becomeDeleted);
     }
 
     /**
@@ -128,7 +129,7 @@ public final class ResultFactory {
      */
     public static <E extends Event<?>> Result<E> newQueryResult(final Command<?> command,
             final WithDittoHeaders response) {
-        return newQueryResult(command, CompletableFuture.completedStage(response));
+        return new QueryResult<>(command, response, null);
     }
 
     /**
@@ -141,7 +142,7 @@ public final class ResultFactory {
      */
     public static <E extends Event<?>> Result<E> newQueryResult(final Command<?> command,
             final CompletionStage<WithDittoHeaders> response) {
-        return new QueryResult<>(command, response);
+        return new QueryResult<>(command, null, response);
     }
 
     /**

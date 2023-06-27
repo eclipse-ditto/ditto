@@ -102,14 +102,26 @@ public final class PolicyConflictStrategyTest {
         }
 
         @Override
-        public void onMutation(final Command<?> command, final CompletionStage<PolicyEvent<?>> event,
+        public void onMutation(final Command<?> command, final PolicyEvent<?> event,
+                final WithDittoHeaders response, final boolean becomeCreated,
+                final boolean becomeDeleted) {
+            throw new AssertionError("Expect error, got mutation: " + event);
+        }
+
+        @Override
+        public void onStagedMutation(final Command<?> command, final CompletionStage<PolicyEvent<?>> event,
                 final CompletionStage<WithDittoHeaders> response, final boolean becomeCreated,
                 final boolean becomeDeleted) {
             throw new AssertionError("Expect error, got mutation: " + event);
         }
 
         @Override
-        public void onQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
+        public void onQuery(final Command<?> command, final WithDittoHeaders response) {
+            throw new AssertionError("Expect error, got query: " + response);
+        }
+
+        @Override
+        public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
             throw new AssertionError("Expect error, got query: " + response);
         }
 

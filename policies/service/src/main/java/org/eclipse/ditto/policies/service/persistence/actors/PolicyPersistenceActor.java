@@ -246,12 +246,30 @@ public final class PolicyPersistenceActor
     }
 
     @Override
-    public void onMutation(final Command<?> command, final CompletionStage<PolicyEvent<?>> event,
-            final CompletionStage<WithDittoHeaders> response,
+    public void onMutation(final Command<?> command, final PolicyEvent<?> event, final WithDittoHeaders response,
             final boolean becomeCreated, final boolean becomeDeleted) {
 
         final ActorRef sender = getSender();
         persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
+            if (shouldSendResponse(command.getDittoHeaders())) {
+                notifySender(sender, response);
+            }
+            if (becomeDeleted) {
+                becomeDeletedHandler();
+            }
+            if (becomeCreated) {
+                becomeCreatedHandler();
+            }
+        });
+    }
+
+    @Override
+    public void onStagedMutation(final Command<?> command, final CompletionStage<PolicyEvent<?>> event,
+            final CompletionStage<WithDittoHeaders> response,
+            final boolean becomeCreated, final boolean becomeDeleted) {
+
+        final ActorRef sender = getSender();
+        persistAndApplyEventAsync(event, (persistedEvent, resultingEntity) -> {
             if (shouldSendResponse(command.getDittoHeaders())) {
                 response.thenAccept(rsp -> notifySender(sender, rsp));
             }

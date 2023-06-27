@@ -42,7 +42,18 @@ public interface ResultVisitor<E extends Event<?>> {
      * @param becomeCreated whether the actor should behave as if the entity is created.
      * @param becomeDeleted whether the actor should behave as if the entity is deleted.
      */
-    void onMutation(Command<?> command, CompletionStage<E> event, CompletionStage<WithDittoHeaders> response,
+    void onMutation(Command<?> command, E event, WithDittoHeaders response, boolean becomeCreated, boolean becomeDeleted);
+
+    /**
+     * Evaluate a mutation result.
+     *
+     * @param command command that caused the mutation.
+     * @param event event of the mutation.
+     * @param response response of the command.
+     * @param becomeCreated whether the actor should behave as if the entity is created.
+     * @param becomeDeleted whether the actor should behave as if the entity is deleted.
+     */
+    void onStagedMutation(Command<?> command, CompletionStage<E> event, CompletionStage<WithDittoHeaders> response,
             boolean becomeCreated, boolean becomeDeleted);
 
     /**
@@ -51,7 +62,15 @@ public interface ResultVisitor<E extends Event<?>> {
      * @param command the query command.
      * @param response the response.
      */
-    void onQuery(Command<?> command, CompletionStage<WithDittoHeaders> response);
+    void onQuery(Command<?> command, WithDittoHeaders response);
+
+    /**
+     * Evaluate a query result.
+     *
+     * @param command the query command.
+     * @param response the response.
+     */
+    void onStagedQuery(Command<?> command, CompletionStage<WithDittoHeaders> response);
 
     /**
      * Evaluate an error result.

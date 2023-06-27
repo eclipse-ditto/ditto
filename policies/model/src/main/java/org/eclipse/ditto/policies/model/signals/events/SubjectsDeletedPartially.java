@@ -190,7 +190,7 @@ public final class SubjectsDeletedPartially extends AbstractPolicyActionEvent<Su
     }
 
     @Override
-    public SubjectsDeletedPartially aggregateWith(final Collection<PolicyActionEvent> otherPolicyActionEvents) {
+    public SubjectsDeletedPartially aggregateWith(final Collection<PolicyActionEvent<?>> otherPolicyActionEvents) {
         return aggregateWithSubjectDeleted(deletedSubjectIds, otherPolicyActionEvents);
     }
 

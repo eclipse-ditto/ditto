@@ -43,7 +43,12 @@ public final class EmptyResult<E extends Event<?>> implements Result<E> {
     }
 
     @Override
-    public <F extends Event<?>> Result<F> map(final Function<CompletionStage<E>, CompletionStage<F>> mappingFunction) {
+    public <F extends Event<?>> Result<F> map(final Function<E, F> mappingFunction) {
+        return getInstance();
+    }
+
+    @Override
+    public <F extends Event<?>> Result<F> mapStages(final Function<CompletionStage<E>, CompletionStage<F>> mappingFunction) {
         return getInstance();
     }
 

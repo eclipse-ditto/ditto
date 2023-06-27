@@ -119,25 +119,33 @@ public final class ThingPersistenceActor
     }
 
     @Override
-    public void onQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
+    public void onQuery(final Command<?> command, final WithDittoHeaders response) {
         final ActorRef sender = getSender();
-        response.thenAccept(r -> {
-            if (r.getDittoHeaders().didLiveChannelConditionMatch()) {
-                final var liveChannelTimeoutStrategy = r.getDittoHeaders()
-                        .getLiveChannelTimeoutStrategy()
-                        .orElse(LiveChannelTimeoutStrategy.FAIL);
-                if (liveChannelTimeoutStrategy != LiveChannelTimeoutStrategy.USE_TWIN &&
-                        r instanceof ThingQueryCommandResponse<?> queryResponse &&
-                        command.getDittoHeaders().isResponseRequired()) {
-                    notifySender(sender, queryResponse.setEntity(JsonFactory.nullLiteral()));
-                    return;
-                }
-            }
+        doOnQuery(command, response, sender);
+    }
 
-            if (command.getDittoHeaders().isResponseRequired()) {
-                notifySender(sender, r);
+    @Override
+    public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
+        final ActorRef sender = getSender();
+        response.thenAccept(r -> doOnQuery(command, r, sender));
+    }
+
+    private void doOnQuery(final Command<?> command, final WithDittoHeaders response, final ActorRef sender) {
+        if (response.getDittoHeaders().didLiveChannelConditionMatch()) {
+            final var liveChannelTimeoutStrategy = response.getDittoHeaders()
+                    .getLiveChannelTimeoutStrategy()
+                    .orElse(LiveChannelTimeoutStrategy.FAIL);
+            if (liveChannelTimeoutStrategy != LiveChannelTimeoutStrategy.USE_TWIN &&
+                    response instanceof ThingQueryCommandResponse<?> queryResponse &&
+                    command.getDittoHeaders().isResponseRequired()) {
+                notifySender(sender, queryResponse.setEntity(JsonFactory.nullLiteral()));
+                return;
             }
-        });
+        }
+
+        if (command.getDittoHeaders().isResponseRequired()) {
+            notifySender(sender, response);
+        }
     }
 
     @Override

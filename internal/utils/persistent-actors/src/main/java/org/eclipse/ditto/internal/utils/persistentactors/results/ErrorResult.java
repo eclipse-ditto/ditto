@@ -46,7 +46,12 @@ public final class ErrorResult<E extends Event<?>> implements Result<E> {
     }
 
     @Override
-    public <F extends Event<?>> Result<F> map(final Function<CompletionStage<E>, CompletionStage<F>> mappingFunction) {
+    public <F extends Event<?>> Result<F> map(final Function<E, F> mappingFunction) {
+        return new ErrorResult<>(dittoRuntimeException, errorCausingCommand);
+    }
+
+    @Override
+    public <F extends Event<?>> Result<F> mapStages(final Function<CompletionStage<E>, CompletionStage<F>> mappingFunction) {
         return new ErrorResult<>(dittoRuntimeException, errorCausingCommand);
     }
 }

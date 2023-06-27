@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -42,6 +43,7 @@ import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
 import org.eclipse.ditto.internal.utils.akka.PingCommandResponse;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
@@ -58,6 +60,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
@@ -99,6 +102,13 @@ public abstract class AbstractPersistenceActor<
      * that those entities should be always kept in-memory and re-started on a cold-start of the cluster.
      */
     public static final String JOURNAL_TAG_ALWAYS_ALIVE = "always-alive";
+
+    /**
+     * The max timeout to wait for asynchronous performed "pre persist()" event processing (e.g. in order to enhance a
+     * {@code CreateThing} command with a WoT JSON skeleton).
+     * One Akka dispatcher thread is blocked for this amount of time, so this should be minimized.
+     */
+    private static final Duration MAX_ASYNC_EVENT_PRE_PROCESSING_TIMEOUT = Duration.ofSeconds(5);
 
     private final SnapshotAdapter<S> snapshotAdapter;
     private final Receive handleEvents;
@@ -521,20 +531,46 @@ public abstract class AbstractPersistenceActor<
      * @param event   the event to persist and apply.
      * @param handler what happens afterwards.
      */
-    protected void persistAndApplyEvent(final CompletionStage<E> event, final BiConsumer<E, S> handler) {
+    protected void persistAndApplyEvent(final E event, final BiConsumer<E, S> handler) {
+
+        final E modifiedEvent = modifyEventBeforePersist(event);
+        if (modifiedEvent.getDittoHeaders().isDryRun()) {
+            handler.accept(modifiedEvent, entity);
+        } else {
+            persistEvent(modifiedEvent, persistedEvent -> {
+                // after the event was persisted, apply the event on the current actor state
+                applyEvent(persistedEvent);
+                handler.accept(persistedEvent, entity);
+            });
+        }
+    }
+
+    /**
+     * Persist an event, modify actor state by the event strategy, then invoke the handler.
+     *
+     * @param event   the event to persist and apply.
+     * @param handler what happens afterwards.
+     */
+    protected void persistAndApplyEventAsync(final CompletionStage<E> event, final BiConsumer<E, S> handler) {
 
         event.thenAccept(completedEvent -> {
             final E modifiedEvent = modifyEventBeforePersist(completedEvent);
             if (modifiedEvent.getDittoHeaders().isDryRun()) {
                 handler.accept(modifiedEvent, entity);
             } else {
-                persistEvent(modifiedEvent, persistedEvent -> {
+                persistEventAsync(modifiedEvent, persistedEvent -> {
                     // after the event was persisted, apply the event on the current actor state
                     applyEvent(persistedEvent);
                     handler.accept(persistedEvent, entity);
                 });
             }
-        }).toCompletableFuture().join(); // TODO TJ is this bad or not? - propbably yes :/
+        }).toCompletableFuture()
+                .orTimeout(MAX_ASYNC_EVENT_PRE_PROCESSING_TIMEOUT.getSeconds(), TimeUnit.SECONDS)
+                .join(); // this blocks the Akka dispatcher thread, but is needed so that Akka persistence persist()
+                         // is invoked in the correct context
+                         // as most of the provided `CompletionStage<E> event` are already completed futures, this only
+                         // is of relevance for asynchronously preprocessed events to persist, like e.g. CreateThing
+                         // being enhanced by a WoT based Thing JSON skeleton
     }
 
     /**
@@ -680,8 +716,7 @@ public abstract class AbstractPersistenceActor<
     }
 
     @Override
-    public void onMutation(final Command<?> command, final CompletionStage<E> event,
-            final CompletionStage<WithDittoHeaders> response,
+    public void onMutation(final Command<?> command, final E event, final WithDittoHeaders response,
             final boolean becomeCreated, final boolean becomeDeleted) {
 
         final ActorRef sender = getSender();
@@ -699,7 +734,34 @@ public abstract class AbstractPersistenceActor<
     }
 
     @Override
-    public void onQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
+    public void onStagedMutation(final Command<?> command, final CompletionStage<E> event,
+            final CompletionStage<WithDittoHeaders> response,
+            final boolean becomeCreated, final boolean becomeDeleted) {
+
+        final ActorRef sender = getSender();
+        persistAndApplyEventAsync(event, (persistedEvent, resultingEntity) -> {
+            if (shouldSendResponse(command.getDittoHeaders())) {
+                notifySender(sender, response);
+            }
+            if (becomeDeleted) {
+                becomeDeletedHandler();
+            }
+            if (becomeCreated) {
+                becomeCreatedHandler();
+            }
+        });
+    }
+
+    @Override
+    public void onQuery(final Command<?> command, final WithDittoHeaders response) {
+        if (command.getDittoHeaders().isResponseRequired()) {
+            final ActorRef sender = getSender();
+            notifySender(sender, response);
+        }
+    }
+
+    @Override
+    public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
         if (command.getDittoHeaders().isResponseRequired()) {
             final ActorRef sender = getSender();
             response.thenAccept(r -> notifySender(sender, r));
@@ -728,8 +790,16 @@ public abstract class AbstractPersistenceActor<
         return getRevisionNumber() + 1;
     }
 
-    @SuppressWarnings("unchecked")
     private void persistEvent(final E event, final Consumer<E> handler) {
+        persistEvent(event, handler, false);
+    }
+
+    private void persistEventAsync(final E event, final Consumer<E> handler) {
+        persistEvent(event, handler, true);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void persistEvent(final E event, final Consumer<E> handler, final boolean async) {
         final var l = log.withCorrelationId(event);
         l.debug("Persisting Event <{}>.", event.getType());
 
@@ -740,28 +810,38 @@ public abstract class AbstractPersistenceActor<
                 .tag(SpanTagKey.SIGNAL_TYPE.getTagForValue(event.getType()))
                 .start();
 
-        persist(
-                event.setDittoHeaders(DittoHeaders.of(persistOperationSpan.propagateContext(event.getDittoHeaders()))),
-                persistedEvent -> {
-                    l.info("Successfully persisted Event <{}> w/ rev: <{}>.",
-                            persistedEvent.getType(),
-                            getRevisionNumber());
-                    persistOperationSpan.finish();
+        if (async) {
+            persistAsync(
+                    event.setDittoHeaders(DittoHeaders.of(persistOperationSpan.propagateContext(event.getDittoHeaders()))),
+                    persistedEvent -> handlePersistedEvent(handler, l, persistOperationSpan, persistedEvent)
+            );
+        } else {
+            persist(
+                    event.setDittoHeaders(DittoHeaders.of(persistOperationSpan.propagateContext(event.getDittoHeaders()))),
+                    persistedEvent -> handlePersistedEvent(handler, l, persistOperationSpan, persistedEvent)
+            );
+        }
+    }
 
-                    /*
-                     * The event has to be applied before creating the snapshot, otherwise a snapshot with new
-                     * sequence no (e.g. 2), but old entity revision no (e.g. 1) will be created -> can lead to serious
-                     * aftereffects.
-                     */
-                    handler.accept(persistedEvent);
-                    onEntityModified();
+    private void handlePersistedEvent(final Consumer<E> handler, final DittoDiagnosticLoggingAdapter l,
+            final StartedSpan persistOperationSpan, final E persistedEvent) {
+        l.info("Successfully persisted Event <{}> w/ rev: <{}>.",
+                persistedEvent.getType(),
+                getRevisionNumber());
+        persistOperationSpan.finish();
 
-                    // save a snapshot if there were too many changes since the last snapshot
-                    if (snapshotThresholdPassed()) {
-                        takeSnapshot("snapshot threshold is reached");
-                    }
-                }
-        );
+        /*
+         * The event has to be applied before creating the snapshot, otherwise a snapshot with new
+         * sequence no (e.g. 2), but old entity revision no (e.g. 1) will be created -> can lead to serious
+         * aftereffects.
+         */
+        handler.accept(persistedEvent);
+        onEntityModified();
+
+        // save a snapshot if there were too many changes since the last snapshot
+        if (snapshotThresholdPassed()) {
+            takeSnapshot("snapshot threshold is reached");
+        }
     }
 
     private void takeSnapshot(final String reason) {
@@ -997,14 +1077,38 @@ public abstract class AbstractPersistenceActor<
         }
 
         @Override
-        public void onMutation(final Command<?> command, final CompletionStage<E> event,
+        public void onMutation(final Command<?> command, final E event, final WithDittoHeaders response,
+                final boolean becomeCreated, final boolean becomeDeleted) {
+            throw new UnsupportedOperationException("Mutating historical entity not supported.");
+        }
+
+        @Override
+        public void onStagedMutation(final Command<?> command, final CompletionStage<E> event,
                 final CompletionStage<WithDittoHeaders> response,
                 final boolean becomeCreated, final boolean becomeDeleted) {
             throw new UnsupportedOperationException("Mutating historical entity not supported.");
         }
 
         @Override
-        public void onQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
+        public void onQuery(final Command<?> command, final WithDittoHeaders response) {
+            if (command.getDittoHeaders().isResponseRequired()) {
+                final WithDittoHeaders theResponseToSend;
+                if (response instanceof DittoHeadersSettable<?> dittoHeadersSettable) {
+                    final DittoHeaders queryCommandHeaders = response.getDittoHeaders();
+                    final DittoHeaders adjustedHeaders = queryCommandHeaders.toBuilder()
+                            .putHeader(DittoHeaderDefinition.HISTORICAL_HEADERS.getKey(),
+                                    historicalDittoHeaders.toJson().toString())
+                            .build();
+                    theResponseToSend = dittoHeadersSettable.setDittoHeaders(adjustedHeaders);
+                } else {
+                    theResponseToSend = response;
+                }
+                notifySender(sender, theResponseToSend);
+            }
+        }
+
+        @Override
+        public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
             if (command.getDittoHeaders().isResponseRequired()) {
                 response.thenAccept(r -> {
                     final WithDittoHeaders theResponseToSend;

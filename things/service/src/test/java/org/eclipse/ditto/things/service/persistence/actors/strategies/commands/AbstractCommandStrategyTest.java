@@ -99,6 +99,20 @@ public abstract class AbstractCommandStrategyTest {
         return assertModificationResult(result, expectedEventClass, expectedCommandResponse, becomeDeleted);
     }
 
+    protected static <C extends Command<?>, T extends ThingModifiedEvent<?>> T assertStagedModificationResult(
+            final CommandStrategy<C, Thing, ThingId, ThingEvent<?>> underTest,
+            @Nullable final Thing thing,
+            final C command,
+            final Class<T> expectedEventClass,
+            final CommandResponse<?> expectedCommandResponse,
+            final boolean becomeDeleted) {
+
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final Result<ThingEvent<?>> result = applyStrategy(underTest, context, thing, command);
+
+        return assertStagedModificationResult(result, expectedEventClass, expectedCommandResponse, becomeDeleted);
+    }
+
     protected static <C extends Command<?>> void assertErrorResult(
             final CommandStrategy<C, Thing, ThingId, ThingEvent<?>> underTest,
             @Nullable final Thing thing,
@@ -128,20 +142,9 @@ public abstract class AbstractCommandStrategyTest {
         final Result<ThingEvent<?>> thingEventResult = applyStrategy(underTest, getDefaultContext(), thing, command);
         final ResultVisitor<ThingEvent<?>> mock = mock(Dummy.class);
         thingEventResult.accept(mock);
-        final ArgumentCaptor<CompletionStage<WithDittoHeaders>> responseStage =
-                ArgumentCaptor.forClass(CompletionStage.class);
-        verify(mock).onQuery(any(), responseStage.capture());
-
-        assertThat(responseStage.getValue()).isInstanceOf(CompletionStage.class);
-        CompletableFutureAssert.assertThatCompletionStage(responseStage.getValue())
-                .isCompletedWithValueMatching(p -> {
-                    try {
-                        commandResponseAssertions.accept((CommandResponse<?>) p);
-                        return true;
-                    } catch (final AssertionError ae) {
-                        return false;
-                    }
-                });
+        final ArgumentCaptor<CommandResponse<?>> captor = ArgumentCaptor.forClass(CommandResponse.class);
+        verify(mock).onQuery(any(), captor.capture());
+        commandResponseAssertions.accept(captor.getValue());
     }
 
 
@@ -161,6 +164,22 @@ public abstract class AbstractCommandStrategyTest {
             final WithDittoHeaders expectedResponse,
             final boolean becomeDeleted) {
 
+        final ArgumentCaptor<T> event = ArgumentCaptor.forClass(eventClazz);
+
+        final ResultVisitor<ThingEvent<?>> mock = mock(Dummy.class);
+
+        result.accept(mock);
+
+        verify(mock).onMutation(any(), event.capture(), eq(expectedResponse), anyBoolean(), eq(becomeDeleted));
+        assertThat(event.getValue()).isInstanceOf(eventClazz);
+        return event.getValue();
+    }
+
+    private static <T extends ThingModifiedEvent<?>> T assertStagedModificationResult(final Result<ThingEvent<?>> result,
+            final Class<T> eventClazz,
+            final WithDittoHeaders expectedResponse,
+            final boolean becomeDeleted) {
+
         final ArgumentCaptor<CompletionStage<ThingEvent<?>>> eventStage = ArgumentCaptor.forClass(CompletionStage.class);
         final ArgumentCaptor<CompletionStage<WithDittoHeaders>> responseStage = ArgumentCaptor.forClass(CompletionStage.class);
 
@@ -168,7 +187,7 @@ public abstract class AbstractCommandStrategyTest {
 
         result.accept(mock);
 
-        verify(mock).onMutation(any(), eventStage.capture(), responseStage.capture(), anyBoolean(), eq(becomeDeleted));
+        verify(mock).onStagedMutation(any(), eventStage.capture(), responseStage.capture(), anyBoolean(), eq(becomeDeleted));
         assertThat(eventStage.getValue()).isInstanceOf(CompletionStage.class);
         CompletableFutureAssert.assertThatCompletionStage(eventStage.getValue())
                 .isCompletedWithValueMatching(t -> eventClazz.isAssignableFrom(t.getClass()));
@@ -181,14 +200,7 @@ public abstract class AbstractCommandStrategyTest {
     private static void assertInfoResult(final Result<ThingEvent<?>> result, final WithDittoHeaders infoResponse) {
         final ResultVisitor<ThingEvent<?>> mock = mock(Dummy.class);
         result.accept(mock);
-        final ArgumentCaptor<CompletionStage<WithDittoHeaders>> responseStage =
-                ArgumentCaptor.forClass(CompletionStage.class);
-
-        verify(mock).onQuery(any(), responseStage.capture());
-
-        assertThat(responseStage.getValue()).isInstanceOf(CompletionStage.class);
-        CompletableFutureAssert.assertThatCompletionStage(responseStage.getValue())
-                .isCompletedWithValue(infoResponse);
+        verify(mock).onQuery(any(), eq(infoResponse));
     }
 
     private static <C extends Command<?>> Result<ThingEvent<?>> applyStrategy(

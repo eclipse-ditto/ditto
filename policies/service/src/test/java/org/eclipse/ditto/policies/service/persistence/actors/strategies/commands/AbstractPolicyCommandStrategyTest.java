@@ -26,7 +26,6 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
-import org.assertj.core.api.CompletableFutureAssert;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -108,26 +107,21 @@ public abstract class AbstractPolicyCommandStrategyTest {
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
         final Result<?> result = applyStrategy(underTest, context, policy, command);
 
-        final ArgumentCaptor<CompletionStage<T>> eventStage = ArgumentCaptor.forClass(CompletionStage.class);
-        final ArgumentCaptor<CompletionStage<WithDittoHeaders>> responseStage =
-                ArgumentCaptor.forClass(CompletionStage.class);
+        final ArgumentCaptor<T> event = ArgumentCaptor.forClass(expectedEventClass);
+        final ArgumentCaptor<R> response = ArgumentCaptor.forClass(expectedResponseClass);
         final Dummy<T> mock = Dummy.mock();
         result.accept(cast(mock));
 
-        verify(mock).onMutation(any(), eventStage.capture(), responseStage.capture(),
+        verify(mock).onMutation(any(), event.capture(), response.capture(),
                 anyBoolean(), eq(false));
-        assertThat(eventStage.getValue()).isInstanceOf(CompletionStage.class);
-        CompletableFutureAssert.assertThatCompletionStage(eventStage.getValue())
-                        .isCompletedWithValueMatching(t -> expectedEventClass.isAssignableFrom(t.getClass()));
-        assertThat(responseStage.getValue()).isInstanceOf(CompletionStage.class);
-        CompletableFutureAssert.assertThatCompletionStage(responseStage.getValue())
-                .isCompletedWithValueMatching(t -> expectedResponseClass.isAssignableFrom(t.getClass()));
+        assertThat(event.getValue()).isInstanceOf(expectedEventClass);
+        assertThat(response.getValue()).isInstanceOf(expectedResponseClass);
 
-        assertThat(eventStage.getValue().toCompletableFuture().join())
+        assertThat(event.getValue())
                 .describedAs("Event satisfactions failed for expected event of type '%s'",
                         expectedEventClass.getSimpleName())
                 .satisfies(eventSatisfactions);
-        assertThat((R) responseStage.getValue().toCompletableFuture().join())
+        assertThat((R) response.getValue())
                 .describedAs("Response predicate failed for expected responseStage of type '%s'",
                         expectedResponseClass.getSimpleName())
                 .satisfies(responseSatisfactions);
@@ -175,22 +169,15 @@ public abstract class AbstractPolicyCommandStrategyTest {
             final WithDittoHeaders expectedResponse,
             final boolean becomeDeleted) {
 
-        final ArgumentCaptor<CompletionStage<T>> eventStage = ArgumentCaptor.forClass(CompletionStage.class);
-        final ArgumentCaptor<CompletionStage<WithDittoHeaders>> responseStage =
-                ArgumentCaptor.forClass(CompletionStage.class);
+        final ArgumentCaptor<T> event = ArgumentCaptor.forClass(eventClazz);
 
         final Dummy<T> mock = Dummy.mock();
 
         result.accept(cast(mock));
 
-        verify(mock).onMutation(any(), eventStage.capture(), responseStage.capture(), anyBoolean(), eq(becomeDeleted));
-        assertThat(eventStage.getValue()).isInstanceOf(CompletionStage.class);
-        CompletableFutureAssert.assertThatCompletionStage(eventStage.getValue())
-                .isCompletedWithValueMatching(t -> eventClazz.isAssignableFrom(t.getClass()));
-        assertThat(responseStage.getValue()).isInstanceOf(CompletionStage.class);
-        CompletableFutureAssert.assertThatCompletionStage(responseStage.getValue())
-                .isCompletedWithValue(expectedResponse);
-        return eventStage.getValue().toCompletableFuture().join();
+        verify(mock).onMutation(any(), event.capture(), eq(expectedResponse), anyBoolean(), eq(becomeDeleted));
+        assertThat(event.getValue()).isInstanceOf(eventClazz);
+        return event.getValue();
     }
 
     static <C extends Command<?>, E extends Event<?>> Result<E> applyStrategy(
@@ -206,7 +193,16 @@ public abstract class AbstractPolicyCommandStrategyTest {
         final List<E> box = new ArrayList<>(1);
         result.accept(new ResultVisitor<>() {
             @Override
-            public void onMutation(final Command<?> command, final CompletionStage<E> event,
+            public void onMutation(final Command<?> command, final E event,
+                    final WithDittoHeaders response,
+                    final boolean becomeCreated,
+                    final boolean becomeDeleted) {
+
+                box.add(event);
+            }
+
+            @Override
+            public void onStagedMutation(final Command<?> command, final CompletionStage<E> event,
                     final CompletionStage<WithDittoHeaders> response,
                     final boolean becomeCreated,
                     final boolean becomeDeleted) {
@@ -215,7 +211,12 @@ public abstract class AbstractPolicyCommandStrategyTest {
             }
 
             @Override
-            public void onQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
+            public void onQuery(final Command<?> command, final WithDittoHeaders response) {
+                throw new AssertionError("Expect mutation result, got query response: " + response);
+            }
+
+            @Override
+            public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
                 throw new AssertionError("Expect mutation result, got query response: " + response);
             }
 

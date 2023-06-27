@@ -28,5 +28,5 @@ public interface PolicyActionEvent<T extends PolicyActionEvent<T>> extends Polic
      * @param otherPolicyActionEvents the collection of policy action events.
      * @return the aggregated event.
      */
-    PolicyEvent<?> aggregateWith(Collection<PolicyActionEvent> otherPolicyActionEvents);
+    PolicyEvent<?> aggregateWith(Collection<PolicyActionEvent<?>> otherPolicyActionEvents);
 }
