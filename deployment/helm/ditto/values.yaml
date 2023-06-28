@@ -1387,7 +1387,7 @@ nginx:
     # repository for the nginx docker image
     repository: docker.io/nginx
     # tag for the nginx docker image
-    tag: 1.23
+    tag: 1.25
     # pullPolicy for the nginx docker image
     pullPolicy: IfNotPresent
   # extraEnv to add arbitrary environment variables to nginx container
@@ -1430,6 +1430,13 @@ nginx:
       enabled: true
       name: wait-for-gateway
       image: rancher/curlimages-curl:7.73.0
+  # config holds nginx specific configuration
+  config:
+    # workerProcesses the 'worker_processes' option for nginx to use - can also be set to 'auto' in order to let nginx
+    # determine the worker processes based on the CPU count
+    workerProcesses: 4
+    # workerProcesses the 'events' 'worker_connections' option for nginx to use
+    workerConnections: 1024
 
 ## ----------------------------------------------------------------------------
 ## Ditto UI configuration
@@ -1498,7 +1505,7 @@ swaggerui:
     # repository for the swagger ui docker image
     repository: docker.io/swaggerapi/swagger-ui
     # tag for the swagger ui docker image
-    tag: v4.15.5
+    tag: v4.19.1
     # pullPolicy for the swagger ui docker image
     pullPolicy: IfNotPresent
   # extraEnv to add arbitrary environment variable to swagger ui container
