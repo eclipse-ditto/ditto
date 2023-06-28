@@ -103,13 +103,6 @@ public abstract class AbstractPersistenceActor<
      */
     public static final String JOURNAL_TAG_ALWAYS_ALIVE = "always-alive";
 
-    /**
-     * The max timeout to wait for asynchronous performed "pre persist()" event processing (e.g. in order to enhance a
-     * {@code CreateThing} command with a WoT JSON skeleton).
-     * One Akka dispatcher thread is blocked for this amount of time, so this should be minimized.
-     */
-    private static final Duration MAX_ASYNC_EVENT_PRE_PROCESSING_TIMEOUT = Duration.ofSeconds(5);
-
     private final SnapshotAdapter<S> snapshotAdapter;
     private final Receive handleEvents;
     private final Receive handleCleanups;
