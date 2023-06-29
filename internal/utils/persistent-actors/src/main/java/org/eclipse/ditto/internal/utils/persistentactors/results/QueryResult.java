@@ -12,7 +12,10 @@
  */
 package org.eclipse.ditto.internal.utils.persistentactors.results;
 
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -26,11 +29,15 @@ import org.eclipse.ditto.base.model.signals.events.Event;
 public final class QueryResult<E extends Event<?>> implements Result<E> {
 
     private final Command<?> command;
-    private final WithDittoHeaders response;
+    @Nullable private final WithDittoHeaders response;
+    @Nullable private final CompletionStage<WithDittoHeaders> responseStage;
 
-    QueryResult(final Command<?> command, final WithDittoHeaders response) {
+    QueryResult(final Command<?> command,
+            @Nullable final WithDittoHeaders response,
+            @Nullable final CompletionStage<WithDittoHeaders> responseStage) {
         this.command = command;
         this.response = response;
+        this.responseStage = responseStage;
     }
 
     @Override
@@ -38,16 +45,26 @@ public final class QueryResult<E extends Event<?>> implements Result<E> {
         return this.getClass().getSimpleName() + " [" +
                 "command=" + command +
                 ", response=" + response +
+                ", responseStage=" + responseStage +
                 ']';
     }
 
     @Override
     public void accept(final ResultVisitor<E> visitor) {
-        visitor.onQuery(command, response);
+        if (responseStage != null) {
+            visitor.onStagedQuery(command, responseStage);
+        } else {
+            visitor.onQuery(command, response);
+        }
     }
 
     @Override
     public <F extends Event<?>> Result<F> map(final Function<E, F> mappingFunction) {
-        return new QueryResult<>(command, response);
+        return new QueryResult<>(command, response, null);
+    }
+
+    @Override
+    public <F extends Event<?>> Result<F> mapStages(final Function<CompletionStage<E>, CompletionStage<F>> mappingFunction) {
+        return new QueryResult<>(command, null, responseStage);
     }
 }

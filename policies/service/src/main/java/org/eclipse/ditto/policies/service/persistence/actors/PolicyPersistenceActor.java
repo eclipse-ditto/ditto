@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.service.persistence.actors;
 
 import java.time.Instant;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
@@ -248,9 +249,29 @@ public final class PolicyPersistenceActor
     public void onMutation(final Command<?> command, final PolicyEvent<?> event, final WithDittoHeaders response,
             final boolean becomeCreated, final boolean becomeDeleted) {
 
+        final ActorRef sender = getSender();
         persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
             if (shouldSendResponse(command.getDittoHeaders())) {
-                notifySender(getSender(), response);
+                notifySender(sender, response);
+            }
+            if (becomeDeleted) {
+                becomeDeletedHandler();
+            }
+            if (becomeCreated) {
+                becomeCreatedHandler();
+            }
+        });
+    }
+
+    @Override
+    public void onStagedMutation(final Command<?> command, final CompletionStage<PolicyEvent<?>> event,
+            final CompletionStage<WithDittoHeaders> response,
+            final boolean becomeCreated, final boolean becomeDeleted) {
+
+        final ActorRef sender = getSender();
+        persistAndApplyEventAsync(event, (persistedEvent, resultingEntity) -> {
+            if (shouldSendResponse(command.getDittoHeaders())) {
+                response.thenAccept(rsp -> notifySender(sender, rsp));
             }
             if (becomeDeleted) {
                 becomeDeletedHandler();

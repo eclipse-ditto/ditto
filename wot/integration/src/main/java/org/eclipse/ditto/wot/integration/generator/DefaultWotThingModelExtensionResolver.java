@@ -14,12 +14,11 @@ package org.eclipse.ditto.wot.integration.generator;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -41,8 +40,6 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
     private static final String TM_EXTENDS = "tm:extends";
     private static final String TM_REF = "tm:ref";
 
-    private static final Duration MAX_FETCH_MODEL_DURATION = Duration.ofSeconds(30);
-
     private final WotThingModelFetcher thingModelFetcher;
     private final Executor executor;
 
@@ -53,60 +50,85 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
     }
 
     @Override
-    public ThingModel resolveThingModelExtensions(final ThingModel thingModel, final DittoHeaders dittoHeaders) {
+    public CompletionStage<ThingModel> resolveThingModelExtensions(final ThingModel thingModel,
+            final DittoHeaders dittoHeaders) {
         final ThingModel.Builder tmBuilder = thingModel.toBuilder();
-        thingModel.getLinks()
+        return thingModel.getLinks()
                 .map(links -> {
                             final List<CompletableFuture<ThingModel>> fetchedModelFutures = links.stream()
                                     .filter(baseLink -> baseLink.getRel().filter(TM_EXTENDS::equals).isPresent())
                                     .map(extendsLink -> thingModelFetcher.fetchThingModel(extendsLink.getHref(), dittoHeaders))
                                     .map(CompletionStage::toCompletableFuture)
-                                    .map(cf -> cf.orTimeout(MAX_FETCH_MODEL_DURATION.toSeconds(), TimeUnit.SECONDS))
                                     .toList();
-                            final CompletableFuture<Void> allModelFuture =
+                            final CompletionStage<Void> allModelFuture =
                                     CompletableFuture.allOf(fetchedModelFutures.toArray(new CompletableFuture[0]));
                             return allModelFuture
                                     .thenApplyAsync(aVoid -> fetchedModelFutures.stream()
-                                        .map(CompletableFuture::join) // joining does not block anything here as "allOf" already guaranteed that all futures are ready
-                                        .toList(), executor)
-                                    .join();
+                                            .map(CompletableFuture::join) // joining does not block anything here as "allOf" already guaranteed that all futures are ready
+                                            .toList(), executor
+                                    );
                         }
                 )
-                .ifPresent(extendedModels -> extendedModels.forEach(extendedModel -> {
-                    final ThingModel extendedRecursedModel =
-                            resolveThingModelExtensions(extendedModel, dittoHeaders); // recurse!
+                .map(extendedModelsFut -> extendedModelsFut.thenComposeAsync(extendedModels -> {
+                    if (extendedModels.isEmpty()) {
+                        return CompletableFuture.completedStage(thingModel);
+                    } else {
+                        CompletionStage<ThingModel.Builder> currentStage =
+                                resolveThingModelExtensions(extendedModels.get(0), dittoHeaders) // recurse!
+                                        .thenApply(extendedModel ->
+                                                mergeThingModelIntoBuilder().apply(tmBuilder, extendedModel)
+                                        );
+                        for (int i = 1; i < extendedModels.size(); i++) {
+                            currentStage = currentStage.thenCombine(
+                                    resolveThingModelExtensions(extendedModels.get(i), dittoHeaders),  // recurse!
+                                    mergeThingModelIntoBuilder()
+                            );
+                        }
+                        return currentStage.thenApply(ThingModel.Builder::build);
+                    }
+                }, executor))
+                .orElse(CompletableFuture.completedStage(thingModel));
+    }
 
-                    final JsonObject mergedTmObject = JsonFactory
-                            .mergeJsonValues(tmBuilder.build(), extendedRecursedModel).asObject();
-                    tmBuilder.removeAll();
-                    tmBuilder.setAll(mergedTmObject);
-                }));
-        return tmBuilder.build();
+    private BiFunction<ThingModel.Builder, ThingModel, ThingModel.Builder> mergeThingModelIntoBuilder() {
+        return (builder, model) -> {
+            final JsonObject mergedTmObject = JsonFactory.mergeJsonValues(builder.build(), model).asObject();
+            builder.removeAll();
+            builder.setAll(mergedTmObject);
+            return builder;
+        };
     }
 
     @Override
-    public ThingModel resolveThingModelRefs(final ThingModel thingModel, final DittoHeaders dittoHeaders) {
-        final JsonObject thingModelObject = potentiallyResolveRefs(thingModel, dittoHeaders);
-        return ThingModel.fromJson(thingModelObject);
+    public CompletionStage<ThingModel> resolveThingModelRefs(final ThingModel thingModel, final DittoHeaders dittoHeaders) {
+        return potentiallyResolveRefs(thingModel, dittoHeaders).thenApply(ThingModel::fromJson);
     }
 
-    private JsonObject potentiallyResolveRefs(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return jsonObject.stream()
+    private CompletionStage<JsonObject> potentiallyResolveRefs(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
+        final List<CompletableFuture<JsonField>> completionStages = jsonObject.stream()
                 .map(field -> {
                     if (field.getValue().isObject() && field.getValue().asObject().contains(TM_REF)) {
-                        return JsonField.newInstance(field.getKey(),
-                                resolveRefs(field.getValue().asObject(), dittoHeaders));
+                        return resolveRefs(field.getValue().asObject(), dittoHeaders)
+                                .thenApply(refs -> JsonField.newInstance(field.getKey(), refs));
                     } else if (field.getValue().isObject()) {
-                        return JsonField.newInstance(field.getKey(),
-                                potentiallyResolveRefs(field.getValue().asObject(), dittoHeaders)); // recurse!
+                        return potentiallyResolveRefs(field.getValue().asObject(), dittoHeaders)  // recurse!
+                                .thenApply(refs -> JsonField.newInstance(field.getKey(), refs));
                     } else {
-                        return field;
+                        return CompletableFuture.completedStage(field);
                     }
                 })
-                .collect(JsonCollectors.fieldsToObject());
+                .map(CompletionStage::toCompletableFuture)
+                .toList();
+        return CompletableFuture.allOf(completionStages.toArray(CompletableFuture[]::new))
+                .thenApplyAsync(v -> completionStages.stream()
+                                .map(CompletableFuture::join)
+                                .collect(JsonCollectors.fieldsToObject()),
+                        executor
+                );
     }
 
-    private JsonValue resolveRefs(final JsonObject objectWithTmRef, final DittoHeaders dittoHeaders) {
+    private CompletionStage<JsonValue> resolveRefs(final JsonObject objectWithTmRef, final DittoHeaders dittoHeaders) {
         final String tmRef = objectWithTmRef.getValue(TM_REF)
                 .filter(JsonValue::isString)
                 .map(JsonValue::asString)
@@ -116,19 +138,17 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
         if (urlAndPointer.length != 2) {
             throw WotThingModelRefInvalidException.newBuilder(tmRef).dittoHeaders(dittoHeaders).build();
         }
-        final JsonObject refObject = thingModelFetcher.fetchThingModel(IRI.of(urlAndPointer[0]), dittoHeaders)
-                .toCompletableFuture()
-                .orTimeout(MAX_FETCH_MODEL_DURATION.toSeconds(), TimeUnit.SECONDS)
+        return thingModelFetcher.fetchThingModel(IRI.of(urlAndPointer[0]), dittoHeaders)
                 .thenApply(thingModel -> thingModel.getValue(JsonPointer.of(urlAndPointer[1])))
                 .thenComposeAsync(optJsonValue -> optJsonValue
                                 .filter(JsonValue::isObject)
                                 .map(JsonValue::asObject)
                                 .map(CompletableFuture::completedStage)
                                 .orElseGet(() -> CompletableFuture.completedStage(null))
-                        , executor)
-                .toCompletableFuture()
-                .join();
-
-        return JsonFactory.mergeJsonValues(objectWithTmRef.remove(TM_REF), refObject).asObject();
+                        , executor
+                )
+                .thenApply(refObject ->
+                        JsonFactory.mergeJsonValues(objectWithTmRef.remove(TM_REF), refObject).asObject()
+                );
     }
 }

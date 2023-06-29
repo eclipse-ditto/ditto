@@ -15,6 +15,8 @@ package org.eclipse.ditto.internal.utils.persistentactors;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -25,6 +27,7 @@ import org.bson.BsonDocument;
 import org.eclipse.ditto.base.api.commands.sudo.SudoCommand;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -39,6 +42,7 @@ import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
 import org.eclipse.ditto.internal.utils.akka.PingCommandResponse;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
@@ -55,6 +59,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
@@ -62,6 +67,7 @@ import org.eclipse.ditto.json.JsonValue;
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
 import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.Patterns;
 import akka.persistence.RecoveryCompleted;
 import akka.persistence.RecoveryTimedOut;
 import akka.persistence.SaveSnapshotFailure;
@@ -335,6 +341,8 @@ public abstract class AbstractPersistenceActor<
                         .matchEquals(Control.TAKE_SNAPSHOT, this::takeSnapshotByInterval)
                         .match(SaveSnapshotSuccess.class, this::saveSnapshotSuccess)
                         .match(SaveSnapshotFailure.class, this::saveSnapshotFailure)
+                        .match(PersistEventAsync.class, persistEventAsync ->
+                                persistAndApplyEvent((E) persistEventAsync.event, persistEventAsync.handler))
                         .build())
                 .orElse(matchAnyAfterInitialization());
 
@@ -532,6 +540,21 @@ public abstract class AbstractPersistenceActor<
         }
     }
 
+    private record PersistEventAsync<
+            E extends EventsourcedEvent<? extends E>,
+            S extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField>>(E event, BiConsumer<E, S> handler) {};
+
+    /**
+     * Persist an event, modify actor state by the event strategy, then invoke the handler.
+     *
+     * @param event   the event to persist and apply.
+     * @param handler what happens afterwards.
+     */
+    protected void persistAndApplyEventAsync(final CompletionStage<E> event, final BiConsumer<E, S> handler) {
+        Patterns.pipe(event.thenApply(e -> new PersistEventAsync<>(e, handler)), getContext().getDispatcher())
+                .to(getSelf());
+    }
+
     /**
      * Allows to modify the passed in {@code event} before {@link #persistEvent(EventsourcedEvent, Consumer)} is invoked.
      * Overwrite this method and call the super method in order to additionally modify the event before persisting it.
@@ -599,6 +622,8 @@ public abstract class AbstractPersistenceActor<
                         .matchEquals(Control.TAKE_SNAPSHOT, this::takeSnapshotByInterval)
                         .match(SaveSnapshotSuccess.class, this::saveSnapshotSuccess)
                         .match(SaveSnapshotFailure.class, this::saveSnapshotFailure)
+                        .match(PersistEventAsync.class, persistEventAsync ->
+                                persistAndApplyEvent((E) persistEventAsync.event, persistEventAsync.handler))
                         .build())
                 .orElse(matchAnyWhenDeleted());
     }
@@ -659,9 +684,14 @@ public abstract class AbstractPersistenceActor<
         try {
             result = strategy.apply(getStrategyContext(), workEntity, getNextRevisionNumber(), (T) tracedCommand);
             result.accept(this);
-        } catch (final DittoRuntimeException e) {
+        } catch (final CompletionException | DittoRuntimeException e) {
+            final DittoRuntimeException dittoRuntimeException =
+                    DittoRuntimeException.asDittoRuntimeException(e, throwable ->
+                            DittoInternalErrorException.newBuilder()
+                                    .dittoHeaders(command.getDittoHeaders())
+                                    .build());
             startedSpan.tagAsFailed(e);
-            result = ResultFactory.newErrorResult(e, tracedCommand);
+            result = ResultFactory.newErrorResult(dittoRuntimeException, tracedCommand);
             result.accept(this);
         } finally {
             startedSpan.finish();
@@ -671,11 +701,31 @@ public abstract class AbstractPersistenceActor<
 
     @Override
     public void onMutation(final Command<?> command, final E event, final WithDittoHeaders response,
-                           final boolean becomeCreated, final boolean becomeDeleted) {
+            final boolean becomeCreated, final boolean becomeDeleted) {
 
+        final ActorRef sender = getSender();
         persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
             if (shouldSendResponse(command.getDittoHeaders())) {
-                notifySender(response);
+                notifySender(sender, response);
+            }
+            if (becomeDeleted) {
+                becomeDeletedHandler();
+            }
+            if (becomeCreated) {
+                becomeCreatedHandler();
+            }
+        });
+    }
+
+    @Override
+    public void onStagedMutation(final Command<?> command, final CompletionStage<E> event,
+            final CompletionStage<WithDittoHeaders> response,
+            final boolean becomeCreated, final boolean becomeDeleted) {
+
+        final ActorRef sender = getSender();
+        persistAndApplyEventAsync(event, (persistedEvent, resultingEntity) -> {
+            if (shouldSendResponse(command.getDittoHeaders())) {
+                notifySender(sender, response);
             }
             if (becomeDeleted) {
                 becomeDeletedHandler();
@@ -689,7 +739,16 @@ public abstract class AbstractPersistenceActor<
     @Override
     public void onQuery(final Command<?> command, final WithDittoHeaders response) {
         if (command.getDittoHeaders().isResponseRequired()) {
-            notifySender(response);
+            final ActorRef sender = getSender();
+            notifySender(sender, response);
+        }
+    }
+
+    @Override
+    public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
+        if (command.getDittoHeaders().isResponseRequired()) {
+            final ActorRef sender = getSender();
+            response.thenAccept(r -> notifySender(sender, r));
         }
     }
 
@@ -729,26 +788,29 @@ public abstract class AbstractPersistenceActor<
 
         persist(
                 event.setDittoHeaders(DittoHeaders.of(persistOperationSpan.propagateContext(event.getDittoHeaders()))),
-                persistedEvent -> {
-                    l.info("Successfully persisted Event <{}> w/ rev: <{}>.",
-                            persistedEvent.getType(),
-                            getRevisionNumber());
-                    persistOperationSpan.finish();
-
-                    /*
-                     * The event has to be applied before creating the snapshot, otherwise a snapshot with new
-                     * sequence no (e.g. 2), but old entity revision no (e.g. 1) will be created -> can lead to serious
-                     * aftereffects.
-                     */
-                    handler.accept(persistedEvent);
-                    onEntityModified();
-
-                    // save a snapshot if there were too many changes since the last snapshot
-                    if (snapshotThresholdPassed()) {
-                        takeSnapshot("snapshot threshold is reached");
-                    }
-                }
+                persistedEvent -> handlePersistedEvent(handler, l, persistOperationSpan, persistedEvent)
         );
+    }
+
+    private void handlePersistedEvent(final Consumer<E> handler, final DittoDiagnosticLoggingAdapter l,
+            final StartedSpan persistOperationSpan, final E persistedEvent) {
+        l.info("Successfully persisted Event <{}> w/ rev: <{}>.",
+                persistedEvent.getType(),
+                getRevisionNumber());
+        persistOperationSpan.finish();
+
+        /*
+         * The event has to be applied before creating the snapshot, otherwise a snapshot with new
+         * sequence no (e.g. 2), but old entity revision no (e.g. 1) will be created -> can lead to serious
+         * aftereffects.
+         */
+        handler.accept(persistedEvent);
+        onEntityModified();
+
+        // save a snapshot if there were too many changes since the last snapshot
+        if (snapshotThresholdPassed()) {
+            takeSnapshot("snapshot threshold is reached");
+        }
     }
 
     private void takeSnapshot(final String reason) {
@@ -800,6 +862,10 @@ public abstract class AbstractPersistenceActor<
 
     private void notifySender(final WithDittoHeaders message) {
         notifySender(getSender(), message);
+    }
+
+    private void notifySender(final ActorRef sender, final CompletionStage<WithDittoHeaders> message) {
+        message.thenAccept(msg -> notifySender(sender, msg));
     }
 
     private void takeSnapshotByInterval(final Control takeSnapshot) {
@@ -980,8 +1046,14 @@ public abstract class AbstractPersistenceActor<
         }
 
         @Override
-        public void onMutation(final Command<?> command, final E event,
-                final WithDittoHeaders response,
+        public void onMutation(final Command<?> command, final E event, final WithDittoHeaders response,
+                final boolean becomeCreated, final boolean becomeDeleted) {
+            throw new UnsupportedOperationException("Mutating historical entity not supported.");
+        }
+
+        @Override
+        public void onStagedMutation(final Command<?> command, final CompletionStage<E> event,
+                final CompletionStage<WithDittoHeaders> response,
                 final boolean becomeCreated, final boolean becomeDeleted) {
             throw new UnsupportedOperationException("Mutating historical entity not supported.");
         }
@@ -1001,6 +1073,26 @@ public abstract class AbstractPersistenceActor<
                     theResponseToSend = response;
                 }
                 notifySender(sender, theResponseToSend);
+            }
+        }
+
+        @Override
+        public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
+            if (command.getDittoHeaders().isResponseRequired()) {
+                response.thenAccept(r -> {
+                    final WithDittoHeaders theResponseToSend;
+                    if (response instanceof DittoHeadersSettable<?> dittoHeadersSettable) {
+                        final DittoHeaders queryCommandHeaders = r.getDittoHeaders();
+                        final DittoHeaders adjustedHeaders = queryCommandHeaders.toBuilder()
+                                .putHeader(DittoHeaderDefinition.HISTORICAL_HEADERS.getKey(),
+                                        historicalDittoHeaders.toJson().toString())
+                                .build();
+                        theResponseToSend = dittoHeadersSettable.setDittoHeaders(adjustedHeaders);
+                    } else {
+                        theResponseToSend = r;
+                    }
+                    notifySender(sender, theResponseToSend);
+                });
             }
         }
 

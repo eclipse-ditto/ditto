@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.persistentactors.results;
 
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.signals.events.Event;
@@ -26,7 +27,7 @@ public interface Result<E extends Event<?>> {
      *
      * @param visitor the visitor to evaluate the result, typically the persistent actor itself.
      */
-    void accept(final ResultVisitor<E> visitor);
+    void accept(ResultVisitor<E> visitor);
 
     /**
      * Convert the result with a function.
@@ -34,9 +35,17 @@ public interface Result<E extends Event<?>> {
      * @param mappingFunction the mapping function.
      * @param <F> the new event type of the result.
      * @return the new result.
-     * @since 2.0.0
      */
     <F extends Event<?>> Result<F> map(Function<E, F> mappingFunction);
+
+    /**
+     * Convert the result with a function.
+     *
+     * @param mappingFunction the mapping function.
+     * @param <F> the new event type of the result.
+     * @return the new result.
+     */
+    <F extends Event<?>> Result<F> mapStages(Function<CompletionStage<E>, CompletionStage<F>> mappingFunction);
 
     /**
      * @return the empty result

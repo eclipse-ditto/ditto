@@ -13,6 +13,8 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -20,7 +22,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.signals.FeatureToggle;
@@ -89,7 +91,7 @@ final class RetrieveFeatureStrategy extends AbstractThingCommandStrategy<Retriev
         }
     }
 
-    private DittoHeadersSettable<?> getRetrieveThingDescriptionResponse(@Nullable final Thing thing,
+    private CompletionStage<WithDittoHeaders> getRetrieveThingDescriptionResponse(@Nullable final Thing thing,
             final RetrieveFeature command) {
         final String featureId = command.getFeatureId();
         if (thing != null) {
@@ -98,18 +100,23 @@ final class RetrieveFeatureStrategy extends AbstractThingCommandStrategy<Retriev
                     .map(feature -> wotThingDescriptionProvider
                             .provideFeatureTD(command.getEntityId(), thing, feature, command.getDittoHeaders())
                     )
-                    .map(td -> RetrieveWotThingDescriptionResponse.of(command.getEntityId(), td.toJson(),
-                            command.getDittoHeaders()
-                                    .toBuilder()
-                                    .contentType(ContentType.APPLICATION_TD_JSON)
-                                    .build())
+                    .map(tdStage -> tdStage.thenApply(td ->
+                            RetrieveWotThingDescriptionResponse.of(command.getEntityId(), td.toJson(),
+                                    command.getDittoHeaders()
+                                            .toBuilder()
+                                            .contentType(ContentType.APPLICATION_TD_JSON)
+                                            .build()
+                            )
+                            ).thenApply(WithDittoHeaders.class::cast)
                     )
-                    .map(DittoHeadersSettable.class::cast)
-                    .orElseGet(() -> ExceptionFactory.featureNotFound(command.getEntityId(), featureId,
-                            command.getDittoHeaders()));
+                    .orElseGet(() -> CompletableFuture.completedStage(ExceptionFactory.featureNotFound(command.getEntityId(), featureId,
+                            command.getDittoHeaders())
+                    ));
         } else {
-            return ExceptionFactory.featureNotFound(command.getEntityId(), featureId,
-                    command.getDittoHeaders());
+            return CompletableFuture.completedStage(
+                    ExceptionFactory.featureNotFound(command.getEntityId(), featureId,
+                    command.getDittoHeaders())
+            );
         }
     }
 

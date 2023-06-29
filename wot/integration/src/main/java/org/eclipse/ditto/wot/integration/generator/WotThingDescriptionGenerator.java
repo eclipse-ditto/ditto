@@ -13,6 +13,7 @@
 package org.eclipse.ditto.wot.integration.generator;
 
 import java.net.URL;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
@@ -54,7 +55,7 @@ public interface WotThingDescriptionGenerator {
      * @throws org.eclipse.ditto.wot.model.WotThingModelInvalidException if the WoT ThingModel did not contain the
      * mandatory {@code "@type"} being {@code "tm:ThingModel"}
      */
-    ThingDescription generateThingDescription(ThingId thingId,
+    CompletionStage<ThingDescription> generateThingDescription(ThingId thingId,
             @Nullable Thing thing,
             @Nullable JsonObject placeholderLookupObject,
             @Nullable String featureId,

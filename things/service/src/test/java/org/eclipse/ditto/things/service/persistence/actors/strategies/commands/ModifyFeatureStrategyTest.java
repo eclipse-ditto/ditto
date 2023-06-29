@@ -66,9 +66,9 @@ public final class ModifyFeatureStrategyTest extends AbstractCommandStrategyTest
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeature command = ModifyFeature.of(context.getState(), modifiedFeature, DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2.removeFeatures(), command,
+        assertStagedModificationResult(underTest, THING_V2.removeFeatures(), command,
                 FeatureCreated.class,
-                ETagTestUtils.modifyFeatureResponse(context.getState(), command.getFeature(), command.getDittoHeaders(), true));
+                ETagTestUtils.modifyFeatureResponse(context.getState(), command.getFeature(), command.getDittoHeaders(), true), false);
     }
 
     @Test
@@ -76,9 +76,9 @@ public final class ModifyFeatureStrategyTest extends AbstractCommandStrategyTest
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeature command = ModifyFeature.of(context.getState(), modifiedFeature, DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2.removeFeature(modifiedFeature.getId()), command,
+        assertStagedModificationResult(underTest, THING_V2.removeFeature(modifiedFeature.getId()), command,
                 FeatureCreated.class,
-                ETagTestUtils.modifyFeatureResponse(context.getState(), command.getFeature(), command.getDittoHeaders(), true));
+                ETagTestUtils.modifyFeatureResponse(context.getState(), command.getFeature(), command.getDittoHeaders(), true), false);
     }
 
     @Test

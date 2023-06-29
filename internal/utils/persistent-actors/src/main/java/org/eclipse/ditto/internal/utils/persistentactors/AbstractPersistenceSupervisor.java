@@ -783,7 +783,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 final var syncCs = signalTransformer.apply(signal)
                         .whenComplete((result, error) -> handleOptionalTransformationException(signal, error, sender))
                         .thenCompose(transformed -> enforceSignalAndForwardToTargetActor((S) transformed, sender)
-                                .exceptionallyCompose(error -> handleTargetActorAndEnforcerException(signal, error))
+                                .exceptionallyCompose(error -> handleTargetActorAndEnforcerException(transformed, error))
                                 .whenComplete((response, throwable) ->
                                         handleSignalEnforcementResponse(response, throwable, transformed, sender)
                                 ))
