@@ -612,7 +612,7 @@ spec:
         - --publish-service=$(POD_NAMESPACE)/{{ .Values.ingress.controller.namespace }}
         - --election-id=ingress-controller-leader
         - --controller-class=k8s.io/{{ .Values.ingress.controller.namespace }}
-        - --ingress-class={{ .Values.ingress.controller.namespace }}
+        - --ingress-class={{ .Values.ingress.className }}
         - --configmap=$(POD_NAMESPACE)/nginx-configuration
         - --tcp-services-configmap=$(POD_NAMESPACE)/tcp-services
         - --udp-services-configmap=$(POD_NAMESPACE)/udp-services
@@ -803,7 +803,7 @@ metadata:
     app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
     app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
     app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxVersion }}"
-  name: "{{ .Values.ingress.controller.namespace }}"
+  name: "{{ .Values.ingress.className }}"
 spec:
   controller: k8s.io/{{ .Values.ingress.controller.namespace }}
 
