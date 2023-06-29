@@ -169,12 +169,6 @@ dbconfig:
 ingress:
   # enabled whether Ingress should be enabled as alternative to the contained nginx
   enabled: false
-  # namespace for ingress controller, must exist
-  namespace: ingress-nginx
-  # Ingress-NGINX version
-  nginxIngressVersion: v1.8.0
-  # Nginx Version
-  nginxVersion: "1.21.6"
 
   # className is the 'ingressClassName' to configure in the Ingress spec
   className: ingress-nginx
@@ -183,6 +177,15 @@ ingress:
   # defaultBackendSuffix the suffix to add to the internal fullname to use as Ingress "defaultBackend"
   defaultBackendSuffix: nginx
   # annotations common annotations for all 3 Ingresses of Ditto
+  controller:
+    # enabled whether Ingress controller should be enabled
+    enabled: false
+    # namespace for ingress controller
+    namespace: ingress-nginx
+    # Ingress-NGINX version. Check Supported Versions table from https://github.com/kubernetes/ingress-nginx to match k8s version.
+    nginxIngressVersion: "v1.8.0"
+    # Nginx Version. Check Supported Versions table from https://github.com/kubernetes/ingress-nginx to match k8s version.
+    nginxVersion: "1.21.6"
   annotations:
     nginx.ingress.kubernetes.io/service-upstream: "true"
     nginx.ingress.kubernetes.io/server-snippet: |

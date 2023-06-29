@@ -8,20 +8,20 @@
 # http://www.eclipse.org/legal/epl-2.0
 #
 # SPDX-License-Identifier: EPL-2.0
-{{- if .Values.ingress.enabled -}}
+{{- if .Values.ingress.controller.enabled -}}
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: "{{ .Values.ingress.namespace }}"
+  name: "{{ .Values.ingress.controller.namespace }}"
   labels:
-    name: "{{ .Values.ingress.namespace }}"
+    name: "{{ .Values.ingress.controller.namespace }}"
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: nginx-node-health-check-conf
-  namespace: "{{ .Values.ingress.namespace }}"
+  namespace: "{{ .Values.ingress.controller.namespace }}"
 data:
   nginx-node-health-check.conf: |
     # config for health check container running together with the ingress controller
@@ -52,16 +52,16 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/component: controller
-    app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/version: "{{ .Values.ingress.namespace }}"
-  name: "{{ .Values.ingress.namespace }}"
-  namespace: "{{ .Values.ingress.namespace }}"
+    app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/version: "{{ .Values.ingress.controller.namespace }}"
+  name: "{{ .Values.ingress.controller.namespace }}"
+  namespace: "{{ .Values.ingress.controller.namespace }}"
 spec:
   selector:
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
   ports:
     - name: tcp
       port: 80
@@ -73,12 +73,12 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/component: controller
-    app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/version: "{{ .Values.ingress.nginxIngressVersion }}"
+    app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxIngressVersion }}"
   name: nginx-ingress-controller-admission
-  namespace: "{{ .Values.ingress.namespace }}"
+  namespace: "{{ .Values.ingress.controller.namespace }}"
 spec:
   ports:
     - appProtocol: https
@@ -86,8 +86,8 @@ spec:
       port: 443
       targetPort: webhook
   selector:
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
   type: ClusterIP
   
 ---
@@ -96,12 +96,12 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/component: controller
-    app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/version: "{{ .Values.ingress.nginxVersion }}"
+    app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxVersion }}"
   name: nginx-configuration
-  namespace: "{{ .Values.ingress.namespace }}"
+  namespace: "{{ .Values.ingress.controller.namespace }}"
 data:
   worker-processes: "auto"
   max-worker-connections: "0" # 0 will use the value of max-worker-open-files
@@ -166,12 +166,12 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/component: controller
-    app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/version: "{{ .Values.ingress.nginxVersion }}"
+    app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxVersion }}"
   name: tcp-services
-  namespace: "{{ .Values.ingress.namespace }}"
+  namespace: "{{ .Values.ingress.controller.namespace }}"
 
 ---
 apiVersion: v1
@@ -179,12 +179,12 @@ kind: ConfigMap
 metadata:
   labels:
     app.kubernetes.io/component: controller
-    app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/version: "{{ .Values.ingress.nginxVersion }}"
+    app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxVersion }}"
   name: udp-services
-  namespace: "{{ .Values.ingress.namespace }}"
+  namespace: "{{ .Values.ingress.controller.namespace }}"
 
 ---
 apiVersion: v1
@@ -192,12 +192,12 @@ kind: ServiceAccount
 metadata:
   labels:
     app.kubernetes.io/component: controller
-    app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/version: "{{ .Values.ingress.nginxVersion }}"
+    app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxVersion }}"
   name: nginx-ingress-serviceaccount
-  namespace: "{{ .Values.ingress.namespace }}"
+  namespace: "{{ .Values.ingress.controller.namespace }}"
 
 ---
 apiVersion: v1
@@ -205,12 +205,12 @@ kind: ServiceAccount
 metadata:
   labels:
     app.kubernetes.io/component: admission-webhook
-    app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/version: "{{ .Values.ingress.nginxVersion }}"
+    app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxVersion }}"
   name: nginx-ingress-admission
-  namespace: "{{ .Values.ingress.namespace }}"
+  namespace: "{{ .Values.ingress.controller.namespace }}"
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -218,12 +218,12 @@ kind: Role
 metadata:
   labels:
     app.kubernetes.io/component: controller
-    app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/version: "{{ .Values.ingress.nginxVersion }}"
+    app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxVersion }}"
   name: nginx-ingress-role
-  namespace: "{{ .Values.ingress.namespace }}"
+  namespace: "{{ .Values.ingress.controller.namespace }}"
 rules:
   - apiGroups:
       - ""
@@ -317,12 +317,12 @@ kind: Role
 metadata:
   labels:
     app.kubernetes.io/component: admission-webhook
-    app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/version: "{{ .Values.ingress.nginxVersion }}"
+    app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxVersion }}"
   name: nginx-ingress-admission
-  namespace: "{{ .Values.ingress.namespace }}"
+  namespace: "{{ .Values.ingress.controller.namespace }}"
 rules:
   - apiGroups:
       - ""
@@ -337,11 +337,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
-    app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/version: "{{ .Values.ingress.nginxVersion }}"
-  name: "{{ .Values.ingress.namespace }}-clusterrole"
+    app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxVersion }}"
+  name: "{{ .Values.ingress.controller.namespace }}-clusterrole"
 rules:
   - apiGroups:
       - ""
@@ -420,10 +420,10 @@ kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/component: admission-webhook
-    app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/version: "{{ .Values.ingress.nginxVersion }}"
+    app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxVersion }}"
   name: nginx-ingress-admission
 rules:
   - apiGroups:
@@ -440,12 +440,12 @@ kind: RoleBinding
 metadata:
   labels:
     app.kubernetes.io/component: controller
-    app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/version: "{{ .Values.ingress.nginxVersion }}"
+    app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxVersion }}"
   name: nginx-ingress-role-binding
-  namespace: "{{ .Values.ingress.namespace }}"
+  namespace: "{{ .Values.ingress.controller.namespace }}"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -453,7 +453,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: nginx-ingress-serviceaccount
-  namespace: "{{ .Values.ingress.namespace }}"
+  namespace: "{{ .Values.ingress.controller.namespace }}"
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -461,12 +461,12 @@ kind: RoleBinding
 metadata:
   labels:
     app.kubernetes.io/component: admission-webhook
-    app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/version: "{{ .Values.ingress.nginxVersion }}"
+    app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxVersion }}"
   name: nginx-ingress-admission
-  namespace: "{{ .Values.ingress.namespace }}"
+  namespace: "{{ .Values.ingress.controller.namespace }}"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -474,26 +474,26 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: nginx-ingress-admission
-    namespace: "{{ .Values.ingress.namespace }}"
+    namespace: "{{ .Values.ingress.controller.namespace }}"
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   labels:
-    app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/version: "{{ .Values.ingress.nginxVersion }}"
-  name: "{{ .Values.ingress.namespace }}-clusterrole-binding"
+    app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxVersion }}"
+  name: "{{ .Values.ingress.controller.namespace }}-clusterrole-binding"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: "{{ .Values.ingress.namespace }}-clusterrole"
+  name: "{{ .Values.ingress.controller.namespace }}-clusterrole"
 subjects:
 - kind: ServiceAccount
   name: nginx-ingress-serviceaccount
-  namespace: "{{ .Values.ingress.namespace }}"
+  namespace: "{{ .Values.ingress.controller.namespace }}"
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -501,10 +501,10 @@ kind: ClusterRoleBinding
 metadata:
   labels:
     app.kubernetes.io/component: admission-webhook
-    app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/version: "{{ .Values.ingress.nginxVersion }}"
+    app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxVersion }}"
   name: nginx-ingress-admission
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -513,7 +513,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: nginx-ingress-admission
-    namespace: "{{ .Values.ingress.namespace }}"
+    namespace: "{{ .Values.ingress.controller.namespace }}"
 
 ---
 apiVersion: scheduling.k8s.io/v1
@@ -530,18 +530,18 @@ kind: Deployment
 metadata:
   labels:
     app.kubernetes.io/component: controller
-    app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/version: "{{ .Values.ingress.nginxVersion }}"
+    app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxVersion }}"
   name: nginx-ingress-controller
-  namespace: "{{ .Values.ingress.namespace }}"
+  namespace: "{{ .Values.ingress.controller.namespace }}"
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-      app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
+      app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+      app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -553,8 +553,8 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/component: controller
-        app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-        app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
+        app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+        app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
       annotations:
         prometheus.io/port: "10254"
         prometheus.io/scrape: "true"
@@ -574,7 +574,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: nginx-node-health-check
-        image: docker.io/library/nginx:{{ .Values.ingress.nginxVersion }}
+        image: docker.io/library/nginx:{{ .Values.ingress.controller.nginxVersion }}
         imagePullPolicy: Always
         ports:
         - name: healthz-port
@@ -605,14 +605,14 @@ spec:
             mountPath: /etc/nginx/nginx.conf
             subPath: nginx-node-health-check.conf
       - name: nginx-ingress-controller
-        image: registry.k8s.io/ingress-nginx/controller:{{ .Values.ingress.nginxIngressVersion }}
+        image: registry.k8s.io/ingress-nginx/controller:{{ .Values.ingress.controller.nginxIngressVersion }}
         imagePullPolicy: IfNotPresent
         args:
         - /nginx-ingress-controller
-        - --publish-service=$(POD_NAMESPACE)/{{ .Values.ingress.namespace }}
+        - --publish-service=$(POD_NAMESPACE)/{{ .Values.ingress.controller.namespace }}
         - --election-id=ingress-controller-leader
-        - --controller-class=k8s.io/{{ .Values.ingress.namespace }}
-        - --ingress-class={{ .Values.ingress.namespace }}
+        - --controller-class=k8s.io/{{ .Values.ingress.controller.namespace }}
+        - --ingress-class={{ .Values.ingress.controller.namespace }}
         - --configmap=$(POD_NAMESPACE)/nginx-configuration
         - --tcp-services-configmap=$(POD_NAMESPACE)/tcp-services
         - --udp-services-configmap=$(POD_NAMESPACE)/udp-services
@@ -701,21 +701,21 @@ kind: Job
 metadata:
   labels:
     app.kubernetes.io/component: admission-webhook
-    app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/version: "{{ .Values.ingress.nginxVersion }}"
+    app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxVersion }}"
   name: nginx-ingress-admission-create
-  namespace: "{{ .Values.ingress.namespace }}"
+  namespace: "{{ .Values.ingress.controller.namespace }}"
 spec:
   template:
     metadata:
       labels:
         app.kubernetes.io/component: admission-webhook
-        app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-        app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-        app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-        app.kubernetes.io/version: "{{ .Values.ingress.nginxVersion }}"
+        app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+        app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+        app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+        app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxVersion }}"
       name: nginx-ingress-admission-create
     spec:
       containers:
@@ -749,27 +749,27 @@ kind: Job
 metadata:
   labels:
     app.kubernetes.io/component: admission-webhook
-    app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/version: "{{ .Values.ingress.nginxVersion }}"
+    app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxVersion }}"
   name: nginx-ingress-admission-patch
-  namespace: "{{ .Values.ingress.namespace }}"
+  namespace: "{{ .Values.ingress.controller.namespace }}"
 spec:
   template:
     metadata:
       labels:
         app.kubernetes.io/component: admission-webhook
-        app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-        app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-        app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-        app.kubernetes.io/version: "{{ .Values.ingress.nginxVersion }}"
+        app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+        app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+        app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+        app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxVersion }}"
       name: nginx-ingress-admission-patch
     spec:
       containers:
         - args:
             - patch
-            - --webhook-name=nginx-ingress-admission-{{ .Values.ingress.namespace }}
+            - --webhook-name=nginx-ingress-admission-{{ .Values.ingress.controller.namespace }}
             - --namespace=$(POD_NAMESPACE)
             - --patch-mutating=false
             - --secret-name=nginx-ingress-admission
@@ -799,13 +799,13 @@ kind: IngressClass
 metadata:
   labels:
     app.kubernetes.io/component: controller
-    app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/version: "{{ .Values.ingress.nginxVersion }}"
-  name: "{{ .Values.ingress.namespace }}"
+    app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxVersion }}"
+  name: "{{ .Values.ingress.controller.namespace }}"
 spec:
-  controller: k8s.io/{{ .Values.ingress.namespace }}
+  controller: k8s.io/{{ .Values.ingress.controller.namespace }}
 
 ---
 apiVersion: admissionregistration.k8s.io/v1
@@ -813,18 +813,18 @@ kind: ValidatingWebhookConfiguration
 metadata:
   labels:
     app.kubernetes.io/component: admission-webhook
-    app.kubernetes.io/instance: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/name: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/part-of: "{{ .Values.ingress.namespace }}"
-    app.kubernetes.io/version: "{{ .Values.ingress.nginxVersion }}"
-  name: nginx-ingress-admission-{{ .Values.ingress.namespace }}
+    app.kubernetes.io/instance: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
+    app.kubernetes.io/version: "{{ .Values.ingress.controller.nginxVersion }}"
+  name: nginx-ingress-admission-{{ .Values.ingress.controller.namespace }}
 webhooks:
   - admissionReviewVersions:
       - v1
     clientConfig:
       service:
         name: nginx-ingress-controller-admission
-        namespace: "{{ .Values.ingress.namespace }}"
+        namespace: "{{ .Values.ingress.controller.namespace }}"
         path: /networking/v1/ingresses
     failurePolicy: Fail
     matchPolicy: Equivalent
