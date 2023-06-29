@@ -13,6 +13,7 @@
 package org.eclipse.ditto.wot.integration.provider;
 
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -52,7 +53,7 @@ public interface WotThingDescriptionProvider extends Extension {
      * @throws org.eclipse.ditto.wot.model.WotThingModelNotAccessibleException if the ThingModel could not be accessed/
      * downloaded.
      */
-    ThingDescription provideThingTD(@Nullable ThingDefinition thingDefinition,
+    CompletionStage<ThingDescription> provideThingTD(@Nullable ThingDefinition thingDefinition,
             ThingId thingId,
             @Nullable Thing thing,
             DittoHeaders dittoHeaders);
@@ -71,7 +72,7 @@ public interface WotThingDescriptionProvider extends Extension {
      * @throws org.eclipse.ditto.wot.model.WotThingModelNotAccessibleException if the ThingModel could not be accessed/
      * downloaded.
      */
-    ThingDescription provideFeatureTD(ThingId thingId,
+    CompletionStage<ThingDescription> provideFeatureTD(ThingId thingId,
             @Nullable Thing thing,
             Feature feature,
             DittoHeaders dittoHeaders);
@@ -88,7 +89,7 @@ public interface WotThingDescriptionProvider extends Extension {
      * @param dittoHeaders the DittoHeaders for possibly thrown DittoRuntimeExceptions.
      * @return an optional Thing skeleton or empty optional if something went wrong during the skeleton creation.
      */
-    Optional<Thing> provideThingSkeletonForCreation(ThingId thingId,
+    CompletionStage<Optional<Thing>> provideThingSkeletonForCreation(ThingId thingId,
             @Nullable ThingDefinition thingDefinition,
             DittoHeaders dittoHeaders);
 
@@ -104,7 +105,7 @@ public interface WotThingDescriptionProvider extends Extension {
      * @param dittoHeaders the DittoHeaders for possibly thrown DittoRuntimeExceptions.
      * @return an optional Feature skeleton or empty optional if something went wrong during the skeleton creation.
      */
-    Optional<Feature> provideFeatureSkeletonForCreation(String featureId,
+    CompletionStage<Optional<Feature>> provideFeatureSkeletonForCreation(String featureId,
             @Nullable FeatureDefinition featureDefinition,
             DittoHeaders dittoHeaders);
 

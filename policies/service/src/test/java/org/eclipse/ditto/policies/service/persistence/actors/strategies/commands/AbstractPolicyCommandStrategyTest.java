@@ -21,6 +21,7 @@ import static org.mockito.Mockito.verify;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
@@ -111,7 +112,8 @@ public abstract class AbstractPolicyCommandStrategyTest {
         final Dummy<T> mock = Dummy.mock();
         result.accept(cast(mock));
 
-        verify(mock).onMutation(any(), event.capture(), response.capture(), anyBoolean(), eq(false));
+        verify(mock).onMutation(any(), event.capture(), response.capture(),
+                anyBoolean(), eq(false));
         assertThat(event.getValue()).isInstanceOf(expectedEventClass);
         assertThat(response.getValue()).isInstanceOf(expectedResponseClass);
 
@@ -119,8 +121,8 @@ public abstract class AbstractPolicyCommandStrategyTest {
                 .describedAs("Event satisfactions failed for expected event of type '%s'",
                         expectedEventClass.getSimpleName())
                 .satisfies(eventSatisfactions);
-        assertThat(response.getValue())
-                .describedAs("Response predicate failed for expected response of type '%s'",
+        assertThat((R) response.getValue())
+                .describedAs("Response predicate failed for expected responseStage of type '%s'",
                         expectedResponseClass.getSimpleName())
                 .satisfies(responseSatisfactions);
     }
@@ -191,7 +193,8 @@ public abstract class AbstractPolicyCommandStrategyTest {
         final List<E> box = new ArrayList<>(1);
         result.accept(new ResultVisitor<>() {
             @Override
-            public void onMutation(final Command<?> command, final E event, final WithDittoHeaders response,
+            public void onMutation(final Command<?> command, final E event,
+                    final WithDittoHeaders response,
                     final boolean becomeCreated,
                     final boolean becomeDeleted) {
 
@@ -199,7 +202,21 @@ public abstract class AbstractPolicyCommandStrategyTest {
             }
 
             @Override
+            public void onStagedMutation(final Command<?> command, final CompletionStage<E> event,
+                    final CompletionStage<WithDittoHeaders> response,
+                    final boolean becomeCreated,
+                    final boolean becomeDeleted) {
+
+                box.add(event.toCompletableFuture().join());
+            }
+
+            @Override
             public void onQuery(final Command<?> command, final WithDittoHeaders response) {
+                throw new AssertionError("Expect mutation result, got query response: " + response);
+            }
+
+            @Override
+            public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
                 throw new AssertionError("Expect mutation result, got query response: " + response);
             }
 

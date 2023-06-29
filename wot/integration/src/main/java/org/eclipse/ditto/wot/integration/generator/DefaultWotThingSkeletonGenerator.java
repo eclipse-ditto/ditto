@@ -16,7 +16,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -24,8 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -34,8 +33,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonObject;
@@ -73,6 +72,7 @@ import org.eclipse.ditto.wot.model.TmOptional;
 import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
 
 import akka.actor.ActorSystem;
+import akka.japi.Pair;
 
 /**
  * Default Ditto specific implementation of {@link WotThingSkeletonGenerator}.
@@ -80,15 +80,13 @@ import akka.actor.ActorSystem;
 @Immutable
 final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerator {
 
-    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(DefaultWotThingSkeletonGenerator.class);
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(DefaultWotThingSkeletonGenerator.class);
 
     private static final String TM_EXTENDS = "tm:extends";
 
     private static final String TM_SUBMODEL = "tm:submodel";
     private static final String TM_SUBMODEL_INSTANCE_NAME = "instanceName";
-
-    private static final Duration MAX_FETCH_MODEL_DURATION = Duration.ofSeconds(30);
-
 
     private final WotThingModelFetcher thingModelFetcher;
     private final Executor executor;
@@ -101,55 +99,63 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
     }
 
     @Override
-    public Optional<Thing> generateThingSkeleton(final ThingId thingId,
+    public CompletionStage<Optional<Thing>> generateThingSkeleton(final ThingId thingId,
             final ThingModel thingModel,
             final URL thingModelUrl,
             final DittoHeaders dittoHeaders) {
 
-        final ThingModel thingModelWithExtensions = thingModelExtensionResolver
-                .resolveThingModelExtensions(thingModel, dittoHeaders);
-        final ThingModel thingModelWithExtensionsAndImports = thingModelExtensionResolver
-                .resolveThingModelRefs(thingModelWithExtensions, dittoHeaders);
+        return thingModelExtensionResolver
+                .resolveThingModelExtensions(thingModel, dittoHeaders)
+                .thenCompose(thingModelWithExtensions ->
+                        thingModelExtensionResolver.resolveThingModelRefs(thingModelWithExtensions, dittoHeaders)
+                )
+                .thenApply(thingModelWithExtensionsAndImports -> {
+                    final Optional<String> dittoExtensionPrefix = thingModelWithExtensionsAndImports.getAtContext()
+                            .determinePrefixFor(DittoWotExtension.DITTO_WOT_EXTENSION);
 
-        final Optional<String> dittoExtensionPrefix = thingModelWithExtensionsAndImports.getAtContext()
-                .determinePrefixFor(DittoWotExtension.DITTO_WOT_EXTENSION);
+                    LOGGER.withCorrelationId(dittoHeaders)
+                            .debug("ThingModel for generating Thing skeleton after resolving extensions + refs: <{}>",
+                                    thingModelWithExtensionsAndImports);
 
-        LOGGER.withCorrelationId(dittoHeaders)
-                .debug("ThingModel for generating Thing skeleton after resolving extensions + refs: <{}>",
-                        thingModelWithExtensionsAndImports);
+                    final ThingBuilder.FromScratch builder = Thing.newBuilder();
+                    thingModelWithExtensionsAndImports.getProperties()
+                            .map(properties -> {
+                                final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
+                                final Map<String, JsonObjectBuilder> attributesCategories = new LinkedHashMap<>();
 
-        final ThingBuilder.FromScratch builder = Thing.newBuilder();
-        thingModelWithExtensionsAndImports.getProperties()
-                .map(properties -> {
-                    final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
-                    final Map<String, JsonObjectBuilder> attributesCategories = new LinkedHashMap<>();
+                                fillPropertiesInOptionalCategories(
+                                        properties,
+                                        thingModelWithExtensionsAndImports.getTmOptional().orElse(null),
+                                        jsonObjectBuilder,
+                                        attributesCategories,
+                                        property -> dittoExtensionPrefix.flatMap(prefix ->
+                                                        property.getValue(prefix + ":" +
+                                                                DittoWotExtension.DITTO_WOT_EXTENSION_CATEGORY
+                                                        )
+                                                )
+                                                .filter(JsonValue::isString)
+                                                .map(JsonValue::asString)
+                                );
 
-                    fillPropertiesInOptionalCategories(
-                            properties,
-                            thingModelWithExtensionsAndImports.getTmOptional().orElse(null),
-                            jsonObjectBuilder,
-                            attributesCategories,
-                            property -> dittoExtensionPrefix.flatMap(prefix ->
-                                    property.getValue(prefix + ":" + DittoWotExtension.DITTO_WOT_EXTENSION_CATEGORY)
+                                final AttributesBuilder attributesBuilder = Attributes.newBuilder();
+                                if (attributesCategories.size() > 0) {
+                                    attributesCategories.forEach((attributeCategory, categoryObjBuilder) ->
+                                            attributesBuilder.set(attributeCategory, categoryObjBuilder.build())
+                                    );
+                                }
+                                attributesBuilder.setAll(jsonObjectBuilder.build());
+                                return attributesBuilder.build();
+                            }).ifPresent(builder::setAttributes);
+
+                    return Pair.apply(thingModelWithExtensionsAndImports, builder);
+                })
+                .thenCompose(pair ->
+                    createFeaturesFromSubmodels(pair.first(), dittoHeaders)
+                            .thenApply(features ->
+                                    features.map(f -> pair.second().setFeatures(f)).orElse(pair.second())
                             )
-                            .filter(JsonValue::isString)
-                            .map(JsonValue::asString)
-                    );
-
-                    final AttributesBuilder attributesBuilder = Attributes.newBuilder();
-                    if (attributesCategories.size() > 0) {
-                        attributesCategories.forEach((attributeCategory, categoryObjBuilder) ->
-                                attributesBuilder.set(attributeCategory, categoryObjBuilder.build())
-                        );
-                    }
-                    attributesBuilder.setAll(jsonObjectBuilder.build());
-                    return attributesBuilder.build();
-                }).ifPresent(builder::setAttributes);
-
-        createFeaturesFromSubmodels(thingModelWithExtensionsAndImports, dittoHeaders)
-                .ifPresent(builder::setFeatures);
-
-        return Optional.of(builder.build());
+                )
+                .thenApply(builder -> Optional.of(builder.build()));
     }
 
     private static void fillPropertiesInOptionalCategories(final Properties properties,
@@ -184,7 +190,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                 );
     }
 
-    private Optional<Features> createFeaturesFromSubmodels(final ThingModel thingModel,
+    private CompletionStage<Optional<Features>> createFeaturesFromSubmodels(final ThingModel thingModel,
             final DittoHeaders dittoHeaders) {
 
         final FeaturesBuilder featuresBuilder = Features.newBuilder();
@@ -210,9 +216,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                 )
                 .orElseGet(Stream::empty)
                 .map(submodel -> thingModelFetcher.fetchThingModel(submodel.href, dittoHeaders)
-                        .toCompletableFuture()
-                        .orTimeout(MAX_FETCH_MODEL_DURATION.toSeconds(), TimeUnit.SECONDS)
-                        .thenApplyAsync(subThingModel ->
+                        .thenComposeAsync(subThingModel ->
                                 generateFeatureSkeleton(submodel.instanceName,
                                         subThingModel,
                                         submodel.href,
@@ -222,23 +226,24 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                 )
                 .toList();
 
-        final List<Feature> features = CompletableFuture.allOf(futureList.toArray(CompletableFuture<?>[]::new))
-                .thenApply(v -> futureList.stream()
-                        .map(CompletableFuture::join)
-                        .filter(Optional::isPresent)
-                        .map(Optional::get)
-                        .toList()
-                ).join();
-
-        if (features.isEmpty()) {
-            return Optional.empty();
-        } else {
-            featuresBuilder.setAll(features);
-            return Optional.of(featuresBuilder.build());
-        }
+        return CompletableFuture.allOf(futureList.toArray(CompletableFuture<?>[]::new))
+                .thenApplyAsync(v -> {
+                            if (futureList.isEmpty()) {
+                                return Optional.empty();
+                            } else {
+                                featuresBuilder.setAll(futureList.stream()
+                                        .map(CompletableFuture::join)
+                                        .filter(Optional::isPresent)
+                                        .map(Optional::get)
+                                        .toList());
+                                return Optional.of(featuresBuilder.build());
+                            }
+                        },
+                        executor
+                );
     }
 
-    private Optional<Feature> generateFeatureSkeleton(final String featureId,
+    private CompletionStage<Optional<Feature>> generateFeatureSkeleton(final String featureId,
             final ThingModel thingModel,
             final IRI thingModelIri,
             final DittoHeaders dittoHeaders) {
@@ -252,54 +257,61 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
     }
 
     @Override
-    public Optional<Feature> generateFeatureSkeleton(final String featureId,
+    public CompletionStage<Optional<Feature>> generateFeatureSkeleton(final String featureId,
             final ThingModel thingModel,
             final URL thingModelUrl,
             final DittoHeaders dittoHeaders) {
 
-        final ThingModel thingModelWithExtensions = thingModelExtensionResolver
-                .resolveThingModelExtensions(thingModel, dittoHeaders);
-        final ThingModel thingModelWithExtensionsAndImports = thingModelExtensionResolver
-                .resolveThingModelRefs(thingModelWithExtensions, dittoHeaders);
+        return thingModelExtensionResolver
+                .resolveThingModelExtensions(thingModel, dittoHeaders)
+                .thenCompose(thingModelWithExtensions -> thingModelExtensionResolver
+                        .resolveThingModelRefs(thingModelWithExtensions, dittoHeaders))
+                .thenCombine(resolveFeatureDefinition(thingModel, thingModelUrl, dittoHeaders),
+                        (thingModelWithExtensionsAndImports, featureDefinition) -> {
+                            final Optional<String> dittoExtensionPrefix =
+                                    thingModelWithExtensionsAndImports.getAtContext()
+                                            .determinePrefixFor(DittoWotExtension.DITTO_WOT_EXTENSION);
 
-        final Optional<String> dittoExtensionPrefix = thingModelWithExtensionsAndImports.getAtContext()
-                .determinePrefixFor(DittoWotExtension.DITTO_WOT_EXTENSION);
+                            LOGGER.withCorrelationId(dittoHeaders)
+                                    .debug("ThingModel for generating Feature skeleton after resolving extensions + refs: <{}>",
+                                            thingModelWithExtensionsAndImports);
 
-        LOGGER.withCorrelationId(dittoHeaders)
-                .debug("ThingModel for generating Feature skeleton after resolving extensions + refs: <{}>",
-                        thingModelWithExtensionsAndImports);
+                            final FeatureBuilder.FromScratchBuildable builder = Feature.newBuilder();
+                            thingModelWithExtensionsAndImports.getProperties()
+                                    .map(properties -> {
+                                        final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
+                                        final Map<String, JsonObjectBuilder> propertiesCategories =
+                                                new LinkedHashMap<>();
 
-        final FeatureBuilder.FromScratchBuildable builder = Feature.newBuilder();
-        thingModelWithExtensionsAndImports.getProperties()
-                .map(properties -> {
-                    final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
-                    final Map<String, JsonObjectBuilder> propertiesCategories = new LinkedHashMap<>();
+                                        fillPropertiesInOptionalCategories(
+                                                properties,
+                                                thingModelWithExtensionsAndImports.getTmOptional().orElse(null),
+                                                jsonObjectBuilder,
+                                                propertiesCategories,
+                                                property -> dittoExtensionPrefix.flatMap(prefix ->
+                                                                property.getValue(
+                                                                        prefix + ":" +
+                                                                                DittoWotExtension.DITTO_WOT_EXTENSION_CATEGORY)
+                                                        )
+                                                        .filter(JsonValue::isString)
+                                                        .map(JsonValue::asString)
+                                        );
 
-                    fillPropertiesInOptionalCategories(
-                            properties,
-                            thingModelWithExtensionsAndImports.getTmOptional().orElse(null),
-                            jsonObjectBuilder,
-                            propertiesCategories,
-                            property -> dittoExtensionPrefix.flatMap(prefix ->
-                                            property.getValue(prefix + ":" + DittoWotExtension.DITTO_WOT_EXTENSION_CATEGORY)
-                                    )
-                                    .filter(JsonValue::isString)
-                                    .map(JsonValue::asString)
-                    );
+                                        final FeaturePropertiesBuilder propertiesBuilder =
+                                                FeatureProperties.newBuilder();
+                                        if (propertiesCategories.size() > 0) {
+                                            propertiesCategories.forEach((propertyCategory, categoryObjBuilder) ->
+                                                    propertiesBuilder.set(propertyCategory, categoryObjBuilder.build())
+                                            );
+                                        }
+                                        propertiesBuilder.setAll(jsonObjectBuilder.build());
+                                        return propertiesBuilder.build();
+                                    }).ifPresent(builder::properties);
 
-                    final FeaturePropertiesBuilder propertiesBuilder = FeatureProperties.newBuilder();
-                    if (propertiesCategories.size() > 0) {
-                        propertiesCategories.forEach((propertyCategory, categoryObjBuilder) ->
-                                propertiesBuilder.set(propertyCategory, categoryObjBuilder.build())
-                        );
-                    }
-                    propertiesBuilder.setAll(jsonObjectBuilder.build());
-                    return propertiesBuilder.build();
-                }).ifPresent(builder::properties);
+                            builder.definition(featureDefinition);
 
-        builder.definition(resolveFeatureDefinition(thingModel, thingModelUrl, dittoHeaders));
-
-        return Optional.of(builder.withId(featureId).build());
+                            return Optional.of(builder.withId(featureId).build());
+                        });
     }
 
     private static Optional<JsonValue> determineInitialPropertyValue(final SingleDataSchema dataSchema) {
@@ -454,14 +466,17 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
         return "";
     }
 
-    private FeatureDefinition resolveFeatureDefinition(final ThingModel thingModel, final URL thingModelUrl,
+    private CompletionStage<FeatureDefinition> resolveFeatureDefinition(final ThingModel thingModel, final URL thingModelUrl,
             final DittoHeaders dittoHeaders) {
-        return FeatureDefinition.fromIdentifier(thingModelUrl.toString(),
-                determineFurtherFeatureDefinitionIdentifiers(thingModel, dittoHeaders)
-                        .toArray(new DefinitionIdentifier[]{}));
+        return determineFurtherFeatureDefinitionIdentifiers(thingModel, dittoHeaders)
+                .thenApply(definitionIdentifiers -> FeatureDefinition.fromIdentifier(
+                        thingModelUrl.toString(),
+                        definitionIdentifiers.toArray(DefinitionIdentifier[]::new)
+                ));
     }
 
-    private List<DefinitionIdentifier> determineFurtherFeatureDefinitionIdentifiers(final ThingModel thingModel,
+    private CompletionStage<List<DefinitionIdentifier>> determineFurtherFeatureDefinitionIdentifiers(
+            final ThingModel thingModel,
             final DittoHeaders dittoHeaders) {
         return thingModel.getLinks().map(links -> {
             final Optional<BaseLink<?>> extendsLink = links.stream()
@@ -470,25 +485,23 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
 
             if (extendsLink.isPresent()) {
                 final BaseLink<?> link = extendsLink.get();
-                final List<DefinitionIdentifier> recursedSubmodels =
-                        thingModelFetcher.fetchThingModel(link.getHref(), dittoHeaders)
-                                .toCompletableFuture()
-                                .orTimeout(MAX_FETCH_MODEL_DURATION.toSeconds(), TimeUnit.SECONDS)
-                                .thenApplyAsync(subThingModel ->
-                                        determineFurtherFeatureDefinitionIdentifiers( // recurse!
-                                                subThingModel,
-                                                dittoHeaders
-                                        ), executor)
-                                .toCompletableFuture()
-                                .join();
-                final List<DefinitionIdentifier> combinedIdentifiers = new ArrayList<>();
-                combinedIdentifiers.add(ThingsModelFactory.newFeatureDefinitionIdentifier(link.getHref()));
-                combinedIdentifiers.addAll(recursedSubmodels);
-                return combinedIdentifiers;
+                return thingModelFetcher.fetchThingModel(link.getHref(), dittoHeaders)
+                        .thenComposeAsync(subThingModel ->
+                                determineFurtherFeatureDefinitionIdentifiers( // recurse!
+                                        subThingModel,
+                                        dittoHeaders
+                                ), executor
+                        )
+                        .thenApply(recursedSubmodels -> {
+                            final List<DefinitionIdentifier> combinedIdentifiers = new ArrayList<>();
+                            combinedIdentifiers.add(ThingsModelFactory.newFeatureDefinitionIdentifier(link.getHref()));
+                            combinedIdentifiers.addAll(recursedSubmodels);
+                            return combinedIdentifiers;
+                        });
             } else {
-                return Collections.<DefinitionIdentifier>emptyList();
+                return CompletableFuture.completedStage(Collections.<DefinitionIdentifier>emptyList());
             }
-        }).orElseGet(Collections::emptyList);
+        }).orElseGet(() -> CompletableFuture.completedStage(Collections.emptyList()));
     }
 
     private static class Submodel {

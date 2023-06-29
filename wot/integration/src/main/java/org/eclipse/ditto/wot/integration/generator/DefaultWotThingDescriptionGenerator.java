@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
@@ -135,7 +136,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
     }
 
     @Override
-    public ThingDescription generateThingDescription(final ThingId thingId,
+    public CompletionStage<ThingDescription> generateThingDescription(final ThingId thingId,
             @Nullable final Thing thing,
             @Nullable final JsonObject placeholderLookupObject,
             @Nullable final String featureId,
@@ -144,46 +145,51 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
             final DittoHeaders dittoHeaders) {
 
         // generation rules defined at: https://w3c.github.io/wot-thing-description/#thing-model-td-generation
+        return thingModelExtensionResolver
+                .resolveThingModelExtensions(thingModel, dittoHeaders)
+                .thenCompose(thingModelWithExtensions ->
+                        thingModelExtensionResolver.resolveThingModelRefs(thingModelWithExtensions, dittoHeaders)
+                )
+                .thenApply(thingModelWithExtensionsAndImports -> {
+                    LOGGER.withCorrelationId(dittoHeaders)
+                            .debug("ThingModel after resolving extensions + refs: <{}>",
+                                    thingModelWithExtensionsAndImports);
 
-        final ThingModel thingModelWithExtensions = thingModelExtensionResolver
-                .resolveThingModelExtensions(thingModel, dittoHeaders);
-        final ThingModel thingModelWithExtensionsAndImports = thingModelExtensionResolver
-                .resolveThingModelRefs(thingModelWithExtensions, dittoHeaders);
+                    final ThingModel cleanedTm =
+                            removeThingModelSpecificElements(thingModelWithExtensionsAndImports, dittoHeaders);
 
-        LOGGER.withCorrelationId(dittoHeaders)
-                .debug("ThingModel after resolving extensions + refs: <{}>", thingModelWithExtensionsAndImports);
+                    final ThingDescription.Builder tdBuilder = ThingDescription.newBuilder(cleanedTm.toJson());
+                    addBase(tdBuilder, thingId, featureId);
+                    addInstanceVersion(tdBuilder, cleanedTm.getVersion().orElse(null));
+                    addThingDescriptionLinks(tdBuilder, thingModelUrl, null != featureId, thingId);
+                    convertThingDescriptionTmSubmodelLinksToItems(tdBuilder, dittoHeaders);
+                    addThingDescriptionTemplateFromConfig(tdBuilder);
+                    addThingDescriptionAdditionalMetadata(tdBuilder, thing);
+                    if (null == featureId) {
+                        addThingDescriptionForms(cleanedTm, tdBuilder, Thing.JsonFields.ATTRIBUTES.getPointer());
+                    } else {
+                        addThingDescriptionForms(cleanedTm, tdBuilder, Feature.JsonFields.PROPERTIES.getPointer());
+                    }
 
-        final ThingModel cleanedTm = removeThingModelSpecificElements(thingModelWithExtensionsAndImports, dittoHeaders);
+                    tdBuilder.setUriVariables(provideUriVariables(
+                            DittoHeaderDefinition.CHANNEL.getKey(),
+                            DittoHeaderDefinition.TIMEOUT.getKey(),
+                            DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(),
+                            DITTO_FIELDS_URI_VARIABLE
+                    ));
+                    tdBuilder.setSchemaDefinitions(SchemaDefinitions.of(
+                            Map.of(SCHEMA_DITTO_ERROR, buildDittoErrorSchema())
+                    ));
 
-        final ThingDescription.Builder tdBuilder = ThingDescription.newBuilder(cleanedTm.toJson());
-        addBase(tdBuilder, thingId, featureId);
-        addInstanceVersion(tdBuilder, cleanedTm.getVersion().orElse(null));
-        addThingDescriptionLinks(tdBuilder, thingModelUrl, null != featureId, thingId);
-        convertThingDescriptionTmSubmodelLinksToItems(tdBuilder, dittoHeaders);
-        addThingDescriptionTemplateFromConfig(tdBuilder);
-        addThingDescriptionAdditionalMetadata(tdBuilder, thing);
-        if (null == featureId) {
-            addThingDescriptionForms(cleanedTm, tdBuilder, Thing.JsonFields.ATTRIBUTES.getPointer());
-        } else {
-            addThingDescriptionForms(cleanedTm, tdBuilder, Feature.JsonFields.PROPERTIES.getPointer());
-        }
-
-        tdBuilder.setUriVariables(provideUriVariables(
-                DittoHeaderDefinition.CHANNEL.getKey(),
-                DittoHeaderDefinition.TIMEOUT.getKey(),
-                DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(),
-                DITTO_FIELDS_URI_VARIABLE
-        ));
-        tdBuilder.setSchemaDefinitions(SchemaDefinitions.of(
-                Map.of(SCHEMA_DITTO_ERROR, buildDittoErrorSchema())
-        ));
-
-        final ThingDescription thingDescription = resolvePlaceholders(tdBuilder.build(), placeholderLookupObject,
-                dittoHeaders);
-        LOGGER.withCorrelationId(dittoHeaders)
-                .info("Created ThingDescription for thingId <{}> and featureId <{}>: <{}>", thingId, featureId,
-                        thingDescription);
-        return thingDescription;
+                    final ThingDescription thingDescription =
+                            resolvePlaceholders(tdBuilder.build(), placeholderLookupObject,
+                                    dittoHeaders);
+                    LOGGER.withCorrelationId(dittoHeaders)
+                            .info("Created ThingDescription for thingId <{}> and featureId <{}>: <{}>", thingId,
+                                    featureId,
+                                    thingDescription);
+                    return thingDescription;
+                });
     }
 
     private ObjectSchema buildDittoErrorSchema() {

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.wot.integration.generator;
 
+import java.util.concurrent.CompletionStage;
+
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.wot.model.ThingModel;
 
@@ -37,7 +39,7 @@ public interface WotThingModelExtensionResolver {
      * @throws org.eclipse.ditto.wot.model.WotThingModelInvalidException if the fetched extended ThingModel could not be
      * parsed/interpreted as correct WoT ThingModel.
      */
-    ThingModel resolveThingModelExtensions(ThingModel thingModel, DittoHeaders dittoHeaders);
+    CompletionStage<ThingModel> resolveThingModelExtensions(ThingModel thingModel, DittoHeaders dittoHeaders);
 
     /**
      * Resolves the "references" ({@code tm:ref}) contained in the passed {@code thingModel} and merges them into the
@@ -53,5 +55,5 @@ public interface WotThingModelExtensionResolver {
      * @throws org.eclipse.ditto.wot.model.WotThingModelInvalidException if the fetched referenced ThingModel could not
      * be parsed/interpreted as correct WoT ThingModel.
      */
-    ThingModel resolveThingModelRefs(ThingModel thingModel, DittoHeaders dittoHeaders);
+    CompletionStage<ThingModel> resolveThingModelRefs(ThingModel thingModel, DittoHeaders dittoHeaders);
 }
