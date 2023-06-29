@@ -25,7 +25,7 @@ metadata:
 data:
   nginx-node-health-check.conf: |
     # config for health check container running together with the ingress controller
-    worker_processes auto; #auto-detect number of logical CPU cores
+    worker_processes 1;
 
     events {
       worker_connections 1024;
