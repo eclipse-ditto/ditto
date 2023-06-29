@@ -81,6 +81,11 @@ public interface LimitsConfig {
         POLICIES_MAX_SIZE("policies.max-size", Constants.DEFAULT_ENTITY_MAX_SIZE),
 
         /**
+         * The number of imports that a policy may contain.
+         */
+        POLICY_IMPORTS_LIMIT("policies.imports-limit", 10),
+
+        /**
          * The maximum possible size of "Messages" entities in bytes.
          */
         MESSAGES_MAX_SIZE("messages.max-size", Constants.DEFAULT_ENTITY_MAX_SIZE),
@@ -93,12 +98,7 @@ public interface LimitsConfig {
         /**
          * The maximum pagination size to apply when searching for "Things" via "things-search".
          */
-        THINGS_SEARCH_MAX_PAGE_SIZE(Constants.THINGS_SEARCH_PATH + "." + "max-page-size", 200),
-
-        /**
-         * The number of imports that a policy may contain.
-         */
-        POLICY_IMPORTS_LIMIT("imports-limit", 10);
+        THINGS_SEARCH_MAX_PAGE_SIZE(Constants.THINGS_SEARCH_PATH + "." + "max-page-size", 200);
 
         private final String path;
         private final Object defaultValue;
