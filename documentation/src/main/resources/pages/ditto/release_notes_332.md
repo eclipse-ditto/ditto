@@ -1,10 +1,10 @@
 ---
-title: Release notes 3.3.1
+title: Release notes 3.3.2
 tags: [release_notes]
 published: true
 keywords: release notes, announcements, changelog
-summary: "Version 3.3.1 of Eclipse Ditto, released on 29.06.2023"
-permalink: release_notes_331.html
+summary: "Version 3.3.2 of Eclipse Ditto, released on 30.06.2023"
+permalink: release_notes_332.html
 ---
 
 This is a bugfix release, no new features since [3.3.0](release_notes_330.html) were added.
@@ -15,7 +15,7 @@ Compared to the latest release [3.3.0](release_notes_330.html), the following ch
 
 ### Changes
 
-None
+We had to skip Ditto version 3.3.1, as there were errors in our release pipeline.
 
 
 ### Bugfixes
