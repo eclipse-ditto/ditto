@@ -61,22 +61,46 @@
                     "description": "The optional expiry timestamp (formatted in ISO-8601) indicates how long this subject should be considered before it is automatically deleted from the policy.",
                     "format": "date-time"
                   },
-                  "requestedAcks": {
-                    "title": "RequestedAcks",
+                  "announcement": {
+                    "title": "Announcement",
                     "type": "object",
-                    "description": "Settings to enable at-least-once delivery for policy announcements.",
+                    "description": "The configuration of announcements to send for this Subject.",
                     "properties": {
-                      "labels": {
-                        "type": "array",
-                        "description": "Acknowledgement labels to request when an announcement is published.",
-                        "items": {
-                          "type": "string"
-                        },
-                        "example": ["my-connection:my-issued-acknowledgement"]
-                      },
-                      "timeout": {
+                      "beforeExpiry": {
+                        "title": "Before expiry",
                         "type": "string",
-                        "description": "How long to wait for requested announcements before retrying publication of an announcement.",
+                        "description": "The duration before expiry when an announcement should be sent.",
+                        "example": "100s"
+                      },
+                      "whenDeleted": {
+                        "title": "When deleted",
+                        "type": "boolean",
+                        "description": "Whether an announcement should be sent upon subject deletion."
+                      },
+                      "requestedAcks": {
+                        "title": "Requested Acks",
+                        "type": "object",
+                        "description": "Settings to enable at-least-once delivery for policy announcements.",
+                        "properties": {
+                          "labels": {
+                            "type": "array",
+                            "description": "Acknowledgement labels to request when an announcement is published.",
+                            "items": {
+                              "type": "string"
+                            },
+                            "example": ["my-connection:my-issued-acknowledgement"]
+                          },
+                          "timeout": {
+                            "type": "string",
+                            "description": "How long to wait for requested announcements before retrying publication of an announcement.",
+                            "example": "60s"
+                          }
+                        }
+                      },
+                      "randomizationInterval": {
+                        "title": "Randomization interval",
+                        "type": "string",
+                        "description": "The interval in which the announcement can be sent earlier in effort to prevent announcement peaks.",
                         "example": "60s"
                       }
                     }
