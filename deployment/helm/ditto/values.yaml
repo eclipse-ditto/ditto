@@ -1124,12 +1124,12 @@ connectivity:
       # allowedHostnames contains a comma separated list of explicitly allowed hostnames
       allowedHostnames: ""
       # blockedHostnames contains a comma separated list of blocked hostnames
-      blockedHostnames: "localhost"
+      blockedHostnames: ""
       # blockedSubnets holds a comma separated string of blocked subnets
       #  specify subnets to block in CIDR format e.g. "11.1.0.0/16"
       blockedSubnets: ""
       # blockedHostRegex contains the regex for blocked hostnames
-      blockedHostRegex: ^.*\\.svc.cluster.local$
+      blockedHostRegex: ""
       limits:
         # maxSources contains the max number of sources per connection
         maxSources: 5
