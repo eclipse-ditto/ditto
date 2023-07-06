@@ -493,7 +493,8 @@ final class ThingCommandEnforcement
         } else if (enforcer.hasPartialPermissions(thingResourceKey, authorizationContext, Permission.WRITE)) {
             // in case of partial permissions at thingResourceKey level check all leaves of merge patch for
             // unrestricted permissions
-            final Set<ResourceKey> resourceKeys = calculateLeaves(command.getPath(), command.getValue());
+            final Set<ResourceKey> resourceKeys = calculateLeaves(command.getPath(),
+                    command.getEntity().orElseGet(command::getValue));
             return enforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext, Permission.WRITE);
         } else {
             // not even partial permission
