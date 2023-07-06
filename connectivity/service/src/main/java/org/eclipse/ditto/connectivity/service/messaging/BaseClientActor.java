@@ -1443,8 +1443,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                                 " Forwarding to consumers and publishers.", command.getEntityId(),
                         sender);
 
-        // only one PublisherActor is started for all targets (if targets are present)
-        final int numberOfProducers = connection.getTargets().isEmpty() ? 0 : 1;
+        // only one PublisherActor is started for all targets - and it always is started
+        final int numberOfProducers = 1;
         final int numberOfConsumers = determineNumberOfConsumers();
         int expectedNumberOfChildren = numberOfProducers + numberOfConsumers;
         if (getSshTunnelState().isEnabled()) {
