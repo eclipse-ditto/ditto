@@ -15,11 +15,9 @@ on:
     - cron: '0 1 * * *' # run at 1 AM UTC
   workflow_dispatch:
 
-env:
-  GITHUB_REPOSITORY: eclipse-ditto/ditto
 jobs:
   build:
-    if: github.repository == ${{ env.GITHUB_REPOSITORY }}
+    if: github.repository == 'eclipse-ditto/ditto'
     runs-on: ubuntu-latest
     steps:
       -
