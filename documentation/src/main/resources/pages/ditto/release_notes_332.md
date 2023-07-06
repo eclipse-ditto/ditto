@@ -21,7 +21,7 @@ We had to skip Ditto version 3.3.1, as there were errors in our release pipeline
 ### Bugfixes
 
 This is a complete list of the
-[merged pull requests](https://github.com/eclipse-ditto/ditto/pulls?q=is%3Apr+milestone%3A3.3.1).
+[merged pull requests](https://github.com/eclipse-ditto/ditto/pulls?q=is%3Apr+milestone%3A3.3.2).
 
 #### [Fix blocking Akka dispatcher thread on WoT skeleton creation](https://github.com/eclipse-ditto/ditto/pull/1666)
 
