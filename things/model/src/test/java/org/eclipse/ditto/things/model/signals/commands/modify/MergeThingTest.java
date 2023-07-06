@@ -18,10 +18,12 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.text.MessageFormat;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.assertj.core.api.Assertions;
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKeyInvalidException;
@@ -37,6 +39,8 @@ import org.eclipse.ditto.things.model.ThingTooLargeException;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.PoliciesConflictingException;
+import org.junit.Rule;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -57,6 +61,9 @@ public final class MergeThingTest {
 
     private static final MergeThing KNOWN_MERGE_THING = MergeThing.withAttribute(TestConstants.Thing.THING_ID,
             TestConstants.Thing.LOCATION_ATTRIBUTE_POINTER, TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE, DITTO_HEADERS);
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @Test
     public void assertImmutability() {
@@ -426,4 +433,51 @@ public final class MergeThingTest {
                 .isInstanceOf(ThingTooLargeException.class);
     }
 
+    @Test
+    public void initializeWithInitialPolicyNullAndWithCopiedPolicyNull() {
+        final MergeThing modifyThing =
+                MergeThing.withThing(TestConstants.Thing.THING_ID, TestConstants.Thing.THING, null, null,
+                        TestConstants.EMPTY_DITTO_HEADERS);
+
+        softly.assertThat(modifyThing.getInitialPolicy()).isNotPresent();
+        softly.assertThat(modifyThing.getPolicyIdOrPlaceholder()).isNotPresent();
+    }
+
+    @Test
+    public void initializeWithCopiedPolicy() {
+        final String thingReference = "{{ ref:things/my_namespace:my_thing/policyId }}";
+        final MergeThing modifyThing =
+                MergeThing.withThing(TestConstants.Thing.THING_ID, TestConstants.Thing.THING, null, thingReference,
+                        TestConstants.EMPTY_DITTO_HEADERS);
+
+        softly.assertThat(modifyThing.getInitialPolicy()).isNotPresent();
+        softly.assertThat(modifyThing.getPolicyIdOrPlaceholder()).isPresent();
+        softly.assertThat(modifyThing.getPolicyIdOrPlaceholder()).contains(thingReference);
+    }
+
+    @Test
+    public void initializeWithCopiedPolicyAndWithInitialPolicyNullAndPolicyIdNull() {
+        final Thing thing = TestConstants.Thing.THING.setPolicyId(null);
+        final String thingReference = "{{ ref:things/my_namespace:my_thing/policyId }}";
+        final MergeThing modifyThing =
+                MergeThing.withThing(TestConstants.Thing.THING_ID, thing, null, thingReference,
+                        TestConstants.EMPTY_DITTO_HEADERS);
+
+        softly.assertThat(modifyThing.getInitialPolicy()).isNotPresent();
+        softly.assertThat(modifyThing.getPolicyIdOrPlaceholder()).isPresent();
+        softly.assertThat(modifyThing.getPolicyIdOrPlaceholder()).contains(thingReference);
+    }
+
+    @Test
+    public void initializeWithCopiedPolicyAndWithInitialPolicy() {
+        final String thingReference = "{{ ref:things/my_namespace:my_thing/policyId }}";
+        softly.assertThatThrownBy(() ->
+                MergeThing.withThing(TestConstants.Thing.THING_ID, TestConstants.Thing.THING,
+                                JsonObject.newBuilder().build(), thingReference, TestConstants.EMPTY_DITTO_HEADERS)
+                )
+                .isInstanceOf(PoliciesConflictingException.class)
+                .hasMessage(MessageFormat.format(
+                        "The Thing with ID ''{0}'' could not be created as it contained an inline Policy as" +
+                                " well as a policyID to copy.", TestConstants.Thing.THING_ID));
+    }
 }

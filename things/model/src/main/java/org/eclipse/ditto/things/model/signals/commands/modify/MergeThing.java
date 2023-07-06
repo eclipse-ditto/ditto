@@ -497,12 +497,22 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
 
     @Override
     public Optional<JsonValue> getEntity() {
-        return Optional.of(value);
+        if (path.isEmpty()) {
+            final JsonObject thingJson = value.asObject();
+            final JsonObject withInlinePolicyThingJson =
+                    getInitialPolicy().map(ip -> thingJson.set(JSON_INLINE_POLICY, ip)).orElse(thingJson);
+            final JsonObject fullThingJson = getPolicyIdOrPlaceholder().map(
+                    containedPolicyIdOrPlaceholder -> withInlinePolicyThingJson.set(JSON_COPY_POLICY_FROM,
+                            containedPolicyIdOrPlaceholder)).orElse(withInlinePolicyThingJson);
+            return Optional.of(fullThingJson);
+        } else {
+            return Optional.of(value);
+        }
     }
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.of(value);
+        return getEntity();
     }
 
     @Override

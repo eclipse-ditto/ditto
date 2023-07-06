@@ -73,7 +73,7 @@ public final class ModifyToCreateThingTransformer implements SignalTransformer {
                     modifyThing.getPolicyIdOrPlaceholder().orElse(null)
             ));
         } else if (signal instanceof MergeThing mergeThing && mergeThing.getPath().isEmpty()) {
-            final JsonObject mergeThingObject = mergeThing.getValue().asObject();
+            final JsonObject mergeThingObject = mergeThing.getEntity().orElseGet(mergeThing::getValue).asObject();
             return Optional.of(new InputParams(mergeThing,
                     ThingsModelFactory.newThing(mergeThingObject),
                     mergeThing.getInitialPolicy().orElse(null),
