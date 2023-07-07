@@ -17,7 +17,7 @@ description: |
   (real world “Things”, e.g. devices like sensors, smart heating, connected cars, smart grids, EV charging stations etc).
 type: application
 version: 3.3.3  # chart version is effectively set by release-job
-appVersion: 3.3.2
+appVersion: 3.3.3
 keywords:
   - iot-chart
   - digital-twin
