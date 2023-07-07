@@ -30,23 +30,27 @@ import com.typesafe.config.Config;
 @Immutable
 public final class DefaultCreationRestrictionConfig implements CreationRestrictionConfig {
 
-    private static final String RESOURCE_TYPES_CONFIG_PATH = "resource-types";
-    private static final String NAMESPACES_CONFIG_PATH = "namespaces";
-    private static final String AUTH_SUBJECTS_CONFIG_PATH = "auth-subjects";
-
     private final Set<String> resourceTypes;
     private final List<Pattern> namespacePatterns;
     private final List<Pattern> authSubjectPatterns;
 
     private DefaultCreationRestrictionConfig(final ConfigWithFallback configWithFallback) {
-        this.resourceTypes = Set.copyOf(configWithFallback.getStringList(RESOURCE_TYPES_CONFIG_PATH));
-        this.namespacePatterns = compile(List.copyOf(configWithFallback.getStringList(NAMESPACES_CONFIG_PATH)));
-        this.authSubjectPatterns = compile(List.copyOf(configWithFallback.getStringList(AUTH_SUBJECTS_CONFIG_PATH)));
+        this.resourceTypes = Set.copyOf(configWithFallback.getStringList(
+                CreationRestrictionConfigValues.RESOURCE_TYPES.getConfigPath()
+        ));
+        this.namespacePatterns = compile(List.copyOf(configWithFallback.getStringList(
+                CreationRestrictionConfigValues.NAMESPACES.getConfigPath())
+        ));
+        this.authSubjectPatterns = compile(List.copyOf(configWithFallback.getStringList(
+                CreationRestrictionConfigValues.AUTH_SUBJECTS.getConfigPath())
+        ));
     }
 
     private static List<Pattern> compile(final List<String> patterns) {
         return patterns.stream()
-                .map(expression -> Pattern.compile(LikeHelper.convertToRegexSyntax(expression)))
+                .map(LikeHelper::convertToRegexSyntax)
+                .filter(Objects::nonNull)
+                .map(Pattern::compile)
                 .toList();
     }
 
