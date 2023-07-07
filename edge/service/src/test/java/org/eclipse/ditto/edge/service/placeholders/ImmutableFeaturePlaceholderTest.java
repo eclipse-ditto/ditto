@@ -146,7 +146,7 @@ public final class ImmutableFeaturePlaceholderTest {
                 .set(ThingCommand.JsonFields.TYPE, MergeThing.TYPE)
                 .set(ThingCommand.JsonFields.JSON_THING_ID, THING_ID.toString())
                 .set("path", "/")
-                .set("value", "This is wrong.")
+                .set("value", JsonObject.newBuilder().set("foo", "This is wrong.").build())
                 .build(), DittoHeaders.empty());
         assertThat(UNDER_TEST.resolveValues(mergeThing, "id")).isEmpty();
     }

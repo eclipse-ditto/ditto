@@ -176,6 +176,15 @@ ingress:
   # defaultBackendSuffix the suffix to add to the internal fullname to use as Ingress "defaultBackend"
   defaultBackendSuffix: nginx
   # annotations common annotations for all 3 Ingresses of Ditto
+  controller:
+    # enabled whether Ingress controller should be enabled
+    enabled: false
+    # namespace for ingress controller, managed by helm, should not be created manually
+    namespace: ingress-nginx
+    # Ingress-NGINX version. Check Supported Versions table from https://github.com/kubernetes/ingress-nginx to match k8s version.
+    nginxIngressVersion: "v1.8.0"
+    # Nginx Version. Check Supported Versions table from https://github.com/kubernetes/ingress-nginx to match k8s version.
+    nginxVersion: "1.21.6"
   annotations:
     nginx.ingress.kubernetes.io/service-upstream: "true"
     nginx.ingress.kubernetes.io/server-snippet: |
@@ -860,9 +869,10 @@ thingsSearch:
       searchWithAcksWriteConcern: "majority"
       # queryReadConcern configures the MongoDB read concern for doing queries / performing searches
       #  only if this is "linearizable" in combination with the searchWithAcksWriteConcern: "majority" a strong consistency
+      #  if used in a replicated MongoDB setup, this should be changed to `queryReadConcern: "linearizable"`
       #  for commands using the "search-persisted" requested ACK is guaranteed
       #  one of: default | local | majority | linearizable | snapshot | available
-      queryReadConcern: "linearizable"
+      queryReadConcern: "local"
       # updaterPersistenceReadConcern configures the MongoDB read concern for the "ThingUpdater"
       #  one of: default | local | majority | linearizable | snapshot | available
       updaterPersistenceReadConcern: "local"
@@ -1114,12 +1124,12 @@ connectivity:
       # allowedHostnames contains a comma separated list of explicitly allowed hostnames
       allowedHostnames: ""
       # blockedHostnames contains a comma separated list of blocked hostnames
-      blockedHostnames: "localhost"
+      blockedHostnames: ""
       # blockedSubnets holds a comma separated string of blocked subnets
       #  specify subnets to block in CIDR format e.g. "11.1.0.0/16"
       blockedSubnets: ""
       # blockedHostRegex contains the regex for blocked hostnames
-      blockedHostRegex: ^.*\\.svc.cluster.local$
+      blockedHostRegex: ""
       limits:
         # maxSources contains the max number of sources per connection
         maxSources: 5
@@ -1386,7 +1396,7 @@ nginx:
     # repository for the nginx docker image
     repository: docker.io/nginx
     # tag for the nginx docker image
-    tag: 1.23
+    tag: 1.25
     # pullPolicy for the nginx docker image
     pullPolicy: IfNotPresent
   # extraEnv to add arbitrary environment variables to nginx container
@@ -1429,6 +1439,13 @@ nginx:
       enabled: true
       name: wait-for-gateway
       image: rancher/curlimages-curl:7.73.0
+  # config holds nginx specific configuration
+  config:
+    # workerProcesses the 'worker_processes' option for nginx to use - can also be set to 'auto' in order to let nginx
+    # determine the worker processes based on the CPU count
+    workerProcesses: 4
+    # workerProcesses the 'events' 'worker_connections' option for nginx to use
+    workerConnections: 1024
 
 ## ----------------------------------------------------------------------------
 ## Ditto UI configuration
@@ -1497,7 +1514,7 @@ swaggerui:
     # repository for the swagger ui docker image
     repository: docker.io/swaggerapi/swagger-ui
     # tag for the swagger ui docker image
-    tag: v4.15.5
+    tag: v4.19.1
     # pullPolicy for the swagger ui docker image
     pullPolicy: IfNotPresent
   # extraEnv to add arbitrary environment variable to swagger ui container

@@ -14,6 +14,8 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -21,6 +23,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.signals.FeatureToggle;
@@ -39,7 +42,6 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveWotThingDes
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.wot.integration.provider.WotThingDescriptionProvider;
-import org.eclipse.ditto.wot.model.ThingDescription;
 
 import akka.actor.ActorSystem;
 
@@ -122,18 +124,24 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
                 .orElseGet(() -> thing.toJson(command.getImplementedSchemaVersion()));
     }
 
-    private DittoHeadersSettable<?> getRetrieveThingDescriptionResponse(@Nullable final Thing thing,
+    private CompletionStage<WithDittoHeaders> getRetrieveThingDescriptionResponse(@Nullable final Thing thing,
             final RetrieveThing command) {
         if (thing != null) {
-            final ThingDescription wotThingDescription = wotThingDescriptionProvider
+            return wotThingDescriptionProvider
                     .provideThingTD(thing.getDefinition().orElse(null),
                             command.getEntityId(),
                             thing,
-                            command.getDittoHeaders());
-            return RetrieveWotThingDescriptionResponse.of(command.getEntityId(), wotThingDescription.toJson(),
-                    command.getDittoHeaders().toBuilder().contentType(ContentType.APPLICATION_TD_JSON).build());
+                            command.getDittoHeaders())
+                    .thenApply(wotThingDescription ->
+                            RetrieveWotThingDescriptionResponse.of(command.getEntityId(),
+                                    wotThingDescription.toJson(),
+                                    command.getDittoHeaders().toBuilder()
+                                            .contentType(ContentType.APPLICATION_TD_JSON)
+                                            .build()
+                            )
+                    );
         } else {
-            return notAccessible(command);
+            return CompletableFuture.completedStage(notAccessible(command));
         }
     }
 

@@ -20,10 +20,12 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.assertj.core.api.CompletableFutureAssert;
 import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -97,6 +99,20 @@ public abstract class AbstractCommandStrategyTest {
         return assertModificationResult(result, expectedEventClass, expectedCommandResponse, becomeDeleted);
     }
 
+    protected static <C extends Command<?>, T extends ThingModifiedEvent<?>> T assertStagedModificationResult(
+            final CommandStrategy<C, Thing, ThingId, ThingEvent<?>> underTest,
+            @Nullable final Thing thing,
+            final C command,
+            final Class<T> expectedEventClass,
+            final CommandResponse<?> expectedCommandResponse,
+            final boolean becomeDeleted) {
+
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final Result<ThingEvent<?>> result = applyStrategy(underTest, context, thing, command);
+
+        return assertStagedModificationResult(result, expectedEventClass, expectedCommandResponse, becomeDeleted);
+    }
+
     protected static <C extends Command<?>> void assertErrorResult(
             final CommandStrategy<C, Thing, ThingId, ThingEvent<?>> underTest,
             @Nullable final Thing thing,
@@ -157,6 +173,28 @@ public abstract class AbstractCommandStrategyTest {
         verify(mock).onMutation(any(), event.capture(), eq(expectedResponse), anyBoolean(), eq(becomeDeleted));
         assertThat(event.getValue()).isInstanceOf(eventClazz);
         return event.getValue();
+    }
+
+    private static <T extends ThingModifiedEvent<?>> T assertStagedModificationResult(final Result<ThingEvent<?>> result,
+            final Class<T> eventClazz,
+            final WithDittoHeaders expectedResponse,
+            final boolean becomeDeleted) {
+
+        final ArgumentCaptor<CompletionStage<ThingEvent<?>>> eventStage = ArgumentCaptor.forClass(CompletionStage.class);
+        final ArgumentCaptor<CompletionStage<WithDittoHeaders>> responseStage = ArgumentCaptor.forClass(CompletionStage.class);
+
+        final ResultVisitor<ThingEvent<?>> mock = mock(Dummy.class);
+
+        result.accept(mock);
+
+        verify(mock).onStagedMutation(any(), eventStage.capture(), responseStage.capture(), anyBoolean(), eq(becomeDeleted));
+        assertThat(eventStage.getValue()).isInstanceOf(CompletionStage.class);
+        CompletableFutureAssert.assertThatCompletionStage(eventStage.getValue())
+                .isCompletedWithValueMatching(t -> eventClazz.isAssignableFrom(t.getClass()));
+        assertThat(responseStage.getValue()).isInstanceOf(CompletionStage.class);
+        CompletableFutureAssert.assertThatCompletionStage(responseStage.getValue())
+                .isCompletedWithValue(expectedResponse);
+        return (T) eventStage.getValue().toCompletableFuture().join();
     }
 
     private static void assertInfoResult(final Result<ThingEvent<?>> result, final WithDittoHeaders infoResponse) {

@@ -18,6 +18,7 @@ import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFa
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -106,34 +107,40 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
             newThing = newThing.setPolicyId(PolicyId.of(context.getState()));
         }
 
+        final Instant now = Instant.now();
+
         final Thing finalNewThing = newThing;
-        newThing = wotThingDescriptionProvider.provideThingSkeletonForCreation(
+        final CompletionStage<Thing> thingStage = wotThingDescriptionProvider.provideThingSkeletonForCreation(
                         command.getEntityId(),
                         newThing.getDefinition().orElse(null),
                         commandHeaders
                 )
-                .map(wotBasedThingSkeleton ->
-                        JsonFactory.mergeJsonValues(finalNewThing.toJson(), wotBasedThingSkeleton.toJson())
-                )
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .map(ThingsModelFactory::newThing)
-                .orElse(finalNewThing);
+                .thenApply(opt -> opt.map(wotBasedThingSkeleton ->
+                                        JsonFactory.mergeJsonValues(finalNewThing.toJson(), wotBasedThingSkeleton.toJson())
+                                )
+                                .filter(JsonValue::isObject)
+                                .map(JsonValue::asObject)
+                                .map(ThingsModelFactory::newThing)
+                                .orElse(finalNewThing)
+                ).thenApply(enhancedThing -> enhancedThing.toBuilder()
+                        .setModified(now)
+                        .setCreated(now)
+                        .setRevision(nextRevision)
+                        .setMetadata(metadata)
+                        .build()
+                );
 
-        final Instant now = Instant.now();
-        final Thing newThingWithImplicits = newThing.toBuilder()
-                .setModified(now)
-                .setCreated(now)
-                .setRevision(nextRevision)
-                .setMetadata(metadata)
-                .build();
-        final ThingCreated thingCreated = ThingCreated.of(newThingWithImplicits, nextRevision, now, commandHeaders,
-                metadata);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                CreateThingResponse.of(newThingWithImplicits, commandHeaders),
-                newThingWithImplicits);
+        final CompletionStage<ThingEvent<?>> eventStage =
+                thingStage.thenApply(newThingWithImplicits ->
+                        ThingCreated.of(newThingWithImplicits, nextRevision, now, commandHeaders, metadata)
+                );
 
-        return newMutationResult(command, thingCreated, response, true, false);
+        final CompletionStage<WithDittoHeaders> responseStage = thingStage.thenApply(newThingWithImplicits ->
+                appendETagHeaderIfProvided(command, CreateThingResponse.of(newThingWithImplicits, commandHeaders),
+                        newThingWithImplicits)
+        );
+
+        return newMutationResult(command, eventStage, responseStage, true, false);
     }
 
     private Thing handleCommandVersion(final Context<ThingId> context, final JsonSchemaVersion version,

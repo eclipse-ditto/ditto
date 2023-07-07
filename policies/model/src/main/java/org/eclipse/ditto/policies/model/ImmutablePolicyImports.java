@@ -47,14 +47,14 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImport
 @Immutable
 final class ImmutablePolicyImports implements PolicyImports {
 
-    private final Map<CharSequence, PolicyImport> policyImports;
+    private final Map<PolicyId, PolicyImport> policyImports;
     public static final String POLICY_IMPORTS = "policyImports";
 
     private ImmutablePolicyImports() {
         this.policyImports = Collections.emptyMap();
     }
 
-    private ImmutablePolicyImports(final Map<CharSequence, PolicyImport> policyImports) {
+    private ImmutablePolicyImports(final Map<PolicyId, PolicyImport> policyImports) {
         checkNotNull(policyImports, POLICY_IMPORTS);
         this.policyImports = Collections.unmodifiableMap(new HashMap<>(policyImports));
     }
@@ -69,7 +69,7 @@ final class ImmutablePolicyImports implements PolicyImports {
     public static ImmutablePolicyImports of(final Iterable<PolicyImport> policyImports) {
         checkNotNull(policyImports, POLICY_IMPORTS);
 
-        final Map<CharSequence, PolicyImport> resourcesMap = new HashMap<>();
+        final Map<PolicyId, PolicyImport> resourcesMap = new HashMap<>();
         policyImports.forEach(policyImport -> {
             final PolicyImport existingPolicyImport =
                     resourcesMap.put(policyImport.getImportedPolicyId(), policyImport);
@@ -113,7 +113,7 @@ final class ImmutablePolicyImports implements PolicyImports {
     @Override
     public Optional<PolicyImport> getPolicyImport(final CharSequence importedPolicyId) {
         checkNotNull(importedPolicyId, "importedPolicyId");
-        return Optional.ofNullable(policyImports.get(importedPolicyId));
+        return Optional.ofNullable(policyImports.get(PolicyId.of(importedPolicyId)));
     }
 
     @Override
@@ -143,7 +143,7 @@ final class ImmutablePolicyImports implements PolicyImports {
 
 
     private PolicyImports createNewPolicyImportsWithNewPolicyImport(final PolicyImport newPolicyImport) {
-        final Map<CharSequence, PolicyImport> resourcesCopy = copyPolicyImports();
+        final Map<PolicyId, PolicyImport> resourcesCopy = copyPolicyImports();
         resourcesCopy.put(newPolicyImport.getImportedPolicyId(), newPolicyImport);
         if (resourcesCopy.size() > DITTO_LIMITS_POLICY_IMPORTS_LIMIT) {
             throw PolicyImportsTooLargeException.newBuilder(newPolicyImport.getImportedPolicyId()).build();
@@ -151,7 +151,7 @@ final class ImmutablePolicyImports implements PolicyImports {
         return new ImmutablePolicyImports(resourcesCopy);
     }
 
-    private Map<CharSequence, PolicyImport> copyPolicyImports() {
+    private Map<PolicyId, PolicyImport> copyPolicyImports() {
         return new HashMap<>(policyImports);
     }
 
@@ -159,12 +159,13 @@ final class ImmutablePolicyImports implements PolicyImports {
     public PolicyImports removePolicyImport(final CharSequence importedPolicyId) {
         checkNotNull(importedPolicyId, "importedPolicyId");
 
-        if (!policyImports.containsKey(importedPolicyId)) {
+        final PolicyId policyId = PolicyId.of(importedPolicyId);
+        if (!policyImports.containsKey(policyId)) {
             return this;
         }
 
-        final Map<CharSequence, PolicyImport> resourcesCopy = copyPolicyImports();
-        resourcesCopy.remove(importedPolicyId);
+        final Map<PolicyId, PolicyImport> resourcesCopy = copyPolicyImports();
+        resourcesCopy.remove(policyId);
 
         return new ImmutablePolicyImports(resourcesCopy);
     }

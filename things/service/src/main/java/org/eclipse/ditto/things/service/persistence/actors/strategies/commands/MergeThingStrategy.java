@@ -93,7 +93,7 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
         // (this is required e.g. for updating the search-index)
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final JsonPointer path = command.getPath();
-        final JsonValue value = command.getValue();
+        final JsonValue value = command.getEntity().orElseGet(command::getValue);
 
         final Thing mergedThing = wrapException(() -> mergeThing(context, command, thing, eventTs, nextRevision),
                 command.getDittoHeaders());
@@ -109,7 +109,8 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
     private Thing mergeThing(final Context<ThingId> context, final MergeThing command, final Thing thing,
             final Instant eventTs, final long nextRevision) {
         final JsonObject existingThingJson = thing.toJson(FieldType.all());
-        final JsonMergePatch jsonMergePatch = JsonMergePatch.of(command.getPath(), command.getValue());
+        final JsonMergePatch jsonMergePatch = JsonMergePatch.of(command.getPath(),
+                command.getEntity().orElseGet(command::getValue));
         final JsonObject mergedJson = jsonMergePatch.applyOn(existingThingJson).asObject();
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(

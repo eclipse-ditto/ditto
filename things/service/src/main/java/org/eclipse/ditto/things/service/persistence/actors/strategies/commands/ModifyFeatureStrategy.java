@@ -15,6 +15,7 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -121,49 +122,50 @@ final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFea
 
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        Feature feature = command.getFeature();
-        final Feature finalNewFeature = feature;
-        feature = wotThingDescriptionProvider.provideFeatureSkeletonForCreation(
+        final Feature finalNewFeature = command.getFeature();
+        final CompletionStage<Feature> featureStage = wotThingDescriptionProvider.provideFeatureSkeletonForCreation(
                         finalNewFeature.getId(),
                         finalNewFeature.getDefinition().orElse(null),
                         dittoHeaders
                 )
-                .map(wotBasedFeatureSkeleton -> {
-                        final Optional<FeatureDefinition> mergedDefinition =
-                                wotBasedFeatureSkeleton.getDefinition()
-                                        .map(def -> {
-                                                final Set<DefinitionIdentifier> identifiers = Stream.concat(
-                                                        wotBasedFeatureSkeleton.getDefinition()
-                                                                .map(FeatureDefinition::stream)
-                                                                .orElse(Stream.empty()),
-                                                        finalNewFeature.getDefinition()
-                                                                .map(FeatureDefinition::stream)
-                                                                .orElse(Stream.empty())
-                                                ).collect(Collectors.toCollection(LinkedHashSet::new));
-                                                return ThingsModelFactory.newFeatureDefinition(identifiers);
-                                        })
-                                        .or(finalNewFeature::getDefinition);
+                .thenApply(opt -> opt.map(wotBasedFeatureSkeleton -> wotBasedFeatureSkeleton.getDefinition()
+                                .map(def -> {
+                                    final Set<DefinitionIdentifier> identifiers = Stream.concat(
+                                            wotBasedFeatureSkeleton.getDefinition()
+                                                    .map(FeatureDefinition::stream)
+                                                    .orElse(Stream.empty()),
+                                            finalNewFeature.getDefinition()
+                                                    .map(FeatureDefinition::stream)
+                                                    .orElse(Stream.empty())
+                                    ).collect(Collectors.toCollection(LinkedHashSet::new));
+                                    return ThingsModelFactory.newFeatureDefinition(identifiers);
+                                })
+                                .or(finalNewFeature::getDefinition)
+                                .map(definitionIdentifiers -> JsonFactory.mergeJsonValues(
+                                        finalNewFeature.setDefinition(definitionIdentifiers).toJson(),
+                                        wotBasedFeatureSkeleton.toJson()
+                                ))
+                                .orElseGet(() -> JsonFactory.mergeJsonValues(finalNewFeature.toJson(),
+                                        wotBasedFeatureSkeleton.toJson())
+                                ))
+                        .filter(JsonValue::isObject)
+                        .map(JsonValue::asObject)
+                        .map(ThingsModelFactory::newFeatureBuilder)
+                        .map(b -> b.useId(finalNewFeature.getId()).build())
+                        .orElse(finalNewFeature)
+                );
 
-                        return mergedDefinition.map(definitionIdentifiers -> JsonFactory.mergeJsonValues(
-                                finalNewFeature.setDefinition(definitionIdentifiers).toJson(),
-                                wotBasedFeatureSkeleton.toJson()
-                        )).orElseGet(() -> JsonFactory.mergeJsonValues(finalNewFeature.toJson(),
-                                wotBasedFeatureSkeleton.toJson())
-                        );
-                })
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .map(ThingsModelFactory::newFeatureBuilder)
-                .map(b -> b.useId(finalNewFeature.getId()).build())
-                .orElse(finalNewFeature);
+        final CompletionStage<ThingEvent<?>> eventStage =
+                featureStage.thenApply(feature -> FeatureCreated.of(command.getEntityId(), feature, nextRevision,
+                        getEventTimestamp(), dittoHeaders,
+                        metadata));
 
-        final ThingEvent<?> event =
-                FeatureCreated.of(command.getEntityId(), feature, nextRevision, getEventTimestamp(), dittoHeaders,
-                        metadata);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyFeatureResponse.created(context.getState(), feature, dittoHeaders), thing);
+        final CompletionStage<WithDittoHeaders> response = featureStage.thenApply(modFeature ->
+                appendETagHeaderIfProvided(command,
+                        ModifyFeatureResponse.created(context.getState(), modFeature, dittoHeaders), thing)
+        );
 
-        return ResultFactory.newMutationResult(command, event, response);
+        return ResultFactory.newMutationResult(command, eventStage, response);
     }
 
     @Override

@@ -23,7 +23,7 @@ final class ThingMergeSignalMapper extends AbstractModifySignalMapper<MergeThing
 
     @Override
     void enhancePayloadBuilder(final MergeThing command, final PayloadBuilder payloadBuilder) {
-        payloadBuilder.withValue(command.getValue());
+        payloadBuilder.withValue(command.getEntity().orElseGet(command::getValue));
     }
 
     @Override

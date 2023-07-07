@@ -18,6 +18,8 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.concurrent.CompletionStage;
+
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -95,13 +97,26 @@ public final class ThingConflictStrategyTest {
         }
 
         @Override
-        public void onMutation(final Command<?> command, final ThingEvent<?> event, final WithDittoHeaders response,
-                final boolean becomeCreated, final boolean becomeDeleted) {
+        public void onMutation(final Command<?> command, final ThingEvent<?> event,
+                final WithDittoHeaders response, final boolean becomeCreated,
+                final boolean becomeDeleted) {
+            throw new AssertionError("Expect error, got mutation: " + event);
+        }
+
+        @Override
+        public void onStagedMutation(final Command<?> command, final CompletionStage<ThingEvent<?>> event,
+                final CompletionStage<WithDittoHeaders> response, final boolean becomeCreated,
+                final boolean becomeDeleted) {
             throw new AssertionError("Expect error, got mutation: " + event);
         }
 
         @Override
         public void onQuery(final Command<?> command, final WithDittoHeaders response) {
+            throw new AssertionError("Expect error, got query: " + response);
+        }
+
+        @Override
+        public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
             throw new AssertionError("Expect error, got query: " + response);
         }
 

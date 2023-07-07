@@ -17,6 +17,7 @@ on:
 
 jobs:
   build:
+    if: github.repository == 'eclipse-ditto/ditto'
     runs-on: ubuntu-latest
     steps:
       -

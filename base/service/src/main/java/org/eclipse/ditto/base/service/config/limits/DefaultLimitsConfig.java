@@ -70,6 +70,11 @@ public final class DefaultLimitsConfig implements LimitsConfig, WithConfigPath {
     }
 
     @Override
+    public int getPolicyImportsLimit() {
+        return policyImportsLimit;
+    }
+
+    @Override
     public long getMessagesMaxSize() {
         return messagesMaxSize;
     }
@@ -90,11 +95,6 @@ public final class DefaultLimitsConfig implements LimitsConfig, WithConfigPath {
     @Override
     public String getConfigPath() {
         return CONFIG_PATH;
-    }
-
-    @Override
-    public int getPolicyImportsLimit() {
-        return policyImportsLimit;
     }
 
     @Override

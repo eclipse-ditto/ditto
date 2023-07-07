@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotDeclaredException;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotUniqueException;
+import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.FatalPubSubException;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
@@ -268,6 +269,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .build();
 
         final Receive signalBehavior = ReceiveBuilder.create()
+                .match(Acknowledgement.class, this::isWeakAckForBuiltInAckLabel, this::dropWeakAckForBuiltInAckLabelAcknowledgement)
                 .match(Acknowledgement.class, this::hasUndeclaredAckLabel, this::ackLabelNotDeclared)
                 .match(Acknowledgement.class, this::forwardAcknowledgementOrLiveCommandResponse)
                 .match(CommandResponse.class, CommandResponse::isLiveCommandResponse, liveCommandResponse ->
@@ -491,6 +493,16 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .reduce(PartialFunction::andThen)
                 .map(preprocessor -> new Receive(preprocessor.andThen(receive.onMessage())))
                 .orElse(receive);
+    }
+
+    private boolean isWeakAckForBuiltInAckLabel(final Acknowledgement acknowledgement) {
+        return acknowledgement.isWeak() &&
+                List.of(DittoAcknowledgementLabel.values()).contains(acknowledgement.getLabel());
+    }
+
+    private void dropWeakAckForBuiltInAckLabelAcknowledgement(final Acknowledgement ack) {
+        logger.withCorrelationId(ack)
+                .info("Dropping weak ack for built-in ack label <{}>", ack.getLabel());
     }
 
     private boolean hasUndeclaredAckLabel(final Acknowledgement acknowledgement) {

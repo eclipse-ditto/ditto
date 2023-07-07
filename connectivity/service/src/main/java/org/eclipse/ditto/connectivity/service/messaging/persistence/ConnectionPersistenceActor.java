@@ -581,6 +581,17 @@ public final class ConnectionPersistenceActor
     }
 
     @Override
+    public void onStagedMutation(final Command<?> command, final CompletionStage<ConnectivityEvent<?>> event,
+            final CompletionStage<WithDittoHeaders> response, final boolean becomeCreated,
+            final boolean becomeDeleted) {
+        if (command instanceof StagedCommand stagedCommand) {
+            interpretStagedCommand(stagedCommand.withSenderUnlessDefined(getSender()));
+        } else {
+            super.onStagedMutation(command, event, response, becomeCreated, becomeDeleted);
+        }
+    }
+
+    @Override
     protected void checkForActivity(final CheckForActivity trigger) {
         if (isDesiredStateOpen()) {
             // stay in memory forever if desired state is open. check again later in case connection becomes closed.
