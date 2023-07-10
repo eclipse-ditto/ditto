@@ -126,6 +126,24 @@ spec:
                 {{- range $index, $header := .Values.policies.config.persistence.events.historicalHeadersToPersist }}
                 "{{ printf "%s%d=%s" "-Dditto.policies.policy.event.historical-headers-to-persist." $index $header }}"
                 {{- end }}
+                {{- range $grantIdx, $grant := .Values.policies.config.entityCreation.grants }}
+                "{{ printf "%s%d%s=%s" "-Dditto.entity-creation.grant." $grantIdx ".resource-types.0" "policy" }}"
+                {{- range $namespaceIdx, $namespace := $grant.namespaces }}
+                "{{ printf "%s%d%s%d=%s" "-Dditto.entity-creation.grant." $grantIdx ".namespaces." $namespaceIdx $namespace }}"
+                {{- end }}
+                {{- range $subjectIdx, $subject := $grant.authSubjects }}
+                "{{ printf "%s%d%s%d=%s" "-Dditto.entity-creation.grant." $grantIdx ".auth-subjects." $subjectIdx $subject }}"
+                {{- end }}
+                {{- end }}
+                {{- range $revokeIdx, $revoke := .Values.policies.config.entityCreation.revokes }}
+                "{{ printf "%s%d%s=%s" "-Dditto.entity-creation.revoke." $revokeIdx ".resource-types.0" "policy" }}"
+                {{- range $namespaceIdx, $namespace := $revoke.namespaces }}
+                "{{ printf "%s%d%s%d=%s" "-Dditto.entity-creation.revoke." $revokeIdx ".namespaces." $namespaceIdx $namespace }}"
+                {{- end }}
+                {{- range $subjectIdx, $subject := $revoke.authSubjects }}
+                "{{ printf "%s%d%s%d=%s" "-Dditto.entity-creation.revoke." $revokeIdx ".auth-subjects." $subjectIdx $subject }}"
+                {{- end }}
+                {{- end }}
                 {{ join " " .Values.policies.systemProps }}
             - name: MONGO_DB_SSL_ENABLED
               value: "{{ if .Values.dbconfig.policies.ssl }}true{{ else }}false{{ end }}"

@@ -553,6 +553,23 @@ policies:
         interval: 15m
         # threshold configures the threshold after how many changes to a Policy to do a snapshot
         threshold: 5
+    # entityCreation by default, Ditto allows anyone to create a new entity (policy in this case) in any namespace.
+    #  However, this behavior can be customized, and the ability to create new entities can be restricted:
+    entityCreation:
+      # grants contains the list of creation config entries which would allow the creation of entities
+      #  An empty list would *not* allow any entity to be created.
+      #  You must have at least one entry, even if it is without restrictions.
+      grants:
+        -  # namespaces holds the list of namespaces this entry applies to. An empty list would match any.
+          #  Wildcards `*` (Matching any number of any character) and `?` (Matches any single character) are supported in entries of this list.
+          namespaces: []
+           # authSubjects holds list of authentication subjects this entry applies to. An empty list would match any.
+           #  Wildcards `*` (Matching any number of any character) and `?` (Matches any single character) are supported in entries of this list.
+          authSubjects: []
+      # revokes contains the list of creation config entries which would reject the creation of entities
+      revokes: []
+      # - namespaces: []
+      #   authSubjects: []
 
 ## ----------------------------------------------------------------------------
 ## things configuration
@@ -724,6 +741,23 @@ things:
         interval: 15m
         # the threshold after how many changes to a Thing to do a snapshot
         threshold: 50
+    # entityCreation by default, Ditto allows anyone to create a new entity (thing in this case) in any namespace.
+    #  However, this behavior can be customized, and the ability to create new entities can be restricted:
+    entityCreation:
+      # grants contains the list of creation config entries which would allow the creation of entities
+      #  An empty list would *not* allow any entity to be created.
+      #  You must have at least one entry, even if it is without restrictions.
+      grants:
+        -  # namespaces holds the list of namespaces this entry applies to. An empty list would match any.
+          #  Wildcards `*` (Matching any number of any character) and `?` (Matches any single character) are supported in entries of this list.
+          namespaces: []
+          # authSubjects holds list of authentication subjects this entry applies to. An empty list would match any.
+          #  Wildcards `*` (Matching any number of any character) and `?` (Matches any single character) are supported in entries of this list.
+          authSubjects: []
+      # revokes contains the list of creation config entries which would reject the creation of entities
+      revokes: []
+      # - namespaces: []
+      #   authSubjects: []
     # policiesEnforcer contains configuration for Ditto "Policy Enforcers", e.g. regarding caching
     policiesEnforcer:
       # cache holds the configuration of policy enforcer caching
