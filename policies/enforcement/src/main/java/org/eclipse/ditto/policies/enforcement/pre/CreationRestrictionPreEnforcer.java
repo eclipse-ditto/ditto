@@ -55,7 +55,9 @@ public final class CreationRestrictionPreEnforcer implements PreEnforcer {
      */
     @SuppressWarnings("unused")
     public CreationRestrictionPreEnforcer(final ActorSystem actorSystem, final Config config) {
-        this.config = DefaultEntityCreationConfig.of(config);
+        // explicitly use the ActorSystem config instead of the PreEnforcer config - as the config is loaded from
+        // file "ditto-entity-creation.conf" and extending with system properties of that file should not be broken
+        this.config = DefaultEntityCreationConfig.of(actorSystem.settings().config());
     }
 
     boolean canCreate(final Context context) {

@@ -14,6 +14,8 @@ package org.eclipse.ditto.base.model.common;
 
 import java.util.regex.Pattern;
 
+import javax.annotation.Nullable;
+
 /**
  * A helper to create "like" patterns.
  *
@@ -40,7 +42,8 @@ public final class LikeHelper {
      * @param expression The wildcard expression to convert.
      * @return The regular expression, which can be compiled with {@link Pattern#compile(String)}.
      */
-    public static String convertToRegexSyntax(final String expression) {
+    @Nullable
+    public static String convertToRegexSyntax(@Nullable final String expression) {
         if (expression == null) {
             return null;
         }

@@ -260,16 +260,24 @@ The basic schema is:
 ```
 # restrict entity creation
 ditto.entity-creation {
-   grant = [
-      {
-         resource-types = [],
-         namespace = []
-         auth-subjects = []
-      }
-   ]
-   revoke = [
-      # same as "grant", but rejecting requests which already passed "grant"
-   ]
+   # this default entry allows every authenticated "auth-subject" to create any "resource-type" in any "namespace":
+  grant = [
+    {
+      resource-types = [
+//        "policy"
+//        "thing"
+      ]
+      namespaces = [
+//        "org.eclipse.ditto*"
+      ]
+      auth-subjects = [
+//        "pre:ditto-*"
+      ]
+    }
+  ]
+  revoke = [
+    # same as "grant", but rejecting requests which already passed "grant"
+  ]
 }
 ```
 

@@ -28,7 +28,7 @@ import com.typesafe.config.Config;
 @Immutable
 public final class DefaultEntityCreationConfig implements EntityCreationConfig {
 
-    private static final String CONFIG_PATH = "entity-creation";
+    private static final String CONFIG_PATH = "ditto.entity-creation";
 
     private final List<CreationRestrictionConfig> grant;
     private final List<CreationRestrictionConfig> revoke;
