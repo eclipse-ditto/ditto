@@ -62,7 +62,7 @@ global:
   # jwtOnly controls whether only OpenID-Connect authentication is supported
   #  if false, both OpenID-Connect and basicAuth via nginx (see above "basicAuthUsers" and "hashedBasicAuthUsers") is used
   #  ref: https://www.eclipse.dev/ditto/installation-operating.html#openid-connect
-  jwtOnly: true
+  jwtOnly: false
   # jvmOptions defines the JVM options applied to all Ditto services running in the JVM, it is put in JAVA_TOOL_OPTIONS
   jvmOptions: >
     -XX:+ExitOnOutOfMemoryError
