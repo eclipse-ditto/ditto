@@ -62,21 +62,19 @@ export function ready() {
       }
     }
 
-    const mainAuths = document.querySelectorAll('input[name="main-auth"]');
-    for (let i = 0; i < mainAuths.length; i++) {
-      mainAuths[i].checked = mainAuths[i].value === mainAuth;
-    }
+    Array.from(document.querySelectorAll('input[name="main-auth"]')).forEach((inputAuth: HTMLInputElement) => {
+      inputAuth.checked = inputAuth.value === mainAuth;
+    });
 
-    const devopsAuths = document.querySelectorAll('input[name="devops-auth"]');
-    for (let i = 0; i < devopsAuths.length; i++) {
-      devopsAuths[i].checked = devopsAuths[i].value === devopsAuth;
-    }
+    Array.from(document.querySelectorAll('input[name="devops-auth"]')).forEach((inputAuth: HTMLInputElement) => {
+      inputAuth.checked = inputAuth.value === devopsAuth;
+    });
   };
 
   document.getElementById('authorizeSubmit').onclick = () => {
-    const mainAuthSelector = document.querySelector('input[name="main-auth"]:checked');
+    const mainAuthSelector = document.querySelector('input[name="main-auth"]:checked') as HTMLInputElement;
     const mainAuth = mainAuthSelector ? mainAuthSelector.value : undefined;
-    const devopsAuthSelector = document.querySelector('input[name="devops-auth"]:checked');
+    const devopsAuthSelector = document.querySelector('input[name="devops-auth"]:checked') as HTMLInputElement;
     const devopsAuth = devopsAuthSelector ? devopsAuthSelector.value : undefined;
     Environments.current().mainAuth = mainAuth;
     Environments.current().devopsAuth = devopsAuth;

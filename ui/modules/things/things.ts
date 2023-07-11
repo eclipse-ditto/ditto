@@ -53,7 +53,7 @@ export async function ready() {
  * @param {String} thingId ThingId
  * @param {function} successCallback callback function that is called after refresh is finished
  */
-export function refreshThing(thingId, successCallback) {
+export function refreshThing(thingId, successCallback = null) {
   console.assert(thingId && thingId !== '', 'thingId expected');
   API.callDittoREST('GET',
       `/things/${thingId}?` +
@@ -62,7 +62,7 @@ export function refreshThing(thingId, successCallback) {
         setTheThing(thing);
         successCallback && successCallback();
       })
-      .catch(() => setTheThing());
+      .catch(() => setTheThing(null));
 }
 
 /**

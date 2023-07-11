@@ -14,7 +14,16 @@
 import * as Environments from '../environments/environments.js';
 import * as Authorization from '../environments/authorization.js';
 
-export function TabHandler(domTabItem, domTabContent, onRefreshTab, envDisabledKey) {
+/**
+ * Common behaviour of all main tabs. Handles refresh of a tab after the environmant was changed
+ * @param {Element} domTabItem 
+ * @param {Element} domTabContent 
+ * @param {function} onRefreshTab 
+ * @param {string} envDisabledKey 
+ * @returns 
+ */
+
+export function TabHandler(domTabItem, domTabContent, onRefreshTab, envDisabledKey = null) {
   const _domTabItem = domTabItem;
   const _domTabContent = domTabContent;
   const _refreshTab = onRefreshTab;

@@ -91,13 +91,14 @@ document.addEventListener('DOMContentLoaded', async function() {
   // make tables toggle background on selection
   document.querySelectorAll('.table').forEach((e) => {
     e.addEventListener('click', (event) => {
-      if (event.target && event.target.tagName === 'TD') {
-        Array.from(event.target.parentNode.parentNode.children).forEach((n) => {
-          if (n !== event.target.parentNode) {
+      const target = event.target as HTMLElement;
+      if (target && target.tagName === 'TD') {
+        Array.from(target.parentNode.parentNode.children).forEach((n) => {
+          if (n !== target.parentNode) {
             n.classList.remove('table-active');
           }
         });
-        event.target.parentNode.classList.toggle('table-active');
+        target.parentElement.classList.toggle('table-active');
       }
     });
   });
@@ -120,7 +121,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   const {get, set} = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
   document.querySelectorAll('input').forEach((input) => {
     input.addEventListener('change', (event) => {
-      event.target.classList.remove('is-invalid');
+      (event.target as HTMLElement).classList.remove('is-invalid');
     });
     Object.defineProperty(input, 'value', {
       get() {

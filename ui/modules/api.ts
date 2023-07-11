@@ -317,7 +317,8 @@ export function setAuthHeader(forDevOps) {
  * @param {boolean} devOps default: false. Set true to avoid /api/2 path
  * @return {Object} result as json object
  */
-export async function callDittoREST(method, path, body, additionalHeaders, returnHeaders = false, devOps = false) {
+export async function callDittoREST(method, path, body = null,
+    additionalHeaders = null, returnHeaders = false, devOps = false) {
   let response;
   try {
     response = await fetch(Environments.current().api_uri + (devOps ? '' : '/api/2') + path, {
@@ -373,10 +374,22 @@ export function getEventSource(thingIds, urlParams) {
  * @param {*} command optional command
  * @return {*} promise to the result
  */
-export async function callConnectionsAPI(operation, successCallback, connectionId, connectionJson, command) {
+export async function callConnectionsAPI(operation, successCallback, connectionId = '', connectionJson = null, command = null) {
   Utils.assert((env() !== 'things' || Environments.current().solutionId), 'No solutionId configured in environment');
   const params = config[env()][operation];
   let response;
+  let body;
+  if (params.body) {
+    body = JSON.stringify(params.body)
+      .replace('{{connectionId}}', connectionId)
+      .replace('"{{connectionJson}}"', JSON.stringify(connectionJson))
+      .replace('{{command}}', command);
+  } else if (connectionJson) {
+    body = JSON.stringify(connectionJson);
+  } else {
+    body = command;
+  }
+
   try {
     response = await fetch(Environments.current().api_uri + params.path.replace('{{solutionId}}',
         Environments.current().solutionId).replace('{{connectionId}}', connectionId), {
@@ -385,12 +398,7 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
         'Content-Type': operation === 'connectionCommand' ? 'text/plain' : 'application/json',
         [authHeaderKey]: authHeaderValue,
       },
-      body: params.body ?
-          JSON.stringify(params.body)
-              .replace('{{connectionId}}', connectionId)
-              .replace('"{{connectionJson}}"', JSON.stringify(connectionJson))
-              .replace('{{command}}', command) :
-          connectionJson ? JSON.stringify(connectionJson) : command,
+      ...(body) && {body: body},
     });
   } catch (err) {
     Utils.showError(err);

@@ -10,18 +10,21 @@
   "author": "",
   "license": "EPL-2.0",
   "devDependencies": {
+    "@types/ace": "^0.0.48",
     "esbuild": "^0.17.18",
     "esbuild-sass-plugin": "^2.9.0",
     "eslint": "^8.40.0",
     "eslint-config-google": "^0.14.0",
     "eslint-config-standard": "^17.0.0",
-    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-n": "^15.7.0",
-    "eslint-plugin-promise": "^6.1.1"
+    "eslint-plugin-promise": "^6.1.1",
+    "typescript": "^5.1.6"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.7",
     "@tarekraafat/autocomplete.js": "^10.2.7",
+    "ace-builds": "^1.23.2",
     "bootstrap": "^5.2.3",
     "bootstrap-icons": "^1.10.5",
     "event-source-polyfill": "^1.0.31",
