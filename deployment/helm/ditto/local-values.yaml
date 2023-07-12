@@ -40,6 +40,12 @@ policies:
         - "ditto-originator"
         - "ditto-origin"
         - "correlation-id"
+    entityCreation:
+      grants:
+        - namespaces:
+          - "org.eclipse.ditto.room"
+          authSubjects:
+          - "connection:some"
 
 ## ----------------------------------------------------------------------------
 ## things configuration
@@ -58,6 +64,12 @@ things:
           - "ditto-originator"
           - "ditto-origin"
           - "correlation-id"
+    entityCreation:
+      grants:
+        - namespaces:
+          - "org.eclipse.ditto.room"
+          authSubjects:
+          - "connection:some"
 
 ## ----------------------------------------------------------------------------
 ## things-search configuration
