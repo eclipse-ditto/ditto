@@ -337,7 +337,7 @@ export async function callDittoREST(method, path, body = null,
   if (!response.ok) {
     response.json()
         .then((dittoErr) => {
-          Utils.showError(dittoErr.message, dittoErr.error, dittoErr.status);
+          Utils.showError(dittoErr.description + `\n(${dittoErr.error})`, dittoErr.message, dittoErr.status);
         })
         .catch((err) => {
           Utils.showError('No error details from Ditto', response.statusText, response.status);
