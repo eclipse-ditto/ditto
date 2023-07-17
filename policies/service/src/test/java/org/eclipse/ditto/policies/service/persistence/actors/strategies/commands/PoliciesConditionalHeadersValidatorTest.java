@@ -151,7 +151,7 @@ public class PoliciesConditionalHeadersValidatorTest {
         final ModifyPolicyImport command = ModifyPolicyImport.of(policyId, policyImport,
                 DittoHeaders.newBuilder().ifEqual(IfEqual.SKIP).build());
 
-        assertThatExceptionOfType(PolicyPreconditionNotModifiedException.class)
+        assertThatExceptionOfType(PolicyPreconditionFailedException.class)
                 .isThrownBy(() -> SUT.applyIfEqualHeader(command, policy))
                 .withMessage("The previous value was equal to the new value and the 'if-equal' header was set to 'skip'.");
     }
