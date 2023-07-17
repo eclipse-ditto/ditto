@@ -60,6 +60,15 @@ public final class ConnectionPreconditionFailedException extends DittoRuntimeExc
     /**
      * A mutable builder for a {@link ConnectionPreconditionFailedException}.
      *
+     * @return the builder.
+     */
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+
+    /**
+     * A mutable builder for a {@link ConnectionPreconditionFailedException}.
+     *
      * @param conditionalHeaderName the name of the conditional header.
      * @param expected the expected value.
      * @param actual the actual ETag value.
