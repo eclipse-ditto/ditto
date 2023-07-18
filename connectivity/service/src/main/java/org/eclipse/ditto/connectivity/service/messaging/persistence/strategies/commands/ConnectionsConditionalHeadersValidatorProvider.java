@@ -60,7 +60,7 @@ final class ConnectionsConditionalHeadersValidatorProvider {
         }
 
         @Override
-        public DittoRuntimeExceptionBuilder<?> createPreconditionNotModifiedForEqualityExceptionBuilder() {
+        public DittoRuntimeExceptionBuilder<?> createPreconditionFailedForEqualityExceptionBuilder() {
             return ConnectionPreconditionFailedException.newBuilder()
                     .message("The previous value was equal to the new value and the 'if-equal' header was set to 'skip'.")
                     .description("Your changes were not applied, which is probably the expected outcome.");

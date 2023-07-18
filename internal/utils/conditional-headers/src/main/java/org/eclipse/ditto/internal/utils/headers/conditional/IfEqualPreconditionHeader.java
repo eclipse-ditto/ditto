@@ -111,43 +111,10 @@ public final class IfEqualPreconditionHeader<C extends Command<?>> implements Pr
         if (ifEqual == IfEqual.SKIP) {
             if (command.getCategory() == Command.Category.MODIFY &&
                     command instanceof WithOptionalEntity withOptionalEntity) {
-                return withOptionalEntity.getEntity()
-                        .map(newValue -> {
-                            final Predicate<JsonField> nonHiddenAndNamespace =
-                                    FieldType.notHidden()
-                                            .or(jsonField -> jsonField.getKey().equals(JsonKey.of("_namespace")));
-                            final Optional<JsonValue> previousValue = entity.toJson(JsonSchemaVersion.LATEST, nonHiddenAndNamespace)
-                                    .getValue(command.getResourcePath());
-                            return previousValue.filter(jsonValue -> jsonValue.equals(newValue))
-                                    .isPresent();
-                        })
-                        .orElse(false);
+                return meetsConditionForModifyCommand(entity, withOptionalEntity);
             } else if (command.getCategory() == Command.Category.MERGE &&
                     command instanceof WithOptionalEntity withOptionalEntity) {
-                return withOptionalEntity.getEntity()
-                        .map(newValue -> {
-                            final Optional<JsonValue> previousValue = entity.toJson()
-                                    .getValue(command.getResourcePath());
-                            if (newValue.isObject()) {
-                                return previousValue.filter(JsonValue::isObject)
-                                        .map(JsonValue::asObject)
-                                        .filter(previousObject -> {
-                                            final JsonObject patchedAndSortedNewObject =
-                                                    JsonFactory.mergeJsonValues(newValue.asObject(), previousObject)
-                                                            .asObject().stream()
-                                                            .sorted(Comparator.comparing(j -> j.getKey().toString()))
-                                                            .collect(JsonCollectors.fieldsToObject());
-                                            final JsonObject sortedOldObject = previousObject.stream()
-                                                    .sorted(Comparator.comparing(j -> j.getKey().toString()))
-                                                    .collect(JsonCollectors.fieldsToObject());
-                                            return patchedAndSortedNewObject.equals(sortedOldObject);
-                                        }).isPresent();
-                            } else {
-                                return previousValue.filter(jsonValue -> jsonValue.equals(newValue))
-                                        .isPresent();
-                            }
-                        })
-                        .orElse(false);
+                return meetsConditionForMergeCommand(entity, withOptionalEntity);
             } else {
                 // other commands to "MODIFY" and "MERGE" do never match the "if-equal" precondition header
                 return false;
@@ -156,6 +123,60 @@ public final class IfEqualPreconditionHeader<C extends Command<?>> implements Pr
             // for previous default behavior, "if-equal: update", don't match:
             return false;
         }
+    }
+
+    private Boolean meetsConditionForModifyCommand(final Entity<?> entity,
+            final WithOptionalEntity withOptionalEntity) {
+
+        return withOptionalEntity.getEntity()
+                .map(newValue -> {
+                    final Predicate<JsonField> nonHiddenAndNamespace =
+                            FieldType.notHidden()
+                                    .or(jsonField -> jsonField.getKey().equals(JsonKey.of("_namespace")));
+                    final Optional<JsonValue> previousValue =
+                            entity.toJson(JsonSchemaVersion.LATEST, nonHiddenAndNamespace)
+                                    .getValue(command.getResourcePath());
+                    return previousValue.filter(jsonValue -> jsonValue.equals(newValue))
+                            .isPresent();
+                })
+                .orElse(false);
+    }
+
+    private Boolean meetsConditionForMergeCommand(final Entity<?> entity, final WithOptionalEntity withOptionalEntity) {
+
+        return withOptionalEntity.getEntity()
+                .map(newValue -> {
+                    final Optional<JsonValue> previousValue = entity.toJson().getValue(command.getResourcePath());
+                    if (newValue.isObject()) {
+                        final JsonObject newObject;
+                        if (command.getResourcePath().isEmpty()) {
+                            // filter "special fields" for e.g. on thing level the inline "_policy":
+                            newObject = newValue.asObject()
+                                    .stream()
+                                    .filter(jsonField -> !jsonField.getKeyName().startsWith("_"))
+                                    .collect(JsonCollectors.fieldsToObject());
+                        } else {
+                            newObject = newValue.asObject();
+                        }
+                        return previousValue.filter(JsonValue::isObject)
+                                .map(JsonValue::asObject)
+                                .filter(previousObject -> {
+                                    final JsonObject patchedAndSortedNewObject =
+                                            JsonFactory.mergeJsonValues(newObject, previousObject)
+                                                    .asObject().stream()
+                                                    .sorted(Comparator.comparing(j -> j.getKey().toString()))
+                                                    .collect(JsonCollectors.fieldsToObject());
+                                    final JsonObject sortedOldObject = previousObject.stream()
+                                            .sorted(Comparator.comparing(j -> j.getKey().toString()))
+                                            .collect(JsonCollectors.fieldsToObject());
+                                    return patchedAndSortedNewObject.equals(sortedOldObject);
+                                }).isPresent();
+                    } else {
+                        return previousValue.filter(jsonValue -> jsonValue.equals(newValue))
+                                .isPresent();
+                    }
+                })
+                .orElse(false);
     }
 
     /**
@@ -176,7 +197,7 @@ public final class IfEqualPreconditionHeader<C extends Command<?>> implements Pr
             final Command.Category category = command.getCategory();
             if (completelyEqual &&
                     (category == Command.Category.MODIFY || category == Command.Category.MERGE)) {
-                potentiallyAdjustedCommand = respondWithNotModified();
+                potentiallyAdjustedCommand = respondWithPreconditionFailed();
             } else {
                 potentiallyAdjustedCommand = command;
             }
@@ -186,9 +207,9 @@ public final class IfEqualPreconditionHeader<C extends Command<?>> implements Pr
         return potentiallyAdjustedCommand;
     }
 
-    private C respondWithNotModified() {
+    private C respondWithPreconditionFailed() {
         throw validationSettings
-                .createPreconditionNotModifiedForEqualityExceptionBuilder()
+                .createPreconditionFailedForEqualityExceptionBuilder()
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
     }
