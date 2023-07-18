@@ -100,6 +100,14 @@ public interface DittoMongoClientBuilder {
         GeneralPropertiesStep maxQueryTime(@Nullable Duration maxQueryTime);
 
         /**
+         * Configures whether to run in "DocumentDB" compatibility mode or not.
+         *
+         * @param documentDbCompatibilityMode whether to run in "DocumentDB" compatibility mode or not.
+         * @return this builder instance to allow method chaining.
+         */
+        GeneralPropertiesStep documentDbCompatibilityMode(boolean documentDbCompatibilityMode);
+
+        /**
          * Sets the minimum number of connections to the database always kept alive in the pool.
          * Default is {@code 0} connections.
          *

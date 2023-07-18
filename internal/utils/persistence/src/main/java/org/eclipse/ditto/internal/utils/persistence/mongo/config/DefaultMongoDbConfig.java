@@ -36,6 +36,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
 
     private final String mongoDbUri;
     private final Duration maxQueryTime;
+    private final boolean documentDbCompatibilityMode;
     private final DefaultOptionsConfig optionsConfig;
     private final DefaultConnectionPoolConfig connectionPoolConfig;
     private final DefaultCircuitBreakerConfig circuitBreakerConfig;
@@ -43,6 +44,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
 
     private DefaultMongoDbConfig(final ConfigWithFallback config) {
         maxQueryTime = config.getNonNegativeAndNonZeroDurationOrThrow(MongoDbConfigValue.MAX_QUERY_TIME);
+        documentDbCompatibilityMode = config.getBoolean(MongoDbConfigValue.DOCUMENT_DB_COMPATIBILITY_MODE.getConfigPath());
         optionsConfig = DefaultOptionsConfig.of(config);
         final var configuredUri = config.getString(MongoDbConfigValue.URI.getConfigPath());
         final Map<String, Object> configuredExtraUriOptions = optionsConfig.extraUriOptions();
@@ -96,6 +98,11 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
     }
 
     @Override
+    public boolean isDocumentDBCompatibilityMode() {
+        return documentDbCompatibilityMode;
+    }
+
+    @Override
     public OptionsConfig getOptionsConfig() {
         return optionsConfig;
     }
@@ -126,6 +133,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
         final DefaultMongoDbConfig that = (DefaultMongoDbConfig) o;
         return Objects.equals(mongoDbUri, that.mongoDbUri) &&
                 Objects.equals(maxQueryTime, that.maxQueryTime) &&
+                documentDbCompatibilityMode == that.documentDbCompatibilityMode &&
                 Objects.equals(optionsConfig, that.optionsConfig) &&
                 Objects.equals(connectionPoolConfig, that.connectionPoolConfig) &&
                 Objects.equals(circuitBreakerConfig, that.circuitBreakerConfig) &&
@@ -134,8 +142,8 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(mongoDbUri, maxQueryTime, optionsConfig, connectionPoolConfig, circuitBreakerConfig,
-                monitoringConfig);
+        return Objects.hash(mongoDbUri, maxQueryTime, documentDbCompatibilityMode, optionsConfig, connectionPoolConfig,
+                circuitBreakerConfig, monitoringConfig);
     }
 
     @Override
@@ -143,6 +151,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
         return getClass().getSimpleName() + " [" +
                 "mongoDbUri=" + mongoDbUri +
                 ", maxQueryTime=" + maxQueryTime +
+                ", documentDbCompatibilityMode=" + documentDbCompatibilityMode +
                 ", optionsConfig=" + optionsConfig +
                 ", connectionPoolConfig=" + connectionPoolConfig +
                 ", circuitBreakerConfig=" + circuitBreakerConfig +

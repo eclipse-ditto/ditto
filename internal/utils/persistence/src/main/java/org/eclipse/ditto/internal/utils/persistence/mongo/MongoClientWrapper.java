@@ -293,6 +293,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
 
             final MongoClientWrapperBuilder builder = new MongoClientWrapperBuilder();
             builder.maxQueryTime(mongoDbConfig.getMaxQueryTime());
+            builder.documentDbCompatibilityMode(mongoDbConfig.isDocumentDBCompatibilityMode());
             builder.connectionString(mongoDbConfig.getMongoDbUri());
 
             final MongoDbConfig.ConnectionPoolConfig connectionPoolConfig = mongoDbConfig.getConnectionPoolConfig();
@@ -333,6 +334,12 @@ public final class MongoClientWrapper implements DittoMongoClient {
         @Override
         public GeneralPropertiesStep maxQueryTime(@Nullable final Duration maxQueryTime) {
             dittoMongoClientSettingsBuilder.maxQueryTime(maxQueryTime);
+            return this;
+        }
+
+        @Override
+        public GeneralPropertiesStep documentDbCompatibilityMode(final boolean documentDbCompatibilityMode) {
+            dittoMongoClientSettingsBuilder.documentDbCompatibilityMode(documentDbCompatibilityMode);
             return this;
         }
 

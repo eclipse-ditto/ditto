@@ -92,10 +92,17 @@ public final class Indices {
     /**
      * Gets all defined indices.
      *
+     * @param documentDbCompatibilityMode whether to return indices only available when running in "DocumentDB"
+     * compatibility mode or not.
      * @return the indices
      */
-    public static List<Index> all() {
-        return List.of(NAMESPACE, GLOBAL_READ, WILDCARD, POLICY, REFERENCED_POLICIES, DELETE_AT);
+    public static List<Index> all(final boolean documentDbCompatibilityMode) {
+        if (documentDbCompatibilityMode) {
+            // no wildcard index supported in DocumentDB (which is a MongoDB 4.2 feature):
+            return List.of(NAMESPACE, GLOBAL_READ, POLICY, REFERENCED_POLICIES, DELETE_AT);
+        } else {
+            return List.of(NAMESPACE, GLOBAL_READ, WILDCARD, POLICY, REFERENCED_POLICIES, DELETE_AT);
+        }
     }
 
 }
