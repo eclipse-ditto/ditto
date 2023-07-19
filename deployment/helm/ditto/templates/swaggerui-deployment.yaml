@@ -59,7 +59,7 @@ spec:
                echo "removing Google auth from ditto-api-2.yml"
                sed --in-place "/- Google:/,+1d" /usr/share/nginx/html/openapi/ditto-api-2.yml
                sed --in-place "/    Google:/,+9d" /usr/share/nginx/html/openapi/ditto-api-2.yml
-               {{- if not .Values.gateway.config.authentication.enablePreAuthentication }}
+               {{- if or (not .Values.gateway.config.authentication.enablePreAuthentication) .Values.global.jwtOnly }}
                echo "removing NginxBasic auth from ditto-api-2.yml"
                sed --in-place "/- NginxBasic: \[]/d" /usr/share/nginx/html/openapi/ditto-api-2.yml
                sed --in-place "/    NginxBasic:/,+3d" /usr/share/nginx/html/openapi/ditto-api-2.yml

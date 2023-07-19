@@ -154,7 +154,7 @@ spec:
               value: "{{ .Values.global.prometheus.port }}"
             {{- end }}
             - name: ENABLE_PRE_AUTHENTICATION
-              value: "{{ .Values.gateway.config.authentication.enablePreAuthentication }}"
+              value: "{{ or .Values.gateway.config.authentication.enablePreAuthentication (not .Values.global.jwtOnly) }}"
             - name: DEVOPS_SECURED
               value: "{{ .Values.gateway.config.authentication.devops.secured }}"
             - name: DEVOPS_AUTHENTICATION_METHOD
