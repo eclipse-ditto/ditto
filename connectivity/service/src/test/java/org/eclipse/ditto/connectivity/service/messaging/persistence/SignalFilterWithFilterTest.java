@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.base.model.auth.AuthorizationModelFactory.newAuthContext;
 import static org.eclipse.ditto.base.model.auth.AuthorizationModelFactory.newAuthSubject;
 import static org.eclipse.ditto.connectivity.model.Topic.LIVE_EVENTS;
+import static org.eclipse.ditto.connectivity.model.Topic.LIVE_MESSAGES;
 import static org.eclipse.ditto.connectivity.model.Topic.TWIN_EVENTS;
 
 import java.time.Instant;
@@ -24,13 +25,10 @@ import java.util.Collections;
 import java.util.List;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
@@ -38,10 +36,18 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.HeaderMapping;
 import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.messages.model.Message;
+import org.eclipse.ditto.messages.model.MessageDirection;
+import org.eclipse.ditto.messages.model.MessageHeaders;
+import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
+import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingFieldSelector;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.junit.Test;
 
@@ -253,6 +259,53 @@ public final class SignalFilterWithFilterTest {
 
         assertThat(filteredTargets).containsOnly(targetA,
                 targetD); // THEN: only targetA and targetD should be in the filtered targets
+    }
+
+    @Test
+    public void applySignalFilterForMessagesWithExtraFieldsAndRqlFilter() {
+
+        // targetA does filter for resource path "/inbox/messages/fubar"
+        final String filterA = "eq(resource:path,'/inbox/messages/fubar')";
+        final Target targetA = ConnectivityModelFactory.newTargetBuilder()
+                .address("message/a")
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED))
+                .headerMapping(HEADER_MAPPING)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(LIVE_MESSAGES)
+                        .withExtraFields(ThingFieldSelector.fromString("attributes"))
+                        .withFilter(filterA)
+                        .build())
+                .build();
+
+        // targetB does filter for resource path "/inbox/messages/booo"
+        final String filterB = "eq(resource:path,'/inbox/messages/booo')";
+        final Target targetB = ConnectivityModelFactory.newTargetBuilder()
+                .address("message/a")
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED))
+                .headerMapping(HEADER_MAPPING)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(LIVE_MESSAGES)
+                        .withExtraFields(ThingFieldSelector.fromString("attributes"))
+                        .withFilter(filterB)
+                        .build())
+                .build();
+
+        final Connection connection =
+                ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_10,
+                        ConnectivityStatus.OPEN, URI)
+                        .targets(Arrays.asList(targetA, targetB))
+                        .build();
+
+        final DittoHeaders headers = DittoHeaders.newBuilder()
+                .channel(TopicPath.Channel.LIVE.getName())
+                .readGrantedSubjects(Collections.singletonList(AUTHORIZED))
+                .build();
+        final SendThingMessage<Object> sendThingMessage = SendThingMessage.of(THING_ID,
+                Message.newBuilder(MessageHeaders.newBuilder(MessageDirection.TO, THING_ID, "fubar").build())
+                        .build(), headers);
+
+        final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
+        final List<Target> filteredTargets = signalFilter.filter(sendThingMessage);
+
+        assertThat(filteredTargets).containsOnly(targetA); // THEN: only targetA should be in the filtered targets
     }
 
     /**

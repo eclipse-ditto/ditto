@@ -43,6 +43,13 @@ public interface MongoDbConfig {
     Duration getMaxQueryTime();
 
     /**
+     * Returns whether to initialize the DittoMongoClient with the "DocumentDB" compatibility mode enabled or not.
+     *
+     * @return whether to run in "DocumentDB" compatibility mode or not.
+     */
+    boolean isDocumentDBCompatibilityMode();
+
+    /**
      * Returns the configuration settings of the MongoDB options.
      *
      * @return the options config.
@@ -83,7 +90,12 @@ public interface MongoDbConfig {
         /**
          * The maximum query duration.
          */
-        MAX_QUERY_TIME("maxQueryTime", Duration.ofMinutes(1L));
+        MAX_QUERY_TIME("maxQueryTime", Duration.ofMinutes(1L)),
+
+        /**
+         * Whether to run in "DocumentDB" compatibility mode or not.
+         */
+        DOCUMENT_DB_COMPATIBILITY_MODE("documentDb-compatibility-mode", false);
 
         private final String path;
         private final Object defaultValue;

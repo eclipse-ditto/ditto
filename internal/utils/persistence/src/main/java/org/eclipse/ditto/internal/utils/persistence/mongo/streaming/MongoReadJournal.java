@@ -17,7 +17,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -50,6 +49,7 @@ import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.client.result.DeleteResult;
+import com.mongodb.reactivestreams.client.AggregatePublisher;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.typesafe.config.Config;
 
@@ -702,7 +702,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
                 .withAttributes(Attributes.inputBuffer(1, 1));
     }
 
-    private static Source<String, NotUsed> listPidsInJournalOrderedByPriorityTag(
+    private Source<String, NotUsed> listPidsInJournalOrderedByPriorityTag(
             final MongoCollection<Document> journal,
             final String tag,
             final int maxRestarts) {
@@ -717,7 +717,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
         pipeline.add(Aggregates.group("$" + J_PROCESSOR_ID, Accumulators.last(J_TAGS, "$" + J_TAGS)));
 
         // Filter irrelevant tags for priority ordering.
-        final BsonDocument arrayFilter = BsonDocument.parse(
+        pipeline.add(Aggregates.project(Projections.computed(J_TAGS, BsonDocument.parse(
                 "{\n" +
                         "    $filter: {\n" +
                         "        input: \"$" + J_TAGS + "\",\n" +
@@ -726,14 +726,53 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
                         "            $eq: [\n" +
                         "                {\n" +
                         "                    $substrCP: [\"$$tags\", 0, " + PRIORITY_TAG_PREFIX.length() + "]\n" +
-                        "                }\n," +
+                        "                },\n" +
                         "                \"" + PRIORITY_TAG_PREFIX + "\"\n" +
                         "            ]\n" +
                         "        }\n" +
                         "    }\n" +
                         "}"
-        );
-        pipeline.add(Aggregates.project(Projections.computed(J_TAGS, arrayFilter)));
+        ))));
+
+        if (mongoClient.getDittoSettings().isDocumentDbCompatibilityMode()) {
+            // extract priority as "int" from relevant tags so that they can be compared numerically:
+            pipeline.add(Aggregates.project(Projections.computed(J_TAGS, BsonDocument.parse(
+                    "{\n" +
+                            "   $map: {\n" +
+                            "      input: \"$" + J_TAGS + "\",\n" +
+                            "      as: \"tag\",\n" +
+                            "      in: {\n" +
+                            "         $reduce: {\n" +
+                            "            input: {\n" +
+                            "               $range: [\n" +
+                            "                  0,\n" +
+                            "                  {\n" +
+                            "                     $subtract: [\n" +
+                            "                        1000,\n" + // assumption: max prio is 1000 - all higher prios are not correctly ordered
+                            "                        {\n" +
+                            "                           $strLenCP: {\n" +
+                            "                              $substrCP: [\n" +
+                            "                                 \"$$tag\", " + PRIORITY_TAG_PREFIX.length() + ", { $strLenCP: \"$$tag\" }\n" +
+                            "                              ]\n" +
+                            "                           }\n" +
+                            "                        }\n" +
+                            "                     ]\n" +
+                            "                  }\n" +
+                            "               ],\n" +
+                            "            },\n" +
+                            "            initialValue: \"$$tag\",\n" +
+                            "            in: {\n" +
+                            "               $concat: [\n" +
+                            "                  \" \",\n" +
+                            "                  \"$$value\"\n" +
+                            "               ]\n" +
+                            "            }\n" +
+                            "         }\n" +
+                            "      }\n" +
+                            "   }\n" +
+                            "}\n"
+            ))));
+        }
 
         // sort stage 2 -- order after group stage is not defined
         pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.descending(J_TAGS))));
@@ -744,9 +783,17 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
         final RestartSettings restartSettings = RestartSettings.create(minBackOff,
                         MongoReadJournal.MAX_BACK_OFF_DURATION, randomFactor)
                 .withMaxRestarts(maxRestarts, minBackOff);
+
+        final AggregatePublisher<Document> aggregatePublisher;
+        if (mongoClient.getDittoSettings().isDocumentDbCompatibilityMode()) {
+            aggregatePublisher = journal.aggregate(pipeline);
+        } else {
+            aggregatePublisher =  journal.aggregate(pipeline)
+                    .collation(Collation.builder().locale("en_US").numericOrdering(true).build());
+        }
+
         return RestartSource.onFailuresWithBackoff(restartSettings, () ->
-                Source.fromPublisher(journal.aggregate(pipeline)
-                                .collation(Collation.builder().locale("en_US").numericOrdering(true).build()))
+                Source.fromPublisher(aggregatePublisher)
                         .flatMapConcat(document -> {
                             final Object pid = document.get(J_ID);
                             if (pid instanceof CharSequence) {
@@ -836,7 +883,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
         // sort stage
         pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.ascending(S_PROCESSOR_ID), Sorts.descending(S_SN))));
 
-        // limit stage. It should come before group stage or MongoDB would scan the entire journal collection.
+        // limit stage. It should come before group stage or MongoDB would scan the entire snapshot collection
         pipeline.add(Aggregates.limit(batchSize));
 
         // group stage 1: by PID. PID is from now on in field _id (S_ID)
@@ -845,31 +892,23 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
         // sort stage 2 -- order after group stage is not defined
         pipeline.add(Aggregates.sort(Sorts.ascending(S_ID)));
 
-        // group stage 2: filter out pids whose latest snapshot is a deleted snapshot, but retain max encountered pid
-        // ---- or ---- : include latest deleted snapshots
+        // redact stage - "$$PRUNE"s documents with "__lifecycle" = DELETED if includeDeleted=false
+        // if includeDeleted=true keeps them using "$$DESCEND"
+        pipeline.add(new Document().append("$redact", new Document()
+                .append("$cond", new Document()
+                        .append("if",
+                                new Document().append("$ne", Arrays.asList("$" + LIFECYCLE, "DELETED")))
+                        .append("then", "$$DESCEND")
+                        .append("else", includeDeleted ? "$$DESCEND" : "$$PRUNE")
+        )));
+
+        // group stage 2: group by max encountered pid, "push" all elements calculated in previous "redact"
         final String maxPid = "m";
         final String items = "i";
         pipeline.add(Aggregates.group(null,
                 Accumulators.max(maxPid, "$" + S_ID),
-                Accumulators.push(
-                        items,
-                        new Document().append("$cond", new Document()
-                                .append("if",
-                                        new Document().append("$ne", Arrays.asList("$" + LIFECYCLE, "DELETED")))
-                                .append("then", "$$CURRENT")
-                                .append("else", includeDeleted ? "$$CURRENT" : null)
-                        ))
+                Accumulators.push(items, "$$ROOT")
         ));
-
-        // remove null entries by projection
-        if (!includeDeleted) {
-            pipeline.add(Aggregates.project(new Document()
-                    .append(maxPid, 1)
-                    .append(items, new Document()
-                            .append("$setDifference", Arrays.asList("$" + items, Collections.singletonList(null)))
-                    )
-            ));
-        }
 
         return Source.fromPublisher(snapshotStore.aggregate(pipeline)
                         .batchSize(batchSize) // use batchSize also for the cursor batchSize (16 by default bc of backpressure!)
