@@ -43,7 +43,7 @@ let selectedConnectionId;
 
 export function ready() {
   Utils.getAllElementsById(dom);
-  new TabHandler(dom.tabConnections, dom.collapseConnections, refreshTab, 'disableConnections');
+  TabHandler(dom.tabConnections, dom.collapseConnections, refreshTab, 'disableConnections');
 
   Utils.addValidatorToTable(dom.tbodyConnections, dom.tableValidationConnections);
 
@@ -51,7 +51,7 @@ export function ready() {
   dom.tbodyConnections.addEventListener('click', onConnectionsTableClick);
 }
 
-export function setConnection(connection, isNewConnection) {
+export function setConnection(connection, isNewConnection = false) {
   selectedConnectionId = connection ? connection.id : null;
   notifyAll(connection, isNewConnection);
 }

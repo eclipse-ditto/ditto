@@ -16,9 +16,6 @@
 /* eslint-disable no-invalid-this */
 /* eslint-disable arrow-parens */
 
-// @ts-check
-
-// @ts-ignore
 import {JSONPath} from 'jsonpath-plus';
 
 import * as API from '../api.js';
@@ -43,7 +40,7 @@ const observers = [];
 export function addChangeListener(observer) {
   observers.push(observer);
 }
-function notifyAll(thingIds, fields) {
+function notifyAll(thingIds = null, fields = null) {
   observers.forEach(observer => observer.call(null, thingIds, fields));
 }
 
@@ -127,11 +124,11 @@ export function getThings(thingIds) {
         })
         .catch((error) => {
           resetAndClearViews();
-          notifyAll(null);
+          notifyAll();
         });
   } else {
     resetAndClearViews();
-    notifyAll(null);
+    notifyAll();
   }
 }
 
@@ -160,7 +157,7 @@ function searchThings(filter, isMore = false) {
       ((namespaces && namespaces !== '') ? '&namespaces=' + namespaces : '') +
       '&option=sort(%2BthingId)' +
       // ',size(3)' +
-      (isMore ? ',cursor(' + theSearchCursor + ')' : ''),
+      (isMore ? ',cursor(' + theSearchCursor + ')' : ''), null, null
   ).then((searchResult) => {
     if (isMore) {
       removeMoreFromThingList();
@@ -174,7 +171,7 @@ function searchThings(filter, isMore = false) {
     }
   }).catch((error) => {
     resetAndClearViews();
-    notifyAll(null);
+    notifyAll();
   }).finally(() => {
     document.body.style.cursor = 'default';
   });
@@ -295,7 +292,7 @@ function onThingChanged(thingJson) {
 }
 
 export function updateTableRow(thingUpdateJson) {
-  const row = document.getElementById(thingUpdateJson.thingId);
+  const row = document.getElementById(thingUpdateJson.thingId) as HTMLTableRowElement;
   console.assert(row !== null, 'Unexpected thingId for table update. thingId was not loaded before');
   Array.from(row.cells).forEach((cell) => {
     const path = cell.getAttribute('jsonPath');

@@ -3,7 +3,7 @@ import * as esbuild from 'esbuild';
 import {sassPlugin} from 'esbuild-sass-plugin';
 
 const config = {
-  entryPoints: ['main.js'],
+  entryPoints: ['main.ts'],
   bundle: true,
   outdir: 'dist',
   loader: {

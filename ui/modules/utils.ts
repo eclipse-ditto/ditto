@@ -12,7 +12,8 @@
  */
 
 /* eslint-disable quotes */
-import autoComplete from "@tarekraafat/autocomplete.js";
+import autoComplete from '@tarekraafat/autocomplete.js';
+import * as ace from 'ace-builds/src-noconflict/ace';
 import {Toast, Modal} from 'bootstrap';
 
 
@@ -38,7 +39,7 @@ export function ready() {
  * @param {array} columnValues texts for additional columns of the row
  * @return {Element} created row
  */
-export const addTableRow = function(table, key, selected, withClipBoardCopy, ...columnValues) {
+export const addTableRow = function(table, key, selected, withClipBoardCopy = false, ...columnValues) {
   const row = table.insertRow();
   row.id = key;
   addCellToRow(row, key, key, 0);
@@ -78,7 +79,7 @@ export function addCheckboxToRow(row, id, checked, onToggle) {
  * @param {String} cellContent content of new cell
  * @param {String} cellTooltip tooltip for new cell
  * @param {Number} position optional, default -1 (add to the end)
- * @return {HTMLElement} created cell element 
+ * @return {HTMLElement} created cell element
  */
 export function addCellToRow(row, cellContent, cellTooltip = null, position = -1) {
   const cell = row.insertCell(position);
@@ -92,15 +93,15 @@ export function addCellToRow(row, cellContent, cellTooltip = null, position = -1
  * Adds a clipboard copy button to a row. The text of the previous table cell will be copied
  * @param {HTMLTableRowElement} row target row
  */
-export function addClipboardCopyToRow(row) {
+export function addClipboardCopyToRow(row: HTMLTableRowElement) {
   const td = row.insertCell();
   td.style.textAlign = 'right';
   const button = document.createElement('button');
   button.classList.add('btn', 'btn-sm');
-  button.style.padding = 0;
+  button.style.padding = '0';
   button.innerHTML = `<i class="bi bi-clipboard"></i>`;
   button.onclick = (evt) => {
-    const td = evt.currentTarget.parentNode.previousSibling;
+    const td = (evt.currentTarget as HTMLElement).parentNode.previousSibling as HTMLTableCellElement;
     navigator.clipboard.writeText(td.innerText);
   };
   td.appendChild(button);
@@ -175,7 +176,7 @@ export function addDropDownEntries(target, items, isHeader = false) {
  * @param {String} toolTip (optional) toolip on the tab item
  * @return {String} id of the tabpane content node
  */
-export function addTab(tabItemsNode, tabContentsNode, title, contentHTML, toolTip) {
+export function addTab(tabItemsNode, tabContentsNode, title, contentHTML, toolTip = null) {
   const id = 'tab' + Math.random().toString(36).replace('0.', '');
 
   const li = document.createElement('li');
@@ -198,11 +199,11 @@ export function addTab(tabItemsNode, tabContentsNode, title, contentHTML, toolTi
 /**
  * Get the HTMLElements of all the given ids. The HTMLElements will be returned in the original object
  * @param {Object} domObjects object with empty keys that are used as ids of the dom elements
- * @param {Element} searchRoot optional root to search in (optional for shadow dom)
+ * @param {DocumentFragment} searchRoot optional root to search in (optional, used for shadow dom)
  */
-export function getAllElementsById(domObjects, searchRoot = document) {
+export function getAllElementsById(domObjects: object, searchRoot: DocumentFragment = null) {
   Object.keys(domObjects).forEach((id) => {
-    domObjects[id] = searchRoot.getElementById(id);
+    domObjects[id] = (searchRoot ?? document).getElementById(id);
     if (!domObjects[id]) {
       throw new Error(`Element ${id} not found.`);
     }
@@ -215,12 +216,12 @@ export function getAllElementsById(domObjects, searchRoot = document) {
  * @param {String} header Header for toast
  * @param {String} status Status text for toas
  */
-export function showError(message, header, status = '') {
+export function showError(message, header = 'Error', status = '') {
   const domToast = document.createElement('div');
   domToast.classList.add('toast');
   domToast.innerHTML = `<div class="toast-header alert-danger">
   <i class="bi me-2 bi-exclamation-triangle-fill"></i>
-  <strong class="me-auto">${header ?? 'Error'}</strong>
+  <strong class="me-auto">${header}</strong>
   <small>${status}</small>
   <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
   </div>
@@ -250,7 +251,7 @@ function UserException(message) {
  * @param {String} message Message to be shown to the user
  * @param {HTMLElement} validatedElement Optional element that was validated
  */
-export function assert(condition, message, validatedElement) {
+export function assert(condition, message, validatedElement = null) {
   if (validatedElement) {
     validatedElement.classList.remove('is-invalid');
   }
@@ -271,7 +272,7 @@ export function assert(condition, message, validatedElement) {
  * @param {boolean} withMilliseconds don t cut off milliseconds if true
  * @return {String} formatted date
  */
-export function formatDate(dateISOString, withMilliseconds) {
+export function formatDate(dateISOString, withMilliseconds = false) {
   if (withMilliseconds) {
     return dateISOString.replace('T', ' ').replace('Z', '').replace('.', ' ');
   } else {
@@ -302,7 +303,7 @@ export function confirm(message, action, callback) {
  * @param {*} readOnly sets the editor to read only and removes the line numbers
  * @return {*} created ace editor
  */
-export function createAceEditor(domId, sessionMode, readOnly) {
+export function createAceEditor(domId, sessionMode, readOnly = false) {
   const result = ace.edit(domId);
 
   result.session.setMode(sessionMode);
@@ -322,6 +323,7 @@ export function createAceEditor(domId, sessionMode, readOnly) {
  * @return {Object} autocomplete instance
  */
 export function createAutoComplete(selector, src, placeHolder) {
+  // eslint-disable-next-line new-cap
   return new autoComplete({
     selector: selector,
     data: {
@@ -346,12 +348,12 @@ export function createAutoComplete(selector, src, placeHolder) {
     events: {
       input: {
         results: () => {
-          Array.from(document.getElementsByClassName('resizable_pane')).forEach((resizePane) => {
+          Array.from(document.getElementsByClassName('resizable_pane')).forEach((resizePane: HTMLElement) => {
             resizePane.style.overflow = 'unset';
           });
         },
         close: () => {
-          Array.from(document.getElementsByClassName('resizable_pane')).forEach((resizePane) => {
+          Array.from(document.getElementsByClassName('resizable_pane')).forEach((resizePane: HTMLElement) => {
             resizePane.style.overflow = 'auto';
           });
         },
@@ -376,7 +378,7 @@ export function addValidatorToTable(tableElement, inputElement) {
  * @param {HTMLTableElement} tbody table with the data
  * @param {function} condition evaluate if table row should be selected or not
  */
-export function tableAdjustSelection(tbody, condition) {
+export function tableAdjustSelection(tbody: HTMLTableElement, condition: (row: HTMLTableRowElement) => boolean) {
   Array.from(tbody.rows).forEach((row) => {
     if (condition(row)) {
       row.classList.add('table-active');
