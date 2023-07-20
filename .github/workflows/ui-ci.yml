@@ -1,0 +1,39 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+name: build-ui
+
+on:
+  push:
+    branches:
+      - master
+      - release-*
+
+  # Run build for any PR targeting ui/
+  pull_request:
+    paths:
+      - 'ui/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js 18.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Install npm dependencies
+        run: npm install
+        working-directory: ./ui
+      - name: Build UI with node
+        run: npm run build
+        working-directory: ./ui
