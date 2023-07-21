@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.eclipse.ditto.things.service.common.config.DefaultThingConfig;
 
 import akka.actor.ExtendedActorSystem;
@@ -35,6 +36,10 @@ public final class ThingMongoEventAdapter extends AbstractMongoEventAdapter<Thin
     private static final JsonPointer POLICY_IN_THING_EVENT_PAYLOAD = ThingEvent.JsonFields.THING.getPointer()
             .append(JsonPointer.of(Policy.INLINED_FIELD_NAME));
 
+    private static final JsonPointer POLICY_IN_THING_MERGED_VALUE_PAYLOAD =
+            ThingMerged.JsonFields.JSON_VALUE.getPointer()
+                    .append(JsonPointer.of(Policy.INLINED_FIELD_NAME));
+
     public ThingMongoEventAdapter(final ExtendedActorSystem system) {
         super(system, GlobalEventRegistry.getInstance(), DefaultThingConfig.of(
                 DittoServiceConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()), "things")
@@ -43,8 +48,13 @@ public final class ThingMongoEventAdapter extends AbstractMongoEventAdapter<Thin
 
     @Override
     protected JsonObjectBuilder performToJournalMigration(final Event<?> event, final JsonObject jsonObject) {
-        return super.performToJournalMigration(event, jsonObject)
-                .remove(POLICY_IN_THING_EVENT_PAYLOAD); // remove the policy entries from thing event payload
+        if (event instanceof ThingMerged) {
+            return super.performToJournalMigration(event, jsonObject)
+                    .remove(POLICY_IN_THING_MERGED_VALUE_PAYLOAD); // remove the policy entries from thing merged payload
+        } else {
+            return super.performToJournalMigration(event, jsonObject)
+                    .remove(POLICY_IN_THING_EVENT_PAYLOAD); // remove the policy entries from thing event payload
+        }
     }
 
 }
