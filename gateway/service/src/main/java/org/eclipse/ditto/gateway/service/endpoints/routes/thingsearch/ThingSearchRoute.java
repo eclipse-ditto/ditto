@@ -26,6 +26,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThings;
+import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryPolicies;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 
 import akka.http.javadsl.server.Directives;
@@ -40,6 +41,7 @@ public final class ThingSearchRoute extends AbstractRoute {
 
     public static final String PATH_SEARCH = "search";
     public static final String PATH_THINGS = "things";
+    public static final String PATH_POLICIES = "policies";
 
     private static final String PATH_COUNT = "count";
 
@@ -56,18 +58,20 @@ public final class ThingSearchRoute extends AbstractRoute {
     /**
      * Builds the {@code /search} route.
      *
-     * @return the {@code /search}} route.
+     * @return the {@code /search} route.
      */
     public Route buildSearchRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
         return Directives.rawPathPrefix(PathMatchers.slash().concat(PATH_SEARCH), () ->
-                Directives.rawPathPrefix(PathMatchers.slash().concat(PATH_THINGS),
-                        () -> // /search/things
+                concat(
+                        Directives.rawPathPrefix(PathMatchers.slash().concat(PATH_THINGS), () -> // /search/things
                                 concat(
                                         // /search/things/count
                                         path(PATH_COUNT, () -> countThings(ctx, dittoHeaders)),
                                         // /search/things
                                         pathEndOrSingleSlash(() -> searchThings(ctx, dittoHeaders))
-                                )
+                                )),
+                        // /search/policies
+                        Directives.rawPathPrefix(PathMatchers.slash().concat(PATH_POLICIES), () -> searchPolicies(ctx, dittoHeaders))
                 )
         );
     }
@@ -98,6 +102,26 @@ public final class ThingSearchRoute extends AbstractRoute {
         //           &nextPageKey=<nextPageKey>
         return get(() -> thingSearchParameterOptional(params -> handlePerRequest(ctx,
                 QueryThings.of(calculateFilter(params.get(ThingSearchParameter.FILTER)),
+                        calculateOptions(params.get(ThingSearchParameter.OPTION)),
+                        AbstractRoute.calculateSelectedFields(params.get(ThingSearchParameter.FIELDS))
+                                .orElse(null),
+                        calculateNamespaces(params.get(ThingSearchParameter.NAMESPACES)),
+                        dittoHeaders))));
+    }
+
+    /*
+     * Describes {@code /search/policies} route.
+     *
+     * @return {@code /search/policies} route.
+     */
+    private Route searchPolicies(final RequestContext ctx, final DittoHeaders dittoHeaders) {
+        // GET policies?filter=<filterString>
+        //           &options=<optionsString>
+        //           &fields=<fieldsString>
+        //           &namespaces=<namespacesString>
+        //           &nextPageKey=<nextPageKey>
+        return get(() -> thingSearchParameterOptional(params -> handlePerRequest(ctx,
+                QueryPolicies.of(calculateFilter(params.get(ThingSearchParameter.FILTER)),
                         calculateOptions(params.get(ThingSearchParameter.OPTION)),
                         AbstractRoute.calculateSelectedFields(params.get(ThingSearchParameter.FIELDS))
                                 .orElse(null),
