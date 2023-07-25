@@ -12,26 +12,22 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch;
 
-import java.util.Arrays;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import javax.annotation.Nullable;
-
+import akka.http.javadsl.server.Directives;
+import akka.http.javadsl.server.PathMatchers;
+import akka.http.javadsl.server.RequestContext;
+import akka.http.javadsl.server.Route;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 
-import akka.http.javadsl.server.Directives;
-import akka.http.javadsl.server.PathMatchers;
-import akka.http.javadsl.server.RequestContext;
-import akka.http.javadsl.server.Route;
+import javax.annotation.Nullable;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Builder for creating Akka HTTP routes for {@code /search/things}.
@@ -78,11 +74,30 @@ public final class ThingSearchRoute extends AbstractRoute {
      * @return {@code /search/things/count} route.
      */
     private Route countThings(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        // GET things/count?filter=<filterString>&namespaces=<namespacesString>
-        return get(() -> thingSearchParameterOptional(params -> handlePerRequest(ctx,
-                CountThings.of(calculateFilter(params.get(ThingSearchParameter.FILTER)),
-                        calculateNamespaces(params.get(ThingSearchParameter.NAMESPACES)),
-                        dittoHeaders))));
+        return concat(
+                // GET things/count?filter=<filterString>&namespaces=<namespacesString>
+                get(() -> thingSearchParameterOptional(
+                        params -> handlePerRequest(ctx,
+                            CountThings.of(calculateFilter(params.get(ThingSearchParameter.FILTER)),
+                            calculateNamespaces(params.get(ThingSearchParameter.NAMESPACES)),
+                                    dittoHeaders)))),
+                // POST things/count
+                post(() -> ensureMediaTypeFormUrlEncodedThenExtractData(
+                        ctx,
+                        dittoHeaders,
+                        payloadSource ->  handlePerRequest(
+                                ctx,
+                                dittoHeaders,
+                                payloadSource,
+                                requestString -> getFormParameters(
+                                        requestString,
+                                        params ->  CountThings.of(
+                                                calculateFilter(params.get(ThingSearchParameter.FILTER)),
+                                                calculateNamespaces(params.get(ThingSearchParameter.NAMESPACES)),
+                                                dittoHeaders)
+                                )
+                        )))
+        );
     }
 
     /*
@@ -91,18 +106,70 @@ public final class ThingSearchRoute extends AbstractRoute {
      * @return {@code /search/things} route.
      */
     private Route searchThings(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        // GET things?filter=<filterString>
-        //           &options=<optionsString>
-        //           &fields=<fieldsString>
-        //           &namespaces=<namespacesString>
-        //           &nextPageKey=<nextPageKey>
-        return get(() -> thingSearchParameterOptional(params -> handlePerRequest(ctx,
-                QueryThings.of(calculateFilter(params.get(ThingSearchParameter.FILTER)),
-                        calculateOptions(params.get(ThingSearchParameter.OPTION)),
-                        AbstractRoute.calculateSelectedFields(params.get(ThingSearchParameter.FIELDS))
-                                .orElse(null),
-                        calculateNamespaces(params.get(ThingSearchParameter.NAMESPACES)),
-                        dittoHeaders))));
+        return concat(
+                // GET /search/things?filter=<filterString>
+                //           &options=<optionsString>
+                //           &fields=<fieldsString>
+                //           &namespaces=<namespacesString>
+                //           &nextPageKey=<nextPageKey>
+                get(() -> thingSearchParameterOptional(
+                        params -> handlePerRequest(ctx,
+                            QueryThings.of(
+                                calculateFilter(params.get(ThingSearchParameter.FILTER)),
+                                calculateOptions(params.get(ThingSearchParameter.OPTION)),
+                                AbstractRoute.calculateSelectedFields(params.get(ThingSearchParameter.FIELDS))
+                                    .orElse(null),
+                                calculateNamespaces(params.get(ThingSearchParameter.NAMESPACES)),
+                                dittoHeaders
+                            )
+                        )
+                    )
+                ),
+                // POST /search/things
+                post(() -> ensureMediaTypeFormUrlEncodedThenExtractData(
+                                ctx,
+                                dittoHeaders,
+                                payloadSource ->  handlePerRequest(
+                                        ctx,
+                                        dittoHeaders,
+                                        payloadSource,
+                                        requestString -> getFormParameters(
+                                            requestString,
+                                            params -> QueryThings.of(
+                                                calculateFilter(params.get(ThingSearchParameter.FILTER)),
+                                                calculateOptions(params.get(ThingSearchParameter.OPTION)),
+                                                AbstractRoute.calculateSelectedFields(params.get(ThingSearchParameter.FIELDS))
+                                                        .orElse(null),
+                                                calculateNamespaces(params.get(ThingSearchParameter.NAMESPACES)),
+                                                dittoHeaders
+                                            )
+                                        )
+                )))
+        );
+
+    }
+
+    private Command<?> getFormParameters(final String requestString, final Function<EnumMap<ThingSearchParameter, List<String>>, Command<?>> inner) {
+        return inner.apply(parseFormParameters(requestString));
+    }
+
+    private EnumMap<ThingSearchParameter, List<String>> parseFormParameters(final String requestString){
+        final var thingSearchParameterMap = new EnumMap<ThingSearchParameter, List<String>>(ThingSearchParameter.class);
+        final var keyValues = Arrays.stream(requestString.split("&")).map(item -> item.split("=")).toList();
+
+        Arrays.stream(ThingSearchParameter.values()).forEach(
+                thingSearchParameter -> {
+                    final var valueList =  new ArrayList<String>();
+                    keyValues.forEach( keyValue -> {
+                        if (Objects.equals(keyValue[0], thingSearchParameter.toString())) {
+                            valueList.add(keyValue[1]);
+                        }
+                    });
+                    thingSearchParameterMap.put(thingSearchParameter, valueList);
+                }
+        );
+
+        return thingSearchParameterMap;
     }
 
     private Route thingSearchParameterOptional(
