@@ -35,7 +35,7 @@ class CrudToolbar extends HTMLElement {
   }
 
   set idValue(newValue) {
-    this.shadowRoot.getElementById('inputIdValue').value = newValue;
+    (this.shadowRoot.getElementById('inputIdValue') as HTMLInputElement).value = newValue;
     const buttonDelete = this.shadowRoot.getElementById('buttonDelete');
     if (!this.isDeleteDisabled && newValue && newValue !== '') {
       buttonDelete.removeAttribute('hidden');

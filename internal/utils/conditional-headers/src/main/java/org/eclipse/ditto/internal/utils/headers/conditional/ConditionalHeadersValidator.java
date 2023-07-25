@@ -63,14 +63,14 @@ public final class ConditionalHeadersValidator {
                 String matched);
 
         /**
-         * Returns a builder for a {@link DittoRuntimeException} in case status {@code 304 (Not Modified)} should be
-         * returned for when an updated value was equal to its previous value and the {@code if-equal} condition was
+         * Returns a builder for a {@link DittoRuntimeException} in case status {@code 412 (Precondition failed)} should
+         * be returned for when an updated value was equal to its previous value and the {@code if-equal} condition was
          * set to "skip".
          *
          * @return the builder.
          * @since 3.3.0
          */
-        DittoRuntimeExceptionBuilder<?> createPreconditionNotModifiedForEqualityExceptionBuilder();
+        DittoRuntimeExceptionBuilder<?> createPreconditionFailedForEqualityExceptionBuilder();
     }
 
     private final ValidationSettings validationSettings;

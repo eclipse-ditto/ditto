@@ -132,7 +132,13 @@ function updateFeature(method, isNewFeature = false) {
   Utils.assert(Things.theThing, 'No Thing selected');
   Utils.assert(dom.crudFeature.idValue, 'No Feature selected');
 
-  const featureObject = {};
+  type Feature = {
+    definition?: string[];
+    properties?: Object;
+    desiredProperties?: Object;
+  };
+
+  const featureObject: Feature = {};
   const featureProperties = featurePropertiesEditor.getValue();
   const featureDesiredProperties = featureDesiredPropertiesEditor.getValue();
   if (dom.inputFeatureDefinition.value) {
@@ -193,7 +199,7 @@ function updateFeatureEditors(featureJson) {
  * @param {Object} thing thing the feature values are taken from
  * @param {String} featureId FeatureId to be refreshed
  */
-function refreshFeature(thing, featureId) {
+function refreshFeature(thing, featureId = null) {
   if (!dom.crudFeature.isEditing) {
     if (thing) {
       dom.crudFeature.idValue = featureId;

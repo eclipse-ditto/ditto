@@ -275,7 +275,7 @@ final class EnforcementFlow {
                             }
                         } else {
                             // no enforcer; "empty out" thing in search index
-                            log.info(
+                            log.warn(
                                     "Computed - due to missing enforcer - 'emptied out' ThingWriteModel for metadata <{}> " +
                                             "and thing <{}>", metadata, thing);
                             return ThingWriteModel.ofEmptiedOut(metadata);

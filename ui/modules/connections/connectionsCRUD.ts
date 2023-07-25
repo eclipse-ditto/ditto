@@ -63,7 +63,7 @@ export function ready() {
 
 function onScriptEditorBlur(scriptEditor, fieldName) {
   return () => {
-    if (!crudConnection.isEditing || hasErrors) {
+    if (!dom.crudConnection.isEditing || hasErrors) {
       return;
     }
     const editConnection = JSON.parse(connectionEditor.getValue());

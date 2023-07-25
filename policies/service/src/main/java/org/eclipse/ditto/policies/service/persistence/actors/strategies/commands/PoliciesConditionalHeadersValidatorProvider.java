@@ -58,8 +58,8 @@ final class PoliciesConditionalHeadersValidatorProvider {
         }
 
         @Override
-        public DittoRuntimeExceptionBuilder<?> createPreconditionNotModifiedForEqualityExceptionBuilder() {
-            return PolicyPreconditionNotModifiedException.newBuilder()
+        public DittoRuntimeExceptionBuilder<?> createPreconditionFailedForEqualityExceptionBuilder() {
+            return PolicyPreconditionFailedException.newBuilder()
                     .message("The previous value was equal to the new value and the 'if-equal' header was set to 'skip'.")
                     .description("Your changes were not applied, which is probably the expected outcome.");
         }

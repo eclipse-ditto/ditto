@@ -14,7 +14,7 @@
 /* eslint-disable arrow-parens */
 /* eslint-disable prefer-const */
 /* eslint-disable require-jsdoc */
-import * as Authorization from '../environments/authorization.js';
+import * as Authorization from './authorization.js';
 import * as Utils from '../utils.js';
 import defaultTemplates from './environmentTemplates.json';
 import environmentsHTML from './environments.html';
@@ -85,9 +85,9 @@ export function addChangeListener(observer) {
   observers.push(observer);
 }
 
-function notifyAll(modifiedField) {
+function notifyAll(modifiedField = null) {
   // Notify Authorization first to set right auth header
-  Authorization.onEnvironmentChanged(modifiedField);
+  Authorization.onEnvironmentChanged();
   // Notify others
   observers.forEach(observer => observer.call(null, modifiedField));
 }
@@ -198,7 +198,7 @@ function onUpdateEnvironmentClick(event) {
   }
 }
 
-export function environmentsJsonChanged(modifiedField) {
+export function environmentsJsonChanged(modifiedField = null) {
   environments && localStorage.setItem(STORAGE_KEY, JSON.stringify(environments));
 
   updateEnvSelector();

@@ -78,7 +78,7 @@ function onAttributeTableClick(event) {
  * @param {String} method PUT or DELETE
  * @param {boolean} isNewAttribute if a new attribute is created. default = false
  */
-function updateAttribute(method, isNewAttribute) {
+function updateAttribute(method, isNewAttribute = false) {
   API.callDittoREST(
       method,
       `/things/${Things.theThing.thingId}/attributes/${dom.crudAttribute.idValue}`,
@@ -98,7 +98,7 @@ function updateAttribute(method, isNewAttribute) {
   });
 }
 
-function refreshAttribute(thing, attributePath) {
+function refreshAttribute(thing, attributePath = null) {
   if (dom.crudAttribute.isEditing) {
     return;
   }
