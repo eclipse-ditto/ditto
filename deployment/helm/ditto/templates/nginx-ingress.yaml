@@ -134,6 +134,8 @@ data:
     proxy_set_header X-Original-URI $request_uri;
 
     # set ditto-specific forwarded headers
+    proxy_set_header        X-Forwarded-User              $remote_user;
+    proxy_set_header        x-ditto-pre-authenticated     "nginx:$remote_user";
 
   proxy-connect-timeout: "10" # seconds, default: 60
   # timeouts are configured slightly higher than gateway read-timeout of 60 seconds
@@ -558,6 +560,7 @@ spec:
       annotations:
         prometheus.io/port: "10254"
         prometheus.io/scrape: "true"
+        checksum/nginx-auth: {{ include (print $.Template.BasePath "/nginx-ingress-auth.yaml") . | sha256sum }}
     spec:
       priorityClassName: high-priority
       serviceAccountName: nginx-ingress-serviceaccount

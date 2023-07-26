@@ -1,0 +1,36 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+{{- if .Values.ingress.enabled -}}
+{{- $releaseName := .Release.Name -}}
+{{- $name := include "ditto.name" . -}}
+{{- $labels := include "ditto.labels" . -}}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $releaseName }}-nginx-ingress-htpasswd
+  labels:
+    app.kubernetes.io/name: {{ $name }}-nginx-ingress-config
+{{ $labels | indent 4 }}
+type: Opaque
+stringData:
+  auth: |-
+{{- if .Values.global.hashedBasicAuthUsers }}
+{{ range .Values.global.hashedBasicAuthUsers }}
+{{- . | indent 4 }}
+{{ end }}
+{{- else }}
+{{ range $key, $value := .Values.global.basicAuthUsers }}
+{{- (htpasswd $value.user $value.password) | indent 4 }}
+{{ end }}
+{{ end }}
+---
+{{- end }}
