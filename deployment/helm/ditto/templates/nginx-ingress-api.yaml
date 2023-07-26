@@ -22,6 +22,7 @@ metadata:
   {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
   {{- end }}
+    {{ tpl .Values.ingress.api.kubernetesAuthAnnotations . | nindent 4}}
   {{- with .Values.ingress.api.annotations }}
     {{- toYaml . | nindent 4 }}
   {{- end }}

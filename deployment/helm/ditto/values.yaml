@@ -217,14 +217,12 @@ ingress:
         backendSuffix: gateway
       - path: /health
         backendSuffix: gateway
+    kubernetesAuthAnnotations: |
+      nginx.ingress.kubernetes.io/auth-type: basic
+      nginx.ingress.kubernetes.io/auth-secret: {{ .Release.Name }}-nginx-ingress-htpasswd
+      nginx.ingress.kubernetes.io/auth-realm: 'Authentication required to use HTTP API!'
     # annotations defines k8s annotations to add to the Ingress
     annotations:
-      # type of authentication
-      nginx.ingress.kubernetes.io/auth-type: basic
-      # name of the secret that contains the user/password definitions
-      nginx.ingress.kubernetes.io/auth-secret: my-ditto-nginx-ingress-htpasswd
-      # message to display with an appropriate context why the authentication is required
-      nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required to use HTTP API!'
       nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
       nginx.ingress.kubernetes.io/proxy-send-timeout: "70"
       nginx.ingress.kubernetes.io/proxy-read-timeout: "70"
