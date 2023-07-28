@@ -93,13 +93,8 @@ public final class ThingEventToThingConverter {
             final Thing baseThing = thingFromSignal.get();
             final JsonObject baseThingJson = baseThing.toJson(baseThing.getImplementedSchemaVersion());
             thing = ThingsModelFactory.newThing(JsonFactory.newObject(baseThingJson, extra));
-        } else if (thingFromSignal.isPresent()) {
-            thing = thingFromSignal.get();
-        } else if (hasExtra) {
-            thing = ThingsModelFactory.newThing(extra);
         } else {
-            // no information; there is no thing.
-            return Optional.empty();
+            thing = thingFromSignal.orElseGet(() -> ThingsModelFactory.newThing(extra));
         }
 
         if (signal instanceof EventsourcedEvent) {

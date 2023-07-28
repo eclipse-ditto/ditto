@@ -179,7 +179,7 @@ public class ThingsConditionalHeadersValidatorTest {
         final ModifyAttribute command = ModifyAttribute.of(thingId, attributePath, attributeValue,
                 DittoHeaders.newBuilder().ifEqual(IfEqual.SKIP).build());
 
-        assertThatExceptionOfType(ThingPreconditionNotModifiedException.class)
+        assertThatExceptionOfType(ThingPreconditionFailedException.class)
                 .isThrownBy(() -> SUT.applyIfEqualHeader(command, thing))
                 .withMessage("The previous value was equal to the new value and the 'if-equal' header was set to 'skip'.");
     }
@@ -196,7 +196,7 @@ public class ThingsConditionalHeadersValidatorTest {
         final MergeThing command = MergeThing.of(thingId, JsonPointer.empty(), thing.toJson(),
                 DittoHeaders.newBuilder().ifEqual(IfEqual.SKIP).build());
 
-        assertThatExceptionOfType(ThingPreconditionNotModifiedException.class)
+        assertThatExceptionOfType(ThingPreconditionFailedException.class)
                 .isThrownBy(() -> SUT.applyIfEqualHeader(command, thing))
                 .withMessage("The previous value was equal to the new value and the 'if-equal' header was set to 'skip'.");
     }

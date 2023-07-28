@@ -101,7 +101,7 @@ interface MongoHints {
         }
 
         private static Optional<Index> getIndexByName(final String name) {
-            return Indices.all().stream().filter(index -> Objects.equals(name, index.getName())).findAny();
+            return Indices.all(false).stream().filter(index -> Objects.equals(name, index.getName())).findAny();
         }
     }
 }

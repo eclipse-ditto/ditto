@@ -49,7 +49,7 @@ export function ready() {
 
   // Status --------------
   dom.buttonRetrieveConnectionStatus.onclick = retrieveConnectionStatus;
-  document.querySelector('a[data-bs-target="#tabConnectionStatus"]').onclick = retrieveConnectionStatus;
+  (document.querySelector('a[data-bs-target="#tabConnectionStatus"]') as HTMLElement).onclick = retrieveConnectionStatus;
 
   // Logs --------------
   dom.buttonEnableConnectionLogs.onclick = onEnableConnectionLogsClick;
@@ -59,7 +59,7 @@ export function ready() {
 
   // Metrics ---------------
   dom.buttonRetrieveConnectionMetrics.onclick = retrieveConnectionMetrics;
-  document.querySelector('a[data-bs-target="#tabConnectionMetrics"]').onclick = retrieveConnectionMetrics;
+  (document.querySelector('a[data-bs-target="#tabConnectionMetrics"]') as HTMLElement).onclick = retrieveConnectionMetrics;
   dom.buttonResetConnectionMetrics.onclick = onResetConnectionMetricsClick;
   // dom.inputConnectionLogFilter.onchange = onConnectionLogFilterChange;
 }
@@ -179,7 +179,7 @@ const knownFields = ['category', 'type', 'level'];
 
 function onConnectionLogFilterChange(event) {
   if (event.target.value && event.target.value !== '') {
-    connectionLogsFilter = new JsonFilter();
+    connectionLogsFilter = JsonFilter();
     event.target.value.split(/(\s+)/).forEach((elem) => {
       const keyValue = elem.split(':');
       if (keyValue.length === 2 && knownFields.includes(keyValue[0].trim())) {

@@ -8,6 +8,8 @@ import * as Things from '../things/things.js';
 import {TabHandler} from '../utils/tabHandler.js';
 import policyTemplates from './policyTemplates.json';
 import policyHTML from './policies.html';
+import * as ace from 'ace-builds/src-noconflict/ace';
+
 
 let thePolicy;
 let selectedEntry;
@@ -42,14 +44,14 @@ let dom = {
   tabPolicies: null,
 };
 
-let subjectEditor;
-let resourceEditor;
+let subjectEditor: ace.Editor;
+let resourceEditor: ace.Editor;
 
 document.getElementById('policyHTML').innerHTML = policyHTML;
 
 export function ready() {
   Utils.getAllElementsById(dom);
-  tabHandler = new TabHandler(dom.tabPolicies, dom.collapsePolicies, refreshAll, 'disablePolicies');
+  tabHandler = TabHandler(dom.tabPolicies, dom.collapsePolicies, refreshAll, 'disablePolicies');
 
   Utils.addDropDownEntries(dom.ulResourceTemplates, Object.keys(policyTemplates.resources));
 
@@ -72,7 +74,7 @@ export function ready() {
       selectedEntry = null;
       selectedResource = null;
       selectedSubject = null;
-      Utils.tableAdjustSelection(tbodyWhoami, () => false);
+      Utils.tableAdjustSelection(dom.tbodyWhoami, () => false);
       setEntry(null);
     } else {
       selectedEntry = event.target.textContent;
@@ -98,11 +100,11 @@ export function ready() {
   dom.tbodyPolicySubjects.onclick = (event) => {
     if (selectedSubject === event.target.parentNode.id) {
       selectedSubject = null;
-      Utils.tableAdjustSelection(tbodyWhoami, () => false);
+      Utils.tableAdjustSelection(dom.tbodyWhoami, () => false);
       subjectEditor.setValue('');
     } else {
       selectedSubject = event.target.parentNode.id;
-      Utils.tableAdjustSelection(tbodyWhoami, (row) => row.id === selectedSubject);
+      Utils.tableAdjustSelection(dom.tbodyWhoami, (row) => row.id === selectedSubject);
       subjectEditor.setValue(
           JSON.stringify(thePolicy.entries[selectedEntry].subjects[selectedSubject], null, 2), -1);
     }
@@ -185,7 +187,7 @@ export function ready() {
 
   dom.ulResourceTemplates.addEventListener('click', (event) => {
     dom.inputResourceId.value = event.target.textContent;
-    resourceEditor.setValue(JSON.stringify(policyTemplates.resources[dom.inputResourceId.value], 0, 2), -1);
+    resourceEditor.setValue(JSON.stringify(policyTemplates.resources[dom.inputResourceId.value], null, 2), -1);
   });
 
   // WhoAmI -------------
@@ -197,7 +199,7 @@ export function ready() {
   Things.addChangeListener(onThingChanged);
 }
 
-function validations(entryFilled, entrySelected, subjectFilled, subjectSelected, resourceFilled, resourceSelected) {
+function validations(entryFilled, entrySelected = false, subjectFilled = false, subjectSelected = false, resourceFilled = false, resourceSelected = false) {
   Utils.assert(thePolicy, 'Please load a policy', dom.inputPolicyId);
   if (entryFilled) {
     Utils.assert(dom.inputPolicyEntry.value, 'Please enter a label for the entry', dom.inputPolicyEntry);
@@ -240,7 +242,7 @@ function refreshWhoAmI() {
 function refreshPolicy(policyId) {
   API.callDittoREST('GET', '/policies/' + policyId)
       .then((policy) => setThePolicy(policy))
-      .catch(() => setThePolicy());
+      .catch(() => setThePolicy(null));
 };
 
 function setThePolicy(policy) {
@@ -269,7 +271,7 @@ function setThePolicy(policy) {
   }
 };
 
-function setEntry(policy, entryLabel) {
+function setEntry(policy, entryLabel = null) {
   dom.tbodyPolicySubjects.innerHTML = '';
   dom.tbodyPolicyResources.innerHTML = '';
   dom.inputSubjectId.value = null;
@@ -299,14 +301,14 @@ function setEntry(policy, entryLabel) {
   }
 };
 
-function putOrDeletePolicyEntry(entry, value) {
+function putOrDeletePolicyEntry(entry, value = null) {
   API.callDittoREST(value ? 'PUT' : 'DELETE',
       `/policies/${thePolicy.policyId}/entries/${entry}`,
       value
   ).then(() => refreshPolicy(thePolicy.policyId));
 };
 
-function modifyPolicyEntry(type, key, value) {
+function modifyPolicyEntry(type, key, value = null) {
   API.callDittoREST(value ? 'PUT' : 'DELETE',
       `/policies/${thePolicy.policyId}/entries/${selectedEntry}${type}${key}`, value
   ).then(() => refreshPolicy(thePolicy.policyId));

@@ -19,12 +19,12 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.PolicyException;
 
 /**
@@ -53,6 +53,15 @@ public final class PolicyPreconditionFailedException extends DittoRuntimeExcepti
             @Nullable final Throwable cause,
             @Nullable final URI href) {
         super(ERROR_CODE, HttpStatus.PRECONDITION_FAILED, dittoHeaders, message, description, cause, href);
+    }
+
+    /**
+     * A mutable builder for a {@link org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyPreconditionFailedException}.
+     *
+     * @return the builder.
+     */
+    public static Builder newBuilder() {
+        return new Builder();
     }
 
     /**

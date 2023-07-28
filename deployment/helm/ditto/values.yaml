@@ -217,6 +217,10 @@ ingress:
         backendSuffix: gateway
       - path: /health
         backendSuffix: gateway
+    kubernetesAuthAnnotations: |
+      nginx.ingress.kubernetes.io/auth-type: basic
+      nginx.ingress.kubernetes.io/auth-secret: {{ .Release.Name }}-nginx-ingress-htpasswd
+      nginx.ingress.kubernetes.io/auth-realm: 'Authentication required to use HTTP API!'
     # annotations defines k8s annotations to add to the Ingress
     annotations:
       nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"

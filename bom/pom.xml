@@ -37,7 +37,7 @@
         <jackson-bom.version>2.14.3</jackson-bom.version>
         <typesafe-config.version>1.4.2</typesafe-config.version>
         <ssl-config-core.version>0.6.1</ssl-config-core.version>
-        <akka-bom.version>2.6.20</akka-bom.version>
+        <akka-bom.version>2.6.21</akka-bom.version>
         <akka-persistence-mongo.version>3.0.8</akka-persistence-mongo.version>
         <akka-http-bom.version>10.2.10</akka-http-bom.version>
         <akka-management.version>1.1.4</akka-management.version>
