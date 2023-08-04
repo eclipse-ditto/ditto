@@ -12,7 +12,7 @@
  */
 
 /**
- * Encode control flow as data flow through akka streams for modular actor decomposition.
+ * Encode control flow as data flow through pekko streams for modular actor decomposition.
  */
 @org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
 package org.eclipse.ditto.internal.utils.search;

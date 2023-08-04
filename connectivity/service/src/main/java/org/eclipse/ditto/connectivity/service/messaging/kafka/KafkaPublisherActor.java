@@ -59,26 +59,26 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 
-import akka.Done;
-import akka.NotUsed;
-import akka.actor.Props;
-import akka.actor.Status;
-import akka.japi.Pair;
-import akka.japi.pf.ReceiveBuilder;
-import akka.kafka.ProducerMessage;
-import akka.kafka.javadsl.SendProducer;
-import akka.stream.KillSwitch;
-import akka.stream.KillSwitches;
-import akka.stream.Materializer;
-import akka.stream.OverflowStrategy;
-import akka.stream.QueueOfferResult;
-import akka.stream.RestartSettings;
-import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.RestartFlow;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
-import akka.stream.javadsl.SourceQueueWithComplete;
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.kafka.ProducerMessage;
+import org.apache.pekko.kafka.javadsl.SendProducer;
+import org.apache.pekko.stream.KillSwitch;
+import org.apache.pekko.stream.KillSwitches;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.OverflowStrategy;
+import org.apache.pekko.stream.QueueOfferResult;
+import org.apache.pekko.stream.RestartSettings;
+import org.apache.pekko.stream.javadsl.Flow;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.RestartFlow;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.javadsl.SourceQueueWithComplete;
 
 /**
  * Responsible for publishing {@link org.eclipse.ditto.connectivity.api.ExternalMessage}s into a Kafka broker.
@@ -107,7 +107,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     }
 
     /**
-     * Creates Akka configuration object {@link akka.actor.Props} for this {@code BasePublisherActor}.
+     * Creates Akka configuration object {@link pekko.actor.Props} for this {@code BasePublisherActor}.
      *
      * @param connection the connection this publisher belongs to.
      * @param producerFactory factory to create kafka SendProducer.

@@ -41,7 +41,7 @@ import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProto
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Validator for Kafka connections.

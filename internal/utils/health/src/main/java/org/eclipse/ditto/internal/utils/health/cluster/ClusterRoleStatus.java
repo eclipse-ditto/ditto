@@ -30,7 +30,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
- * Holds the status of a specific akka cluster role.
+ * Holds the status of a specific pekko cluster role.
  */
 @Immutable
 public final class ClusterRoleStatus implements Jsonifiable<JsonObject> {

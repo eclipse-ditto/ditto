@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.pubsub.api;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 /**
  * Reply for acknowledgement label declaration.

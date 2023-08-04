@@ -105,8 +105,8 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMon
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.ConnectivityCounterRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionSupervisorActor;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
@@ -141,16 +141,16 @@ import org.slf4j.LoggerFactory;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.InvalidActorNameException;
-import akka.actor.PoisonPill;
-import akka.actor.Props;
-import akka.cluster.sharding.ShardRegion;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.pattern.Patterns;
-import akka.testkit.TestProbe;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.InvalidActorNameException;
+import org.apache.pekko.actor.PoisonPill;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.sharding.ShardRegion;
+import org.apache.pekko.event.DiagnosticLoggingAdapter;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.testkit.TestProbe;
 
 public final class TestConstants {
 
@@ -203,7 +203,7 @@ public final class TestConstants {
      * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
      */
     public static void disableLogging(final ActorSystem system) {
-        system.eventStream().setLogLevel(akka.stream.Attributes.logLevelOff());
+        system.eventStream().setLogLevel(org.apache.pekko.stream.Attributes.logLevelOff());
     }
 
     public static final HeaderMapping HEADER_MAPPING;

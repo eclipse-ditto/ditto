@@ -14,11 +14,11 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.sse;
 
 import com.typesafe.config.Config;
 
-import akka.NotUsed;
-import akka.actor.ActorSystem;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.sse.ServerSentEvent;
-import akka.stream.javadsl.Flow;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.sse.ServerSentEvent;
+import org.apache.pekko.stream.javadsl.Flow;
 
 /**
  * Sniffer for Server Sent Events that does purposefully nothing.

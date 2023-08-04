@@ -14,11 +14,11 @@ package org.eclipse.ditto.connectivity.service.messaging;
 
 import org.eclipse.ditto.edge.service.dispatching.EdgeCommandForwarderActor;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.japi.pf.ReceiveBuilder;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 
 /**
  * Mock actor that forwards all messages to the final ActorRef message.

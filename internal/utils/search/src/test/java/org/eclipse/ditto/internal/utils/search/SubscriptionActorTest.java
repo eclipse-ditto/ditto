@@ -36,14 +36,14 @@ import org.reactivestreams.Subscriber;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.stream.Attributes;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.stream.Attributes;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link SubscriptionActor}.
@@ -55,7 +55,7 @@ public final class SubscriptionActorTest {
 
     @Before
     public void init() {
-        final Config config = ConfigFactory.parseString("akka.log-dead-letters=0");
+        final Config config = ConfigFactory.parseString("pekko.log-dead-letters=0");
         actorSystem = ActorSystem.create(getClass().getSimpleName() + i++, config);
     }
 

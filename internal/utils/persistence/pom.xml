@@ -27,7 +27,7 @@
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-internal-utils-akka</artifactId>
+            <artifactId>ditto-internal-utils-pekko</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -59,12 +59,12 @@
         </dependency>
 
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-actor_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-actor_${scala.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-cluster-tools_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-cluster-tools_${scala.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>org.mongodb</groupId>
@@ -72,17 +72,24 @@
         </dependency>
         <dependency>
             <groupId>com.github.scullxbones</groupId>
-            <artifactId>akka-persistence-mongo-common_${scala.version}</artifactId>
+            <artifactId>pekko-persistence-mongodb_${scala.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.github.scullxbones</groupId>
-            <artifactId>akka-persistence-mongo-scala_${scala.version}</artifactId>
+            <groupId>org.mongodb.scala</groupId>
+            <artifactId>mongo-scala-driver_2.13</artifactId>
         </dependency>
+
 
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.scala-lang.modules</groupId>
+            <artifactId>scala-java8-compat_2.13</artifactId>
+        </dependency>
+
 
         <dependency>
             <groupId>io.netty</groupId>
@@ -105,7 +112,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-internal-utils-akka</artifactId>
+            <artifactId>ditto-internal-utils-pekko</artifactId>
             <scope>test</scope>
             <type>test-jar</type>
         </dependency>
@@ -130,18 +137,18 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-testkit_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-stream-testkit_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-stream-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-slf4j_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-slf4j_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -151,8 +158,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-persistence-query_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-persistence-query_${scala.version}</artifactId>
         </dependency>
     </dependencies>
 

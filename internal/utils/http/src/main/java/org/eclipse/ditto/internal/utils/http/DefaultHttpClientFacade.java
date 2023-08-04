@@ -18,11 +18,11 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;
 
-import akka.actor.ActorSystem;
-import akka.http.javadsl.Http;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.settings.ConnectionPoolSettings;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.Http;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.settings.ConnectionPoolSettings;
 
 /**
  * Default implementation of {@link HttpClientFacade}.

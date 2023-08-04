@@ -53,7 +53,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import com.newmotion.akka.rabbitmq.AmqpShutdownSignal;
+import com.github.pjfanning.pekko.rabbitmq.AmqpShutdownSignal;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.ConnectionFactory;
@@ -61,14 +61,14 @@ import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
 
-import akka.actor.Actor;
-import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.actor.Status;
-import akka.testkit.CallingThreadDispatcher;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.Actor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.testkit.CallingThreadDispatcher;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {

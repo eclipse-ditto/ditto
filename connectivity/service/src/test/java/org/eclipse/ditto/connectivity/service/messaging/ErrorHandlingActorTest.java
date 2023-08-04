@@ -36,10 +36,10 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.cluster.pubsub.DistributedPubSub;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.cluster.pubsub.DistributedPubSub;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests error handling behaviour of {@link org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceActor}.

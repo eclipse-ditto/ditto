@@ -20,8 +20,8 @@ import org.eclipse.ditto.thingsearch.service.starter.actors.SearchRootActor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.Props;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
 
 /**
  * Entry point for the Things Search service.

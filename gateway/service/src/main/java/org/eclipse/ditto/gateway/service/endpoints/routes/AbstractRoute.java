@@ -42,8 +42,8 @@ import org.eclipse.ditto.gateway.service.endpoints.actors.AbstractHttpRequestAct
 import org.eclipse.ditto.gateway.service.endpoints.actors.HttpRequestActorPropsFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.ContentTypeValidationDirective;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -51,24 +51,24 @@ import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonValue;
 
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.actor.Status;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.MediaTypes;
-import akka.http.javadsl.server.AllDirectives;
-import akka.http.javadsl.server.RequestContext;
-import akka.http.javadsl.server.Route;
-import akka.stream.ActorAttributes;
-import akka.stream.Attributes;
-import akka.stream.Supervision;
-import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.RunnableGraph;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
-import akka.stream.javadsl.StreamConverters;
-import akka.util.ByteString;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.MediaTypes;
+import org.apache.pekko.http.javadsl.server.AllDirectives;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.stream.ActorAttributes;
+import org.apache.pekko.stream.Attributes;
+import org.apache.pekko.stream.Supervision;
+import org.apache.pekko.stream.javadsl.Flow;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.RunnableGraph;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.javadsl.StreamConverters;
+import org.apache.pekko.util.ByteString;
 
 /**
  * Base class for Akka HTTP routes.

@@ -18,7 +18,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * This class is a mere namespace for exceptions that {@link akka.serialization.Serializer}s might throw.
+ * This class is a mere namespace for exceptions that {@link org.apache.pekko.serialization.Serializer}s might throw.
  */
 @Immutable
 public final class SerializerExceptions {

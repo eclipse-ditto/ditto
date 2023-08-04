@@ -16,7 +16,7 @@ import java.util.LinkedHashMap;
 
 import javax.annotation.Nullable;
 
-import akka.actor.Props;
+import org.apache.pekko.actor.Props;
 
 /**
  * Provides an actor for checking and caching the health of a ditto service.

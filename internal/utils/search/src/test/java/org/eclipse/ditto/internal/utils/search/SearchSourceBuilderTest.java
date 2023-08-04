@@ -18,9 +18,9 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOp
 import org.junit.After;
 import org.junit.Test;
 
-import akka.actor.ActorSelection;
-import akka.actor.ActorSystem;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link SearchSourceBuilder}.

@@ -19,7 +19,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
+import org.eclipse.ditto.internal.utils.pekko.PekkoClassLoader;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
@@ -28,10 +28,10 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueType;
 
-import akka.actor.AbstractExtensionId;
-import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
-import akka.actor.Extension;
+import org.apache.pekko.actor.AbstractExtensionId;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.Extension;
 
 /**
  * Extension Point for extending Ditto via Akka Extensions to provide custom functionality to different
@@ -44,7 +44,7 @@ public interface DittoExtensionPoint extends Extension {
     /**
      * @param <T> the class of the extension for which an implementation should be loaded.
      */
-    abstract class ExtensionId<T extends akka.actor.Extension> extends AbstractExtensionId<T> {
+    abstract class ExtensionId<T extends org.apache.pekko.actor.Extension> extends AbstractExtensionId<T> {
 
         private final ExtensionIdConfig<T> extensionIdConfig;
 
@@ -59,7 +59,7 @@ public interface DittoExtensionPoint extends Extension {
 
         @Override
         public T createExtension(final ExtendedActorSystem system) {
-            return AkkaClassLoader.instantiate(system, extensionIdConfig.parentClass(),
+            return PekkoClassLoader.instantiate(system, extensionIdConfig.parentClass(),
                     getImplementation(system),
                     List.of(ActorSystem.class, Config.class),
                     List.of(system, extensionIdConfig.extensionConfig()));
@@ -113,7 +113,7 @@ public interface DittoExtensionPoint extends Extension {
              * @throws com.typesafe.config.ConfigException.WrongType in case neither an object nor a string is
              * configured at the config key of config.
              */
-            public static <T extends akka.actor.Extension> ExtensionIdConfig<T> of(
+            public static <T extends org.apache.pekko.actor.Extension> ExtensionIdConfig<T> of(
                     final Class<T> parentClass,
                     final Config config,
                     final String configKey) {

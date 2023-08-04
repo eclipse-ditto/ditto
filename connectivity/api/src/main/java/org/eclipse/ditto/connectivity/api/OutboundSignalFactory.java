@@ -23,7 +23,7 @@ import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.internal.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.base.model.signals.Signal;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 /**
  * Creates instances of {@link OutboundSignal}.

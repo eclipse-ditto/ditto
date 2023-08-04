@@ -23,8 +23,8 @@ import org.eclipse.ditto.internal.utils.health.SingletonStatusReporter;
 import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 
-import akka.actor.ActorRef;
-import akka.actor.Props;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
 
 /**
  * Provides an actor for checking and caching the health of the search service.

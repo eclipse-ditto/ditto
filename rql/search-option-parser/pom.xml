@@ -47,8 +47,8 @@
         </dependency>
 
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-parsing_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-parsing_${scala.version}</artifactId>
         </dependency>
 
         <!-- ### Testing ### -->
@@ -144,7 +144,7 @@
                     <instructions>
                         <Import-Package>
                             !org.eclipse.ditto.utils.jsr305.annotations,
-                            akka*,
+                            org.apache.pekko*,
                             scala*,
                             org.eclipse.ditto.*
                         </Import-Package>
@@ -170,18 +170,18 @@
                 </executions>
             </plugin>
 
-            <plugin>
-                <groupId>com.github.siom79.japicmp</groupId>
-                <artifactId>japicmp-maven-plugin</artifactId>
-                <configuration>
-                    <parameter>
-                        <excludes>
-                            <!-- Don't add excludes here before checking with the whole Ditto team -->
-                            <!--<exclude></exclude>-->
-                        </excludes>
-                    </parameter>
-                </configuration>
-            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>com.github.siom79.japicmp</groupId>-->
+<!--                <artifactId>japicmp-maven-plugin</artifactId>-->
+<!--                <configuration>-->
+<!--                    <parameter>-->
+<!--                        <excludes>-->
+<!--                            &lt;!&ndash; Don't add excludes here before checking with the whole Ditto team &ndash;&gt;-->
+<!--                            &lt;!&ndash;<exclude></exclude>&ndash;&gt;-->
+<!--                        </excludes>-->
+<!--                    </parameter>-->
+<!--                </configuration>-->
+<!--            </plugin>-->
         </plugins>
     </build>
 

@@ -14,7 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.internal;
 
 import java.util.Optional;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 /**
  * Messaging internal interface for all messages containing an {@link ActorRef} origin.

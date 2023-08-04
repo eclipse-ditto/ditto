@@ -30,8 +30,8 @@ import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Checks if the given {@link ConnectivityCommand} is valid by trying to create the client actor props.

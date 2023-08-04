@@ -25,9 +25,9 @@ import org.eclipse.ditto.internal.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
-import akka.actor.ActorSystem;
-import akka.actor.DynamicAccess;
-import akka.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.DynamicAccess;
+import org.apache.pekko.actor.ExtendedActorSystem;
 import scala.Tuple2;
 import scala.jdk.javaapi.CollectionConverters;
 import scala.reflect.ClassTag;

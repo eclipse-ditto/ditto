@@ -15,7 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.httppush;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 
-import akka.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
 import scala.util.Try;
 
 /**

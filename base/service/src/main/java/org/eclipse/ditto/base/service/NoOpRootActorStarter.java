@@ -14,7 +14,7 @@ package org.eclipse.ditto.base.service;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Root actor starter that does purposefully nothing.

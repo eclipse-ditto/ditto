@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints;
 
-import static akka.http.javadsl.model.ContentTypes.APPLICATION_JSON;
+import static org.apache.pekko.http.javadsl.model.ContentTypes.APPLICATION_JSON;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
@@ -79,19 +79,19 @@ import org.junit.Rule;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.http.javadsl.model.HttpEntities;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.server.Route;
-import akka.http.javadsl.testkit.JUnitRouteTest;
-import akka.http.javadsl.testkit.TestRouteResult;
-import akka.japi.pf.ReceiveBuilder;
-import akka.testkit.TestProbe;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.http.javadsl.model.HttpEntities;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.testkit.JUnitRouteTest;
+import org.apache.pekko.http.javadsl.testkit.TestRouteResult;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.testkit.TestProbe;
 
 /**
  * Abstract base class for Endpoint tests for the gateway.

@@ -14,10 +14,10 @@ package org.eclipse.ditto.gateway.service.endpoints;
 
 import org.eclipse.ditto.things.model.ThingId;
 
-import akka.http.javadsl.model.StatusCode;
-import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.model.headers.BasicHttpCredentials;
-import akka.http.javadsl.model.headers.HttpCredentials;
+import org.apache.pekko.http.javadsl.model.StatusCode;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.model.headers.BasicHttpCredentials;
+import org.apache.pekko.http.javadsl.model.headers.HttpCredentials;
 
 /**
  * Constants used for gateway endpoint tests.

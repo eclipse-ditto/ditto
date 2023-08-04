@@ -41,7 +41,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.placeholders.Placeholder;
 import org.eclipse.ditto.placeholders.PlaceholderFilter;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Protocol-specific specification for {@link org.eclipse.ditto.connectivity.model.Connection} objects.

@@ -43,7 +43,7 @@ import org.junit.rules.ExpectedException;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Tests for {@link WrappingMessageMapper}.

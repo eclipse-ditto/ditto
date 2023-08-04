@@ -14,13 +14,13 @@ package org.eclipse.ditto.gateway.service.streaming.actors;
 
 import java.util.function.Consumer;
 
-import akka.event.Logging;
-import akka.stream.KillSwitch;
-import akka.stream.KillSwitches;
-import akka.stream.OverflowStrategy;
-import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.Source;
-import akka.stream.javadsl.SourceQueueWithComplete;
+import org.apache.pekko.event.Logging;
+import org.apache.pekko.stream.KillSwitch;
+import org.apache.pekko.stream.KillSwitches;
+import org.apache.pekko.stream.OverflowStrategy;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.javadsl.SourceQueueWithComplete;
 
 /**
  * Materialized value of a source queue for supervision of the stream for which the queue is a part.

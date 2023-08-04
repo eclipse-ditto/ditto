@@ -42,10 +42,10 @@ import org.mongodb.scala.MongoClient;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorSystem;
-import akka.japi.pf.PFBuilder;
-import akka.stream.javadsl.Sink;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.japi.pf.PFBuilder;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**

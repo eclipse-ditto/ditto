@@ -62,8 +62,8 @@ import org.eclipse.ditto.things.model.ThingId;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
-import akka.http.javadsl.model.ContentTypes;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.ContentTypes;
 
 /**
  * A message mapper implementation to convert between raw message payload and external message payload.

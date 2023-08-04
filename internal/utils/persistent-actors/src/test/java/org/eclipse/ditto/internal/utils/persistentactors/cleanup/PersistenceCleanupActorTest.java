@@ -45,20 +45,20 @@ import com.mongodb.client.result.DeleteResult;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigRenderOptions;
 
-import akka.Done;
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.FSM;
-import akka.actor.Props;
-import akka.event.Logging;
-import akka.japi.Pair;
-import akka.stream.Attributes;
-import akka.stream.KillSwitches;
-import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.Source;
-import akka.stream.testkit.javadsl.TestSource;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.FSM;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.event.Logging;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.stream.Attributes;
+import org.apache.pekko.stream.KillSwitches;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.testkit.javadsl.TestSource;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link PersistenceCleanupActor}.

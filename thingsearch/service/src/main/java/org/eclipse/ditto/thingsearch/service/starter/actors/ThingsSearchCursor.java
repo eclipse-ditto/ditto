@@ -37,7 +37,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
@@ -69,13 +69,13 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.JsonToBso
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.NotUsed;
-import akka.actor.ActorSystem;
-import akka.http.javadsl.coding.Coder;
-import akka.japi.pf.PFBuilder;
-import akka.stream.SystemMaterializer;
-import akka.stream.javadsl.Source;
-import akka.util.ByteString;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.coding.Coder;
+import org.apache.pekko.japi.pf.PFBuilder;
+import org.apache.pekko.stream.SystemMaterializer;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.util.ByteString;
 import scala.PartialFunction;
 
 /**

@@ -20,10 +20,10 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.api.Request;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.compressed.CompressedDData;
 
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.actor.Terminated;
-import akka.japi.pf.ReceiveBuilder;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Terminated;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 
 /**
  * Supervisor of actors dealing with subscriptions.

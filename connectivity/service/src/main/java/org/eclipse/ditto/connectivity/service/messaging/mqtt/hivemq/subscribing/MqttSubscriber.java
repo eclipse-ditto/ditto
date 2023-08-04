@@ -25,9 +25,9 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subs
 
 import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 
-import akka.NotUsed;
-import akka.japi.Pair;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.stream.javadsl.Source;
 import scala.util.Failure;
 import scala.util.Success;
 import scala.util.Try;

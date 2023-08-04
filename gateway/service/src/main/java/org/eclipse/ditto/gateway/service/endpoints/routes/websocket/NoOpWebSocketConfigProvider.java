@@ -17,7 +17,7 @@ import org.eclipse.ditto.gateway.service.util.config.streaming.WebsocketConfig;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Null implementation for {@link WebSocketConfigProvider} which does nothing.

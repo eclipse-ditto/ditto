@@ -27,18 +27,18 @@ import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscripti
 import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionCreated;
 import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionFailed;
 import org.eclipse.ditto.base.model.signals.events.streaming.StreamingSubscriptionHasNext;
-import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithStashWithTimers;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.json.JsonValue;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
-import akka.actor.ActorRef;
-import akka.actor.PoisonPill;
-import akka.actor.Props;
-import akka.actor.ReceiveTimeout;
-import akka.japi.pf.ReceiveBuilder;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.PoisonPill;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.ReceiveTimeout;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 
 /**
  * Actor that translates streaming subscription commands into stream operations and stream signals into streaming

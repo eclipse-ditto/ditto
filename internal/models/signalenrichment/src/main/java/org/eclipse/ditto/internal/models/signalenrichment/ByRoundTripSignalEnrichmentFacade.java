@@ -33,8 +33,8 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 
-import akka.actor.ActorSelection;
-import akka.pattern.Patterns;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.pattern.Patterns;
 
 /**
  * Retrieve fixed parts of things by asking an actor.

@@ -12,11 +12,11 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.directives;
 
-import static akka.http.javadsl.server.Directives.complete;
-import static akka.http.javadsl.server.Directives.concat;
-import static akka.http.javadsl.server.Directives.extractRequest;
-import static akka.http.javadsl.server.Directives.options;
-import static akka.http.javadsl.server.Directives.respondWithHeaders;
+import static org.apache.pekko.http.javadsl.server.Directives.complete;
+import static org.apache.pekko.http.javadsl.server.Directives.concat;
+import static org.apache.pekko.http.javadsl.server.Directives.extractRequest;
+import static org.apache.pekko.http.javadsl.server.Directives.options;
+import static org.apache.pekko.http.javadsl.server.Directives.respondWithHeaders;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.ArrayList;
@@ -27,20 +27,20 @@ import java.util.stream.StreamSupport;
 
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 
-import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.model.HttpMethods;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.model.headers.AccessControlAllowHeaders;
-import akka.http.javadsl.model.headers.AccessControlAllowMethods;
-import akka.http.javadsl.model.headers.AccessControlAllowOrigin;
-import akka.http.javadsl.model.headers.AccessControlRequestHeaders;
-import akka.http.javadsl.model.headers.HttpOrigin;
-import akka.http.javadsl.model.headers.HttpOriginRange;
-import akka.http.javadsl.model.headers.HttpOriginRanges;
-import akka.http.javadsl.model.headers.Origin;
-import akka.http.javadsl.server.Directives;
-import akka.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.HttpMethods;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.model.headers.AccessControlAllowHeaders;
+import org.apache.pekko.http.javadsl.model.headers.AccessControlAllowMethods;
+import org.apache.pekko.http.javadsl.model.headers.AccessControlAllowOrigin;
+import org.apache.pekko.http.javadsl.model.headers.AccessControlRequestHeaders;
+import org.apache.pekko.http.javadsl.model.headers.HttpOrigin;
+import org.apache.pekko.http.javadsl.model.headers.HttpOriginRange;
+import org.apache.pekko.http.javadsl.model.headers.HttpOriginRanges;
+import org.apache.pekko.http.javadsl.model.headers.Origin;
+import org.apache.pekko.http.javadsl.server.Directives;
+import org.apache.pekko.http.javadsl.server.Route;
 
 /**
  * Custom Akka Http directive enabling CORS for the wrapped Route.

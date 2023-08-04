@@ -19,8 +19,8 @@ import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorContext;
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorContext;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Extension to start custom child actors in root actor.

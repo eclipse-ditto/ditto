@@ -48,9 +48,9 @@ import org.slf4j.LoggerFactory;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.PoisonPill;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.PoisonPill;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit test for the snapshotting functionality of {@link ThingPersistenceActor}.

@@ -33,7 +33,7 @@ import org.eclipse.ditto.policies.model.SubjectId;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Implementation of {@link JwtAuthorizationSubjectsProvider} for Google JWTs.

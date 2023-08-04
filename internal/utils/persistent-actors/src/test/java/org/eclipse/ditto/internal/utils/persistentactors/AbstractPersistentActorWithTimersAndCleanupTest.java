@@ -33,12 +33,12 @@ import org.junit.rules.TestName;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.japi.Creator;
-import akka.persistence.SaveSnapshotSuccess;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.japi.Creator;
+import org.apache.pekko.persistence.SaveSnapshotSuccess;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link AbstractPersistentActorWithTimersAndCleanup}.

@@ -27,11 +27,11 @@ import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.junit.Before;
 import org.junit.Test;
 
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.server.Route;
-import akka.http.javadsl.testkit.TestRoute;
-import akka.http.javadsl.testkit.TestRouteResult;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.testkit.TestRoute;
+import org.apache.pekko.http.javadsl.testkit.TestRouteResult;
 
 /**
  * Unit test for {@link WhoamiRoute}.

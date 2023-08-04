@@ -50,7 +50,7 @@ public enum Topic {
     }
 
     /**
-     * @return the corresponding pubsub topic used to subscribe to events of this type in the akka cluster
+     * @return the corresponding pubsub topic used to subscribe to events of this type in the pekko cluster
      */
     public String getPubSubTopic() {
         return pubSubTopic;

@@ -45,7 +45,7 @@ import org.mozilla.javascript.commonjs.module.provider.UrlModuleSourceProvider;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * This mapper executes its mapping methods on the <b>current thread</b>. The caller should be aware of that.

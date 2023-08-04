@@ -18,7 +18,7 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 /**
  * Request to subscribe to topics.

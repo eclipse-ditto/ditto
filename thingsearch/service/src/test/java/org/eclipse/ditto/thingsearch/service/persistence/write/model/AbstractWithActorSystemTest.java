@@ -16,8 +16,8 @@ import javax.annotation.Nullable;
 
 import org.junit.After;
 
-import akka.actor.ActorSystem;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * For tests that may create an actor system.

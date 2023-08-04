@@ -27,7 +27,7 @@ import org.eclipse.ditto.policies.model.PolicyRevision;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
-import akka.japi.Pair;
+import org.apache.pekko.japi.Pair;
 
 final class ResolvedPolicyCacheLoader implements AsyncCacheLoader<PolicyId, Entry<Pair<Policy, Set<PolicyTag>>>> {
 

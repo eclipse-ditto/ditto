@@ -75,10 +75,10 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
-import akka.actor.ActorSystem;
-import akka.event.LoggingAdapter;
-import akka.http.javadsl.model.Uri;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.event.LoggingAdapter;
+import org.apache.pekko.http.javadsl.model.Uri;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link ConnectionValidator}.

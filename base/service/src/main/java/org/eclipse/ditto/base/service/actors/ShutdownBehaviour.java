@@ -21,10 +21,10 @@ import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.PoisonPill;
-import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.japi.pf.ReceiveBuilder;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.PoisonPill;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 
 /**
  * Responsible for shutting down the given actor in case a shutdown command contains a reason that is applicable for the

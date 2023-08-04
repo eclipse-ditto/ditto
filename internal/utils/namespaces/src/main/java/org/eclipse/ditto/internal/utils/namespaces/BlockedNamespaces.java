@@ -17,14 +17,14 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.ditto.internal.utils.ddata.DistributedData;
 import org.eclipse.ditto.internal.utils.ddata.DistributedDataConfig;
 
-import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
-import akka.cluster.Cluster;
-import akka.cluster.ddata.Key;
-import akka.cluster.ddata.ORSet;
-import akka.cluster.ddata.ORSetKey;
-import akka.cluster.ddata.Replicator;
-import akka.cluster.ddata.SelfUniqueAddress;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.cluster.ddata.Key;
+import org.apache.pekko.cluster.ddata.ORSet;
+import org.apache.pekko.cluster.ddata.ORSetKey;
+import org.apache.pekko.cluster.ddata.Replicator;
+import org.apache.pekko.cluster.ddata.SelfUniqueAddress;
 
 /**
  * Distributed data for blocking of messages addressed entities in certain namespaces.

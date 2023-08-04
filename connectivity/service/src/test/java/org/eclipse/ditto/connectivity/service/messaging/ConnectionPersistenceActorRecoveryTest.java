@@ -36,7 +36,7 @@ import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 import org.eclipse.ditto.connectivity.service.config.DefaultFieldsEncryptionConfig;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionMongoSnapshotAdapter;
-import org.eclipse.ditto.internal.utils.akka.PingCommand;
+import org.eclipse.ditto.internal.utils.pekko.PingCommand;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonValue;
 import org.junit.AfterClass;
@@ -47,16 +47,16 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigValueFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSub;
-import akka.japi.Creator;
-import akka.persistence.AbstractPersistentActor;
-import akka.persistence.RecoveryCompleted;
-import akka.persistence.SnapshotMetadata;
-import akka.persistence.SnapshotOffer;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.pubsub.DistributedPubSub;
+import org.apache.pekko.japi.Creator;
+import org.apache.pekko.persistence.AbstractPersistentActor;
+import org.apache.pekko.persistence.RecoveryCompleted;
+import org.apache.pekko.persistence.SnapshotMetadata;
+import org.apache.pekko.persistence.SnapshotOffer;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit test for {@link org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceActor}.

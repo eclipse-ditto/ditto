@@ -35,7 +35,7 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Unit test for {@link org.eclipse.ditto.policies.service.persistence.actors.strategies.commands.DeactivateTokenIntegrationStrategy}.

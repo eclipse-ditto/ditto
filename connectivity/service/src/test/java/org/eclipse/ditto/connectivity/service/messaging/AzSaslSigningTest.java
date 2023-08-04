@@ -26,12 +26,12 @@ import org.eclipse.ditto.connectivity.service.messaging.signing.AzSaslSigning;
 import org.junit.After;
 import org.junit.Test;
 
-import akka.actor.ActorSystem;
-import akka.http.javadsl.model.HttpEntities;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.headers.HttpCredentials;
-import akka.stream.javadsl.Sink;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.HttpEntities;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.headers.HttpCredentials;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link AzSaslSigning}.

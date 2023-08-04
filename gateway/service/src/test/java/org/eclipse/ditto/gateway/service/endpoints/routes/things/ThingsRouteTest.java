@@ -29,15 +29,15 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributes;
 import org.junit.Before;
 import org.junit.Test;
 
-import akka.http.javadsl.model.ContentTypes;
-import akka.http.javadsl.model.HttpEntities;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.MediaTypes;
-import akka.http.javadsl.model.RequestEntity;
-import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.server.Route;
-import akka.http.javadsl.testkit.TestRoute;
-import akka.http.scaladsl.model.HttpEntity;
+import org.apache.pekko.http.javadsl.model.ContentTypes;
+import org.apache.pekko.http.javadsl.model.HttpEntities;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.MediaTypes;
+import org.apache.pekko.http.javadsl.model.RequestEntity;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.testkit.TestRoute;
+import org.apache.pekko.http.scaladsl.model.HttpEntity;
 
 /**
  * Tests {@link ThingsRoute}.

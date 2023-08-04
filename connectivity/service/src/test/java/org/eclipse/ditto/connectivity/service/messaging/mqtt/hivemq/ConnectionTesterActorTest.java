@@ -50,7 +50,7 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publishing.M
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.MqttSubscriber;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.SubscribeResult;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
-import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
+import org.eclipse.ditto.internal.utils.pekko.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
@@ -66,10 +66,10 @@ import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 import com.hivemq.client.mqtt.mqtt3.message.subscribe.suback.Mqtt3SubAckReturnCode;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAckReasonCode;
 
-import akka.actor.Props;
-import akka.actor.Status;
-import akka.pattern.AskTimeoutException;
-import akka.testkit.TestActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.pattern.AskTimeoutException;
+import org.apache.pekko.testkit.TestActorRef;
 
 /**
  * Unit test for {@link ConnectionTesterActor}.
@@ -178,7 +178,7 @@ public final class ConnectionTesterActorTest {
         final var childActorNanny = Mockito.mock(ChildActorNanny.class);
         final var mqttSubscriber = Mockito.mock(MqttSubscriber.class);
         Mockito.when(mqttSubscriber.subscribeForConnectionSources(Mockito.any()))
-                .thenReturn(akka.stream.javadsl.Source.fromJavaStream(() -> Stream.of(
+                .thenReturn(org.apache.pekko.stream.javadsl.Source.fromJavaStream(() -> Stream.of(
                         getSourceSubscribeSuccess(connectionSource1),
                         getSourceSubscribeSuccess(connectionSource2)
                 )));
@@ -228,7 +228,7 @@ public final class ConnectionTesterActorTest {
     private static SubscribeResult getSourceSubscribeSuccess(final Source connectionSource) {
         final var result = Mockito.mock(SubscribeResult.class);
         Mockito.when(result.isSuccess()).thenReturn(true);
-        Mockito.when(result.getMqttPublishSourceOrThrow()).thenReturn(akka.stream.javadsl.Source.empty());
+        Mockito.when(result.getMqttPublishSourceOrThrow()).thenReturn(org.apache.pekko.stream.javadsl.Source.empty());
         Mockito.when(result.getConnectionSource()).thenReturn(connectionSource);
         return result;
     }
@@ -247,7 +247,7 @@ public final class ConnectionTesterActorTest {
         final var mqttSubscriber = Mockito.mock(MqttSubscriber.class);
         final var mqttSubscribeException = new MqttSubscribeException("Subscribing failed", null);
         Mockito.when(mqttSubscriber.subscribeForConnectionSources(Mockito.any()))
-                .thenReturn(akka.stream.javadsl.Source.fromJavaStream(() -> Stream.of(
+                .thenReturn(org.apache.pekko.stream.javadsl.Source.fromJavaStream(() -> Stream.of(
                         getSourceSubscribeFailure(connectionSource1, mqttSubscribeException),
                         getSourceSubscribeSuccess(connectionSource2)
                 )));
@@ -311,7 +311,7 @@ public final class ConnectionTesterActorTest {
                 null
         );
         Mockito.when(mqttSubscriber.subscribeForConnectionSources(Mockito.any()))
-                .thenReturn(akka.stream.javadsl.Source.fromJavaStream(() -> Stream.of(
+                .thenReturn(org.apache.pekko.stream.javadsl.Source.fromJavaStream(() -> Stream.of(
                         getSourceSubscribeFailure(connectionSource1, allSubscriptionsFailedException),
                         getSourceSubscribeSuccess(connectionSource2)
                 )));
@@ -354,7 +354,7 @@ public final class ConnectionTesterActorTest {
         final var childActorNanny = Mockito.mock(ChildActorNanny.class);
         final var mqttSubscriber = Mockito.mock(MqttSubscriber.class);
         Mockito.when(mqttSubscriber.subscribeForConnectionSources(Mockito.any()))
-                .thenReturn(akka.stream.javadsl.Source.fromJavaStream(() -> Stream.of(
+                .thenReturn(org.apache.pekko.stream.javadsl.Source.fromJavaStream(() -> Stream.of(
                         getSourceSubscribeSuccess(connectionSource1),
                         getSourceSubscribeSuccess(connectionSource2)
                 )));
@@ -412,7 +412,7 @@ public final class ConnectionTesterActorTest {
         final var childActorNanny = Mockito.mock(ChildActorNanny.class);
         final var mqttSubscriber = Mockito.mock(MqttSubscriber.class);
         Mockito.when(mqttSubscriber.subscribeForConnectionSources(Mockito.any()))
-                .thenReturn(akka.stream.javadsl.Source.fromJavaStream(() -> Stream.of(
+                .thenReturn(org.apache.pekko.stream.javadsl.Source.fromJavaStream(() -> Stream.of(
                         getSourceSubscribeSuccess(connectionSource1),
                         getSourceSubscribeSuccess(connectionSource2)
                 )));

@@ -69,8 +69,8 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingRespon
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import akka.pattern.AskTimeoutException;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.pattern.AskTimeoutException;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests commands that triggers different or multiple commands internally.

@@ -24,17 +24,17 @@ import java.util.stream.IntStream;
 
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
-import akka.actor.AbstractExtensionId;
-import akka.actor.ActorRef;
-import akka.actor.ActorRefFactory;
-import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
-import akka.actor.Extension;
-import akka.cluster.ddata.Key;
-import akka.cluster.ddata.ReplicatedData;
-import akka.cluster.ddata.Replicator;
-import akka.cluster.ddata.ReplicatorSettings;
-import akka.pattern.Patterns;
+import org.apache.pekko.actor.AbstractExtensionId;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorRefFactory;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.Extension;
+import org.apache.pekko.cluster.ddata.Key;
+import org.apache.pekko.cluster.ddata.ReplicatedData;
+import org.apache.pekko.cluster.ddata.Replicator;
+import org.apache.pekko.cluster.ddata.ReplicatorSettings;
+import org.apache.pekko.pattern.Patterns;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -94,9 +94,9 @@ public abstract class DistributedData<R extends ReplicatedData> implements Exten
      */
     private static ActorRef createReplicator(final DistributedDataConfig config, final ActorRefFactory factory) {
 
-        final AkkaReplicatorConfig akkaReplicatorConfig = config.getAkkaReplicatorConfig();
-        return factory.actorOf(Replicator.props(ReplicatorSettings.apply(akkaReplicatorConfig.getCompleteConfig())),
-                akkaReplicatorConfig.getName());
+        final PekkoReplicatorConfig pekkoReplicatorConfig = config.getPekkoReplicatorConfig();
+        return factory.actorOf(Replicator.props(ReplicatorSettings.apply(pekkoReplicatorConfig.getCompleteConfig())),
+                pekkoReplicatorConfig.getName());
     }
 
     /**

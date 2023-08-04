@@ -28,10 +28,10 @@ import com.mongodb.client.model.IndexModel;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
-import akka.Done;
-import akka.NotUsed;
-import akka.japi.pf.PFBuilder;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.japi.pf.PFBuilder;
+import org.apache.pekko.stream.javadsl.Source;
 import scala.PartialFunction;
 
 /**

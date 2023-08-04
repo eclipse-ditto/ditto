@@ -22,7 +22,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
+import org.eclipse.ditto.internal.utils.pekko.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
@@ -45,16 +45,16 @@ import org.mockito.Mockito;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.Done;
-import akka.actor.ActorRef;
-import akka.actor.PoisonPill;
-import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.stream.CompletionStrategy;
-import akka.stream.OverflowStrategy;
-import akka.stream.SystemMaterializer;
-import akka.stream.javadsl.Source;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.Done;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.PoisonPill;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.stream.CompletionStrategy;
+import org.apache.pekko.stream.OverflowStrategy;
+import org.apache.pekko.stream.SystemMaterializer;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests the graceful shutdown behavior of {@code SearchActor}.
@@ -162,9 +162,9 @@ public final class SearchActorTest {
     }
 
     private ActorRef use(final Consumer<ThingsSearchPersistence> stubberConsumer) {
-        final akka.japi.function.Function<Object, Optional<CompletionStrategy>> completionStrategy =
+        final org.apache.pekko.japi.function.Function<Object, Optional<CompletionStrategy>> completionStrategy =
                 msg -> Optional.of(msg).filter("complete"::equals).map(m -> CompletionStrategy.draining());
-        final akka.japi.function.Function<Object, Optional<Throwable>> failureMatcher = msg -> Optional.empty();
+        final org.apache.pekko.japi.function.Function<Object, Optional<Throwable>> failureMatcher = msg -> Optional.empty();
         final var mat =
                 Source.actorRef(completionStrategy, failureMatcher, 16, OverflowStrategy.dropHead())
                         .preMaterialize(SystemMaterializer.get(actorSystemResource.getActorSystem()).materializer());

@@ -19,12 +19,12 @@ import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
 
 /**
- * Creates actor {@link akka.actor.Props}.
+ * Creates actor {@link pekko.actor.Props}.
  */
 public interface ConnectionsRetrievalActorPropsFactory extends DittoExtensionPoint {
 

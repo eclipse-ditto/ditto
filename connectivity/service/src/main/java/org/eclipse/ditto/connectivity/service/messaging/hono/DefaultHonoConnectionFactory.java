@@ -25,7 +25,7 @@ import org.eclipse.ditto.connectivity.service.config.HonoConfig;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Default implementation of {@link HonoConnectionFactory}.

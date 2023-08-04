@@ -21,8 +21,8 @@ import org.eclipse.ditto.gateway.service.streaming.StreamingAuthorizationEnforce
 import org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 
-import akka.http.javadsl.server.RequestContext;
-import akka.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
 
 /**
  * Builder with a fluent API for creating Akka HTTP routes for websocket connections.

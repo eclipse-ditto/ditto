@@ -18,7 +18,7 @@ import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DefaultPersistenceStreamingActor;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr;
 
-import akka.actor.Props;
+import org.apache.pekko.actor.Props;
 
 
 /**

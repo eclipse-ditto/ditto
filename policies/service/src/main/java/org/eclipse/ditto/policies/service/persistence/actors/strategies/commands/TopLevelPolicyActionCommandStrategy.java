@@ -46,7 +46,7 @@ import org.eclipse.ditto.policies.model.signals.events.PolicyActionEvent;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.policies.model.signals.commands.actions.TopLevelPolicyActionCommand} command.

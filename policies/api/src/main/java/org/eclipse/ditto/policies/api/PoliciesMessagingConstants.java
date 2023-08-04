@@ -39,7 +39,7 @@ public final class PoliciesMessagingConstants {
     public static final String SHARD_REGION = "policy";
 
     /**
-     * Name of the akka cluster role.
+     * Name of the pekko cluster role.
      */
     public static final String CLUSTER_ROLE = "policies";
 

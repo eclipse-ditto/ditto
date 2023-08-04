@@ -60,8 +60,8 @@ import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 
-import akka.actor.ActorSystem;
-import akka.event.LoggingAdapter;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.event.LoggingAdapter;
 
 /**
  * Validate a connection according to its type.

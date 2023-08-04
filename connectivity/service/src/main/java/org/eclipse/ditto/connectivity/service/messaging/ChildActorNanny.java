@@ -23,10 +23,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorRefFactory;
-import akka.actor.Props;
-import akka.event.LoggingAdapter;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorRefFactory;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.event.LoggingAdapter;
 
 /**
  * This class takes care to start and to stop child actors in the context of a particular {@link ActorRefFactory}.
@@ -70,8 +70,8 @@ public final class ChildActorNanny {
      * @return the {@code ActorRef} of the created child actor.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code actorName} is empty.
-     * @throws akka.actor.InvalidActorNameException if {@code actorName} is invalid or already in use.
-     * @throws akka.ConfigurationException if deployment, dispatcher or mailbox configuration is wrong.
+     * @throws org.apache.pekko.actor.InvalidActorNameException if {@code actorName} is invalid or already in use.
+     * @throws org.apache.pekko.ConfigurationException if deployment, dispatcher or mailbox configuration is wrong.
      * @throws UnsupportedOperationException if invoked on an ActorSystem that uses a custom user guardian.
      */
     public ActorRef startChildActor(final CharSequence actorName, final Props actorProps) {
@@ -109,8 +109,8 @@ public final class ChildActorNanny {
      * @return the {@code ActorRef} of the created child actor.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code baseActorName} is empty.
-     * @throws akka.actor.InvalidActorNameException if {@code actorName} is invalid or already in use.
-     * @throws akka.ConfigurationException if deployment, dispatcher or mailbox configuration is wrong.
+     * @throws org.apache.pekko.actor.InvalidActorNameException if {@code actorName} is invalid or already in use.
+     * @throws org.apache.pekko.ConfigurationException if deployment, dispatcher or mailbox configuration is wrong.
      * @throws UnsupportedOperationException if invoked on an ActorSystem that uses a custom user guardian.
      */
     public ActorRef startChildActorConflictFree(final CharSequence baseActorName, final Props actorProps) {

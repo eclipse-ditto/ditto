@@ -19,7 +19,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJou
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
-import akka.actor.Props;
+import org.apache.pekko.actor.Props;
 
 /**
  * Configurable default implementation of {@link AbstractPersistenceStreamingActor}.

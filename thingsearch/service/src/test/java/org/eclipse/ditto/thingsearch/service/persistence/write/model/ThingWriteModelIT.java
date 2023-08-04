@@ -19,8 +19,8 @@ import java.util.Arrays;
 import java.util.Set;
 
 import org.bson.BsonDocument;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.AbstractThingSearchPersistenceITBase;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
@@ -32,8 +32,8 @@ import org.mongodb.scala.bson.BsonNumber;
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.reactivestreams.client.MongoCollection;
 
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Tests MongoDB interaction of {@link ThingWriteModel}.

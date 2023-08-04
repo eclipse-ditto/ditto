@@ -22,17 +22,17 @@
  import org.eclipse.ditto.base.model.exceptions.UnsupportedMediaTypeException;
  import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
  import org.eclipse.ditto.base.model.headers.DittoHeaders;
- import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
- import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+ import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+ import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 
- import akka.http.javadsl.model.ContentType;
- import akka.http.javadsl.model.HttpHeader;
- import akka.http.javadsl.model.HttpRequest;
- import akka.http.javadsl.model.MediaType;
- import akka.http.javadsl.model.MediaTypes;
- import akka.http.javadsl.model.RequestEntity;
- import akka.http.javadsl.server.RequestContext;
- import akka.http.javadsl.server.Route;
+ import org.apache.pekko.http.javadsl.model.ContentType;
+ import org.apache.pekko.http.javadsl.model.HttpHeader;
+ import org.apache.pekko.http.javadsl.model.HttpRequest;
+ import org.apache.pekko.http.javadsl.model.MediaType;
+ import org.apache.pekko.http.javadsl.model.MediaTypes;
+ import org.apache.pekko.http.javadsl.model.RequestEntity;
+ import org.apache.pekko.http.javadsl.server.RequestContext;
+ import org.apache.pekko.http.javadsl.server.Route;
 
  /**
   * Used to validate the content-type of a http request.
@@ -113,12 +113,12 @@
       * In the case of akka's default value, the raw version is preferred.
       * The raw content-type header is not available, in case akka successfully parsed the content-type.
       * For akka-defaults:
-      * {@link akka.http.impl.engine.parsing.HttpRequestParser#createLogic} {@code parseEntity}
-      * and {@link akka.http.scaladsl.model.HttpEntity$}.
+      * {@link org.apache.pekko.http.impl.engine.parsing.HttpRequestParser#createLogic} {@code parseEntity}
+      * and {@link org.apache.pekko.http.scaladsl.model.HttpEntity$}.
       *
       * @param request the request where the media type will be extracted from.
       * @return the extracted media-type.
-      * @see <a href="https://doc.akka.io/docs/akka-http/current/common/http-model.html#http-headers">Akkas Header model</a>
+      * @see <a href="https://pekko.apache.org/docs/pekko-http/current/common/http-model.html#http-headers">Akkas Header model</a>
       */
      private static String extractMediaType(final HttpRequest request) {
          final Iterable<HttpHeader> requestHeaders = request.getHeaders();

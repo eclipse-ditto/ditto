@@ -24,9 +24,9 @@ import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.junit.AfterClass;
 import org.junit.Test;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.testkit.TestProbe;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.TestProbe;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**

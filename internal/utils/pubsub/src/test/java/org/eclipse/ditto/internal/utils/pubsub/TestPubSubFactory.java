@@ -27,10 +27,10 @@ import org.eclipse.ditto.internal.utils.pubsub.ddata.Hashes;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
 
-import akka.actor.ActorContext;
-import akka.actor.ActorRef;
-import akka.cluster.ddata.ORMultiMap;
-import akka.cluster.ddata.Replicator;
+import org.apache.pekko.actor.ActorContext;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.cluster.ddata.ORMultiMap;
+import org.apache.pekko.cluster.ddata.Replicator;
 
 /**
  * Pub-sub factory for tests. Messages are strings. Topics of a message are its prefixes.

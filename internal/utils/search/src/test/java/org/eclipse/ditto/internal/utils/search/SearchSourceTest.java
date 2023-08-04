@@ -35,21 +35,21 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import akka.actor.ActorSelection;
-import akka.actor.ActorSystem;
-import akka.japi.Pair;
-import akka.stream.Attributes;
-import akka.stream.Materializer;
-import akka.stream.SourceRef;
-import akka.stream.SystemMaterializer;
-import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.StreamRefs;
-import akka.stream.testkit.TestPublisher;
-import akka.stream.testkit.TestSubscriber;
-import akka.stream.testkit.javadsl.TestSink;
-import akka.stream.testkit.javadsl.TestSource;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.stream.Attributes;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.SourceRef;
+import org.apache.pekko.stream.SystemMaterializer;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.StreamRefs;
+import org.apache.pekko.stream.testkit.TestPublisher;
+import org.apache.pekko.stream.testkit.TestSubscriber;
+import org.apache.pekko.stream.testkit.javadsl.TestSink;
+import org.apache.pekko.stream.testkit.javadsl.TestSource;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link SearchSource}.

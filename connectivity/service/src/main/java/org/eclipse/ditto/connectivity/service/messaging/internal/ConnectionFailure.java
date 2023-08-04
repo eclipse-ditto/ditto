@@ -24,8 +24,8 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 
-import akka.actor.ActorRef;
-import akka.actor.Status;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Status;
 
 /**
  * Messaging internal error message for when a Failure was detected on a Connection.

@@ -19,7 +19,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.common.DittoConstants;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
-import akka.http.javadsl.model.MediaTypes;
+import org.apache.pekko.http.javadsl.model.MediaTypes;
 
 /**
  * Provides configuration settings for the cloud events endpoint of the Ditto Gateway service.

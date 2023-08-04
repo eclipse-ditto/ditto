@@ -28,7 +28,7 @@ import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.protocol.Adaptable;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Defines a message mapper which maps a {@link ExternalMessage} to a {@link Adaptable} and vice versa.

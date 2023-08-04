@@ -30,7 +30,7 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.junit.Before;
 import org.junit.Test;
 
-import akka.event.LoggingAdapter;
+import org.apache.pekko.event.LoggingAdapter;
 
 /**
  * Tests {@link DefaultHostValidator}.

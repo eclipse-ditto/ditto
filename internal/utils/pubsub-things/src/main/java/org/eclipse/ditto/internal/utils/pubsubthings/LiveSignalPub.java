@@ -18,7 +18,7 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
-import akka.actor.ActorContext;
+import org.apache.pekko.actor.ActorContext;
 
 /**
  * Publishing of all live signals.

@@ -28,11 +28,11 @@ import org.eclipse.ditto.jwt.model.JsonWebToken;
 
 import com.github.benmanes.caffeine.cache.Expiry;
 
-import akka.NotUsed;
-import akka.actor.ActorSystem;
-import akka.http.javadsl.model.HttpRequest;
-import akka.japi.Pair;
-import akka.stream.javadsl.Flow;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.stream.javadsl.Flow;
 
 /**
  * Visitor to create a flow that augment requests with bearer tokens.

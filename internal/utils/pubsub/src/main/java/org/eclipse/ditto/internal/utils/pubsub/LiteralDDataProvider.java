@@ -17,8 +17,8 @@ import org.eclipse.ditto.internal.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.literal.AbstractConfigAwareDDataProvider;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.literal.LiteralDDataHandler;
 
-import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
 
 /**
  * Literal DData provider.

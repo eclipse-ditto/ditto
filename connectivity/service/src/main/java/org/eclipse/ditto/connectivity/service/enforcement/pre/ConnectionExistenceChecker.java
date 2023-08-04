@@ -26,8 +26,8 @@ import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * checks for the existence of connections.

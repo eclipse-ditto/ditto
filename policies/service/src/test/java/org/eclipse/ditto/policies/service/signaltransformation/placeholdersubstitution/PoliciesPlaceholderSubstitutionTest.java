@@ -42,7 +42,7 @@ import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Tests specifics of {@link PoliciesPlaceholderSubstitution}.

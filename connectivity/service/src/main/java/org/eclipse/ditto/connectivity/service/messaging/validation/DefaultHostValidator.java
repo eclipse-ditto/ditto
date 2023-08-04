@@ -21,7 +21,7 @@ import java.util.stream.Stream;
 
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 
-import akka.event.LoggingAdapter;
+import org.apache.pekko.event.LoggingAdapter;
 
 /**
  * Validates a given hostname against a set of fixed blocked addresses (e.g. loopback, multicast, ...), a set of

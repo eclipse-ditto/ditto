@@ -29,8 +29,8 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
-import akka.actor.ActorRef;
-import akka.actor.Scheduler;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Scheduler;
 
 /**
  * Cache loader used for Connection existence check in pre-enforcement.

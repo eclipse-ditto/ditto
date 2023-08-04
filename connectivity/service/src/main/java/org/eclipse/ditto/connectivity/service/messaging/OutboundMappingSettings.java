@@ -35,11 +35,11 @@ import org.eclipse.ditto.connectivity.service.messaging.persistence.SignalFilter
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementConfig;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 
-import akka.actor.ActorSelection;
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * All the information required to create an OutboundMappingProcessor.

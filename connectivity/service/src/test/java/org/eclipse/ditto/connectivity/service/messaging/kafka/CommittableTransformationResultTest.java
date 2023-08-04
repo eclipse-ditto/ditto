@@ -20,7 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.junit.Test;
 
-import akka.kafka.ConsumerMessage;
+import org.apache.pekko.kafka.ConsumerMessage;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 

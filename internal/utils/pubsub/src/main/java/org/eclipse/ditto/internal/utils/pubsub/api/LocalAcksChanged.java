@@ -14,7 +14,7 @@ package org.eclipse.ditto.internal.utils.pubsub.api;
 
 import org.eclipse.ditto.internal.utils.pubsub.ddata.ack.GroupedSnapshot;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 /**
  * Local message sent to whomever is interested in changes to local acknowledgement label declarations.

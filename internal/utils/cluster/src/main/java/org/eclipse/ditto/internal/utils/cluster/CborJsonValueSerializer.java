@@ -36,12 +36,12 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
-import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
-import akka.io.BufferPool;
-import akka.io.DirectByteBufferPool;
-import akka.serialization.ByteBufferSerializer;
-import akka.serialization.SerializerWithStringManifest;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.io.BufferPool;
+import org.apache.pekko.io.DirectByteBufferPool;
+import org.apache.pekko.serialization.ByteBufferSerializer;
+import org.apache.pekko.serialization.SerializerWithStringManifest;
 
 /**
  * Serializer of Eclipse Ditto for {@link JsonValue}s via CBOR.
@@ -188,7 +188,7 @@ public final class CborJsonValueSerializer extends SerializerWithStringManifest 
 
     private static final class DirectBufferConfig {
 
-        private static final String KEY_PREFIX = "akka.actor.serializers-json";
+        private static final String KEY_PREFIX = "pekko.actor.serializers-json";
         private static final String KEY_SIZE = KEY_PREFIX + ".direct-buffer-size";
         private static final String KEY_POOL_LIMIT = KEY_PREFIX + ".direct-buffer-pool-limit";
         private static final String DEFAULT_KEY_SIZE = "64 KiB";

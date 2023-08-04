@@ -23,19 +23,19 @@ import org.eclipse.ditto.base.model.common.ConditionChecker;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import akka.NotUsed;
-import akka.stream.SourceRef;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.stream.SourceRef;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Wraps a {@link SourceRef} of {@link JsonValue}s. The purpose of this class is to make working with SourceRef type
  * safe. Rationale: Sending a plain SourceRef through the cluster works but it discards the type information, i.e. the
  * receiver does not know the actual type of the SourceRef's elements.
- * @see <a href="https://doc.akka.io/docs/akka/2.6/stream/stream-refs.html#serialization-of-sourceref-and-sinkref">Akka
+ * @see <a href="https://pekko.apache.org/docs/pekko/1.0.0/stream/stream-refs.html#serialization-of-sourceref-and-sinkref">Akka
  * documentation "Serialization of SourceRef and SinkRef"</a>
  */
 @Immutable
-public final class JsonValueSourceRef implements AkkaJacksonCborSerializable {
+public final class JsonValueSourceRef implements PekkoJacksonCborSerializable {
 
     private final SourceRef<JsonValue> sourceRef;
 

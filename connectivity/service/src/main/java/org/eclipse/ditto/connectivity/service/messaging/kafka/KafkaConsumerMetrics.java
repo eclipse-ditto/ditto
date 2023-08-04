@@ -24,7 +24,7 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.kafka.javadsl.Consumer;
+import org.apache.pekko.kafka.javadsl.Consumer;
 
 /**
  * Gets the Apache Kafka Metrics from a ConsumerControl and creates/sets Kamon gauges accordingly.

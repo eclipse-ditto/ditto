@@ -12,10 +12,10 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.directives;
 
-import static akka.http.javadsl.server.Directives.extractRequest;
-import static akka.http.javadsl.server.Directives.logRequest;
-import static akka.http.javadsl.server.Directives.logResult;
-import static akka.http.javadsl.server.Directives.mapRouteResult;
+import static org.apache.pekko.http.javadsl.server.Directives.extractRequest;
+import static org.apache.pekko.http.javadsl.server.Directives.logRequest;
+import static org.apache.pekko.http.javadsl.server.Directives.logResult;
+import static org.apache.pekko.http.javadsl.server.Directives.mapRouteResult;
 import static org.eclipse.ditto.gateway.service.endpoints.directives.RequestLoggingFilter.filterHeaders;
 import static org.eclipse.ditto.gateway.service.endpoints.directives.RequestLoggingFilter.filterRawUri;
 import static org.eclipse.ditto.gateway.service.endpoints.directives.RequestLoggingFilter.filterUri;
@@ -23,11 +23,11 @@ import static org.eclipse.ditto.gateway.service.endpoints.directives.RequestLogg
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.gateway.service.endpoints.utils.HttpUtils;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 
-import akka.http.javadsl.server.Complete;
-import akka.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.server.Complete;
+import org.apache.pekko.http.javadsl.server.Route;
 
 /**
  * Custom Akka Http directive logging the StatusCode and duration of the route.

@@ -29,8 +29,8 @@ import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.RecoveryStatus;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 
-import akka.actor.ActorRef;
-import akka.japi.Pair;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.japi.Pair;
 
 /**
  * The data the {@link BaseClientActor} has in its different {@link org.eclipse.ditto.connectivity.api.BaseClientState States}.

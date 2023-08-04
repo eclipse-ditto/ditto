@@ -22,9 +22,9 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
 
-import akka.actor.ActorSelection;
-import akka.actor.ActorSystem;
-import akka.testkit.TestProbe;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.TestProbe;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**

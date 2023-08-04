@@ -17,15 +17,15 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkArgument
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ChildRestartStats;
-import akka.actor.SupervisorStrategy;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ChildRestartStats;
+import org.apache.pekko.actor.SupervisorStrategy;
 import scala.PartialFunction;
 import scala.collection.Iterable;
 
 /**
  * Implementation of {@link SupervisorStrategy}, which restarts supervised actors {@code maxRetries} times and
- * afterwards escalates failures. This stands in contrast to the original {@link akka.actor.OneForOneStrategy}
+ * afterwards escalates failures. This stands in contrast to the original {@link org.apache.pekko.actor.OneForOneStrategy}
  * which stops instead of escalating.
  */
 final class OneForOneEscalateStrategy extends SupervisorStrategy {
@@ -62,7 +62,7 @@ final class OneForOneEscalateStrategy extends SupervisorStrategy {
     }
 
     @Override
-    public void handleChildTerminated(final akka.actor.ActorContext context, final ActorRef child,
+    public void handleChildTerminated(final org.apache.pekko.actor.ActorContext context, final ActorRef child,
             final Iterable<ActorRef> children) {
         LOGGER.debug("Child <{}> terminated. Ignoring. Remaining children: {}", child, children);
     }
@@ -82,7 +82,7 @@ final class OneForOneEscalateStrategy extends SupervisorStrategy {
     }
 
     @Override
-    public void processFailure(final akka.actor.ActorContext context, final boolean restart,
+    public void processFailure(final org.apache.pekko.actor.ActorContext context, final boolean restart,
             final ActorRef child,
             final Throwable cause, final ChildRestartStats stats, final Iterable<ChildRestartStats> children) {
         // ignoring the arguments, because #decider will either escalate and this code is never reached, or it

@@ -30,7 +30,7 @@ import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 
-import akka.http.javadsl.model.Uri;
+import org.apache.pekko.http.javadsl.model.Uri;
 
 /**
  * Validate credentials in a connection.

@@ -59,16 +59,16 @@ import org.eclipse.ditto.thingsearch.service.updater.actors.ThingUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Scheduler;
-import akka.japi.Pair;
-import akka.japi.pf.PFBuilder;
-import akka.pattern.AskTimeoutException;
-import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Scheduler;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.japi.pf.PFBuilder;
+import org.apache.pekko.pattern.AskTimeoutException;
+import org.apache.pekko.stream.javadsl.Flow;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Converts Thing changes into write models by retrieving data and applying enforcement via an enforcer cache.

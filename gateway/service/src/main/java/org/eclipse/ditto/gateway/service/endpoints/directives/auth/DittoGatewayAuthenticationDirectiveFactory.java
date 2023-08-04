@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 import com.mongodb.lang.Nullable;
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Ditto's default factory for building authentication directives.

@@ -20,11 +20,11 @@ import java.util.List;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
-import akka.actor.ExtendedActorSystem;
-import akka.discovery.Lookup;
-import akka.discovery.ServiceDiscovery;
-import akka.dispatch.Futures;
-import akka.pattern.Patterns;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.discovery.Lookup;
+import org.apache.pekko.discovery.ServiceDiscovery;
+import org.apache.pekko.dispatch.Futures;
+import org.apache.pekko.pattern.Patterns;
 import scala.Option;
 import scala.collection.JavaConverters;
 import scala.concurrent.Future;
@@ -35,7 +35,7 @@ import scala.concurrent.duration.FiniteDuration;
  * <p>
  * One speciality of a Docker swarm based cluster is that the Docker swarm DNS sets a TTL of DNS entries to 600 seconds
  * (10 minutes) - so if a cluster forms and not all DNS entries are "there" from the beginning, it takes 10 minutes
- * until DNS caches used by the default Akka {@link akka.discovery.dns.DnsServiceDiscovery DnsServiceDiscovery} are
+ * until DNS caches used by the default Akka {@link org.apache.pekko.discovery.dns.DnsServiceDiscovery DnsServiceDiscovery} are
  * evicted and another DNS lookup is done.
  * </p>
  * This implementation does not cache DNS entries and can therefore be used for bootstrapping in Docker swarm.

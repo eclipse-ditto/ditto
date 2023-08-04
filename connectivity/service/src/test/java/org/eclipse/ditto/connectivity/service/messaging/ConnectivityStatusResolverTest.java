@@ -23,7 +23,7 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailu
 import org.junit.Before;
 import org.junit.Test;
 
-import akka.actor.Status;
+import org.apache.pekko.actor.Status;
 
 /**
  * Unit tests for {@link ConnectivityStatusResolver}.

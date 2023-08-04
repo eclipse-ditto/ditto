@@ -14,19 +14,19 @@ package org.eclipse.ditto.internal.utils.health.status;
 
 import java.time.Duration;
 
-import org.eclipse.ditto.internal.utils.akka.SimpleCommand;
-import org.eclipse.ditto.internal.utils.akka.SimpleCommandResponse;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.SimpleCommand;
+import org.eclipse.ditto.internal.utils.pekko.SimpleCommandResponse;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.health.AbstractHealthCheckingActor;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.event.DiagnosticLoggingAdapter;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.Patterns;
 
 /**
  * Actor supplying "status" and "health" information of an ActorSystem. Has to be started as "root" actor so that

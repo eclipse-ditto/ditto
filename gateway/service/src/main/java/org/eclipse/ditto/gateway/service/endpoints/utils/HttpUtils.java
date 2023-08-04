@@ -17,8 +17,8 @@ import javax.annotation.concurrent.Immutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.headers.RawRequestURI;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.headers.RawRequestURI;
 
 /**
  * Utilities for Akka-Http.

@@ -122,15 +122,15 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.FSM;
-import akka.actor.Props;
-import akka.actor.Status;
-import akka.pattern.AskTimeoutException;
-import akka.testkit.TestActorRef;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.FSM;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.pattern.AskTimeoutException;
+import org.apache.pekko.testkit.TestActorRef;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 // Silencing "unnecessary stubbing" - it happens only on Travis?
 @RunWith(MockitoJUnitRunner.Silent.class)

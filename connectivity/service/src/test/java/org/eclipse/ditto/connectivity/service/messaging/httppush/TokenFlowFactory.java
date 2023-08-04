@@ -20,13 +20,13 @@ import java.util.UUID;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
 
-import akka.NotUsed;
-import akka.http.javadsl.model.ContentTypes;
-import akka.http.javadsl.model.HttpEntities;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.RequestEntity;
-import akka.stream.javadsl.Flow;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.http.javadsl.model.ContentTypes;
+import org.apache.pekko.http.javadsl.model.HttpEntities;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.RequestEntity;
+import org.apache.pekko.stream.javadsl.Flow;
 import scala.util.Try;
 
 /**

@@ -31,8 +31,8 @@ import org.eclipse.ditto.internal.utils.pubsub.api.PublishSignal;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.SubscriptionsReader;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.ack.Grouped;
 
-import akka.actor.ActorRef;
-import akka.japi.Pair;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.japi.Pair;
 
 /**
  * Index for publishing to a set of subscribers with groups.

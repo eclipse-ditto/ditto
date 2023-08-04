@@ -16,7 +16,7 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import akka.actor.Props;
+import org.apache.pekko.actor.Props;
 
 /**
  * Message that holds props of an actor and the name to start this actor with.

@@ -70,14 +70,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorSystem;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.model.headers.Location;
-import akka.http.javadsl.model.headers.RawHeader;
-import akka.http.javadsl.testkit.TestRoute;
-import akka.http.javadsl.testkit.TestRouteResult;
-import akka.stream.SystemMaterializer;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.model.headers.Location;
+import org.apache.pekko.http.javadsl.model.headers.RawHeader;
+import org.apache.pekko.http.javadsl.testkit.TestRoute;
+import org.apache.pekko.http.javadsl.testkit.TestRouteResult;
+import org.apache.pekko.stream.SystemMaterializer;
 
 /**
  * Tests {@link RootRoute}.
@@ -366,7 +366,7 @@ public final class RootRouteTest extends EndpointTestBase {
     public void getThingWithResponseRequiredFalse() {
         final HttpRequest request = withHttps(withPreAuthenticatedAuthentication(
                 HttpRequest.GET(THINGS_2_PATH + "/org.eclipse.ditto%3Adummy")
-        )).addHeader(akka.http.javadsl.model.HttpHeader.parse("response-required", "false"));
+        )).addHeader(org.apache.pekko.http.javadsl.model.HttpHeader.parse("response-required", "false"));
         final TestRouteResult result = rootTestRoute.run(request);
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
 
@@ -452,7 +452,7 @@ public final class RootRouteTest extends EndpointTestBase {
     public void getExceptionForDuplicationHeaderAndQueryParameter() {
         final String headerKey = DittoHeaderDefinition.TIMEOUT.getKey();
         HttpRequest httpRequest = HttpRequest.GET(THINGS_2_PATH_WITH_IDS + "&" + headerKey + "=32s");
-        httpRequest = httpRequest.addHeader(akka.http.javadsl.model.HttpHeader.parse(headerKey, "23s"));
+        httpRequest = httpRequest.addHeader(org.apache.pekko.http.javadsl.model.HttpHeader.parse(headerKey, "23s"));
         final GatewayDuplicateHeaderException expectedException = GatewayDuplicateHeaderException.newBuilder()
                 .message(() -> MessageFormat.format(
                         "<{0}> was provided as header as well as query parameter with divergent values!", headerKey))
@@ -497,7 +497,7 @@ public final class RootRouteTest extends EndpointTestBase {
         final HttpRequest request =
                 withPreAuthenticatedAuthentication(withHttps(HttpRequest.GET(THING_SEARCH_2_PATH)
                         .withHeaders(Collections.singleton(
-                                akka.http.javadsl.model.HttpHeader.parse("x-correlation-id", largeString)))));
+                                org.apache.pekko.http.javadsl.model.HttpHeader.parse("x-correlation-id", largeString)))));
         final TestRouteResult result = rootTestRoute.run(request);
 
         result.assertStatusCode(StatusCodes.REQUEST_HEADER_FIELDS_TOO_LARGE);
@@ -508,16 +508,16 @@ public final class RootRouteTest extends EndpointTestBase {
      */
     @Test
     public void getExceptionDueToInvalidHeaderKey() {
-        assertThatExceptionOfType(akka.http.scaladsl.model.IllegalHeaderException.class).isThrownBy(() -> {
-                    akka.http.javadsl.model.HttpHeader.parse("(),/:;<=>?@[\\]{}", "lol");
+        assertThatExceptionOfType(org.apache.pekko.http.scaladsl.model.IllegalHeaderException.class).isThrownBy(() -> {
+                    org.apache.pekko.http.javadsl.model.HttpHeader.parse("(),/:;<=>?@[\\]{}", "lol");
                 }
         );
     }
 
     @Test
     public void getExceptionDueToInvalidHeaderValue() {
-        assertThatExceptionOfType(akka.http.scaladsl.model.IllegalHeaderException.class).isThrownBy(() -> {
-                    akka.http.javadsl.model.HttpHeader.parse("x-correlation-id", "\n");
+        assertThatExceptionOfType(org.apache.pekko.http.scaladsl.model.IllegalHeaderException.class).isThrownBy(() -> {
+                    org.apache.pekko.http.javadsl.model.HttpHeader.parse("x-correlation-id", "\n");
                 }
         );
     }

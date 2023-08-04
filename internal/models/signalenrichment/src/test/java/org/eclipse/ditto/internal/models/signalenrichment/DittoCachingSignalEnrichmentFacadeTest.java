@@ -43,8 +43,8 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorSelection;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit tests for {@link DittoCachingSignalEnrichmentFacade}.

@@ -21,9 +21,9 @@ import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataWriter;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.literal.LiteralUpdate;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.cluster.ddata.ORMultiMap;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.cluster.ddata.ORMultiMap;
 
 /**
  * Access to distributed data of compressed topics.

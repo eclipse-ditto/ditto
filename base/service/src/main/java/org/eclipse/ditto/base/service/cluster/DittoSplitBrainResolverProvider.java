@@ -16,10 +16,10 @@ import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.cluster.DowningProvider;
-import akka.cluster.sbr.SplitBrainResolverProvider;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.DowningProvider;
+import org.apache.pekko.cluster.sbr.SplitBrainResolverProvider;
 import scala.Option;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -34,7 +34,7 @@ final class DittoSplitBrainResolverProvider extends DowningProvider {
     private final SplitBrainResolverProvider splitBrainResolverProvider;
 
     /**
-     * This constructor is called by akka.
+     * This constructor is called by pekko.
      *
      * @param actorSystem the actor system used to instantiate this provider.
      */

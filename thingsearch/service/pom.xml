@@ -57,7 +57,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-internal-utils-akka</artifactId>
+            <artifactId>ditto-internal-utils-pekko</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -90,18 +90,18 @@
         <!-- ### Testing ### -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-internal-utils-akka</artifactId>
+            <artifactId>ditto-internal-utils-pekko</artifactId>
             <scope>test</scope>
             <type>test-jar</type>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-testkit_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-stream-testkit_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-stream-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -252,7 +252,7 @@
                         <configuration>
                             <ports>
                                 <port>
-                                    <name>random-akka-tcp-port</name>
+                                    <name>random-pekko-tcp-port</name>
                                 </port>
                             </ports>
                         </configuration>
@@ -268,7 +268,7 @@
                         <ACTIVE_RANDOM_PORT>
                             ${search.persistence.test.activeRandomPort}
                         </ACTIVE_RANDOM_PORT>
-                        <RANDOM_TEST_PORT>${random-akka-tcp-port}</RANDOM_TEST_PORT>
+                        <RANDOM_TEST_PORT>${random-pekko-tcp-port}</RANDOM_TEST_PORT>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
@@ -280,7 +280,7 @@
                         <ACTIVE_RANDOM_PORT>
                             ${search.persistence.test.activeRandomPort}
                         </ACTIVE_RANDOM_PORT>
-                        <RANDOM_TEST_PORT>${random-akka-tcp-port}</RANDOM_TEST_PORT>
+                        <RANDOM_TEST_PORT>${random-pekko-tcp-port}</RANDOM_TEST_PORT>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>

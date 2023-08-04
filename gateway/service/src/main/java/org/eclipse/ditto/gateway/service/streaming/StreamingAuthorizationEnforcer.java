@@ -22,8 +22,8 @@ import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
-import akka.http.javadsl.server.RequestContext;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.server.RequestContext;
 
 /**
  * Enforces authorization in order to establish a Streaming connection.

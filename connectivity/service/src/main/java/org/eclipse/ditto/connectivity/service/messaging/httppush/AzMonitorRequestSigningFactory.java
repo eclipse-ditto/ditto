@@ -18,7 +18,7 @@ import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Creator of the signing process for Azure Monitor Data Collector.

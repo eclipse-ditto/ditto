@@ -15,7 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence;
 import java.util.HashMap;
 import java.util.Map;
 
-import akka.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
 import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.EventJsonDeserializer;

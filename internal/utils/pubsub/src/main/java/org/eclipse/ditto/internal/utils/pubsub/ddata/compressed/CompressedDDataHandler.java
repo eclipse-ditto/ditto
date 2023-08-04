@@ -22,12 +22,12 @@ import org.eclipse.ditto.internal.utils.pubsub.ddata.AbstractDDataHandler;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.Hashes;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.literal.LiteralUpdate;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorRefFactory;
-import akka.actor.ActorSystem;
-import akka.actor.Address;
-import akka.cluster.ddata.ORMultiMap;
-import akka.cluster.ddata.Replicator;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorRefFactory;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Address;
+import org.apache.pekko.cluster.ddata.ORMultiMap;
+import org.apache.pekko.cluster.ddata.Replicator;
 
 /**
  * A distributed collection of hashes of strings indexed by ActorRef.

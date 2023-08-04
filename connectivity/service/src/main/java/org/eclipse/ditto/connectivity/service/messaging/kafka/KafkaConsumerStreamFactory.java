@@ -27,9 +27,9 @@ import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 
-import akka.NotUsed;
-import akka.stream.Materializer;
-import akka.stream.javadsl.Sink;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.javadsl.Sink;
 
 /**
  * A factory for building different {@link KafkaConsumerStream} implementations, e.g. for different quality of services.

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.rql.parser.internal
 
-import akka.parboiled2._
+import org.parboiled2._
 import org.eclipse.ditto.rql.model.ParserException
 import org.eclipse.ditto.rql.model.predicates.PredicateParser
 import org.eclipse.ditto.rql.model.predicates.ast.SingleComparisonNode.Type

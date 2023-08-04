@@ -49,7 +49,7 @@ public interface StreamCacheConfig extends CacheConfig {
         /**
          * The name of the dispatcher to run async cache loaders which do not block threads.
          */
-        DISPATCHER_NAME("dispatcher", "akka.actor.default-dispatcher"),
+        DISPATCHER_NAME("dispatcher", "pekko.actor.default-dispatcher"),
 
         /**
          * The delay before retrying a cache query if the cached value is out of date.

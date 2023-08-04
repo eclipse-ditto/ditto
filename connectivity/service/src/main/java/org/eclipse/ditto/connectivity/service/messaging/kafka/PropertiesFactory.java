@@ -33,10 +33,10 @@ import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
 
 import com.typesafe.config.Config;
 
-import akka.kafka.CommitterSettings;
-import akka.kafka.ConnectionCheckerSettings;
-import akka.kafka.ConsumerSettings;
-import akka.kafka.ProducerSettings;
+import org.apache.pekko.kafka.CommitterSettings;
+import org.apache.pekko.kafka.ConnectionCheckerSettings;
+import org.apache.pekko.kafka.ConsumerSettings;
+import org.apache.pekko.kafka.ProducerSettings;
 
 /**
  * Creates Kafka properties from a given {@link org.eclipse.ditto.connectivity.model.Connection} configuration.

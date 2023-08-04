@@ -47,10 +47,10 @@ import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 import org.eclipse.ditto.policies.service.persistence.actors.strategies.commands.PolicyCommandStrategies;
 import org.eclipse.ditto.policies.service.persistence.actors.strategies.events.PolicyEventStrategies;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.persistence.RecoveryCompleted;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.persistence.RecoveryCompleted;
 
 /**
  * PersistentActor which "knows" the state of a single {@link Policy}.

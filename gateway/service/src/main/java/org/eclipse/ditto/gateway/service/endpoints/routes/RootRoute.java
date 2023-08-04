@@ -58,18 +58,18 @@ import org.eclipse.ditto.internal.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 
-import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.server.AllDirectives;
-import akka.http.javadsl.server.ExceptionHandler;
-import akka.http.javadsl.server.PathMatchers;
-import akka.http.javadsl.server.RejectionHandler;
-import akka.http.javadsl.server.RequestContext;
-import akka.http.javadsl.server.Route;
-import akka.http.javadsl.server.directives.RouteAdapter;
-import akka.http.scaladsl.server.RouteResult;
-import akka.japi.pf.PFBuilder;
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.server.AllDirectives;
+import org.apache.pekko.http.javadsl.server.ExceptionHandler;
+import org.apache.pekko.http.javadsl.server.PathMatchers;
+import org.apache.pekko.http.javadsl.server.RejectionHandler;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.server.directives.RouteAdapter;
+import org.apache.pekko.http.scaladsl.server.RouteResult;
+import org.apache.pekko.japi.pf.PFBuilder;
 import scala.Function1;
 import scala.compat.java8.FutureConverters;
 import scala.concurrent.Future;
@@ -406,17 +406,17 @@ public final class RootRoute extends AllDirectives {
                                 .thenCompose(route -> routeToJavaFunction(route).apply(requestContext))));
     }
 
-    private static Route javaFunctionToRoute(final Function<akka.http.scaladsl.server.RequestContext,
+    private static Route javaFunctionToRoute(final Function<org.apache.pekko.http.scaladsl.server.RequestContext,
             CompletionStage<RouteResult>> function) {
 
-        final Function1<akka.http.scaladsl.server.RequestContext, Future<RouteResult>> scalaFunction =
-                new PFBuilder<akka.http.scaladsl.server.RequestContext, Future<RouteResult>>()
+        final Function1<org.apache.pekko.http.scaladsl.server.RequestContext, Future<RouteResult>> scalaFunction =
+                new PFBuilder<org.apache.pekko.http.scaladsl.server.RequestContext, Future<RouteResult>>()
                         .matchAny(scalaRequestContext -> FutureConverters.toScala(function.apply(scalaRequestContext)))
                         .build();
         return RouteAdapter.asJava(scalaFunction);
     }
 
-    private static Function<akka.http.scaladsl.server.RequestContext, CompletionStage<RouteResult>> routeToJavaFunction(
+    private static Function<org.apache.pekko.http.scaladsl.server.RequestContext, CompletionStage<RouteResult>> routeToJavaFunction(
             final Route route) {
 
         return scalaRequestContext ->

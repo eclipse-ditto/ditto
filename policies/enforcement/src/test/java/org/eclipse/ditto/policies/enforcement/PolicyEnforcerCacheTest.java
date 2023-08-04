@@ -35,8 +35,8 @@ import org.junit.Test;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
-import akka.actor.ActorSystem;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.concurrent.ExecutionContextExecutor;
 
 public final class PolicyEnforcerCacheTest {
