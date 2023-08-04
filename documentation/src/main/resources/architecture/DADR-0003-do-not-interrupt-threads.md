@@ -28,5 +28,5 @@ Use `CompletableFuture.join()` instead of `CompletableFuture.get()` in tests.
 
 Where blocking-wait cannot be avoided, the actors executing blocking wait should execute in their own dispatcher
 to not starve the actor system of threads. Use
-[PinnedDispatcher](https://doc.akka.io/docs/akka/current/dispatchers.html)
+[PinnedDispatcher](https://pekko.apache.org/docs/pekko/current/dispatchers.html)
 for example to give each blocking actor its own thread.
