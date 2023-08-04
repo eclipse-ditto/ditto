@@ -19,8 +19,8 @@ import org.apache.sshd.common.channel.Channel;
 import org.apache.sshd.common.channel.ChannelListener;
 import org.apache.sshd.common.forward.TcpipClientChannel;
 
-import akka.actor.ActorRef;
-import akka.event.LoggingAdapter;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.event.LoggingAdapter;
 
 /**
  * A channel listener that reports exceptions to the {@code SshTunnelActor}.

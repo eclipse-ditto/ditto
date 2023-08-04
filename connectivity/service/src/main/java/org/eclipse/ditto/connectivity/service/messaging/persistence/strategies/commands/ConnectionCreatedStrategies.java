@@ -25,7 +25,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.commands.AbstractComman
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Strategies to handle signals as an existing connection.

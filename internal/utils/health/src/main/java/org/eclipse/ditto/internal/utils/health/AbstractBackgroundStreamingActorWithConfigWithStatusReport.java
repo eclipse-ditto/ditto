@@ -22,10 +22,10 @@ import java.util.stream.Stream;
 
 import org.eclipse.ditto.base.api.common.Shutdown;
 import org.eclipse.ditto.base.api.common.ShutdownResponse;
-import org.eclipse.ditto.internal.utils.akka.actors.ModifyConfigBehavior;
-import org.eclipse.ditto.internal.utils.akka.actors.RetrieveConfigBehavior;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.actors.ModifyConfigBehavior;
+import org.eclipse.ditto.internal.utils.pekko.actors.RetrieveConfigBehavior;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.health.config.BackgroundStreamingConfig;
 import org.eclipse.ditto.json.JsonArray;
@@ -40,17 +40,17 @@ import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigRenderOptions;
 
-import akka.Done;
-import akka.actor.AbstractActorWithTimers;
-import akka.japi.Pair;
-import akka.japi.pf.ReceiveBuilder;
-import akka.stream.KillSwitch;
-import akka.stream.KillSwitches;
-import akka.stream.Materializer;
-import akka.stream.UniqueKillSwitch;
-import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.Done;
+import org.apache.pekko.actor.AbstractActorWithTimers;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.stream.KillSwitch;
+import org.apache.pekko.stream.KillSwitches;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.UniqueKillSwitch;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Common behavior for actors that stay alive for a long time running a stream over and over.

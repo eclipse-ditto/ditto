@@ -27,7 +27,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
 
-import akka.stream.javadsl.Source;
+import org.apache.pekko.stream.javadsl.Source;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**

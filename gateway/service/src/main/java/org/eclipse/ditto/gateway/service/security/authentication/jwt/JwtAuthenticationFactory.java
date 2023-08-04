@@ -21,7 +21,7 @@ import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.http.HttpClientFacade;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * A factory for {@link org.eclipse.ditto.jwt.model.JsonWebToken} related security.

@@ -32,8 +32,8 @@ import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -45,13 +45,13 @@ import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnn
 import org.eclipse.ditto.policies.service.common.config.PolicyAnnouncementConfig;
 import org.eclipse.ditto.policies.service.persistence.actors.strategies.commands.SudoDeleteExpiredSubject;
 
-import akka.NotUsed;
-import akka.actor.AbstractFSM;
-import akka.actor.ActorRef;
-import akka.actor.Address;
-import akka.actor.Props;
-import akka.cluster.Cluster;
-import akka.japi.pf.FSMStateFunctionBuilder;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.AbstractFSM;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Address;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.japi.pf.FSMStateFunctionBuilder;
 import scala.util.Random$;
 
 /**

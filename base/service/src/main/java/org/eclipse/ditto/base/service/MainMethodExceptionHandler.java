@@ -21,7 +21,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.slf4j.Logger;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * This class wraps the execution of a Runnable for catching {@code Throwable}s. The Runnable is assumed to be the

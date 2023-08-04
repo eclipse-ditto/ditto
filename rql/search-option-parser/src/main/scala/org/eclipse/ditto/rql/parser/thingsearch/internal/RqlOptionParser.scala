@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.rql.parser.thingsearch.internal
 
-import akka.parboiled2._
+import org.parboiled2._
 import org.eclipse.ditto.rql.model.ParserException
 import org.eclipse.ditto.rql.parser.internal.RqlParserBase
 import org.eclipse.ditto.rql.parser.thingsearch.OptionParser

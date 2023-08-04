@@ -21,9 +21,9 @@ import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
-import akka.persistence.SelectedSnapshot;
-import akka.persistence.SnapshotOffer;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.persistence.SelectedSnapshot;
+import org.apache.pekko.persistence.SnapshotOffer;
 
 /**
  * Adapter capable of transforming Snapshots (in {@link #toSnapshotStore(Object)}) done in an Akka PersistentActor to

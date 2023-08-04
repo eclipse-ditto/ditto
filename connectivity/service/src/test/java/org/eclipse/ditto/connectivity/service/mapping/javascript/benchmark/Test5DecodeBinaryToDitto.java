@@ -25,7 +25,7 @@ import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 @State(Scope.Benchmark)
 public class Test5DecodeBinaryToDitto implements MapToDittoProtocolScenario {

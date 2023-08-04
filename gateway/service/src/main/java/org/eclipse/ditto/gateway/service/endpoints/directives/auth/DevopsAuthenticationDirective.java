@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.directives.auth;
 
-import akka.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.server.Route;
 
 
 /**

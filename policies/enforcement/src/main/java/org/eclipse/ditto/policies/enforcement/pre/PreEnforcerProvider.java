@@ -32,7 +32,7 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Extension to provide the Pre-Enforcers for a service.

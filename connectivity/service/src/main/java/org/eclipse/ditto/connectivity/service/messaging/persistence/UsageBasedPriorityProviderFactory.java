@@ -12,12 +12,12 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
 
 public class UsageBasedPriorityProviderFactory implements ConnectionPriorityProviderFactory {
 

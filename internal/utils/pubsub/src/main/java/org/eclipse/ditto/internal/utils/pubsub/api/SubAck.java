@@ -14,7 +14,7 @@ package org.eclipse.ditto.internal.utils.pubsub.api;
 
 import java.util.Objects;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 /**
  * Acknowledgement for subscription requests.

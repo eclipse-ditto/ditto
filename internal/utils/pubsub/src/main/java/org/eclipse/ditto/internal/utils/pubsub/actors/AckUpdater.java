@@ -27,8 +27,8 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.base.model.acks.PubSubTerminatedException;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.internal.utils.pubsub.api.AcksDeclared;
@@ -46,16 +46,16 @@ import org.eclipse.ditto.internal.utils.pubsub.ddata.ack.GroupedRelation;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.literal.LiteralUpdate;
 import org.eclipse.ditto.json.JsonValue;
 
-import akka.actor.AbstractActorWithTimers;
-import akka.actor.ActorRef;
-import akka.actor.Address;
-import akka.actor.Props;
-import akka.actor.Terminated;
-import akka.cluster.Cluster;
-import akka.cluster.ddata.Key;
-import akka.cluster.ddata.ORMultiMap;
-import akka.cluster.ddata.Replicator;
-import akka.japi.pf.ReceiveBuilder;
+import org.apache.pekko.actor.AbstractActorWithTimers;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Address;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Terminated;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.cluster.ddata.Key;
+import org.apache.pekko.cluster.ddata.ORMultiMap;
+import org.apache.pekko.cluster.ddata.Replicator;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 
 /**
  * Manage the local and remote ternary relation between actors, group names and declared acknowledgement labels.

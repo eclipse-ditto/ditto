@@ -21,7 +21,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.internal.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.internal.utils.pubsub.api.SubAck;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 /**
  * Access point for Ditto pub-sub subscribers.

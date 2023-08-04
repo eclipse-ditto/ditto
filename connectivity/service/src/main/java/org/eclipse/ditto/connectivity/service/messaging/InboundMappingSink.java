@@ -27,14 +27,14 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 
-import akka.NotUsed;
-import akka.actor.Status;
-import akka.dispatch.MessageDispatcher;
-import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Sink;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.dispatch.MessageDispatcher;
+import org.apache.pekko.stream.javadsl.Flow;
+import org.apache.pekko.stream.javadsl.Sink;
 
 /**
  * This class creates a Sink which is responsible for inbound payload mapping.

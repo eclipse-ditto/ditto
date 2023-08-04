@@ -15,8 +15,8 @@ package org.eclipse.ditto.connectivity.service.messaging.tunnel;
 import org.apache.sshd.common.session.Session;
 import org.apache.sshd.common.session.SessionListener;
 
-import akka.actor.ActorRef;
-import akka.event.LoggingAdapter;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.event.LoggingAdapter;
 
 /**
  * A {@link org.apache.sshd.common.session.SessionListener} implementation that reports exceptions to the {@code

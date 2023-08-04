@@ -42,17 +42,17 @@ import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-import com.newmotion.akka.rabbitmq.ChannelCreated;
-import com.newmotion.akka.rabbitmq.ChannelMessage;
+import com.github.pjfanning.pekko.rabbitmq.ChannelCreated;
+import com.github.pjfanning.pekko.rabbitmq.ChannelMessage;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.ConfirmListener;
 
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.japi.Pair;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
 

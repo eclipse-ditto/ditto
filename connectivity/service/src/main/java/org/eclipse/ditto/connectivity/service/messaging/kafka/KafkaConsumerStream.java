@@ -17,7 +17,7 @@ import java.util.function.BiConsumer;
 
 import javax.annotation.concurrent.Immutable;
 
-import akka.Done;
+import org.apache.pekko.Done;
 
 /**
  * A start- and stoppable kafka consumer stream.

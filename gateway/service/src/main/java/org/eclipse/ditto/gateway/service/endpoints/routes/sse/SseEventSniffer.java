@@ -19,11 +19,11 @@ import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 
 import com.typesafe.config.Config;
 
-import akka.NotUsed;
-import akka.actor.ActorSystem;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.sse.ServerSentEvent;
-import akka.stream.javadsl.Flow;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.sse.ServerSentEvent;
+import org.apache.pekko.stream.javadsl.Flow;
 
 /**
  * Functional interface to sniff events over or SSE.

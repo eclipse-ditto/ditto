@@ -23,11 +23,11 @@ import org.eclipse.ditto.internal.utils.pubsub.ddata.compressed.CompressedDDataH
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorRefFactory;
-import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
-import akka.actor.Props;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorRefFactory;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.Props;
 
 /**
  * Creator of pub-sub access. Should not be instantiated more than once per instance.

@@ -14,8 +14,8 @@ package org.eclipse.ditto.internal.models.signalenrichment;
 
 import java.time.Duration;
 
-import akka.actor.ActorSelection;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link ByRoundTripSignalEnrichmentFacade}

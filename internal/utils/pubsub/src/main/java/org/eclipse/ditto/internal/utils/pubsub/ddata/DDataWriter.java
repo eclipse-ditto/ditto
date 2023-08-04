@@ -14,8 +14,8 @@ package org.eclipse.ditto.internal.utils.pubsub.ddata;
 
 import java.util.concurrent.CompletionStage;
 
-import akka.actor.Address;
-import akka.cluster.ddata.Replicator;
+import org.apache.pekko.actor.Address;
+import org.apache.pekko.cluster.ddata.Replicator;
 
 /**
  * Writer of a distributed subscriber-topic relation.

@@ -27,13 +27,14 @@ import java.util.stream.Collectors;
 import org.bson.BsonDocument;
 import org.eclipse.ditto.policies.model.PolicyId;
 
-import akka.NotUsed;
-import akka.actor.ActorSystem;
-import akka.persistence.inmemory.query.javadsl.InMemoryReadJournal;
-import akka.persistence.query.EventEnvelope;
-import akka.persistence.query.PersistenceQuery;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
+//TODO InMemoryReadJournal
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+//import org.apache.pekko.persistence.inmemory.query.javadsl.InMemoryReadJournal;
+import org.apache.pekko.persistence.query.EventEnvelope;
+import org.apache.pekko.persistence.query.PersistenceQuery;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Helper class which provides functionality for testing with Akka persistence journal for the policies services.
@@ -46,7 +47,7 @@ public final class PoliciesJournalTestHelper<J> {
     private static final int WAIT_TIMEOUT = 3;
     private final Function<PolicyId, String> domainIdToPersistenceId;
     private final BiFunction<BsonDocument, Long, J> journalEntryToDomainObject;
-    private final InMemoryReadJournal readJournal;
+//    private final InMemoryReadJournal readJournal;
     private final ActorSystem actorSystem;
 
     /**
@@ -65,8 +66,8 @@ public final class PoliciesJournalTestHelper<J> {
         this.domainIdToPersistenceId = requireNonNull(domainIdToPersistenceId);
         this.actorSystem = actorSystem;
 
-        readJournal = PersistenceQuery.get(actorSystem).
-                getReadJournalFor(InMemoryReadJournal.class, InMemoryReadJournal.Identifier());
+//        readJournal = PersistenceQuery.get(actorSystem).
+//                getReadJournalFor(InMemoryReadJournal.class, InMemoryReadJournal.Identifier());
     }
 
     /**
@@ -83,7 +84,8 @@ public final class PoliciesJournalTestHelper<J> {
     }
 
     private List<EventEnvelope> getAllEventEnvelopes(final String persistenceId) {
-        return runBlockingWithReturn(readJournal.currentEventsByPersistenceId(persistenceId, 0, Long.MAX_VALUE));
+        return null;
+//        return runBlockingWithReturn(readJournal.currentEventsByPersistenceId(persistenceId, 0, Long.MAX_VALUE));
     }
 
     private J convertEventEnvelopeToDomainObject(final EventEnvelope eventEnvelope) {

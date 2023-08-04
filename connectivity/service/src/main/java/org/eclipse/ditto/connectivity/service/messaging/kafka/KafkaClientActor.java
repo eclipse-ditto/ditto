@@ -50,11 +50,11 @@ import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.actor.Status;
-import akka.japi.pf.FSMStateFunctionBuilder;
-import akka.pattern.Patterns;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.japi.pf.FSMStateFunctionBuilder;
+import org.apache.pekko.pattern.Patterns;
 
 /**
  * Actor which handles connection to Kafka server.

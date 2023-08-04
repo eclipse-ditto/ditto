@@ -20,10 +20,10 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
 
-import akka.Done;
+import org.apache.pekko.Done;
 
 /**
- * Wraps an {@link org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage} and provides a future of {@link akka.Done}
+ * Wraps an {@link org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage} and provides a future of {@link org.apache.pekko.Done}
  * which is completed successfully in all cases:
  * <ul>
  * <li>once the requested acknowledgement was issued/settled</li>

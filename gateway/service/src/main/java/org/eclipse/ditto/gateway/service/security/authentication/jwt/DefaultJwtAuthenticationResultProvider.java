@@ -26,7 +26,7 @@ import org.eclipse.ditto.jwt.model.JsonWebToken;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Default implementation of {@link JwtAuthenticationResultProvider}.

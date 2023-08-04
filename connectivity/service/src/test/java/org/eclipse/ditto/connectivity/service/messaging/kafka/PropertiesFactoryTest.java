@@ -37,8 +37,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import akka.kafka.ConsumerSettings;
-import akka.kafka.ProducerSettings;
+import org.apache.pekko.kafka.ConsumerSettings;
+import org.apache.pekko.kafka.ProducerSettings;
 
 /**
  * Unit test for {@link PropertiesFactory}.

@@ -22,7 +22,7 @@ import java.util.function.Supplier;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 
-import akka.Done;
+import org.apache.pekko.Done;
 
 /**
  * Responsible to wrap a {@link KafkaConsumerStream} and restart it on demand.

@@ -27,8 +27,8 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexOperation
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
-import akka.stream.Materializer;
-import akka.stream.javadsl.Sink;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.javadsl.Sink;
 
 /**
  * Assertion methods for Mongo indices.
@@ -45,7 +45,7 @@ public class MongoIndexAssertions {
      * "_id").
      *
      * @param db the Mongo database
-     * @param materializer the materializer for the akka actor system.
+     * @param materializer the materializer for the pekko actor system.
      * @param expectedIndices the expected indices
      * @see #assertIndices(MongoDatabase, String, Materializer, Collection, boolean)
      */
@@ -58,7 +58,7 @@ public class MongoIndexAssertions {
      * Asserts that the specified Mongo collection contains the expected indices.
      *
      * @param db the Mongo database
-     * @param materializer the materializer for the akka actor system.
+     * @param materializer the materializer for the pekko actor system.
      * @param expectedIndices the expected indices
      * @param ignoreDefaultIndex defines whether the default index (on field "_id") should be excluded from the
      * comparison

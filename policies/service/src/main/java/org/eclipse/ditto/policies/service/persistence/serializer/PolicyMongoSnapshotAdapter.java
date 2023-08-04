@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * A {@link org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter} for snapshotting a

@@ -25,7 +25,7 @@ import org.bson.BsonString;
 import org.bson.Document;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 
-import akka.contrib.persistence.mongodb.JournallingFieldNames$;
+import pekko.contrib.persistence.mongodb.JournallingFieldNames$;
 
 /**
  * Provides {@link MongoPersistenceOperationsSelection}s for selecting/deleting documents in a MongoDB EventSource

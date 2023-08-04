@@ -12,10 +12,10 @@
  */
 package org.eclipse.ditto.internal.utils.health;
 
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.cluster.Cluster;
-import akka.japi.pf.ReceiveBuilder;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 
 /**
  * Actor to report health status for a singleton on and only on the role leader of a cluster.

@@ -48,7 +48,7 @@ import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Base implementation of a factory for getting a Hono {@link Connection}.

@@ -21,8 +21,8 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.internal.utils.persistence.mongo.SnapshotStreamingActor;
 import org.eclipse.ditto.things.model.ThingId;
 
-import akka.actor.ActorRef;
-import akka.actor.Props;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
 
 
 /**

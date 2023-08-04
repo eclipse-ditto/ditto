@@ -17,13 +17,13 @@ import java.util.NoSuchElementException;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 
-import akka.actor.ActorKilledException;
-import akka.actor.InvalidActorNameException;
-import akka.actor.OneForOneStrategy;
-import akka.actor.SupervisorStrategy;
-import akka.event.LoggingAdapter;
-import akka.japi.pf.DeciderBuilder;
-import akka.pattern.AskTimeoutException;
+import org.apache.pekko.actor.ActorKilledException;
+import org.apache.pekko.actor.InvalidActorNameException;
+import org.apache.pekko.actor.OneForOneStrategy;
+import org.apache.pekko.actor.SupervisorStrategy;
+import org.apache.pekko.event.LoggingAdapter;
+import org.apache.pekko.japi.pf.DeciderBuilder;
+import org.apache.pekko.pattern.AskTimeoutException;
 
 /**
  * Creates a {@link OneForOneStrategy} which can be used as Supervisor-Strategy for Root Actors, especially when they

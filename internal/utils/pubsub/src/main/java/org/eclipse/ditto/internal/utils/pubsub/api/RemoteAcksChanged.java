@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 
 import org.eclipse.ditto.internal.utils.pubsub.ddata.ack.Grouped;
 
-import akka.actor.Address;
+import org.apache.pekko.actor.Address;
 
 /**
  * Notification that the distributed data of acknowledgement label declaration changed.

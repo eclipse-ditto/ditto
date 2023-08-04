@@ -117,16 +117,16 @@
             <artifactId>hivemq-mqtt-client</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.newmotion</groupId>
-            <artifactId>akka-rabbitmq_${scala.version}</artifactId>
+            <groupId>com.github.pjfanning</groupId>
+            <artifactId>pekko-rabbitmq_${scala.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-stream-kafka_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-connectors-kafka_${scala.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-http_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-http_${scala.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>org.mozilla</groupId>
@@ -183,8 +183,8 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-testkit_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -201,7 +201,7 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-internal-utils-akka</artifactId>
+            <artifactId>ditto-internal-utils-pekko</artifactId>
             <scope>test</scope>
             <type>test-jar</type>
         </dependency>
@@ -223,11 +223,11 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
             <scope>test</scope>
             <type>test-jar</type>
         </dependency>
-        <dependency>
-            <groupId>com.github.dnvriend</groupId>
-            <artifactId>akka-persistence-inmemory_${scala.version}</artifactId>
-            <scope>test</scope>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.github.dnvriend</groupId>-->
+<!--            <artifactId>akka-persistence-inmemory_${scala.version}</artifactId>-->
+<!--            <scope>test</scope>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>com.github.docker-java</groupId>
             <artifactId>docker-java-core</artifactId>
@@ -239,8 +239,8 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-stream-kafka-testkit_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-connectors-kafka-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

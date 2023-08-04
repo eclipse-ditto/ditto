@@ -36,7 +36,7 @@ import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProto
 import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 @Immutable
 public final class HonoValidator extends AbstractProtocolValidator {

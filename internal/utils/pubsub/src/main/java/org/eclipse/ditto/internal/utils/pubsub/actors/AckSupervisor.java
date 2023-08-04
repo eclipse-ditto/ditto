@@ -18,12 +18,12 @@ import org.eclipse.ditto.internal.utils.pubsub.api.AckRequest;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.literal.LiteralUpdate;
 
-import akka.actor.ActorRef;
-import akka.actor.Address;
-import akka.actor.Props;
-import akka.actor.Terminated;
-import akka.cluster.Cluster;
-import akka.japi.pf.ReceiveBuilder;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Address;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Terminated;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 
 /**
  * Supervisor of AckUpdater.

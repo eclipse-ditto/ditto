@@ -26,8 +26,8 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
 
-import akka.stream.KillSwitch;
-import akka.stream.javadsl.SourceQueueWithComplete;
+import org.apache.pekko.stream.KillSwitch;
+import org.apache.pekko.stream.javadsl.SourceQueueWithComplete;
 
 /**
  * Message to be sent in order to establish a new "streaming" connection via {@link org.eclipse.ditto.gateway.service.streaming.actors.StreamingActor}.

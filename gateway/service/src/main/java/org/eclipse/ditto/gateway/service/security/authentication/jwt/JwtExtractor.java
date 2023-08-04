@@ -19,7 +19,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.api.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 
-import akka.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.RequestContext;
 
 /**
  * Extract a JsonWebToken from the given RequestContext or returns an empty Optional if no token is present.

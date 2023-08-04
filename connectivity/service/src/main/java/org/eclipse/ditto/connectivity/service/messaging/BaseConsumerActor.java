@@ -44,19 +44,19 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.DefaultConnec
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.CounterKey;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.MetricAlertRegistry;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementConfig;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 
-import akka.NotUsed;
-import akka.actor.AbstractActorWithTimers;
-import akka.actor.ActorRef;
-import akka.pattern.Patterns;
-import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Sink;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.AbstractActorWithTimers;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.javadsl.Flow;
+import org.apache.pekko.stream.javadsl.Sink;
 
 /**
  * Base class for consumer actors that holds common fields and handles the address status.

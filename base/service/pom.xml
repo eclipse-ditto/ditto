@@ -68,35 +68,35 @@
             <artifactId>logback-classic</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-actor_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-actor_${scala.version}</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>com.lightbend.akka.management</groupId>
-            <artifactId>akka-management_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-management_${scala.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.lightbend.akka.management</groupId>
-            <artifactId>akka-management-cluster-bootstrap_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-management-cluster-bootstrap_${scala.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.lightbend.akka.management</groupId>
-            <artifactId>akka-management-cluster-http_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-management-cluster-http_${scala.version}</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>com.lightbend.akka.discovery</groupId>
-            <artifactId>akka-discovery-kubernetes-api_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-discovery-kubernetes-api_${scala.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.lightbend.akka.management</groupId>
-            <artifactId>akka-lease-kubernetes_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-lease-kubernetes_${scala.version}</artifactId>
         </dependency>
 
         <dependency>
             <groupId>com.github.scullxbones</groupId>
-            <artifactId>akka-persistence-mongo-common_${scala.version}</artifactId>
+            <artifactId>pekko-persistence-mongodb_${scala.version}</artifactId>
         </dependency>
 
         <dependency>
@@ -126,8 +126,8 @@
 
         <!-- test scope -->
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-testkit_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -25,8 +25,8 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import akka.actor.ActorRef;
-import akka.japi.Pair;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.japi.Pair;
 
 /**
  * Consistence-maintenance part of all subscriptions.

@@ -21,7 +21,7 @@ import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Default {@link CachingSignalEnrichmentFacadeProvider} who provides a {@link org.eclipse.ditto.internal.models.signalenrichment.DittoCachingSignalEnrichmentFacade}.

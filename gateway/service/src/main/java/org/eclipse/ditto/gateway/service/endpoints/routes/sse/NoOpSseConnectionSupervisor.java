@@ -17,7 +17,7 @@ import org.eclipse.ditto.gateway.service.streaming.actors.SupervisedStream;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Null implementation for {@link SseConnectionSupervisor}.

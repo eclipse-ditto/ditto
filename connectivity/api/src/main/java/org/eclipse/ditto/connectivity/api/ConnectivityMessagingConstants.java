@@ -26,7 +26,7 @@ public final class ConnectivityMessagingConstants {
     public static final String SHARD_REGION = "connection";
 
     /**
-     * Name of the akka cluster role.
+     * Name of the pekko cluster role.
      */
     public static final String CLUSTER_ROLE = "connectivity";
 

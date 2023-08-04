@@ -20,8 +20,8 @@ import static org.junit.Assert.assertEquals;
 import org.eclipse.ditto.base.service.UriEncoding;
 import org.junit.Test;
 
-import akka.http.javadsl.model.Uri;
-import akka.http.scaladsl.model.IllegalUriException;
+import org.apache.pekko.http.javadsl.model.Uri;
+import org.apache.pekko.http.scaladsl.model.IllegalUriException;
 
 /**
  * Unit test for {@link org.eclipse.ditto.base.service.UriEncoding}.

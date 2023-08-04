@@ -17,8 +17,8 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 
-import akka.actor.ActorRefFactory;
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorRefFactory;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Pub-sub factory for policy announcements.

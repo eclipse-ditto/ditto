@@ -32,11 +32,11 @@ import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.pattern.Patterns;
-import akka.stream.SourceRef;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.SourceRef;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Source of metadata streamed from things-service.

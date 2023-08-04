@@ -31,8 +31,8 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
-import akka.japi.pf.PFBuilder;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.japi.pf.PFBuilder;
 import scala.PartialFunction;
 
 /**

@@ -22,9 +22,9 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Extension;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Extension;
 
 /**
  * Subscriptions for Ditto protocol channels.

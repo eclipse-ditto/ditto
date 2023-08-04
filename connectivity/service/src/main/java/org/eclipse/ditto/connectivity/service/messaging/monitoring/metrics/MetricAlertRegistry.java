@@ -31,7 +31,7 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.KamonGauge;
 
-import akka.japi.Pair;
+import org.apache.pekko.japi.Pair;
 
 /**
  * Registry to keep track and update existing {@code MetricsAlerts}.

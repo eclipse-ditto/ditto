@@ -40,13 +40,13 @@ import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorIdentity;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Identify;
-import akka.testkit.TestActorRef;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorIdentity;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Identify;
+import org.apache.pekko.testkit.TestActorRef;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -64,8 +64,8 @@ abstract class AbstractThingEnforcementTest {
 
     @Before
     public void init() {
-        system = ActorSystem.create("test", ConfigFactory.parseMap(Map.of("akka.actor.provider",
-                "akka.cluster.ClusterActorRefProvider")).withFallback(ConfigFactory.load(
+        system = ActorSystem.create("test", ConfigFactory.parseMap(Map.of("pekko.actor.provider",
+                "org.apache.pekko.cluster.ClusterActorRefProvider")).withFallback(ConfigFactory.load(
                 "test")));
         policyEnforcerProvider = Mockito.mock(PolicyEnforcerProvider.class);
         pubSubMediatorProbe = createPubSubMediatorProbe();
@@ -130,7 +130,7 @@ abstract class AbstractThingEnforcementTest {
                 null,
                 policyEnforcerProvider,
                 Mockito.mock(MongoReadJournal.class)
-        ).withDispatcher("akka.actor.default-dispatcher"), system.guardian(),
+        ).withDispatcher("org.apache.pekko.actor.default-dispatcher"), system.guardian(),
                 URLEncoder.encode(THING_ID.toString(), Charset.defaultCharset()));
         // Actors using "stash()" require the above dispatcher to be configured, otherwise stash() and unstashAll() won't
         // work like in the "normal" actor!

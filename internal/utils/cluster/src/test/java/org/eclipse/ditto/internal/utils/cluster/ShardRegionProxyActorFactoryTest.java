@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import java.util.Map;
 
-import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
+import org.eclipse.ditto.internal.utils.pekko.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -41,7 +41,7 @@ public final class ShardRegionProxyActorFactoryTest {
             ConfigFactory.parseMap(Map.ofEntries(
                     Map.entry(MappingStrategies.CONFIG_KEY_DITTO_MAPPING_STRATEGY_IMPLEMENTATION,
                             TestMappingStrategies.class.getName()),
-                    Map.entry("akka.actor.provider", "cluster")
+                    Map.entry("pekko.actor.provider", "cluster")
             ))
     );
 

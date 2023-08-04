@@ -17,7 +17,7 @@ import java.util.Optional;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 
-import akka.http.javadsl.model.Uri;
+import org.apache.pekko.http.javadsl.model.Uri;
 
 /**
  * Supplier of optional username-password credentials.

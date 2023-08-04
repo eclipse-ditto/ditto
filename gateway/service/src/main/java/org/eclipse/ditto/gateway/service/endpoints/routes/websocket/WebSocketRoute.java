@@ -66,10 +66,10 @@ import org.eclipse.ditto.gateway.service.streaming.signals.StreamingAck;
 import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.gateway.service.util.config.streaming.WebsocketConfig;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
-import org.eclipse.ditto.internal.utils.akka.controlflow.Filter;
-import org.eclipse.ditto.internal.utils.akka.controlflow.LimitRateByRejection;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.controlflow.Filter;
+import org.eclipse.ditto.internal.utils.pekko.controlflow.LimitRateByRejection;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
@@ -98,36 +98,36 @@ import org.eclipse.ditto.thingsearch.model.ThingSearchException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.SearchErrorResponse;
 import org.slf4j.Logger;
 
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.event.Logging;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.ws.Message;
-import akka.http.javadsl.model.ws.TextMessage;
-import akka.http.javadsl.model.ws.WebSocketUpgrade;
-import akka.http.javadsl.server.Directives;
-import akka.http.javadsl.server.RequestContext;
-import akka.http.javadsl.server.Route;
-import akka.japi.Pair;
-import akka.japi.function.Function;
-import akka.japi.pf.PFBuilder;
-import akka.pattern.Patterns;
-import akka.stream.Attributes;
-import akka.stream.FanOutShape2;
-import akka.stream.FlowShape;
-import akka.stream.Graph;
-import akka.stream.KillSwitches;
-import akka.stream.Materializer;
-import akka.stream.SharedKillSwitch;
-import akka.stream.SinkShape;
-import akka.stream.UniformFanInShape;
-import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.GraphDSL;
-import akka.stream.javadsl.Merge;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.event.Logging;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.ws.Message;
+import org.apache.pekko.http.javadsl.model.ws.TextMessage;
+import org.apache.pekko.http.javadsl.model.ws.WebSocketUpgrade;
+import org.apache.pekko.http.javadsl.server.Directives;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.japi.function.Function;
+import org.apache.pekko.japi.pf.PFBuilder;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.Attributes;
+import org.apache.pekko.stream.FanOutShape2;
+import org.apache.pekko.stream.FlowShape;
+import org.apache.pekko.stream.Graph;
+import org.apache.pekko.stream.KillSwitches;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.SharedKillSwitch;
+import org.apache.pekko.stream.SinkShape;
+import org.apache.pekko.stream.UniformFanInShape;
+import org.apache.pekko.stream.javadsl.Flow;
+import org.apache.pekko.stream.javadsl.GraphDSL;
+import org.apache.pekko.stream.javadsl.Merge;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 import scala.util.Either;
 import scala.util.Left;
 import scala.util.Right;
@@ -919,7 +919,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
     private static Optional<JsonWebToken> extractJwtFromRequestIfPresent(final HttpRequest request) {
         return request.getHeader(HttpHeader.AUTHORIZATION.toString())
-                .map(akka.http.javadsl.model.HttpHeader::value)
+                .map(org.apache.pekko.http.javadsl.model.HttpHeader::value)
                 .filter(s -> s.startsWith(BEARER))
                 .map(ImmutableJsonWebToken::fromAuthorization);
     }

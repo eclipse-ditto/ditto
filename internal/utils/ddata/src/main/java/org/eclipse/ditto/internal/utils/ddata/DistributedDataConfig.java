@@ -18,7 +18,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
-import akka.cluster.ddata.Replicator;
+import org.apache.pekko.cluster.ddata.Replicator;
 
 /**
  * Provides configuration settings for {@link DistributedData}.
@@ -55,11 +55,11 @@ public interface DistributedDataConfig {
     Duration getSubscriptionDelay();
 
     /**
-     * Returns the config to use for creating the {@link akka.cluster.ddata.Replicator}.
+     * Returns the config to use for creating the {@link org.apache.pekko.cluster.ddata.Replicator}.
      *
      * @return the Akka replicator config to use.
      */
-    AkkaReplicatorConfig getAkkaReplicatorConfig();
+    PekkoReplicatorConfig getPekkoReplicatorConfig();
 
     /**
      * The number of shards Ditto's ddata extension applies for Map keys.

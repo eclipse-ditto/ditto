@@ -30,12 +30,12 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import akka.actor.ActorSystem;
-import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.persistence.SnapshotMetadata;
-import akka.persistence.SnapshotOffer;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.persistence.SnapshotMetadata;
+import org.apache.pekko.persistence.SnapshotOffer;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit test for {@link ThingMongoSnapshotAdapter}.

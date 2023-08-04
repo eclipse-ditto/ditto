@@ -74,7 +74,7 @@ import org.junit.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Tests the {@link JavaScriptMessageMapperRhino} by initializing different mapping templates and ensuring that they

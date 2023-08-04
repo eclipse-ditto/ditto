@@ -21,7 +21,7 @@ import org.eclipse.ditto.gateway.service.security.utils.HttpUtils;
 import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 
-import akka.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.RequestContext;
 
 /**
  * Implementation of {@link JwtExtractor} extracting

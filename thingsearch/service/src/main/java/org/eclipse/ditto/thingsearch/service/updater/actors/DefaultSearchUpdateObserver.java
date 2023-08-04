@@ -19,7 +19,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Default SearchUpdateObserver implementation.

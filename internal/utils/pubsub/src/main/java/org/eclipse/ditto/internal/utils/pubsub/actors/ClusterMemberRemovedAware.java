@@ -14,13 +14,13 @@ package org.eclipse.ditto.internal.utils.pubsub.actors;
 
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataWriter;
 
-import akka.actor.AbstractActor;
-import akka.actor.Actor;
-import akka.cluster.Cluster;
-import akka.cluster.ClusterEvent;
-import akka.cluster.ddata.Replicator;
-import akka.event.LoggingAdapter;
-import akka.japi.pf.ReceiveBuilder;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.Actor;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.cluster.ClusterEvent;
+import org.apache.pekko.cluster.ddata.Replicator;
+import org.apache.pekko.event.LoggingAdapter;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 
 /**
  * Mixin to subscribe for cluster events.

@@ -14,7 +14,7 @@ package org.eclipse.ditto.internal.utils.pubsub.api;
 
 import java.util.Collections;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 /**
  * Request to remove a subscriber.

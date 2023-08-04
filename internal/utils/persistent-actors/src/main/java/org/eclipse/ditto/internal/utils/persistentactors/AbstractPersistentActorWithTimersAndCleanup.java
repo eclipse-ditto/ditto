@@ -21,19 +21,19 @@ import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 
-import akka.actor.ActorRef;
-import akka.persistence.AbstractPersistentActorWithTimers;
-import akka.persistence.DeleteMessagesFailure;
-import akka.persistence.DeleteMessagesSuccess;
-import akka.persistence.DeleteSnapshotsFailure;
-import akka.persistence.DeleteSnapshotsSuccess;
-import akka.persistence.JournalProtocol;
-import akka.persistence.Protocol;
-import akka.persistence.SnapshotProtocol;
-import akka.persistence.SnapshotSelectionCriteria;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.persistence.AbstractPersistentActorWithTimers;
+import org.apache.pekko.persistence.DeleteMessagesFailure;
+import org.apache.pekko.persistence.DeleteMessagesSuccess;
+import org.apache.pekko.persistence.DeleteSnapshotsFailure;
+import org.apache.pekko.persistence.DeleteSnapshotsSuccess;
+import org.apache.pekko.persistence.JournalProtocol;
+import org.apache.pekko.persistence.Protocol;
+import org.apache.pekko.persistence.SnapshotProtocol;
+import org.apache.pekko.persistence.SnapshotSelectionCriteria;
 
 /**
  * Extends {@code AbstractPersistentActorWithTimers} to provide functionality to handle the {@link CleanupPersistence}

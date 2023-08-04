@@ -14,7 +14,7 @@ package org.eclipse.ditto.policies.service.persistence.serializer;
 
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 
-import akka.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
 
 /**
  * EventAdapter for {@link PolicyEvent}s persisted into akka-persistence event-journal.

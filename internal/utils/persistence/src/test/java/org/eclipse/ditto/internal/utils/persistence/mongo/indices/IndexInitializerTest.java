@@ -18,7 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.junit.Test;
 
-import akka.stream.Materializer;
+import org.apache.pekko.stream.Materializer;
 
 /**
  * Unit test for {@link IndexInitializer}.

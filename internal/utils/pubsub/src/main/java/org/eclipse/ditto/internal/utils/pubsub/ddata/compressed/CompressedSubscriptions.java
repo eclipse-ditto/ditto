@@ -29,7 +29,7 @@ import org.eclipse.ditto.internal.utils.pubsub.ddata.SubscriberData;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.TopicData;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.ack.Grouped;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 /**
  * Local subscriptions for distribution of subscribed topics as hash code sequences.

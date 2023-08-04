@@ -18,7 +18,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 public class NoOpMessageMapperExtension implements MessageMapperExtension {
 

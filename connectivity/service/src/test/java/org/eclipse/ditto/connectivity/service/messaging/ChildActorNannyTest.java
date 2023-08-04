@@ -26,10 +26,10 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorRefFactory;
-import akka.actor.Props;
-import akka.event.LoggingAdapter;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorRefFactory;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.event.LoggingAdapter;
 
 /**
  * Unit test for {@link ChildActorNanny}.

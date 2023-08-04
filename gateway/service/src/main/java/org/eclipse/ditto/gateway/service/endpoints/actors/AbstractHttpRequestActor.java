@@ -65,37 +65,37 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiResponse;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
-import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithShutdownBehavior;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithShutdownBehavior;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.JsonValueSourceRef;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 
-import akka.Done;
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.Cancellable;
-import akka.actor.CoordinatedShutdown;
-import akka.actor.ReceiveTimeout;
-import akka.actor.Status;
-import akka.http.javadsl.model.ContentTypes;
-import akka.http.javadsl.model.HttpEntities;
-import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.model.Uri;
-import akka.http.javadsl.model.headers.Location;
-import akka.http.javadsl.model.headers.RawHeader;
-import akka.http.scaladsl.model.ContentType$;
-import akka.http.scaladsl.model.EntityStreamSizeException;
-import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.AskTimeoutException;
-import akka.pattern.Patterns;
-import akka.util.ByteString;
+import org.apache.pekko.Done;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Cancellable;
+import org.apache.pekko.actor.CoordinatedShutdown;
+import org.apache.pekko.actor.ReceiveTimeout;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.http.javadsl.model.ContentTypes;
+import org.apache.pekko.http.javadsl.model.HttpEntities;
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.model.Uri;
+import org.apache.pekko.http.javadsl.model.headers.Location;
+import org.apache.pekko.http.javadsl.model.headers.RawHeader;
+import org.apache.pekko.http.scaladsl.model.ContentType$;
+import org.apache.pekko.http.scaladsl.model.EntityStreamSizeException;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.AskTimeoutException;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.util.ByteString;
 import scala.Option;
 import scala.util.Either;
 
@@ -111,7 +111,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
      */
     public static final String COMPLETE_MESSAGE = "complete";
 
-    private static final akka.http.javadsl.model.ContentType CONTENT_TYPE_JSON = ContentTypes.APPLICATION_JSON;
+    private static final org.apache.pekko.http.javadsl.model.ContentType CONTENT_TYPE_JSON = ContentTypes.APPLICATION_JSON;
 
     private final ActorRef proxyActor;
     private final HeaderTranslator headerTranslator;
@@ -485,14 +485,14 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
         // if statusCode is != NO_CONTENT
         if (responseStatus.map(status -> !HttpStatus.NO_CONTENT.equals(status)).orElse(true)) {
             // this is on purpose not .map(ContentTypes:parse) as this would throw an exception:
-            final Optional<akka.http.scaladsl.model.ContentType> optionalContentType = message.getContentType()
+            final Optional<org.apache.pekko.http.scaladsl.model.ContentType> optionalContentType = message.getContentType()
                     .map(ContentType$.MODULE$::parse)
                     .filter(Either::isRight)
                     .map(Either::toOption)
                     .map(Option::get);
 
             final boolean isBinary = optionalContentType
-                    .map(akka.http.scaladsl.model.ContentType::value)
+                    .map(org.apache.pekko.http.scaladsl.model.ContentType::value)
                     .map(ContentType::of)
                     .filter(ContentType::isBinary)
                     .isPresent();
@@ -500,12 +500,12 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
             httpResponse = createHttpResponse(responseStatus.orElse(HttpStatus.OK));
 
             if (optionalPayload.isPresent() && optionalContentType.isPresent() && !isBinary) {
-                final akka.http.scaladsl.model.ContentType contentType = optionalContentType.get();
+                final org.apache.pekko.http.scaladsl.model.ContentType contentType = optionalContentType.get();
                 final Object payload = optionalPayload.get();
                 final ByteString responsePayload = ByteString.fromString(payload.toString());
                 httpResponse = httpResponse.withEntity(HttpEntities.create(contentType, responsePayload));
             } else if (optionalRawPayload.isPresent() && optionalContentType.isPresent() && isBinary) {
-                final akka.http.scaladsl.model.ContentType contentType = optionalContentType.get();
+                final org.apache.pekko.http.scaladsl.model.ContentType contentType = optionalContentType.get();
                 final ByteBuffer rawPayload = optionalRawPayload.get();
                 httpResponse = httpResponse.withEntity(HttpEntities.create(contentType, rawPayload.array()));
             } else if (optionalRawPayload.isPresent()) {

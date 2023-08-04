@@ -45,7 +45,7 @@ import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Tests {@link CreateThingSubstitutionStrategy} in context of

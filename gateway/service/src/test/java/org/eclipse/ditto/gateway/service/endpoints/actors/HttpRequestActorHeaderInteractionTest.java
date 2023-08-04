@@ -29,7 +29,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import akka.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
 
 /**
  * Test the interaction between timeout, response-required and requested-acks for {@link HttpRequestActor}.

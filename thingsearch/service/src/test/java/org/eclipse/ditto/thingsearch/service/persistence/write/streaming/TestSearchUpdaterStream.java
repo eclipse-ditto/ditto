@@ -34,8 +34,8 @@ import org.eclipse.ditto.thingsearch.service.updater.actors.ThingUpdater;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.ConfigFactory;
 
-import akka.NotUsed;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Run parts of the updater stream for unit tests.

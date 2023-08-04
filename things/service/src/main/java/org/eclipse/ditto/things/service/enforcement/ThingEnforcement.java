@@ -24,8 +24,8 @@ import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Authorizes {@link Signal}s and filters {@link CommandResponse}s related to things by applying different included

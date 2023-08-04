@@ -26,7 +26,7 @@ import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 final class HttpTestDittoProtocolHelper {
 

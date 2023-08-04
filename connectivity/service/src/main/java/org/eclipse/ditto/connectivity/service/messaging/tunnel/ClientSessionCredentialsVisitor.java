@@ -24,7 +24,7 @@ import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.PublicKeyAuthenticationFactory;
 
-import akka.event.LoggingAdapter;
+import org.apache.pekko.event.LoggingAdapter;
 
 /**
  * Applies configured {@link org.eclipse.ditto.connectivity.model.Credentials} from a connection to the given

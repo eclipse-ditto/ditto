@@ -37,14 +37,14 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.cluster.ddata.ORSet;
-import akka.cluster.ddata.Replicator;
-import akka.cluster.ddata.SelfUniqueAddress;
-import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.cluster.ddata.ORSet;
+import org.apache.pekko.cluster.ddata.Replicator;
+import org.apache.pekko.cluster.ddata.SelfUniqueAddress;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class CachingPolicyEnforcerProviderTest {

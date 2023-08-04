@@ -30,7 +30,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
-import akka.dispatch.MessageDispatcher;
+import org.apache.pekko.dispatch.MessageDispatcher;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class DefaultPolicyEnforcerProviderTest {

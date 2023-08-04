@@ -40,11 +40,11 @@ import org.eclipse.ditto.internal.utils.cache.CaffeineCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
 
-import akka.actor.AbstractExtensionId;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
-import akka.actor.Extension;
+import org.apache.pekko.actor.AbstractExtensionId;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.Extension;
 
 /**
  * A cache of response receivers and their associated correlation ID.

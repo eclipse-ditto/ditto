@@ -19,7 +19,7 @@ import org.eclipse.ditto.internal.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.internal.utils.health.status.StatusHealthSupplier;
 import org.eclipse.ditto.internal.utils.health.status.StatusSupplier;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Provides a {@link StatusAndHealthProvider} for the ditto-cluster.

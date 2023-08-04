@@ -23,18 +23,18 @@ import org.bouncycastle.util.encoders.Hex;
 import org.junit.After;
 import org.junit.Test;
 
-import akka.actor.ActorSystem;
-import akka.http.javadsl.model.ContentType;
-import akka.http.javadsl.model.ContentTypes;
-import akka.http.javadsl.model.HttpEntities;
-import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.RequestEntity;
-import akka.http.javadsl.model.Uri;
-import akka.http.javadsl.model.headers.HttpCredentials;
-import akka.stream.javadsl.Sink;
-import akka.testkit.javadsl.TestKit;
-import akka.util.ByteString;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.ContentType;
+import org.apache.pekko.http.javadsl.model.ContentTypes;
+import org.apache.pekko.http.javadsl.model.HttpEntities;
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.RequestEntity;
+import org.apache.pekko.http.javadsl.model.Uri;
+import org.apache.pekko.http.javadsl.model.headers.HttpCredentials;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.testkit.javadsl.TestKit;
+import org.apache.pekko.util.ByteString;
 
 /**
  * Test cases for AWS request signing.

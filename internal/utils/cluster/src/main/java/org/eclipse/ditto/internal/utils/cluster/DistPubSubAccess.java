@@ -16,8 +16,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 
-import akka.actor.ActorRef;
-import akka.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
 
 /**
  * Helper class for accessing Akka's {@link DistributedPubSubMediator} messages (e.g. publishing, subscribing, etc.).

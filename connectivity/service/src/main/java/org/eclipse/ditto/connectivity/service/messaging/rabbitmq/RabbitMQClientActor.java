@@ -45,12 +45,12 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 
-import com.newmotion.akka.rabbitmq.ChannelActor;
-import com.newmotion.akka.rabbitmq.ChannelCreated;
-import com.newmotion.akka.rabbitmq.CreateChannel;
+import com.github.pjfanning.pekko.rabbitmq.ChannelActor;
+import com.github.pjfanning.pekko.rabbitmq.ChannelCreated;
+import com.github.pjfanning.pekko.rabbitmq.CreateChannel;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AlreadyClosedException;
 import com.rabbitmq.client.Channel;
@@ -63,12 +63,12 @@ import com.rabbitmq.client.impl.DefaultExceptionHandler;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.actor.Status;
-import akka.japi.pf.FI;
-import akka.japi.pf.FSMStateFunctionBuilder;
-import akka.pattern.Patterns;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.japi.pf.FI;
+import org.apache.pekko.japi.pf.FSMStateFunctionBuilder;
+import org.apache.pekko.pattern.Patterns;
 import scala.Option;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -312,7 +312,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             if (connectionFactoryOpt.isPresent()) {
                 final ConnectionFactory connectionFactory = connectionFactoryOpt.get();
 
-                final Props props = com.newmotion.akka.rabbitmq.ConnectionActor.props(connectionFactory,
+                final Props props = com.github.pjfanning.pekko.rabbitmq.ConnectionActor.props(connectionFactory,
                         FiniteDuration.apply(internalReconnectTimeout.getSeconds(), TimeUnit.SECONDS),
                         (rmqConnection, connectionActorRef) -> {
                             l.info("Established RMQ connection: {}", rmqConnection);

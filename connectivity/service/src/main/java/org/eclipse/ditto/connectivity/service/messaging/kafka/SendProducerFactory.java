@@ -14,7 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import java.nio.ByteBuffer;
 
-import akka.kafka.javadsl.SendProducer;
+import org.apache.pekko.kafka.javadsl.SendProducer;
 
 /**
  * Creates Kafka {@link SendProducer}s.

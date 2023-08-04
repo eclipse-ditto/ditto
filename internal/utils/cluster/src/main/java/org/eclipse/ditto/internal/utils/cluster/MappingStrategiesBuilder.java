@@ -26,11 +26,11 @@ import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.base.model.signals.JsonParsableRegistry;
 import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
-import org.eclipse.ditto.internal.utils.akka.PingCommand;
-import org.eclipse.ditto.internal.utils.akka.PingCommandResponse;
-import org.eclipse.ditto.internal.utils.akka.SimpleCommand;
-import org.eclipse.ditto.internal.utils.akka.SimpleCommandResponse;
-import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
+import org.eclipse.ditto.internal.utils.pekko.PingCommand;
+import org.eclipse.ditto.internal.utils.pekko.PingCommandResponse;
+import org.eclipse.ditto.internal.utils.pekko.SimpleCommand;
+import org.eclipse.ditto.internal.utils.pekko.SimpleCommandResponse;
+import org.eclipse.ditto.internal.utils.pekko.streaming.StreamAck;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
 import org.eclipse.ditto.json.JsonObject;
 

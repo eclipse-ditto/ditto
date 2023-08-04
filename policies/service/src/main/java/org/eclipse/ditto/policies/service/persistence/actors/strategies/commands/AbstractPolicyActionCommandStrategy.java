@@ -14,11 +14,11 @@ package org.eclipse.ditto.policies.service.persistence.actors.strategies.command
 
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 import org.eclipse.ditto.policies.service.persistence.actors.resolvers.SubjectIdFromActionResolver;
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
+import org.eclipse.ditto.internal.utils.pekko.PekkoClassLoader;
 import org.eclipse.ditto.policies.model.signals.commands.actions.PolicyActionCommand;
 import org.eclipse.ditto.policies.model.signals.events.PolicyActionEvent;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Abstract base class for {@link PolicyActionCommand} strategies.
@@ -34,7 +34,7 @@ abstract class AbstractPolicyActionCommandStrategy<C extends PolicyActionCommand
             final PolicyConfig policyConfig,
             final ActorSystem system) {
         super(theMatchingClass, policyConfig);
-        this.subjectIdFromActionResolver = AkkaClassLoader.instantiate(system, SubjectIdFromActionResolver.class,
+        this.subjectIdFromActionResolver = PekkoClassLoader.instantiate(system, SubjectIdFromActionResolver.class,
                 policyConfig.getSubjectIdResolver());
     }
 

@@ -27,7 +27,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 /**
  * Immutable sharable map from resource types to actor reference.

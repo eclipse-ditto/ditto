@@ -27,10 +27,10 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
-import akka.actor.ActorRef;
-import akka.cluster.sharding.ShardRegion;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.pattern.Patterns;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.cluster.sharding.ShardRegion;
+import org.apache.pekko.event.DiagnosticLoggingAdapter;
+import org.apache.pekko.pattern.Patterns;
 
 /**
  * Supplier of {@link RetrieveStatisticsDetailsResponse}s for a specific shard region - determines the "hot entities"

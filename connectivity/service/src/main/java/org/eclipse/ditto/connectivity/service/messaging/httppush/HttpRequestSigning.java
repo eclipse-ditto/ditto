@@ -16,9 +16,9 @@ import java.time.Instant;
 
 import org.eclipse.ditto.connectivity.service.messaging.signing.Signing;
 
-import akka.NotUsed;
-import akka.http.javadsl.model.HttpRequest;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Functional interface for signing an HTTP request before sending it.

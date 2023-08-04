@@ -15,8 +15,8 @@
     <appender name="jsonConsoleAppender" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
             <excludeMdcKeyName>sourceActorSystem</excludeMdcKeyName>
-            <excludeMdcKeyName>akkaUid</excludeMdcKeyName>
-            <excludeMdcKeyName>akkaTimestamp</excludeMdcKeyName>
+            <excludeMdcKeyName>pekkoUid</excludeMdcKeyName>
+            <excludeMdcKeyName>pekkoTimestamp</excludeMdcKeyName>
             <mdcKeyFieldName>x-correlation-id=correlation-id</mdcKeyFieldName>
             <mdcKeyFieldName>connection-id=ditto-connection-id</mdcKeyFieldName>
             <mdcKeyFieldName>connection-type=ditto-connection-type</mdcKeyFieldName>
@@ -26,9 +26,9 @@
     <!-- Do not print INFO cluster messages of mongo driver: -->
     <logger name="org.mongodb.driver" level="WARN"/>
 
-    <logger name="akka.management.cluster.bootstrap.contactpoint.HttpClusterBootstrapRoutes" level="WARN"/>
-    <logger name="akka.management.cluster.bootstrap.internal.BootstrapCoordinator" level="WARN"/>
-    <logger name="akka.actor.CoordinatedShutdown" level="INFO"/>
+    <logger name="org.apache.pekko.management.cluster.bootstrap.contactpoint.HttpClusterBootstrapRoutes" level="WARN"/>
+    <logger name="org.apache.pekko.management.cluster.bootstrap.internal.BootstrapCoordinator" level="WARN"/>
+    <logger name="org.apache.pekko.actor.CoordinatedShutdown" level="INFO"/>
 
     <logger name="org.apache.kafka" level="WARN"/>
 

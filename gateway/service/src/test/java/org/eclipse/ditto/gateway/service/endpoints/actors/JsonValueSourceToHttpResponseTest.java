@@ -29,13 +29,13 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
-import akka.actor.ActorSystem;
-import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.model.headers.HttpEncodings;
-import akka.stream.SystemMaterializer;
-import akka.stream.javadsl.Source;
-import akka.stream.javadsl.StreamConverters;
-import akka.util.ByteString;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.model.headers.HttpEncodings;
+import org.apache.pekko.stream.SystemMaterializer;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.javadsl.StreamConverters;
+import org.apache.pekko.util.ByteString;
 
 /**
  * Unit test for {@link JsonValueSourceToHttpResponse}.

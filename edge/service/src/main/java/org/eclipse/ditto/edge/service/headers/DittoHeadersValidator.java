@@ -22,7 +22,7 @@ import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * This extension allows to validate {@link org.eclipse.ditto.base.model.headers.DittoHeaders}.

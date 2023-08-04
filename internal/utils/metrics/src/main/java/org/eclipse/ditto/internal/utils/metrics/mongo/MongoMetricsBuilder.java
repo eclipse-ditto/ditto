@@ -19,12 +19,12 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 
-import akka.contrib.persistence.mongodb.MetricsBuilder;
-import akka.contrib.persistence.mongodb.MongoHistogram;
-import akka.contrib.persistence.mongodb.MongoTimer;
+import pekko.contrib.persistence.mongodb.MetricsBuilder;
+import pekko.contrib.persistence.mongodb.MongoHistogram;
+import pekko.contrib.persistence.mongodb.MongoTimer;
 
 /**
- * An akka-persistence-mongodb {@link MetricsBuilder} which uses {@link DittoMetrics} in order to provide timers and
+ * An pekko-persistence-mongodb {@link MetricsBuilder} which uses {@link DittoMetrics} in order to provide timers and
  * histograms.
  */
 @Immutable

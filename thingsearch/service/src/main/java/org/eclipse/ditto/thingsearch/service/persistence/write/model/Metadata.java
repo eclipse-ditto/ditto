@@ -38,8 +38,8 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
 
 /**
  * Data class holding information about a "thingEntities" database record.

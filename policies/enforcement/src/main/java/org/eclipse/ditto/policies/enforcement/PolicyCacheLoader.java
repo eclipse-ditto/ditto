@@ -36,12 +36,12 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAcc
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
-import akka.actor.AbstractExtensionId;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
-import akka.actor.Extension;
-import akka.actor.Scheduler;
+import org.apache.pekko.actor.AbstractExtensionId;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.Extension;
+import org.apache.pekko.actor.Scheduler;
 
 /**
  * Loads a policy by asking the policies shard-region-proxy.

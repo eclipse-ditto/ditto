@@ -35,15 +35,15 @@ import org.eclipse.ditto.base.model.signals.acks.AcknowledgementRequestDuplicate
 import org.eclipse.ditto.base.model.signals.announcements.Announcement;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.events.Event;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorRefFactory;
-import akka.actor.ActorSelection;
-import akka.actor.InvalidActorNameException;
-import akka.actor.Props;
-import akka.japi.Pair;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorRefFactory;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.InvalidActorNameException;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.japi.Pair;
 
 /**
  * Starting an acknowledgement forwarder actor is more complex than simply call {@code actorOf}.

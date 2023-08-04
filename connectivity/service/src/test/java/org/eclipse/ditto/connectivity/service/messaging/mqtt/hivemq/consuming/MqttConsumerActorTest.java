@@ -47,7 +47,7 @@ import org.eclipse.ditto.connectivity.service.messaging.ResponseCollectorActor;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
-import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
+import org.eclipse.ditto.internal.utils.pekko.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
@@ -65,10 +65,10 @@ import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Unit test for {@link MqttConsumerActor}.
@@ -131,7 +131,7 @@ public final class MqttConsumerActorTest {
                         connectionSource,
                         connectivityStatusResolver,
                         TestConstants.CONNECTIVITY_CONFIG,
-                        Mockito.mock(akka.stream.javadsl.Source.class)))
+                        Mockito.mock(org.apache.pekko.stream.javadsl.Source.class)))
                 .withMessage("The connection must not be null!")
                 .withNoCause();
     }
@@ -144,7 +144,7 @@ public final class MqttConsumerActorTest {
                         connectionSource,
                         connectivityStatusResolver,
                         TestConstants.CONNECTIVITY_CONFIG,
-                        Mockito.mock(akka.stream.javadsl.Source.class)))
+                        Mockito.mock(org.apache.pekko.stream.javadsl.Source.class)))
                 .withMessage("The inboundMappingSink must not be null!")
                 .withNoCause();
     }
@@ -157,7 +157,7 @@ public final class MqttConsumerActorTest {
                         null,
                         connectivityStatusResolver,
                         TestConstants.CONNECTIVITY_CONFIG,
-                        Mockito.mock(akka.stream.javadsl.Source.class)))
+                        Mockito.mock(org.apache.pekko.stream.javadsl.Source.class)))
                 .withMessage("The connectionSource must not be null!")
                 .withNoCause();
     }
@@ -170,7 +170,7 @@ public final class MqttConsumerActorTest {
                         connectionSource,
                         null,
                         TestConstants.CONNECTIVITY_CONFIG,
-                        Mockito.mock(akka.stream.javadsl.Source.class)))
+                        Mockito.mock(org.apache.pekko.stream.javadsl.Source.class)))
                 .withMessage("The connectivityStatusResolver must not be null!")
                 .withNoCause();
     }
@@ -183,7 +183,7 @@ public final class MqttConsumerActorTest {
                         connectionSource,
                         connectivityStatusResolver,
                         null,
-                        Mockito.mock(akka.stream.javadsl.Source.class)))
+                        Mockito.mock(org.apache.pekko.stream.javadsl.Source.class)))
                 .withMessage("The connectivityConfig must not be null!")
                 .withNoCause();
     }

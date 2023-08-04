@@ -16,7 +16,7 @@ import java.nio.charset.StandardCharsets;
 
 import org.bson.BsonDocument;
 
-import akka.serialization.JSerializer;
+import org.apache.pekko.serialization.JSerializer;
 
 /**
  * Serializer for BsonDocument for unit tests using the in-memory persistence plugin.

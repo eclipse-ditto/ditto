@@ -25,13 +25,13 @@ import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionTimeoutException;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionLogs;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionLogsResponse;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.actor.ReceiveTimeout;
-import akka.event.DiagnosticLoggingAdapter;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.ReceiveTimeout;
+import org.apache.pekko.event.DiagnosticLoggingAdapter;
 
 /**
  * An aggregation actor which receives {@link org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionLogs}

@@ -32,14 +32,14 @@ import org.eclipse.ditto.internal.utils.pubsub.api.ReceiveRemoteAcks;
 import org.eclipse.ditto.internal.utils.pubsub.api.RemoveSubscriberAcks;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.literal.LiteralDData;
 
-import akka.actor.AbstractExtensionId;
-import akka.actor.ActorContext;
-import akka.actor.ActorRef;
-import akka.actor.ActorRefFactory;
-import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
-import akka.actor.Props;
-import akka.pattern.Patterns;
+import org.apache.pekko.actor.AbstractExtensionId;
+import org.apache.pekko.actor.ActorContext;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorRefFactory;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.pattern.Patterns;
 
 /**
  * Package-private implementation of {@link DistributedAcks}.

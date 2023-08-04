@@ -40,11 +40,11 @@ import org.eclipse.ditto.messages.model.signals.commands.SendThingMessageRespons
 import org.junit.Before;
 import org.junit.Test;
 
-import akka.actor.ActorRef;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.testkit.TestRoute;
-import akka.http.javadsl.testkit.TestRouteResult;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.testkit.TestRoute;
+import org.apache.pekko.http.javadsl.testkit.TestRouteResult;
 
 /**
  * Tests {@link MessagesRoute}.

@@ -29,10 +29,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.ReceiveTimeout;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.ReceiveTimeout;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link ResponseCollectorActor}.

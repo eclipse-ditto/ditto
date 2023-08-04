@@ -16,7 +16,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
-import akka.http.javadsl.ClientTransport;
+import org.apache.pekko.http.javadsl.ClientTransport;
 
 /**
  * Provides configuration settings for the HTTP proxy.

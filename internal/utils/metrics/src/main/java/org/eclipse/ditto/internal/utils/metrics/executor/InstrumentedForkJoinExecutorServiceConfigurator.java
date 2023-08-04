@@ -16,10 +16,10 @@ import java.util.concurrent.ThreadFactory;
 
 import com.typesafe.config.Config;
 
-import akka.dispatch.DispatcherPrerequisites;
-import akka.dispatch.ExecutorServiceConfigurator;
-import akka.dispatch.ExecutorServiceFactory;
-import akka.dispatch.ForkJoinExecutorConfigurator;
+import org.apache.pekko.dispatch.DispatcherPrerequisites;
+import org.apache.pekko.dispatch.ExecutorServiceConfigurator;
+import org.apache.pekko.dispatch.ExecutorServiceFactory;
+import org.apache.pekko.dispatch.ForkJoinExecutorConfigurator;
 import kamon.instrumentation.executor.ExecutorInstrumentation;
 
 /**

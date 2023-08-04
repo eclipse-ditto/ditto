@@ -27,7 +27,7 @@ import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
 
 /**
  * Utility for tracing Http requests.

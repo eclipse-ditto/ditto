@@ -26,11 +26,11 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigRenderOptions;
 
 /**
- * This class is the default implementation of Akka's {@link akka.cluster.ddata.Replicator} config.
+ * This class is the default implementation of Akka's {@link org.apache.pekko.cluster.ddata.Replicator} config.
  */
-class DefaultAkkaReplicatorConfig implements AkkaReplicatorConfig {
+class DefaultAkkaReplicatorConfig implements PekkoReplicatorConfig {
 
-    private static final String CONFIG_PATH = "akka-distributed-data";
+    private static final String CONFIG_PATH = "pekko-distributed-data";
 
     private final String name;
     private final String role;

@@ -24,7 +24,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Default implementation for {@link DittoHeadersValidator}.

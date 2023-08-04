@@ -20,7 +20,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 
-import akka.actor.Props;
+import org.apache.pekko.actor.Props;
 
 
 /**

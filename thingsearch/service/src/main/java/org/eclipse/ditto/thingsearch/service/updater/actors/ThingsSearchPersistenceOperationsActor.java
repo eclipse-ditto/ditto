@@ -18,8 +18,8 @@ import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperat
 import org.eclipse.ditto.thingsearch.model.ThingSearchConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.write.ThingsSearchUpdaterPersistence;
 
-import akka.actor.ActorRef;
-import akka.actor.Props;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
 
 /**
  * Actor which performs ops on the search index.

@@ -49,7 +49,7 @@ import org.eclipse.ditto.policies.model.signals.events.SubjectModified;
 import org.eclipse.ditto.policies.model.signals.events.SubjectsModifiedPartially;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * This strategy handles the {@link ActivateTokenIntegration} command.

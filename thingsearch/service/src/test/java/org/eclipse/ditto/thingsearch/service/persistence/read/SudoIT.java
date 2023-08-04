@@ -40,7 +40,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import akka.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Sink;
 
 /**
  * Test sudo methods.

@@ -29,13 +29,13 @@ import org.eclipse.ditto.policies.model.PolicyId;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.pattern.Patterns;
-import akka.persistence.Persistence;
-import akka.persistence.SelectedSnapshot;
-import akka.persistence.SnapshotProtocol;
-import akka.persistence.SnapshotSelectionCriteria;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.persistence.Persistence;
+import org.apache.pekko.persistence.SelectedSnapshot;
+import org.apache.pekko.persistence.SnapshotProtocol;
+import org.apache.pekko.persistence.SnapshotSelectionCriteria;
 import scala.Option;
 
 /**

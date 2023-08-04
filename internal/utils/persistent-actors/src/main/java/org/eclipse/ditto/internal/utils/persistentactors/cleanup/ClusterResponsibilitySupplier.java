@@ -16,10 +16,10 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
-import akka.cluster.Cluster;
-import akka.cluster.Member;
-import akka.cluster.UniqueAddress;
-import akka.japi.Pair;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.cluster.Member;
+import org.apache.pekko.cluster.UniqueAddress;
+import org.apache.pekko.japi.Pair;
 
 /**
  * Responsibility supplier according to cluster role.

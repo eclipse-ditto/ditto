@@ -19,8 +19,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.connectivity.service.messaging.PublishTarget;
 
-import akka.http.javadsl.model.HttpMethod;
-import akka.http.javadsl.model.HttpMethods;
+import org.apache.pekko.http.javadsl.model.HttpMethod;
+import org.apache.pekko.http.javadsl.model.HttpMethods;
 
 /**
  * A HTTP target to which messages can be published.

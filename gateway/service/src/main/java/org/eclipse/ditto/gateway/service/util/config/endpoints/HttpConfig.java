@@ -25,7 +25,7 @@ import org.eclipse.ditto.base.model.headers.HeaderDefinition;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
-import akka.http.javadsl.model.MediaTypes;
+import org.apache.pekko.http.javadsl.model.MediaTypes;
 
 /**
  * Provides configuration settings of the Gateway service's HTTP behaviour.

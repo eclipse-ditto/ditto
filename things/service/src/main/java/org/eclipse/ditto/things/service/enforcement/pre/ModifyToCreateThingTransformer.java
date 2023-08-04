@@ -30,7 +30,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Transforms a ModifyThing and a MergeThing command into a CreateThing if the thing does not exist already.

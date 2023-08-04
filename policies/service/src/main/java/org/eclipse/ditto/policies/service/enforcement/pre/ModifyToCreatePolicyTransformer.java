@@ -22,7 +22,7 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Transforms a ModifyPolicy into a CreatePolicy if the thing does not exist already.

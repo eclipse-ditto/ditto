@@ -22,11 +22,11 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 
 import com.typesafe.config.Config;
 
-import akka.actor.AbstractExtensionId;
-import akka.actor.ActorSystem;
-import akka.actor.DynamicAccess;
-import akka.actor.ExtendedActorSystem;
-import akka.actor.Extension;
+import org.apache.pekko.actor.AbstractExtensionId;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.DynamicAccess;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.Extension;
 import scala.Tuple2;
 import scala.jdk.javaapi.CollectionConverters;
 import scala.reflect.ClassTag;

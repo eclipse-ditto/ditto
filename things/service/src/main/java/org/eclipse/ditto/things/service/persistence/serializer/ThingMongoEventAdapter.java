@@ -25,7 +25,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.eclipse.ditto.things.service.common.config.DefaultThingConfig;
 
-import akka.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
 
 /**
  * EventAdapter for {@link Event}s persisted into akka-persistence event-journal. Converts Event to MongoDB

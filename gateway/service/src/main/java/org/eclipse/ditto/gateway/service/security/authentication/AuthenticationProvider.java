@@ -16,7 +16,7 @@ import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
-import akka.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.RequestContext;
 
 /**
  * Responsible for authenticating requests by a specific mechanism.

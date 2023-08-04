@@ -75,11 +75,11 @@ import com.mongodb.reactivestreams.client.MongoCollection;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.stream.SourceRef;
-import akka.stream.javadsl.Sink;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.SourceRef;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link SearchActor}.

@@ -45,7 +45,7 @@ import org.eclipse.ditto.things.model.signals.events.FeatureModified;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.wot.integration.provider.WotThingDescriptionProvider;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature} command.

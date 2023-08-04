@@ -18,10 +18,10 @@ import java.util.concurrent.Executor;
 import org.eclipse.ditto.internal.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.AbstractDDataHandler;
 
-import akka.actor.ActorRefFactory;
-import akka.actor.ActorSystem;
-import akka.actor.Address;
-import akka.cluster.ddata.Replicator;
+import org.apache.pekko.actor.ActorRefFactory;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Address;
+import org.apache.pekko.cluster.ddata.Replicator;
 
 /**
  * A distributed collection of strings indexed by ActorRef.

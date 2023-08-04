@@ -17,8 +17,8 @@ import org.eclipse.ditto.policies.model.PolicyId;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
-import akka.actor.ActorSystem;
-import akka.dispatch.MessageDispatcher;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.dispatch.MessageDispatcher;
 
 /**
  * Abstract base of {@link PolicyEnforcer} implementations.

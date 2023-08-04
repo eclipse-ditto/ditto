@@ -42,4 +42,4 @@ jobs:
           cache: 'maven'
 
       - name: Build with Maven
-        run: mvn package javadoc:jar source:jar --batch-mode --errors --quiet -DcreateJavadoc=true -Dakka.test.single-expect-default=10s --file pom.xml -Dbuild.environment=Github
+        run: mvn package javadoc:jar source:jar --batch-mode --errors --quiet -DcreateJavadoc=true -Dpekko.test.single-expect-default=10s --file pom.xml -Dbuild.environment=Github

@@ -26,7 +26,7 @@ import org.eclipse.ditto.wot.integration.provider.WotThingModelFetcher;
 import org.eclipse.ditto.wot.model.ThingDescription;
 import org.eclipse.ditto.wot.model.ThingModel;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Generator for WoT (Web of Things) {@link ThingDescription} based on a given WoT {@link ThingModel} and context of the

@@ -21,9 +21,9 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.persistence.AtomicWrite;
-import akka.persistence.PersistentRepr;
-import akka.persistence.journal.japi.AsyncWriteJournal;
+import org.apache.pekko.persistence.AtomicWrite;
+import org.apache.pekko.persistence.PersistentRepr;
+import org.apache.pekko.persistence.journal.japi.AsyncWriteJournal;
 import scala.compat.java8.FutureConverters;
 import scala.concurrent.Future;
 

@@ -16,11 +16,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
+import org.eclipse.ditto.internal.utils.pekko.ActorSystemResource;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**

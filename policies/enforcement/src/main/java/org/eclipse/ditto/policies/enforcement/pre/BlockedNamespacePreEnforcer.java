@@ -20,7 +20,7 @@ import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Pre-Enforcer for blocking commands to blocked namespaces

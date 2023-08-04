@@ -19,9 +19,9 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
-import akka.http.javadsl.server.Directives;
-import akka.http.javadsl.server.Route;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.server.Directives;
+import org.apache.pekko.http.javadsl.server.Route;
 
 @Immutable
 public final class NoopCustomApiRoutesProvider implements CustomApiRoutesProvider {

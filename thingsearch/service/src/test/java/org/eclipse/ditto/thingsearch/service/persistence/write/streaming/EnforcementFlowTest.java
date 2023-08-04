@@ -57,17 +57,17 @@ import org.junit.runners.MethodSorters;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.stream.KillSwitches;
-import akka.stream.javadsl.Keep;
-import akka.stream.testkit.TestPublisher;
-import akka.stream.testkit.TestSubscriber;
-import akka.stream.testkit.javadsl.TestSink;
-import akka.stream.testkit.javadsl.TestSource;
-import akka.testkit.TestActor;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.KillSwitches;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.testkit.TestPublisher;
+import org.apache.pekko.stream.testkit.TestSubscriber;
+import org.apache.pekko.stream.testkit.javadsl.TestSink;
+import org.apache.pekko.stream.testkit.javadsl.TestSource;
+import org.apache.pekko.testkit.TestActor;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 

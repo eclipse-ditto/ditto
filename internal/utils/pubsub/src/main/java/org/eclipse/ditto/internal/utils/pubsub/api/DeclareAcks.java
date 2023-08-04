@@ -17,7 +17,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 /**
  * Request to declare a set of acknowledgement labels with an optional group.

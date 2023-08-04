@@ -17,15 +17,15 @@ import java.util.function.Supplier;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
-import akka.kafka.AutoSubscription;
-import akka.kafka.ConsumerSettings;
-import akka.kafka.Subscriptions;
-import akka.kafka.javadsl.Consumer;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.kafka.AutoSubscription;
+import org.apache.pekko.kafka.ConsumerSettings;
+import org.apache.pekko.kafka.Subscriptions;
+import org.apache.pekko.kafka.javadsl.Consumer;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Supplies a {@link Source} of {@link org.apache.kafka.clients.consumer.ConsumerRecord}s retaining a
- * {@link akka.kafka.javadsl.Consumer.Control} in order to be able to shutdown/terminate Kafka consumption.
+ * {@link org.apache.pekko.kafka.javadsl.Consumer.Control} in order to be able to shutdown/terminate Kafka consumption.
  */
 class AtMostOnceKafkaConsumerSourceSupplier
         implements Supplier<Source<ConsumerRecord<String, ByteBuffer>, Consumer.Control>> {

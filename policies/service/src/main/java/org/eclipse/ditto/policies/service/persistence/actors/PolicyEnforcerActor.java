@@ -30,7 +30,7 @@ import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.service.enforcement.PolicyCommandEnforcement;
 
-import akka.actor.Props;
+import org.apache.pekko.actor.Props;
 
 /**
  * Enforcer responsible for enforcing {@link PolicyCommand}s and filtering {@link PolicyCommandResponse}s utilizing the

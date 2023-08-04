@@ -28,21 +28,21 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.edge.service.EdgeServiceTimeoutException;
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.PekkoClassLoader;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
-import akka.actor.AbstractExtensionId;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
-import akka.actor.Extension;
-import akka.cluster.pubsub.DistributedPubSubMessage;
-import akka.pattern.AskTimeoutException;
+import org.apache.pekko.actor.AbstractExtensionId;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.Extension;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMessage;
+import org.apache.pekko.pattern.AskTimeoutException;
 
 /**
  * Forwards commands from the edges to a specified ActorRef, waiting for a response if the command demands one.
@@ -258,7 +258,7 @@ public final class AskWithRetryCommandForwarder implements Extension {
         @Override
         public AskWithRetryCommandForwarder createExtension(final ExtendedActorSystem system) {
 
-            return AkkaClassLoader.instantiate(system, AskWithRetryCommandForwarder.class,
+            return PekkoClassLoader.instantiate(system, AskWithRetryCommandForwarder.class,
                     AskWithRetryCommandForwarder.class.getName(),
                     List.of(ActorSystem.class),
                     List.of(system));

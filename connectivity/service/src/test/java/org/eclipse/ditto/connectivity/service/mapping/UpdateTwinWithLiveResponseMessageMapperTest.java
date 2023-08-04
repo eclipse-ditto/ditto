@@ -57,7 +57,7 @@ import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Unit test for {@link UpdateTwinWithLiveResponseMessageMapper}.

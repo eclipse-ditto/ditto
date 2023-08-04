@@ -23,8 +23,8 @@ import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
-import akka.http.javadsl.model.HttpRequest;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
 
 /**
  * Provider of {@link SignalEnrichmentFacade} to be loaded by reflection.

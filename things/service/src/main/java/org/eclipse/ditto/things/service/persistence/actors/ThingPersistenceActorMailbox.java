@@ -21,16 +21,16 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.dispatch.DequeBasedMessageQueue;
-import akka.dispatch.Envelope;
-import akka.dispatch.MailboxType;
-import akka.dispatch.MessageQueue;
-import akka.dispatch.ProducesMessageQueue;
-import akka.dispatch.UnboundedDequeBasedMessageQueueSemantics;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.dispatch.DequeBasedMessageQueue;
+import org.apache.pekko.dispatch.Envelope;
+import org.apache.pekko.dispatch.MailboxType;
+import org.apache.pekko.dispatch.MessageQueue;
+import org.apache.pekko.dispatch.ProducesMessageQueue;
+import org.apache.pekko.dispatch.UnboundedDequeBasedMessageQueueSemantics;
+import org.apache.pekko.event.Logging;
+import org.apache.pekko.event.LoggingAdapter;
 
 /**
  * Mailbox which handles {@link ThingModifyCommand}s which should be passed to the {@link ThingPersistenceActor} in a

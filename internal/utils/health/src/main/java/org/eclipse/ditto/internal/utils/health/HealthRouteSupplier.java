@@ -12,19 +12,19 @@
  */
 package org.eclipse.ditto.internal.utils.health;
 
-import static akka.http.javadsl.server.Directives.completeWithFuture;
+import static org.apache.pekko.http.javadsl.server.Directives.completeWithFuture;
 
 import java.time.Duration;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import akka.actor.ActorRef;
-import akka.event.LoggingAdapter;
-import akka.http.javadsl.model.ContentTypes;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.server.Route;
-import akka.pattern.Patterns;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.event.LoggingAdapter;
+import org.apache.pekko.http.javadsl.model.ContentTypes;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.pattern.Patterns;
 
 /**
  * Function for Akka HTTP Routes to transform a RequestContext into a RouteResult with the expected status code for

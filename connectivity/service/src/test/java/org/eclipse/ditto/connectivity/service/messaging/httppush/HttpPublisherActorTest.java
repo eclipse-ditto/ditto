@@ -72,26 +72,26 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.junit.Test;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.event.LoggingAdapter;
-import akka.http.javadsl.model.ContentTypes;
-import akka.http.javadsl.model.HttpEntity;
-import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.model.HttpMethod;
-import akka.http.javadsl.model.HttpMethods;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.Uri;
-import akka.japi.Pair;
-import akka.stream.Attributes;
-import akka.stream.SystemMaterializer;
-import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Sink;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
-import akka.util.ByteString;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.event.LoggingAdapter;
+import org.apache.pekko.http.javadsl.model.ContentTypes;
+import org.apache.pekko.http.javadsl.model.HttpEntity;
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.HttpMethod;
+import org.apache.pekko.http.javadsl.model.HttpMethods;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.Uri;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.stream.Attributes;
+import org.apache.pekko.stream.SystemMaterializer;
+import org.apache.pekko.stream.javadsl.Flow;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
+import org.apache.pekko.util.ByteString;
 import scala.util.Try;
 
 /**
@@ -1040,8 +1040,8 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             return HttpResponse.create()
                     .withStatus(httpStatus.getCode())
                     .addHeader(HttpHeader.parse(CUSTOM_HEADER_NAME, CUSTOM_HEADER_VALUE))
-                    .withEntity(new akka.http.scaladsl.model.HttpEntity.Strict(
-                            (akka.http.scaladsl.model.ContentType) ContentTypes.parse(contentType),
+                    .withEntity(new org.apache.pekko.http.scaladsl.model.HttpEntity.Strict(
+                            (org.apache.pekko.http.scaladsl.model.ContentType) ContentTypes.parse(contentType),
                             ByteString.fromString(body)
                     ));
         });

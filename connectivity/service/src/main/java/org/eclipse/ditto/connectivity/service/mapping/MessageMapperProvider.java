@@ -24,7 +24,7 @@ import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint.ExtensionI
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Extension to provide all configured {@link MessageMapper} implementations.

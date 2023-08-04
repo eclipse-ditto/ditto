@@ -29,7 +29,7 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.base.model.signals.Signal;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 /**
  * Represent outbound signals that was mapped from one signal.

@@ -29,7 +29,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import akka.Done;
+import org.apache.pekko.Done;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class RestartableKafkaConsumerStreamTest {

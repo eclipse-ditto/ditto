@@ -14,8 +14,8 @@ package org.eclipse.ditto.internal.utils.persistence.operations;
 
 import java.util.List;
 
-import akka.NotUsed;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Persistence operations on namespaces.

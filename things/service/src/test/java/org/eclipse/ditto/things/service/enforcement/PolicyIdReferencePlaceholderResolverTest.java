@@ -40,8 +40,8 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorSystem;
-import akka.testkit.TestProbe;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.TestProbe;
 
 /**
  * Tests {@link PolicyIdReferencePlaceholderResolver}.

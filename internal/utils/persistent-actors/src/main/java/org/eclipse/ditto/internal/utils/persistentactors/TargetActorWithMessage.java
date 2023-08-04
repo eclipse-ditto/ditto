@@ -15,7 +15,7 @@ package org.eclipse.ditto.internal.utils.persistentactors;
 import java.time.Duration;
 import java.util.function.Function;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 /**
  * A supervisor internal message combining a {@code targetActor} as target for a contained {@code message} and

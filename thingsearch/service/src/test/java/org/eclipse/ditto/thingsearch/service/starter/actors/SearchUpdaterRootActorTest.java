@@ -15,7 +15,7 @@ package org.eclipse.ditto.thingsearch.service.starter.actors;
 import java.util.Optional;
 
 import org.eclipse.ditto.base.service.actors.AbstractDittoRootActorTest;
-import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
+import org.eclipse.ditto.internal.utils.pekko.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
@@ -24,8 +24,8 @@ import org.eclipse.ditto.thingsearch.service.starter.SearchService;
 import org.eclipse.ditto.thingsearch.service.updater.actors.SearchUpdaterRootActor;
 import org.mockito.Mockito;
 
-import akka.actor.ActorSystem;
-import akka.actor.Props;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
 
 /**
  * Tests {@link SearchRootActor}.

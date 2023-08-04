@@ -40,9 +40,9 @@ import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
 
 /**
  * Tests {@link ThingPersistenceOperationsActor} against a local MongoDB.

@@ -24,12 +24,12 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
+import org.eclipse.ditto.internal.utils.pekko.PekkoClassLoader;
 import org.eclipse.ditto.base.model.signals.JsonParsable;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * An unmodifiable map of {@link JsonParsable} elements associated with the name of the type the strategy
@@ -73,7 +73,7 @@ public abstract class MappingStrategies implements Map<String, JsonParsable<Json
         final Config config = settings.config();
         final String mappingStrategyClass = config.getString(CONFIG_KEY_DITTO_MAPPING_STRATEGY_IMPLEMENTATION);
 
-        return AkkaClassLoader.instantiate(actorSystem, MappingStrategies.class, mappingStrategyClass);
+        return PekkoClassLoader.instantiate(actorSystem, MappingStrategies.class, mappingStrategyClass);
     }
 
     /**

@@ -32,10 +32,10 @@ import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
 import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProtocolValidator;
 
-import akka.actor.ActorSystem;
-import akka.http.javadsl.model.HttpMethod;
-import akka.http.javadsl.model.HttpMethods;
-import akka.http.javadsl.model.Uri;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.HttpMethod;
+import org.apache.pekko.http.javadsl.model.HttpMethods;
+import org.apache.pekko.http.javadsl.model.Uri;
 
 /**
  * Validation of http-push connections.

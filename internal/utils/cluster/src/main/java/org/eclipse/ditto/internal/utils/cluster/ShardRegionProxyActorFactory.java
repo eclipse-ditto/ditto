@@ -19,9 +19,9 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.cluster.sharding.ClusterSharding;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.cluster.sharding.ClusterSharding;
 
 /**
  * Factory for creating shard region proxy actors.

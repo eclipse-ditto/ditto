@@ -20,7 +20,7 @@ import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.gateway.service.security.HttpHeader;
 import org.eclipse.ditto.gateway.service.security.utils.HttpUtils;
 
-import akka.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.RequestContext;
 
 /**
  * Default implementation of {@link JwtExtractor}

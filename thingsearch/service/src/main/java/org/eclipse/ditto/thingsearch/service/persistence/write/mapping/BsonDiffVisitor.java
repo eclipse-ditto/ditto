@@ -22,7 +22,7 @@ import org.bson.BsonValue;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
 
-import akka.japi.Pair;
+import org.apache.pekko.japi.Pair;
 
 /**
  * Compute the diff between 2 BSON documents.

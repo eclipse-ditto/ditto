@@ -16,10 +16,10 @@ import javax.annotation.concurrent.Immutable;
 
 import com.typesafe.config.Config;
 
-import akka.actor.AbstractActor.Receive;
-import akka.actor.ActorContext;
-import akka.actor.ActorSystem;
-import akka.japi.pf.ReceiveBuilder;
+import org.apache.pekko.actor.AbstractActor.Receive;
+import org.apache.pekko.actor.ActorContext;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 
 /**
  * No-operation implementation of {@link EdgeCommandForwarderExtension}.
