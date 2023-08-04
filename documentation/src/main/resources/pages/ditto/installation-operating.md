@@ -5,7 +5,7 @@ keywords: operating, docker, docker-compose, devops, logging, logstash, elk, mon
 permalink: installation-operating.html
 ---
 
-[pubsubmediator]: https://doc.akka.io/docs/akka/current/distributed-pub-sub.html
+[pubsubmediator]: https://pekko.apache.org/docs/pekko/current/distributed-pub-sub.html
 
 Once you have successfully started Ditto, proceed with setting it up for continuous operation.
 

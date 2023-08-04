@@ -27,7 +27,7 @@ The components have the following tasks:
    * persistence of [Connections](basic-connections.html)
    * sends [Ditto Protocol](protocol-overview.html) messages to external message brokers and receives messages from them
 
-All services run in the same [Akka cluster](https://doc.akka.io/docs/akka/current/typed/cluster-concepts.html) and can
+All services run in the same [Pekko cluster](https://pekko.apache.org/docs/pekko/current/typed/cluster-concepts.html) and can
 reach each other via TCP without the need for an additional message broker in between.
 
 ## Components
@@ -43,7 +43,7 @@ A "microservice" in Ditto is defined as:
 ## Communication
 
 All microservices can communicate asynchronously in a Ditto cluster. Communication is done via 
-[Akka remoting](https://doc.akka.io/docs/akka/current/general/remoting.html) which means that each service acts as server, 
+[Pekko remoting](https://pekko.apache.org/docs/pekko/current/general/remoting.html) which means that each service acts as server, 
 providing a TCP endpoint, as well as client sending data to other services.
 
 All messages which are sent between Ditto microservices must in a way be serializable and deserializable.  
