@@ -294,7 +294,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         // volatile states
         //
         // DO NOT use state timeout:
-        // FSM state timeout gets reset by any message, AND cannot be longer than 5 minutes (Akka v2.5.23).
+        // FSM state timeout gets reset by any message, AND cannot be longer than 5 minutes (Pekko v2.5.23).
         when(DISCONNECTING, inDisconnectingState());
         when(CONNECTING, inConnectingState());
         when(TESTING, inTestingState());

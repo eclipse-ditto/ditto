@@ -50,7 +50,7 @@ public interface HttpPushFactory {
     /**
      * Create a flow to send HTTP(S) requests.
      *
-     * @param system the actor system with the default Akka HTTP configuration.
+     * @param system the actor system with the default Pekko HTTP configuration.
      * @param log logger for the flow.
      * @param requestTimeout timeout of each request.
      * @return flow from request-correlationId pairs to response-correlationId pairs.
@@ -66,7 +66,7 @@ public interface HttpPushFactory {
     /**
      * Create a flow to send HTTP(S) requests.
      *
-     * @param system the actor system with the default Akka HTTP configuration.
+     * @param system the actor system with the default Pekko HTTP configuration.
      * @param log logger for the flow.
      * @param requestTimeout timeout of each request.
      * @param timer timer to measure HTTP requests.

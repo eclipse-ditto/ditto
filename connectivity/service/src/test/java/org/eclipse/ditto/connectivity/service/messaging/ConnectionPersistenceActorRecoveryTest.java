@@ -84,7 +84,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
 
     @BeforeClass
     public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        actorSystem = ActorSystem.create("PekkoTestSystem", TestConstants.CONFIG);
         pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
         proxyActor = actorSystem.actorOf(TestConstants.ProxyActorMock.props());
     }
@@ -136,21 +136,21 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
 
     @Test
     public void testRecoveryOfConnectionWithBlockedHost() {
-        final ActorSystem akkaTestSystem =
-                ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG.withValue("ditto.connectivity.connection" +
+        final ActorSystem pekkoTestSystem =
+                ActorSystem.create("PekkoTestSystem", TestConstants.CONFIG.withValue("ditto.connectivity.connection" +
                         ".blocked-hostnames", ConfigValueFactory.fromAnyRef("127.0.0.1")));
-        final ActorRef mediator = DistributedPubSub.get(akkaTestSystem).mediator();
+        final ActorRef mediator = DistributedPubSub.get(pekkoTestSystem).mediator();
         final ActorRef proxyActor = actorSystem.actorOf(TestConstants.ProxyActorMock.props());
 
         try {
-            new TestKit(akkaTestSystem) {{
+            new TestKit(pekkoTestSystem) {{
                 final Queue<ConnectivityEvent<?>> existingEvents = new LinkedList<>(List.of(connectionCreated));
                 final Props fakeProps = FakePersistenceActor.props(connectionId, getRef(), existingEvents);
 
-                akkaTestSystem.actorOf(fakeProps);
+                pekkoTestSystem.actorOf(fakeProps);
                 expectMsgEquals("persisted");
 
-                final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, akkaTestSystem,
+                final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, pekkoTestSystem,
                         mediator, proxyActor);
 
                 underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -161,7 +161,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
                         .hasMessageContaining("The configured host '127.0.0.1' may not be used for the connection");
             }};
         } finally {
-            TestKit.shutdownActorSystem(akkaTestSystem);
+            TestKit.shutdownActorSystem(pekkoTestSystem);
         }
     }
 

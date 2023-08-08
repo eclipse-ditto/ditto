@@ -269,7 +269,7 @@ public final class OutboundMappingProcessorActor
     }
 
     /**
-     * Creates Akka configuration object for this actor.
+     * Creates Pekko configuration object for this actor.
      *
      * @param clientActor the client actor that created this mapping actor.
      * @param outboundMappingProcessors the MessageMappingProcessors to use for outbound messages. If at least as many
@@ -277,7 +277,7 @@ public final class OutboundMappingProcessorActor
      * @param connection the connection.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
      * @param processorPoolSize how many message processing may happen in parallel per direction (incoming or outgoing).
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final ActorRef clientActor,
             final List<OutboundMappingProcessor> outboundMappingProcessors,

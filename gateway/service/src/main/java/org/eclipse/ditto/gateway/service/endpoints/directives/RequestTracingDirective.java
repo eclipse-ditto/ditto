@@ -49,7 +49,7 @@ import org.apache.pekko.http.javadsl.server.Route;
 import org.apache.pekko.http.javadsl.server.RouteResult;
 
 /**
- * Custom Akka Http directive tracing the request.
+ * Custom Pekko Http directive tracing the request.
  */
 @Immutable
 public final class RequestTracingDirective {

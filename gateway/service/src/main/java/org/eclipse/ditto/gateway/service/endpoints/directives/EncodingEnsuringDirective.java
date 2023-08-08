@@ -28,7 +28,7 @@ import org.apache.pekko.http.javadsl.server.Route;
 import org.apache.pekko.http.scaladsl.model.IllegalUriException;
 
 /**
- * Custom Akka Http directive ensuring that request uris are encoded.
+ * Custom Pekko Http directive ensuring that request uris are encoded.
  */
 public final class EncodingEnsuringDirective {
 
@@ -45,7 +45,7 @@ public final class EncodingEnsuringDirective {
         return extractRequestContext(requestContext -> {
             final Uri uri = requestContext.getRequest().getUri();
             try {
-                // per default, Akka evaluates the query params "lazily" in the routes and throws an IllegalUriException
+                // per default, Pekko evaluates the query params "lazily" in the routes and throws an IllegalUriException
                 // in case of error; we evaluate the query params explicitly here to be able to handle this error at
                 // a central location
                 uri.query();

@@ -63,7 +63,7 @@ public final class AcknowledgementForwarderActorTest {
     @Before
     public void setUp() {
         final Config config = ConfigFactory.load("test");
-        actorSystem = ActorSystem.create("AkkaTestSystem", config);
+        actorSystem = ActorSystem.create("PekkoTestSystem", config);
         acknowledgementConfig = DefaultAcknowledgementConfig.of(ConfigFactory.load("acknowledgement-test"));
     }
 

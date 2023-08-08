@@ -62,7 +62,7 @@ public final class ThingMongoSnapshotAdapter extends AbstractMongoSnapshotAdapte
     /**
      * Constructs a new {@code ThingMongoSnapshotAdapter}.
      *
-     * @param pubSubMediator Akka pubsub mediator with which to publish snapshot events.
+     * @param pubSubMediator Pekko pubsub mediator with which to publish snapshot events.
      */
     public ThingMongoSnapshotAdapter(final ActorRef pubSubMediator) {
         super(LOGGER);

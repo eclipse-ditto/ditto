@@ -77,13 +77,13 @@ public final class GatewayProxyActor extends AbstractActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this GatewayProxyActor.
+     * Creates Pekko configuration object Props for this GatewayProxyActor.
      *
      * @param pubSubMediator the Pub/Sub mediator to use for subscribing for events.
      * @param devOpsCommandsActor the Actor ref to the local DevOpsCommandsActor.
      * @param edgeCommandForwarder the Actor ref to the {@code EdgeCommandForwarderActor}.
      * @param httpConfig the http config.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final ActorSelection devOpsCommandsActor,
             final ActorRef edgeCommandForwarder, final HttpConfig httpConfig) {

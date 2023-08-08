@@ -31,7 +31,7 @@ import org.apache.pekko.actor.Props;
  * <ul>
  * <li>Reads configuration, enhances it with cloud environment settings</li>
  * <li>Sets up ActorSystem</li>
- * <li>Wires up Akka HTTP Routes</li>
+ * <li>Wires up Pekko HTTP Routes</li>
  * </ul>
  */
 public final class ThingsService extends DittoService<ThingsConfig> {

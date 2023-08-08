@@ -22,8 +22,8 @@ We will ignore [RSPEC-2142](https://rules.sonarsource.com/java/tag/multi-threadi
 ## Consequences
 
 The best way to deal with `InterruptedException` is not catching it at all.
-Leave it to Akka to handle low-level concurrency errors.
-Use Akka's `CompletionStage` APIs instead of blocking-wait whenever possible.
+Leave it to Pekko to handle low-level concurrency errors.
+Use Pekko's `CompletionStage` APIs instead of blocking-wait whenever possible.
 Use `CompletableFuture.join()` instead of `CompletableFuture.get()` in tests.
 
 Where blocking-wait cannot be avoided, the actors executing blocking wait should execute in their own dispatcher

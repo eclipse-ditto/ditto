@@ -103,13 +103,13 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     }
 
     /**
-     * Creates Akka configuration object {@link Props} for this {@code JMSConnectionHandlingActor}.
+     * Creates Pekko configuration object {@link Props} for this {@code JMSConnectionHandlingActor}.
      *
      * @param connection the connection
      * @param exceptionListener the exception listener
      * @param jmsConnectionFactory the jms connection factory
      * @param connectionLogger used to log failures during certificate validation.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props props(final Connection connection, final ExceptionListener exceptionListener,
             final JmsConnectionFactory jmsConnectionFactory, final ConnectionLogger connectionLogger) {

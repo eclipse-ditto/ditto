@@ -107,7 +107,7 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
     }
 
     /**
-     * Creates Akka configuration object Props for this StreamingActor.
+     * Creates Pekko configuration object Props for this StreamingActor.
      *
      * @param dittoProtocolSub the Ditto protocol sub access.
      * @param commandRouter the command router used to send signals into the cluster.
@@ -115,9 +115,9 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
      * @param jwtAuthenticationResultProvider the JwtAuthenticationResultProvider.
      * @param streamingConfig the streaming config.
      * @param headerTranslator translates headers from external sources or to external sources.
-     * @param pubSubMediator the ActorRef to the Akka pub/sub mediator.
+     * @param pubSubMediator the ActorRef to the Pekko pub/sub mediator.
      * @param commandForwarder the ActorRef of the actor to forward commands to.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final DittoProtocolSub dittoProtocolSub,
             final ActorRef commandRouter,

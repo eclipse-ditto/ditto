@@ -137,7 +137,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this SearchUpdaterRootActor.
+     * Creates Pekko configuration object Props for this SearchUpdaterRootActor.
      *
      * @param searchConfig the configuration settings of the Things-Search service.
      * @param pubSubMediator the PubSub mediator Actor.

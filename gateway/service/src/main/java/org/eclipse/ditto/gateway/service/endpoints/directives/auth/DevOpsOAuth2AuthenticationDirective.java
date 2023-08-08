@@ -36,7 +36,7 @@ import org.apache.pekko.http.javadsl.server.Route;
 import scala.util.Try;
 
 /**
- * Custom Akka Http directive performing oauth2 with an {@link #expectedSubjects expected subject}.
+ * Custom Pekko Http directive performing oauth2 with an {@link #expectedSubjects expected subject}.
  */
 public final class DevOpsOAuth2AuthenticationDirective implements DevopsAuthenticationDirective {
 

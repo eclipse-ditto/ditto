@@ -169,14 +169,14 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     /**
-     * Creates Akka configuration object {@link Props} for this {@code AmqpPublisherActor}.
+     * Creates Pekko configuration object {@link Props} for this {@code AmqpPublisherActor}.
      *
      * @param connection the connection this publisher belongs to
      * @param session the jms session
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the connectivity configuration including potential overwrites.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props props(final Connection connection,
             final Session session,

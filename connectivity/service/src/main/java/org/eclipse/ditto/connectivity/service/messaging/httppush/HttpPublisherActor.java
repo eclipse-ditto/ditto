@@ -168,14 +168,14 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     /**
-     * Creates Akka configuration object for this actor.
+     * Creates Pekko configuration object for this actor.
      *
      * @param connection the connection.
      * @param factory the http push factory to use.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props props(final Connection connection,
             final HttpPushFactory factory,

@@ -21,7 +21,7 @@ import org.apache.pekko.http.javadsl.model.HttpRequest;
 import org.apache.pekko.http.javadsl.model.headers.RawRequestURI;
 
 /**
- * Utilities for Akka-Http.
+ * Utilities for Pekko-Http.
  */
 @Immutable
 public final class HttpUtils {
@@ -34,8 +34,8 @@ public final class HttpUtils {
 
     /**
      * Gets the (absolute) raw requestUri.
-     * <p>NOTE: You must configure {@code raw-request-uri-header = on} for Akka-Http, otherwise the url already
-     * parsed by Akka Http will be returned.</p>
+     * <p>NOTE: You must configure {@code raw-request-uri-header = on} for Pekko-Http, otherwise the url already
+     * parsed by Pekko Http will be returned.</p>
      *
      * @param request the http request
      * @return the raw requestUri

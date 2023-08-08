@@ -65,13 +65,13 @@ public final class CompositeCachingHealthCheckingActor extends AbstractHealthChe
     }
 
     /**
-     * Creates Akka configuration object Props for this {@link CompositeCachingHealthCheckingActor}.
+     * Creates Pekko configuration object Props for this {@link CompositeCachingHealthCheckingActor}.
      *
      * @param childActorProps the Props for creating child actors, each providing health for a different subsystem.
      * @param updateInterval the duration between the updates of the health (sub systems will be queried for their
      * health in this interval).
      * @param enabled whether the health-check should be enabled.
-     * @return the Akka configuration Props object
+     * @return the Pekko configuration Props object
      */
     public static Props props(final Map<String, Props> childActorProps, final Duration updateInterval,
             final boolean enabled) {

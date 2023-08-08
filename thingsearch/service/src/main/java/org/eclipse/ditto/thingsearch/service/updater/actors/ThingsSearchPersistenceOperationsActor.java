@@ -45,9 +45,9 @@ public final class ThingsSearchPersistenceOperationsActor extends AbstractPersis
     /**
      * Create props for this actor.
      *
-     * @param pubSubMediator Akka pub-sub mediator.
+     * @param pubSubMediator Pekko pub-sub mediator.
      * @param persistence the search updater persistence.
-     * @param persistenceOperationsConfig the Akka config.
+     * @param persistenceOperationsConfig the Pekko config.
      * @return Props of this actor.
      */
     public static Props props(final ActorRef pubSubMediator, final ThingsSearchUpdaterPersistence persistence,

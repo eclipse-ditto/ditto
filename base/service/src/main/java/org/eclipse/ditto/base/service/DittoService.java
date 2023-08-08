@@ -255,9 +255,9 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
     }
 
     /**
-     * Starts the Akka actor system as well as all required actors.
+     * Starts the Pekko actor system as well as all required actors.
      * <p>
-     * May be overridden to change the way how the Akka actor system and actors are started. <em>Note: If this method is
+     * May be overridden to change the way how the Pekko actor system and actors are started. <em>Note: If this method is
      * overridden, none of the following mentioned methods and their descendant methods will be called
      * automatically:</em>
      * </p>
@@ -267,7 +267,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * <li>{@link #startServiceRootActors(ActorSystem, org.eclipse.ditto.base.service.config.ServiceSpecificConfig)}.</li>
      * </ul>
      *
-     * @param actorSystem the Akka ActorSystem to be initialized.
+     * @param actorSystem the Pekko ActorSystem to be initialized.
      */
     private void initializeActorSystem(final ActorSystem actorSystem) {
         startPekkoManagement(actorSystem);
@@ -310,7 +310,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
     }
 
     /**
-     * Creates the Akka actor system. May be overridden to change the way how the actor system is created.
+     * Creates the Pekko actor system. May be overridden to change the way how the actor system is created.
      *
      * @param config the configuration settings of this service.
      * @return the actor system.
@@ -342,7 +342,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * Starts the {@link org.eclipse.ditto.internal.utils.health.status.StatusSupplierActor}.
      * May be overridden to change the way how the actor is started.
      *
-     * @param actorSystem Akka actor system for starting actors.
+     * @param actorSystem Pekko actor system for starting actors.
      */
     private void startStatusSupplierActor(final ActorSystem actorSystem) {
         startActor(actorSystem, StatusSupplierActor.props(rootActorName), StatusSupplierActor.ACTOR_NAME);
@@ -361,7 +361,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * Starts the {@link org.eclipse.ditto.base.service.devops.DevOpsCommandsActor}.
      * May be overridden to change the way how the actor is started.
      *
-     * @param actorSystem Akka actor system for starting actors.
+     * @param actorSystem Pekko actor system for starting actors.
      */
     private void startDevOpsCommandsActor(final ActorSystem actorSystem) {
         startActor(actorSystem, DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), serviceName,
@@ -379,7 +379,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * <li>{@link #startMainRootActor(org.apache.pekko.actor.ActorSystem, org.apache.pekko.actor.Props)},</li>
      * </ul>
      *
-     * @param actorSystem Akka actor system for starting actors.
+     * @param actorSystem Pekko actor system for starting actors.
      * @param serviceSpecificConfig the configuration settings of this service.
      */
     private void startServiceRootActors(final ActorSystem actorSystem, final C serviceSpecificConfig) {
@@ -437,7 +437,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * Starts the main root actor of this service. May be overridden to change the way of starting this service's root
      * actor.
      *
-     * @param actorSystem Akka actor system for starting actors.
+     * @param actorSystem Pekko actor system for starting actors.
      * @param mainRootActorProps the Props of the main root actor.
      */
     private ActorRef startMainRootActor(final ActorSystem actorSystem, final Props mainRootActorProps) {

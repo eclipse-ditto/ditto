@@ -108,7 +108,7 @@ public final class SnapshotStreamingActor extends AbstractActorWithShutdownBehav
     }
 
     /**
-     * Create Akka Props object for this actor.
+     * Create Pekko Props object for this actor.
      *
      * @param pid2EntityId function mapping PID to entity ID.
      * @param entityId2Pid function mapping entity ID to PID.
@@ -121,7 +121,7 @@ public final class SnapshotStreamingActor extends AbstractActorWithShutdownBehav
     }
 
     /**
-     * Create Akka Props object for this actor with given Mongo client and read journal.
+     * Create Pekko Props object for this actor with given Mongo client and read journal.
      * This is useful for unit tests with a mocked MongoDB.
      *
      * @param pid2EntityId function mapping PID to entity ID.

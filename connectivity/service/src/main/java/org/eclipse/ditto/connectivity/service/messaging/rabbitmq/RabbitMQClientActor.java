@@ -128,14 +128,14 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     /**
-     * Creates Akka configuration object for this actor.
+     * Creates Pekko configuration object for this actor.
      *
      * @param connection the connection.
      * @param commandForwarderActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param dittoHeaders headers of the command that caused this actor to be created.
      * @param connectivityOverwritesConfig the overwrites for the connectivity config for the given connection.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final Connection connection, final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
@@ -155,13 +155,13 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     /**
-     * Creates Akka configuration object for this actor.
+     * Creates Pekko configuration object for this actor.
      *
      * @param connection the connection.
      * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param rabbitConnectionFactoryFactory the ConnectionFactory Factory to use.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props propsForTests(final Connection connection, @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {

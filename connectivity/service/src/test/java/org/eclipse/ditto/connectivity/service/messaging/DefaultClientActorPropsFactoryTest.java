@@ -144,9 +144,9 @@ public final class DefaultClientActorPropsFactoryTest extends WithMockServers {
     }
 
     /**
-     * Wrap Props in an object with a reasonable Akka serializer, namely one that applies our configured
-     * serializer on each argument of Props. For Akka 2.5.13, that object belongs to the Akka-internal class
-     * DaemonMsgCreate. The class may change in future versions of Akka.
+     * Wrap Props in an object with a reasonable Pekko serializer, namely one that applies our configured
+     * serializer on each argument of Props. For Pekko 2.5.13, that object belongs to the Pekko-internal class
+     * DaemonMsgCreate. The class may change in future versions of Pekko.
      */
     private Object wrapForSerialization(final Props props) {
         final String actorClassNameAsPath = props.actorClass().getSimpleName();

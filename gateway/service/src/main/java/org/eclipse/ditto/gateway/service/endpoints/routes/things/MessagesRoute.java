@@ -57,7 +57,7 @@ import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.util.ByteString;
 
 /**
- * Builder for creating Akka HTTP routes for MessagesService.
+ * Builder for creating Pekko HTTP routes for MessagesService.
  */
 final class MessagesRoute extends AbstractRoute {
 

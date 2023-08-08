@@ -143,7 +143,7 @@ public final class AwsRequestSigningTest {
 
     @Test
     public void testCanonicalHeaders() {
-        // lower-case charset does not work; Akka HTTP always sends the charset in upper case.
+        // lower-case charset does not work; Pekko HTTP always sends the charset in upper case.
         final ContentType contentType = ContentTypes.parse("application/x-www-form-urlencoded; charset=UTF-8");
         final RequestEntity body = HttpEntities.create(contentType, new byte[0]);
         final List<HttpHeader> headersInSequence = List.of(

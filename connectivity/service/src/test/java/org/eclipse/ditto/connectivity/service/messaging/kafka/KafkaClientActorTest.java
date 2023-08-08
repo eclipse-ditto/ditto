@@ -91,7 +91,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
 
     @BeforeClass
     public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        actorSystem = ActorSystem.create("PekkoTestSystem", TestConstants.CONFIG);
         startMockServer();
     }
 

@@ -85,9 +85,9 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this MongoClientActor.
+     * Creates Pekko configuration object Props for this MongoClientActor.
      *
-     * @return the Akka configuration Props object
+     * @return the Pekko configuration Props object
      * @throws NullPointerException if {@code mongoDbConfig} is {@code null}.
      */
     public static Props props() {

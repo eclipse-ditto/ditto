@@ -20,7 +20,7 @@ import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
 
 /**
- * Helper class for accessing Akka's {@link DistributedPubSubMediator} messages (e.g. publishing, subscribing, etc.).
+ * Helper class for accessing Pekko's {@link DistributedPubSubMediator} messages (e.g. publishing, subscribing, etc.).
  */
 @Immutable
 public final class DistPubSubAccess {

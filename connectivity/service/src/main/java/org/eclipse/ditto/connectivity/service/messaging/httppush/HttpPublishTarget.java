@@ -40,7 +40,7 @@ final class HttpPublishTarget implements PublishTarget {
     }
 
     /**
-     * @return the Akka HTTP method to use for the HTTP request.
+     * @return the Pekko HTTP method to use for the HTTP request.
      */
     HttpMethod getMethod() {
         return method;

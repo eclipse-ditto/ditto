@@ -64,7 +64,7 @@ public final class ResponseReceiverCacheTest {
     @BeforeClass
     public static void setupTest() {
         final Config config = ConfigFactory.load("test");
-        actorSystem = ActorSystem.create("AkkaTestSystem", config);
+        actorSystem = ActorSystem.create("PekkoTestSystem", config);
     }
 
     @Test

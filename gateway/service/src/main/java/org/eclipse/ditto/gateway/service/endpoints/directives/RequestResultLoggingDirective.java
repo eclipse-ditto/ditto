@@ -30,7 +30,7 @@ import org.apache.pekko.http.javadsl.server.Complete;
 import org.apache.pekko.http.javadsl.server.Route;
 
 /**
- * Custom Akka Http directive logging the StatusCode and duration of the route.
+ * Custom Pekko Http directive logging the StatusCode and duration of the route.
  */
 public final class RequestResultLoggingDirective {
 

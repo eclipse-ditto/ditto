@@ -26,9 +26,9 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigRenderOptions;
 
 /**
- * This class is the default implementation of Akka's {@link org.apache.pekko.cluster.ddata.Replicator} config.
+ * This class is the default implementation of Pekko's {@link org.apache.pekko.cluster.ddata.Replicator} config.
  */
-class DefaultAkkaReplicatorConfig implements PekkoReplicatorConfig {
+class DefaultPekkoReplicatorConfig implements PekkoReplicatorConfig {
 
     private static final String CONFIG_PATH = "pekko-distributed-data";
 
@@ -38,12 +38,12 @@ class DefaultAkkaReplicatorConfig implements PekkoReplicatorConfig {
     private final Duration gossipInterval;
     private final Config config;
 
-    private DefaultAkkaReplicatorConfig(final Config config) {
-        name = config.getString(AkkaReplicatorConfigValue.NAME.getConfigPath());
-        role = config.getString(AkkaReplicatorConfigValue.ROLE.getConfigPath());
-        gossipInterval = config.getDuration(AkkaReplicatorConfigValue.GOSSIP_INTERVAL.getConfigPath());
+    private DefaultPekkoReplicatorConfig(final Config config) {
+        name = config.getString(PekkoReplicatorConfigValue.NAME.getConfigPath());
+        role = config.getString(PekkoReplicatorConfigValue.ROLE.getConfigPath());
+        gossipInterval = config.getDuration(PekkoReplicatorConfigValue.GOSSIP_INTERVAL.getConfigPath());
         notifySubscribersInterval =
-                config.getDuration(AkkaReplicatorConfigValue.NOTIFY_SUBSCRIBERS_INTERVAL.getConfigPath());
+                config.getDuration(PekkoReplicatorConfigValue.NOTIFY_SUBSCRIBERS_INTERVAL.getConfigPath());
         this.config = config;
     }
 
@@ -54,10 +54,10 @@ class DefaultAkkaReplicatorConfig implements PekkoReplicatorConfig {
      * @return the instance.
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
-    public static DefaultAkkaReplicatorConfig of(final Config config) {
+    public static DefaultPekkoReplicatorConfig of(final Config config) {
 
-        return new DefaultAkkaReplicatorConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH,
-                AkkaReplicatorConfigValue.values())
+        return new DefaultPekkoReplicatorConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH,
+                PekkoReplicatorConfigValue.values())
         );
     }
 
@@ -70,20 +70,20 @@ class DefaultAkkaReplicatorConfig implements PekkoReplicatorConfig {
      * @return the instance.
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
-    public static DefaultAkkaReplicatorConfig of(final Config config, final CharSequence name,
+    public static DefaultPekkoReplicatorConfig of(final Config config, final CharSequence name,
             final CharSequence role) {
         final Map<String, Object> specificConfig = new HashMap<>(2);
-        specificConfig.put(AkkaReplicatorConfigValue.NAME.getConfigPath(), checkNotNull(name, "name"));
-        specificConfig.put(AkkaReplicatorConfigValue.ROLE.getConfigPath(), checkNotNull(role, "role"));
+        specificConfig.put(PekkoReplicatorConfigValue.NAME.getConfigPath(), checkNotNull(name, "name"));
+        specificConfig.put(PekkoReplicatorConfigValue.ROLE.getConfigPath(), checkNotNull(role, "role"));
 
         // TODO Ditto issue #439: replace ConfigWithFallback - it breaks AbstractConfigValue.withFallback!
         // Workaround: re-parse my config
         final var configWithFallback = ConfigWithFallback.newInstance(config, CONFIG_PATH,
-                AkkaReplicatorConfigValue.values());
+                PekkoReplicatorConfigValue.values());
         final var fallback =
                 ConfigFactory.parseString(configWithFallback.root().render(ConfigRenderOptions.concise()));
 
-        return new DefaultAkkaReplicatorConfig(ConfigFactory.parseMap(specificConfig)
+        return new DefaultPekkoReplicatorConfig(ConfigFactory.parseMap(specificConfig)
                 .withFallback(fallback));
     }
 
@@ -120,7 +120,7 @@ class DefaultAkkaReplicatorConfig implements PekkoReplicatorConfig {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final DefaultAkkaReplicatorConfig that = (DefaultAkkaReplicatorConfig) o;
+        final DefaultPekkoReplicatorConfig that = (DefaultPekkoReplicatorConfig) o;
         return Objects.equals(config, that.config) &&
                 Objects.equals(name, that.name) &&
                 Objects.equals(role, that.role) &&

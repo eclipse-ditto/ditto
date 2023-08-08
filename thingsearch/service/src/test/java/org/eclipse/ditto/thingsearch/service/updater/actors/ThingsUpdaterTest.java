@@ -81,7 +81,7 @@ public final class ThingsUpdaterTest {
 
     @Before
     public void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TEST_CONFIG);
+        actorSystem = ActorSystem.create("PekkoTestSystem", TEST_CONFIG);
         shardMessageReceiver = TestProbe.apply(actorSystem);
         shardRegionFactory = getMockedShardRegionFactory(shardMessageReceiver.ref());
         // create blocked namespaces cache without role and with the default replicator name

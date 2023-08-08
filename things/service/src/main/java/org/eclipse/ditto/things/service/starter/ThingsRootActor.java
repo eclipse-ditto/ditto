@@ -145,12 +145,12 @@ public final class ThingsRootActor extends DittoRootActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this ThingsRootActor.
+     * Creates Pekko configuration object Props for this ThingsRootActor.
      *
      * @param thingsConfig the configuration settings of the Things service.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param propsFactory factory of Props of thing-persistence-actor.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final ThingsConfig thingsConfig, final ActorRef pubSubMediator,
             final ThingPersistenceActorPropsFactory propsFactory) {

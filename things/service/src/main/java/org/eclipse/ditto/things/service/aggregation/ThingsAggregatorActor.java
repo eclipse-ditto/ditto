@@ -76,10 +76,10 @@ public final class ThingsAggregatorActor extends AbstractActorWithShutdownBehavi
     }
 
     /**
-     * Creates Akka configuration object Props for this ThingsAggregatorActor.
+     * Creates Pekko configuration object Props for this ThingsAggregatorActor.
      *
      * @param targetActor the Actor selection to delegate "asks" for the aggregation to.
-     * @return the Akka configuration Props object
+     * @return the Pekko configuration Props object
      */
     public static Props props(final ActorRef targetActor, final ThingsAggregatorConfig aggregatorConfig,
             final ActorRef pubSubMediator) {

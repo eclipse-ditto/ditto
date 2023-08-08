@@ -142,11 +142,11 @@ public final class PoliciesRootActor extends DittoRootActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this PoliciesRootActor.
+     * Creates Pekko configuration object Props for this PoliciesRootActor.
      *
      * @param policiesConfig the configuration reader of this service.
      * @param pubSubMediator the PubSub mediator Actor.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final PoliciesConfig policiesConfig, final ActorRef pubSubMediator) {
 

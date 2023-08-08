@@ -28,7 +28,7 @@ import org.apache.pekko.http.javadsl.server.Route;
 import org.apache.pekko.http.javadsl.server.directives.RouteDirectives;
 
 /**
- * Builder for creating Akka HTTP routes for {@code /status}.
+ * Builder for creating Pekko HTTP routes for {@code /status}.
  */
 public final class OverallStatusRoute extends RouteDirectives {
 

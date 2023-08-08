@@ -263,7 +263,7 @@ public final class ConnectionPersistenceActor
     }
 
     /**
-     * Creates Akka configuration object for this actor.
+     * Creates Pekko configuration object for this actor.
      *
      * @param connectionId the connection ID.
      * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the connection.
@@ -271,7 +271,7 @@ public final class ConnectionPersistenceActor
      * @param pubSubMediator pub-sub-mediator for the shutdown behavior.
      * @param pubSubMediator the pubSubMediator
      * @param connectivityConfigOverwrites the overwrites for the connectivity config for the given connection.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final ConnectionId connectionId,
             final MongoReadJournal mongoReadJournal,

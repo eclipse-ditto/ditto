@@ -119,11 +119,11 @@ public final class SearchRootActor extends DittoRootActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this SearchRootActor.
+     * Creates Pekko configuration object Props for this SearchRootActor.
      *
      * @param searchConfig the configuration settings of this service.
      * @param pubSubMediator the PubSub mediator Actor.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final SearchConfig searchConfig, final ActorRef pubSubMediator) {
         return Props.create(SearchRootActor.class, searchConfig, pubSubMediator);

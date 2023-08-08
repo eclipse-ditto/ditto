@@ -29,7 +29,7 @@ import org.apache.pekko.http.javadsl.server.Route;
 import org.apache.pekko.http.javadsl.server.directives.SecurityDirectives;
 
 /**
- * Custom Akka Http directive performing basic auth for a defined {@link #USER_DEVOPS devops user}.
+ * Custom Pekko Http directive performing basic auth for a defined {@link #USER_DEVOPS devops user}.
  */
 public final class DevOpsBasicAuthenticationDirective implements DevopsAuthenticationDirective {
 

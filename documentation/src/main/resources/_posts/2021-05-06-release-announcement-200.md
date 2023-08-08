@@ -54,7 +54,7 @@ The following non-functional enhancements are also included:
 * Improvement of stability during rolling updates
 * Addition of sharding concept for Ditto internal pub/sub enabling connection of e.g. tens of thousands Websocket sessions
 * Background cleanup improvements in order to have less impact on DB roundtrip times
-* Update of third party libraries (e.g. Akka)
+* Update of third party libraries (e.g. Pekko)
 * Documentation of deployment via K3S
 
 Please have a look at the [2.0.0 release notes](release_notes_200.html) for a more detailed information on the release.

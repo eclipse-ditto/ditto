@@ -23,7 +23,7 @@ import org.apache.pekko.stream.javadsl.Flow;
 import org.apache.pekko.stream.javadsl.GraphDSL;
 
 /**
- * Combinators to join Akka stream processors.
+ * Combinators to join Pekko stream processors.
  */
 public final class Pipe {
 

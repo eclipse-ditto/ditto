@@ -35,7 +35,7 @@ import scala.concurrent.duration.FiniteDuration;
  * <p>
  * One speciality of a Docker swarm based cluster is that the Docker swarm DNS sets a TTL of DNS entries to 600 seconds
  * (10 minutes) - so if a cluster forms and not all DNS entries are "there" from the beginning, it takes 10 minutes
- * until DNS caches used by the default Akka {@link org.apache.pekko.discovery.dns.DnsServiceDiscovery DnsServiceDiscovery} are
+ * until DNS caches used by the default Pekko {@link org.apache.pekko.discovery.dns.DnsServiceDiscovery DnsServiceDiscovery} are
  * evicted and another DNS lookup is done.
  * </p>
  * This implementation does not cache DNS entries and can therefore be used for bootstrapping in Docker swarm.

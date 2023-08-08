@@ -137,7 +137,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
 
     @Before
     public void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        actorSystem = ActorSystem.create("PekkoTestSystem", TestConstants.CONFIG);
         protocolAdapterProvider = ProtocolAdapterProvider.load(TestConstants.PROTOCOL_CONFIG, actorSystem);
         connectionActorProbe = TestProbe.apply("connectionActor", actorSystem);
         MockCommandForwarder.create(actorSystem, connectionActorProbe.ref());
@@ -173,7 +173,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
 
     void resetActorSystemWithCachingSignalEnrichmentProvider() {
         TestKit.shutdownActorSystem(actorSystem);
-        actorSystem = ActorSystem.create("AkkaTestSystemWithCachingSignalEnrichmentProvider",
+        actorSystem = ActorSystem.create("PekkoTestSystemWithCachingSignalEnrichmentProvider",
                 TestConstants.CONFIG
                         .withValue("ditto.extensions.signal-enrichment-provider.extension-class",
                                 ConfigValueFactory.fromAnyRef(DefaultConnectivitySignalEnrichmentProvider.class.getCanonicalName()))

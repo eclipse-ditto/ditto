@@ -110,7 +110,7 @@ public final class ThingEnforcerActor
     }
 
     /**
-     * Creates Akka configuration object Props for this Actor.
+     * Creates Pekko configuration object Props for this Actor.
      *
      * @param thingId the ThingId this enforcer actor is responsible for.
      * @param thingEnforcement the thing enforcement logic to apply in the enforcer.

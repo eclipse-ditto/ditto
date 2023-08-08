@@ -34,7 +34,7 @@ import org.apache.pekko.actor.ExtendedActorSystem;
 import org.apache.pekko.actor.Extension;
 
 /**
- * Extension Point for extending Ditto via Akka Extensions to provide custom functionality to different
+ * Extension Point for extending Ditto via Pekko Extensions to provide custom functionality to different
  * aspects of the service.
  *
  * @since 3.0.0

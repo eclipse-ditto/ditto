@@ -31,7 +31,7 @@ import org.apache.pekko.stream.javadsl.Source;
  * Wraps a {@link SourceRef} of {@link JsonValue}s. The purpose of this class is to make working with SourceRef type
  * safe. Rationale: Sending a plain SourceRef through the cluster works but it discards the type information, i.e. the
  * receiver does not know the actual type of the SourceRef's elements.
- * @see <a href="https://pekko.apache.org/docs/pekko/1.0.0/stream/stream-refs.html#serialization-of-sourceref-and-sinkref">Akka
+ * @see <a href="https://pekko.apache.org/docs/pekko/1.0.0/stream/stream-refs.html#serialization-of-sourceref-and-sinkref">Pekko
  * documentation "Serialization of SourceRef and SinkRef"</a>
  */
 @Immutable

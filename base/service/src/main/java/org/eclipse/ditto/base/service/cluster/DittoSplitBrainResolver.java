@@ -83,10 +83,10 @@ final class DittoSplitBrainResolver extends AbstractActor {
             autoEnabling.cancel();
         }
         if (modifySplitBrainResolver.isEnabled() && splitBrainResolverActor == null) {
-            LOGGER.info("Enabling Akka split brain resolver");
+            LOGGER.info("Enabling Pekko split brain resolver");
             splitBrainResolverActor = startChildActor(splitBrainResolverProps);
         } else if (!modifySplitBrainResolver.isEnabled() && splitBrainResolverActor != null) {
-            LOGGER.info("Stopping Akka split brain resolver");
+            LOGGER.info("Stopping Pekko split brain resolver");
             getContext().stop(splitBrainResolverActor);
             splitBrainResolverActor = null;
         }

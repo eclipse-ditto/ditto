@@ -60,7 +60,7 @@ import io.cloudevents.http.HttpMessageFactory;
 import io.cloudevents.rw.CloudEventRWException;
 
 /**
- * Builder for creating Akka HTTP route for {@code /cloudevents}.
+ * Builder for creating Pekko HTTP route for {@code /cloudevents}.
  */
 public final class CloudEventsRoute extends AbstractRoute {
 

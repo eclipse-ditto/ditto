@@ -61,10 +61,10 @@ final class EntityTaskScheduler extends AbstractActor {
     }
 
     /**
-     * Creates Akka configuration object for this actor.
+     * Creates Pekko configuration object for this actor.
      *
      * @param metricsNameTag a name tag to include in the gathered counters/metrics of the actor.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props props(final String metricsNameTag) {
         return Props.create(EntityTaskScheduler.class, checkNotNull(metricsNameTag, "metricsNameTag"));

@@ -39,7 +39,7 @@ public final class DefaultDistributedDataConfig implements DistributedDataConfig
     private DefaultDistributedDataConfig(final Config configWithFallback) {
         readTimeout = configWithFallback.getDuration(DistributedDataConfigValue.READ_TIMEOUT.getConfigPath());
         writeTimeout = configWithFallback.getDuration(DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath());
-        pekkoReplicatorConfig = DefaultAkkaReplicatorConfig.of(configWithFallback);
+        pekkoReplicatorConfig = DefaultPekkoReplicatorConfig.of(configWithFallback);
         subscriptionWriteConsistency = toWriteConsistency(configWithFallback.getString(
                         DistributedDataConfigValue.SUBSCRIPTION_WRITE_CONSISTENCY.getConfigPath()),
                 configWithFallback.getDuration(DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath()));
@@ -54,7 +54,7 @@ public final class DefaultDistributedDataConfig implements DistributedDataConfig
             final CharSequence replicatorRole) {
         readTimeout = configWithFallback.getDuration(DistributedDataConfigValue.READ_TIMEOUT.getConfigPath());
         writeTimeout = configWithFallback.getDuration(DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath());
-        pekkoReplicatorConfig = DefaultAkkaReplicatorConfig.of(configWithFallback, replicatorName, replicatorRole);
+        pekkoReplicatorConfig = DefaultPekkoReplicatorConfig.of(configWithFallback, replicatorName, replicatorRole);
         subscriptionWriteConsistency = toWriteConsistency(configWithFallback.getString(
                         DistributedDataConfigValue.SUBSCRIPTION_WRITE_CONSISTENCY.getConfigPath()),
                 configWithFallback.getDuration(DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath()));

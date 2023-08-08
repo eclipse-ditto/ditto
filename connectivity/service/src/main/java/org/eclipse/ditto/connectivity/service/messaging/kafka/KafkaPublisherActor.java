@@ -107,7 +107,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     }
 
     /**
-     * Creates Akka configuration object {@link org.apache.pekko.actor.Props} for this {@code BasePublisherActor}.
+     * Creates Pekko configuration object {@link org.apache.pekko.actor.Props} for this {@code BasePublisherActor}.
      *
      * @param connection the connection this publisher belongs to.
      * @param producerFactory factory to create kafka SendProducer.
@@ -115,7 +115,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props props(final Connection connection,
             final SendProducerFactory producerFactory,

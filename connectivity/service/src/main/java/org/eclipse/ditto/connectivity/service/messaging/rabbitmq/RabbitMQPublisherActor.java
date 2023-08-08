@@ -116,13 +116,13 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     }
 
     /**
-     * Creates Akka configuration object {@link Props} for this {@code RabbitMQPublisherActor}.
+     * Creates Pekko configuration object {@link Props} for this {@code RabbitMQPublisherActor}.
      *
      * @param connection the connection this publisher belongs to
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props props(final Connection connection,
             final ConnectivityStatusResolver connectivityStatusResolver,

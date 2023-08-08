@@ -52,7 +52,7 @@ public final class ThingPersistenceOperationsActor extends AbstractPersistenceOp
     /**
      * Create Props of this actor.
      *
-     * @param pubSubMediator Akka pub-sub mediator.
+     * @param pubSubMediator Pekko pub-sub mediator.
      * @param mongoDbConfig the MongoDB configuration settings.
      * @param config Configuration with info about event journal, snapshot store and database.
      * @param persistenceOperationsConfig the persistence operations config.

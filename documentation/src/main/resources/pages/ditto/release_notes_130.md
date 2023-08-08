@@ -18,7 +18,7 @@ bugfixes were added.
 
 ### Changes
 
-#### [Update Akka, Akka HTTP and Scala to latest versions](https://github.com/eclipse-ditto/ditto/issues/774)
+#### [Update Pekko, Pekko HTTP and Scala to latest versions](https://github.com/eclipse-ditto/ditto/issues/774)
 
 The core libraries Ditto is built on were updated to their latest versions which should improve cluster stability
 and overall performance.

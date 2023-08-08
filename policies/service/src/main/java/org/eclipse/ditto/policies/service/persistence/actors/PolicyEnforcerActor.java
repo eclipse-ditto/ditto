@@ -48,7 +48,7 @@ public final class PolicyEnforcerActor extends
     }
 
     /**
-     * Creates Akka configuration object Props for this Actor.
+     * Creates Pekko configuration object Props for this Actor.
      *
      * @param policyId the PolicyId this enforcer actor is responsible for.
      * @param policyCommandEnforcement the policy command enforcement logic to apply in the enforcer.

@@ -49,7 +49,7 @@ abstract class AbstractMqttValidatorTest {
 
     @BeforeClass
     public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        actorSystem = ActorSystem.create("PekkoTestSystem", TestConstants.CONFIG);
         connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
     }
 

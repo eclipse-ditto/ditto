@@ -57,7 +57,7 @@ public interface DistributedDataConfig {
     /**
      * Returns the config to use for creating the {@link org.apache.pekko.cluster.ddata.Replicator}.
      *
-     * @return the Akka replicator config to use.
+     * @return the Pekko replicator config to use.
      */
     PekkoReplicatorConfig getPekkoReplicatorConfig();
 

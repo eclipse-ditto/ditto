@@ -44,7 +44,7 @@ public final class DefaultDittoHeadersValidatorTest {
 
     @BeforeClass
     public static void init() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", ConfigFactory.load("test"));
+        actorSystem = ActorSystem.create("PekkoTestSystem", ConfigFactory.load("test"));
     }
 
     @AfterClass

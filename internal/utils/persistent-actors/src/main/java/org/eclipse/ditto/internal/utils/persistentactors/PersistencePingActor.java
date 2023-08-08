@@ -103,12 +103,12 @@ public final class PersistencePingActor extends AbstractActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this Actor.
+     * Creates Pekko configuration object Props for this Actor.
      *
      * @param persistenceActorShardRegion the shard region of the target PersistenceActor.
      * @param pingConfig the Configuration to apply for this ping actor.
      * @param readJournal readJournal to extract current PIDs from.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final ActorRef persistenceActorShardRegion, final PingConfig pingConfig,
             final MongoReadJournal readJournal) {
@@ -117,12 +117,12 @@ public final class PersistencePingActor extends AbstractActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this Actor.
+     * Creates Pekko configuration object Props for this Actor.
      *
      * @param persistenceActorShardRegion the shard region of the target PersistenceActor.
      * @param pingConfig the Configuration to apply for this ping actor.
      * @param persistenceIdsSourceSupplier supplier of persistence id sources.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props propsForTests(final ActorRef persistenceActorShardRegion, final PingConfig pingConfig,
             final Supplier<Source<String, NotUsed>> persistenceIdsSourceSupplier) {

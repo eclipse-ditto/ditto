@@ -55,7 +55,7 @@ public abstract class ProtocolAdapterProvider {
      * This calls the 1-argument constructor every subclass of ProtocolAdapterProvider should implement.
      *
      * @param protocolConfig provides the class name of the ProtocolAdapterProvider to be loaded.
-     * @param actorSystem Akka actor system to perform reflection with.
+     * @param actorSystem Pekko actor system to perform reflection with.
      * @return the loaded protocol adapter provider.
      */
     public static ProtocolAdapterProvider load(final ProtocolConfig protocolConfig, final ActorSystem actorSystem) {

@@ -44,7 +44,7 @@ import org.apache.pekko.stream.javadsl.SourceQueue;
 import org.apache.pekko.stream.javadsl.SourceQueueWithComplete;
 
 /**
- * Actor whose behavior is defined entirely by an Akka stream graph.
+ * Actor whose behavior is defined entirely by an Pekko stream graph.
  *
  * @param <T> the type of the messages this actor processes in the stream graph.
  * @param <M> the type of the incoming messages which is translated to a message of type {@code <T>} in

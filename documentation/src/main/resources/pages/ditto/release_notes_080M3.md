@@ -33,7 +33,7 @@ addressed this issue with the following changes:
 ### [Netty 3 was removed from dependencies](https://github.com/eclipse-ditto/ditto/issues/161)
 
 Due to licensing issues with Netty 3, it was removed in this release and replaced with 
-[Akka's Artery](https://doc.akka.io/docs/akka/current/remoting-artery.html) remoting which uses by default a plain TCP 
+[Pekko's Artery](https://doc.akka.io/docs/akka/current/remoting-artery.html) remoting which uses by default a plain TCP 
 socket for communication.
 
 That means that a rolling update from a prior version of Ditto will fail - you'll have to completely restart your 

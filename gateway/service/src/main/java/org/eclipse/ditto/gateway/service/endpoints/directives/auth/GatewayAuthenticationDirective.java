@@ -32,7 +32,7 @@ import org.apache.pekko.http.javadsl.server.Route;
 import scala.util.Try;
 
 /**
- * Akka Http directive which performs authentication for the gateway.
+ * Pekko Http directive which performs authentication for the gateway.
  */
 public final class GatewayAuthenticationDirective {
 

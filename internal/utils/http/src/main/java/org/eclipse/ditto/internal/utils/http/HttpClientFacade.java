@@ -19,7 +19,7 @@ import org.apache.pekko.http.javadsl.model.HttpRequest;
 import org.apache.pekko.http.javadsl.model.HttpResponse;
 
 /**
- * Provides a pre-configured Akka HTTP client.
+ * Provides a pre-configured Pekko HTTP client.
  */
 public interface HttpClientFacade {
 

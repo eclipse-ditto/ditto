@@ -75,7 +75,7 @@ import scala.compat.java8.FutureConverters;
 import scala.concurrent.Future;
 
 /**
- * Builder for creating Akka HTTP routes for {@code /}.
+ * Builder for creating Pekko HTTP routes for {@code /}.
  */
 public final class RootRoute extends AllDirectives {
 

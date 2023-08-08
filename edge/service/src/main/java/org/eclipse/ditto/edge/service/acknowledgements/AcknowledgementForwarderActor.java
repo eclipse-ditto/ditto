@@ -80,12 +80,12 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this AcknowledgementForwarderActor.
+     * Creates Pekko configuration object Props for this AcknowledgementForwarderActor.
      *
      * @param commandForwarder the actor ref of the edge command forwarder actor.
      * @param dittoHeaders the DittoHeaders of the Signal which contained the request for Acknowledgements.
      * @param defaultTimeout the default timeout to apply when {@code dittoHeaders} did not contain a specific timeout.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props props(final ActorSelection commandForwarder, final DittoHeaders dittoHeaders,
             final Duration defaultTimeout) {

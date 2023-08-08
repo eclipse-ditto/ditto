@@ -48,7 +48,7 @@ import org.apache.pekko.http.javadsl.server.RequestContext;
 import org.apache.pekko.http.javadsl.server.Route;
 
 /**
- * Builder for creating Akka HTTP routes for {@code /devops}.
+ * Builder for creating Pekko HTTP routes for {@code /devops}.
  */
 public final class DevOpsRoute extends AbstractRoute {
 

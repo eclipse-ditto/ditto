@@ -29,7 +29,7 @@ import org.apache.pekko.stream.Materializer;
 import org.apache.pekko.stream.javadsl.Source;
 
 /**
- * An Akka stream to handle background cleanup regulated by insert times.
+ * An Pekko stream to handle background cleanup regulated by insert times.
  */
 final class Cleanup {
 

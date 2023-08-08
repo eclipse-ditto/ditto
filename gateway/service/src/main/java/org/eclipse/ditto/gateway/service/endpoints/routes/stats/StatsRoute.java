@@ -43,7 +43,7 @@ import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.util.ByteString;
 
 /**
- * Builder for Akka HTTP route for providing statistics.
+ * Builder for Pekko HTTP route for providing statistics.
  */
 public final class StatsRoute extends AbstractRoute {
 

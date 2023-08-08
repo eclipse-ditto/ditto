@@ -39,7 +39,7 @@ import org.apache.pekko.persistence.SnapshotSelectionCriteria;
 import scala.Option;
 
 /**
- * Helper class which provides functionality for testing with Akka persistence snapshots for the things
+ * Helper class which provides functionality for testing with Pekko persistence snapshots for the things
  * services.
  * Requires akka-persistence-inmemory (by com.github.dnvriend).
  *

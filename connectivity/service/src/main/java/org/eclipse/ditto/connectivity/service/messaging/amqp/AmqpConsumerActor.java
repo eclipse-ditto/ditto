@@ -134,7 +134,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
     }
 
     /**
-     * Creates Akka configuration object {@link Props} for this {@code AmqpConsumerActor}.
+     * Creates Pekko configuration object {@link Props} for this {@code AmqpConsumerActor}.
      *
      * @param connection the connection
      * @param consumerData the consumer data.
@@ -143,7 +143,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the connectivity config related to the given connection.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props props(final Connection connection, final ConsumerData consumerData,
             final Sink<Object, ?> inboundMappingSink, final ActorRef jmsActor,

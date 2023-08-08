@@ -98,11 +98,11 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this Actor.
+     * Creates Pekko configuration object Props for this Actor.
      *
      * @param readJournal readJournal to extract current PIDs from.
      * @param connectionIdsRetrievalConfig the config to build the pid suppliers from.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final MongoReadJournal readJournal,
             final ConnectionIdsRetrievalConfig connectionIdsRetrievalConfig) {

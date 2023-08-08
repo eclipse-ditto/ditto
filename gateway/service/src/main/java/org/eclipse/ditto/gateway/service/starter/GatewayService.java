@@ -30,7 +30,7 @@ import org.apache.pekko.actor.Props;
 public final class GatewayService extends DittoService<GatewayConfig> {
 
     /**
-     * Name for the Akka actor system of the Gateway service.
+     * Name for the Pekko actor system of the Gateway service.
      */
     public static final String SERVICE_NAME = "gateway";
 

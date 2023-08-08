@@ -88,7 +88,7 @@ public abstract class AbstractConsumerActorTest<M> {
 
     @Before
     public void init() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", CONFIG);
+        actorSystem = ActorSystem.create("PekkoTestSystem", CONFIG);
         protocolAdapterProvider = ProtocolAdapterProvider.load(TestConstants.PROTOCOL_CONFIG, actorSystem);
         connectionActorProbe = TestProbe.apply("connectionActor", actorSystem);
     }
