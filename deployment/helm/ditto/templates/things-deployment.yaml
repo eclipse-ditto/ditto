@@ -175,9 +175,9 @@ spec:
               value: "{{ .Values.global.cluster.downingStableAfter }}"
             - name: CLUSTER_DOWNING_DOWN_ALL_WHEN_UNSTABLE
               value: "{{ .Values.global.cluster.downAllWhenUnstable }}"
-            - name: AKKA_PERSISTENCE_MONGO_JOURNAL_WRITE_CONCERN
+            - name: PEKKO_PERSISTENCE_MONGO_JOURNAL_WRITE_CONCERN
               value: "{{ .Values.things.config.mongodb.journalWriteConcern }}"
-            - name: AKKA_PERSISTENCE_MONGO_SNAPS_WRITE_CONCERN
+            - name: PEKKO_PERSISTENCE_MONGO_SNAPS_WRITE_CONCERN
               value: "{{ .Values.things.config.mongodb.snapsWriteConcern }}"
             - name: BREAKER_MAXTRIES
               value: "{{ .Values.things.config.mongodb.journalCircuitBreaker.maxTries }}"

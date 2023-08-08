@@ -114,9 +114,9 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
      */
     public static final String PRIORITY_TAG_PREFIX = "priority-";
 
-    private static final String AKKA_PERSISTENCE_JOURNAL_AUTO_START =
+    private static final String PEKKO_PERSISTENCE_JOURNAL_AUTO_START =
             "pekko.persistence.journal.auto-start-journals";
-    private static final String AKKA_PERSISTENCE_SNAPS_AUTO_START =
+    private static final String PEKKO_PERSISTENCE_SNAPS_AUTO_START =
             "pekko.persistence.snapshot-store.auto-start-snapshot-stores";
 
     private static final String JOURNAL_COLLECTION_NAME_KEY = "overrides.journal-collection";
@@ -210,8 +210,8 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
     public static MongoReadJournal newInstance(final Config config, final DittoMongoClient mongoClient,
             final ActorSystem actorSystem) {
 
-        final String autoStartJournalKey = extractAutoStartConfigKey(config, AKKA_PERSISTENCE_JOURNAL_AUTO_START);
-        final String autoStartSnapsKey = extractAutoStartConfigKey(config, AKKA_PERSISTENCE_SNAPS_AUTO_START);
+        final String autoStartJournalKey = extractAutoStartConfigKey(config, PEKKO_PERSISTENCE_JOURNAL_AUTO_START);
+        final String autoStartSnapsKey = extractAutoStartConfigKey(config, PEKKO_PERSISTENCE_SNAPS_AUTO_START);
         final String journalCollection =
                 getOverrideCollectionName(config.getConfig(autoStartJournalKey), JOURNAL_COLLECTION_NAME_KEY);
         final String snapshotCollection =
@@ -985,7 +985,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
         final List<String> autoStartJournals = config.getStringList(key);
         if (autoStartJournals.size() != 1) {
             final String message = String.format("Expect %s to be a singleton list, but it is List(%s)",
-                    AKKA_PERSISTENCE_JOURNAL_AUTO_START,
+                    PEKKO_PERSISTENCE_JOURNAL_AUTO_START,
                     String.join(", ", autoStartJournals));
             throw new IllegalArgumentException(message);
         } else {

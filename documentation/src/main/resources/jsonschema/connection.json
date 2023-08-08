@@ -666,7 +666,7 @@
       "$id": "/properties/clientCount",
       "type": "integer",
       "title": "Client count",
-      "description": "The client count defines how many clients are instantiated for this connection. Each client opens a separate 'physical' connection and thus raises the overall availability and throughput of the connection. Clients are always instantiated on separate AKKA cluster nodes while having only a single client per node. Therefore the max client count is limited by the number of cluster nodes.",
+      "description": "The client count defines how many clients are instantiated for this connection. Each client opens a separate 'physical' connection and thus raises the overall availability and throughput of the connection. Clients are always instantiated on separate PEKKO cluster nodes while having only a single client per node. Therefore the max client count is limited by the number of cluster nodes.",
       "default": 1,
       "minimum": 1,
       "maximum": 9,

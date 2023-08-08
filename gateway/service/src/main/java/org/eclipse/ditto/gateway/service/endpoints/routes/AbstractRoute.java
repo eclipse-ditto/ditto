@@ -87,7 +87,7 @@ public abstract class AbstractRoute extends AllDirectives {
      * Timeout for Pekko HTTP. Timeout is normally managed in HttpRequestActor and AcknowledgementAggregatorActor.
      * The Pekko HTTP timeout is only there to prevent resource leak.
      */
-    private static final scala.concurrent.duration.Duration AKKA_HTTP_TIMEOUT =
+    private static final scala.concurrent.duration.Duration PEKKO_HTTP_TIMEOUT =
             scala.concurrent.duration.Duration.create(2, TimeUnit.MINUTES);
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(AbstractRoute.class);
@@ -373,7 +373,7 @@ public abstract class AbstractRoute extends AllDirectives {
 
     private Route increaseHttpRequestTimeout(final java.util.function.Function<Duration, Route> inner,
             final scala.concurrent.duration.Duration requestTimeout) {
-        return withRequestTimeout(AKKA_HTTP_TIMEOUT,
+        return withRequestTimeout( PEKKO__HTTP_TIMEOUT,
                 () -> inner.apply(Duration.ofMillis(requestTimeout.toMillis())));
     }
 
