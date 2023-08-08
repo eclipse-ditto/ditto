@@ -66,14 +66,14 @@ public final class RetrieveConnectionLogsAggregatorActor extends AbstractActor {
     }
 
     /**
-     * Creates Akka configuration object for this actor.
+     * Creates Pekko configuration object for this actor.
      *
      * @param connection the {@code Connection} for which to aggregate the logs for.
      * @param sender the ActorRef of the sender to which to answer the response to.
      * @param originalHeaders the DittoHeaders to use for the response message.
      * @param timeout the timeout to apply in order to receive the response.
      * @param maxLogSizeBytes the maximum length of all log entries JSON representation.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final Connection connection, final ActorRef sender,
             final DittoHeaders originalHeaders, final Duration timeout, final long maxLogSizeBytes) {

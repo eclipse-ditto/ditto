@@ -96,7 +96,7 @@ public final class IndexInitializerIT {
 
     @Before
     public void before() {
-        system = ActorSystem.create("AkkaTestSystem");
+        system = ActorSystem.create("PekkoTestSystem");
         materializer = SystemMaterializer.get(system).materializer();
 
         requireNonNull(MONGO_RESOURCE);

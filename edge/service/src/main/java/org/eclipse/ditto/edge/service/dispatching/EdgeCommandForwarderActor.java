@@ -101,11 +101,11 @@ public class EdgeCommandForwarderActor extends AbstractActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this actor.
+     * Creates Pekko configuration object Props for this actor.
      *
      * @param pubSubMediator the PubSub mediator Actor.
      * @param shardRegions shard regions to use in order to dispatch different entity Signals to.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final ShardRegions shardRegions) {
         return Props.create(EdgeCommandForwarderActor.class, pubSubMediator, shardRegions);

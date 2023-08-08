@@ -113,7 +113,7 @@ import org.apache.pekko.stream.javadsl.Source;
 import scala.PartialFunction;
 
 /**
- * Builder for creating Akka HTTP routes for SSE (Server Sent Events) {@code /things} and {@code /search} routes.
+ * Builder for creating Pekko HTTP routes for SSE (Server Sent Events) {@code /things} and {@code /search} routes.
  */
 @NotThreadSafe
 public final class ThingsSseRouteBuilder extends RouteDirectives implements SseRouteBuilder {

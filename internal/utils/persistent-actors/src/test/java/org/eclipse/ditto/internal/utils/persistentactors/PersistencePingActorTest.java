@@ -47,7 +47,7 @@ public final class PersistencePingActorTest {
 
     @BeforeClass
     public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", CONFIG);
+        actorSystem = ActorSystem.create("PekkoTestSystem", CONFIG);
     }
 
     @AfterClass

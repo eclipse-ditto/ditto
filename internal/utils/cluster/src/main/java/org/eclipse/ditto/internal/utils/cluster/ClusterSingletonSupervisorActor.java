@@ -121,21 +121,21 @@ final class ClusterSingletonSupervisorActor extends AbstractActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this Actor.
+     * Creates Pekko configuration object Props for this Actor.
      *
      * @param childProps the Props of the child to create (the actual singleton).
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final Props childProps) {
         return Props.create(ClusterSingletonSupervisorActor.class, childProps);
     }
 
     /**
-     * Creates Akka configuration object Props for this Actor.
+     * Creates Pekko configuration object Props for this Actor.
      *
      * @param childProps the Props of the child to create (the actual singleton).
      * @param supervisorStrategy the {@link SupervisorStrategy} to apply.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final Props childProps, final SupervisorStrategy supervisorStrategy) {
 

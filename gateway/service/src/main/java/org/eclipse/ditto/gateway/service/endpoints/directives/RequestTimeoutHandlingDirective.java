@@ -44,7 +44,7 @@ import org.apache.pekko.http.javadsl.server.Route;
 import org.apache.pekko.util.ByteString;
 
 /**
- * Custom Akka HTTP directive which handles a request timeout.
+ * Custom Pekko HTTP directive which handles a request timeout.
  */
 public final class RequestTimeoutHandlingDirective {
 

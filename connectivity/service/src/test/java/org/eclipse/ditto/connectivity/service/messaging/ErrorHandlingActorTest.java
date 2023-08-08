@@ -57,7 +57,7 @@ public class ErrorHandlingActorTest extends WithMockServers {
     private static Duration DISCONNECT_TIMEOUT;
 
     public void setUp(final boolean allowFirstCreateCommand, final boolean allowCloseCommands) {
-        actorSystem = ActorSystem.create("AkkaTestSystem", ConfigFactory.parseMap(
+        actorSystem = ActorSystem.create("PekkoTestSystem", ConfigFactory.parseMap(
                         Map.of("ditto.extensions.client-actor-props-factory",
                                 "org.eclipse.ditto.connectivity.service.messaging.FaultyClientActorPropsFactory",
                                 "allowFirstCreateCommand", allowFirstCreateCommand, "allowCloseCommands",

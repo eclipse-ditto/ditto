@@ -26,10 +26,10 @@ import org.apache.pekko.persistence.SelectedSnapshot;
 import org.apache.pekko.persistence.SnapshotOffer;
 
 /**
- * Adapter capable of transforming Snapshots (in {@link #toSnapshotStore(Object)}) done in an Akka PersistentActor to
+ * Adapter capable of transforming Snapshots (in {@link #toSnapshotStore(Object)}) done in an Pekko PersistentActor to
  * another representation before persisting to the Snapshot-Store.
  * Also intercepts loading a Database's Snapshot representation (in {@link #fromSnapshotStore(SnapshotOffer)})
- * and is able to transform the Snapshot object before offering it to the Akka PersistentActor.
+ * and is able to transform the Snapshot object before offering it to the Pekko PersistentActor.
  * Implement this interface for persisting Snapshots in a DB-optimized way (e.g. in BSON format for MongoDB).
  *
  * @param <T> the domain model type to do a Snapshot for.
@@ -47,7 +47,7 @@ public interface SnapshotAdapter<T> extends DittoExtensionPoint {
     /**
      * Converts a "database snapshot" (directly loaded from the database) type to a domain model snapshot type.
      *
-     * @param snapshotOffer the SnapshotOffer as offered from Akka Persistence including the db snapshot.
+     * @param snapshotOffer the SnapshotOffer as offered from Pekko Persistence including the db snapshot.
      * @return the transformed domain model type which is offered to the PersistentActor or {@code null}.
      */
     @Nullable
@@ -56,7 +56,7 @@ public interface SnapshotAdapter<T> extends DittoExtensionPoint {
     /**
      * Converts a "database selected snapshot" (directly loaded from the database) type to a domain model snapshot type.
      *
-     * @param selectedSnapshot the SelectedSnapshot as offered from Akka Persistence including the db snapshot.
+     * @param selectedSnapshot the SelectedSnapshot as offered from Pekko Persistence including the db snapshot.
      * @return the transformed domain model type which is offered to the PersistentActor or {@code null}.
      */
     @Nullable

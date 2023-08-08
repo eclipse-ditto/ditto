@@ -1014,7 +1014,7 @@
       },
       "id": 26,
       "panels": [],
-      "title": "Akka Remoting",
+      "title": "Pekko Remoting",
       "type": "row"
     },
     {
@@ -1049,7 +1049,7 @@
         "for": "0m",
         "frequency": "1m",
         "handler": 1,
-        "name": "Akka Remoting Dropped messages alert",
+        "name": "Pekko Remoting Dropped messages alert",
         "noDataState": "no_data",
         "notifications": []
       },
@@ -1150,7 +1150,7 @@
           "timeField": "@timestamp"
         }
       ],
-      "title": "Akka Remoting Dropped messages per minute",
+      "title": "Pekko Remoting Dropped messages per minute",
       "type": "timeseries"
     }
   ],

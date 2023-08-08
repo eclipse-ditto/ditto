@@ -34,7 +34,7 @@ It should also reduce the consumer lag due to a lack of threads when there are a
 Previously, the JSON element order e.g. in arrays in a managed `connection` could be mixed up, e.g. from creation to
 persistence. This has been fixed by maintaining the JSON element order in the connection model.
 
-#### [Updated to Akka HTTP 10.2.7 due to critical reported CVE](https://github.com/eclipse-ditto/ditto/pull/1222)
+#### [Updated to Pekko HTTP 10.2.7 due to critical reported CVE](https://github.com/eclipse-ditto/ditto/pull/1222)
 
 The for Ditto's HTTP API used library contained a critical security issue 
-[CVE-2021-42697](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-42697) which has been resolved in Akka HTTP 10.2.7 
+[CVE-2021-42697](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-42697) which has been resolved in Pekko HTTP 10.2.7 

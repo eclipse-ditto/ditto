@@ -39,9 +39,9 @@ public final class PoliciesPersistenceStreamingActorCreator {
     }
 
     /**
-     * Creates Akka configuration object Props for this PersistenceQueriesActor.
+     * Creates Pekko configuration object Props for this PersistenceQueriesActor.
      *
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props() {
         return DefaultPersistenceStreamingActor.props(PolicyTag.class,

@@ -34,7 +34,7 @@ import scala.util.Try;
 final class MqttPublishTarget implements PublishTarget {
 
     /**
-     * For target the default is qos=0 because we have qos=0 all over the Akka cluster.
+     * For target the default is qos=0 because we have qos=0 all over the Pekko cluster.
      */
     static final MqttQos DEFAULT_TARGET_QOS = MqttQos.AT_MOST_ONCE;
 
@@ -51,7 +51,7 @@ final class MqttPublishTarget implements PublishTarget {
      *
      * @param genericTarget provides the address which is used as string representation of the {@link MqttTopic} and
      * an optional MQTT QoS code. If {@code genericTarget} contains no QoS code, {@link #DEFAULT_TARGET_QOS} is used
-     * as fall-back because this matches the QoS that is used all over Akka cluster.
+     * as fall-back because this matches the QoS that is used all over Pekko cluster.
      * @return a {@code Success} that contains the {@code MqttPublishTarget} instance or a {@code Failure} if
      * {@code genericTarget} contains an invalid topic or QoS code.
      * @throws NullPointerException if {@code genericTarget} is {@code null}.

@@ -56,7 +56,7 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
     }
 
     /**
-     * Get an instance of this distributed data with the default configuration. The provided Akka system must be a
+     * Get an instance of this distributed data with the default configuration. The provided Pekko system must be a
      * cluster member with the role {@code blocked-namespaces-aware}.
      *
      * @param system the actor system where the replicator actor will be created.

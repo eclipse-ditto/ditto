@@ -155,13 +155,13 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
     }
 
     /**
-     * Creates Akka configuration object Props for this SearchActor.
+     * Creates Pekko configuration object Props for this SearchActor.
      *
      * @param queryFactory factory of query objects.
      * @param searchPersistence the {@link org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence}
      * to use in order to execute queries.
-     * @param pubSubMediator the Akka pub-sub mediator.
-     * @return the Akka configuration Props object.
+     * @param pubSubMediator the Pekko pub-sub mediator.
+     * @return the Pekko configuration Props object.
      */
     static Props props(final QueryParser queryFactory, final ThingsSearchPersistence searchPersistence,
             final ActorRef pubSubMediator) {

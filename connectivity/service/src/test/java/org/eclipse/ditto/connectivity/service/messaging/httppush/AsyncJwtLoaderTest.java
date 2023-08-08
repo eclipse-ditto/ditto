@@ -49,7 +49,7 @@ public class AsyncJwtLoaderTest {
 
     @BeforeClass
     public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem");
+        actorSystem = ActorSystem.create("PekkoTestSystem");
     }
 
     @AfterClass

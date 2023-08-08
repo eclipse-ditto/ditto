@@ -91,7 +91,7 @@ final class PolicyModificationForwarder extends AbstractActor {
     /**
      * Create Props for this actor.
      *
-     * @param pubSubMediator Akka pub-sub-mediator
+     * @param pubSubMediator Pekko pub-sub-mediator
      * @param thingsUpdater thingsUpdater
      * @param blockedNamespaces blocked namespaces.
      * @return the Props object.

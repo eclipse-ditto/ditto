@@ -110,10 +110,10 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
     }
 
     /**
-     * Creates Akka configuration object Props for this StatisticsActor.
+     * Creates Pekko configuration object Props for this StatisticsActor.
      *
      * @param pubSubMediator the Pub/Sub mediator to use.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props props(final ActorRef pubSubMediator) {
 

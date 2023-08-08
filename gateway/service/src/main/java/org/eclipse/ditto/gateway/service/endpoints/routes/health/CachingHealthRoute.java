@@ -33,7 +33,7 @@ import org.apache.pekko.http.javadsl.model.StatusCodes;
 import org.apache.pekko.http.javadsl.server.Route;
 
 /**
- * Builder for creating Akka HTTP route for {@code /health}.
+ * Builder for creating Pekko HTTP route for {@code /health}.
  */
 public final class CachingHealthRoute {
 

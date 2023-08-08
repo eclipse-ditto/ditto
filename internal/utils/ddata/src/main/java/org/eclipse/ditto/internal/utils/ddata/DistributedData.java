@@ -100,7 +100,7 @@ public abstract class DistributedData<R extends ReplicatedData> implements Exten
     }
 
     /**
-     * Create a distributed data config with Akka's default options.
+     * Create a distributed data config with Pekko's default options.
      *
      * @param replicatorName the name of the replicator.
      * @param replicatorRole the cluster role of members with replicas of the distributed collection.

@@ -197,8 +197,8 @@ public final class HttpPushFactoryTest {
         // WHEN: request is made
         sourceQueue.offer(request);
 
-        // THEN: CONNECT request is made to the Akka HTTP test server.
-        // THEN: Akka HTTP server rejects CONNECT request, creating a failed response
+        // THEN: CONNECT request is made to the Pekko HTTP test server.
+        // THEN: Pekko HTTP server rejects CONNECT request, creating a failed response
         final Optional<Try<HttpResponse>> optionalTryResponse = sinkQueue.pull().toCompletableFuture().join();
         assertThat(optionalTryResponse).isNotEmpty();
         final Try<HttpResponse> tryResponse = optionalTryResponse.get();
@@ -234,7 +234,7 @@ public final class HttpPushFactoryTest {
             assertThat(responseOrError1.get().status()).isEqualTo(response1.status());
 
             // WHEN: In-flight request is killed
-            // THEN: Akka HTTP responds with status 500
+            // THEN: Pekko HTTP responds with status 500
             responseQueue.offer(new CompletableFuture<>());
             sourceQueue.offer(request2);
             assertThat(requestQueue.take().getUri()).isEqualTo(request2.getUri());

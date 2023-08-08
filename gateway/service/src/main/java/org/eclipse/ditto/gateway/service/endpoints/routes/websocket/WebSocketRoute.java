@@ -133,7 +133,7 @@ import scala.util.Left;
 import scala.util.Right;
 
 /**
- * Builder for creating Akka HTTP routes for {@code /ws}.
+ * Builder for creating Pekko HTTP routes for {@code /ws}.
  */
 @NotThreadSafe
 public final class WebSocketRoute implements WebSocketRouteBuilder {

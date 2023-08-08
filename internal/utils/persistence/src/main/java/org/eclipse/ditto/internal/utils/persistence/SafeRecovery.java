@@ -28,7 +28,7 @@ public final class SafeRecovery {
      * Creates a Receive for recovery such that exceptions are logged as warnings
      * and not thrown. Recovery messages causing exceptions have no effect.
      *
-     * @param log The Akka logger to write warnings to.
+     * @param log The Pekko logger to write warnings to.
      * @param receiveRecover The Receive to wrap around.
      *
      * @return the created Receive.

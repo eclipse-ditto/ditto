@@ -93,7 +93,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
     }
 
     /**
-     * Creates Akka configuration object {@link Props} for this {@code RabbitMQConsumerActor}.
+     * Creates Pekko configuration object {@link Props} for this {@code RabbitMQConsumerActor}.
      *
      * @param sourceAddress the source address.
      * @param inboundMappingSink the mapping sink where received messages are forwarded to
@@ -103,7 +103,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props props(final String sourceAddress,
             final Sink<Object, NotUsed> inboundMappingSink,

@@ -315,7 +315,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
     /*
      * Please change this method only if you know exactly what you do.
-     * The order of statements and everything else is crucial as SSE route testing is not provided by Akka HTTP
+     * The order of statements and everything else is crucial as SSE route testing is not provided by Pekko HTTP
      * route test kit.
      */
     private void executeThingsRouteTest(final HttpRequest httpRequest, final StartStreaming expectedStartStreaming) {

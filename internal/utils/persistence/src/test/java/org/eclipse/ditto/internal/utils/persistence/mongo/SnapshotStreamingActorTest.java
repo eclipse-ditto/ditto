@@ -62,7 +62,7 @@ public final class SnapshotStreamingActorTest {
     @Before
     public void initActorSystem() {
         final Config config = ConfigFactory.load("test");
-        actorSystem = ActorSystem.create("AkkaTestSystem", config);
+        actorSystem = ActorSystem.create("PekkoTestSystem", config);
         mockClient = Mockito.mock(DittoMongoClient.class);
         mockReadJournal = Mockito.mock(MongoReadJournal.class);
         pubSubMediatorTestProbe = TestProbe.apply("pubSubMediator", actorSystem);

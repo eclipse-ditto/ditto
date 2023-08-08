@@ -142,7 +142,7 @@ public final class AcknowledgementAggregatorActor<C extends Command<C>> extends 
     }
 
     /**
-     * Creates Akka configuration object Props for this AcknowledgementAggregatorActor.
+     * Creates Pekko configuration object Props for this AcknowledgementAggregatorActor.
      *
      * @param entityId the entity ID of the originating signal.
      * @param signal the originating signal.
@@ -153,7 +153,7 @@ public final class AcknowledgementAggregatorActor<C extends Command<C>> extends 
      * @param matchingValidationFailureConsumer optional handler for response validation failures.
      * @param responseAcknowledgementProvider an Acknowledgement provider which provide Acks based on processed command
      * responses or ditto runtime exceptions.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      * @throws org.eclipse.ditto.base.model.acks.AcknowledgementRequestParseException if a contained acknowledgement
      * request could not be parsed.
      */
@@ -177,7 +177,7 @@ public final class AcknowledgementAggregatorActor<C extends Command<C>> extends 
     }
 
     /**
-     * Creates Akka configuration object Props for this AcknowledgementAggregatorActor.
+     * Creates Pekko configuration object Props for this AcknowledgementAggregatorActor.
      *
      * @param entityId the entity ID of the originating signal.
      * @param signal the originating signal.
@@ -189,7 +189,7 @@ public final class AcknowledgementAggregatorActor<C extends Command<C>> extends 
      * @param matchingValidationFailureConsumer optional handler for response validation failures.
      * @param responseAcknowledgementProvider an Acknowledgement providers which provide Acks based on
      * processed command responses or ditto runtime exceptions.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      * @throws org.eclipse.ditto.base.model.acks.AcknowledgementRequestParseException if a contained acknowledgement
      * request could not be parsed.
      */

@@ -63,7 +63,7 @@ public final class RetrieveConnectionLogsAggregatorActorTest {
 
     @BeforeClass
     public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        actorSystem = ActorSystem.create("PekkoTestSystem", TestConstants.CONFIG);
     }
 
     @AfterClass

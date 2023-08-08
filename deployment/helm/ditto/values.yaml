@@ -30,7 +30,7 @@ fullnameOverride: ""
 ## ----------------------------------------------------------------------------
 ## global configuration shared by all components
 global:
-  # cluster holds the configuration for the Ditto/Akka cluster
+  # cluster holds the configuration for the Ditto/Pekko cluster
   cluster:
     # requiredContactPoints defines the total amount of replicas in the Ditto cluster
     #  only if this amount is "seen" during cluster formation, the cluster can form itself
@@ -47,10 +47,10 @@ global:
     # numberOfShards configures the sharding applied for things/policies/connections based on their ID
     #  as a rule of thumb: should be factor ten of the amount of cluster replicas for an entity
     numberOfShards: 50
-    # downingStableAfter is a configuration of the Akka SBR (split brain resolver)
+    # downingStableAfter is a configuration of the Pekko SBR (split brain resolver)
     #  how to find the right value: https://doc.akka.io/docs/akka/current/split-brain-resolver.html
     downingStableAfter: 15s
-    # downAllWhenUnstable is a configuration of the Akka SBR (split brain resolver)
+    # downAllWhenUnstable is a configuration of the Pekko SBR (split brain resolver)
     downAllWhenUnstable: "on"
   # basicAuthUsers configures (as a map) several user/password combinations which the nginx of the Ditto chart will authenticate
   basicAuthUsers: {}
@@ -362,16 +362,16 @@ openshift:
   securityContext: {}
 
 ## ----------------------------------------------------------------------------
-## akka holds the Akka actor configuration
+## akka holds the Pekko actor configuration
 ##  ref: https://doc.akka.io/docs/akka/current/typed/index.html
 akka:
   # actorSystemName defines the actor/cluster name of the Ditto cluster
   actorSystemName: ditto-cluster
-  # remoting holds configuration for the Akka cluster remoting
+  # remoting holds configuration for the Pekko cluster remoting
   remoting:
     # port defines the Port to use for remoting
     port: 2551
-  # mgmthttp holds configuration for the Akka cluster management
+  # mgmthttp holds configuration for the Pekko cluster management
   mgmthttp:
     # port defines the Port to use for akka http management
     port: 8558

@@ -44,11 +44,11 @@ final class SearchHealthCheckingActorFactory {
     }
 
     /**
-     * Creates Akka configuration object Props for a health checking actor.
+     * Creates Pekko configuration object Props for a health checking actor.
      *
      * @param searchConfig the configuration settings.
      * @param backgroundSyncActorProxy proxy actor for RetrieveHealth messages to the background sync actor.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final SearchConfig searchConfig, final ActorRef backgroundSyncActorProxy) {
 

@@ -27,7 +27,7 @@ import org.apache.pekko.cluster.singleton.ClusterSingletonProxy;
 import org.apache.pekko.cluster.singleton.ClusterSingletonProxySettings;
 
 /**
- * Convenience methods to operate an Akka cluster.
+ * Convenience methods to operate an Pekko cluster.
  */
 @Immutable
 public final class ClusterUtil {

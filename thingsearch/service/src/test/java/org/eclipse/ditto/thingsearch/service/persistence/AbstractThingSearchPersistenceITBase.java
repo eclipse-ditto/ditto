@@ -102,7 +102,7 @@ public abstract class AbstractThingSearchPersistenceITBase {
     @Before
     public void before() {
         final Config config = ConfigFactory.load("test");
-        actorSystem = ActorSystem.create("AkkaTestSystem", config);
+        actorSystem = ActorSystem.create("PekkoTestSystem", config);
         log = actorSystem.log();
         readPersistence = provideReadPersistence();
         writePersistence = provideWritePersistence();

@@ -12,7 +12,7 @@
       }
     ]
   },
-  "description": "Dashboard which shows Entities managed by Akka Persistence",
+  "description": "Dashboard which shows Entities managed by Pekko Persistence",
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,

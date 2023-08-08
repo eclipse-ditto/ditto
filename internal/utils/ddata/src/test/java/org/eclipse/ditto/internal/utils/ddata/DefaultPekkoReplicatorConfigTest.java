@@ -30,9 +30,9 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link DefaultAkkaReplicatorConfig}.
+ * Unit test for {@link DefaultPekkoReplicatorConfig}.
  */
-public final class DefaultAkkaReplicatorConfigTest {
+public final class DefaultPekkoReplicatorConfigTest {
 
     private static Config testConfig;
 
@@ -46,44 +46,44 @@ public final class DefaultAkkaReplicatorConfigTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultAkkaReplicatorConfig.class, areImmutable(),
+        assertInstancesOf(DefaultPekkoReplicatorConfig.class, areImmutable(),
                 AllowedReason.provided(Config.class).areAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(DefaultAkkaReplicatorConfig.class)
+        EqualsVerifier.forClass(DefaultPekkoReplicatorConfig.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
-        final DefaultAkkaReplicatorConfig underTest = DefaultAkkaReplicatorConfig.of(ConfigFactory.empty());
+        final DefaultPekkoReplicatorConfig underTest = DefaultPekkoReplicatorConfig.of(ConfigFactory.empty());
 
         softly.assertThat(underTest.getName())
-                .as(PekkoReplicatorConfig.AkkaReplicatorConfigValue.NAME.getConfigPath())
-                .isEqualTo(PekkoReplicatorConfig.AkkaReplicatorConfigValue.NAME.getDefaultValue());
+                .as(PekkoReplicatorConfig.PekkoReplicatorConfigValue.NAME.getConfigPath())
+                .isEqualTo(PekkoReplicatorConfig.PekkoReplicatorConfigValue.NAME.getDefaultValue());
         softly.assertThat(underTest.getRole())
-                .as(PekkoReplicatorConfig.AkkaReplicatorConfigValue.ROLE.getConfigPath())
-                .isEqualTo(PekkoReplicatorConfig.AkkaReplicatorConfigValue.ROLE.getDefaultValue());
+                .as(PekkoReplicatorConfig.PekkoReplicatorConfigValue.ROLE.getConfigPath())
+                .isEqualTo(PekkoReplicatorConfig.PekkoReplicatorConfigValue.ROLE.getDefaultValue());
     }
 
     @Test
     public void underTestReturnsValuesOfConfigFile() {
-        final DefaultAkkaReplicatorConfig underTest = DefaultAkkaReplicatorConfig.of(testConfig);
+        final DefaultPekkoReplicatorConfig underTest = DefaultPekkoReplicatorConfig.of(testConfig);
 
         softly.assertThat(underTest.getName())
-                .as(PekkoReplicatorConfig.AkkaReplicatorConfigValue.NAME.getConfigPath())
+                .as(PekkoReplicatorConfig.PekkoReplicatorConfigValue.NAME.getConfigPath())
                 .isEqualTo("the-name");
         softly.assertThat(underTest.getRole())
-                .as(PekkoReplicatorConfig.AkkaReplicatorConfigValue.ROLE.getConfigPath())
+                .as(PekkoReplicatorConfig.PekkoReplicatorConfigValue.ROLE.getConfigPath())
                 .isEqualTo("a-role");
         softly.assertThat(underTest.getGossipInterval())
-                .as(PekkoReplicatorConfig.AkkaReplicatorConfigValue.GOSSIP_INTERVAL.getConfigPath())
+                .as(PekkoReplicatorConfig.PekkoReplicatorConfigValue.GOSSIP_INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofMillis(1337));
         softly.assertThat(underTest.getNotifySubscribersInterval())
-                .as(PekkoReplicatorConfig.AkkaReplicatorConfigValue.NOTIFY_SUBSCRIBERS_INTERVAL.getConfigPath())
+                .as(PekkoReplicatorConfig.PekkoReplicatorConfigValue.NOTIFY_SUBSCRIBERS_INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(1));
     }
 
@@ -92,13 +92,13 @@ public final class DefaultAkkaReplicatorConfigTest {
         final String name = "nomen-est-omen";
         final String role = "da-role";
 
-        final DefaultAkkaReplicatorConfig underTest = DefaultAkkaReplicatorConfig.of(testConfig, name, role);
+        final DefaultPekkoReplicatorConfig underTest = DefaultPekkoReplicatorConfig.of(testConfig, name, role);
 
         softly.assertThat(underTest.getName())
-                .as(PekkoReplicatorConfig.AkkaReplicatorConfigValue.NAME.getConfigPath())
+                .as(PekkoReplicatorConfig.PekkoReplicatorConfigValue.NAME.getConfigPath())
                 .isEqualTo(name);
         softly.assertThat(underTest.getRole())
-                .as(PekkoReplicatorConfig.AkkaReplicatorConfigValue.ROLE.getConfigPath())
+                .as(PekkoReplicatorConfig.PekkoReplicatorConfigValue.ROLE.getConfigPath())
                 .isEqualTo(role);
 
         // test that pekko default config values are copied

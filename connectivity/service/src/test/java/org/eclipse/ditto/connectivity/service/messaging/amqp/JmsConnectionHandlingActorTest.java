@@ -70,7 +70,7 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
 
     @BeforeClass
     public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        actorSystem = ActorSystem.create("PekkoTestSystem", TestConstants.CONFIG);
         connection = TestConstants.createConnection(connectionId);
     }
 

@@ -37,7 +37,7 @@ import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
 
 /**
- * Helper class which provides functionality for testing with Akka persistence journal for the policies services.
+ * Helper class which provides functionality for testing with Pekko persistence journal for the policies services.
  * Requires akka-persistence-inmemory (by com.github.dnvriend).
  *
  * @param <J> the domain specific datatype stored in the journal

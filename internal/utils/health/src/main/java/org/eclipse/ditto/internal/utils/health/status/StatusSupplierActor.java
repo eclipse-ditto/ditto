@@ -59,11 +59,11 @@ public final class StatusSupplierActor extends AbstractActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this StatusSupplierActor.
+     * Creates Pekko configuration object Props for this StatusSupplierActor.
      *
      * @param rootActorName sets the name of the root actor (e.g. "thingsRoot") which is used as the parent of
      * {@link org.eclipse.ditto.internal.utils.health.AbstractHealthCheckingActor#ACTOR_NAME}.
-     * @return the Akka configuration Props object
+     * @return the Pekko configuration Props object
      */
     public static Props props(final String rootActorName) {
 

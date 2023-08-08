@@ -80,7 +80,7 @@ import pekko.contrib.persistence.mongodb.SnapshottingFieldNames$;
 
 /**
  * Reads the event journal of {@code com.github.scullxbones.pekko-persistence-mongo} plugin.
- * In the Akka system configuration,
+ * In the Pekko system configuration,
  * <ul>
  * <li>
  * {@code pekko.persistence.journal.auto-start-journals} must contain exactly 1 configuration key {@code
@@ -203,7 +203,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
     /**
      * Creates a new {@code MongoReadJournal}.
      *
-     * @param config The Akka system configuration.
+     * @param config The Pekko system configuration.
      * @param mongoClient The Mongo client wrapper.
      * @return A {@code MongoReadJournal} object.
      */
@@ -972,7 +972,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
     /**
      * Extract the auto-start journal/snaps config from the configuration of the actor system.
      * <p>
-     * It assumes that in the Akka system configuration,
+     * It assumes that in the Pekko system configuration,
      * {@code pekko.persistence.journal.auto-start-journals} or
      * {@code pekko.persistence.snapshot-store.auto-start-snapshot-stores}
      * contains exactly 1 configuration key, which points to the configuration of the auto-start journal/snapshot-store.

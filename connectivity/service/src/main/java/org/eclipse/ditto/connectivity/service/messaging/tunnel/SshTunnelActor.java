@@ -117,7 +117,7 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
     }
 
     /**
-     * Create Akka actor configuration Props object for the SSH tunnel actor.
+     * Create Pekko actor configuration Props object for the SSH tunnel actor.
      *
      * @param connection the connection to create the SSH tunnel for.
      * @param connectivityStatusResolver connectivity status resolver to resolve the SSH tunnel status based on

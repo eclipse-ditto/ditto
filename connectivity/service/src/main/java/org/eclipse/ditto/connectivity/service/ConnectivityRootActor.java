@@ -128,11 +128,11 @@ public final class ConnectivityRootActor extends DittoRootActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this ConnectivityRootActor.
+     * Creates Pekko configuration object Props for this ConnectivityRootActor.
      *
      * @param connectivityConfig the configuration of the Connectivity service.
      * @param pubSubMediator the PubSub mediator Actor.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final ConnectivityConfig connectivityConfig, final ActorRef pubSubMediator) {
 

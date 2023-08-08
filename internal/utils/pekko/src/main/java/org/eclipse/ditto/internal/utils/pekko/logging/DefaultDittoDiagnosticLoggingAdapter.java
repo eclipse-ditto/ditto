@@ -49,7 +49,7 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
     /**
      * Returns an instance of the default Ditto DiagnosticLoggingAdapter.
      *
-     * @param diagnosticLoggingAdapter the Akka DiagnosticLoggingAdapter which performs the actual logging.
+     * @param diagnosticLoggingAdapter the Pekko DiagnosticLoggingAdapter which performs the actual logging.
      * @param loggerName the name of the returned logger.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.

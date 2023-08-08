@@ -234,7 +234,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 expectMsgEquals(ETagTestUtils.retrieveThingResponse(thing, null, expectedHeaders));
 
                 // terminate thing persistence actor
-                final String thingActorPath = String.format("akka://AkkaTestSystem/user/%s/pa", thingId);
+                final String thingActorPath = String.format("akka://PekkoTestSystem/user/%s/pa", thingId);
                 final ActorSelection thingActorSelection = actorSystem.actorSelection(thingActorPath);
                 final Future<ActorRef> thingActorFuture =
                         thingActorSelection.resolveOne(Duration.create(5, TimeUnit.SECONDS));

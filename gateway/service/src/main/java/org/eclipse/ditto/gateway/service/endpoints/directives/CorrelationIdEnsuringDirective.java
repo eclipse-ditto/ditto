@@ -29,7 +29,7 @@ import org.apache.pekko.http.javadsl.model.HttpRequest;
 import org.apache.pekko.http.javadsl.server.Route;
 
 /**
- * Custom Akka Http directive adding a correlationId to the request, if it does not yet exist.
+ * Custom Pekko Http directive adding a correlationId to the request, if it does not yet exist.
  */
 @Immutable
 public final class CorrelationIdEnsuringDirective {

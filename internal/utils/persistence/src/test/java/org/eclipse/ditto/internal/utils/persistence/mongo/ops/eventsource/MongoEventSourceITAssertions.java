@@ -115,7 +115,7 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
      * Start an entity's persistence actor.
      *
      * @param system the actor system.
-     * @param pubSubMediator Akka pub-sub mediator.
+     * @param pubSubMediator Pekko pub-sub mediator.
      * @param id ID of the entity.
      * @return reference to the entity actor.
      */
@@ -125,7 +125,7 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
      * Starts the NamespaceOps actor.
      *
      * @param actorSystem the actor system.
-     * @param pubSubMediator Akka pub-sub mediator.
+     * @param pubSubMediator Pekko pub-sub mediator.
      * @param config configuration with info about event journal, snapshot store, metadata and database.
      * @return reference of the NamespaceOps actor.
      */
@@ -175,7 +175,7 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
     protected Config getEventSourcingConfiguration() {
         // - do not log dead letters (i.e., events for which there is no subscriber)
         // - bind to random available port
-        // - do not attempt to join an Akka cluster
+        // - do not attempt to join an Pekko cluster
         // - do not shutdown jvm on exit (breaks unit tests)
         // - make Mongo URI known to the persistence plugin and to the NamespaceOps actor
         final String testConfig = "pekko.log-dead-letters=0\n" +

@@ -41,7 +41,7 @@
  /**
   * MonitoredUnboundedMailboxType is a regular unbounded mailbox, which in addition monitors the size of the
   * mailbox/queue.
-  * It is backed by a {@link ConcurrentLinkedQueue}, like the default {@link UnboundedMailbox} of Akka. Therefore it can be
+  * It is backed by a {@link ConcurrentLinkedQueue}, like the default {@link UnboundedMailbox} of Pekko. Therefore it can be
   * used to replace the default unbounded mailbox.
   * <p>
   * This mailbox has two additional monitoring features: Logging the size of the mailbox when a given
@@ -64,7 +64,7 @@
 
      /**
       * Creates a new {@code MonitoredUnboundedMailboxType}.
-      * This constructor signature must exist, it will be called by Akka.
+      * This constructor signature must exist, it will be called by Pekko.
       *
       * @param settings the ActorSystem settings.
       * @param config the config.

@@ -45,7 +45,7 @@ public class ThingPersistenceActorMailbox implements MailboxType,
     private final int capacity;
 
     /**
-     * Creates a new {@code ThingBoundedMailbox}. This constructor signature must exist, it will be called by Akka.
+     * Creates a new {@code ThingBoundedMailbox}. This constructor signature must exist, it will be called by Pekko.
      *
      * @param settings the ActorSystem settings.
      * @param config the config.

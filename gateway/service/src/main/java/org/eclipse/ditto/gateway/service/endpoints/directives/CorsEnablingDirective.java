@@ -43,7 +43,7 @@ import org.apache.pekko.http.javadsl.server.Directives;
 import org.apache.pekko.http.javadsl.server.Route;
 
 /**
- * Custom Akka Http directive enabling CORS for the wrapped Route.
+ * Custom Pekko Http directive enabling CORS for the wrapped Route.
  */
 public final class CorsEnablingDirective {
 

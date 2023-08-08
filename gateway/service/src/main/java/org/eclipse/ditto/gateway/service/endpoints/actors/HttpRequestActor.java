@@ -47,7 +47,7 @@ public final class HttpRequestActor extends AbstractHttpRequestActor {
     }
 
     /**
-     * Creates the Akka configuration object for this {@code HttpRequestActor} for the given {@code proxyActor}, {@code
+     * Creates the Pekko configuration object for this {@code HttpRequestActor} for the given {@code proxyActor}, {@code
      * request}, and {@code httpResponseFuture} which will be completed with a {@link HttpResponse}.
      *
      * @param proxyActor the proxy actor which delegates commands.

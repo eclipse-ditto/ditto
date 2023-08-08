@@ -102,12 +102,12 @@ public final class ThingPersistenceActor
     }
 
     /**
-     * Creates Akka configuration object {@link Props} for this ThingPersistenceActor.
+     * Creates Pekko configuration object {@link Props} for this ThingPersistenceActor.
      *
      * @param thingId the Thing ID this Actor manages.
      * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the thing.
      * @param distributedPub the distributed-pub access to publish thing events.
-     * @return the Akka configuration Props object
+     * @return the Pekko configuration Props object
      */
     public static Props props(final ThingId thingId,
             final MongoReadJournal mongoReadJournal,

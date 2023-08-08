@@ -82,7 +82,7 @@ import org.apache.pekko.http.javadsl.server.RequestContext;
 import org.apache.pekko.http.javadsl.server.Route;
 
 /**
- * Builder for creating Akka HTTP routes for {@code /things}.
+ * Builder for creating Pekko HTTP routes for {@code /things}.
  */
 public final class ThingsRoute extends AbstractRoute {
 

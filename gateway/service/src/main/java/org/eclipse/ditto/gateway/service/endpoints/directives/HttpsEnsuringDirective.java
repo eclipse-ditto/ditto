@@ -40,7 +40,7 @@ import org.apache.pekko.http.javadsl.server.RequestContext;
 import org.apache.pekko.http.javadsl.server.Route;
 
 /**
- * Custom Akka Http directive ensuring that proxied requests only come via HTTPs.
+ * Custom Pekko Http directive ensuring that proxied requests only come via HTTPs.
  */
 public final class HttpsEnsuringDirective {
 

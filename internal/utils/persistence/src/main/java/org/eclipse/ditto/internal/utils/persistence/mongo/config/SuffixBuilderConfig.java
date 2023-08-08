@@ -20,7 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
- * Provides the configuration settings of the MongoDB suffix builder for the Akka persistence plugin.
+ * Provides the configuration settings of the MongoDB suffix builder for the Pekko persistence plugin.
  */
 @Immutable
 public interface SuffixBuilderConfig {

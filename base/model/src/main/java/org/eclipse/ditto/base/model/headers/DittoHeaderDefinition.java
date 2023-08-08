@@ -441,7 +441,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
             HeaderValueValidators.getBooleanValidator()),
 
     /**
-     * Internal header passing through the Akka address of an {@code AcknowledgementAggregatorActor} which was started
+     * Internal header passing through the Pekko address of an {@code AcknowledgementAggregatorActor} which was started
      * at an edge (gateway/connectivity) and is awaiting {@code Acknowledgement}s which can be sent to it by using
      * this address in an {@code ActorSelection}.
      *

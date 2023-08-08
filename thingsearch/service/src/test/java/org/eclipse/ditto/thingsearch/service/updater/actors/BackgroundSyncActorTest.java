@@ -122,7 +122,7 @@ public final class BackgroundSyncActorTest {
 
     @Before
     public void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TEST_CONFIG);
+        actorSystem = ActorSystem.create("PekkoTestSystem", TEST_CONFIG);
         thingsUpdater = new TestKit(actorSystem);
         pubSub = new TestKit(actorSystem);
         policiesShardRegion = new TestKit(actorSystem);

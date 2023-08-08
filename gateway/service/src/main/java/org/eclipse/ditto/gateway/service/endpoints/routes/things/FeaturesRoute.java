@@ -49,7 +49,7 @@ import org.apache.pekko.http.javadsl.server.RequestContext;
 import org.apache.pekko.http.javadsl.server.Route;
 
 /**
- * Builder for creating Akka HTTP routes for {@code /features}.
+ * Builder for creating Pekko HTTP routes for {@code /features}.
  */
 final class FeaturesRoute extends AbstractRoute {
 

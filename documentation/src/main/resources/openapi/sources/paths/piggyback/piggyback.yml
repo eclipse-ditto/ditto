@@ -10,7 +10,7 @@
 # SPDX-License-Identifier: EPL-2.0
 post:
   summary: Send a piggyback command
-  description: Send a piggyback command to Akka’s pub-sub-mediator
+  description: Send a piggyback command to Pekko’s pub-sub-mediator
   security:
     - DevOpsBasic: []
     - DevOpsBearer: []

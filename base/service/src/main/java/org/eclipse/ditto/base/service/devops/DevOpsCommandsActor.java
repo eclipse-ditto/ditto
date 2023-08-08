@@ -125,12 +125,12 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
     }
 
     /**
-     * Creates Akka configuration object Props for this Actor.
+     * Creates Pekko configuration object Props for this Actor.
      *
      * @param loggingFacade a facade providing logging functionality.
      * @param serviceName name of the microservice.
      * @param instance instance number of the microservice instance.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final LoggingFacade loggingFacade, final String serviceName, final String instance) {
         return Props.create(DevOpsCommandsActor.class, loggingFacade, serviceName, instance);
@@ -442,7 +442,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
         }
 
         /**
-         * @return the Akka configuration Props object.
+         * @return the Pekko configuration Props object.
          */
         static Props props(final ActorRef pubSubMediator,
                 final String serviceName,
@@ -536,7 +536,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
         }
 
         /**
-         * @return the Akka configuration Props object.
+         * @return the Pekko configuration Props object.
          */
         static Props props(final ActorRef devOpsCommandSender, final DevOpsCommand<?> devOpsCommand,
                 final int expectedResponses) {

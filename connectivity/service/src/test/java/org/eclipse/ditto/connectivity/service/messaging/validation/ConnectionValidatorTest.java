@@ -93,7 +93,7 @@ public class ConnectionValidatorTest {
 
     @BeforeClass
     public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", CONFIG);
+        actorSystem = ActorSystem.create("PekkoTestSystem", CONFIG);
     }
 
     @AfterClass

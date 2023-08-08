@@ -24,7 +24,7 @@ import org.apache.pekko.stream.SinkShape;
 import org.apache.pekko.stream.javadsl.Sink;
 
 /**
- * An Akka stream sink from a consumer of messages with sender.
+ * An Pekko stream sink from a consumer of messages with sender.
  */
 public final class Consume {
 

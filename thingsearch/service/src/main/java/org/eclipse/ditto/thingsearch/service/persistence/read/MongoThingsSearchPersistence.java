@@ -97,7 +97,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
      * Initializes the things search persistence with a passed in {@code persistence}.
      *
      * @param mongoClient the mongoDB persistence wrapper.
-     * @param actorSystem the Akka ActorSystem.
+     * @param actorSystem the Pekko ActorSystem.
      */
     public MongoThingsSearchPersistence(final DittoMongoClient mongoClient, final ActorSystem actorSystem,
             final SearchPersistenceConfig persistenceConfig) {

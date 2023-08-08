@@ -104,10 +104,10 @@ public final class BackgroundSyncActor
     }
 
     /**
-     * Create Akka Props object for the background sync actor.
+     * Create Pekko Props object for the background sync actor.
      *
      * @param config the config of the background sync actor.
-     * @param pubSubMediator Akka pub-sub mediator.
+     * @param pubSubMediator Pekko pub-sub mediator.
      * @param thingsSearchPersistence the search persistence to access the search index.
      * @param backgroundSyncPersistence persistence for bookmarks of background sync progress.
      * @param policiesShardRegion the policies shard region to query policy revisions.

@@ -92,9 +92,9 @@ final class QueryThingsPerRequestActor extends AbstractActorWithShutdownBehavior
     }
 
     /**
-     * Creates Akka configuration object Props for this QueryThingsPerRequestActor.
+     * Creates Pekko configuration object Props for this QueryThingsPerRequestActor.
      *
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props props(final QueryThings queryThings,
             final ActorRef commandForwarderActor,

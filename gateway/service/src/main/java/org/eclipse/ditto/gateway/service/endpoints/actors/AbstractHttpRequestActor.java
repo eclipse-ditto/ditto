@@ -227,7 +227,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
                         handleDittoRuntimeException(dittoRuntimeException);
                     } else if (cause instanceof EntityStreamSizeException) {
                         logger.warning("Got EntityStreamSizeException when a 'Command' was expected which means that" +
-                                " the max. allowed http payload size configured in Akka was overstepped in this" +
+                                " the max. allowed http payload size configured in Pekko was overstepped in this" +
                                 " request.");
                         completeWithResult(createHttpResponse(HttpStatus.REQUEST_ENTITY_TOO_LARGE));
                     } else {

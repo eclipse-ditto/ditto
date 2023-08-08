@@ -47,7 +47,7 @@ public final class DefaultDistributedDataConfigTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(DefaultDistributedDataConfig.class, areImmutable(),
-                AllowedReason.provided(DefaultAkkaReplicatorConfig.class,
+                AllowedReason.provided(DefaultPekkoReplicatorConfig.class,
                         Replicator.WriteConsistency.class).areAlsoImmutable());
     }
 

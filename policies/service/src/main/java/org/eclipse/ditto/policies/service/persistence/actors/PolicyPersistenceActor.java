@@ -110,14 +110,14 @@ public final class PolicyPersistenceActor
     }
 
     /**
-     * Creates Akka configuration object {@link Props} for this PolicyPersistenceActor.
+     * Creates Pekko configuration object {@link Props} for this PolicyPersistenceActor.
      *
      * @param policyId the ID of the Policy this Actor manages.
      * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the policy.
      * @param pubSubMediator the PubSub mediator actor.
      * @param announcementManager manager of policy announcements.
      * @param policyConfig the policy config.
-     * @return the Akka configuration Props object
+     * @return the Pekko configuration Props object
      */
     public static Props props(final PolicyId policyId,
             final MongoReadJournal mongoReadJournal,

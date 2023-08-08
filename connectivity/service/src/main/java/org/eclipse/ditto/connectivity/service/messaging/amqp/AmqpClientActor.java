@@ -168,16 +168,16 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     /**
-     * Creates Akka configuration object for this actor.
+     * Creates Pekko configuration object for this actor.
      *
      * @param connection the connection.
      * @param commandForwarderActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param configOverwrites an override for the default connectivity config values -
      * @param actorSystem the actor system.
-     * as Typesafe {@code Config} because this one is serializable in Akka by default.
+     * as Typesafe {@code Config} because this one is serializable in Pekko by default.
      * @param dittoHeaders headers of the command that caused this actor to be created.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final Connection connection, final ActorRef commandForwarderActor,
             final ActorRef connectionActor, final Config configOverwrites, final ActorSystem actorSystem,
@@ -187,14 +187,14 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     /**
-     * Creates Akka configuration object for this actor.
+     * Creates Pekko configuration object for this actor.
      *
      * @param connection connection parameters.
      * @param commandForwarderActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param jmsConnectionFactory the JMS connection factory.
      * @param actorSystem the actor system.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props propsForTest(final Connection connection, @Nullable final ActorRef commandForwarderActor,
             final ActorRef connectionActor, final JmsConnectionFactory jmsConnectionFactory,

@@ -21,7 +21,7 @@ import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import com.typesafe.config.Config;
 
 /**
- * Provides configuration settings for the Akka {@link org.apache.pekko.cluster.ddata.Replicator}.
+ * Provides configuration settings for the Pekko {@link org.apache.pekko.cluster.ddata.Replicator}.
  */
 @Immutable
 public interface PekkoReplicatorConfig {
@@ -55,7 +55,7 @@ public interface PekkoReplicatorConfig {
     Duration getNotifySubscribersInterval();
 
     /**
-     * Gets the complete Akka {@code distributed-data} config to use for the {@link org.apache.pekko.cluster.ddata.Replicator}.
+     * Gets the complete Pekko {@code distributed-data} config to use for the {@link org.apache.pekko.cluster.ddata.Replicator}.
      *
      * @return the complete config.
      */
@@ -65,7 +65,7 @@ public interface PekkoReplicatorConfig {
      * An enumeration of the known config path expressions and their associated default values for
      * {@code AkkaReplicatorConfig}.
      */
-    enum AkkaReplicatorConfigValue implements KnownConfigValue {
+    enum PekkoReplicatorConfigValue implements KnownConfigValue {
 
         /**
          * The name to be used for the {@link org.apache.pekko.cluster.ddata.Replicator}.
@@ -90,7 +90,7 @@ public interface PekkoReplicatorConfig {
         private final String path;
         private final Object defaultValue;
 
-        AkkaReplicatorConfigValue(final String thePath, final Object theDefaultValue) {
+        PekkoReplicatorConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

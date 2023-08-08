@@ -83,7 +83,7 @@ public final class MongoTimestampPersistenceIT {
     @Before
     public void setUp() {
         final Config config = ConfigFactory.load("test");
-        actorSystem = ActorSystem.create("AkkaTestSystem", config);
+        actorSystem = ActorSystem.create("PekkoTestSystem", config);
         materializer = SystemMaterializer.get(actorSystem).materializer();
         syncPersistence = MongoTimestampPersistence.initializedInstance(KNOWN_COLLECTION, mongoClient, materializer);
     }

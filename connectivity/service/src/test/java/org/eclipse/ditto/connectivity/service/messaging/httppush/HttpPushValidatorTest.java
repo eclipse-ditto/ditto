@@ -62,7 +62,7 @@ public final class HttpPushValidatorTest {
     public static void initTestFixture() {
         defaultSpecificConfig = new HashMap<>();
         defaultSpecificConfig.put("parallelism", "1");
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        actorSystem = ActorSystem.create("PekkoTestSystem", TestConstants.CONFIG);
         connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
     }
 

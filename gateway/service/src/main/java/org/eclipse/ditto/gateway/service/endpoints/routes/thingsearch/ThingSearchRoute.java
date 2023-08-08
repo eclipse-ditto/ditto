@@ -34,7 +34,7 @@ import org.apache.pekko.http.javadsl.server.RequestContext;
 import org.apache.pekko.http.javadsl.server.Route;
 
 /**
- * Builder for creating Akka HTTP routes for {@code /search/things}.
+ * Builder for creating Pekko HTTP routes for {@code /search/things}.
  */
 public final class ThingSearchRoute extends AbstractRoute {
 

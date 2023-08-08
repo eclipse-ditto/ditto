@@ -18,7 +18,7 @@
       }
     ]
   },
-  "description": "The Dispatchers instrumentation captures metrics on the underlying executor service for Akka dispatchers.",
+  "description": "The Dispatchers instrumentation captures metrics on the underlying executor service for Pekko dispatchers.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "gnetId": 12315,
@@ -863,7 +863,7 @@
     ]
   },
   "timezone": "browser",
-  "title": "Akka Dispatcher Metrics",
+  "title": "Pekko Dispatcher Metrics",
   "uid": "cJ8qaziVz",
   "version": 33,
   "weekStart": ""

@@ -52,7 +52,7 @@ public class PolicyPersistenceActorMailbox implements MailboxType,
 
     /**
      * Creates a new {@code PolicyBoundedMailbox}.
-     * This constructor signature must exist, it will be called by Akka.
+     * This constructor signature must exist, it will be called by Pekko.
      *
      * @param settings the ActorSystem settings.
      * @param config the config.

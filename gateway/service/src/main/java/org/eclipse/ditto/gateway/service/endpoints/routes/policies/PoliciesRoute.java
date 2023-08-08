@@ -57,7 +57,7 @@ import org.apache.pekko.http.javadsl.server.RequestContext;
 import org.apache.pekko.http.javadsl.server.Route;
 
 /**
- * Builder for creating Akka HTTP routes for {@code /policies}.
+ * Builder for creating Pekko HTTP routes for {@code /policies}.
  */
 public final class PoliciesRoute extends AbstractRoute {
 

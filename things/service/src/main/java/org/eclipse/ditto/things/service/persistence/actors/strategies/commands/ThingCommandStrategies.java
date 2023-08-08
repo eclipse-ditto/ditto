@@ -55,7 +55,7 @@ public final class ThingCommandStrategies
     /**
      * Returns the <em>singleton</em> instance of {@code ThingReceiveStrategy}.
      *
-     * @param system the Akka ActorSystem to use in order to e.g. dynamically load classes.
+     * @param system the Pekko ActorSystem to use in order to e.g. dynamically load classes.
      * @return the instance.
      */
     public static ThingCommandStrategies getInstance(final ActorSystem system) {

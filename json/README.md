@@ -6,7 +6,7 @@ This library is not intended to be the 101 Java JSON library - there are plenty 
 libraries out there like [minimal-json](https://github.com/ralfstx/minimal-json) for example.
 
 ditto-json has 2 main goals:
-1. Provide truly immutable JSON values (required to guarantee immutability of the messages Ditto uses in its Akka services).
+1. Provide truly immutable JSON values (required to guarantee immutability of the messages Ditto uses in its Pekko services).
 2. Provide concepts like `JsonFieldDefintion` in order to define a schema of how JSON objects look like, which fields
    are regular/hidden and in which versions are they available.
 

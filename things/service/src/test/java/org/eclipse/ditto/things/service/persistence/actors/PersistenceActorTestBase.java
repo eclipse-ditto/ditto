@@ -205,7 +205,7 @@ public abstract class PersistenceActorTestBase {
         requireNonNull(customConfig, "Consider to use ConfigFactory.empty()");
         final Config config = customConfig.withFallback(ConfigFactory.load("test"));
 
-        actorSystem = ActorSystem.create("AkkaTestSystem", ConfigFactory.parseMap(
+        actorSystem = ActorSystem.create("PekkoTestSystem", ConfigFactory.parseMap(
                 Map.of("pekko.actor.provider", "cluster")).withFallback(config));
         pubSubTestProbe = TestProbe.apply("mock-pubSub-mediator", actorSystem);
         pubSubMediator = pubSubTestProbe.ref();

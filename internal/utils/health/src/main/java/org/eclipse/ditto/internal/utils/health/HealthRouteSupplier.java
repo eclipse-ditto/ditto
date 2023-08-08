@@ -27,7 +27,7 @@ import org.apache.pekko.http.javadsl.server.Route;
 import org.apache.pekko.pattern.Patterns;
 
 /**
- * Function for Akka HTTP Routes to transform a RequestContext into a RouteResult with the expected status code for
+ * Function for Pekko HTTP Routes to transform a RequestContext into a RouteResult with the expected status code for
  * health (200/503) and the required format.
  */
 public class HealthRouteSupplier implements Supplier<Route> {

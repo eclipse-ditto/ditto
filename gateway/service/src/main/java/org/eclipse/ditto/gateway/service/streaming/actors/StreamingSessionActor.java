@@ -190,7 +190,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     }
 
     /**
-     * Creates Akka configuration object Props for this StreamingSessionActor.
+     * Creates Pekko configuration object Props for this StreamingSessionActor.
      *
      * @param connect the command to start a streaming session.
      * @param dittoProtocolSub manager of subscriptions.
@@ -201,7 +201,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
      * @param streamingSubscriptionManagerProps Props of the subscription manager for streaming subscription commands.
      * @param jwtValidator validator of JWT tokens.
      * @param jwtAuthenticationResultProvider provider of JWT authentication results.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props props(final Connect connect,
             final DittoProtocolSub dittoProtocolSub,

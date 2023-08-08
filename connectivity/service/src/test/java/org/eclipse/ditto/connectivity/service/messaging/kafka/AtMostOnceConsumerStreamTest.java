@@ -64,7 +64,7 @@ public final class AtMostOnceConsumerStreamTest {
 
     @Before
     public void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem");
+        actorSystem = ActorSystem.create("PekkoTestSystem");
         final Consumer.Control control = mock(Consumer.Control.class);
         source = Source.<ConsumerRecord<String, ByteBuffer>>queue(1)
                 .mapMaterializedValue(queue -> {

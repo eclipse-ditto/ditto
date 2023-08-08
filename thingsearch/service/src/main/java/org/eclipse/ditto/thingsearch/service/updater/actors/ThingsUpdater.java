@@ -81,14 +81,14 @@ final class ThingsUpdater extends AbstractActorWithTimers {
     }
 
     /**
-     * Creates Akka configuration object for this actor.
+     * Creates Pekko configuration object for this actor.
      *
      * @param thingUpdaterShardRegion shard region of thing-updaters
      * @param updaterConfig configuration for updaters.
      * @param blockedNamespaces cache of namespaces to block.
      * @param pubSubMediator the pubsub mediator for subscription for SudoUpdateThing commands, or null if
      * the subscription is not wanted.
-     * @return the Akka configuration Props object
+     * @return the Pekko configuration Props object
      */
     static Props props(final ActorRef thingUpdaterShardRegion,
             final UpdaterConfig updaterConfig,

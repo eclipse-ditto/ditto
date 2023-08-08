@@ -81,7 +81,7 @@ import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.stream.SystemMaterializer;
 
 /**
- * The Root Actor of the API Gateway's Akka ActorSystem.
+ * The Root Actor of the API Gateway's Pekko ActorSystem.
  */
 public final class GatewayRootActor extends DittoRootActor {
 
@@ -171,11 +171,11 @@ public final class GatewayRootActor extends DittoRootActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this actor.
+     * Creates Pekko configuration object Props for this actor.
      *
      * @param gatewayConfig the configuration settings of this service.
      * @param pubSubMediator the pub-sub mediator.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator) {
         return Props.create(GatewayRootActor.class, gatewayConfig, pubSubMediator);

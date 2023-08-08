@@ -59,7 +59,7 @@ public final class DefaultPersistenceStreamingActorTest {
     @BeforeClass
     public static void initActorSystem() {
         final Config config = ConfigFactory.load("test");
-        actorSystem = ActorSystem.create("AkkaTestSystem", config);
+        actorSystem = ActorSystem.create("PekkoTestSystem", config);
     }
 
     @AfterClass

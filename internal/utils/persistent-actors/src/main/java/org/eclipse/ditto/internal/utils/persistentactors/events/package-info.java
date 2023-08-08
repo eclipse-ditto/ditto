@@ -12,7 +12,7 @@
  */
 
 /**
- * Analogous to "event" handling of Akka Typed Persistence.
+ * Analogous to "event" handling of Pekko Typed Persistence.
  */
 @org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
 package org.eclipse.ditto.internal.utils.persistentactors.events;
