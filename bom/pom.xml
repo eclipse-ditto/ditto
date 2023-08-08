@@ -48,7 +48,7 @@
         <pekko-bom.version>1.0.1</pekko-bom.version>
         <pekko-http-bom.version>1.0.0</pekko-http-bom.version>
         <pekko-persistence-mongodb.version>1.0.0-SNAPSHOT</pekko-persistence-mongodb.version>
-        <pekko-management.version>1.0.0-RC1</pekko-management.version>
+        <pekko-management.version>1.0.0-RC2</pekko-management.version>
         <pekko-connector-kafka.version>1.0.0</pekko-connector-kafka.version>
         <parboiled.version>2.5.0</parboiled.version>
 
@@ -1011,47 +1011,7 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-    <repositories>
-        <repository>
-            <id>sonatype-releases</id>
-            <url>https://oss.sonatype.org/content/repositories/releases/</url>
-        </repository>
-        <repository>
-            <id>apache-releases</id>
-            <name>apache-releases</name>
-            <url>https://repository.apache.org/content/repositories/releases/</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>apache-snapshots</id>
-            <url>https://repository.apache.org/content/repositories/snapshots/</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>apache-staging</id>
-            <url>https://repository.apache.org/content/groups/staging/</url>
-        </repository>
-        <repository>
-            <id>sonatype-snapshot</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
+
 
     <dependencies>
         <dependency>
