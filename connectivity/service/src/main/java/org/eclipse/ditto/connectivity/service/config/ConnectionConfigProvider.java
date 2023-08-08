@@ -57,7 +57,7 @@ public interface ConnectionConfigProvider {
 
     /**
      * Returns {@code true} if the implementation can handle the given {@code event} to generate a modified {@link ConnectivityConfig}
-     * when passed to {@link #handleEvent(org.eclipse.ditto.base.model.signals.events.Event, pekko.actor.ActorRef, pekko.actor.ActorRef)}.
+     * when passed to {@link #handleEvent(org.eclipse.ditto.base.model.signals.events.Event, org.apache.pekko.actor.ActorRef, org.apache.pekko.actor.ActorRef)}.
      *
      * @param event the event that may be used to generate modified config
      * @return {@code true} if the event is compatible

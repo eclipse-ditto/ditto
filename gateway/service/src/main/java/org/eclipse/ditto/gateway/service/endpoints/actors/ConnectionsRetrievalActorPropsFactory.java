@@ -24,7 +24,7 @@ import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Props;
 
 /**
- * Creates actor {@link pekko.actor.Props}.
+ * Creates actor {@link org.apache.pekko.actor.Props}.
  */
 public interface ConnectionsRetrievalActorPropsFactory extends DittoExtensionPoint {
 

@@ -107,7 +107,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     }
 
     /**
-     * Creates Akka configuration object {@link pekko.actor.Props} for this {@code BasePublisherActor}.
+     * Creates Akka configuration object {@link org.apache.pekko.actor.Props} for this {@code BasePublisherActor}.
      *
      * @param connection the connection this publisher belongs to.
      * @param producerFactory factory to create kafka SendProducer.

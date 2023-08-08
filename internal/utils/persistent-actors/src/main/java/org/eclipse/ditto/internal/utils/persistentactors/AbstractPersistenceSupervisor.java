@@ -432,7 +432,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     /**
      * Asks the "target actor" (being either the {@link AbstractPersistenceActor} for "twin" commands or e.g. a
      * pub/sub actor reference for "live" commands/messages) - which is determined by
-     * {@link #getTargetActorForSendingEnforcedMessageTo(Object, boolean, pekko.actor.ActorRef)} - the passed {@code message}.
+     * {@link #getTargetActorForSendingEnforcedMessageTo(Object, boolean, org.apache.pekko.actor.ActorRef)} - the passed {@code message}.
      *
      * @param message the message to ask the target actor.
      * @param shouldSendResponse whether the message should send a response or not.
