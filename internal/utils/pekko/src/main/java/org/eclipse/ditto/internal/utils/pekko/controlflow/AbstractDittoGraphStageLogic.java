@@ -22,7 +22,7 @@ import org.apache.pekko.stream.stage.AbstractInHandler;
 import org.apache.pekko.stream.stage.GraphStageLogicWithLogging;
 
 /**
- * Extension of {@code pekko.stream.stage.GraphStageLogic} with Ditto-specific functions.
+ * Extension of {@link org.apache.pekko.stream.stage.GraphStageLogic} with Ditto-specific functions.
  *
  * @since 1.1.0
  */

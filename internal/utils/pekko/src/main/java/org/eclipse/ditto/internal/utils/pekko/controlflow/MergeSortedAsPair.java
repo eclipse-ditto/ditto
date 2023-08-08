@@ -34,7 +34,7 @@ import org.apache.pekko.stream.stage.GraphStageLogic;
  * <p>
  * Behavior definition:
  * <pre>{@code
- * pekko.stream.scaladsl.MergeSorted
+ * org.apache.pekko.stream.scaladsl.MergeSorted
  * }</pre>
  * is behaviorally equivalent as stream component with
  * <pre>{@code

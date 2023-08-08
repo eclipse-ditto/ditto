@@ -444,8 +444,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     /**
-     * Handles {@link TestConnection} commands by returning a CompletionState of {@link pekko.actor.Status.Status Status}
-     * which may be {@link pekko.actor.Status.Success Success} or {@link pekko.actor.Status.Failure Failure}.
+     * Handles {@link TestConnection} commands by returning a CompletionState of {@link org.apache.pekko.actor.Status.Status Status}
+     * which may be {@link org.apache.pekko.actor.Status.Success Success} or {@link org.apache.pekko.actor.Status.Failure Failure}.
      *
      * @param testConnectionCommand the Connection to test
      * @return the CompletionStage with the test result
