@@ -156,9 +156,9 @@ spec:
             - name: PROMETHEUS_PORT
               value: "{{ .Values.global.prometheus.port }}"
             {{- end }}
-            - name: AKKA_PERSISTENCE_MONGO_JOURNAL_WRITE_CONCERN
+            - name: PEKKO_PERSISTENCE_MONGO_JOURNAL_WRITE_CONCERN
               value: "{{ .Values.connectivity.config.mongodb.journalWriteConcern }}"
-            - name: AKKA_PERSISTENCE_MONGO_SNAPS_WRITE_CONCERN
+            - name: PEKKO_PERSISTENCE_MONGO_SNAPS_WRITE_CONCERN
               value: "{{ .Values.connectivity.config.mongodb.snapsWriteConcern }}"
             - name: BREAKER_MAXTRIES
               value: "{{ .Values.connectivity.config.mongodb.journalCircuitBreaker.maxTries }}"

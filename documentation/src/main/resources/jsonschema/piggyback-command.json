@@ -7,7 +7,7 @@
       "$id": "/properties/targetActorSelection",
       "type": "string",
       "title": "Target actor selection",
-      "description": "Selects the AKKA actors which should receive this command",
+      "description": "Selects the PEKKO actors which should receive this command",
       "examples": [
         "/system/sharding/connection"
       ]

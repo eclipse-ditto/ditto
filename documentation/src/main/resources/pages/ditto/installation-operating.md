@@ -26,8 +26,8 @@ the following environment variables in order to configure the connection to the 
 * `MONGO_DB_CONNECTION_POOL_SIZE`: Configure MongoDB connection pool size
 * `MONGO_DB_READ_PREFERENCE`: Configure MongoDB read preference
 * `MONGO_DB_WRITE_CONCERN`: Configure MongoDB write concern
-* `AKKA_PERSISTENCE_MONGO_JOURNAL_WRITE_CONCERN`: Configure Pekko Persistence MongoDB journal write concern
-* `AKKA_PERSISTENCE_MONGO_SNAPS_WRITE_CONCERN`: Configure Pekko Persistence MongoDB snapshot write concern
+* `PEKKO_PERSISTENCE_MONGO_JOURNAL_WRITE_CONCERN`: Configure Pekko Persistence MongoDB journal write concern
+* `PEKKO_PERSISTENCE_MONGO_SNAPS_WRITE_CONCERN`: Configure Pekko Persistence MongoDB snapshot write concern
 
 ### Ditto configuration
 
