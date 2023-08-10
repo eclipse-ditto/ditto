@@ -41,13 +41,13 @@ import scala.Option;
 /**
  * Helper class which provides functionality for testing with Pekko persistence snapshots for the policies
  * services.
- * Requires akka-persistence-inmemory (by com.github.dnvriend).
+ * Requires pekko-persistence-inmemory (by com.github.dnvriend).
  *
  * @param <S> the domain specific datatype stored as snapshot
  */
 public final class PoliciesSnapshotTestHelper<S> {
 
-    private static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-policies-snapshots";
+    private static final String SNAPSHOT_PLUGIN_ID = "pekko-contrib-mongodb-persistence-policies-snapshots";
     private static final int WAIT_TIMEOUT = 3;
 
     private final Function<PolicyId, String> domainIdToPersistenceId;

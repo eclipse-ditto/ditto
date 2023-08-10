@@ -207,7 +207,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      */
     private ActorSystem doStart() {
         logRuntimeParameters();
-        final var actorSystemConfig = appendDittoInfo(appendAkkaPersistenceMongoUriToRawConfig());
+        final var actorSystemConfig = appendDittoInfo(appendPekkoPersistenceMongoUriToRawConfig());
         startKamon();
         final var actorSystem = createActorSystem(actorSystemConfig);
         initializeActorSystem(actorSystem);
@@ -215,7 +215,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         return actorSystem;
     }
 
-    protected Config appendAkkaPersistenceMongoUriToRawConfig() {
+    protected Config appendPekkoPersistenceMongoUriToRawConfig() {
         return rawConfig;
     }
 

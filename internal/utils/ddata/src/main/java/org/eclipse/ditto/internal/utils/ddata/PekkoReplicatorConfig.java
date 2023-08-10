@@ -63,7 +63,7 @@ public interface PekkoReplicatorConfig {
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
-     * {@code AkkaReplicatorConfig}.
+     * {@code PekkoReplicatorConfig}.
      */
     enum PekkoReplicatorConfigValue implements KnownConfigValue {
 

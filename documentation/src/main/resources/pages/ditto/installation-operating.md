@@ -165,7 +165,7 @@ may be put in front of Ditto to handle the token-logic like e.g. loading/saving 
 it to Ditto as `Authorization` header.
 
 **If the chosen OIDC provider uses a self-signed certificate**, the certificate has to be retrieved and configured for 
-the akka-http ssl configuration.
+the pekko-http ssl configuration.
 
 ```
 ssl-config {

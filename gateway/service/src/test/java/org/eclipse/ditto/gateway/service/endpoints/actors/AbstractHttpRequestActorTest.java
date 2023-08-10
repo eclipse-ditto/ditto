@@ -113,7 +113,7 @@ public abstract class AbstractHttpRequestActorTest {
         final DittoHeaders receivedHeaders = receivedModifyAttribute.getDittoHeaders();
         if (AcknowledgementAggregatorActorStarter.shouldStartForIncoming(expectedModifyAttribute)) {
             assertThat(receivedHeaders.get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey()))
-                    .startsWith("akka:");
+                    .startsWith("pekko:");
             receivedModifyAttribute = receivedModifyAttribute.setDittoHeaders(
                     receivedHeaders.toBuilder()
                             .removeHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey())
@@ -202,7 +202,7 @@ public abstract class AbstractHttpRequestActorTest {
         final DittoHeaders receivedHeaders = receivedSendThingMessage.getDittoHeaders();
         if (AcknowledgementAggregatorActorStarter.shouldStartForIncoming(expectedSendThingMessage)) {
             assertThat(receivedHeaders.get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey()))
-                    .startsWith("akka:");
+                    .startsWith("pekko:");
             receivedSendThingMessage = receivedSendThingMessage.setDittoHeaders(
                     receivedHeaders.toBuilder()
                             .removeHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey())

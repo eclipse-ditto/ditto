@@ -169,7 +169,7 @@ public final class StreamingSessionActorHeaderInteractionTest {
                 final DittoHeaders receivedHeaders = receivedModifyThing.getDittoHeaders();
                 if (AcknowledgementAggregatorActorStarter.shouldStartForIncoming(modifyThing)) {
                     assertThat(receivedHeaders.get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey()))
-                            .startsWith("akka:");
+                            .startsWith("pekko:");
                     receivedModifyThing = receivedModifyThing.setDittoHeaders(
                             receivedHeaders.toBuilder()
                                     .removeHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey())

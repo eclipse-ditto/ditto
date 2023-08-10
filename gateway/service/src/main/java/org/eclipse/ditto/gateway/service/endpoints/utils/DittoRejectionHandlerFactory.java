@@ -45,7 +45,7 @@ public final class DittoRejectionHandlerFactory {
     }
 
     private static Route handleMissingQueryParam(MissingQueryParamRejection missingQueryParamRejection) {
-        // return status code 400 instead of the akka default 404
+        // return status code 400 instead of the pekko default 404
         return complete(StatusCodes.BAD_REQUEST,
                 MessageFormat.format(MISSING_QUERY_PARAM_TEMPLATE, missingQueryParamRejection.parameterName()));
     }

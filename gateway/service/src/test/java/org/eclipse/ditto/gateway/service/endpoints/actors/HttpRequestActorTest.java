@@ -118,7 +118,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
         final DittoHeaders receivedHeaders = receivedModifyAttribute.getDittoHeaders();
         if (AcknowledgementAggregatorActorStarter.shouldStartForIncoming(command)) {
             assertThat(receivedHeaders.get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey()))
-                    .startsWith("akka:");
+                    .startsWith("pekko:");
             receivedModifyAttribute = receivedModifyAttribute.setDittoHeaders(
                     receivedHeaders.toBuilder()
                             .removeHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey())

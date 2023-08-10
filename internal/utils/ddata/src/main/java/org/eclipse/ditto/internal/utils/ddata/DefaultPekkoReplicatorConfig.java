@@ -48,7 +48,7 @@ class DefaultPekkoReplicatorConfig implements PekkoReplicatorConfig {
     }
 
     /**
-     * Returns an instance of {@code DefaultAkkaReplicatorConfig} based on the settings of the specified Config.
+     * Returns an instance of {@code DefaultPekkoReplicatorConfig} based on the settings of the specified Config.
      *
      * @param config is supposed to provide the settings of the Replicator config at {@value #CONFIG_PATH}.
      * @return the instance.
@@ -62,7 +62,7 @@ class DefaultPekkoReplicatorConfig implements PekkoReplicatorConfig {
     }
 
     /**
-     * Returns an instance of {@code DefaultAkkaReplicatorConfig} based on the settings of the specified Config.
+     * Returns an instance of {@code DefaultPekkoReplicatorConfig} based on the settings of the specified Config.
      *
      * @param name the name of the replicator.
      * @param role the cluster role of members with replicas of the distributed collection.

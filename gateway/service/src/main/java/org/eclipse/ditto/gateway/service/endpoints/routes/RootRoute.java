@@ -202,7 +202,7 @@ public final class RootRoute extends AllDirectives {
                 EncodingEnsuringDirective.ensureEncoding(() ->
                         httpsDirective.ensureHttps(correlationId, () ->
                                 corsDirective.enableCors(() ->
-                                        /* handling the rejections is done by akka automatically, but if we
+                                        /* handling the rejections is done by pekko automatically, but if we
                                            do it here explicitly, we are able to log the status code for the
                                            rejection (e.g. 404 or 405) in a wrapping directive. */
                                         handleRejections(rejectionHandler, () ->

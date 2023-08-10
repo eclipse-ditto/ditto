@@ -41,7 +41,7 @@ import scala.Option;
 /**
  * Helper class which provides functionality for testing with Pekko persistence snapshots for the things
  * services.
- * Requires akka-persistence-inmemory (by com.github.dnvriend).
+ * Requires pekko-persistence-inmemory (by com.github.alstanchev).
  *
  * @param <S> the domain specific datatype stored as snapshot
  */

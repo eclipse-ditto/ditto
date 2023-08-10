@@ -200,7 +200,7 @@ public final class CloudEventsRoute extends AbstractRoute {
                 });
 
                 if (!sawContentType.get()) {
-                    // we didn't see the content type in the header, so extract it from akka's request
+                    // we didn't see the content type in the header, so extract it from pekko's request
                     acceptor.accept(DittoHeaderDefinition.CONTENT_TYPE.getKey(),
                             ctx.getRequest().entity().getContentType().mediaType().toString());
                 }

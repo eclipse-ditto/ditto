@@ -394,7 +394,7 @@ final class MessagesRoute extends AbstractRoute {
 
     /**
      * Check if the request has a Content-Length of {@code 0}, indicating it has no payload. The non-existence of
-     * Content-Length in a message will return {@code false}, as the akka documentation states that "in many cases
+     * Content-Length in a message will return {@code false}, as the pekko documentation states that "in many cases
      * it's dangerous to rely on the (non-)existence of a content-length" (see {@link RequestEntity#getContentLengthOption()}).
      *
      * @param request The request.

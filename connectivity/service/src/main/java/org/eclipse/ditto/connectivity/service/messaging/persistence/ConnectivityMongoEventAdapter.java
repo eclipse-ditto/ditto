@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * EventAdapter for {@link ConnectivityEvent}s persisted into
- * akka-persistence event-journal. Converts Events to MongoDB BSON objects and vice versa.
+ * pekko-persistence event-journal. Converts Events to MongoDB BSON objects and vice versa.
  */
 public final class ConnectivityMongoEventAdapter extends AbstractMongoEventAdapter<ConnectivityEvent<?>> {
 
