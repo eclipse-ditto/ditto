@@ -373,7 +373,7 @@ public abstract class AbstractRoute extends AllDirectives {
 
     private Route increaseHttpRequestTimeout(final java.util.function.Function<Duration, Route> inner,
             final scala.concurrent.duration.Duration requestTimeout) {
-        return withRequestTimeout( PEKKO__HTTP_TIMEOUT,
+        return withRequestTimeout(PEKKO_HTTP_TIMEOUT,
                 () -> inner.apply(Duration.ofMillis(requestTimeout.toMillis())));
     }
 

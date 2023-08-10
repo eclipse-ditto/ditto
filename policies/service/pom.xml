@@ -159,11 +159,11 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>com.github.dnvriend</groupId>-->
-<!--            <artifactId>akka-persistence-inmemory_${scala.version}</artifactId>-->
-<!--            <scope>test</scope>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>com.github.alstanchev</groupId>
+            <artifactId>pekko-persistence-inmemory_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>

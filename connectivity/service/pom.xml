@@ -223,11 +223,11 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
             <scope>test</scope>
             <type>test-jar</type>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>com.github.dnvriend</groupId>-->
-<!--            <artifactId>akka-persistence-inmemory_${scala.version}</artifactId>-->
-<!--            <scope>test</scope>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>com.github.alstanchev</groupId>
+            <artifactId>pekko-persistence-inmemory_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>com.github.docker-java</groupId>
             <artifactId>docker-java-core</artifactId>

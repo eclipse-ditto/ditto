@@ -256,6 +256,10 @@
 
     <repositories>
         <repository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/alstanchev/pekko-persistence-inmemory/</url>
+        </repository>
+        <repository>
             <id>apache-releases</id>
             <name>apache-releases</name>
             <url>https://repository.apache.org/content/repositories/releases/</url>

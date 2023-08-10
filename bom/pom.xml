@@ -48,9 +48,13 @@
         <pekko-bom.version>1.0.1</pekko-bom.version>
         <pekko-http-bom.version>1.0.0</pekko-http-bom.version>
         <pekko-persistence-mongodb.version>1.0.0-SNAPSHOT</pekko-persistence-mongodb.version>
+        <pekko-persistence-inmemory.version>0.0.0-SNAPSHOT</pekko-persistence-inmemory.version>
         <pekko-management.version>1.0.0-RC2</pekko-management.version>
         <pekko-connector-kafka.version>1.0.0</pekko-connector-kafka.version>
         <parboiled.version>2.5.0</parboiled.version>
+
+        <!--  Necessary for pekko-persistence-mongodb -->
+        <metrics4-scala.version>4.2.9</metrics4-scala.version>
 
         <!-- Keep these version consistent with pekko-persistence-mongodb.version's build.sbt -->
         <mongo-java-driver.version>4.3.4</mongo-java-driver.version>
@@ -746,7 +750,11 @@
                 <artifactId>ditto-thingsearch-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>nl.grons</groupId>
+                <artifactId>metrics4-scala_${scala.version}</artifactId>
+                <version>${metrics4-scala.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.google.code.findbugs</groupId>
                 <artifactId>jsr305</artifactId>
@@ -885,12 +893,12 @@
                 <version>${scalatest.version}</version> <!-- version used by pekko-http-testkit @ pekko-http-bom.version -->
                 <scope>test</scope>
             </dependency>
-<!--            <dependency>-->
-<!--                <groupId>com.github.dnvriend</groupId>-->
-<!--                <artifactId>akka-persistence-inmemory_${scala.version}</artifactId>-->
-<!--                <version>${akka-persistence-inmemory.version}</version>-->
-<!--                <scope>test</scope>-->
-<!--            </dependency>-->
+            <dependency>
+                <groupId>com.github.alstanchev</groupId>
+                <artifactId>pekko-persistence-inmemory_${scala.version}</artifactId>
+                <version>${pekko-persistence-inmemory.version}</version>
+                <scope>test</scope>
+            </dependency>
             <dependency>
                 <groupId>com.github.docker-java</groupId>
                 <artifactId>docker-java-core</artifactId>

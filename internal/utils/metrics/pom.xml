@@ -62,6 +62,12 @@
             <artifactId>pekko-persistence-mongodb_${scala.version}</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <!-- This dependency is required to build the ScalaDriverPersistenceExtension. Otherwise
+             java.lang.ClassNotFoundException: nl.grons.metrics4.scala.BaseBuilder is thrown -->
+            <groupId>nl.grons</groupId>
+            <artifactId>metrics4-scala_${scala.version}</artifactId>
+        </dependency>
     </dependencies>
 
 </project>
