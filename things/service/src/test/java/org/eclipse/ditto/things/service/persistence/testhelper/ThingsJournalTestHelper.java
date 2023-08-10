@@ -37,7 +37,7 @@ import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Helper class which provides functionality for testing with Pekko persistence journal for the things services.
- * Requires akka-persistence-inmemory (by com.github.dnvriend).
+ * Requires pekko-persistence-inmemory (by com.github.alstanchev).
  *
  * @param <J> the domain specific datatype stored in the journal
  */

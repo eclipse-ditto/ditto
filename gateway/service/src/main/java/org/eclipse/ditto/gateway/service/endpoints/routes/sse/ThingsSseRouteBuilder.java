@@ -196,7 +196,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
      * @param actorSystem the actor system.
      * @param streamingActor is used for actual event streaming.
      * @param streamingConfig the streaming configuration.
-     * @param pubSubMediator akka pub-sub mediator for error reporting by the search source.
+     * @param pubSubMediator pekko pub-sub mediator for error reporting by the search source.
      * @param headerTranslator the header translator used for translating to external headers.
      * @return the instance.
      * @throws NullPointerException if {@code streamingActor} is {@code null}.

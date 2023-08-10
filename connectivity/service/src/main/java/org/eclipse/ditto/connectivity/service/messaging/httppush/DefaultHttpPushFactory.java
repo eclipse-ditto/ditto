@@ -252,7 +252,7 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
         final ParserSettings parserSettings = ParserSettings.forClient(system);
 
         // start with the default maximum cached value per header of Pekko HTTP.
-        // "default=12" should be kept consistent with akka-http reference.conf
+        // "default=12" should be kept consistent with pekko-http reference.conf
         final Map<String, Object> disambiguator = new HashMap<>(parserSettings.getHeaderValueCacheLimits());
         disambiguator.put(id.toString(), disambiguator.getOrDefault("default", 12));
 

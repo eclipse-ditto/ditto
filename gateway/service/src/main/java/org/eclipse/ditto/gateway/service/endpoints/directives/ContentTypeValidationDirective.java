@@ -108,17 +108,17 @@
      }
 
      /**
-      * Uses either the raw-header or the content-type parsed by akka-http.
-      * The parsed content-type is never null, because akka-http sets a default.
-      * In the case of akka's default value, the raw version is preferred.
-      * The raw content-type header is not available, in case akka successfully parsed the content-type.
-      * For akka-defaults:
+      * Uses either the raw-header or the content-type parsed by pekko-http.
+      * The parsed content-type is never null, because pekko-http sets a default.
+      * In the case of pekko's default value, the raw version is preferred.
+      * The raw content-type header is not available, in case pekko successfully parsed the content-type.
+      * For pekko-defaults:
       * {@link org.apache.pekko.http.impl.engine.parsing.HttpRequestParser#createLogic} {@code parseEntity}
       * and {@link org.apache.pekko.http.scaladsl.model.HttpEntity$}.
       *
       * @param request the request where the media type will be extracted from.
       * @return the extracted media-type.
-      * @see <a href="https://pekko.apache.org/docs/pekko-http/current/common/http-model.html#http-headers">Akkas Header model</a>
+      * @see <a href="https://pekko.apache.org/docs/pekko-http/current/common/http-model.html#http-headers">Pekkos Header model</a>
       */
      private static String extractMediaType(final HttpRequest request) {
          final Iterable<HttpHeader> requestHeaders = request.getHeaders();

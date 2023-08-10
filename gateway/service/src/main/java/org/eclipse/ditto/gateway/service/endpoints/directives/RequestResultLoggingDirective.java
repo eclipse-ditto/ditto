@@ -52,8 +52,8 @@ public final class RequestResultLoggingDirective {
      * @return the new Route wrapping {@code inner} with logging
      */
     public static Route logRequestResult(final CharSequence correlationId, final Supplier<Route> inner) {
-        // add akka standard logging to the route
-        final Supplier<Route> innerWithAkkaLoggingRoute = () -> logRequest("http-request", () ->
+        // add pekko standard logging to the route
+        final Supplier<Route> innerWithPekkoLoggingRoute = () -> logRequest("http-request", () ->
                 logResult("http-response", inner));
 
         // add our own logging with time measurement and creating a kamon trace
@@ -79,12 +79,12 @@ public final class RequestResultLoggingDirective {
                          /* routeResult could be Rejected, if no route is able to handle the request -> but this should
                             not happen when rejections are handled before this directive is called. */
                     logger.warn("Unexpected routeResult for request {} '{}': {}, routeResult will be handled by " +
-                                    "akka default RejectionHandler.", requestMethod, filteredRelativeRequestUri,
+                                    "pekko default RejectionHandler.", requestMethod, filteredRelativeRequestUri,
                             routeResult);
                 }
 
                 return routeResult;
-            }, innerWithAkkaLoggingRoute);
+            }, innerWithPekkoLoggingRoute);
         });
     }
 

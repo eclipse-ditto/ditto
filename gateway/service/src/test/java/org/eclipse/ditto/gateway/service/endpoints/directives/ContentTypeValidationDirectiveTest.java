@@ -133,7 +133,7 @@ public final class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
     }
 
     /**
-     * When akka can't parse the content-type header, it appears as rawHeader and application/octet-streams is used
+     * When pekko can't parse the content-type header, it appears as rawHeader and application/octet-streams is used
      * as default, this behaviour is simulated here.
      */
     @Test

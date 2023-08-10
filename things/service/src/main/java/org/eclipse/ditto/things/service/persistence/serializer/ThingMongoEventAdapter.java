@@ -28,7 +28,7 @@ import org.eclipse.ditto.things.service.common.config.DefaultThingConfig;
 import org.apache.pekko.actor.ExtendedActorSystem;
 
 /**
- * EventAdapter for {@link Event}s persisted into akka-persistence event-journal. Converts Event to MongoDB
+ * EventAdapter for {@link Event}s persisted into pekko-persistence event-journal. Converts Event to MongoDB
  * BSON objects and vice versa.
  */
 public final class ThingMongoEventAdapter extends AbstractMongoEventAdapter<ThingEvent<?>> {

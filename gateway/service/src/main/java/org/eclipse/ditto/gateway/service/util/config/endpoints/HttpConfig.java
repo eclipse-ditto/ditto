@@ -169,7 +169,7 @@ public interface HttpConfig extends org.eclipse.ditto.base.service.config.http.H
          * PUT and POST resources validate that the content-type of a request is supported. With this config value
          * additional media-types can be specified, which will also be accepted. Default value
          * 'application/octet-stream' is for unknown or not further specified payload and request without any
-         * content-type declaration will also be mapped to this type by akka-http.
+         * content-type declaration will also be mapped to this type by pekko-http.
          *
          * @since 1.1.0
          */

@@ -66,12 +66,12 @@ public final class PolicyPersistenceActor
     /**
      * The ID of the journal plugin this persistence actor uses.
      */
-    static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-policies-journal";
+    static final String JOURNAL_PLUGIN_ID = "pekko-contrib-mongodb-persistence-policies-journal";
 
     /**
      * The ID of the snapshot plugin this persistence actor uses.
      */
-    static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-policies-snapshots";
+    static final String SNAPSHOT_PLUGIN_ID = "pekko-contrib-mongodb-persistence-policies-snapshots";
 
     private final ActorRef pubSubMediator;
     private final PolicyConfig policyConfig;

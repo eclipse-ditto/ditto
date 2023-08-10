@@ -158,7 +158,7 @@ public final class RequestTimeoutHandlingDirective {
 
         final HttpRequest request = requestContext.getRequest();
 
-        /* We have to log and create a trace here because the RequestResultLoggingDirective won't be called by akka
+        /* We have to log and create a trace here because the RequestResultLoggingDirective won't be called by pekko
            in case of a timeout */
         final var httpStatus = cre.getHttpStatus();
 
@@ -182,7 +182,7 @@ public final class RequestTimeoutHandlingDirective {
 
         /*
          * We have to add security response headers explicitly here because SecurityResponseHeadersDirective won't be
-         * called by akka in case of a timeout.
+         * called by pekko in case of a timeout.
          */
         return HttpResponse.create()
                 .withStatus(httpStatus.getCode())

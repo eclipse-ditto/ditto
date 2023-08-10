@@ -88,7 +88,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.5, sum(irate(akka_persistence_mongo_journal_scala_official_write_append_seconds_bucket{job=~\"$Application\", instance=~\"$Instance\"}[5m]) > 0) by (le, job, instance))",
+          "expr": "histogram_quantile(0.5, sum(irate(pekko_persistence_mongo_journal_scala_official_write_append_seconds_bucket{job=~\"$Application\", instance=~\"$Instance\"}[5m]) > 0) by (le, job, instance))",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,

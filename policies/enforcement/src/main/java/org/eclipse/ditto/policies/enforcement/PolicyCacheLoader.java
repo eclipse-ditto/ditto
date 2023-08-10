@@ -84,7 +84,7 @@ public final class PolicyCacheLoader implements AsyncCacheLoader<PolicyId, Entry
     }
 
     /**
-     * @param actorSystem used to instantiate this class as a singleton via the akka extension mechanism.
+     * @param actorSystem used to instantiate this class as a singleton via the pekko extension mechanism.
      * @return the singleton instance of this {@link PolicyCacheLoader}.
      */
     public static PolicyCacheLoader getSingletonInstance(final ActorSystem actorSystem) {

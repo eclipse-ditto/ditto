@@ -43,7 +43,7 @@ public final class DittoJwtAuthorizationSubjectsProvider implements JwtAuthoriza
 
     private final JwtSubjectIssuersConfig jwtSubjectIssuersConfig;
 
-    @SuppressWarnings("unused") //Loaded via reflection by AkkaExtension.
+    @SuppressWarnings("unused") //Loaded via reflection by PekkoExtension.
     public DittoJwtAuthorizationSubjectsProvider(final ActorSystem actorSystem, final Config extensionConfig) {
         this(jwtSubjectIssuersConfig(actorSystem));
     }
