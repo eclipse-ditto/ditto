@@ -317,7 +317,7 @@ ingress:
     paths:
       - path: /
         pathType: Exact
-        backendSuffix: nginx
+        backendSuffix: ui
       - path: /apidoc(/|$)(.*)
         backendSuffix: swaggerui
       - path: /ui(/|$)(.*)
