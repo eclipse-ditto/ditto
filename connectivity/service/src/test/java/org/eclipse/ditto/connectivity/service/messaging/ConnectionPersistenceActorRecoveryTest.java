@@ -68,8 +68,8 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
             DittoTracingInitResource.disableDittoTracing();
 
     private static final String PERSISTENCE_ID_PREFIX = "connection:";
-    private static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-journal";
-    private static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-snapshots";
+    private static final String JOURNAL_PLUGIN_ID = "pekko-contrib-mongodb-persistence-connection-journal";
+    private static final String SNAPSHOT_PLUGIN_ID = "pekko-contrib-mongodb-persistence-connection-snapshots";
 
     private static ActorSystem actorSystem;
     private static ActorRef pubSubMediator;
