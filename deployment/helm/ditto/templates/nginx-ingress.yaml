@@ -577,7 +577,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: nginx-node-health-check
-        image: docker.io/library/nginx:{{ .Values.ingress.controller.nginxVersion }}
+        image: "docker.io/library/nginx:"{{ .Values.ingress.controller.nginxVersion }}
         imagePullPolicy: Always
         ports:
         - name: healthz-port
@@ -608,7 +608,7 @@ spec:
             mountPath: /etc/nginx/nginx.conf
             subPath: nginx-node-health-check.conf
       - name: nginx-ingress-controller
-        image: registry.k8s.io/ingress-nginx/controller:{{ .Values.ingress.controller.nginxIngressVersion }}
+        image: "registry.k8s.io/ingress-nginx/controller:"{{ .Values.ingress.controller.nginxIngressVersion }}
         imagePullPolicy: IfNotPresent
         args:
         - /nginx-ingress-controller
