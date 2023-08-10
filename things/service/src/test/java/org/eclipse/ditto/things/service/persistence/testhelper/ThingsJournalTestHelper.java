@@ -29,7 +29,7 @@ import org.eclipse.ditto.things.model.ThingId;
 
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.actor.ActorSystem;
-//import org.apache.pekko.persistence.inmemory.query.javadsl.InMemoryReadJournal;
+import org.apache.pekko.persistence.inmemory.query.javadsl.InMemoryReadJournal;
 import org.apache.pekko.persistence.query.EventEnvelope;
 import org.apache.pekko.persistence.query.PersistenceQuery;
 import org.apache.pekko.stream.javadsl.Sink;
@@ -46,7 +46,7 @@ public final class ThingsJournalTestHelper<J> {
     private static final int WAIT_TIMEOUT = 3;
     private final Function<ThingId, String> domainIdToPersistenceId;
     private final BiFunction<BsonDocument, Long, J> journalEntryToDomainObject;
-//    private final InMemoryReadJournal readJournal;
+    private final InMemoryReadJournal readJournal;
     private final ActorSystem actorSystem;
 
     /**
@@ -64,8 +64,8 @@ public final class ThingsJournalTestHelper<J> {
         this.journalEntryToDomainObject = requireNonNull(journalEntryToDomainObject);
         this.domainIdToPersistenceId = requireNonNull(domainIdToPersistenceId);
 
-//        readJournal = PersistenceQuery.get(actorSystem).
-//                getReadJournalFor(InMemoryReadJournal.class, InMemoryReadJournal.Identifier());
+        readJournal = PersistenceQuery.get(actorSystem).
+                getReadJournalFor(InMemoryReadJournal.class, InMemoryReadJournal.Identifier());
         this.actorSystem = actorSystem;
     }
 
@@ -83,8 +83,7 @@ public final class ThingsJournalTestHelper<J> {
     }
 
     private List<EventEnvelope> getAllEventEnvelopes(final String persistenceId) {
-        return null;
-//        return runBlockingWithReturn(readJournal.currentEventsByPersistenceId(persistenceId, 0, Long.MAX_VALUE));
+       return runBlockingWithReturn(readJournal.currentEventsByPersistenceId(persistenceId, 0, Long.MAX_VALUE));
     }
 
     private J convertEventEnvelopeToDomainObject(final EventEnvelope eventEnvelope) {
