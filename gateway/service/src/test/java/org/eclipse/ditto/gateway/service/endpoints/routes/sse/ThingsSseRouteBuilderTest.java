@@ -26,6 +26,7 @@ import org.assertj.core.util.Lists;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.gateway.api.GatewayServiceUnavailableException;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
@@ -101,7 +102,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                 () -> CompletableFuture.completedFuture(dittoHeaders);
 
         final var sseRouteBuilder =
-                ThingsSseRouteBuilder.getInstance(actorSystem, streamingActor.ref(), streamingConfig, proxyActor.ref());
+                ThingsSseRouteBuilder.getInstance(actorSystem, streamingActor.ref(), streamingConfig, proxyActor.ref(),
+                        HeaderTranslator.empty());
         sseRouteBuilder.withProxyActor(proxyActor.ref());
         final Route sseRoute = extractRequestContext(ctx -> sseRouteBuilder.build(ctx, dittoHeadersSupplier));
         underTest = testRoute(sseRoute);

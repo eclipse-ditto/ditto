@@ -42,7 +42,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
@@ -75,6 +75,10 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.JsonifiableAdaptable;
+import org.eclipse.ditto.protocol.Payload;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
@@ -154,6 +158,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     private final StreamingConfig streamingConfig;
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
     private final ActorRef pubSubMediator;
+    private final HeaderTranslator headerTranslator;
+    private final DittoProtocolAdapter dittoProtocolAdapter;
     private SseConnectionSupervisor sseConnectionSupervisor;
     private SseEventSniffer eventSniffer;
     private StreamingAuthorizationEnforcer sseAuthorizationEnforcer;
@@ -164,12 +170,16 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             final ActorRef streamingActor,
             final StreamingConfig streamingConfig,
             final QueryFilterCriteriaFactory queryFilterCriteriaFactory,
-            final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator,
+            final HeaderTranslator headerTranslator) {
 
         this.streamingActor = streamingActor;
         this.streamingConfig = streamingConfig;
         this.queryFilterCriteriaFactory = queryFilterCriteriaFactory;
         this.pubSubMediator = pubSubMediator;
+        this.headerTranslator = headerTranslator;
+
+        dittoProtocolAdapter = DittoProtocolAdapter.of(headerTranslator);
 
         final Config config = actorSystem.settings().config();
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(config);
@@ -183,16 +193,19 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     /**
      * Returns an instance of this class.
      *
+     * @param actorSystem the actor system.
      * @param streamingActor is used for actual event streaming.
      * @param streamingConfig the streaming configuration.
      * @param pubSubMediator akka pub-sub mediator for error reporting by the search source.
+     * @param headerTranslator the header translator used for translating to external headers.
      * @return the instance.
      * @throws NullPointerException if {@code streamingActor} is {@code null}.
      */
     public static ThingsSseRouteBuilder getInstance(final ActorSystem actorSystem,
             final ActorRef streamingActor,
             final StreamingConfig streamingConfig,
-            final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator,
+            final HeaderTranslator headerTranslator) {
 
         checkNotNull(streamingActor, "streamingActor");
         final var queryFilterCriteriaFactory =
@@ -201,7 +214,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                         TimePlaceholder.getInstance());
 
         return new ThingsSseRouteBuilder(actorSystem, streamingActor, streamingConfig, queryFilterCriteriaFactory,
-                pubSubMediator);
+                pubSubMediator, headerTranslator);
     }
 
     @Override
@@ -685,7 +698,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         return targetThingIds.isEmpty() || targetThingIds.contains(event.getEntityId());
     }
 
-    private static Collection<JsonValue> toNonemptyValue(final Thing thing, final ThingEvent<?> event,
+    private Collection<JsonValue> toNonemptyValue(final Thing thing, final ThingEvent<?> event,
             final JsonPointer fieldPointer,
             @Nullable final JsonFieldSelector fields) {
         final var jsonSchemaVersion = event.getDittoHeaders()
@@ -763,21 +776,24 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
      * {@code withDittoHeaders}.
      *
      * @param objectBuilder the JsonObject build to add the {@code _context} to.
-     * @param withDittoHeaders the object to extract the {@code DittoHeaders} from.
+     * @param thingEvent the event to add context from.
      * @return the built JsonObject including the {@code _context}.
      */
-    private static JsonObject addContext(final JsonObjectBuilder objectBuilder,
-            final WithDittoHeaders withDittoHeaders) {
+    private JsonObject addContext(final JsonObjectBuilder objectBuilder,
+            final ThingEvent<?> thingEvent) {
 
+        final Adaptable adaptable = dittoProtocolAdapter.toAdaptable(thingEvent);
         objectBuilder.set(CONTEXT, JsonObject.newBuilder()
-                .set("headers", dittoHeadersToJson(withDittoHeaders.getDittoHeaders()))
+                .set(JsonifiableAdaptable.JsonFields.TOPIC, adaptable.getTopicPath().getPath())
+                .set(Payload.JsonFields.PATH, adaptable.getPayload().getPath().toString())
+                .set(JsonifiableAdaptable.JsonFields.HEADERS, dittoHeadersToJson(thingEvent.getDittoHeaders()))
                 .build()
         );
         return objectBuilder.build();
     }
 
-    private static JsonObject dittoHeadersToJson(final DittoHeaders dittoHeaders) {
-        return dittoHeaders.entrySet()
+    private JsonObject dittoHeadersToJson(final DittoHeaders dittoHeaders) {
+        return headerTranslator.toExternalHeaders(dittoHeaders).entrySet()
                 .stream()
                 .map(entry -> JsonFactory.newField(JsonKey.of(entry.getKey()), JsonFactory.newValue(entry.getValue())))
                 .collect(JsonCollectors.fieldsToObject());
