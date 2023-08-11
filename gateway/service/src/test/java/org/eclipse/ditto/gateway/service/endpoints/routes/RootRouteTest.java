@@ -159,7 +159,7 @@ public final class RootRouteTest extends EndpointTestBase {
                 .sseThingsRoute(ThingsSseRouteBuilder.getInstance(routeBaseProperties.getActorSystem(),
                         routeBaseProperties.getProxyActor(),
                         streamingConfig,
-                        routeBaseProperties.getProxyActor()))
+                        routeBaseProperties.getProxyActor(), httpHeaderTranslator))
                 .thingsRoute(new ThingsRoute(routeBaseProperties, messageConfig, claimMessageConfig))
                 .thingSearchRoute(new ThingSearchRoute(routeBaseProperties))
                 .whoamiRoute(new WhoamiRoute(routeBaseProperties))
