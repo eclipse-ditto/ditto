@@ -174,8 +174,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.pekko</groupId>
-            <artifactId>pekko-http-testkit_2.13</artifactId>
-            <version>1.0.0</version>
+            <artifactId>pekko-http-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
