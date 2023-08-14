@@ -85,6 +85,7 @@
             <artifactId>caffeine</artifactId>
         </dependency>
 
+        <!--  Can be removed after dropping support for scala 2.12 and use classes under scala.jdk instead -->
         <dependency>
             <groupId>org.scala-lang.modules</groupId>
             <artifactId>scala-java8-compat_2.13</artifactId>
