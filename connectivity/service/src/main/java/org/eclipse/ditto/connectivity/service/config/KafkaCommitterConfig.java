@@ -27,7 +27,7 @@ public interface KafkaCommitterConfig {
      *
      * @return consumer configuration needed by the Kafka client.
      */
-    Config getAlpakkaConfig();
+    Config getPekkoConnectorsConfig();
 
     /**
      * Returns an instance of {@code KafkaCommitterConfig} based on the settings of the specified Config.

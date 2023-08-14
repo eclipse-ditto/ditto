@@ -31,12 +31,12 @@ import com.typesafe.config.ConfigFactory;
 final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
 
     private static final String CONFIG_PATH = "consumer";
-    private static final String ALPAKKA_PATH = "alpakka";
+    private static final String PEKKO_CONNECTORS_PATH = "pekko-connectors";
     private static final String RESTART_PATH = "restart";
 
     private final ConnectionThrottlingConfig throttlingConfig;
     private final ExponentialBackOffConfig restartBackOffConfig;
-    private final Config alpakkaConfig;
+    private final Config pekkoConnectorsConfig;
     private final Duration metricCollectingInterval;
     private final long initTimeoutSeconds;
 
@@ -44,7 +44,7 @@ final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
         throttlingConfig = ConnectionThrottlingConfig.of(kafkaConsumerScopedConfig);
         restartBackOffConfig =
                 DefaultExponentialBackOffConfig.of(getConfigOrEmpty(kafkaConsumerScopedConfig, RESTART_PATH));
-        alpakkaConfig = getConfigOrEmpty(kafkaConsumerScopedConfig, ALPAKKA_PATH);
+        pekkoConnectorsConfig = getConfigOrEmpty(kafkaConsumerScopedConfig, PEKKO_CONNECTORS_PATH);
         metricCollectingInterval =
                 kafkaConsumerScopedConfig.getDuration(ConfigValue.METRIC_COLLECTING_INTERVAL.getConfigPath());
         if (metricCollectingInterval.isNegative() || metricCollectingInterval.isZero()) {
@@ -79,8 +79,8 @@ final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
     }
 
     @Override
-    public Config getAlpakkaConfig() {
-        return alpakkaConfig;
+    public Config getPekkoConnectorsConfig() {
+        return pekkoConnectorsConfig;
     }
 
     @Override
@@ -104,14 +104,14 @@ final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
         final DefaultKafkaConsumerConfig that = (DefaultKafkaConsumerConfig) o;
         return Objects.equals(throttlingConfig, that.throttlingConfig) &&
                 Objects.equals(restartBackOffConfig, that.restartBackOffConfig) &&
-                Objects.equals(alpakkaConfig, that.alpakkaConfig) &&
+                Objects.equals(pekkoConnectorsConfig, that.pekkoConnectorsConfig) &&
                 Objects.equals(metricCollectingInterval, that.metricCollectingInterval) &&
                 Objects.equals(initTimeoutSeconds, that.initTimeoutSeconds);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(throttlingConfig, restartBackOffConfig, alpakkaConfig, metricCollectingInterval,
+        return Objects.hash(throttlingConfig, restartBackOffConfig, pekkoConnectorsConfig, metricCollectingInterval,
                 initTimeoutSeconds);
     }
 
@@ -120,7 +120,7 @@ final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
         return getClass().getSimpleName() + " [" +
                 "throttlingConfig=" + throttlingConfig +
                 ", restartBackOffConfig=" + restartBackOffConfig +
-                ", alpakkaConfig=" + alpakkaConfig +
+                ", pekkoConnectorsConfig=" + pekkoConnectorsConfig +
                 ", metricCollectingInterval=" + metricCollectingInterval +
                 ", initTimeoutSeconds=" + initTimeoutSeconds +
                 "]";
