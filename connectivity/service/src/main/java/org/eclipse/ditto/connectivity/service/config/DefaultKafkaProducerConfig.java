@@ -28,7 +28,7 @@ import com.typesafe.config.Config;
 final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
 
     private static final String CONFIG_PATH = "producer";
-    private static final String ALPAKKA_PATH = "alpakka";
+    private static final String PEKKO_CONNECTORS_PATH = "pekko-connectors";
 
     private final int queueSize;
     private final int parallelism;
@@ -37,7 +37,7 @@ final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
     private final double randomFactor;
     private final int maxRestartsCount;
     private final Duration maxRestartsWithin;
-    private final Config alpakkaConfig;
+    private final Config pekkoConnectorsConfig;
     private final long initTimeoutSeconds;
 
     private DefaultKafkaProducerConfig(final Config kafkaProducerScopedConfig) {
@@ -48,7 +48,7 @@ final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
         randomFactor = kafkaProducerScopedConfig.getDouble(ConfigValue.RANDOM_FACTOR.getConfigPath());
         maxRestartsCount = kafkaProducerScopedConfig.getInt(ConfigValue.MAX_RESTARTS_COUNT.getConfigPath());
         maxRestartsWithin = kafkaProducerScopedConfig.getDuration(ConfigValue.MAX_RESTARTS_WITHIN.getConfigPath());
-        alpakkaConfig = kafkaProducerScopedConfig.getConfig(ALPAKKA_PATH);
+        pekkoConnectorsConfig = kafkaProducerScopedConfig.getConfig(PEKKO_CONNECTORS_PATH);
         initTimeoutSeconds = kafkaProducerScopedConfig.getLong(ConfigValue.INIT_TIMEOUT_SECONDS.getConfigPath());
     }
 
@@ -100,8 +100,8 @@ final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
     }
 
     @Override
-    public Config getAlpakkaConfig() {
-        return alpakkaConfig;
+    public Config getPekkoConnectorsConfig() {
+        return pekkoConnectorsConfig;
     }
 
     @Override
@@ -121,14 +121,14 @@ final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
                 Objects.equals(randomFactor, that.randomFactor) &&
                 Objects.equals(maxRestartsCount, that.maxRestartsCount) &&
                 Objects.equals(maxRestartsWithin, that.maxRestartsWithin) &&
-                Objects.equals(alpakkaConfig, that.alpakkaConfig) &&
+                Objects.equals(pekkoConnectorsConfig, that.pekkoConnectorsConfig) &&
                 Objects.equals(initTimeoutSeconds, that.initTimeoutSeconds);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(queueSize, parallelism, minBackoff, maxBackoff, maxRestartsCount, maxRestartsWithin,
-                randomFactor, alpakkaConfig, initTimeoutSeconds);
+                randomFactor, pekkoConnectorsConfig, initTimeoutSeconds);
     }
 
     @Override
@@ -141,7 +141,7 @@ final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
                 ", randomFactor=" + randomFactor +
                 ", maxRestartsCount=" + maxRestartsCount +
                 ", maxRestartsWithin=" + maxRestartsWithin +
-                ", alpakkaConfig=" + alpakkaConfig +
+                ", pekkoConnectorsConfig=" + pekkoConnectorsConfig +
                 ", initTimeoutSeconds=" + initTimeoutSeconds +
                 "]";
     }

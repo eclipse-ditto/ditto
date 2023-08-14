@@ -26,12 +26,12 @@ import com.typesafe.config.ConfigFactory;
 final class DefaultKafkaCommitterConfig implements KafkaCommitterConfig {
 
     private static final String CONFIG_PATH = "committer";
-    private static final String ALPAKKA_PATH = "alpakka";
+    private static final String PEKKO_CONNECTORS_PATH = "pekko-connectors";
 
-    private final Config alpakkaConfig;
+    private final Config pekkoConnectorsConfig;
 
     private DefaultKafkaCommitterConfig(final Config kafkaCommitterScopedConfig) {
-        alpakkaConfig = getConfigOrEmpty(kafkaCommitterScopedConfig, ALPAKKA_PATH);
+        pekkoConnectorsConfig = getConfigOrEmpty(kafkaCommitterScopedConfig, PEKKO_CONNECTORS_PATH);
     }
 
     /**
@@ -50,8 +50,8 @@ final class DefaultKafkaCommitterConfig implements KafkaCommitterConfig {
     }
 
     @Override
-    public Config getAlpakkaConfig() {
-        return alpakkaConfig;
+    public Config getPekkoConnectorsConfig() {
+        return pekkoConnectorsConfig;
     }
 
     @Override
@@ -63,18 +63,18 @@ final class DefaultKafkaCommitterConfig implements KafkaCommitterConfig {
             return false;
         }
         final DefaultKafkaCommitterConfig that = (DefaultKafkaCommitterConfig) o;
-        return Objects.equals(alpakkaConfig, that.alpakkaConfig);
+        return Objects.equals(pekkoConnectorsConfig, that.pekkoConnectorsConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(alpakkaConfig);
+        return Objects.hash(pekkoConnectorsConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "alpakkaConfig=" + alpakkaConfig +
+                "pekkoConnectorsConfig=" + pekkoConnectorsConfig +
                 "]";
     }
 

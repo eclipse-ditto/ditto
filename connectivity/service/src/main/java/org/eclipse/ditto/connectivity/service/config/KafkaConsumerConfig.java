@@ -47,7 +47,7 @@ public interface KafkaConsumerConfig {
      *
      * @return consumer configuration needed by the Kafka client.
      */
-    Config getAlpakkaConfig();
+    Config getPekkoConnectorsConfig();
 
     /**
      * Returns the interval in which metrics from the Apache Kafka client should be collected.
