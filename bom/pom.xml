@@ -49,7 +49,7 @@
         <pekko-http-bom.version>1.0.0</pekko-http-bom.version>
         <pekko-persistence-mongodb.version>1.0.0-SNAPSHOT</pekko-persistence-mongodb.version>
         <pekko-persistence-inmemory.version>0.0.0-SNAPSHOT</pekko-persistence-inmemory.version>
-        <pekko-management.version>1.0.0-RC2</pekko-management.version>
+        <pekko-management.version>1.0.0</pekko-management.version>
         <pekko-connector-kafka.version>1.0.0</pekko-connector-kafka.version>
         <parboiled.version>2.5.0</parboiled.version>
 
