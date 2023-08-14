@@ -180,24 +180,24 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/luben/zstd-jni/1.5.0-2/zstd-jni-1.5.0-2-sources.jar
 
 
-## akka-persistence-mongo-common (3.0.8)
+## pekko-rabbitmq (7.0.0)
 
-* Maven coordinates: `com.github.scullxbones:akka-persistence-mongo-common_2.13:3.0.8`
+* Maven coordinates: `com.github.pjfanning:pekko-rabbitmq_2.13:7.0.0`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://github.com/scullxbones/akka-persistence-mongo
+* Project: https://github.com/pjfanning/pekko-rabbitmq
 * Sources: 
-   * declared as SCM: https://github.com/scullxbones/akka-persistence-mongo
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/scullxbones/akka-persistence-mongo-common_2.13/3.0.8/akka-persistence-mongo-common_2.13-3.0.8-sources.jar
+   * declared as SCM: https://github.com/pjfanning/pekko-rabbitmq
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/pjfanning/pekko-rabbitmq_2.13/7.0.0/pekko-rabbitmq_2.13-7.0.0-sources.jar
 
 
-## akka-persistence-mongo-scala (3.0.8)
+## pekko-persistence-mongodb (1.0)
 
-* Maven coordinates: `com.github.scullxbones:akka-persistence-mongo-scala_2.13:3.0.8`
+* Maven coordinates: `com.github.scullxbones:pekko-persistence-mongodb_2.13:1.0`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://github.com/scullxbones/akka-persistence-mongo
+* Project: https://github.com/scullxbones/pekko-persistence-mongo
 * Sources: 
-   * declared as SCM: https://github.com/scullxbones/akka-persistence-mongo
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/scullxbones/akka-persistence-mongo-scala_2.13/3.0.8/akka-persistence-mongo-scala_2.13-3.0.8-sources.jar
+   * declared as SCM: https://github.com/scullxbones/pekko-persistence-mongo
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/scullxbones/pekko-persistence-mongodb_2.13/1.0/pekko-persistence-mongodb_2.13-1.0-sources.jar
 
 
 ## AutoValue Annotations (1.9)
@@ -238,76 +238,6 @@
 * Sources: 
    * declared as SCM: https://github.com/hivemq/hivemq-mqtt-client
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/hivemq/hivemq-mqtt-client/1.3.0/hivemq-mqtt-client-1.3.0-sources.jar
-
-
-## akka-discovery-kubernetes-api (1.1.4)
-
-* Maven coordinates: `com.lightbend.akka.discovery:akka-discovery-kubernetes-api_2.13:1.1.4`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io/
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka-management
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/discovery/akka-discovery-kubernetes-api_2.13/1.1.4/akka-discovery-kubernetes-api_2.13-1.1.4-sources.jar
-
-
-## akka-lease-kubernetes (1.1.4)
-
-* Maven coordinates: `com.lightbend.akka.management:akka-lease-kubernetes_2.13:1.1.4`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io/
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka-management
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/management/akka-lease-kubernetes_2.13/1.1.4/akka-lease-kubernetes_2.13-1.1.4-sources.jar
-
-
-## akka-management-cluster-bootstrap (1.1.4)
-
-* Maven coordinates: `com.lightbend.akka.management:akka-management-cluster-bootstrap_2.13:1.1.4`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io/
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka-management
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/management/akka-management-cluster-bootstrap_2.13/1.1.4/akka-management-cluster-bootstrap_2.13-1.1.4-sources.jar
-
-
-## akka-management-cluster-http (1.1.4)
-
-* Maven coordinates: `com.lightbend.akka.management:akka-management-cluster-http_2.13:1.1.4`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io/
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka-management
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/management/akka-management-cluster-http_2.13/1.1.4/akka-management-cluster-http_2.13-1.1.4-sources.jar
-
-
-## akka-management-pki (1.1.4)
-
-* Maven coordinates: `com.lightbend.akka.management:akka-management-pki_2.13:1.1.4`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io/
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka-management
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/management/akka-management-pki_2.13/1.1.4/akka-management-pki_2.13-1.1.4-sources.jar
-
-
-## akka-management (1.1.4)
-
-* Maven coordinates: `com.lightbend.akka.management:akka-management_2.13:1.1.4`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io/
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka-management
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/management/akka-management_2.13/1.1.4/akka-management_2.13-1.1.4-sources.jar
-
-
-## akka-rabbitmq (6.0.0)
-
-* Maven coordinates: `com.newmotion:akka-rabbitmq_2.13:6.0.0`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://github.com/NewMotion/akka-rabbitmq
-* Sources: 
-   * declared as SCM: https://github.com/NewMotion/akka-rabbitmq
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/newmotion/akka-rabbitmq_2.13/6.0.0/akka-rabbitmq_2.13-6.0.0-sources.jar
 
 
 ## RabbitMQ Java Client (5.14.2)
@@ -370,206 +300,6 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/ssl-config-core_2.13/0.6.1/ssl-config-core_2.13-0.6.1-sources.jar
 
 
-## akka-actor (2.6.20)
-
-* Maven coordinates: `com.typesafe.akka:akka-actor_2.13:2.6.20`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io/
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-actor_2.13/2.6.20/akka-actor_2.13-2.6.20-sources.jar
-
-
-## akka-cluster-sharding (2.6.20)
-
-* Maven coordinates: `com.typesafe.akka:akka-cluster-sharding_2.13:2.6.20`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io/
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-cluster-sharding_2.13/2.6.20/akka-cluster-sharding_2.13-2.6.20-sources.jar
-
-
-## akka-cluster-tools (2.6.20)
-
-* Maven coordinates: `com.typesafe.akka:akka-cluster-tools_2.13:2.6.20`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io/
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-cluster-tools_2.13/2.6.20/akka-cluster-tools_2.13-2.6.20-sources.jar
-
-
-## akka-cluster (2.6.20)
-
-* Maven coordinates: `com.typesafe.akka:akka-cluster_2.13:2.6.20`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io/
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-cluster_2.13/2.6.20/akka-cluster_2.13-2.6.20-sources.jar
-
-
-## akka-coordination (2.6.20)
-
-* Maven coordinates: `com.typesafe.akka:akka-coordination_2.13:2.6.20`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io/
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-coordination_2.13/2.6.20/akka-coordination_2.13-2.6.20-sources.jar
-
-
-## akka-discovery (2.6.20)
-
-* Maven coordinates: `com.typesafe.akka:akka-discovery_2.13:2.6.20`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io/
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-discovery_2.13/2.6.20/akka-discovery_2.13-2.6.20-sources.jar
-
-
-## akka-distributed-data (2.6.20)
-
-* Maven coordinates: `com.typesafe.akka:akka-distributed-data_2.13:2.6.20`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io/
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-distributed-data_2.13/2.6.20/akka-distributed-data_2.13-2.6.20-sources.jar
-
-
-## akka-http-core (10.2.10)
-
-* Maven coordinates: `com.typesafe.akka:akka-http-core_2.13:10.2.10`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka-http
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-http-core_2.13/10.2.10/akka-http-core_2.13-10.2.10-sources.jar
-
-
-## akka-http-spray-json (10.2.10)
-
-* Maven coordinates: `com.typesafe.akka:akka-http-spray-json_2.13:10.2.10`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka-http
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-http-spray-json_2.13/10.2.10/akka-http-spray-json_2.13-10.2.10-sources.jar
-
-
-## akka-http (10.2.10)
-
-* Maven coordinates: `com.typesafe.akka:akka-http_2.13:10.2.10`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka-http
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-http_2.13/10.2.10/akka-http_2.13-10.2.10-sources.jar
-
-
-## akka-parsing (10.2.10)
-
-* Maven coordinates: `com.typesafe.akka:akka-parsing_2.13:10.2.10`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka-http
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-parsing_2.13/10.2.10/akka-parsing_2.13-10.2.10-sources.jar
-
-
-## akka-persistence-query (2.6.20)
-
-* Maven coordinates: `com.typesafe.akka:akka-persistence-query_2.13:2.6.20`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io/
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-persistence-query_2.13/2.6.20/akka-persistence-query_2.13-2.6.20-sources.jar
-
-
-## akka-persistence (2.6.20)
-
-* Maven coordinates: `com.typesafe.akka:akka-persistence_2.13:2.6.20`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io/
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-persistence_2.13/2.6.20/akka-persistence_2.13-2.6.20-sources.jar
-
-
-## akka-pki (2.6.20)
-
-* Maven coordinates: `com.typesafe.akka:akka-pki_2.13:2.6.20`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io/
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-pki_2.13/2.6.20/akka-pki_2.13-2.6.20-sources.jar
-
-
-## akka-protobuf-v3 (2.6.20)
-
-* Maven coordinates: `com.typesafe.akka:akka-protobuf-v3_2.13:2.6.20`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io/
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-protobuf-v3_2.13/2.6.20/akka-protobuf-v3_2.13-2.6.20-sources.jar
-
-
-## akka-remote (2.6.20)
-
-* Maven coordinates: `com.typesafe.akka:akka-remote_2.13:2.6.20`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io/
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-remote_2.13/2.6.20/akka-remote_2.13-2.6.20-sources.jar
-
-
-## akka-serialization-jackson (2.6.20)
-
-* Maven coordinates: `com.typesafe.akka:akka-serialization-jackson_2.13:2.6.20`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io/
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-serialization-jackson_2.13/2.6.20/akka-serialization-jackson_2.13-2.6.20-sources.jar
-
-
-## akka-slf4j (2.6.20)
-
-* Maven coordinates: `com.typesafe.akka:akka-slf4j_2.13:2.6.20`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io/
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-slf4j_2.13/2.6.20/akka-slf4j_2.13-2.6.20-sources.jar
-
-
-## akka-stream-kafka (3.0.1)
-
-* Maven coordinates: `com.typesafe.akka:akka-stream-kafka_2.13:3.0.1`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://doc.akka.io/docs/alpakka-kafka/current
-* Sources: 
-   * declared as SCM: https://github.com/akka/alpakka-kafka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-stream-kafka_2.13/3.0.1/akka-stream-kafka_2.13-3.0.1-sources.jar
-
-
-## akka-stream (2.6.20)
-
-* Maven coordinates: `com.typesafe.akka:akka-stream_2.13:2.6.20`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://akka.io/
-* Sources: 
-   * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-stream_2.13/2.6.20/akka-stream_2.13-2.6.20-sources.jar
-
-
 ## CloudEvents - API (2.3.0)
 
 * Maven coordinates: `io.cloudevents:cloudevents-api:2.3.0`
@@ -598,6 +328,26 @@
 * Sources: 
    * declared as SCM: https://github.com/cloudevents/sdk-java/cloudevents-http-basic
    * Maven sources: https://search.maven.org/remotecontent?filepath=io/cloudevents/cloudevents-http-basic/2.3.0/cloudevents-http-basic-2.3.0-sources.jar
+
+
+## Metrics Core (4.2.9)
+
+* Maven coordinates: `io.dropwizard.metrics:metrics-core:4.2.9`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://metrics.dropwizard.io/metrics-core
+* Sources: 
+   * declared as SCM: https://github.com/dropwizard/metrics/metrics-core/
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/dropwizard/metrics/metrics-core/4.2.9/metrics-core-4.2.9-sources.jar
+
+
+## Metrics Health Checks (4.2.9)
+
+* Maven coordinates: `io.dropwizard.metrics:metrics-healthchecks:4.2.9`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://metrics.dropwizard.io/metrics-healthchecks
+* Sources: 
+   * declared as SCM: https://github.com/dropwizard/metrics/metrics-healthchecks/
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/dropwizard/metrics/metrics-healthchecks/4.2.9/metrics-healthchecks-4.2.9-sources.jar
 
 
 ## JJWT :: API (0.11.5)
@@ -960,24 +710,14 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=net/logstash/logback/logstash-logback-encoder/7.2/logstash-logback-encoder-7.2-sources.jar
 
 
-## metrics4-akka_a25 (4.1.19)
+## metrics4-scala (4.2.9)
 
-* Maven coordinates: `nl.grons:metrics4-akka_a25_2.13:4.1.19`
+* Maven coordinates: `nl.grons:metrics4-scala_2.13:4.2.9`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/erikvanoosten/metrics-scala
 * Sources: 
    * declared as SCM: https://github.com/erikvanoosten/metrics-scala
-   * Maven sources: https://search.maven.org/remotecontent?filepath=nl/grons/metrics4-akka_a25_2.13/4.1.19/metrics4-akka_a25_2.13-4.1.19-sources.jar
-
-
-## metrics4-scala (4.1.19)
-
-* Maven coordinates: `nl.grons:metrics4-scala_2.13:4.1.19`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://github.com/erikvanoosten/metrics-scala
-* Sources: 
-   * declared as SCM: https://github.com/erikvanoosten/metrics-scala
-   * Maven sources: https://search.maven.org/remotecontent?filepath=nl/grons/metrics4-scala_2.13/4.1.19/metrics4-scala_2.13-4.1.19-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=nl/grons/metrics4-scala_2.13/4.2.9/metrics4-scala_2.13-4.2.9-sources.jar
 
 
 ## agrona (1.15.1)
@@ -998,6 +738,266 @@
 * Sources: 
    * declared as SCM: not declared
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/kafka/kafka-clients/3.0.2/kafka-clients-3.0.2-sources.jar
+
+
+## pekko-actor (1.0.1)
+
+* Maven coordinates: `org.apache.pekko:pekko-actor_2.13:1.0.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-actor_2.13/1.0.1/pekko-actor_2.13-1.0.1-sources.jar
+
+
+## pekko-cluster-sharding (1.0.1)
+
+* Maven coordinates: `org.apache.pekko:pekko-cluster-sharding_2.13:1.0.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-cluster-sharding_2.13/1.0.1/pekko-cluster-sharding_2.13-1.0.1-sources.jar
+
+
+## pekko-cluster-tools (1.0.1)
+
+* Maven coordinates: `org.apache.pekko:pekko-cluster-tools_2.13:1.0.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-cluster-tools_2.13/1.0.1/pekko-cluster-tools_2.13-1.0.1-sources.jar
+
+
+## pekko-cluster (1.0.1)
+
+* Maven coordinates: `org.apache.pekko:pekko-cluster_2.13:1.0.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-cluster_2.13/1.0.1/pekko-cluster_2.13-1.0.1-sources.jar
+
+
+## pekko-connectors-kafka (1.0.0)
+
+* Maven coordinates: `org.apache.pekko:pekko-connectors-kafka_2.13:1.0.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/docs/pekko-connectors-kafka/current/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko-connectors-kafka
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-connectors-kafka_2.13/1.0.0/pekko-connectors-kafka_2.13-1.0.0-sources.jar
+
+
+## pekko-coordination (1.0.1)
+
+* Maven coordinates: `org.apache.pekko:pekko-coordination_2.13:1.0.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-coordination_2.13/1.0.1/pekko-coordination_2.13-1.0.1-sources.jar
+
+
+## pekko-discovery-kubernetes-api (1.0.0)
+
+* Maven coordinates: `org.apache.pekko:pekko-discovery-kubernetes-api_2.13:1.0.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko-management
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-discovery-kubernetes-api_2.13/1.0.0/pekko-discovery-kubernetes-api_2.13-1.0.0-sources.jar
+
+
+## pekko-discovery (1.0.1)
+
+* Maven coordinates: `org.apache.pekko:pekko-discovery_2.13:1.0.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-discovery_2.13/1.0.1/pekko-discovery_2.13-1.0.1-sources.jar
+
+
+## pekko-distributed-data (1.0.1)
+
+* Maven coordinates: `org.apache.pekko:pekko-distributed-data_2.13:1.0.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-distributed-data_2.13/1.0.1/pekko-distributed-data_2.13-1.0.1-sources.jar
+
+
+## pekko-http-core (1.0.0)
+
+* Maven coordinates: `org.apache.pekko:pekko-http-core_2.13:1.0.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: not declared
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko-http
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-http-core_2.13/1.0.0/pekko-http-core_2.13-1.0.0-sources.jar
+
+
+## pekko-http-spray-json (1.0.0)
+
+* Maven coordinates: `org.apache.pekko:pekko-http-spray-json_2.13:1.0.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: not declared
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko-http
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-http-spray-json_2.13/1.0.0/pekko-http-spray-json_2.13-1.0.0-sources.jar
+
+
+## pekko-http (1.0.0)
+
+* Maven coordinates: `org.apache.pekko:pekko-http_2.13:1.0.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: not declared
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko-http
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-http_2.13/1.0.0/pekko-http_2.13-1.0.0-sources.jar
+
+
+## pekko-lease-kubernetes (1.0.0)
+
+* Maven coordinates: `org.apache.pekko:pekko-lease-kubernetes_2.13:1.0.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko-management
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-lease-kubernetes_2.13/1.0.0/pekko-lease-kubernetes_2.13-1.0.0-sources.jar
+
+
+## pekko-management-cluster-bootstrap (1.0.0)
+
+* Maven coordinates: `org.apache.pekko:pekko-management-cluster-bootstrap_2.13:1.0.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko-management
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-management-cluster-bootstrap_2.13/1.0.0/pekko-management-cluster-bootstrap_2.13-1.0.0-sources.jar
+
+
+## pekko-management-cluster-http (1.0.0)
+
+* Maven coordinates: `org.apache.pekko:pekko-management-cluster-http_2.13:1.0.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko-management
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-management-cluster-http_2.13/1.0.0/pekko-management-cluster-http_2.13-1.0.0-sources.jar
+
+
+## pekko-management-pki (1.0.0)
+
+* Maven coordinates: `org.apache.pekko:pekko-management-pki_2.13:1.0.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko-management
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-management-pki_2.13/1.0.0/pekko-management-pki_2.13-1.0.0-sources.jar
+
+
+## pekko-management (1.0.0)
+
+* Maven coordinates: `org.apache.pekko:pekko-management_2.13:1.0.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko-management
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-management_2.13/1.0.0/pekko-management_2.13-1.0.0-sources.jar
+
+
+## pekko-parsing (1.0.0)
+
+* Maven coordinates: `org.apache.pekko:pekko-parsing_2.13:1.0.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: not declared
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko-http
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-parsing_2.13/1.0.0/pekko-parsing_2.13-1.0.0-sources.jar
+
+
+## pekko-persistence-query (1.0.1)
+
+* Maven coordinates: `org.apache.pekko:pekko-persistence-query_2.13:1.0.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-persistence-query_2.13/1.0.1/pekko-persistence-query_2.13-1.0.1-sources.jar
+
+
+## pekko-persistence (1.0.1)
+
+* Maven coordinates: `org.apache.pekko:pekko-persistence_2.13:1.0.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-persistence_2.13/1.0.1/pekko-persistence_2.13-1.0.1-sources.jar
+
+
+## pekko-pki (1.0.1)
+
+* Maven coordinates: `org.apache.pekko:pekko-pki_2.13:1.0.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-pki_2.13/1.0.1/pekko-pki_2.13-1.0.1-sources.jar
+
+
+## pekko-protobuf-v3 (1.0.1)
+
+* Maven coordinates: `org.apache.pekko:pekko-protobuf-v3_2.13:1.0.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-protobuf-v3_2.13/1.0.1/pekko-protobuf-v3_2.13-1.0.1-sources.jar
+
+
+## pekko-remote (1.0.1)
+
+* Maven coordinates: `org.apache.pekko:pekko-remote_2.13:1.0.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-remote_2.13/1.0.1/pekko-remote_2.13-1.0.1-sources.jar
+
+
+## pekko-serialization-jackson (1.0.1)
+
+* Maven coordinates: `org.apache.pekko:pekko-serialization-jackson_2.13:1.0.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-serialization-jackson_2.13/1.0.1/pekko-serialization-jackson_2.13-1.0.1-sources.jar
+
+
+## pekko-slf4j (1.0.1)
+
+* Maven coordinates: `org.apache.pekko:pekko-slf4j_2.13:1.0.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-slf4j_2.13/1.0.1/pekko-slf4j_2.13-1.0.1-sources.jar
+
+
+## pekko-stream (1.0.1)
+
+* Maven coordinates: `org.apache.pekko:pekko-stream_2.13:1.0.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://pekko.apache.org/
+* Sources: 
+   * declared as SCM: https://github.com/apache/incubator-pekko
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-stream_2.13/1.0.1/pekko-stream_2.13-1.0.1-sources.jar
 
 
 ## Proton-J (0.34.0)
@@ -1200,14 +1200,14 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/mongodb-driver-reactivestreams/4.3.4/mongodb-driver-reactivestreams-4.3.4-sources.jar
 
 
-## Mongo Scala Bson Library (4.3.4)
+## Mongo Scala Bson Library (4.10.2)
 
-* Maven coordinates: `org.mongodb.scala:mongo-scala-bson_2.13:4.3.4`
+* Maven coordinates: `org.mongodb.scala:mongo-scala-bson_2.13:4.10.2`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: http://www.mongodb.org
+* Project: https://www.mongodb.com/
 * Sources: 
    * declared as SCM: https://github.com/mongodb/mongo-java-driver
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/scala/mongo-scala-bson_2.13/4.3.4/mongo-scala-bson_2.13-4.3.4-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/scala/mongo-scala-bson_2.13/4.10.2/mongo-scala-bson_2.13-4.10.2-sources.jar
 
 
 ## Mongo Scala Driver (4.3.4)
@@ -1300,6 +1300,16 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/ow2/asm/asm-util/9.2/asm-util-9.2-sources.jar
 
 
+## parboiled (2.5.0)
+
+* Maven coordinates: `org.parboiled:parboiled_2.13:2.5.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://parboiled.org
+* Sources: 
+   * declared as SCM: https://github.com/sirthias/parboiled2
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/parboiled/parboiled_2.13/2.5.0/parboiled_2.13-2.5.0-sources.jar
+
+
 ## reactive-streams (1.0.4)
 
 * Maven coordinates: `org.reactivestreams:reactive-streams:1.0.4`
@@ -1330,14 +1340,14 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/scala-lang/scala-reflect/2.13.10/scala-reflect-2.13.10-sources.jar
 
 
-## scala-java8-compat (1.0.0)
+## scala-java8-compat (1.0.2)
 
-* Maven coordinates: `org.scala-lang.modules:scala-java8-compat_2.13:1.0.0`
+* Maven coordinates: `org.scala-lang.modules:scala-java8-compat_2.13:1.0.2`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://www.scala-lang.org/
 * Sources: 
    * declared as SCM: https://github.com/scala/scala-java8-compat
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/scala-lang/modules/scala-java8-compat_2.13/1.0.0/scala-java8-compat_2.13-1.0.0-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/scala-lang/modules/scala-java8-compat_2.13/1.0.2/scala-java8-compat_2.13-1.0.2-sources.jar
 
 
 ## JCL 1.2 implemented over SLF4J (1.7.36)
