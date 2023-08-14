@@ -70,6 +70,8 @@
         <dependency>
             <groupId>org.apache.pekko</groupId>
             <artifactId>pekko-serialization-jackson_${scala.version}</artifactId>
+            <!--  pekko-cluster-sharding depends on pekko-serialization-jackson:1.0.0 so we override here to have consistency  -->
+            <version>${pekko-bom.version}</version>
         </dependency>
 
         <!-- annotations used in our code, so manually add the import: -->
