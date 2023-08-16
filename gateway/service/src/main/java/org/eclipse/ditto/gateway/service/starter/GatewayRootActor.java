@@ -255,10 +255,10 @@ public final class GatewayRootActor extends DittoRootActor {
                 .devopsRoute(new DevOpsRoute(routeBaseProperties, devopsAuthenticationDirective))
                 .policiesRoute(new PoliciesRoute(routeBaseProperties,
                         OAuthTokenIntegrationSubjectIdFactory.of(authConfig.getOAuthConfig())))
-                .sseThingsRoute(
-                        ThingsSseRouteBuilder.getInstance(actorSystem, streamingActor, streamingConfig, pubSubMediator)
-                                .withProxyActor(proxyActor)
-                                .withSignalEnrichmentProvider(signalEnrichmentProvider))
+                .sseThingsRoute(ThingsSseRouteBuilder
+                        .getInstance(actorSystem, streamingActor, streamingConfig, pubSubMediator, headerTranslator)
+                        .withProxyActor(proxyActor)
+                        .withSignalEnrichmentProvider(signalEnrichmentProvider))
                 .thingsRoute(new ThingsRoute(routeBaseProperties,
                         gatewayConfig.getMessageConfig(),
                         gatewayConfig.getClaimMessageConfig()))
