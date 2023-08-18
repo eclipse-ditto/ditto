@@ -1,14 +1,10 @@
-com.github.dnvriend:akka-persistence-inmemory_2.13:jar:2.5.15.2:test
+com.github.alstanchev:pekko-persistence-inmemory_2.13:jar:0.0.0-SNAPSHOT:test
 com.github.docker-java:docker-java-api:jar:3.2.13:test
 com.github.docker-java:docker-java-core:jar:3.2.13:test
 com.github.docker-java:docker-java-transport-zerodep:jar:3.2.13:test
 com.github.docker-java:docker-java-transport:jar:3.2.13:test
 com.github.stefanbirkner:system-rules:jar:1.19.0:test
 com.google.guava:guava:jar:19.0:test
-com.typesafe.akka:akka-http-testkit_2.13:jar:10.2.10:test
-com.typesafe.akka:akka-stream-kafka-testkit_2.13:jar:3.0.1:test
-com.typesafe.akka:akka-stream-testkit_2.13:jar:2.6.20:test
-com.typesafe.akka:akka-testkit_2.13:jar:2.6.20:test
 com.vaadin.external.google:android-json:jar:0.0.20131108.vaadin1:test
 commons-io:commons-io:jar:2.6:test
 io.github.classgraph:classgraph:jar:4.8.126:test
@@ -23,6 +19,10 @@ nl.jqno.equalsverifier:equalsverifier:jar:3.10.1:test
 org.apache.commons:commons-compress:jar:1.21:test
 org.apache.commons:commons-lang3:jar:3.12.0:test
 org.apache.commons:commons-math3:jar:3.2:test
+org.apache.pekko:pekko-connectors-kafka-testkit_2.13:jar:1.0.0:test
+org.apache.pekko:pekko-http-testkit_2.13:jar:1.0.0:test
+org.apache.pekko:pekko-stream-testkit_2.13:jar:1.0.1:test
+org.apache.pekko:pekko-testkit_2.13:jar:1.0.1:test
 org.apiguardian:apiguardian-api:jar:1.1.2:test
 org.assertj:assertj-core:jar:3.23.1:test
 org.awaitility:awaitility:jar:4.2.0:test
@@ -42,6 +42,6 @@ org.objenesis:objenesis:jar:3.2:test
 org.openjdk.jmh:jmh-core:jar:1.35:test
 org.openjdk.jmh:jmh-generator-annprocess:jar:1.35:test
 org.opentest4j:opentest4j:jar:1.2.0:test
-org.scalaz:scalaz-core_2.13:jar:7.2.28:test
+org.scalaz:scalaz-core_2.13:jar:7.3.7:test
 org.skyscreamer:jsonassert:jar:1.5.1:test
 org.slf4j:slf4j-simple:jar:1.7.36:test
