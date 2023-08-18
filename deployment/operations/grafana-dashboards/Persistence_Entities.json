@@ -165,7 +165,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(irate(akka_persistence_mongo_journal_scala_official_write_append_seconds_count{job=\"things\"}[5m]))",
+          "expr": "sum(irate(pekko_persistence_mongo_journal_scala_official_write_append_seconds_count{job=\"things\"}[5m]))",
           "interval": "",
           "legendFormat": "persisted events",
           "queryType": "randomWalk",
@@ -366,7 +366,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(irate(akka_persistence_mongo_journal_scala_official_write_append_seconds_count{job=\"policies\"}[5m]))",
+          "expr": "sum(irate(pekko_persistence_mongo_journal_scala_official_write_append_seconds_count{job=\"policies\"}[5m]))",
           "interval": "",
           "legendFormat": "persisted events",
           "queryType": "randomWalk",
@@ -567,7 +567,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(irate(akka_persistence_mongo_journal_scala_official_write_append_seconds_count{job=\"connectivity\"}[5m]))",
+          "expr": "sum(irate(pekko_persistence_mongo_journal_scala_official_write_append_seconds_count{job=\"connectivity\"}[5m]))",
           "interval": "",
           "legendFormat": "persisted events",
           "queryType": "randomWalk",

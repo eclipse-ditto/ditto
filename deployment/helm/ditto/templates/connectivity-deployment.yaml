@@ -33,7 +33,7 @@ spec:
       labels:
         app.kubernetes.io/name: {{ include "ditto.name" . }}-connectivity
         app.kubernetes.io/instance: {{ .Release.Name }}
-        actorSystemName: {{ .Values.akka.actorSystemName }}
+        actorSystemName: {{ .Values.pekko.actorSystemName }}
         {{- with .Values.connectivity.additionalLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -119,7 +119,7 @@ spec:
                 -XX:InitialRAMPercentage={{ .Values.connectivity.jvm.heapRamPercentage }}
                 -XX:MaxGCPauseMillis={{ .Values.connectivity.jvm.maxGcPauseMillis }}
                 {{ .Values.connectivity.additionalJvmOptions }}
-                {{- .Values.global.akkaOptions }}
+                {{- .Values.global.pekkoOptions }}
                 {{- if .Values.global.logging.customConfigFile.enabled }}
                 -Dlogback.configurationFile=/opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
                 {{- end }}
@@ -237,10 +237,10 @@ spec:
             {{- end }}
           ports:
             - name: remoting
-              containerPort: {{ .Values.akka.remoting.port }}
+              containerPort: {{ .Values.pekko.remoting.port }}
               protocol: TCP
             - name: management
-              containerPort: {{ .Values.akka.mgmthttp.port }}
+              containerPort: {{ .Values.pekko.mgmthttp.port }}
               protocol: TCP
             {{- if .Values.global.prometheus.enabled }}
             - name: prometheus
