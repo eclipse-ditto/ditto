@@ -986,14 +986,14 @@
       "pluginVersion": "8.5.6",
       "targets": [
         {
-          "expr": "sum(rate(akka_persistence_mongo_journal_scala_official_write_append_seconds_count[1m]))",
+          "expr": "sum(rate(pekko_persistence_mongo_journal_scala_official_write_append_seconds_count[1m]))",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "inserts",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(akka_persistence_mongo_journal_scala_official_read_max_seq_seconds_count[1m]))",
+          "expr": "sum(rate(pekko_persistence_mongo_journal_scala_official_read_max_seq_seconds_count[1m]))",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "reads",
@@ -1144,7 +1144,7 @@
               "type": "count"
             }
           ],
-          "query": "logger_name:\"akka.remote.RemoteActorRef\" AND message:\"was dropped. Due to overflow of send queue\"",
+          "query": "logger_name:\"org.apache.pekko.remote.RemoteActorRef\" AND message:\"was dropped. Due to overflow of send queue\"",
           "queryType": "randomWalk",
           "refId": "A",
           "timeField": "@timestamp"

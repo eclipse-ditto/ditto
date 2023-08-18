@@ -33,7 +33,7 @@ spec:
       labels:
         app.kubernetes.io/name: {{ include "ditto.name" . }}-policies
         app.kubernetes.io/instance: {{ .Release.Name }}
-        actorSystemName: {{ .Values.akka.actorSystemName }}
+        actorSystemName: {{ .Values.pekko.actorSystemName }}
         {{- with .Values.policies.additionalLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -119,7 +119,7 @@ spec:
                 -XX:InitialRAMPercentage={{ .Values.policies.jvm.heapRamPercentage }}
                 -XX:MaxGCPauseMillis={{ .Values.policies.jvm.maxGcPauseMillis }}
                 {{ .Values.policies.additionalJvmOptions }}
-                {{- .Values.global.akkaOptions }}
+                {{- .Values.global.pekkoOptions }}
                 {{- if .Values.global.logging.customConfigFile.enabled }}
                 -Dlogback.configurationFile=/opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
                 {{- end }}

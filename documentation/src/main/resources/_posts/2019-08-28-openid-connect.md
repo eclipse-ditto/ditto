@@ -20,7 +20,7 @@ Follow their [installation guide](https://www.ory.sh/docs/next/hydra/configure-d
 #### Configuration
 Download the self-signed certificate form the ORY Hydra server: https://localhost:9000/.well-known/openid-configuration
 
-Use the downloaded certificate for the akka-http ssl configuration.
+Use the downloaded certificate for the pekko-http ssl configuration.
 ```hocon
 ssl-config {
   trustManager = {

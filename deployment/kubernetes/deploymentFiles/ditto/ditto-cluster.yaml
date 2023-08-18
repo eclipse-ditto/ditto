@@ -36,7 +36,7 @@ spec:
         #    cpu: "1"
         #    memory: "1Gi"
         #  limits:
-        #    # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+        #    # cpu: "" no cpu limit to avoid CFS scheduler limits see https://pekko.apache.org/docs/pekko/current/additional/deploy.html#in-kubernetes
         #    memory: "4Gi"
         volumeMounts:
           - name: ditto-log-files-directory
@@ -78,7 +78,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: JAVA_TOOL_OPTIONS
-          value: "-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=30s"
+          value: "-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dpekko.coordinated-shutdown.exit-jvm=on -Dpekko.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dpekko.cluster.failure-detector.threshold=15.0 -Dpekko.cluster.failure-detector.expected-response-after=10s -Dpekko.cluster.failure-detector.acceptable-heartbeat-pause=30s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
         # in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
@@ -137,7 +137,7 @@ spec:
         #    cpu: "1"
         #    memory: "1Gi"
         #  limits:
-        #    # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+        #    # cpu: "" no cpu limit to avoid CFS scheduler limits see https://pekko.apache.org/docs/pekko/current/additional/deploy.html#in-kubernetes
         #    memory: "4Gi"
         volumeMounts:
           - name: ditto-log-files-directory
@@ -179,7 +179,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: JAVA_TOOL_OPTIONS
-          value: "-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=30s"
+          value: "-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dpekko.coordinated-shutdown.exit-jvm=on -Dpekko.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dpekko.cluster.failure-detector.threshold=15.0 -Dpekko.cluster.failure-detector.expected-response-after=10s -Dpekko.cluster.failure-detector.acceptable-heartbeat-pause=30s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
         # in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones
@@ -238,7 +238,7 @@ spec:
         #    cpu: "1"
         #    memory: "512Mi"
         #  limits:
-        #    # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+        #    # cpu: "" no cpu limit to avoid CFS scheduler limits see https://pekko.apache.org/docs/pekko/current/additional/deploy.html#in-kubernetes
         #    memory: "2Gi"
         volumeMounts:
           - name: ditto-log-files-directory
@@ -280,7 +280,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: JAVA_TOOL_OPTIONS
-          value: "-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=30s"
+          value: "-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dpekko.coordinated-shutdown.exit-jvm=on -Dpekko.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dpekko.cluster.failure-detector.threshold=15.0 -Dpekko.cluster.failure-detector.expected-response-after=10s -Dpekko.cluster.failure-detector.acceptable-heartbeat-pause=30s"
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
         # in order to read the MONGO_DB_URI from a kubernetes secret replace the above lines for MONGO_DB_HOSTNAME with the following ones

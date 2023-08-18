@@ -121,7 +121,7 @@ simply configure:
 things:
   # ...
   systemProps:
-    - "-Dakka-contrib-mongodb-persistence-things-journal.overrides.journal-collection=another_fancy_name"
+    - "-Dpekko-contrib-mongodb-persistence-things-journal.overrides.journal-collection=another_fancy_name"
 ```
 
 

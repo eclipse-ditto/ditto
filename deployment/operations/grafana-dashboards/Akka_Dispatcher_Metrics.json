@@ -651,7 +651,7 @@
   "schemaVersion": 36,
   "style": "dark",
   "tags": [
-    "akka",
+    "pekko",
     "dispatcher"
   ],
   "templating": {
