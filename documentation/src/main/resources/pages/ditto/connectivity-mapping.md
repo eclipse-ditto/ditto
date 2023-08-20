@@ -204,7 +204,7 @@ and headers
 ```
 content-type: application/octet-stream
 status: 200
-subject: heatUp
+ditto-message-subject: heatUp
 ditto-message-direction: TO
 ditto-message-thing-id: org.eclipse.ditto:smartcoffee
 ditto-message-feature-id: water-tank
@@ -220,7 +220,7 @@ Example configuration:
   "incomingMessageHeaders": {
     "content-type": "{%raw%}{{ header:content-type | fn:default('application/octet-stream') }}{%endraw%}",
     "status": "{%raw%}{{ header:status }}{%endraw%}",
-    "subject": "{%raw%}{{ header:subject | fn:default('fallback-subject') }}{%endraw%}",
+    "ditto-message-subject": "{%raw%}{{ header:ditto-message-subject | fn:default('fallback-subject') }}{%endraw%}",
     "ditto-message-direction": "TO",
     "ditto-message-thing-id": "{%raw%}{{ header:ditto-message-thing-id | fn:default('ns:fallback-thing') }}{%endraw%}",
     "ditto-message-feature-id": "{%raw%}{{ header:ditto-message-feature-id }}{%endraw%}"
@@ -247,7 +247,7 @@ Example configuration:
       is interpreted as a Ditto protocol message instead.
    * `status` (optional): Include for message responses. Exclude for message commands. Default to
      `{%raw%}{{ header:status }}{%endraw%}`.
-   * `subject` (mandatory for MQTT 3): Subject of the message. Default to `{%raw%}{{ header:subject }}{%endraw%}`.
+   * `ditto-message-subject` (mandatory for MQTT 3): Subject of the message. Default to `{%raw%}{{ header:ditto-message-subject }}{%endraw%}`.
       Mapping will fail if not resolvable.
    * `ditto-message-direction` (optional): The message direction. Default to `TO`, which corresponds to `inbox` in
       message commands and responses.
