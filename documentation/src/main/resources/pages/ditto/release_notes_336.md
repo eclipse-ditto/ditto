@@ -4,7 +4,7 @@ tags: [release_notes]
 published: true
 keywords: release notes, announcements, changelog
 summary: "Version 3.3.6 of Eclipse Ditto, released on 23.08.2023"
-permalink: release_notes_335.html
+permalink: release_notes_336.html
 ---
 
 This is a bugfix release, no new features since [3.3.5](release_notes_335.html) were added.
