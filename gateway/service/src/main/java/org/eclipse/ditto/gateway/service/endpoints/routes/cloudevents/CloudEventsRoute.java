@@ -20,9 +20,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.CloudEventsConfig;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.exceptions.CloudEventMissingPayloadException;
@@ -32,21 +29,26 @@ import org.eclipse.ditto.base.model.exceptions.UnsupportedMediaTypeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocol.JsonifiableAdaptable;
-import org.eclipse.ditto.protocol.ProtocolFactory;
-import org.eclipse.ditto.gateway.service.endpoints.actors.AbstractHttpRequestActor;
-import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
+import org.eclipse.ditto.gateway.service.endpoints.actors.AbstractHttpRequestActor;
+import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
+import org.eclipse.ditto.gateway.service.util.config.endpoints.CloudEventsConfig;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.protocol.JsonifiableAdaptable;
+import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 
 import akka.actor.Status;
 import akka.http.javadsl.model.ContentType;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
+import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.stream.javadsl.Sink;
@@ -141,7 +143,15 @@ public final class CloudEventsRoute extends AbstractRoute {
                             AbstractHttpRequestActor.COMPLETE_MESSAGE))
             );
 
-            return completeWithFuture(httpResponseFuture);
+            return completeWithFuture(httpResponseFuture.thenApply(response -> {
+                if (response.status().isSuccess()) {
+                    // as the /cloudevents is only intended to accept Ditto commands and apply them, replace the
+                    // actual successful response with just 202 (accepted) and no additional body/headers
+                    return HttpResponse.create().withStatus(StatusCodes.ACCEPTED);
+                } else {
+                    return response;
+                }
+            }));
         });
     }
 
@@ -236,15 +246,24 @@ public final class CloudEventsRoute extends AbstractRoute {
         LOGGER.withCorrelationId(dittoHeaders)
                 .debug("CloudEvent payload JSON: {}", jsonObject);
 
-        final DittoHeaders adjustedHeaders = dittoHeaders.toBuilder()
-                .responseRequired(false)
-                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED))
-                .build();
-
         final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
         final Signal<?> signal = PROTOCOL_ADAPTER.fromAdaptable(jsonifiableAdaptable);
-        final Signal<?> signalWithAdjustedHeaders = signal.setDittoHeaders(
-                signal.getDittoHeaders().toBuilder().putHeaders(adjustedHeaders).build());
+
+        final Signal<?> signalWithAdjustedHeaders;
+        if (signal instanceof ThingCommand) {
+            final DittoHeaders adjustedHeaders = dittoHeaders.toBuilder()
+                    .responseRequired(false)
+                    .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED))
+                    .build();
+            signalWithAdjustedHeaders = signal.setDittoHeaders(
+                    signal.getDittoHeaders().toBuilder().putHeaders(adjustedHeaders).build()
+            );
+        } else {
+            signalWithAdjustedHeaders = signal.setDittoHeaders(
+                    signal.getDittoHeaders().toBuilder().putHeaders(dittoHeaders).build()
+            );
+        }
+
         return Optional.of(signalWithAdjustedHeaders);
     }
 
