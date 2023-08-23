@@ -374,7 +374,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         cancelOnStopTasks.add(coordinatedShutdown.addCancellableTask(CoordinatedShutdown.PhaseServiceUnbind(),
                 "service-unbind-" + id, askSelfShutdownTask(Control.SERVICE_UNBIND)));
         coordinatedShutdown.addActorTerminationTask(CoordinatedShutdown.PhaseServiceRequestsDone(),
-                "service-requests-done" + id, getSelf(), Optional.of(Control.SERVICE_REQUESTS_DONE));
+                "service-requests-done-" + id, getSelf(), Optional.of(Control.SERVICE_REQUESTS_DONE));
     }
 
     private boolean shouldAnyTargetSendConnectionAnnouncements() {

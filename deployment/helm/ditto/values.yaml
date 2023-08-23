@@ -373,7 +373,7 @@ pekko:
     port: 2551
   # mgmthttp holds configuration for the Pekko cluster management
   mgmthttp:
-    # port defines the Port to use for akka http management
+    # port defines the Port to use for pekko http management
     port: 8558
 
 # Set "dittoTag" in order to specify another Ditto version to use for all Ditto services:
@@ -533,7 +533,7 @@ policies:
       timerThreshold: 100ms
       # creditsPerBatch configures how many "cleanup credits" should be generated per "interval" as long as the
       creditsPerBatch: 5
-    # persistence holds configuration regarding (akka) persistence of policies (event journal and snapshots)
+    # persistence holds configuration regarding (pekko) persistence of policies (event journal and snapshots)
     persistence:
       # activityCheckInterval configures to keep policies for that amount of time in memory when no other use did happen:
       activityCheckInterval: 2d
@@ -727,7 +727,7 @@ things:
       timerThreshold: 100ms
       # creditsPerBatch configures how many "cleanup credits" should be generated per "interval" as long as the
       creditsPerBatch: 5
-    # persistence holds configuration regarding (akka) persistence of things (event journal and snapshots)
+    # persistence holds configuration regarding (pekko) persistence of things (event journal and snapshots)
     persistence:
       # activityCheckInterval configures to keep things for that amount of time in memory when no other use did happen
       activityCheckInterval: 2d
@@ -1131,7 +1131,7 @@ connectivity:
       timerThreshold: 100ms
       # creditsPerBatch configures how many "cleanup credits" should be generated per "interval" as long as the
       creditsPerBatch: 5
-    # persistence holds configuration regarding (akka) persistence of connections (event journal and snapshots)
+    # persistence holds configuration regarding (pekko) persistence of connections (event journal and snapshots)
     persistence:
       # keep closed, inactive connections for that amount of time in memory when no other use did happen:
       activityCheckInterval: 45m
