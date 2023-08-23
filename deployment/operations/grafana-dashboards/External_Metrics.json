@@ -785,7 +785,7 @@
         "name": "Application",
         "options": [],
         "query": {
-          "query": "label_values(akka_persistence_mongo_journal_scala_official_read_max_seq_seconds_bucket, job)",
+          "query": "label_values(pekko_persistence_mongo_journal_scala_official_read_max_seq_seconds_bucket, job)",
           "refId": "prometheus-Application-Variable-Query"
         },
         "refresh": 1,

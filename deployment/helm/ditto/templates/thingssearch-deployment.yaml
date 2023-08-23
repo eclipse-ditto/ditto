@@ -252,7 +252,7 @@ spec:
               memory: {{ .Values.thingsSearch.resources.memoryMi }}Mi
             limits:
               # ## no cpu limit to avoid CFS scheduler limits
-              # ref: https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+              # ref: https://pekko.apache.org/docs/pekko/current/additional/deploying.html#deploying-to-kubernetes
               # cpu: ""
               memory: {{ .Values.thingsSearch.resources.memoryMi }}Mi
           {{- if .Values.openshift.enabled }}

@@ -224,10 +224,10 @@ spec:
               containerPort: 8080
               protocol: TCP
             - name: remoting
-              containerPort: {{ .Values.akka.remoting.port }}
+              containerPort: {{ .Values.pekko.remoting.port }}
               protocol: TCP
             - name: management
-              containerPort: {{ .Values.akka.mgmthttp.port }}
+              containerPort: {{ .Values.pekko.mgmthttp.port }}
               protocol: TCP
             {{- if .Values.global.prometheus.enabled }}
             - name: prometheus
@@ -268,7 +268,7 @@ spec:
               memory: {{ .Values.policies.resources.memoryMi }}Mi
             limits:
               # ## no cpu limit to avoid CFS scheduler limits
-              # ref: https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+              # ref: https://pekko.apache.org/docs/pekko/current/additional/deploying.html#deploying-to-kubernetes
               # cpu: ""
               memory: {{ .Values.policies.resources.memoryMi }}Mi
           {{- if .Values.openshift.enabled }}
