@@ -256,10 +256,6 @@
 
     <repositories>
         <repository>
-            <id>github</id>
-            <url>https://maven.pkg.github.com/alstanchev/pekko-persistence-inmemory/</url>
-        </repository>
-        <repository>
             <id>apache-releases</id>
             <name>apache-releases</name>
             <url>https://repository.apache.org/content/repositories/releases/</url>
@@ -290,16 +286,16 @@
                 <enabled>true</enabled>
             </snapshots>
         </repository>
-<!--        <repository>-->
-<!--            <id>sonatype-snapshot</id>-->
-<!--            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>-->
-<!--            <releases>-->
-<!--                <enabled>false</enabled>-->
-<!--            </releases>-->
-<!--            <snapshots>-->
-<!--                <enabled>true</enabled>-->
-<!--            </snapshots>-->
-<!--        </repository>-->
+        <repository>
+            <id>sonatype-snapshot</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
     </repositories>
 
     <build>
