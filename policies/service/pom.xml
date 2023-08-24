@@ -160,7 +160,7 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.github.alstanchev</groupId>
+            <groupId>io.github.alstanchev</groupId>
             <artifactId>pekko-persistence-inmemory_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>

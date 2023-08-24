@@ -224,7 +224,7 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
             <type>test-jar</type>
         </dependency>
         <dependency>
-            <groupId>com.github.alstanchev</groupId>
+            <groupId>io.github.alstanchev</groupId>
             <artifactId>pekko-persistence-inmemory_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
