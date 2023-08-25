@@ -47,7 +47,7 @@ services:
     # volumes:
     #  - ditto_log_files:/var/log/ditto
     healthcheck:
-      test: curl --fail `hostname`:8558/alive || exit 1
+      test: curl --fail `hostname`:7626/alive || exit 1
       interval: 30s
       timeout: 15s
       retries: 4
@@ -76,7 +76,7 @@ services:
     # volumes:
     #  - ditto_log_files:/var/log/ditto
     healthcheck:
-      test: curl --fail `hostname`:8558/alive || exit 1
+      test: curl --fail `hostname`:7626/alive || exit 1
       interval: 30s
       timeout: 15s
       retries: 4
@@ -105,7 +105,7 @@ services:
     # volumes:
     #  - ditto_log_files:/var/log/ditto
     healthcheck:
-      test: curl --fail `hostname`:8558/alive || exit 1
+      test: curl --fail `hostname`:7626/alive || exit 1
       interval: 30s
       timeout: 15s
       retries: 4
@@ -135,7 +135,7 @@ services:
     #volumes:
     #  - ditto_log_files:/var/log/ditto
     healthcheck:
-      test: curl --fail `hostname`:8558/alive || exit 1
+      test: curl --fail `hostname`:7626/alive || exit 1
       interval: 30s
       timeout: 15s
       retries: 4
@@ -168,7 +168,7 @@ services:
     # volumes:
     #  - ditto_log_files:/var/log/ditto
     healthcheck:
-      test: curl --fail `hostname`:8558/alive || exit 1
+      test: curl --fail `hostname`:7626/alive || exit 1
       interval: 30s
       timeout: 15s
       retries: 4

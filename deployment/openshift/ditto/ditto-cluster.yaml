@@ -29,7 +29,7 @@ spec:
           containerPort: 2551
           protocol: TCP
         - name: management
-          containerPort: 8558
+          containerPort: 7626
           protocol: TCP
         readinessProbe:
           httpGet:
@@ -102,7 +102,7 @@ spec:
           containerPort: 2551
           protocol: TCP
         - name: management
-          containerPort: 8558
+          containerPort: 7626
           protocol: TCP
         readinessProbe:
           httpGet:
@@ -174,7 +174,7 @@ spec:
           containerPort: 2551
           protocol: TCP
         - name: management
-          containerPort: 8558
+          containerPort: 7626
           protocol: TCP
         readinessProbe:
           httpGet:
@@ -245,7 +245,7 @@ spec:
           containerPort: 2551
           protocol: TCP
         - name: management
-          containerPort: 8558
+          containerPort: 7626
           protocol: TCP
         readinessProbe:
           httpGet:
@@ -317,7 +317,7 @@ spec:
           containerPort: 2551
           protocol: TCP
         - name: management
-          containerPort: 8558
+          containerPort: 7626
           protocol: TCP
         readinessProbe:
           httpGet:
