@@ -41,7 +41,7 @@ services:
       - JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=1 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=500 -Dpekko.coordinated-shutdown.exit-jvm=on -Dpekko.cluster.shutdown-after-unsuccessful-join-seed-nodes=280s -Dpekko.cluster.failure-detector.threshold=15.0 -Dpekko.cluster.failure-detector.expected-response-after=10s -Dpekko.cluster.failure-detector.acceptable-heartbeat-pause=20s -Dpekko.cluster.downing-provider-class=""
       - MONGO_DB_HOSTNAME=mongodb
     healthcheck:
-      test: curl --fail `hostname`:8558/alive || exit 1
+      test: curl --fail `hostname`:7626/alive || exit 1
       interval: 30s
       timeout: 15s
       retries: 4
@@ -66,7 +66,7 @@ services:
       - JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=1 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=500 -Dpekko.coordinated-shutdown.exit-jvm=on -Dpekko.cluster.shutdown-after-unsuccessful-join-seed-nodes=280s -Dpekko.cluster.failure-detector.threshold=15.0 -Dpekko.cluster.failure-detector.expected-response-after=10s -Dpekko.cluster.failure-detector.acceptable-heartbeat-pause=20s -Dpekko.cluster.downing-provider-class=""
       - MONGO_DB_HOSTNAME=mongodb
     healthcheck:
-      test: curl --fail `hostname`:8558/alive || exit 1
+      test: curl --fail `hostname`:7626/alive || exit 1
       interval: 30s
       timeout: 15s
       retries: 4
@@ -89,7 +89,7 @@ services:
       - JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=1 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=500 -Dpekko.coordinated-shutdown.exit-jvm=on -Dpekko.cluster.shutdown-after-unsuccessful-join-seed-nodes=280s -Dpekko.cluster.failure-detector.threshold=15.0 -Dpekko.cluster.failure-detector.expected-response-after=10s -Dpekko.cluster.failure-detector.acceptable-heartbeat-pause=20s -Dpekko.cluster.downing-provider-class=""
       - MONGO_DB_HOSTNAME=mongodb
     healthcheck:
-      test: curl --fail `hostname`:8558/alive || exit 1
+      test: curl --fail `hostname`:7626/alive || exit 1
       interval: 30s
       timeout: 15s
       retries: 4
@@ -114,7 +114,7 @@ services:
 #      - JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=1 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=500 -Dpekko.coordinated-shutdown.exit-jvm=on -Dpekko.cluster.shutdown-after-unsuccessful-join-seed-nodes=280s -Dpekko.cluster.failure-detector.threshold=15.0 -Dpekko.cluster.failure-detector.expected-response-after=10s -Dpekko.cluster.failure-detector.acceptable-heartbeat-pause=20s -Dpekko.cluster.downing-provider-class=""
 #      - MONGO_DB_HOSTNAME=mongodb
 #    healthcheck:
-#      test: curl --fail `hostname`:8558/alive || exit 1
+#      test: curl --fail `hostname`:7626/alive || exit 1
 #      interval: 30s
 #      timeout: 15s
 #      retries: 4
@@ -146,7 +146,7 @@ services:
         -Dditto.gateway.health-check.cluster-roles.expected.2=search 
         -Dditto.gateway.health-check.cluster-roles.expected.3=gateway 
     healthcheck:
-      test: curl --fail `hostname`:8558/alive || exit 1
+      test: curl --fail `hostname`:7626/alive || exit 1
       interval: 30s
       timeout: 15s
       retries: 4
