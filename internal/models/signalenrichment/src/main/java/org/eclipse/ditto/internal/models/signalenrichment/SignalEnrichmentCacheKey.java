@@ -27,7 +27,7 @@ import org.eclipse.ditto.internal.utils.cache.CacheKey;
  * Implementation for a {@link CacheKey} used in scope of signal enrichment.
  */
 @Immutable
-final class SignalEnrichmentCacheKey implements CacheKey<SignalEnrichmentContext> {
+public final class SignalEnrichmentCacheKey implements CacheKey<SignalEnrichmentContext> {
 
     static final String DELIMITER = ":";
 
@@ -47,7 +47,8 @@ final class SignalEnrichmentCacheKey implements CacheKey<SignalEnrichmentContext
      * @return the entity ID with resource type object.
      * @throws NullPointerException if {@code id} is {@code null}.
      */
-    static SignalEnrichmentCacheKey of(final EntityId id, @Nullable final SignalEnrichmentContext cacheLookupContext) {
+    public static SignalEnrichmentCacheKey of(final EntityId id,
+                                              @Nullable final SignalEnrichmentContext cacheLookupContext) {
         return new SignalEnrichmentCacheKey(id, cacheLookupContext);
     }
 

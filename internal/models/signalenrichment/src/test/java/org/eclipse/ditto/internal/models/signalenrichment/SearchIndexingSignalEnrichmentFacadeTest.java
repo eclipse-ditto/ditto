@@ -12,9 +12,9 @@
  */
 package org.eclipse.ditto.internal.models.signalenrichment;
 
-import java.time.Duration;
-import java.util.concurrent.CompletionStage;
-
+import com.typesafe.config.ConfigFactory;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
@@ -26,30 +26,27 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.DittoTestSystem;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.json.*;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.events.AttributeDeleted;
+import org.eclipse.ditto.things.model.signals.events.AttributeModified;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.junit.Rule;
 import org.junit.Test;
 
-import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorSelection;
-import org.apache.pekko.testkit.javadsl.TestKit;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Map;
+import java.util.concurrent.CompletionStage;
 
 /**
- * Unit tests for {@link DittoCachingSignalEnrichmentFacade}.
+ * Unit tests for {@link SearchIndexingSignalEnrichmentFacade}.
  */
-public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignalEnrichmentFacadeTest {
+public final class SearchIndexingSignalEnrichmentFacadeTest extends AbstractSignalEnrichmentFacadeTest {
 
     private static final String CACHE_CONFIG_KEY = "my-cache";
     private static final String CACHE_CONFIG = CACHE_CONFIG_KEY + """
@@ -59,6 +56,8 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
             }
             """;
     private static final String ISSUER_PREFIX = "test:";
+
+    private static final String NAMESPACE = "org.eclipse.test";
 
     private static final JsonObject THING_RESPONSE_JSON = JsonObject.of("""
             {
@@ -72,9 +71,23 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
             {
               "policyId": "policy:id",
               "attributes": {"x":  5},
-              "features": {"y": {"properties": {"z":  true}}},
               "_metadata": {"attributes": {"x": {"type": "x attribute"}}}
             }""");
+
+
+    private static final JsonFieldSelector SELECTED_INDEXES =
+            JsonFieldSelector.newInstance("policyId", "attributes/x", "_metadata");
+
+    private static final AttributeModified THING_EVENT = AttributeModified.of(
+            ThingId.generateRandom(NAMESPACE),
+            JsonPointer.of("x"),
+            JsonValue.of(5),
+            3L,
+            Instant.EPOCH,
+            DittoHeaders.empty(),
+            MetadataModelFactory.newMetadataBuilder()
+                .set("type", "x attribute")
+                .build()); 
 
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
@@ -86,7 +99,8 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
         final ActorSelection commandHandler = ActorSelection.apply(kit.getRef(), "");
         final ByRoundTripSignalEnrichmentFacade cacheLoaderFacade =
                 ByRoundTripSignalEnrichmentFacade.of(commandHandler, Duration.ofSeconds(10L));
-        return DittoCachingSignalEnrichmentFacade.newInstance(
+        return SearchIndexingSignalEnrichmentFacade.newInstance(
+                Map.of("org.eclipse.test", SELECTED_INDEXES),
                 cacheLoaderFacade,
                 cacheConfig,
                 kit.getSystem().getDispatcher(),
@@ -104,6 +118,16 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
     }
 
     @Override
+    protected JsonFieldSelector getJsonFieldSelector() {
+        return SELECTED_INDEXES;
+    }
+
+    @Override
+    protected AttributeModified getThingEvent() {
+        return THING_EVENT;
+    }
+
+    @Override
     protected JsonFieldSelector actualSelectedFields(final JsonFieldSelector selector) {
         return JsonFactory.newFieldSelectorBuilder()
                 .addPointers(selector)
@@ -117,11 +141,11 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
-            final ThingId thingId = ThingId.generateRandom();
+            final ThingId thingId = buildThingId();
             final String userId = ISSUER_PREFIX + "user";
             final DittoHeaders headers = DittoHeaders.newBuilder()
                     .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                            AuthorizationSubject.newInstance(userId)))
+                                                                           AuthorizationSubject.newInstance(userId)))
                     .randomCorrelationId()
                     .build();
             final CompletionStage<JsonObject> askResult =
@@ -155,11 +179,11 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
-            final ThingId thingId = ThingId.generateRandom();
+            final ThingId thingId = buildThingId();
             final String userId = ISSUER_PREFIX + "user";
             final DittoHeaders headers = DittoHeaders.newBuilder()
                     .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                            AuthorizationSubject.newInstance(userId)))
+                                                                           AuthorizationSubject.newInstance(userId)))
                     .randomCorrelationId()
                     .build();
             final CompletionStage<JsonObject> askResult =
@@ -177,14 +201,14 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
 
             // WHEN: same thing is asked again with same selector for an event with one revision ahead
             final ThingMerged mergeAttributes = ThingMerged.of(thingId, JsonPointer.of("/attributes"),
-                    JsonObject.newBuilder()
-                            .set("x", 42)
-                            .set("foo", "bar")
-                            .build(),
-                    getThingEvent().getRevision() + 1,
-                    null,
-                    DittoHeaders.empty(),
-                    null
+                                                               JsonObject.newBuilder()
+                                                                       .set("x", 42)
+                                                                       .set("foo", "bar")
+                                                                       .build(),
+                                                               getThingEvent().getRevision() + 1,
+                                                               null,
+                                                               DittoHeaders.empty(),
+                                                               null
             );
             final CompletionStage<JsonObject> askResultCached =
                     underTest.retrievePartialThing(thingId, getJsonFieldSelector(), headers, mergeAttributes);
@@ -200,11 +224,11 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
 
             // WHEN: then the attribute "x" is modified with a merge:
             final ThingMerged mergeAttributeX = ThingMerged.of(thingId, JsonPointer.of("/attributes/x"),
-                    JsonValue.of(1337),
-                    mergeAttributes.getRevision() + 1,
-                    null,
-                    DittoHeaders.empty(),
-                    null
+                                                               JsonValue.of(1337),
+                                                               mergeAttributes.getRevision() + 1,
+                                                               null,
+                                                               DittoHeaders.empty(),
+                                                               null
             );
             final CompletionStage<JsonObject> askResultCached2 =
                     underTest.retrievePartialThing(thingId, getJsonFieldSelector(), headers, mergeAttributeX);
@@ -226,11 +250,11 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
-            final ThingId thingId = ThingId.generateRandom();
+            final ThingId thingId = buildThingId();
             final String userId = ISSUER_PREFIX + "user";
             final DittoHeaders headers = DittoHeaders.newBuilder()
                     .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                            AuthorizationSubject.newInstance(userId)))
+                                                                           AuthorizationSubject.newInstance(userId)))
                     .randomCorrelationId()
                     .build();
             final CompletionStage<JsonObject> askResult =
@@ -248,17 +272,17 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
 
             // WHEN: same thing is asked again with same selector for an event with one revision ahead
             final ThingMerged mergeAttributes = ThingMerged.of(thingId, JsonPointer.of("/"),
-                    JsonObject.newBuilder()
-                            .set("attributes",
-                                    JsonObject.newBuilder()
-                                            .set("x", 42)
-                                            .set("foo", "bar")
-                                            .build())
-                            .build(),
-            getThingEvent().getRevision() + 1,
-                    null,
-                    DittoHeaders.empty(),
-                    null
+                                                               JsonObject.newBuilder()
+                                                                       .set("attributes",
+                                                                            JsonObject.newBuilder()
+                                                                                    .set("x", 42)
+                                                                                    .set("foo", "bar")
+                                                                                    .build())
+                                                                       .build(),
+                                                               getThingEvent().getRevision() + 1,
+                                                               null,
+                                                               DittoHeaders.empty(),
+                                                               null
             );
             final CompletionStage<JsonObject> askResultCached =
                     underTest.retrievePartialThing(thingId, getJsonFieldSelector(), headers, mergeAttributes);
@@ -275,7 +299,7 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
-            final ThingId thingId = ThingId.generateRandom();
+            final ThingId thingId = buildThingId();
             final DittoHeaders headers = DittoHeaders.newBuilder().randomCorrelationId().build();
             final CompletionStage<JsonObject> askResult =
                     underTest.retrievePartialThing(thingId, getJsonFieldSelector(), headers, getThingEvent());
@@ -314,12 +338,12 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
-            final ThingId thingId = ThingId.generateRandom();
+            final ThingId thingId = buildThingId();
             final String userId1 = ISSUER_PREFIX + "user1";
             final String userId2 = ISSUER_PREFIX + "user2";
             final DittoHeaders headers = DittoHeaders.newBuilder()
                     .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                            AuthorizationSubject.newInstance(userId1)))
+                                                                           AuthorizationSubject.newInstance(userId1)))
                     .randomCorrelationId()
                     .build();
             final CompletionStage<JsonObject> askResult =
@@ -338,7 +362,7 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
             // WHEN: same thing is asked again with same selector for an event with one revision ahead but other auth subjects
             final DittoHeaders headers2 = headers.toBuilder()
                     .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                            AuthorizationSubject.newInstance(ISSUER_PREFIX + "user2")
+                                                                           AuthorizationSubject.newInstance(ISSUER_PREFIX + "user2")
                     ))
                     .build();
             underTest.retrievePartialThing(thingId, getJsonFieldSelector(), headers2,
@@ -358,11 +382,11 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
-            final ThingId thingId = ThingId.generateRandom();
+            final ThingId thingId = buildThingId();
             final String userId = ISSUER_PREFIX + "user1";
             final DittoHeaders headers = DittoHeaders.newBuilder()
                     .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                            AuthorizationSubject.newInstance(userId)))
+                                                                           AuthorizationSubject.newInstance(userId)))
                     .randomCorrelationId()
                     .build();
             final CompletionStage<JsonObject> askResult =
@@ -398,11 +422,11 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
-            final ThingId thingId = ThingId.generateRandom();
+            final ThingId thingId = buildThingId();
             final String userId = ISSUER_PREFIX + "user";
             final DittoHeaders headers = DittoHeaders.newBuilder()
                     .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                            AuthorizationSubject.newInstance(userId)))
+                                                                           AuthorizationSubject.newInstance(userId)))
                     .randomCorrelationId()
                     .build();
             final CompletionStage<JsonObject> askResult =
@@ -421,14 +445,14 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
 
             // WHEN: same thing is asked again with same selector for an event with one revision ahead
             final ThingMerged mergeAttribute = ThingMerged.of(thingId, JsonPointer.of("/attributes/x"),
-                    JsonFactory.newValue(6),
-            getThingEvent().getRevision() + 1,
-                    null,
-                    DittoHeaders.empty(),
-                    Metadata.newMetadata(JsonObject.newBuilder()
-                            .set("type", "x is now y attribute")
-                            .build()
-                    )
+                                                              JsonFactory.newValue(6),
+                                                              getThingEvent().getRevision() + 1,
+                                                              null,
+                                                              DittoHeaders.empty(),
+                                                              Metadata.newMetadata(JsonObject.newBuilder()
+                                                                                           .set("type", "x is now y attribute")
+                                                                                           .build()
+                                                              )
             );
             final CompletionStage<JsonObject> askResultCached =
                     underTest.retrievePartialThing(thingId, getJsonFieldSelector(), headers, mergeAttribute);
@@ -460,11 +484,11 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
                     createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
-            final ThingId thingId = ThingId.generateRandom();
+            final ThingId thingId = buildThingId();
             final String userId = ISSUER_PREFIX + "user";
             final DittoHeaders headers = DittoHeaders.newBuilder()
                     .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                            AuthorizationSubject.newInstance(userId)))
+                                                                           AuthorizationSubject.newInstance(userId)))
                     .randomCorrelationId()
                     .build();
             final CompletionStage<JsonObject> askResult =
@@ -484,10 +508,10 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
             // WHEN: same thing is asked again with same selector for an event with one revision ahead
             final AttributeDeleted attributeDeleted =
                     AttributeDeleted.of(thingId, JsonPointer.of("/x"),
-                    getThingEvent().getRevision() + 1,
-                            null,
-                            DittoHeaders.empty(),
-                            MetadataModelFactory.nullMetadata());
+                                        getThingEvent().getRevision() + 1,
+                                        null,
+                                        DittoHeaders.empty(),
+                                        MetadataModelFactory.nullMetadata());
 
             final CompletionStage<JsonObject> askResultCached =
                     underTest.retrievePartialThing(thingId, getJsonFieldSelector(), headers, attributeDeleted);
@@ -507,4 +531,9 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
         });
     }
 
+    private static ThingId buildThingId() {
+        return ThingId.generateRandom(NAMESPACE);
+    }
+
 }
+

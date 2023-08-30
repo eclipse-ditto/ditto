@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.thingsearch.service.common.config;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -64,6 +66,14 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
      */
     OperatorMetricsConfig getOperatorMetricsConfig();
 
+    /*
+     * Returns a map of fields scoped by namespaces that will be explicitly included in the search index.
+     *
+     * @return the search projection fields.
+     * @since 3.4
+     */
+    List<NamespaceSearchIndexConfig> getNamespaceSearchIncludeFields();
+
     /**
      * An enumeration of the known config path expressions and their associated default values for SearchConfig.
      */
@@ -90,7 +100,12 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
                 "definition", "/definition",
                 "_metadata", "/_metadata"
                 )
-        ));
+        )),
+
+        /**
+         * Any fields to include in the search index, scoped by namespace.
+         */
+        NAMESPACE_SEARCH_INCLUDE_FIELDS("namespace-search-include-fields", Collections.emptyList());
 
         private final String path;
         private final Object defaultValue;
