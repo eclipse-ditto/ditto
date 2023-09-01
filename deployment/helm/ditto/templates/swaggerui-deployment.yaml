@@ -78,6 +78,13 @@ spec:
           volumeMounts:
             - name: swagger-ui-init-config
               mountPath: /init-config
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.swaggerui.topologySpreadConstraints.maxSkew }}
+          topologyKey: {{ .Values.swaggerui.topologySpreadConstraints.topologyKey }}
+          whenUnsatisfiable: {{ .Values.swaggerui.topologySpreadConstraints.whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ include "ditto.name" . }}-swaggerui
       containers:
         - name: {{ .Chart.Name }}-swaggerui
           image: "{{ .Values.swaggerui.image.repository }}:{{ .Values.swaggerui.image.tag }}"

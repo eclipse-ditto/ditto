@@ -575,6 +575,13 @@ spec:
         supplementalGroups: [101]
         seccompProfile:
           type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.ingress.controller.topologySpreadConstraints.maxSkew }}
+          topologyKey: {{ .Values.ingress.controller.topologySpreadConstraints.topologyKey }}
+          whenUnsatisfiable: {{ .Values.ingress.controller.topologySpreadConstraints.whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
       containers:
       - name: nginx-node-health-check
         image: docker.io/library/nginx:{{ .Values.ingress.controller.nginxVersion }}
