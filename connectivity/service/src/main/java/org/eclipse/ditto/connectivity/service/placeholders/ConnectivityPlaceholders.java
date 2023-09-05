@@ -16,6 +16,7 @@ import org.eclipse.ditto.edge.service.placeholders.EntityIdPlaceholder;
 import org.eclipse.ditto.edge.service.placeholders.FeaturePlaceholder;
 import org.eclipse.ditto.edge.service.placeholders.PolicyPlaceholder;
 import org.eclipse.ditto.edge.service.placeholders.RequestPlaceholder;
+import org.eclipse.ditto.edge.service.placeholders.ThingJsonPlaceholder;
 import org.eclipse.ditto.edge.service.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
@@ -32,6 +33,13 @@ public final class ConnectivityPlaceholders {
      */
     public static ThingPlaceholder newThingPlaceholder() {
         return ThingPlaceholder.getInstance();
+    }
+
+    /**
+     * @return the singleton instance of {@link ThingJsonPlaceholder}
+     */
+    public static ThingJsonPlaceholder newThingJsonPlaceholder() {
+        return ThingJsonPlaceholder.getInstance();
     }
 
     /**

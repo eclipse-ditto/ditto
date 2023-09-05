@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 
@@ -26,8 +27,10 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
-import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.Placeholder;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
@@ -35,6 +38,7 @@ import org.eclipse.ditto.placeholders.PlaceholderResolver;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
 
 /**
  * Creator of expression resolvers for incoming and outgoing messages.
@@ -52,17 +56,25 @@ public final class Resolvers {
      */
     private static final List<ResolverCreator<?>> RESOLVER_CREATORS = Arrays.asList(
             // For incoming messages, header mapping injects headers of external messages into Ditto headers.
-            ResolverCreator.of(PlaceholderFactory.newHeadersPlaceholder(), (e, s, t, a, c) -> e),
+            ResolverCreator.of(PlaceholderFactory.newHeadersPlaceholder(), (h, s, t, a, c, e) -> h),
             ResolverCreator.of(ConnectivityPlaceholders.newEntityPlaceholder(),
-                    (e, s, t, a, c) -> WithEntityId.getEntityIdOfType(EntityId.class, s).orElse(null)),
+                    (h, s, t, a, c, e) -> WithEntityId.getEntityIdOfType(EntityId.class, s).orElse(null)),
             ResolverCreator.of(ConnectivityPlaceholders.newThingPlaceholder(),
-                    (e, s, t, a, c) -> WithEntityId.getEntityIdOfType(EntityId.class, s).orElse(null)),
-            ResolverCreator.of(ConnectivityPlaceholders.newFeaturePlaceholder(), (e, s, t, a, c) -> s),
-            ResolverCreator.of(ConnectivityPlaceholders.newTopicPathPlaceholder(), (e, s, t, a, c) -> t),
-            ResolverCreator.of(ConnectivityPlaceholders.newResourcePlaceholder(), (e, s, t, a, c) -> s),
-            ResolverCreator.of(ConnectivityPlaceholders.newTimePlaceholder(), (e, s, t, a, c) -> new Object()),
-            ResolverCreator.of(ConnectivityPlaceholders.newRequestPlaceholder(), (e, s, t, a, c) -> a),
-            ResolverCreator.of(ConnectivityPlaceholders.newConnectionIdPlaceholder(), (e, s, t, a, c) -> c)
+                    (h, s, t, a, c, e) -> WithEntityId.getEntityIdOfType(EntityId.class, s).orElse(null)),
+            ResolverCreator.of(ConnectivityPlaceholders.newThingJsonPlaceholder(),
+                    (h, s, t, a, c, e) -> ThingEventToThingConverter
+                            .mergeThingWithExtraFields(s,
+                                    JsonFieldSelector.newInstance(""),
+                                    Optional.ofNullable(e).orElse(JsonObject.empty())
+                            )
+                            .orElse(null)
+            ),
+            ResolverCreator.of(ConnectivityPlaceholders.newFeaturePlaceholder(), (h, s, t, a, c, e) -> s),
+            ResolverCreator.of(ConnectivityPlaceholders.newTopicPathPlaceholder(), (h, s, t, a, c, e) -> t),
+            ResolverCreator.of(ConnectivityPlaceholders.newResourcePlaceholder(), (h, s, t, a, c, e) -> s),
+            ResolverCreator.of(ConnectivityPlaceholders.newTimePlaceholder(), (h, s, t, a, c, e) -> new Object()),
+            ResolverCreator.of(ConnectivityPlaceholders.newRequestPlaceholder(), (h, s, t, a, c, e) -> a),
+            ResolverCreator.of(ConnectivityPlaceholders.newConnectionIdPlaceholder(), (h, s, t, a, c, e) -> c)
     );
 
     private static final List<Placeholder<?>> PLACEHOLDERS = Collections.unmodifiableList(
@@ -94,16 +106,21 @@ public final class Resolvers {
         final Adaptable adaptable = mappedOutboundSignal.getAdaptable();
         return PlaceholderFactory.newExpressionResolver(
                 RESOLVER_CREATORS.stream()
-                        .map(creator -> creator.create(adaptable.getDittoHeaders(), signal,
+                        .map(creator -> creator.create(adaptable.getDittoHeaders(),
+                                signal,
                                 externalMessage.getTopicPath().orElse(null),
                                 signal.getDittoHeaders().getAuthorizationContext(),
-                                sendingConnectionId))
+                                sendingConnectionId,
+                                mappedOutboundSignal.getExtra()
+                                        .or(() -> mappedOutboundSignal.getAdaptable().getPayload().getExtra())
+                                        .orElse(null)
+                        ))
                         .toArray(PlaceholderResolver[]::new)
         );
     }
 
     /**
-     * Create an expression resolver for an signal.
+     * Create an expression resolver for a signal.
      *
      * @param signal the signal.
      * @param connectionId the ID of the connection that handles the signal
@@ -114,10 +131,13 @@ public final class Resolvers {
             final ConnectionId connectionId) {
         return PlaceholderFactory.newExpressionResolver(
                 RESOLVER_CREATORS.stream()
-                        .map(creator -> creator.create(signal.getDittoHeaders(), signal,
+                        .map(creator -> creator.create(signal.getDittoHeaders(),
+                                signal,
                                 PROTOCOL_ADAPTER.toTopicPath(signal),
                                 signal.getDittoHeaders().getAuthorizationContext(),
-                                connectionId))
+                                connectionId,
+                                null
+                        ))
                         .toArray(PlaceholderResolver[]::new)
         );
     }
@@ -135,10 +155,13 @@ public final class Resolvers {
 
         return PlaceholderFactory.newExpressionResolver(
                 RESOLVER_CREATORS.stream()
-                        .map(creator -> creator.create(makeCaseInsensitive(message.getHeaders()), null,
+                        .map(creator -> creator.create(makeCaseInsensitive(message.getHeaders()),
+                                null,
                                 message.getTopicPath().orElse(null),
                                 message.getAuthorizationContext().orElse(null),
-                                receivingConnectionId))
+                                receivingConnectionId,
+                                null
+                        ))
                         .toArray(PlaceholderResolver[]::new)
         );
     }
@@ -151,8 +174,8 @@ public final class Resolvers {
      * @return the expression resolver.
      * @since 1.2.0
      */
-    public static ExpressionResolver forOutboundSignal(final OutboundSignal.Mappable outboundSignal, final
-    ConnectionId sendingConnectionId) {
+    public static ExpressionResolver forOutboundSignal(final OutboundSignal.Mappable outboundSignal,
+            final ConnectionId sendingConnectionId) {
 
         return PlaceholderFactory.newExpressionResolver(
                 RESOLVER_CREATORS.stream()
@@ -160,7 +183,9 @@ public final class Resolvers {
                                 outboundSignal.getSource(),
                                 PROTOCOL_ADAPTER.toTopicPath(outboundSignal.getSource()),
                                 outboundSignal.getSource().getDittoHeaders().getAuthorizationContext(),
-                                sendingConnectionId))
+                                sendingConnectionId,
+                                outboundSignal.getExtra().orElse(null)
+                        ))
                         .toArray(PlaceholderResolver[]::new)
         );
     }
@@ -180,9 +205,13 @@ public final class Resolvers {
             @Nullable final ConnectionId connectionId) {
         return PlaceholderFactory.newExpressionResolver(
                 RESOLVER_CREATORS.stream()
-                        .map(creator ->
-                                creator.create(makeCaseInsensitive(externalMessage.getHeaders()), signal, topicPath,
-                                        authorizationContext, connectionId))
+                        .map(creator -> creator.create(makeCaseInsensitive(externalMessage.getHeaders()),
+                                signal,
+                                topicPath,
+                                authorizationContext,
+                                connectionId,
+                                null
+                        ))
                         .toArray(PlaceholderResolver[]::new)
         );
     }
@@ -200,8 +229,9 @@ public final class Resolvers {
     private interface ResolverDataExtractor<T> {
 
         @Nullable
-        T extract(Map<String, String> inputHeaders, @Nullable Signal<?> signal, @Nullable TopicPath topicPath,
-                @Nullable AuthorizationContext authorizationContext, @Nullable final ConnectionId connectionId);
+        T extract(Map<String, String> headers, @Nullable Signal<?> signal, @Nullable TopicPath topicPath,
+                @Nullable AuthorizationContext authorizationContext, @Nullable ConnectionId connectionId,
+                @Nullable JsonObject extraFields);
     }
 
     /**
@@ -228,9 +258,10 @@ public final class Resolvers {
 
         private PlaceholderResolver<T> create(final Map<String, String> inputHeaders, @Nullable final Signal<?> signal,
                 @Nullable final TopicPath topicPath, @Nullable final AuthorizationContext authorizationContext,
-                @Nullable ConnectionId connectionId) {
-            return PlaceholderFactory.newPlaceholderResolver(placeholder,
-                    dataExtractor.extract(inputHeaders, signal, topicPath, authorizationContext, connectionId));
+                @Nullable final ConnectionId connectionId, @Nullable final JsonObject extraFields) {
+            return PlaceholderFactory.newPlaceholderResolver(placeholder, dataExtractor.extract(
+                            inputHeaders, signal, topicPath, authorizationContext, connectionId, extraFields
+            ));
         }
 
         private Placeholder<T> getPlaceholder() {

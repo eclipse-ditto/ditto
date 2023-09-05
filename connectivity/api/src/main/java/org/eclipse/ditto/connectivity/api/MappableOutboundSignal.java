@@ -17,16 +17,17 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Represent an outbound signal that is ready to be mapped with the given {@link org.eclipse.ditto.connectivity.model.PayloadMapping}.
@@ -63,6 +64,11 @@ final class MappableOutboundSignal implements OutboundSignal.Mappable {
     @Override
     public List<Target> getTargets() {
         return delegate.getTargets();
+    }
+
+    @Override
+    public Optional<JsonObject> getExtra() {
+        return delegate.getExtra();
     }
 
     @Override

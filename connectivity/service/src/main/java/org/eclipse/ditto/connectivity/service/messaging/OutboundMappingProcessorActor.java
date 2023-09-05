@@ -72,6 +72,7 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProv
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
+import org.eclipse.ditto.edge.service.placeholders.ThingJsonPlaceholder;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.internal.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
@@ -96,6 +97,7 @@ import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
+import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
@@ -137,6 +139,7 @@ public final class OutboundMappingProcessorActor
     private static final TopicPathPlaceholder TOPIC_PATH_PLACEHOLDER = TopicPathPlaceholder.getInstance();
     private static final ResourcePlaceholder RESOURCE_PLACEHOLDER = ResourcePlaceholder.getInstance();
     private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
+    private static final ThingJsonPlaceholder THING_JSON_PLACEHOLDER = ThingJsonPlaceholder.getInstance();
 
     private final ActorRef clientActor;
     private final Connection connection;
@@ -791,8 +794,13 @@ public final class OutboundMappingProcessorActor
             return outboundSignalWithExtra.getExtra()
                     .flatMap(extra -> ThingEventToThingConverter
                             .mergeThingWithExtraFields(signal, extraFields.get(), extra)
-                            .filter(ThingPredicateVisitor.apply(criteria, topicPathPlaceholderResolver,
-                                    resourcePlaceholderResolver, timePlaceholderResolver))
+                            .filter(thing -> {
+                                final PlaceholderResolver<Thing> thingPlaceholderResolver = PlaceholderFactory
+                                        .newPlaceholderResolver(THING_JSON_PLACEHOLDER, thing);
+                                return ThingPredicateVisitor.apply(criteria, topicPathPlaceholderResolver,
+                                        resourcePlaceholderResolver, timePlaceholderResolver, thingPlaceholderResolver)
+                                        .test(thing);
+                            })
                             .map(thing -> outboundSignalWithExtra))
                     .map(Collections::singletonList)
                     .orElse(List.of());
@@ -938,7 +946,7 @@ public final class OutboundMappingProcessorActor
                     sender, Pair.apply(e, t), extra);
         }
 
-        private OutboundSignalWithSender setExtra(final JsonObject extra) {
+        public OutboundSignalWithSender setExtra(final JsonObject extra) {
             return new OutboundSignalWithSender(
                     OutboundSignalFactory.newOutboundSignal(delegate.getSource(), getTargets()),
                     sender, enrichmentFailure, extra
