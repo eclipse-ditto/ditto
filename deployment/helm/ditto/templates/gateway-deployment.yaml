@@ -69,6 +69,13 @@ spec:
             - name: ditto-log-files-directory
               mountPath: /var/log/ditto
         {{- end }}
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.gateway.topologySpreadConstraints.maxSkew }}
+          topologyKey: {{ .Values.gateway.topologySpreadConstraints.topologyKey }}
+          whenUnsatisfiable: {{ .Values.gateway.topologySpreadConstraints.whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ include "ditto.name" . }}-gateway
       containers:
         - name: {{ .Chart.Name }}-gateway
           image: {{ printf "%s:%s" .Values.gateway.image.repository ( default .Chart.AppVersion ( default .Values.dittoTag .Values.gateway.image.tag ) ) }}

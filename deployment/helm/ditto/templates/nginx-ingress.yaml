@@ -539,18 +539,18 @@ metadata:
   name: nginx-ingress-controller
   namespace: "{{ .Values.ingress.controller.namespace }}"
 spec:
-  replicas: 1
+  replicas: {{ .Values.ingress.controller.replicaCount }}
   selector:
     matchLabels:
       app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
       app.kubernetes.io/part-of: "{{ .Values.ingress.controller.namespace }}"
   strategy:
-    type: RollingUpdate
+    type: {{ .Values.ingress.controller.updateStrategy.type }}
     rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 1
-  minReadySeconds: 10
-  revisionHistoryLimit: 5
+      maxSurge: {{ .Values.ingress.controller.updateStrategy.rollingUpdate.maxSurge }}
+      maxUnavailable: {{ .Values.ingress.controller.updateStrategy.rollingUpdate.maxUnavailable }}
+  minReadySeconds: {{ .Values.ingress.controller.minReadySeconds }}
+  revisionHistoryLimit: {{ .Values.ingress.controller.revisionHistoryLimit }}
   template:
     metadata:
       labels:
@@ -575,6 +575,13 @@ spec:
         supplementalGroups: [101]
         seccompProfile:
           type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.ingress.controller.topologySpreadConstraints.maxSkew }}
+          topologyKey: {{ .Values.ingress.controller.topologySpreadConstraints.topologyKey }}
+          whenUnsatisfiable: {{ .Values.ingress.controller.topologySpreadConstraints.whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: "{{ .Values.ingress.controller.namespace }}"
       containers:
       - name: nginx-node-health-check
         image: docker.io/library/nginx:{{ .Values.ingress.controller.nginxVersion }}
@@ -685,8 +692,8 @@ spec:
           successThreshold: 1
         resources:
           requests:
-            cpu: "0.75"
-            memory: "1024Mi"
+            cpu: {{ mulf .Values.ingress.controller.resources.cpu 1000 }}m
+            memory: {{ .Values.ingress.controller.resources.memoryMi }}Mi
         volumeMounts:
           - mountPath: /usr/local/certificates/
             name: webhook-cert

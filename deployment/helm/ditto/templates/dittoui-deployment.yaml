@@ -44,6 +44,13 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.dittoui.topologySpreadConstraints.maxSkew }}
+          topologyKey: {{ .Values.dittoui.topologySpreadConstraints.topologyKey }}
+          whenUnsatisfiable: {{ .Values.dittoui.topologySpreadConstraints.whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ include "ditto.name" . }}-dittoui
       containers:
         - name: {{ .Chart.Name }}-dittoui
           image: {{ printf "%s:%s" .Values.dittoui.image.repository ( default .Chart.AppVersion ( default .Values.dittoTag .Values.dittoui.image.tag ) ) }}
