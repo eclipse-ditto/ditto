@@ -156,6 +156,20 @@ spec:
             - name: PROMETHEUS_PORT
               value: "{{ .Values.global.prometheus.port }}"
             {{- end }}
+            - name: REMOTE_MAX_FRAMESIZE
+              value: "{{ .Values.global.limits.akkaClusterMaxFramesize }}"
+            - name: LIMITS_THINGS_MAX_SIZE
+              value: "{{ .Values.global.limits.thingsMaxSize }}"
+            - name: LIMITS_POLICIES_MAX_SIZE
+              value: "{{ .Values.global.limits.policiesMaxSize }}"
+            - name: LIMITS_POLICIES_MAX_IMPORTS
+              value: "{{ .Values.global.limits.policiesMaxImports }}"
+            - name: LIMITS_MESSAGES_MAX_SIZE
+              value: "{{ .Values.global.limits.messagesMaxSize }}"
+            - name: LIMITS_MESSAGES_HEADERS_SIZE
+              value: "{{ .Values.global.limits.maxHeadersSize }}"
+            - name: LIMITS_MESSAGES_AUTH_SUBJECTS_COUNT
+              value: "{{ .Values.global.limits.maxAuthSubjectsCount }}"
             - name: AKKA_PERSISTENCE_MONGO_JOURNAL_WRITE_CONCERN
               value: "{{ .Values.connectivity.config.mongodb.journalWriteConcern }}"
             - name: AKKA_PERSISTENCE_MONGO_SNAPS_WRITE_CONCERN
