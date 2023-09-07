@@ -273,6 +273,7 @@ spec:
             runAsGroup: 1000
             allowPrivilegeEscalation: false
           {{- end }}
+      priorityClassName: "{{ .Values.gateway.priorityClassName }}"
       {{- with .Values.gateway.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

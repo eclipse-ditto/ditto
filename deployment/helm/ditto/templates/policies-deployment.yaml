@@ -290,6 +290,7 @@ spec:
             runAsGroup: 1000
             allowPrivilegeEscalation: false
           {{- end }}
+      priorityClassName: "{{ .Values.policies.priorityClassName }}"
       {{- with .Values.policies.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
