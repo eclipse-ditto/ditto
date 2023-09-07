@@ -179,12 +179,38 @@ ingress:
   controller:
     # enabled whether Ingress controller should be enabled
     enabled: false
+    # replicaCount configuration for the ingress controller
+    replicaCount: 1
+    updateStrategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 1
+    # minReadySeconds configures the minimum number of seconds for which a newly created Pod should be ready without any
+    #  of its containers crashing, for it to be considered available
+    #  ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#min-ready-seconds
+    minReadySeconds: 10
+    # specify how many old ReplicaSets for ingress controller deployment will be retained
+    # ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy
+    revisionHistoryLimit: 5
+    # resources configures the resources available/to use for the policies service
+    resources:
+      # cpu defines the "required" CPU of a node so that the service is placed there
+      cpu: 0.75
+      # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
+      memoryMi: 1024
     # namespace for ingress controller, managed by helm, should not be created manually
     namespace: ingress-nginx
     # Ingress-NGINX version. Check Supported Versions table from https://github.com/kubernetes/ingress-nginx to match k8s version.
     nginxIngressVersion: "v1.8.0"
     # Nginx Version. Check Supported Versions table from https://github.com/kubernetes/ingress-nginx to match k8s version.
     nginxVersion: "1.21.6"
+    # Pod topology spread constraints for nginx-ingress controller
+    # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
+    topologySpreadConstraints:
+      maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
   annotations:
     nginx.ingress.kubernetes.io/service-upstream: "true"
     nginx.ingress.kubernetes.io/server-snippet: |
@@ -469,6 +495,12 @@ policies:
   # affinity configuration for policies
   #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
   affinity: {}
+  # Pod topology spread constraints for policies
+  # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
+  topologySpreadConstraints:
+    maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
   # podMonitor configuration for policies
   podMonitor:
     # enabled configures whether Pod Monitor is enabled, then a resource to scrape policies metrics will be created
@@ -663,6 +695,12 @@ things:
   # affinity configuration for things
   #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
   affinity: {}
+  # Pod topology spread constraints for things
+  # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
+  topologySpreadConstraints:
+    maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
   # podMonitor configuration for things
   podMonitor:
     # enabled configures whether Pod Monitor is enabled, then a resource to scrape things metrics will be created
@@ -879,6 +917,12 @@ thingsSearch:
   # affinity configuration for things-search
   #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
   affinity: {}
+  # Pod topology spread constraints for things-search
+  # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
+  topologySpreadConstraints:
+    maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
   # podMonitor configuration for things-search
   podMonitor:
     # enabled configures whether Pod Monitor is enabled, then a resource to scrape things search metrics will be created
@@ -1055,6 +1099,12 @@ connectivity:
   # affinity configuration for connectivity
   #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
   affinity: {}
+  # Pod topology spread constraints for connectivity
+  # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
+  topologySpreadConstraints:
+    maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
   # podMonitor configuration for connectivity
   podMonitor:
     # enabled configures whether Pod Monitor is enabled, then a resource to scrape connectivity metrics will be created
@@ -1314,6 +1364,12 @@ gateway:
   # affinity configuration for gateway
   #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
   affinity: {}
+  # Pod topology spread constraints for gateway
+  # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
+  topologySpreadConstraints:
+    maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
   # podMonitor configuration for gateway
   podMonitor:
     # enabled configures whether Pod Monitor is enabled, then a resource to scrape gateway metrics will be created
@@ -1471,6 +1527,12 @@ nginx:
   # affinity configuration for nginx
   #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
   affinity: {}
+  # Pod topology spread constraints for nginx
+  # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
+  topologySpreadConstraints:
+    maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
   # init containers for nginx
   initContainers:
     waitForGateway:
@@ -1517,6 +1579,12 @@ dittoui:
     cpu: 0.1
     # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
     memoryMi: 64
+  # Pod topology spread constraints for Ditto UI
+  # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
+  topologySpreadConstraints:
+    maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
   # podDisruptionBudget ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
   podDisruptionBudget:
     # enabled controls whether Ditto UI related PodDisruptionBudget should be created
@@ -1563,6 +1631,12 @@ swaggerui:
     cpu: 0.1
     # memoryMi defines the memory in mebibyte (MiB) used as "required" and "limit" in k8s
     memoryMi: 64
+  # Pod topology spread constraints for the swagger ui
+  # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
+  topologySpreadConstraints:
+    maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
   # podDisruptionBudget ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
   podDisruptionBudget:
     # enabled controls whether swagger ui related PodDisruptionBudget should be created
