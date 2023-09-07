@@ -6666,6 +6666,265 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+    post:
+      summary: Search for things
+      description: |-
+        This resource can be used to search for things.
+
+        * The parameter `filter` is not mandatory. If it is not set, the
+          result contains all things which the logged in user is allowed to read.
+
+        * The search is case sensitive. In case you don't know how exactly the
+          spelling of value of the namespace, name, attribute, feature etc. is, use the *like*
+          notation instead of *eq* for filtering.
+
+        * The resource supports sorting and paging. If paging is not explicitly
+          specified by means of the `size` option, a default count of `25`
+          documents is returned.
+
+        * The internal search index is "eventually consistent".  Consistency with the latest
+          thing updates should recover within milliseconds.
+      tags:
+        - Things-Search
+      responses:
+        '200':
+          description: An array of the matching things.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResultThings'
+        '400':
+          description: |-
+            The request could not be completed. A provided parameter is in a
+            wrong format.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '403':
+          description: The request could not be completed due to an invalid authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '504':
+          description: The request ran out of time to execute on the the back-end. Optimize your query and try again.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                filter:
+                  description: |-
+
+                    #### Filter predicates:
+
+                    * ```eq({property},{value})```  (i.e. equal to the given value)
+
+                    * ```ne({property},{value})```  (i.e. not equal to the given value)
+
+                    * ```gt({property},{value})```  (i.e. greater than the given value)
+
+                    * ```ge({property},{value})```  (i.e. equal to the given value or greater than it)
+
+                    * ```lt({property},{value})```  (i.e. lower than the given value or equal to it)
+
+                    * ```le({property},{value})```  (i.e. lower than the given value)
+
+                    * ```in({property},{value},{value},...)```  (i.e. contains at least one of the values listed)
+
+                    * ```like({property},{value})```  (i.e. contains values similar to the expressions listed)
+
+                    * ```ilike({property},{value})```  (i.e. contains values similar and case insensitive to the expressions listed)
+
+                    * ```exists({property})```  (i.e. all things in which the given path exists)
+
+
+                    Note: When using filter operations, only things with the specified properties are returned.
+                    For example, the filter `ne(attributes/owner, "SID123")` will only return things that do have
+                    the `owner` attribute.
+
+
+                    #### Logical operations:
+
+
+                    * ```and({query},{query},...)```
+
+                    * ```or({query},{query},...)```
+
+                    * ```not({query})```
+
+
+                    #### Examples:
+
+                    * ```eq(attributes/location,"kitchen")```
+
+                    * ```ge(thingId,"myThing1")```
+
+                    * ```gt(_created,"2020-08-05T12:17")```
+
+                    * ```exists(features/featureId)```
+
+                    * ```and(eq(attributes/location,"kitchen"),eq(attributes/color,"red"))```
+
+                    * ```or(eq(attributes/location,"kitchen"),eq(attributes/location,"living-room"))```
+
+                    * ```like(attributes/key1,"known-chars-at-start*")```
+
+                    * ```like(attributes/key1,"*known-chars-at-end")```
+
+                    * ```like(attributes/key1,"*known-chars-in-between*")```
+
+                    * ```like(attributes/key1,"just-som?-char?-unkn?wn")```
+
+                    The `like` filters with the wildcard `*` at the beginning can slow down your search request.
+                  type: string
+                namespaces:
+                  description: |-
+                    A comma-separated list of namespaces. This list is used to limit the query to things in the given namespaces
+                    only.
+
+
+                    #### Examples:
+
+                    * `?namespaces=com.example.namespace`
+
+                    * `?namespaces=com.example.namespace1,com.example.namespace2`
+                  type: string
+                fields:
+                  description: |-
+                    Contains a comma-separated list of fields to be included in the returned
+                    JSON. attributes can be selected in the same manner.
+
+                    #### Selectable fields
+
+                    * `thingId`
+                    * `policyId`
+                    * `definition`
+                    * `attributes`
+
+                       Supports selecting arbitrary sub-fields by using a comma-separated list:
+                        * several attribute paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
+
+                          For example:
+                            * `?fields=attributes/model` would select only `model` attribute value (if present)
+                            * `?fields=attributes/model,attributes/location` would select only `model` and
+                               `location` attribute values (if present)
+
+                      Supports selecting arbitrary sub-fields of objects by wrapping sub-fields inside parentheses `( )`:
+                        * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901)
+                          separated with `/`) to select
+
+                        * sub-selectors can be used to request only specific sub-fields by placing expressions
+                          in parentheses `( )` after a selected subfield
+
+                          For example:
+                           * `?fields=attributes(model,location)` would select only `model`
+                              and `location` attribute values (if present)
+                           * `?fields=attributes(coffeemaker/serialno)` would select the `serialno` value
+                              inside the `coffeemaker` object
+                           * `?fields=attributes/address/postal(city,street)` would select the `city` and
+                              `street` values inside the `postal` object inside the `address` object
+
+                    * `features`
+
+                      Supports selecting arbitrary fields in features similar to `attributes` (see also features documentation for more details)
+
+                    * `_namespace`
+
+                      Specifically selects the namespace also contained in the `thingId`
+
+                    * `_revision`
+
+                      Specifically selects the revision of the thing. The revision is a counter, which is incremented on each modification of a thing.
+
+                    * `_created`
+
+                      Specifically selects the created timestamp of the thing in ISO-8601 UTC format. The timestamp is set on creation of a thing.
+
+                    * `_modified`
+
+                      Specifically selects the modified timestamp of the thing in ISO-8601 UTC format. The timestamp is set on each modification of a thing.
+
+                    * `_metadata`
+
+                      Specifically selects the Metadata of the thing. The content is a JSON object having the Thing's JSON structure with the difference that the JSON leaves of the Thing are JSON objects containing the metadata.
+
+                    * `_policy`
+
+                      Specifically selects the content of the policy associated to the thing. (By default, only the policyId is returned.)
+
+                    #### Examples
+
+                    * `?fields=thingId,attributes,features`
+                    * `?fields=attributes(model,manufacturer),features`
+                  type: string
+                option:
+                  description: |-
+                    Possible values for the parameter:
+
+                    #### Sort operations
+
+                    * ```sort([+|-]{property})```
+                    * ```sort([+|-]{property},[+|-]{property},...)```
+
+                    #### Paging operations
+
+                    * ```size({page-size})```  Maximum allowed page size is `200`. Default page size is `25`.
+                    * ```cursor({cursor-id})```  Start the search from the cursor location. Specify the cursor ID without
+                    quotation marks. Cursor IDs are given in search responses and mark the position after the last entry of
+                    the previous search. The meaning of cursor IDs is unspecified and may change without notice.
+
+                    The paging option `limit({offset},{count})` is deprecated.
+                    It may result in slow queries or timeouts and will be removed eventually.
+
+                    #### Examples:
+
+                    * ```sort(+thingId)```
+                    * ```sort(-attributes/manufacturer)```
+                    * ```sort(+thingId,-attributes/manufacturer)```
+                    * ```size(10)``` return 10 results
+                    * ```cursor(LOREMIPSUM)```  return results after the position of the cursor `LOREMIPSUM`.
+
+                    #### Combine:
+
+                    If you need to specify multiple options, when using the swagger UI just write each option in a new line.
+                    When using the plain REST API programmatically,
+                    you will need to separate the options using a comma (,) character.
+
+                    ```size(200),cursor(LOREMIPSUM)```
+
+                    The deprecated paging option `limit` may not be combined with the other paging options `size` and `cursor`.
+                  type: string
+            encoding:
+              filter:
+                style: form
+                explode: false
+              namespaces:
+                style: form
+                explode: false
+              fields:
+                style: form
+                explode: false
+              option:
+                style: form
+                explode: false
+            example:
+              filter: 'and(like(definition,"*test*"))'
+              namespaces: 'org.eclipse.ditto,foo.bar'
+              fields: 'attributes/model,attributes/location'
+              option: 'limit(0,5)'
   /api/2/search/things/count:
     get:
       summary: Count things
@@ -6721,6 +6980,76 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+    post:
+      summary: Count things
+      description: |-
+        This resource can be used to count things.
+
+        The parameter `filter` is not mandatory. If it is not set there is
+        returned the total amount of things which the logged in user is allowed
+        to read.
+
+        To search for nested properties, we use JSON Pointer notation
+        (RFC-6901). See the following example how to search for the sub property
+        `location` of the parent property `attributes` with a forward slash as
+        separator:
+
+        ```eq(attributes/location,"kitchen")```
+      tags:
+        - Things-Search
+      responses:
+        '200':
+          description: A number indicating the amount of matched things
+          content:
+            application/json:
+              schema:
+                type: integer
+        '400':
+          description: |-
+            The request could not be completed. A provided parameter is in a
+            wrong format.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '401':
+          description: The request could not be completed due to missing authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '403':
+          description: The request could not be completed due to an invalid authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+        '504':
+          description: The request ran out of time to execute on the the back-end. Optimize your query and try again.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvancedError'
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                filter:
+                  $ref: '#/paths/~1api~12~1search~1things/post/requestBody/content/application~1x-www-form-urlencoded/schema/properties/filter'
+                namespaces:
+                  $ref: '#/paths/~1api~12~1search~1things/post/requestBody/content/application~1x-www-form-urlencoded/schema/properties/namespaces'
+            encoding:
+              filter:
+                style: form
+                explode: false
+              namespaces:
+                style: form
+                explode: false
+            example:
+              filter: 'and(like(definition,"*test*"))'
+              namespaces: 'org.eclipse.ditto,foo.bar'
   /api/2/cloudevents:
     post:
       summary: Processes a CloudEvent sent in Ditto Protocol
