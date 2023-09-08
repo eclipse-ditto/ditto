@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.withSettings;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -92,8 +93,8 @@ public final class SendingTest {
                 .build();
 
         Mockito.when(externalMessage.getInternalHeaders()).thenReturn(dittoHeaders);
-        Mockito.when(logger.withCorrelationId(Mockito.nullable(CharSequence.class))).thenReturn(logger);
         Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class))).thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(Map.class))).thenReturn(logger);
 
         exceptionConverter = DefaultExceptionToAcknowledgementConverter.getInstance();
     }
@@ -313,7 +314,7 @@ public final class SendingTest {
 
         Mockito.verifyNoInteractions(acknowledgedMonitor);
         Mockito.verify(publishedMonitor).exception(eq(externalMessage), eq(rootCause));
-        Mockito.verify(logger).withCorrelationId(testName.getMethodName());
+        Mockito.verify(logger).withCorrelationId(Map.of("correlation-id", testName.getMethodName()));
         assertThat(result).hasValueSatisfying(resultFuture -> assertThat(resultFuture).isCompletedWithValue(null));
     }
 

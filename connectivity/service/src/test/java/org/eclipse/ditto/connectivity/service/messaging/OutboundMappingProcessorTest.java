@@ -112,6 +112,7 @@ public final class OutboundMappingProcessorTest {
         when(logger.withCorrelationId(Mockito.nullable(String.class))).thenReturn(logger);
         when(logger.withCorrelationId(Mockito.nullable(WithDittoHeaders.class))).thenReturn(logger);
         when(logger.withCorrelationId(Mockito.nullable(DittoHeaders.class))).thenReturn(logger);
+        when(logger.withCorrelationId(Mockito.nullable(Map.class))).thenReturn(logger);
         when(logger.withCorrelationId(Mockito.nullable(CharSequence.class))).thenReturn(logger);
 
         protocolAdapterProvider = new DittoProtocolAdapterProvider(Mockito.mock(ProtocolConfig.class));

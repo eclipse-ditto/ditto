@@ -143,7 +143,7 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
     }
 
     @Test
-    public void traceRequestWithExistingW3cTracingHeadersReplacesThoseHeadersWithCurrentSpanContextHeaders() {
+    public void traceRequestWithExistingW3cTracingHeadersKeepThisHeaders() {
         final var expectedStatus = StatusCodes.NO_CONTENT;
         final var effectiveHttpRequestHeader = new CompletableFuture<Map<String, String>>();
         final var routeFactory = new AllDirectives() {
@@ -162,7 +162,7 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
                 );
             }
         };
-        final var tracestateHeaderValue = ";";
+        final var tracestateHeaderValue = "cogo=uhu";
         final var traceparentHeaderValue = "00-00000000000000002d773e5f58ee5636-28cae4bd320cbc11-0";
         final var fooHeaderValue = "bar";
         final var testRoute = testRoute(
@@ -182,8 +182,8 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
                 .satisfies(httpRequestHeaders -> assertThat(httpRequestHeaders)
                         .containsEntry("foo", fooHeaderValue)
                         .containsKeys(W3C_TRACEPARENT.getKey(), W3C_TRACESTATE.getKey())
-                        .doesNotContainValue(tracestateHeaderValue)
-                        .doesNotContainValue(traceparentHeaderValue));
+                        .containsValue(tracestateHeaderValue)
+                        .containsValue(traceparentHeaderValue));
     }
 
 }

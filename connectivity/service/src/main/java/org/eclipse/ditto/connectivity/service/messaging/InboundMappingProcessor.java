@@ -130,7 +130,7 @@ public final class InboundMappingProcessor
     @Override
     List<MappingOutcome<MappedInboundExternalMessage>> process(final ExternalMessage message) {
         final var mappers = getMappers(message.getPayloadMapping().orElse(null));
-        logger.withCorrelationId(message.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey()))
+        logger.withCorrelationId(message.getHeaders())
                 .debug("Mappers resolved for message: {}", mappers);
         final var mappingTimer = MappingTimer.inbound(connectionId, connectionType, message.getHeaders());
         return mappingTimer.overall(() -> mappers.stream()

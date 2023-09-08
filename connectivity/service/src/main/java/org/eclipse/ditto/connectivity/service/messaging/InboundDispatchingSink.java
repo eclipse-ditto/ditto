@@ -329,11 +329,8 @@ public final class InboundDispatchingSink
 
     @Override
     public Optional<Signal<?>> onDropped(final String mapperId, @Nullable final ExternalMessage incomingMessage) {
-        logger.withCorrelationId(Optional.ofNullable(incomingMessage)
-                .map(ExternalMessage::getHeaders)
-                .map(h -> h.get(DittoHeaderDefinition.CORRELATION_ID.getKey()))
-                .orElse(null)
-        ).debug("Message mapping returned null, message is dropped.");
+        logger.withCorrelationId(incomingMessage != null ? incomingMessage.getHeaders() : null)
+                .debug("Message mapping returned null, message is dropped.");
         if (incomingMessage != null) {
             final String source = getAddress(incomingMessage);
             final ConnectionMonitor.InfoProvider infoProvider = InfoProviderFactory.forExternalMessage(incomingMessage);

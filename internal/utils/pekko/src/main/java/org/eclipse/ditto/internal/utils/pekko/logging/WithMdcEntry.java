@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.internal.utils.pekko.logging;
 
+import java.util.Collection;
+
 import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
@@ -83,6 +85,14 @@ public interface WithMdcEntry<L extends Logger> {
      * @throws NullPointerException if any argument is {@code null}.
      */
     L withMdcEntry(MdcEntry mdcEntry, MdcEntry... furtherMdcEntries);
+
+    /**
+     * Puts the given entries to the MDC of this logger.
+     *
+     * @return this or a new logger instance for method chaining.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    L withMdcEntries(Collection<MdcEntry> mdcEntries);
 
     /**
      * Removes the diagnostic context value identified by the specified key.

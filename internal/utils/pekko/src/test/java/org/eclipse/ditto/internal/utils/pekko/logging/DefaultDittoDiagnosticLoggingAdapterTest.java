@@ -171,20 +171,6 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
     }
 
     @Test
-    public void putNothingToMdcAndDoNotLogAsInfoIsDisabled() {
-        final String msg = "Foo!";
-        Mockito.when(plainLoggingAdapter.isInfoEnabled()).thenReturn(false);
-
-        final DefaultDittoDiagnosticLoggingAdapter underTest =
-                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
-        underTest.setCorrelationId(getCorrelationId());
-        underTest.info(msg);
-
-        Mockito.verify(plainLoggingAdapter, Mockito.times(0)).info(msg);
-        Mockito.verify(plainLoggingAdapter, Mockito.times(0)).setMDC(Mockito.anyMap());
-    }
-
-    @Test
     public void logDebugAndWarnWithTwoMdcValuesThenDiscardMdcEntries() {
         final String correlationId = getCorrelationId();
         final String connectionId = "my-connection";
@@ -244,62 +230,6 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         Mockito.verify(plainLoggingAdapter)
                 .setMDC(Map.of(CORRELATION_ID_KEY, correlationId, CONNECTION_ID_KEY, connectionId));
         Mockito.verify(plainLoggingAdapter).setMDC(Map.of(CONNECTION_ID_KEY, connectionId));
-    }
-
-    @Test
-    public void setCorrelationIdLogErrorDoNotDiscard() {
-        final String correlationId = getCorrelationId();
-        final String msg = "Foo!";
-        Mockito.when(plainLoggingAdapter.isErrorEnabled()).thenReturn(true);
-
-        final DefaultDittoDiagnosticLoggingAdapter underTest =
-                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
-        underTest.setCorrelationId(correlationId);
-        underTest.error(msg);
-
-        Mockito.verify(plainLoggingAdapter).isErrorEnabled();
-        Mockito.verify(plainLoggingAdapter).getMDC();
-        Mockito.verify(plainLoggingAdapter).setMDC(Map.of(CORRELATION_ID_KEY, correlationId));
-        Mockito.verify(plainLoggingAdapter).notifyError(msg);
-        Mockito.verifyNoMoreInteractions(plainLoggingAdapter);
-    }
-
-    @Test
-    public void setCorrelationIdLogErrorDoNotClose() {
-        final String correlationId = getCorrelationId();
-        final String msg = "Foo!";
-        Mockito.when(plainLoggingAdapter.isErrorEnabled()).thenReturn(true);
-
-        final DefaultDittoDiagnosticLoggingAdapter underTest =
-                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
-        underTest.setCorrelationId(correlationId);
-        underTest.error(msg);
-
-        Mockito.verify(plainLoggingAdapter).isErrorEnabled();
-        Mockito.verify(plainLoggingAdapter).getMDC();
-        Mockito.verify(plainLoggingAdapter).setMDC(Map.of(CORRELATION_ID_KEY, correlationId));
-        Mockito.verify(plainLoggingAdapter).notifyError(msg);
-        Mockito.verifyNoMoreInteractions(plainLoggingAdapter);
-    }
-
-    @Test
-    public void setCorrelationIdLogInfoThenDiscardCorrelationId() {
-        final String correlationId = getCorrelationId();
-        final String msg1 = "Foo!";
-        final String msg2 = "No correlation ID in MDC.";
-        Mockito.when(plainLoggingAdapter.isInfoEnabled()).thenReturn(true);
-
-        final DefaultDittoDiagnosticLoggingAdapter underTest =
-                DefaultDittoDiagnosticLoggingAdapter.of(plainLoggingAdapter, LOGGER_NAME);
-        underTest.setCorrelationId(correlationId);
-        underTest.info(msg1);
-        underTest.discardCorrelationId();
-        underTest.info(msg2);
-
-        Mockito.verify(plainLoggingAdapter).setMDC(Map.of(CORRELATION_ID_KEY, correlationId));
-        Mockito.verify(plainLoggingAdapter).notifyInfo(msg1);
-        Mockito.verify(plainLoggingAdapter).setMDC(Map.of());
-        Mockito.verify(plainLoggingAdapter).notifyInfo(msg2);
     }
 
     @Test

@@ -5,14 +5,14 @@
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%date{ISO8601} %-5level [%X{x-correlation-id}] %logger{20} %X{pekkoSource} - %msg%n</pattern>
+            <pattern>%date{ISO8601} %-5level [%X{correlation-id}] %logger{20} %X{pekkoSource} - %msg%n</pattern>
         </encoder>
     </appender>
 
     <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
         <target>System.err</target>
         <encoder>
-            <pattern>%date{ISO8601} %-5level [%X{x-correlation-id}] %logger{20} %X{pekkoSource} - %msg%n</pattern>
+            <pattern>%date{ISO8601} %-5level [%X{correlation-id}] %logger{20} %X{pekkoSource} - %msg%n</pattern>
         </encoder>
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
             <level>ERROR</level>

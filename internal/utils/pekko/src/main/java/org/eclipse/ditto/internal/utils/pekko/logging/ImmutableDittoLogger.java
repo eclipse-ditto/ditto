@@ -15,6 +15,7 @@ package org.eclipse.ditto.internal.utils.pekko.logging;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -364,13 +365,18 @@ final class ImmutableDittoLogger implements ThreadSafeDittoLogger {
     }
 
     @Override
+    public ImmutableDittoLogger withCorrelationId(@Nullable final Map<String, String> headers) {
+        return withMdcEntries(CommonMdcEntryKey.extractMdcEntriesFromHeaders(headers));
+    }
+
+    @Override
     public ImmutableDittoLogger withCorrelationId(@Nullable final WithDittoHeaders withDittoHeaders) {
         return withCorrelationId(null != withDittoHeaders ? withDittoHeaders.getDittoHeaders() : null);
     }
 
     @Override
     public ImmutableDittoLogger withCorrelationId(@Nullable final DittoHeaders dittoHeaders) {
-        return withCorrelationId(null != dittoHeaders ? dittoHeaders.getCorrelationId().orElse(null) : null);
+        return withCorrelationId(null != dittoHeaders ? dittoHeaders : Map.of());
     }
 
     @Override
@@ -463,6 +469,16 @@ final class ImmutableDittoLogger implements ThreadSafeDittoLogger {
         for (final MdcEntry furtherMdcEntry : furtherMdcEntries) {
             newLocalMdc.put(furtherMdcEntry.getKey(), furtherMdcEntry.getValueOrNull());
         }
+
+        return new ImmutableDittoLogger(plainSlf4jLogger, newLocalMdc);
+    }
+
+    @Override
+    public ImmutableDittoLogger withMdcEntries(final Collection<MdcEntry> mdcEntries) {
+        checkNotNull(mdcEntries, "mdcEntries");
+
+        final Map<String, String> newLocalMdc = copyLocalMdc();
+        mdcEntries.forEach(mdcEntry -> newLocalMdc.put(mdcEntry.getKey(), mdcEntry.getValueOrNull()));
 
         return new ImmutableDittoLogger(plainSlf4jLogger, newLocalMdc);
     }

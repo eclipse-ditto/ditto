@@ -17,7 +17,6 @@
             <excludeMdcKeyName>sourceActorSystem</excludeMdcKeyName>
             <excludeMdcKeyName>pekkoUid</excludeMdcKeyName>
             <excludeMdcKeyName>pekkoTimestamp</excludeMdcKeyName>
-            <mdcKeyFieldName>x-correlation-id=correlation-id</mdcKeyFieldName>
         </encoder>
     </appender>
 

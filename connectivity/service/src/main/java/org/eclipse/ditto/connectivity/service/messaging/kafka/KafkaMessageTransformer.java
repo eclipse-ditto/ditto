@@ -117,7 +117,7 @@ final class KafkaMessageTransformer {
         try {
             final String key = consumerRecord.key();
             final ByteBuffer value = consumerRecord.value();
-            final ThreadSafeDittoLogger correlationIdScopedLogger = LOGGER.withCorrelationId(correlationId);
+            final ThreadSafeDittoLogger correlationIdScopedLogger = LOGGER.withCorrelationId(messageHeaders);
             correlationIdScopedLogger.debug(
                     "Transforming incoming kafka message <{}> with headers <{}> and key <{}>.",
                     value, messageHeaders, key
@@ -148,7 +148,7 @@ final class KafkaMessageTransformer {
             return TransformationResult.failed(e.setDittoHeaders(DittoHeaders.of(messageHeaders)));
         } catch (final Exception e) {
             inboundMonitor.exception(messageHeaders, e);
-            LOGGER.withCorrelationId(correlationId)
+            LOGGER.withCorrelationId(messageHeaders)
                     .error(String.format("Unexpected {%s}: {%s}", e.getClass().getName(), e.getMessage()), e);
             startedSpan.tagAsFailed(e);
             return null; // Drop message

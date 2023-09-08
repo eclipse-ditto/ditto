@@ -14,6 +14,7 @@ package org.eclipse.ditto.internal.utils.pekko.logging
 
 import org.eclipse.ditto.base.model.headers.{DittoHeaders, WithDittoHeaders}
 
+import java.util
 import javax.annotation.Nullable
 import javax.annotation.concurrent.NotThreadSafe
 import scala.annotation.varargs
@@ -62,6 +63,13 @@ abstract class DittoDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAd
    */
   def withCorrelationId(@Nullable correlationId: CharSequence): DittoDiagnosticLoggingAdapter
 
+  /** Obtains the correlation ID from the given headers for the subsequent log operation.
+    *
+    * @param headers might contain the correlation ID to be put to the MDC.
+    * @return this DittoLogger instance to allow method chaining.
+    */
+  def withCorrelationId(@Nullable headers: util.Map[String, String]): DittoDiagnosticLoggingAdapter
+
   /** Derives the correlation ID from the given WithDittoHeaders for the subsequent log operation.
    *
    * @param withDittoHeaders provides DittoHeaders which might contain the correlation ID to be put to the MDC.
@@ -75,31 +83,6 @@ abstract class DittoDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAd
    * @return this DittoLogger instance to allow method chaining.
    */
   def withCorrelationId(@Nullable dittoHeaders: DittoHeaders): DittoDiagnosticLoggingAdapter
-
-  /** Sets the given correlation ID for all subsequent log operations until it gets manually discarded.
-   *
-   * @param correlationId the correlation ID to be put to the MDC.
-   * @return this logger instance to allow method chaining.
-   */
-  def setCorrelationId(@Nullable correlationId: CharSequence): DittoDiagnosticLoggingAdapter
-
-  /** Derives the correlation ID from the given WithDittoHeaders for all subsequent log operations until it gets
-   * manually discarded.
-   *
-   * @param withDittoHeaders provides DittoHeaders which might contain the correlation ID to be put to the MDC.
-   * @return this logger instance to allow method chaining.
-   * @throws NullPointerException if `withDittoHeaders` is `null`.
-   */
-  def setCorrelationId(withDittoHeaders: WithDittoHeaders): DittoDiagnosticLoggingAdapter
-
-  /** Obtains the correlation ID from the given DittoHeaders for all subsequent log operations until it gets manually
-   * discarded.
-   *
-   * @param dittoHeaders might contain the correlation ID to be put to the MDC.
-   * @return this logger instance to allow method chaining.
-   * @throws NullPointerException if `dittoHeaders` is `null`.
-   */
-  def setCorrelationId(dittoHeaders: DittoHeaders): DittoDiagnosticLoggingAdapter
 
   /** Removes the correlation ID from the MDC for all subsequent log operations. */
   def discardCorrelationId(): Unit
@@ -163,14 +146,6 @@ abstract class DittoDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAd
    * @param key the key which identifies the value to be discarded.
    */
   def discardMdcEntry(key: CharSequence): Unit
-
-  /** Sets the specified diagnostic context values as identified by the specified keys to this logger's MDC for all
-   * subsequent log operations until it gets manually discarded.
-   *
-   * @return this logger instance to allow method chaining.
-   * @throws NullPointerException if any argument is `null`.
-   */
-  @annotation.varargs def setMdcEntry(mdcEntry: MdcEntry, furtherMdcEntries: MdcEntry*): DittoDiagnosticLoggingAdapter
 
   /** Message template with > 4 replacement arguments. */
   @varargs def error(throwable: Throwable, template: String, arg1: Any, arg2: Any, arg3: Any, arg4: Any, moreArgs: Any*): Unit = {

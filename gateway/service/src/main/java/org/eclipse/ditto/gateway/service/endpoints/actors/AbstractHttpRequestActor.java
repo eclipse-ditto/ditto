@@ -267,7 +267,6 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
 
     private void handleCommand(final Command<?> command) {
         try {
-            logger.setCorrelationId(command);
             receivedCommand = command;
             setDefaultTimeoutExceptionSupplier(command);
             final var timeoutOverride = getReceiveTimeout(command, commandConfig);
@@ -528,8 +527,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
         final var actorContext = getContext();
         final var receiveTimeout = actorContext.getReceiveTimeout();
 
-        logger.setCorrelationId(WithDittoHeaders.getCorrelationId(receivedCommand).orElse(null));
-        logger.info("Got <{}> after <{}> before an appropriate response arrived.",
+        logger.withCorrelationId(receivedCommand)
+                .info("Got <{}> after <{}> before an appropriate response arrived.",
                 ReceiveTimeout.class.getSimpleName(), receiveTimeout);
 
         if (null != timeoutExceptionSupplier) {
@@ -539,8 +538,9 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
         } else {
             actorContext.cancelReceiveTimeout();
             // This case is a programming error that should not happen at all.
-            logger.error("Actor does not have a timeout exception supplier." +
-                    " Thus, no DittoRuntimeException could be handled.");
+            logger.withCorrelationId(receivedCommand)
+                    .error("Actor does not have a timeout exception supplier. " +
+                            "Thus, no DittoRuntimeException could be handled.");
             stop();
         }
     }

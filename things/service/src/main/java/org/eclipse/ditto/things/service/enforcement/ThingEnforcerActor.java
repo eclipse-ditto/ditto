@@ -231,7 +231,7 @@ public final class ThingEnforcerActor
                         return invalidatable.invalidate(PolicyTag.of(policy.getEntityId().get(),
                                         policy.getRevision().get().toLong()), correlationId, askWithRetryConfig.getAskTimeout())
                                 .thenApply(bool -> {
-                                    log.withCorrelationId(correlationId)
+                                    log.withCorrelationId(createThing)
                                             .debug("PolicyEnforcerCache invalidated. Previous entity was present: {}",
                                                     bool);
                                     return policy;

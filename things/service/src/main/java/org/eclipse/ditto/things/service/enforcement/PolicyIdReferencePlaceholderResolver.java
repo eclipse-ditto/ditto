@@ -23,7 +23,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.utils.pekko.logging.AutoCloseableSlf4jLogger;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
@@ -86,15 +85,14 @@ final class PolicyIdReferencePlaceholderResolver implements ReferencePlaceholder
         final var resolveEntityReferenceStrategy =
                 supportedEntityTypesToActionMap.get(referencePlaceholder.getReferencedEntityType());
 
-        try (final AutoCloseableSlf4jLogger logger = LOGGER.setCorrelationId(dittoHeaders)) {
-            if (null == resolveEntityReferenceStrategy) {
-                final String referencedEntityType = referencePlaceholder.getReferencedEntityType().name();
-                logger.info("Could not find a placeholder replacement strategy for entity type <{}> in supported" +
-                        " entity types: {}", referencedEntityType, supportedEntityTypeNames);
-                throw notSupportedException(referencedEntityType, dittoHeaders);
-            }
-            logger.debug("Will resolve entity reference for placeholder: <{}>", referencePlaceholder);
+        final DittoLogger logger = LOGGER.withCorrelationId(dittoHeaders);
+        if (null == resolveEntityReferenceStrategy) {
+            final String referencedEntityType = referencePlaceholder.getReferencedEntityType().name();
+            logger.info("Could not find a placeholder replacement strategy for entity type <{}> in supported" +
+                    " entity types: {}", referencedEntityType, supportedEntityTypeNames);
+            throw notSupportedException(referencedEntityType, dittoHeaders);
         }
+        logger.debug("Will resolve entity reference for placeholder: <{}>", referencePlaceholder);
         return resolveEntityReferenceStrategy.handleEntityPolicyIdReference(referencePlaceholder, dittoHeaders);
     }
 

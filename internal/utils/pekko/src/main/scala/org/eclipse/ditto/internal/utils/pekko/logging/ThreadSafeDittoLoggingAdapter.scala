@@ -15,6 +15,7 @@ package org.eclipse.ditto.internal.utils.pekko.logging
 import org.apache.pekko.event.LoggingAdapter
 import org.eclipse.ditto.base.model.headers.{DittoHeaders, WithDittoHeaders}
 
+import java.util
 import javax.annotation.Nullable
 import javax.annotation.concurrent.ThreadSafe
 
@@ -76,6 +77,14 @@ abstract class ThreadSafeDittoLoggingAdapter extends LoggingAdapter
    * @return a ThreadSafeDittoLoggingAdapter which appends the specified correlation ID to all of its log operations.
    */
   def withCorrelationId(@Nullable correlationId: CharSequence): ThreadSafeDittoLoggingAdapter
+
+  /** Obtains the correlation ID from the given headers for the log operations on the returned logger.
+    *
+    * @param headers might contain the correlation ID to be put to the MDC.
+    * @return a ThreadSafeDittoLoggingAdapter which appends the derived correlation ID to all of its log operations.
+    * @see #withCorrelationId(DittoHeaders)
+    */
+  def withCorrelationId(@Nullable headers: util.Map[String, String]): ThreadSafeDittoLoggingAdapter
 
   /** Derives the correlation ID from the given WithDittoHeaders for the log operations on the returned logger.
    * If no or an empty correlation ID can be derived, this method has the same effect like

@@ -15,7 +15,9 @@ package org.eclipse.ditto.gateway.service.endpoints.routes;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -122,7 +124,16 @@ final class RootRouteHeadersStepBuilder {
 
         private Map<String, String> getFilteredExternalHeaders(final HttpMessage httpRequest) {
             final Iterable<HttpHeader> headers = httpRequest.getHeaders();
+            final Set<String> headerNames = new HashSet<>();
             final Map<String, String> externalHeaders = StreamSupport.stream(headers.spliterator(), false)
+                    .map(httpHeader -> {
+                        if (!headerNames.add(httpHeader.name())) {
+                            throw GatewayDuplicateHeaderException.newBuilder(httpHeader.name())
+                                    .dittoHeaders(dittoHeadersBuilder.build())
+                                    .build();
+                        }
+                        return httpHeader;
+                    })
                     .collect(Collectors.toMap(HttpHeader::lowercaseName, HttpHeader::value, (dv1, dv2) -> {
                         throw GatewayDuplicateHeaderException.newBuilder()
                                 .dittoHeaders(dittoHeadersBuilder.build())
@@ -184,7 +195,7 @@ final class RootRouteHeadersStepBuilder {
 
         private GatewayDuplicateHeaderException getDuplicateHeaderException(final String headerKey) {
             final String msgPattern = "<{0}> was provided as header as well as query parameter with divergent values!";
-            return GatewayDuplicateHeaderException.newBuilder()
+            return GatewayDuplicateHeaderException.newBuilder(headerKey)
                     .message(MessageFormat.format(msgPattern, headerKey))
                     .dittoHeaders(dittoHeadersBuilder.build())
                     .build();

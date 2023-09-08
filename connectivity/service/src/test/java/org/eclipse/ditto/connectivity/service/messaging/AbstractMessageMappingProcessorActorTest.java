@@ -349,6 +349,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
         final var logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
         Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
                 .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(Map.class))).thenReturn(logger);
         Mockito.when(logger.withCorrelationId(Mockito.nullable(CharSequence.class)))
                 .thenReturn(logger);
         Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))

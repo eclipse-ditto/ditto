@@ -14,9 +14,12 @@ package org.eclipse.ditto.gateway.service.endpoints.directives;
 
 import static org.apache.pekko.http.javadsl.server.Directives.extractRequestContext;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -53,7 +56,8 @@ public final class CorrelationIdEnsuringDirective {
     public static Route ensureCorrelationId(final Function<String, Route> inner) {
         return extractRequestContext(requestContext -> {
             final String correlationId = getCorrelationIdFromHeaders(requestContext.getRequest())
-                    .orElseGet(CorrelationIdEnsuringDirective::createNewCorrelationId);
+                    .orElseGet(() ->
+                            CorrelationIdEnsuringDirective.createNewCorrelationId(requestContext.getRequest()));
             return inner.apply(correlationId);
         });
     }
@@ -64,19 +68,25 @@ public final class CorrelationIdEnsuringDirective {
                 .map(HttpHeader::value);
 
         if (LOGGER.isDebugEnabled()) {
-            result.ifPresent(correlationId -> LOGGER.withCorrelationId(correlationId)
+            result.ifPresent(correlationId -> LOGGER.withCorrelationId(headersAsMap(request))
                     .debug("Correlation ID <{}> already exists in request.", correlationId));
         }
 
         return result;
     }
 
-    private static String createNewCorrelationId() {
+    private static String createNewCorrelationId(final HttpRequest request) {
         final String result = String.valueOf(UUID.randomUUID());
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.withCorrelationId(result).debug("Created new correlation ID <{}>.", result);
+            LOGGER.withCorrelationId(headersAsMap(request))
+                    .debug("Created new correlation ID <{}>.", result);
         }
         return result;
+    }
+
+    private static Map<String, String> headersAsMap(final HttpRequest request) {
+        return StreamSupport.stream(request.getHeaders().spliterator(), false)
+                .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value));
     }
 
 }

@@ -14,10 +14,13 @@ package org.eclipse.ditto.gateway.service.security.authentication.preauth;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -120,7 +123,11 @@ public final class PreAuthenticatedAuthenticationProvider
                 AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.PRE_AUTHENTICATED_HTTP,
                         authorizationSubjects);
 
-        LOGGER.withCorrelationId(dittoHeaders)
+        final var combinedHeaders = new HashMap<>(dittoHeaders);
+        combinedHeaders.putAll(StreamSupport.stream(requestContext.getRequest().getHeaders().spliterator(), false)
+                .collect(Collectors.toMap(
+                        akka.http.javadsl.model.HttpHeader::name, akka.http.javadsl.model.HttpHeader::value)));
+        LOGGER.withCorrelationId(combinedHeaders)
                 .info("Pre-authentication has been applied resulting in AuthorizationContext <{}>.", authContext);
 
         return CompletableFuture.completedFuture(DefaultAuthenticationResult.successful(dittoHeaders, authContext));

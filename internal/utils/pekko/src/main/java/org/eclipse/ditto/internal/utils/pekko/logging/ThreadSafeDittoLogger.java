@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.internal.utils.pekko.logging;
 
+import java.util.Map;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -75,6 +77,16 @@ public interface ThreadSafeDittoLogger extends Logger, WithMdcEntry<ThreadSafeDi
      * @return a ThreadSafeDittoLogger which appends the specified correlation ID to all of its log operations.
      */
     ThreadSafeDittoLogger withCorrelationId(@Nullable CharSequence correlationId);
+
+    /**
+     * Obtains the correlation ID from the given Headers for log operations on the returned logger.
+     * If the given headers do not contain a correlation ID or if the correlation ID is empty, this method has the same
+     * effect as {@link #discardCorrelationId()}.
+     *
+     * @param headers might contain the correlation ID to be put to the MDC before each log operation.
+     * @return a ThreadSafeDittoLogger which appends the obtained correlation ID to all of its log operations.
+     */
+    ThreadSafeDittoLogger withCorrelationId(@Nullable Map<String, String> headers);
 
     /**
      * Derives the correlation ID from the given WithDittoHeaders for the log operations on the returned logger.

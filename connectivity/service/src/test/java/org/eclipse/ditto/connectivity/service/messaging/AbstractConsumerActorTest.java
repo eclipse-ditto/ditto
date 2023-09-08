@@ -254,6 +254,7 @@ public abstract class AbstractConsumerActorTest<M> {
                 .thenReturn(logger);
         when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
                 .thenReturn(logger);
+        when(logger.withCorrelationId(Mockito.any(Map.class))).thenReturn(logger);
         final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         final var connection = CONNECTION.toBuilder().payloadMappingDefinition(payloadMappingDefinition).build();
         final InboundMappingProcessor inboundMappingProcessor =

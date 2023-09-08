@@ -20,12 +20,18 @@ import static org.eclipse.ditto.gateway.service.endpoints.directives.RequestLogg
 import static org.eclipse.ditto.gateway.service.endpoints.directives.RequestLoggingFilter.filterRawUri;
 import static org.eclipse.ditto.gateway.service.endpoints.directives.RequestLoggingFilter.filterUri;
 
+import java.util.Map;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.gateway.service.endpoints.utils.HttpUtils;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
 import org.apache.pekko.http.javadsl.server.Complete;
 import org.apache.pekko.http.javadsl.server.Route;
 
@@ -62,7 +68,9 @@ public final class RequestResultLoggingDirective {
             final String requestMethod = request.method().name();
             final String filteredRelativeRequestUri = filterUri(request.getUri().toRelative()).toString();
             return mapRouteResult(routeResult -> {
-                final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(correlationId);
+                final Map<String, String> headers = headersAsMap(request);
+                headers.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), correlationId.toString());
+                final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(headers);
                 if (routeResult instanceof Complete complete) {
                     final int statusCode = complete.getResponse().status().intValue();
                     logger.info("StatusCode of request {} '{}' was: {}", requestMethod, filteredRelativeRequestUri,
@@ -73,7 +81,7 @@ public final class RequestResultLoggingDirective {
                     }
                     request.getHeader(DITTO_TRACE_HEADERS)
                             .filter(unused -> TRACE_LOGGER.isDebugEnabled())
-                            .ifPresent(unused -> TRACE_LOGGER.withCorrelationId(correlationId)
+                            .ifPresent(unused -> TRACE_LOGGER.withCorrelationId(headers)
                                     .debug("Request headers: {}", filterHeaders(request.getHeaders())));
                 } else {
                          /* routeResult could be Rejected, if no route is able to handle the request -> but this should
@@ -88,4 +96,8 @@ public final class RequestResultLoggingDirective {
         });
     }
 
+    private static Map<String, String> headersAsMap(final HttpRequest request) {
+        return StreamSupport.stream(request.getHeaders().spliterator(), false)
+                .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value));
+    }
 }

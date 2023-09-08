@@ -132,7 +132,7 @@ public final class DefaultAutoCloseableSlf4jLoggerTest {
                         entry(CORRELATION_ID_KEY, correlationId), entry(CONNECTION_ID_KEY, connectionId));
         softly.assertThat(mdcObserver.getAllRemovedKeys())
                 .as("Removed MDC entries")
-                .containsExactly(CORRELATION_ID_KEY, CONNECTION_ID_KEY);
+                .contains(CORRELATION_ID_KEY, CONNECTION_ID_KEY);
     }
 
     @Test

@@ -104,7 +104,7 @@ public final class AcknowledgementAggregatorActor<C extends Command<C>> extends 
         final var acknowledgementRequests = signalDittoHeaders.getAcknowledgementRequests();
         ackregator = AcknowledgementAggregator.getInstance(entityId, correlationId, timeout, headerTranslator);
         ackregator.addAcknowledgementRequests(acknowledgementRequests);
-        log.withCorrelationId(correlationId)
+        log.withCorrelationId(signalDittoHeaders)
                 .info("Starting to wait for all requested acknowledgements <{}> for a maximum duration of <{}>.",
                         acknowledgementRequests, timeout);
 

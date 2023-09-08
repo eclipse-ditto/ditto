@@ -15,6 +15,7 @@ package org.eclipse.ditto.internal.utils.pekko.logging;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -76,13 +77,18 @@ final class ImmutableDittoLoggingAdapter extends ThreadSafeDittoLoggingAdapter {
     }
 
     @Override
+    public ImmutableDittoLoggingAdapter withCorrelationId(@Nullable final Map<String, String> headers) {
+        return withMdcEntries(CommonMdcEntryKey.extractMdcEntriesFromHeaders(headers));
+    }
+
+    @Override
     public ImmutableDittoLoggingAdapter withCorrelationId(@Nullable final WithDittoHeaders withDittoHeaders) {
-        return withCorrelationId(null != withDittoHeaders ? withDittoHeaders.getDittoHeaders() : null);
+        return withCorrelationId(withDittoHeaders != null ? withDittoHeaders.getDittoHeaders() : null);
     }
 
     @Override
     public ImmutableDittoLoggingAdapter withCorrelationId(@Nullable final DittoHeaders dittoHeaders) {
-        return withCorrelationId(null != dittoHeaders ? dittoHeaders.getCorrelationId().orElse(null) : null);
+        return withCorrelationId(null != dittoHeaders ? dittoHeaders : Map.of());
     }
 
     @Override
@@ -185,6 +191,16 @@ final class ImmutableDittoLoggingAdapter extends ThreadSafeDittoLoggingAdapter {
                 furtherMdcEntry -> mdcCopy.put(furtherMdcEntry.getKey(), furtherMdcEntry.getValueOrNull()));
 
         return newInstance(diagnosticLoggingAdapterFactory, mdcCopy);
+    }
+
+    @Override
+    public ImmutableDittoLoggingAdapter withMdcEntries(final Collection<MdcEntry> mdcEntries) {
+        checkNotNull(mdcEntries, "mdcEntries");
+
+        final Map<String, Object> newLocalMdc = getCopyOfMdc();
+        mdcEntries.forEach(mdcEntry -> newLocalMdc.put(mdcEntry.getKey(), mdcEntry.getValueOrNull()));
+
+        return newInstance(diagnosticLoggingAdapterFactory, newLocalMdc);
     }
 
     @Override

@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.pekko.logging
 
+import java.util
 import javax.annotation.Nullable
 
 /** This trait defines the means to put and remove entries to or from the MDC of a logger.
@@ -77,6 +78,14 @@ trait MdcEntrySettable[L] {
     * @throws NullPointerException if any argument is `null`.
     */
   @annotation.varargs def withMdcEntry(mdcEntry: MdcEntry, furtherMdcEntries: MdcEntry*): L
+
+  /** Puts the given entries to the MDC of this logger.
+    *
+    * @param mdcEntries the MDC entries to set.
+    * @return this or a new logger instance for method chaining.
+    * @throws NullPointerException if any argument is `null`.
+    */
+  def withMdcEntries(mdcEntries: util.Collection[MdcEntry]): L
 
   /** Removes the diagnostic context value identified by the specified key.
     * This method does nothing if there is no previous value associated with the specified key.

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.internal.utils.pekko.logging;
 
+import java.util.Map;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -95,6 +97,14 @@ public interface DittoLogger extends Logger, WithMdcEntry<DittoLogger> {
     DittoLogger withCorrelationId(@Nullable CharSequence correlationId);
 
     /**
+     * Obtains the correlation ID from the given Headers for the subsequent log operation.
+     *
+     * @param headers might contain the correlation ID to be put to the MDC.
+     * @return this DittoLogger instance to allow method chaining.
+     */
+    DittoLogger withCorrelationId(@Nullable Map<String, String> headers);
+
+    /**
      * Derives the correlation ID from the given WithDittoHeaders for the subsequent log operation.
      *
      * @param withDittoHeaders provides DittoHeaders which might contain the correlation ID to be put to the MDC.
@@ -109,34 +119,6 @@ public interface DittoLogger extends Logger, WithMdcEntry<DittoLogger> {
      * @return this DittoLogger instance to allow method chaining.
      */
     DittoLogger withCorrelationId(@Nullable DittoHeaders dittoHeaders);
-
-    /**
-     * Sets the given correlation ID for all subsequent log operations until it gets manually discarded.
-     *
-     * @param correlationId the correlation ID to be put to the MDC.
-     * @return this DittoLogger instance to allow method chaining.
-     */
-    AutoCloseableSlf4jLogger setCorrelationId(@Nullable CharSequence correlationId);
-
-    /**
-     * Derives the correlation ID from the given WithDittoHeaders for all subsequent log operations until it gets
-     * manually discarded.
-     *
-     * @param withDittoHeaders provides DittoHeaders which might contain the correlation ID to be put to the MDC.
-     * @return this DittoLogger instance to allow method chaining.
-     * @throws NullPointerException if {@code withDittoHeaders} is {@code null}.
-     */
-    AutoCloseableSlf4jLogger setCorrelationId(WithDittoHeaders withDittoHeaders);
-
-    /**
-     * Obtains the correlation ID from the given DittoHeaders for all subsequent log operations until it gets manually
-     * discarded.
-     *
-     * @param dittoHeaders might contain the correlation ID to be put to the MDC.
-     * @return this DittoLogger instance to allow method chaining.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     */
-    AutoCloseableSlf4jLogger setCorrelationId(DittoHeaders dittoHeaders);
 
     /**
      * Removes the currently set correlation ID from the MDC.
