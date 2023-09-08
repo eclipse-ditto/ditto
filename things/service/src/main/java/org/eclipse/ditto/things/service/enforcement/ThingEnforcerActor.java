@@ -51,7 +51,6 @@ import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConflictException;
-import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyUnavailableException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
@@ -383,19 +382,17 @@ public final class ThingEnforcerActor
                     .ifPresent(policy -> getContext().getParent().tell(new ThingPolicyCreated(createThing.getEntityId(),
                             createPolicyResponse.getEntityId(), createPolicy.getDittoHeaders()), getSelf()));
             return createPolicyResponse.getPolicyCreated().orElseThrow();
+        } else if (isAskTimeoutException(policyResponse, null)) {
+            throw PolicyUnavailableException.newBuilder(createPolicy.getEntityId())
+                    .dittoHeaders(createThing.getDittoHeaders())
+                    .build();
+        } else if (policyResponse instanceof DittoRuntimeException policyException) {
+            throw reportInitialPolicyCreationFailure(createPolicy.getEntityId(), createThing, policyException);
         } else {
-            if (shouldReportInitialPolicyCreationFailure(policyResponse)) {
-                throw reportInitialPolicyCreationFailure(createPolicy.getEntityId(), createThing);
-            } else if (isAskTimeoutException(policyResponse, null)) {
-                throw PolicyUnavailableException.newBuilder(createPolicy.getEntityId())
-                        .dittoHeaders(createThing.getDittoHeaders())
-                        .build();
-            } else {
-                final var hint = String.format("creating initial policy during creation of Thing <%s>",
-                        createThing.getEntityId());
-                throw AbstractEnforcementReloaded.reportErrorOrResponse(hint, policyResponse, null,
-                        createThing.getDittoHeaders());
-            }
+            final var hint = String.format("creating initial policy during creation of Thing <%s>",
+                    createThing.getEntityId());
+            throw AbstractEnforcementReloaded.reportErrorOrResponse(hint, policyResponse, null,
+                    createThing.getDittoHeaders());
         }
     }
 
@@ -410,22 +407,30 @@ public final class ThingEnforcerActor
         return error instanceof AskTimeoutException || response instanceof AskTimeoutException;
     }
 
-    private static boolean shouldReportInitialPolicyCreationFailure(final Object policyResponse) {
-        return policyResponse instanceof PolicyConflictException ||
-                policyResponse instanceof PolicyNotAccessibleException ||
-                policyResponse instanceof NamespaceBlockedException;
-    }
-
     private ThingNotCreatableException reportInitialPolicyCreationFailure(final PolicyId policyId,
-            final CreateThing command) {
+            final CreateThing command, final DittoRuntimeException policyException) {
 
         log.withCorrelationId(command)
-                .info("Failed to create Policy with ID <{}> because it already exists." +
+                .info("Failed to create Policy with ID <{}> due to: <{}: {}>." +
                         " The CreateThing command which would have created a Policy for the Thing with ID <{}>" +
-                        " is therefore not handled.", policyId, command.getEntityId());
-        return ThingNotCreatableException.newBuilderForPolicyExisting(command.getEntityId(), policyId)
-                .dittoHeaders(command.getDittoHeaders())
-                .build();
+                        " is therefore not handled.", policyId,
+                        policyException.getClass().getSimpleName(), policyException.getMessage(),
+                        command.getEntityId()
+                );
+        if (policyException instanceof PolicyConflictException) {
+            return ThingNotCreatableException.newBuilderForPolicyExisting(command.getEntityId(), policyId)
+                    .dittoHeaders(command.getDittoHeaders())
+                    .build();
+        } else if (policyException instanceof NamespaceBlockedException) {
+            return ThingNotCreatableException.newBuilderForPolicyMissing(command.getEntityId(), policyId)
+                    .dittoHeaders(command.getDittoHeaders())
+                    .build();
+        } else {
+            return ThingNotCreatableException.newBuilderForOtherReason(command.getEntityId(), policyId,
+                            policyException.getMessage())
+                    .dittoHeaders(command.getDittoHeaders())
+                    .build();
+        }
     }
 
     @Override
