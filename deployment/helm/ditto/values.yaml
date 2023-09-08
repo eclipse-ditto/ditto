@@ -502,6 +502,9 @@ policies:
     enabled: true
     # minAvailable number of replicas during voluntary disruptions
     minAvailable: 1
+  # priorityClassName configuration for policies
+  #  ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass
+  priorityClassName: ""
   # nodeSelector configuration for policies
   #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
   nodeSelector: {}
@@ -708,6 +711,9 @@ things:
     enabled: true
     # minAvailable number of replicas during voluntary disruptions
     minAvailable: 1
+  # priorityClassName configuration for policies
+  #  ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass
+  priorityClassName: ""
   # nodeSelector configuration for things
   #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
   nodeSelector: {}
@@ -936,6 +942,9 @@ thingsSearch:
     enabled: true
     # minAvailable number of replicas during voluntary disruptions
     minAvailable: 1
+  # priorityClassName configuration for policies
+  #  ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass
+  priorityClassName: ""
   # nodeSelector configuration for things-search
   #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
   nodeSelector: {}
@@ -1118,6 +1127,9 @@ connectivity:
     enabled: true
     # minAvailable number of replicas during voluntary disruptions
     minAvailable: 1
+  # priorityClassName configuration for policies
+  #  ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass
+  priorityClassName: ""
   # nodeSelector configuration for connectivity
   #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
   nodeSelector: {}
@@ -1383,6 +1395,9 @@ gateway:
     enabled: true
     # minAvailable number of replicas during voluntary disruptions
     minAvailable: 1
+  # priorityClassName configuration for policies
+  #  ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass
+  priorityClassName: ""
   # nodeSelector configuration for gateway
   #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
   nodeSelector: {}
@@ -1546,6 +1561,9 @@ nginx:
     #  nodePort: 30080
     # annotations to add arbitrary annotations to nginx service
     annotations: {}
+  # priorityClassName configuration for policies
+  #  ref: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass
+  priorityClassName: ""
   # nodeSelector configuration for nginx
   #  ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
   nodeSelector: {}

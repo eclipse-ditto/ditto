@@ -317,6 +317,7 @@ spec:
             runAsGroup: 1000
             allowPrivilegeEscalation: false
           {{- end }}
+      priorityClassName: "{{ .Values.connectivity.priorityClassName }}"
       {{- with .Values.connectivity.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
