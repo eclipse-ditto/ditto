@@ -52,6 +52,22 @@ global:
     downingStableAfter: 15s
     # downAllWhenUnstable is a configuration of the Akka SBR (split brain resolver)
     downAllWhenUnstable: "on"
+  # limits contains information about limit configuration, e.g. towards max. entity and payload sizes
+  limits:
+    # akkaClusterMaxFramesize the maximum serialized message size in the cluster, including header data, default: 256 KiB
+    akkaClusterMaxFramesize: 256k
+    # thingsMaxSize the maximum possible size of "Thing" entities, default: 100k
+    thingsMaxSize: 100k
+    # policiesMaxSize the maximum possible size of "Policy" entities, default: 100k
+    policiesMaxSize: 100k
+    # policiesMaxImports the maximum possible number of allowed imports a Policy can have
+    policiesMaxImports: 10
+    # messagesMaxSize the maximum possible size of "Messages" (their payload), default: 250k
+    messagesMaxSize: 250k
+    # maxHeadersSize the maximum possible size of Ditto headers (e.g. all HTTP headers are mapped to Ditto headers), default: 5k
+    maxHeadersSize: 5k
+    # maxAuthSubjectsCount the maximum possible number of authorization subjects in Ditto headers, default: 100
+    maxAuthSubjectsCount: 100
   # basicAuthUsers configures (as a map) several user/password combinations which the nginx of the Ditto chart will authenticate
   basicAuthUsers: {}
   # ditto:
@@ -565,6 +581,12 @@ policies:
       timerThreshold: 100ms
       # creditsPerBatch configures how many "cleanup credits" should be generated per "interval" as long as the
       creditsPerBatch: 5
+      # deleteFinalDeletedSnapshot configures whether for a deleted entity, the final snapshot (containing the
+      #  "deleted" information) should be deleted or not.
+      #  If the final snapshot is not deleted, re-creating the entity will cause that the recreated entity starts with
+      #  a revision number 1 higher than the previously deleted entity. If the final snapshot is deleted as well,
+      #  recreation of an entity with the same ID will lead to revisionNumber=1 after its recreation.
+      deleteFinalDeletedSnapshot: true
     # persistence holds configuration regarding (akka) persistence of policies (event journal and snapshots)
     persistence:
       # activityCheckInterval configures to keep policies for that amount of time in memory when no other use did happen:
@@ -765,6 +787,12 @@ things:
       timerThreshold: 100ms
       # creditsPerBatch configures how many "cleanup credits" should be generated per "interval" as long as the
       creditsPerBatch: 5
+      # deleteFinalDeletedSnapshot configures whether for a deleted entity, the final snapshot (containing the
+      #  "deleted" information) should be deleted or not.
+      #  If the final snapshot is not deleted, re-creating the entity will cause that the recreated entity starts with
+      #  a revision number 1 higher than the previously deleted entity. If the final snapshot is deleted as well,
+      #  recreation of an entity with the same ID will lead to revisionNumber=1 after its recreation.
+      deleteFinalDeletedSnapshot: true
     # persistence holds configuration regarding (akka) persistence of things (event journal and snapshots)
     persistence:
       # activityCheckInterval configures to keep things for that amount of time in memory when no other use did happen
