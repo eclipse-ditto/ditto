@@ -35,7 +35,7 @@ final class AcknowledgementLabels {
      * Ack labels starting with unresolved placeholders are also valid, e.g.: {@code {{connection:id}}:my-ack}.
      */
     public static final String ACK_LABEL_REGEX =
-            "(?<" + PLACEHOLDER_GROUP + ">\\{\\{\\w*[a-z]+:[a-z]+\\w*}}:)?[a-zA-Z0-9-_:]{3,165}";
+            "(?<" + PLACEHOLDER_GROUP + ">\\{\\{\\s*[a-z]+:[a-z]+\\s*}}:)?[a-zA-Z0-9-_:]{3,165}";
 
     private static final Pattern ACK_LABEL_PATTERN = Pattern.compile(ACK_LABEL_REGEX);
 
