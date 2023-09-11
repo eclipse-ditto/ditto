@@ -22,7 +22,7 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -55,7 +55,7 @@ jobs:
           echo $IMAGE_TAG
       -
         name: Build and push ditto-policies
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: .
           file: dockerfile-release
@@ -70,7 +70,7 @@ jobs:
             eclipse/ditto-policies:${{ env.IMAGE_TAG }}
       -
         name: Build and push ditto-things
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: .
           file: dockerfile-release
@@ -85,7 +85,7 @@ jobs:
             eclipse/ditto-things:${{ env.IMAGE_TAG }}
       -
         name: Build and push ditto-gateway
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: .
           file: dockerfile-release
@@ -100,7 +100,7 @@ jobs:
             eclipse/ditto-gateway:${{ env.IMAGE_TAG }}
       -
         name: Build and push ditto-thingsearch
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: .
           file: dockerfile-release
@@ -115,7 +115,7 @@ jobs:
             eclipse/ditto-things-search:${{ env.IMAGE_TAG }}
       -
         name: Build and push ditto-connectivity
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: .
           file: dockerfile-release
@@ -144,7 +144,7 @@ jobs:
         working-directory: ./ui
       -
         name: Build and push ditto-ui image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: ./ui
           file: ui/Dockerfile
