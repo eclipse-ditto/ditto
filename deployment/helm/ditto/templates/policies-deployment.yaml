@@ -68,6 +68,13 @@ spec:
             - name: ditto-log-files-directory
               mountPath: /var/log/ditto
         {{- end }}
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.policies.topologySpreadConstraints.maxSkew }}
+          topologyKey: {{ .Values.policies.topologySpreadConstraints.topologyKey }}
+          whenUnsatisfiable: {{ .Values.policies.topologySpreadConstraints.whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ include "ditto.name" . }}-policies
       containers:
         - name: {{ .Chart.Name }}-policies
           image: {{ printf "%s:%s" .Values.policies.image.repository ( default .Chart.AppVersion ( default .Values.dittoTag .Values.policies.image.tag ) ) }}
@@ -82,7 +89,7 @@ spec:
             - name: DITTO_TRACING_ENABLED
               value: "{{ .Values.global.tracing.enabled }}"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: "{{ .Values.global.tracing.otelExporterOtlpEndpoint }}"
+              value: "{{ tpl .Values.global.tracing.otelExporterOtlpEndpoint . }}"
             - name: DITTO_TRACING_SAMPLER
               value: "{{ .Values.global.tracing.sampler }}"
             - name: DITTO_TRACING_RANDOM_SAMPLER_PROBABILITY
@@ -174,6 +181,20 @@ spec:
               value: "{{ .Values.global.cluster.downingStableAfter }}"
             - name: CLUSTER_DOWNING_DOWN_ALL_WHEN_UNSTABLE
               value: "{{ .Values.global.cluster.downAllWhenUnstable }}"
+            - name: REMOTE_MAX_FRAMESIZE
+              value: "{{ .Values.global.limits.akkaClusterMaxFramesize }}"
+            - name: LIMITS_THINGS_MAX_SIZE
+              value: "{{ .Values.global.limits.thingsMaxSize }}"
+            - name: LIMITS_POLICIES_MAX_SIZE
+              value: "{{ .Values.global.limits.policiesMaxSize }}"
+            - name: LIMITS_POLICIES_MAX_IMPORTS
+              value: "{{ .Values.global.limits.policiesMaxImports }}"
+            - name: LIMITS_MESSAGES_MAX_SIZE
+              value: "{{ .Values.global.limits.messagesMaxSize }}"
+            - name: LIMITS_MESSAGES_HEADERS_SIZE
+              value: "{{ .Values.global.limits.maxHeadersSize }}"
+            - name: LIMITS_MESSAGES_AUTH_SUBJECTS_COUNT
+              value: "{{ .Values.global.limits.maxAuthSubjectsCount }}"
             - name: AKKA_PERSISTENCE_MONGO_JOURNAL_WRITE_CONCERN
               value: "{{ .Values.policies.config.mongodb.journalWriteConcern }}"
             - name: AKKA_PERSISTENCE_MONGO_SNAPS_WRITE_CONCERN
@@ -208,6 +229,8 @@ spec:
               value: "{{ .Values.policies.config.cleanup.timerThreshold }}"
             - name: CLEANUP_CREDITS_PER_BATCH
               value: "{{ .Values.policies.config.cleanup.creditsPerBatch }}"
+            - name: CLEANUP_DELETE_FINAL_DELETED_SNAPSHOT
+              value: "{{ .Values.policies.config.cleanup.deleteFinalDeletedSnapshot }}"
             - name: POLICIES_PERSISTENCE_PING_RATE_FREQUENCY
               value: "{{ .Values.policies.config.persistence.pingRate.frequency }}"
             - name: POLICIES_PERSISTENCE_PING_RATE_ENTITIES
@@ -283,6 +306,7 @@ spec:
             runAsGroup: 1000
             allowPrivilegeEscalation: false
           {{- end }}
+      priorityClassName: "{{ .Values.policies.priorityClassName }}"
       {{- with .Values.policies.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

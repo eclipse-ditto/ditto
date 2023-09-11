@@ -61,6 +61,13 @@ spec:
                 sleep 1;
               done
       {{- end }}
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.nginx.topologySpreadConstraints.maxSkew }}
+          topologyKey: {{ .Values.nginx.topologySpreadConstraints.topologyKey }}
+          whenUnsatisfiable: {{ .Values.nginx.topologySpreadConstraints.whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ include "ditto.name" . }}-nginx
       containers:
         - name: {{ .Chart.Name }}-nginx
           image: "{{ .Values.nginx.image.repository }}:{{ .Values.nginx.image.tag }}"
@@ -134,6 +141,7 @@ spec:
           emptyDir: {}
         - name: nginx-run
           emptyDir: {}
+      priorityClassName: "{{ .Values.nginx.priorityClassName }}"
       {{- with .Values.nginx.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
