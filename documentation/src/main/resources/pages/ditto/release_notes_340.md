@@ -17,9 +17,12 @@ investigated."
 
 ## Changelog
 
-Compared to the latest release [3.3.6](release_notes_336.html), no features were added. 
-This release focuses only on swapping the Akka framework (because of its switch of license to [BSL License](https://www.lightbend.com/akka/license-faq) after Akka v2.6.x)
-with its fork [Apache Pekko](https://pekko.apache.org/docs/pekko/current/index.html) which is Apache 2.0 licensed.
+Eclipse Ditto 3.4.0 focuses on the following areas:
+
+* Swapping the Akka framework (because of its switch of license to [BSL License](https://www.lightbend.com/akka/license-faq) after Akka v2.6.x)
+  with its fork [Apache Pekko](https://pekko.apache.org/docs/pekko/current/index.html) which is Apache 2.0 licensed. [#1477](https://github.com/eclipse-ditto/ditto/issues/1477)
+* Improve logging by adding the W3C traceparent header as MDC field to logs [#1739](https://github.com/eclipse-ditto/ditto/issues/1739)
+* Optimize docker files [#1744](https://github.com/eclipse-ditto/ditto/issues/1744)
 
 ### Migrating to Ditto 3.4.x
 
@@ -44,7 +47,7 @@ Connectivity:
 * -Dpekko-contrib-mongodb-persistence-connection-remember-journal.overrides.metadata-index=akka_persistence_metadata_pid
 ```
 
-And also a full cluster recreate is required, rolling update is not supported as there are changes in the management
+Full cluster recreate is required, rolling update is not supported as there are changes in the management
 urls and ports.
 
 Other than that the transition should be smooth.
