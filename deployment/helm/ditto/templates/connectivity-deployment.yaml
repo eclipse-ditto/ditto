@@ -68,6 +68,13 @@ spec:
             - name: ditto-log-files-directory
               mountPath: /var/log/ditto
         {{- end }}
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.connectivity.topologySpreadConstraints.maxSkew }}
+          topologyKey: {{ .Values.connectivity.topologySpreadConstraints.topologyKey }}
+          whenUnsatisfiable: {{ .Values.connectivity.topologySpreadConstraints.whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ include "ditto.name" . }}-connectivity
       containers:
         - name: {{ .Chart.Name }}-connectivity
           image: {{ printf "%s:%s" .Values.connectivity.image.repository ( default .Chart.AppVersion ( default .Values.dittoTag .Values.connectivity.image.tag ) ) }}
@@ -82,7 +89,7 @@ spec:
             - name: DITTO_TRACING_ENABLED
               value: "{{ .Values.global.tracing.enabled }}"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: "{{ .Values.global.tracing.otelExporterOtlpEndpoint }}"
+              value: "{{ tpl .Values.global.tracing.otelExporterOtlpEndpoint . }}"
             - name: DITTO_TRACING_SAMPLER
               value: "{{ .Values.global.tracing.sampler }}"
             - name: DITTO_TRACING_RANDOM_SAMPLER_PROBABILITY
@@ -156,6 +163,20 @@ spec:
             - name: PROMETHEUS_PORT
               value: "{{ .Values.global.prometheus.port }}"
             {{- end }}
+            - name: REMOTE_MAX_FRAMESIZE
+              value: "{{ .Values.global.limits.akkaClusterMaxFramesize }}"
+            - name: LIMITS_THINGS_MAX_SIZE
+              value: "{{ .Values.global.limits.thingsMaxSize }}"
+            - name: LIMITS_POLICIES_MAX_SIZE
+              value: "{{ .Values.global.limits.policiesMaxSize }}"
+            - name: LIMITS_POLICIES_MAX_IMPORTS
+              value: "{{ .Values.global.limits.policiesMaxImports }}"
+            - name: LIMITS_MESSAGES_MAX_SIZE
+              value: "{{ .Values.global.limits.messagesMaxSize }}"
+            - name: LIMITS_MESSAGES_HEADERS_SIZE
+              value: "{{ .Values.global.limits.maxHeadersSize }}"
+            - name: LIMITS_MESSAGES_AUTH_SUBJECTS_COUNT
+              value: "{{ .Values.global.limits.maxAuthSubjectsCount }}"
             - name: PEKKO_PERSISTENCE_MONGO_JOURNAL_WRITE_CONCERN
               value: "{{ .Values.connectivity.config.mongodb.journalWriteConcern }}"
             - name: PEKKO_PERSISTENCE_MONGO_SNAPS_WRITE_CONCERN
@@ -296,6 +317,7 @@ spec:
             runAsGroup: 1000
             allowPrivilegeEscalation: false
           {{- end }}
+      priorityClassName: "{{ .Values.connectivity.priorityClassName }}"
       {{- with .Values.connectivity.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

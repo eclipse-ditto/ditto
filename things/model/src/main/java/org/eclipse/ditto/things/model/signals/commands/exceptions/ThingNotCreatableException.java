@@ -49,6 +49,9 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
             "The Thing with ID ''{0}'' could not be created because creation of its " +
                     "implicit Policy ID ''{1}'' failed.";
 
+    static final String MESSAGE_TEMPLATE_CUSTOM_REASON = "The Thing with ID ''{0}'' could not be created as the " +
+            "Policy with ID ''{1}'' could not be created due to: ''{2}''";
+
     static final String DEFAULT_DESCRIPTION_NOT_EXISTING =
             "Check if the ID of the Policy you created the Thing with is correct and that the Policy is existing.";
 
@@ -99,6 +102,19 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
      */
     public static Builder newBuilderForPolicyExisting(final ThingId thingId, final PolicyId policyId) {
         return new Builder(thingId, policyId, false);
+    }
+
+    /**
+     * A mutable builder for a {@code ThingNotCreatableException} thrown if a Thing could not be created because
+     * the creation of its implicit Policy failed due to a reason passed as {@code reason}.
+     *
+     * @param thingId the ID of the Thing.
+     * @param policyId the ID of the Policy which was used when creating the Thing.
+     * @param reason the reason why the implicit policy creation failed.
+     * @return the builder.
+     */
+    public static Builder newBuilderForOtherReason(final ThingId thingId, final PolicyId policyId, final String reason) {
+        return new Builder(thingId, policyId, reason);
     }
 
     /**
@@ -219,6 +235,11 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
                         String.valueOf(thingId),
                         policyId));
             }
+        }
+
+        private Builder(final ThingId thingId, final PolicyId policyId, final String reason) {
+            this();
+            message(MessageFormat.format(MESSAGE_TEMPLATE_CUSTOM_REASON, String.valueOf(thingId), policyId, reason));
         }
 
         private Builder httpStatus(final HttpStatus httpStatus) {

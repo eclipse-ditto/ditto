@@ -68,6 +68,13 @@ spec:
             - name: ditto-log-files-directory
               mountPath: /var/log/ditto
         {{- end }}
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.thingsSearch.topologySpreadConstraints.maxSkew }}
+          topologyKey: {{ .Values.thingsSearch.topologySpreadConstraints.topologyKey }}
+          whenUnsatisfiable: {{ .Values.thingsSearch.topologySpreadConstraints.whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ include "ditto.name" . }}-thingssearch
       containers:
         - name: {{ .Chart.Name }}-thingssearch
           image: {{ printf "%s:%s" .Values.thingsSearch.image.repository ( default .Chart.AppVersion ( default .Values.dittoTag .Values.thingsSearch.image.tag ) ) }}
@@ -82,7 +89,7 @@ spec:
             - name: DITTO_TRACING_ENABLED
               value: "{{ .Values.global.tracing.enabled }}"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: "{{ .Values.global.tracing.otelExporterOtlpEndpoint }}"
+              value: "{{ tpl .Values.global.tracing.otelExporterOtlpEndpoint . }}"
             - name: DITTO_TRACING_SAMPLER
               value: "{{ .Values.global.tracing.sampler }}"
             - name: DITTO_TRACING_RANDOM_SAMPLER_PROBABILITY
@@ -153,6 +160,20 @@ spec:
               value: "{{ .Values.global.cluster.downingStableAfter }}"
             - name: CLUSTER_DOWNING_DOWN_ALL_WHEN_UNSTABLE
               value: "{{ .Values.global.cluster.downAllWhenUnstable }}"
+            - name: REMOTE_MAX_FRAMESIZE
+              value: "{{ .Values.global.limits.akkaClusterMaxFramesize }}"
+            - name: LIMITS_THINGS_MAX_SIZE
+              value: "{{ .Values.global.limits.thingsMaxSize }}"
+            - name: LIMITS_POLICIES_MAX_SIZE
+              value: "{{ .Values.global.limits.policiesMaxSize }}"
+            - name: LIMITS_POLICIES_MAX_IMPORTS
+              value: "{{ .Values.global.limits.policiesMaxImports }}"
+            - name: LIMITS_MESSAGES_MAX_SIZE
+              value: "{{ .Values.global.limits.messagesMaxSize }}"
+            - name: LIMITS_MESSAGES_HEADERS_SIZE
+              value: "{{ .Values.global.limits.maxHeadersSize }}"
+            - name: LIMITS_MESSAGES_AUTH_SUBJECTS_COUNT
+              value: "{{ .Values.global.limits.maxAuthSubjectsCount }}"
             - name: MONGO_DB_READ_PREFERENCE
               value: "{{ .Values.thingsSearch.config.mongodb.searchReadPreference }}"
             - name: QUERY_PERSISTENCE_MONGO_DB_READ_CONCERN
@@ -267,6 +288,7 @@ spec:
             runAsGroup: 1000
             allowPrivilegeEscalation: false
           {{- end }}
+      priorityClassName: "{{ .Values.thingsSearch.priorityClassName }}"
       {{- with .Values.thingsSearch.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
