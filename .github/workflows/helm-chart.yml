@@ -12,8 +12,8 @@ name: Lint and test Helm chart
 
 env:
   CONFIG_OPTION_CHART_TESTING: "--config .github/ct.yml"
-  VERSION_CHART_TESTING: "v3.8.0"
-  VERSION_HELM: "v3.11.2"
+  VERSION_CHART_TESTING: "v3.8.0" # 3.9.0 has an issue with comparing against "master" branch
+  VERSION_HELM: "v3.12.1"
   VERSION_PYTHON: "3.9"
 on:
   pull_request:
@@ -28,11 +28,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up Helm
-        uses: azure/setup-helm@v3
+        uses: azure/setup-helm@v3.5
         with:
           version: ${{ env.VERSION_HELM }}
       - uses: actions/setup-python@v4
@@ -63,16 +63,16 @@ jobs:
         # which a folder exists at
         # https://github.com/yannh/kubernetes-json-schema/
         k8s:
-          - v1.25.2
-          - v1.26.4
-          - v1.27.1
+          - v1.26.6
+          - v1.27.3
+          - v1.28.0
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Fetch history for chart testing
         run: git fetch --prune --unshallow
       - name: Set up Helm
-        uses: azure/setup-helm@v3
+        uses: azure/setup-helm@v3.5
         with:
           version: ${{ env.VERSION_HELM }}
       - name: Run kubeval
@@ -92,16 +92,16 @@ jobs:
         # available for the docker.io/kindest/node image
         # https://hub.docker.com/r/kindest/node/tags
         k8s:
-          - v1.25.2
-          - v1.26.4
-          - v1.27.1
+          - v1.26.6
+          - v1.27.3
+          - v1.28.0
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Fetch history for chart testing
         run: git fetch --prune --unshallow
       - name: Set up Helm
-        uses: azure/setup-helm@v3
+        uses: azure/setup-helm@v3.5
         with:
           version: ${{ env.VERSION_HELM }}
       - uses: actions/setup-python@v4
