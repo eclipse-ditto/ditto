@@ -109,8 +109,6 @@ The answer of the coffee machine has the same `topic` and `correlation-id`
 as the original message. As we can see, the response does not only contain a
 `value` but also the `status` of the response
 which is based on the [HTTP status codes](protocol-specification.html#status). 
-Notice, that the `path` of the Message has changed from *inbox* to *outbox*, 
-which means the Message was sent *from* the Thing.
 Ditto automatically added some headers that we can ignore for now.
 
 ### Receiving a message
