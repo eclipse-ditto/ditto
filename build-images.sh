@@ -53,6 +53,9 @@ build_docker_image() {
   image_tag=$(printf "${CONTAINER_REGISTRY}/ditto-%s" "$(echo "$1" | awk -F ":" '{ print $2 }')")
   jvm_args=$(echo "$1" | awk -F ":" '{ print $4 }')
   main_class=$(echo "$1" | awk -F ":" '{ print $3 }')
+  if [ -n "$NO_DOCKER_CACHE" ]; then
+    no_cache_option=--no-cache
+  fi;
   printf "\nBuilding Docker image <%s> for service module <%s> with jvm_args <%s>\n" \
     "$image_tag" \
     "$module_name" \
@@ -67,6 +70,7 @@ build_docker_image() {
       --build-arg JVM_CMD_ARGS="$jvm_args" \
       --build-arg MAIN_CLASS="$main_class" \
       -t "$image_tag":$IMAGE_VERSION \
+      $no_cache_option \
       "$SCRIPTDIR"
 
   if [[ "$PUSH_CONTAINERS" == "true" ]]; then
