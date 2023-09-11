@@ -193,7 +193,7 @@ Encryption is done using a 256-bit AES symmetrical key and the AES/GCM/NoPadding
 #### Symmetric key
 
 To generate it you can use a convenience method already available
-at [EncryptorAesGcm.generateAESKeyAsString()](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/util/EncryptorAesGcm.java#L89)
+at [EncryptorAesGcm.generateAESKeyAsString()](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/util/EncryptorAesGcm.java#L100)
 
 or you can use the java standard library
 
@@ -209,9 +209,9 @@ or with a terminal command.
 $ openssl rand 32 | basenc --base64url
 ```
 
-The key must be **256-bit Base64 urlEncoded using the UTF-8** charset.
+The key must be **256-bit [Base64-encoded with url-safe alphabet](https://www.rfc-editor.org/rfc/rfc4648#section-5) using the UTF-8** charset.
 This is done already by the convenience method mentioned
-above ([EncryptorAesGcm.generateAESKeyAsString()](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/util/EncryptorAesGcm.java#L89)
+above ([EncryptorAesGcm.generateAESKeyAsString()](https://github.com/eclipse-ditto/ditto/blob/master/connectivity/service/src/main/java/org/eclipse/ditto/connectivity/service/util/EncryptorAesGcm.java#L100)
 
 #### Fields config
 The fields to be encrypted are configurable as json pointers and the default ones are:
