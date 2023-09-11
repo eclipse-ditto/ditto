@@ -14,6 +14,7 @@
 <configuration>
     <appender name="jsonConsoleAppender" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <provider class="org.eclipse.ditto.base.service.logging.IntLevelJsonProvider"/>
             <excludeMdcKeyName>sourceActorSystem</excludeMdcKeyName>
             <excludeMdcKeyName>pekkoUid</excludeMdcKeyName>
             <excludeMdcKeyName>pekkoTimestamp</excludeMdcKeyName>
