@@ -16,37 +16,6 @@ This page shows the basics for operating Ditto.
 Ditto has many config parameters which can be set in the config files or via environment variables.
 This section will cover some of Ditto's config parameters.
 
-### Migrating to Ditto 3.4.x
-
-From v3.4.0 Ditto removes all dependencies for [Akka](https://akka.io) since the switch to [BSL License](https://www.lightbend.com/akka/license-faq) after Akka v2.6.x
-and switches over to [Apache Pekko](https://pekko.apache.org/docs/pekko/current/index.html) which is a fork of Akka from the latest Apache 2.0 version.
-
-To migrate a running system with live data there are few configurations that should be overridden with Java system properties in the following services.
-
-Policies:
-```markdown
-* -Dpekko-contrib-mongodb-persistence-policies-journal.overrides.metadata-index=akka_persistence_metadata_pid
-* -Dpekko-contrib-mongodb-persistence-policies-journal-read.overrides.metadata-index=akka_persistence_metadata_pid
-```
-
-Things:
-```markdown
-* -Dpekko-contrib-mongodb-persistence-things-journal.overrides.metadata-index=akka_persistence_metadata_pid
-* -Dpekko-contrib-mongodb-persistence-things-journal-read.overrides.metadata-index=akka_persistence_metadata_pid
-```
-
-Connectivity:
-```markdown
-* -Dpekko-contrib-mongodb-persistence-connection-journal.overrides.metadata-index=akka_persistence_metadata_pid
-* -Dpekko-contrib-mongodb-persistence-connection-journal-read.overrides.metadata-index=akka_persistence_metadata_pid
-* -Dpekko-contrib-mongodb-persistence-connection-remember-journal.overrides.metadata-index=akka_persistence_metadata_pid
-```
-
-And also a full cluster recreate is required, rolling update is not supported as there are changes in the management 
-urls and ports.
-
-Other than that the transition should be smooth.
-
 ### MongoDB configuration
 If you choose not to use the MongoDB container and instead use a dedicated MongoDB you can use
 the following environment variables in order to configure the connection to the MongoDB.
