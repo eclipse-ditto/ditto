@@ -11,8 +11,10 @@ The [search aspect](basic-search.html) of Ditto can be accessed via an HTTP API.
     [Search resources](http-api-doc.html?urls.primaryName=api2#/Search)." %}
 
 The concepts of the [RQL expression](basic-rql.html#rql-filter), [RQL sorting](basic-rql.html#rql-sorting) and 
-[RQL paging](basic-search.html#rql-paging-deprecated) are mapped to HTTP as query parameters which are added to 
-`GET` requests to the search endpoint:
+[RQL paging](basic-search.html#rql-paging-deprecated) are mapped to HTTP as
+
+* query parameters which are added to `GET` requests to the search endpoint;
+* a x-www-form-urlencoded body which is added to `POST` requests to the search endpoint.
 
 ```
 http://localhost:8080/api/2/search/things
@@ -23,8 +25,8 @@ If the `filter` parameter is omitted, the result contains all `Things` the authe
 
 Optionally a `namespaces` parameter can be added to search only in the given namespaces.  
 
-
-## Query parameters
+## GET
+### Query parameters
 
 In order to define for which `Things` to search, the `filter` query parameter has to be added.<br/>
 In order to change the sorting and limit the result (also to do paging), the `option` parameter has to be added.
@@ -58,7 +60,7 @@ Example which only returns Things with the given namespaces prefix:
 GET .../search/things?namespaces=org.eclipse.ditto,foo.bar
 ```
 
-## Search count
+### Search count
 Search counts can be made against this endpoint:
 
 ```
@@ -68,4 +70,55 @@ http://localhost:8080/api/2/search/things/count
 Complex example:
 ```
 GET .../search/things/count?filter=eq(attributes/location,"living-room")
+```
+
+## POST
+### x-www-form-urlencoded
+
+In order to define for which `Things` to search, the key `filter` has to be used.<br/>
+In order to change the sorting and limit the result (also to do paging), the key `option` has to be used.
+Default values of each option is documented [here](basic-search.html#sorting-and-paging-options).
+
+Complex example:
+```
+POST .../search/things
+body: filter=eq%28attributes%2Flocation%2C%22living-room%22%29&namespaces=org.eclipse.ditto%2Cfoo.bar&option=sort%28%2BthingId%29%2Climit%280%2C5%29
+```
+
+Another Complex example with the `namespaces` parameter:
+```
+POST .../search/things
+body: filter=filter=eq%28attributes%2Flocation%2C%22living-room%22%29&namespaces=org.eclipse.ditto%2Cfoo.bar
+```
+
+The HTTP search API can also profit from the [partial request](httpapi-concepts.html#partial-requests) concept
+of the API:<br/>
+Additionally to a `filter` and `options`, the key `fields` may be specified in order to select which data
+of the result set to retrieve.
+
+Example which only returns `thingId` and the `manufacturer` attribute of the found Things:
+```
+POST .../search/things
+body: filter=eq%28attributes%2Flocation%2C%22living-room%22%29&fields=thingId%2Cattributes%2Fmanufacturer
+```
+
+With the `namespaces` parameter, the result can be limited to the given namespaces.
+
+Example which only returns Things with the given namespaces prefix:
+```
+POST .../search/things
+body: namespaces=org.eclipse.ditto%2Cfoo.bar
+```
+
+### Search count
+Search counts can be made against this endpoint:
+
+```
+http://localhost:8080/api/2/search/things/count
+```
+
+Complex example:
+```
+POST .../search/things/count
+body: filter=eq%28attributes%2Flocation%2C%22living-room%22%29
 ```
