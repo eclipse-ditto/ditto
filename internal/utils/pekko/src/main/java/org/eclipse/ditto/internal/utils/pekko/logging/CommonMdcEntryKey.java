@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -33,6 +34,9 @@ public enum CommonMdcEntryKey implements CharSequence {
     CORRELATION_ID(DittoHeaderDefinition.CORRELATION_ID.getKey()),
     DITTO_LOG_TAG("ditto-log-tag"),
     TRACE_PARENT(DittoHeaderDefinition.W3C_TRACEPARENT.getKey());
+
+    private static final String TRACE_ID = TRACE_PARENT.key + "-trace-id";
+    private static final String SPAN_ID = TRACE_PARENT.key + "-span-id";
 
     private final String key;
 
@@ -90,18 +94,27 @@ public enum CommonMdcEntryKey implements CharSequence {
             return Collections.emptyList();
         }
         return Stream.of(CORRELATION_ID, TRACE_PARENT)
-                .flatMap(mdcEntryKey ->
-                        extractValue(headers, mdcEntryKey)
-                                .map(value -> MdcEntry.of(mdcEntryKey.key, value))
-                                .stream()
-                ).toList();
+                .flatMap(mdcEntryKey -> extractValue(headers, mdcEntryKey))
+                .toList();
     }
 
-    private static Optional<String> extractValue(final Map<String, String> headers,
+    private static Stream<MdcEntry> extractValue(final Map<String, String> headers,
             final CommonMdcEntryKey mdcEntryKey) {
 
-        // accessing a key in a HashMap is super fast
-        return Optional.ofNullable(headers.get(mdcEntryKey.key));
+        if (mdcEntryKey == TRACE_PARENT) {
+            return Optional.ofNullable(headers.get(mdcEntryKey.key))
+                    .filter(traceParent -> traceParent.charAt(2) == '-' && traceParent.length() == 55)
+                    .map(traceParent -> Stream.of(
+                            // positions defined by https://www.w3.org/TR/trace-context/#traceparent-header-field-values to contain the "trace-id"
+                            MdcEntry.of(TRACE_ID, traceParent.substring(3, 35)),
+                            MdcEntry.of(SPAN_ID, traceParent.substring(36, 52))
+                    )).stream()
+                    .flatMap(Function.identity());
+        } else {
+            return Optional.ofNullable(headers.get(mdcEntryKey.key))
+                    .map(value -> MdcEntry.of(mdcEntryKey.key, value))
+                    .stream();
+        }
     }
 
 }
