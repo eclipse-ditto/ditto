@@ -12,19 +12,22 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch;
 
-import akka.http.javadsl.model.*;
-import akka.http.javadsl.server.Route;
-import akka.http.javadsl.testkit.TestRoute;
-import akka.japi.Pair;
+import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+
+import java.util.List;
+
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.List;
-
-import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+import akka.http.javadsl.model.FormData;
+import akka.http.javadsl.model.HttpRequest;
+import akka.http.javadsl.model.StatusCodes;
+import akka.http.javadsl.server.Route;
+import akka.http.javadsl.testkit.TestRoute;
+import akka.japi.Pair;
 
 /**
  * Builder for creating Akka HTTP routes for {@code /search/things}.
@@ -55,7 +58,7 @@ public final class ThingSearchRouteTest extends EndpointTestBase {
                 .withEntity(formData.toEntity()));
 
         result.assertStatusCode(StatusCodes.OK);
-        result.assertEntity("{\"type\":\"thing-search.commands:queryThings\",\"filter\":\"and(and%28like%28definition%2C%22%2Atest%2A%22%29%29)\",\"options\":[\"sort%28%2BthingId%29\",\"limit%280%2C5%29\"],\"namespaces\":[\"org.eclipse.ditto%2Cfoo.bar\"]}");
+        result.assertEntity("{\"type\":\"thing-search.commands:queryThings\",\"filter\":\"and(and(like(definition,\\\"*test*\\\")))\",\"options\":[\"limit(0\",\"5)\",\"sort(+thingId)\"],\"namespaces\":[\"foo.bar\",\"org.eclipse.ditto\"]}");
     }
 
     @Test
@@ -90,7 +93,7 @@ public final class ThingSearchRouteTest extends EndpointTestBase {
         assertThat(JsonObject.of(result.entityString()))
                 .contains(
                         JsonKey.of("filter"),
-                        "and(and%28like%28definition%2C%22%2Atest%2A%22%29%29)"
+                        "and(and(like(definition,\"*test*\")))"
                 );
     }
 

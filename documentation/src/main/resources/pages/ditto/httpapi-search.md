@@ -28,7 +28,7 @@ Optionally a `namespaces` parameter can be added to search only in the given nam
 ## GET
 ### Query parameters
 
-In order to define for which `Things` to search, the `filter` query parameter has to be added.<br/>
+In order to define for which `Things` to search, the `filter` query parameter has to be added.  
 In order to change the sorting and limit the result (also to do paging), the `option` parameter has to be added.
 Default values of each option is documented [here](basic-search.html#sorting-and-paging-options).
 
@@ -44,7 +44,7 @@ GET .../search/things?filter=eq(attributes/location,"living-room")&namespaces=or
 ```
 
 The HTTP search API can also profit from the [partial request](httpapi-concepts.html#partial-requests) concept 
-of the API:<br/>
+of the API:  
 Additionally to a `filter` and `options`, a `fields` parameter may be specified in order to select which data 
 of the result set to retrieve.
 
@@ -75,31 +75,31 @@ GET .../search/things/count?filter=eq(attributes/location,"living-room")
 ## POST
 ### x-www-form-urlencoded
 
-In order to define for which `Things` to search, the key `filter` has to be used.<br/>
+In order to define for which `Things` to search, the key `filter` has to be used.  
 In order to change the sorting and limit the result (also to do paging), the key `option` has to be used.
 Default values of each option is documented [here](basic-search.html#sorting-and-paging-options).
 
 Complex example:
 ```
 POST .../search/things
-body: filter=eq%28attributes%2Flocation%2C%22living-room%22%29&namespaces=org.eclipse.ditto%2Cfoo.bar&option=sort%28%2BthingId%29%2Climit%280%2C5%29
+body: filter=eq(attributes/location,"living-room")&namespaces=org.eclipse.ditto,foo.bar&option=sort(+thingId),limit(0,5)
 ```
 
 Another Complex example with the `namespaces` parameter:
 ```
 POST .../search/things
-body: filter=filter=eq%28attributes%2Flocation%2C%22living-room%22%29&namespaces=org.eclipse.ditto%2Cfoo.bar
+body: filter=eq(attributes/location,"living-room")&namespaces=org.eclipse.ditto,foo.bar
 ```
 
 The HTTP search API can also profit from the [partial request](httpapi-concepts.html#partial-requests) concept
-of the API:<br/>
+of the API:  
 Additionally to a `filter` and `options`, the key `fields` may be specified in order to select which data
 of the result set to retrieve.
 
 Example which only returns `thingId` and the `manufacturer` attribute of the found Things:
 ```
 POST .../search/things
-body: filter=eq%28attributes%2Flocation%2C%22living-room%22%29&fields=thingId%2Cattributes%2Fmanufacturer
+body: filter=eq(attributes/location,"living-room")&fields=thingId,attributes/manufacturer
 ```
 
 With the `namespaces` parameter, the result can be limited to the given namespaces.
@@ -107,7 +107,7 @@ With the `namespaces` parameter, the result can be limited to the given namespac
 Example which only returns Things with the given namespaces prefix:
 ```
 POST .../search/things
-body: namespaces=org.eclipse.ditto%2Cfoo.bar
+body: namespaces=org.eclipse.ditto,foo.bar
 ```
 
 ### Search count
@@ -120,5 +120,5 @@ http://localhost:8080/api/2/search/things/count
 Complex example:
 ```
 POST .../search/things/count
-body: filter=eq%28attributes%2Flocation%2C%22living-room%22%29
+body: filter=eq(attributes/location,"living-room")
 ```

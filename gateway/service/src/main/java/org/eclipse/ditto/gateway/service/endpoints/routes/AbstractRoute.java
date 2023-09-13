@@ -18,6 +18,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -303,13 +304,12 @@ public abstract class AbstractRoute extends AllDirectives {
     protected Route ensureMediaTypeFormUrlEncodedThenExtractData(
             final RequestContext ctx,
             final DittoHeaders dittoHeaders,
-            final java.util.function.Function<Source<ByteString, Object>, Route> inner
+            final java.util.function.Function<Map<String, List<String>>, Route> inner
     ) {
-        return ContentTypeValidationDirective.ensureValidContentType(Set.of(MediaTypes.APPLICATION_X_WWW_FORM_URLENCODED.toString()), ctx, dittoHeaders,
-                () -> {
-                    final var res = extractDataBytes(inner);
-                    return res;
-                });
+        return ContentTypeValidationDirective.ensureValidContentType(
+                Set.of(MediaTypes.APPLICATION_X_WWW_FORM_URLENCODED.toString()), ctx, dittoHeaders,
+                () -> formFieldMultiMap(inner)
+        );
     }
 
     /**
