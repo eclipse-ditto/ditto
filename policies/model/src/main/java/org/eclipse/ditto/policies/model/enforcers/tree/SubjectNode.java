@@ -14,7 +14,7 @@ package org.eclipse.ditto.policies.model.enforcers.tree;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -27,7 +27,7 @@ import javax.annotation.Nonnull;
 final class SubjectNode implements PolicyTreeNode {
 
     private final String name;
-    private final Map<String, PolicyTreeNode> children = new HashMap<>();
+    private final Map<String, PolicyTreeNode> children = new LinkedHashMap<>();
 
     private SubjectNode(final String name) {
         this.name = name;
