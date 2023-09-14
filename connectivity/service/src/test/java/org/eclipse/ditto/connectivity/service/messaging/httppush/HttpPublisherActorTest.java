@@ -58,6 +58,7 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.MessageDirection;
@@ -67,6 +68,8 @@ import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessageResponse;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
@@ -856,6 +859,64 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                             .join();
 
             assertThat(signedRequest).isEqualTo(expectedSignedRequest);
+        }};
+    }
+
+    @Test
+    public void testSendMessageUsingThingJsonPlaceholderOnExtraAttributes() throws Exception {
+        new TestKit(actorSystem) {{
+            httpPushFactory = mockHttpPushFactory("application/json", HttpStatus.OK, "");
+            final var target = ConnectivityModelFactory.newTargetBuilder()
+                    .address("POST:/foo/{{ thing-json:attributes/location }}")
+                    .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                    .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.LIVE_MESSAGES)
+                            .withExtraFields(ThingFieldSelector.fromString("attributes"))
+                            .build())
+                    .build();
+
+            final var connection = TestConstants.createConnection()
+                    .toBuilder()
+                    .targets(List.of(target))
+                    .build();
+            final var props = HttpPublisherActor.props(connection,
+                    httpPushFactory,
+                    mock(ConnectivityStatusResolver.class),
+                    ConnectivityConfig.of(actorSystem.settings().config()));
+            final var publisherActor = childActorOf(props);
+            publisherCreated(this, publisherActor);
+
+            // WHEN: HTTP publisher sends an HTTP request
+            final Message<?> message = Message.newBuilder(
+                    MessageHeaders.newBuilder(MessageDirection.TO, TestConstants.Things.THING_ID, "fetch-weather")
+                            .build()
+            ).build();
+            final Signal<?> source = SendThingMessage.of(TestConstants.Things.THING_ID, message, DittoHeaders.empty());
+            final var outboundSignal =
+                    OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
+            final var externalMessage =
+                    ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                            .withText("payload")
+                            .build();
+            var adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source);
+            adaptable = ProtocolFactory.setExtra(
+                    adaptable,
+                    Thing.newBuilder()
+                            .setAttribute(JsonPointer.of("location"), JsonValue.of("Hamburg"))
+                            .build()
+                            .toJson()
+            );
+            final var mapped =
+                    OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
+
+            publisherActor.tell(
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(Collections.singletonList(mapped), getRef()),
+                    getRef());
+
+            // THEN: The request is signed by the configured request signing process.
+            final var request = received.take();
+            assertThat(received).isEmpty();
+            assertThat(request.method()).isEqualTo(HttpMethods.POST);
+            assertThat(request.getUri().getPathString()).isEqualTo("/foo/Hamburg");
         }};
     }
 
