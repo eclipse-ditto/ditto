@@ -16,8 +16,8 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -47,7 +47,7 @@ final class ResourceNode implements PolicyTreeNode {
     private ResourceNode(final PolicyTreeNode parent, final String name, final EffectedPermissions permissions) {
         this.parent = parent;
         this.name = name;
-        children = new HashMap<>();
+        children = new LinkedHashMap<>();
         this.permissions = permissions;
         absolutePointer = null;
     }

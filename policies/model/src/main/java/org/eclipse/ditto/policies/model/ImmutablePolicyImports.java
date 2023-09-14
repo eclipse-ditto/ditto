@@ -17,9 +17,9 @@ import static org.eclipse.ditto.policies.model.PoliciesModelFactory.DITTO_LIMITS
 
 import java.text.MessageFormat;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -56,7 +56,7 @@ final class ImmutablePolicyImports implements PolicyImports {
 
     private ImmutablePolicyImports(final Map<PolicyId, PolicyImport> policyImports) {
         checkNotNull(policyImports, POLICY_IMPORTS);
-        this.policyImports = Collections.unmodifiableMap(new HashMap<>(policyImports));
+        this.policyImports = Collections.unmodifiableMap(new LinkedHashMap<>(policyImports));
     }
 
     /**
@@ -69,7 +69,7 @@ final class ImmutablePolicyImports implements PolicyImports {
     public static ImmutablePolicyImports of(final Iterable<PolicyImport> policyImports) {
         checkNotNull(policyImports, POLICY_IMPORTS);
 
-        final Map<PolicyId, PolicyImport> resourcesMap = new HashMap<>();
+        final Map<PolicyId, PolicyImport> resourcesMap = new LinkedHashMap<>();
         policyImports.forEach(policyImport -> {
             final PolicyImport existingPolicyImport =
                     resourcesMap.put(policyImport.getImportedPolicyId(), policyImport);
@@ -152,7 +152,7 @@ final class ImmutablePolicyImports implements PolicyImports {
     }
 
     private Map<PolicyId, PolicyImport> copyPolicyImports() {
-        return new HashMap<>(policyImports);
+        return new LinkedHashMap<>(policyImports);
     }
 
     @Override
