@@ -78,11 +78,30 @@ public final class ThingSearchRoute extends AbstractRoute {
      * @return {@code /search/things/count} route.
      */
     private Route countThings(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        // GET things/count?filter=<filterString>&namespaces=<namespacesString>
-        return get(() -> thingSearchParameterOptional(params -> handlePerRequest(ctx,
-                CountThings.of(calculateFilter(params.get(ThingSearchParameter.FILTER)),
-                        calculateNamespaces(params.get(ThingSearchParameter.NAMESPACES)),
-                        dittoHeaders))));
+        return concat(
+                // GET things/count?filter=<filterString>&namespaces=<namespacesString>
+                get(() -> thingSearchParameterOptional(
+                        params -> handlePerRequest(ctx,
+                                CountThings.of(calculateFilter(params.get(ThingSearchParameter.FILTER)),
+                                        calculateNamespaces(params.get(ThingSearchParameter.NAMESPACES)),
+                                        dittoHeaders)))),
+                // POST things/count
+                post(() -> ensureMediaTypeFormUrlEncodedThenExtractData(
+                        ctx,
+                        dittoHeaders,
+                        formFields -> handlePerRequest(
+                                ctx,
+                                CountThings.of(
+                                        calculateFilter(
+                                                formFields.getOrDefault(ThingSearchParameter.FILTER.toString(),
+                                                        List.of())),
+                                        calculateNamespaces(
+                                                formFields.getOrDefault(ThingSearchParameter.NAMESPACES.toString(),
+                                                        List.of())),
+                                        dittoHeaders)
+                        )
+                ))
+        );
     }
 
     /*
@@ -91,18 +110,48 @@ public final class ThingSearchRoute extends AbstractRoute {
      * @return {@code /search/things} route.
      */
     private Route searchThings(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        // GET things?filter=<filterString>
-        //           &options=<optionsString>
-        //           &fields=<fieldsString>
-        //           &namespaces=<namespacesString>
-        //           &nextPageKey=<nextPageKey>
-        return get(() -> thingSearchParameterOptional(params -> handlePerRequest(ctx,
-                QueryThings.of(calculateFilter(params.get(ThingSearchParameter.FILTER)),
-                        calculateOptions(params.get(ThingSearchParameter.OPTION)),
-                        AbstractRoute.calculateSelectedFields(params.get(ThingSearchParameter.FIELDS))
-                                .orElse(null),
-                        calculateNamespaces(params.get(ThingSearchParameter.NAMESPACES)),
-                        dittoHeaders))));
+        return concat(
+                // GET /search/things?filter=<filterString>
+                //           &options=<optionsString>
+                //           &fields=<fieldsString>
+                //           &namespaces=<namespacesString>
+                get(() -> thingSearchParameterOptional(
+                                params -> handlePerRequest(ctx,
+                                        QueryThings.of(
+                                                calculateFilter(params.get(ThingSearchParameter.FILTER)),
+                                                calculateOptions(params.get(ThingSearchParameter.OPTION)),
+                                                AbstractRoute.calculateSelectedFields(params.get(ThingSearchParameter.FIELDS))
+                                                        .orElse(null),
+                                                calculateNamespaces(params.get(ThingSearchParameter.NAMESPACES)),
+                                                dittoHeaders
+                                        )
+                                )
+                        )
+                ),
+                // POST /search/things
+                post(() -> ensureMediaTypeFormUrlEncodedThenExtractData(
+                        ctx,
+                        dittoHeaders,
+                        formFields -> handlePerRequest(ctx,
+                                QueryThings.of(
+                                        calculateFilter(
+                                                formFields.getOrDefault(ThingSearchParameter.FILTER.toString(),
+                                                        List.of())),
+                                        calculateOptions(
+                                                formFields.getOrDefault(ThingSearchParameter.OPTION.toString(),
+                                                        List.of())),
+                                        AbstractRoute.calculateSelectedFields(
+                                                formFields.getOrDefault(ThingSearchParameter.FIELDS.toString(),
+                                                        List.of())).orElse(null),
+                                        calculateNamespaces(
+                                                formFields.getOrDefault(ThingSearchParameter.NAMESPACES.toString(),
+                                                        List.of())),
+                                        dittoHeaders
+                                )
+                        )
+                ))
+        );
+
     }
 
     private Route thingSearchParameterOptional(

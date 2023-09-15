@@ -1,0 +1,46 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+description: |-
+  Possible values for the parameter:
+  
+  #### Sort operations
+  
+  * ```sort([+|-]{property})```
+  * ```sort([+|-]{property},[+|-]{property},...)```
+  
+  #### Paging operations
+  
+  * ```size({page-size})```  Maximum allowed page size is `200`. Default page size is `25`.
+  * ```cursor({cursor-id})```  Start the search from the cursor location. Specify the cursor ID without
+  quotation marks. Cursor IDs are given in search responses and mark the position after the last entry of
+  the previous search. The meaning of cursor IDs is unspecified and may change without notice.
+  
+  The paging option `limit({offset},{count})` is deprecated.
+  It may result in slow queries or timeouts and will be removed eventually.
+  
+  #### Examples:
+  
+  * ```sort(+thingId)```
+  * ```sort(-attributes/manufacturer)```
+  * ```sort(+thingId,-attributes/manufacturer)```
+  * ```size(10)``` return 10 results
+  * ```cursor(LOREMIPSUM)```  return results after the position of the cursor `LOREMIPSUM`.
+  
+  #### Combine:
+  
+  If you need to specify multiple options, when using the swagger UI just write each option in a new line.
+  When using the plain REST API programmatically,
+  you will need to separate the options using a comma (,) character.
+  
+  ```size(200),cursor(LOREMIPSUM)```
+  
+  The deprecated paging option `limit` may not be combined with the other paging options `size` and `cursor`.
+type: string

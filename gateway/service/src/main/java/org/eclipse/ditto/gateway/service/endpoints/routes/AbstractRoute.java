@@ -18,6 +18,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -170,15 +171,15 @@ public abstract class AbstractRoute extends AllDirectives {
      * @param ctx the request context.
      * @param dittoHeaders the extracted Ditto headers.
      * @param payloadSource source of the request body.
-     * @param requestJsonToCommandFunction function converting a string to a command.
+     * @param requestStringToCommandFunction function converting a string to a command.
      * @return the request handling route.
      */
     public Route handlePerRequest(final RequestContext ctx,
             final DittoHeaders dittoHeaders,
             final Source<ByteString, ?> payloadSource,
-            final Function<String, Command<?>> requestJsonToCommandFunction) {
+            final Function<String, Command<?>> requestStringToCommandFunction) {
 
-        return handlePerRequest(ctx, dittoHeaders, payloadSource, requestJsonToCommandFunction, null);
+        return handlePerRequest(ctx, dittoHeaders, payloadSource, requestStringToCommandFunction, null);
     }
 
     protected Route handlePerRequest(final RequestContext ctx, final Command<?> command) {
@@ -195,13 +196,13 @@ public abstract class AbstractRoute extends AllDirectives {
     protected Route handlePerRequest(final RequestContext ctx,
             final DittoHeaders dittoHeaders,
             final Source<ByteString, ?> payloadSource,
-            final Function<String, Command<?>> requestJsonToCommandFunction,
+            final Function<String, Command<?>> requestStringToCommandFunction,
             @Nullable final BiFunction<JsonValue, HttpResponse, HttpResponse> responseTransformFunction) {
 
         return withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
                 this::validateCommandTimeout,
                 timeout -> doHandlePerRequest(ctx, dittoHeaders.toBuilder().timeout(timeout).build(), payloadSource,
-                        requestJsonToCommandFunction, responseTransformFunction));
+                        requestStringToCommandFunction, responseTransformFunction));
     }
 
     protected <M> M runWithSupervisionStrategy(final RunnableGraph<M> graph) {
@@ -211,7 +212,7 @@ public abstract class AbstractRoute extends AllDirectives {
     private Route doHandlePerRequest(final RequestContext ctx,
             final DittoHeaders dittoHeaders,
             final Source<ByteString, ?> payloadSource,
-            final Function<String, Command<?>> requestJsonToCommandFunction,
+            final Function<String, Command<?>> requestStringToCommandFunction,
             @Nullable final BiFunction<JsonValue, HttpResponse, HttpResponse> responseValueTransformFunction) {
 
         final CompletableFuture<HttpResponse> httpResponseFuture = new CompletableFuture<>();
@@ -222,7 +223,7 @@ public abstract class AbstractRoute extends AllDirectives {
                 .map(x -> {
                     try {
                         // DON'T replace this try-catch by .recover: The supervising strategy is called before recovery!
-                        final Command<?> command = requestJsonToCommandFunction.apply(x);
+                        final Command<?> command = requestStringToCommandFunction.apply(x);
                         final JsonSchemaVersion schemaVersion =
                                 dittoHeaders.getSchemaVersion().orElse(command.getImplementedSchemaVersion());
                         return command.implementsSchemaVersion(schemaVersion) ? command
@@ -298,6 +299,17 @@ public abstract class AbstractRoute extends AllDirectives {
 
         final var actorSystem = routeBaseProperties.getActorSystem();
         return actorSystem.actorOf(props);
+    }
+
+    protected Route ensureMediaTypeFormUrlEncodedThenExtractData(
+            final RequestContext ctx,
+            final DittoHeaders dittoHeaders,
+            final java.util.function.Function<Map<String, List<String>>, Route> inner
+    ) {
+        return ContentTypeValidationDirective.ensureValidContentType(
+                Set.of(MediaTypes.APPLICATION_X_WWW_FORM_URLENCODED.toString()), ctx, dittoHeaders,
+                () -> formFieldMultiMap(inner)
+        );
     }
 
     /**

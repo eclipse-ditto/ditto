@@ -1,0 +1,75 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+#filter:
+description: |-
+  
+    #### Filter predicates:
+  
+    * ```eq({property},{value})```  (i.e. equal to the given value)
+  
+    * ```ne({property},{value})```  (i.e. not equal to the given value)
+  
+    * ```gt({property},{value})```  (i.e. greater than the given value)
+  
+    * ```ge({property},{value})```  (i.e. equal to the given value or greater than it)
+  
+    * ```lt({property},{value})```  (i.e. lower than the given value or equal to it)
+  
+    * ```le({property},{value})```  (i.e. lower than the given value)
+  
+    * ```in({property},{value},{value},...)```  (i.e. contains at least one of the values listed)
+  
+    * ```like({property},{value})```  (i.e. contains values similar to the expressions listed)
+  
+    * ```ilike({property},{value})```  (i.e. contains values similar and case insensitive to the expressions listed)
+  
+    * ```exists({property})```  (i.e. all things in which the given path exists)
+  
+  
+    Note: When using filter operations, only things with the specified properties are returned.
+    For example, the filter `ne(attributes/owner, "SID123")` will only return things that do have
+    the `owner` attribute.
+  
+  
+    #### Logical operations:
+  
+  
+    * ```and({query},{query},...)```
+  
+    * ```or({query},{query},...)```
+  
+    * ```not({query})```
+  
+  
+    #### Examples:
+  
+    * ```eq(attributes/location,"kitchen")```
+  
+    * ```ge(thingId,"myThing1")```
+  
+    * ```gt(_created,"2020-08-05T12:17")```
+  
+    * ```exists(features/featureId)```
+  
+    * ```and(eq(attributes/location,"kitchen"),eq(attributes/color,"red"))```
+  
+    * ```or(eq(attributes/location,"kitchen"),eq(attributes/location,"living-room"))```
+  
+    * ```like(attributes/key1,"known-chars-at-start*")```
+  
+    * ```like(attributes/key1,"*known-chars-at-end")```
+  
+    * ```like(attributes/key1,"*known-chars-in-between*")```
+  
+    * ```like(attributes/key1,"just-som?-char?-unkn?wn")```
+  
+    The `like` filters with the wildcard `*` at the beginning can slow down your search request.
+type: string
