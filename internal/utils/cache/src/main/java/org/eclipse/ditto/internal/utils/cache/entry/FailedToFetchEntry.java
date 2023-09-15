@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2023 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -13,20 +13,23 @@
 package org.eclipse.ditto.internal.utils.cache.entry;
 
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
 @Immutable
-final class NonexistentEntry<T> implements Entry<T> {
+final class FailedToFetchEntry<T> implements Entry<T> {
 
-    private static final NonexistentEntry<?> INSTANCE = new NonexistentEntry<>();
+    private final Throwable throwable;
 
     /* this object is not supposed to be constructed anywhere else. */
-    private NonexistentEntry() {}
+    private FailedToFetchEntry(final Throwable throwable) {
+        this.throwable = throwable;
+    }
 
     @Override
     public long getRevision() {
-        return Long.MIN_VALUE;
+        return 0;
     }
 
     @Override
@@ -41,12 +44,16 @@ final class NonexistentEntry<T> implements Entry<T> {
 
     @Override
     public boolean isFetchError() {
-        return false;
+        return true;
     }
 
-    @SuppressWarnings("unchecked")
-    static <T> NonexistentEntry<T> getInstance() {
-        return (NonexistentEntry<T>) INSTANCE;
+    @Override
+    public Optional<Throwable> getFetchErrorCause() {
+        return Optional.of(throwable);
+    }
+
+    static <T> FailedToFetchEntry<T> of(final Throwable throwable) {
+        return new FailedToFetchEntry<>(throwable);
     }
 
 }

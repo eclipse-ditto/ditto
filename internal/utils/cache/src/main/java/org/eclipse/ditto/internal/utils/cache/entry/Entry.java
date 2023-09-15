@@ -21,16 +21,16 @@ import java.util.Optional;
  */
 public interface Entry<T> {
 
-    static <T> Entry<T> permanent(final T value) {
-        return new ExistentEntry<>(Long.MAX_VALUE, value);
-    }
-
     static <T> Entry<T> of(final long revision, final T value) {
         return new ExistentEntry<>(revision, value);
     }
 
     static <T> Entry<T> nonexistent() {
         return NonexistentEntry.getInstance();
+    }
+
+    static <T> Entry<T> fetchError(final Throwable throwable) {
+        return FailedToFetchEntry.of(throwable);
     }
 
     /**
@@ -42,6 +42,18 @@ public interface Entry<T> {
     long getRevision();
 
     boolean exists();
+
+    /**
+     * @return whether the entry could not be fetched due to e.g. an internal timeout.
+     */
+    boolean isFetchError();
+
+    /**
+     * @return returns the cause of the internal fetch error if {@link #isFetchError()} was {@code true}.
+     */
+    default Optional<Throwable> getFetchErrorCause() {
+        return Optional.empty();
+    }
 
     /**
      * Retrieve the value if present.

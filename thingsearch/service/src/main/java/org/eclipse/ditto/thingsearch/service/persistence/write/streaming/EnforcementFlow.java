@@ -24,6 +24,7 @@ import java.util.concurrent.Executor;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.exceptions.AskException;
 import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacade;
 import org.eclipse.ditto.internal.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.internal.utils.cache.Cache;
@@ -179,7 +180,7 @@ final class EnforcementFlow {
 
         return source.flatMapConcat(changes -> Source.fromIterator(changes::iterator)
                         .flatMapMerge(parallelismPerBulkShard, changedMetadata ->
-                                retrieveThingFromCachingFacade(changedMetadata.getThingId(), changedMetadata, 2)
+                                retrieveThingFromCachingFacade(changedMetadata.getThingId(), changedMetadata, 3)
                                         .flatMapConcat(pair -> {
                                             final JsonObject thing = pair.second();
                                             searchUpdateObserver.process(changedMetadata, thing);
@@ -198,7 +199,7 @@ final class EnforcementFlow {
      */
     public Flow<ThingUpdater.Data, MongoWriteModel, NotUsed> create(final SearchUpdateMapper mapper) {
         return Flow.<ThingUpdater.Data>create()
-                .flatMapConcat(data -> retrieveThingFromCachingFacade(data.metadata().getThingId(), data.metadata(), 2)
+                .flatMapConcat(data -> retrieveThingFromCachingFacade(data.metadata().getThingId(), data.metadata(), 3)
                         .flatMapConcat(pair -> {
                             final JsonObject thing = pair.second();
                             searchUpdateObserver.process(data.metadata(), thing);
@@ -222,14 +223,20 @@ final class EnforcementFlow {
                 .map(thing -> Pair.create(thingId, thing))
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<Pair<ThingId, JsonObject>, NotUsed>>()
                         .match(Throwable.class, error -> {
-                            if (leftRetryAttempts > 0 && error instanceof CompletionException completionException &&
+                            if (error instanceof CompletionException completionException &&
                                     completionException.getCause() instanceof AskTimeoutException) {
-                                // retry ask timeouts
-                                return retrieveThingFromCachingFacade(thingId, metadata, leftRetryAttempts - 1);
+                                if (leftRetryAttempts > 0) {
+                                    // retry ask timeouts
+                                    return retrieveThingFromCachingFacade(thingId, metadata, leftRetryAttempts - 1);
+                                } else {
+                                    log.warn("No retries left, try to SudoRetrieveThing via cache, therefore giving " +
+                                                    "up for thingId <{}>", thingId);
+                                    return Source.empty();
+                                }
                             }
 
-                            log.error("Unexpected exception during SudoRetrieveThing via cache: <{}> - {}", thingId,
-                                    error.getClass().getSimpleName(), error);
+                            log.error("Unexpected exception during SudoRetrieveThing via cache for thingId <{}> - {}",
+                                    thingId, error.getClass().getSimpleName(), error);
                             return Source.empty();
                         })
                         .build());
@@ -274,11 +281,22 @@ final class EnforcementFlow {
                                 return ThingWriteModel.ofEmptiedOut(metadata);
                             }
                         } else {
-                            // no enforcer; "empty out" thing in search index
-                            log.warn(
-                                    "Computed - due to missing enforcer - 'emptied out' ThingWriteModel for metadata <{}> " +
-                                            "and thing <{}>", metadata, thing);
-                            return ThingWriteModel.ofEmptiedOut(metadata);
+                            if (entry.isFetchError()) {
+                                final Throwable fetchErrorCause = entry.getFetchErrorCause().orElse(
+                                        new IllegalStateException("No fetch error cause present when it should be")
+                                );
+                                log.warn("Computed - due to fetch error <{}: {}> on policy cache - 'no op' ThingWriteModel " +
+                                                "for metadata <{}> and thing <{}>",
+                                        fetchErrorCause.getClass().getSimpleName(), fetchErrorCause.getMessage(),
+                                        metadata, thing, fetchErrorCause
+                                );
+                                return ThingWriteModel.noopWriteModel(metadata);
+                            } else {
+                                // no enforcer; "empty out" thing in search index
+                                log.warn("Computed - due to missing enforcer - 'emptied out' ThingWriteModel for " +
+                                                "metadata <{}> and thing <{}>", metadata, thing);
+                                return ThingWriteModel.ofEmptiedOut(metadata);
+                            }
                         }
                     });
         }
@@ -320,7 +338,11 @@ final class EnforcementFlow {
                                 }
                             })
                             .exceptionally(error -> {
-                                log.error("Failed to read policyEnforcerCache", error);
+                                final Throwable cause = error instanceof CompletionException ? error.getCause() : error;
+                                log.warn("Failed to read policyEnforcerCache", cause);
+                                if (cause instanceof AskException askException) {
+                                    return Source.single(Entry.fetchError(askException));
+                                }
                                 return POLICY_NONEXISTENT;
                             });
 

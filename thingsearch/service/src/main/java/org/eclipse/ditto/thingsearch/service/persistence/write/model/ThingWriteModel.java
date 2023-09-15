@@ -115,6 +115,16 @@ public final class ThingWriteModel extends AbstractWriteModel {
         return new ThingWriteModel(metadata, emptiedOutThingDocument, false, 0L);
     }
 
+    /**
+     * Create a Thing write model which does not update the search index, but does "no operation" on it instead.
+     *
+     * @param metadata the metadata.
+     * @return a Thing write model.
+     */
+    public static ThingWriteModel noopWriteModel(final Metadata metadata) {
+        return new ThingWriteModel(metadata, new BsonDocument(), false, 0L);
+    }
+
     @Override
     public Optional<MongoWriteModel> toIncrementalMongo(@Nullable final AbstractWriteModel previousWriteModel,
             final int maxWireVersion) {
@@ -211,8 +221,14 @@ public final class ThingWriteModel extends AbstractWriteModel {
             PATCH_SKIP_COUNT.increment();
             return Optional.empty();
         }
-        final var diff = tryComputeDiff(getThingDocument(), lastWriteModel.getThingDocument(), maxWireVersion);
-        if (diff.isPresent() && diff.get().isDiffSmaller()) {
+        final BsonDocument currentWriteModel = getThingDocument();
+        final var diff = tryComputeDiff(currentWriteModel, lastWriteModel.getThingDocument(), maxWireVersion);
+        if (currentWriteModel.isEmpty()) {
+            LOGGER.debug("Skipping update due to empty currentWriteModel <{}>",
+                    ((AbstractWriteModel) this).getClass().getSimpleName());
+            PATCH_SKIP_COUNT.increment();
+            return Optional.empty();
+        } else if (diff.isPresent() && diff.get().isDiffSmaller()) {
             final var aggregationPipeline = diff.get().consumeAndExport();
             if (aggregationPipeline.isEmpty()) {
                 LOGGER.debug("Skipping update due to {} <{}>", "empty diff",
