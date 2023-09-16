@@ -24,7 +24,8 @@ public enum MqttHeader {
 
     MQTT_TOPIC("mqtt.topic"),
     MQTT_QOS("mqtt.qos"),
-    MQTT_RETAIN("mqtt.retain");
+    MQTT_RETAIN("mqtt.retain"),
+    MQTT_MESSAGE_EXPIRY_INTERVAL("mqtt.message-expiry-interval");
 
     private final String name;
 

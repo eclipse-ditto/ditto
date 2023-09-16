@@ -79,6 +79,7 @@ public final class MqttPublishToExternalMessageTransformerTest {
     private static final MqttTopic MQTT_TOPIC = MqttTopic.of("source/my-connection");
     private static final MqttQos MQTT_QOS = MqttQos.AT_LEAST_ONCE;
     private static final boolean RETAIN = true;
+    private static final Long MESSAGE_EXPIRY_INTERVAL = 10L;
     private static final String CORRELATION_ID = String.valueOf(UUID.randomUUID());
     private static final MqttTopic RESPONSE_TOPIC = MqttTopic.of("my-response-topic");
     private static final String CONTENT_TYPE = "application/json";
@@ -153,6 +154,7 @@ public final class MqttPublishToExternalMessageTransformerTest {
                 .topic(MQTT_TOPIC)
                 .qos(MQTT_QOS)
                 .retain(RETAIN)
+                .messageExpiryInterval(MESSAGE_EXPIRY_INTERVAL)
                 .correlationData(ByteBufferUtils.fromUtf8String(CORRELATION_ID))
                 .responseTopic(RESPONSE_TOPIC)
                 .contentType(CONTENT_TYPE)
@@ -168,6 +170,7 @@ public final class MqttPublishToExternalMessageTransformerTest {
                                         Map.entry(MqttHeader.MQTT_TOPIC.getName(), MQTT_TOPIC.toString()),
                                         Map.entry(MqttHeader.MQTT_QOS.getName(), String.valueOf(MQTT_QOS.getCode())),
                                         Map.entry(MqttHeader.MQTT_RETAIN.getName(), String.valueOf(RETAIN)),
+                                        Map.entry(MqttHeader.MQTT_MESSAGE_EXPIRY_INTERVAL.getName(), String.valueOf(MESSAGE_EXPIRY_INTERVAL)),
                                         Map.entry(DittoHeaderDefinition.CORRELATION_ID.getKey(), CORRELATION_ID),
                                         Map.entry(DittoHeaderDefinition.REPLY_TO.getKey(), RESPONSE_TOPIC.toString()),
                                         Map.entry(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE)
@@ -196,6 +199,7 @@ public final class MqttPublishToExternalMessageTransformerTest {
                 .topic(MQTT_TOPIC)
                 .qos(MQTT_QOS)
                 .retain(RETAIN)
+                .messageExpiryInterval(MESSAGE_EXPIRY_INTERVAL)
                 .correlationData(ByteBufferUtils.fromUtf8String(CORRELATION_ID))
                 .responseTopic(RESPONSE_TOPIC)
                 .contentType(CONTENT_TYPE)
@@ -211,6 +215,7 @@ public final class MqttPublishToExternalMessageTransformerTest {
                                         Map.entry(MqttHeader.MQTT_TOPIC.getName(), MQTT_TOPIC.toString()),
                                         Map.entry(MqttHeader.MQTT_QOS.getName(), String.valueOf(MQTT_QOS.getCode())),
                                         Map.entry(MqttHeader.MQTT_RETAIN.getName(), String.valueOf(RETAIN)),
+                                        Map.entry(MqttHeader.MQTT_MESSAGE_EXPIRY_INTERVAL.getName(), String.valueOf(MESSAGE_EXPIRY_INTERVAL)),
                                         Map.entry(DittoHeaderDefinition.CORRELATION_ID.getKey(), CORRELATION_ID),
                                         Map.entry(DittoHeaderDefinition.REPLY_TO.getKey(), RESPONSE_TOPIC.toString()),
                                         Map.entry(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE)
@@ -235,6 +240,7 @@ public final class MqttPublishToExternalMessageTransformerTest {
                         Map.entry(MqttHeader.MQTT_TOPIC.getName(), MQTT_TOPIC.toString()),
                         Map.entry(MqttHeader.MQTT_QOS.getName(), String.valueOf(MQTT_QOS.getCode())),
                         Map.entry(MqttHeader.MQTT_RETAIN.getName(), String.valueOf(RETAIN)),
+                        Map.entry(MqttHeader.MQTT_MESSAGE_EXPIRY_INTERVAL.getName(), String.valueOf(MESSAGE_EXPIRY_INTERVAL)),
                         Map.entry(DittoHeaderDefinition.CORRELATION_ID.getKey(), CORRELATION_ID),
                         Map.entry(DittoHeaderDefinition.REPLY_TO.getKey(), RESPONSE_TOPIC.toString()),
                         Map.entry(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE)
@@ -252,6 +258,7 @@ public final class MqttPublishToExternalMessageTransformerTest {
                 .topic(MQTT_TOPIC)
                 .qos(MQTT_QOS)
                 .retain(RETAIN)
+                .messageExpiryInterval(MESSAGE_EXPIRY_INTERVAL)
                 .correlationData(ByteBufferUtils.fromUtf8String(CORRELATION_ID))
                 .responseTopic(RESPONSE_TOPIC)
                 .contentType(CONTENT_TYPE)

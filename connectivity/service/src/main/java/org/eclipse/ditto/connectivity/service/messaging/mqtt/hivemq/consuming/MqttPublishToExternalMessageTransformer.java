@@ -19,6 +19,7 @@ import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -158,6 +159,9 @@ final class MqttPublishToExternalMessageTransformer {
         result.put(MqttHeader.MQTT_QOS.getName(), getQosCodeAsString(genericMqttPublish));
         result.put(MqttHeader.MQTT_RETAIN.getName(), getIsRetainAsString(genericMqttPublish));
 
+        getMessageExpiryIntervalAsString(genericMqttPublish)
+                .ifPresent(messageExpiryInterval -> result.put(MqttHeader.MQTT_MESSAGE_EXPIRY_INTERVAL.getName(), messageExpiryInterval));
+
         genericMqttPublish.getCorrelationData()
                 .map(ByteBufferUtils::toUtf8String)
                 .ifPresent(correlationId -> result.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), correlationId));
@@ -186,6 +190,13 @@ final class MqttPublishToExternalMessageTransformer {
 
     private static String getIsRetainAsString(final GenericMqttPublish genericMqttPublish) {
         return String.valueOf(genericMqttPublish.isRetain());
+    }
+
+    private static Optional<String> getMessageExpiryIntervalAsString(final GenericMqttPublish genericMqttPublish) {
+        final var messageExpiryInterval = genericMqttPublish.getMessageExpiryInterval().getAsOptionalLong();
+        return messageExpiryInterval.isPresent() ?
+                Optional.of(String.valueOf(messageExpiryInterval.getAsLong())) :
+                Optional.empty();
     }
 
     private ExternalMessage getExternalMessage(final GenericMqttPublish genericMqttPublish,
