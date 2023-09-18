@@ -220,6 +220,11 @@ public final class RequestTracingDirective {
             final HttpResponse httpResponse,
             @Nullable final CharSequence correlationId
     ) {
+        final boolean isCoapRequest = httpRequest.getHeader("ditto-coap-proxy")
+                .map(HttpHeader::value)
+                .map(Boolean::parseBoolean)
+                .orElse(false);
+        startedSpan.tag(SpanTagKey.REQUEST_PROTOCOL.getTagForValue(isCoapRequest ? "CoAP" : "HTTP"));
         startedSpan.tag(SpanTagKey.REQUEST_METHOD_NAME.getTagForValue(getRequestMethodName(httpRequest)));
         @Nullable final var relativeRequestUri = tryToGetRelativeRequestUri(httpRequest, correlationId);
         if (null != relativeRequestUri) {

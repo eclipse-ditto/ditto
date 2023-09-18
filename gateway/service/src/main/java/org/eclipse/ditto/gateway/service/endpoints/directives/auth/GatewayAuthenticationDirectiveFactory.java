@@ -15,8 +15,8 @@ package org.eclipse.ditto.gateway.service.endpoints.directives.auth;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
-import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 
 import com.typesafe.config.Config;
 
@@ -40,6 +40,13 @@ public interface GatewayAuthenticationDirectiveFactory extends DittoExtensionPoi
      * @return The built {@link GatewayAuthenticationDirective authentication directive}.
      */
     GatewayAuthenticationDirective buildWsAuthentication(JwtAuthenticationFactory jwtAuthenticationFactory);
+
+    /**
+     * Builds the {@link GatewayAuthenticationDirective authentication directive} that should be used for CoAP API.
+     *
+     * @return The built {@link GatewayAuthenticationDirective authentication directive}.
+     */
+    GatewayAuthenticationDirective buildCoapAuthentication();
 
     /**
      * Loads the implementation of {@code GatewayAuthenticationDirectiveFactory} which is configured for the

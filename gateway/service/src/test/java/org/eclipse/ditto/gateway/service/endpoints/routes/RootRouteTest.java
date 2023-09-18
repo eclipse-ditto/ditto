@@ -143,7 +143,7 @@ public final class RootRouteTest extends EndpointTestBase {
         final var devOpsAuthenticationDirective = devopsAuthenticationDirectiveFactory.devops();
         final var dittoExtensionConfig =
                 ScopedConfig.dittoExtension(routeBaseProperties.getActorSystem().settings().config());
-        final var rootRoute = RootRoute.getBuilder(httpConfig)
+        final var rootRoute = RootRoute.getBuilder(httpConfig, false)
                 .statsRoute(new StatsRoute(routeBaseProperties, devOpsAuthenticationDirective))
                 .statusRoute(new StatusRoute(clusterStatusSupplier,
                         createHealthCheckingActorMock(),

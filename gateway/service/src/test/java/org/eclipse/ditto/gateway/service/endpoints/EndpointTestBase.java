@@ -159,7 +159,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         final var adapterProvider = ProtocolAdapterProvider.load(protocolConfig, system());
         httpHeaderTranslator = adapterProvider.getHttpHeaderTranslator();
 
-        routeBaseProperties = RouteBaseProperties.newBuilder()
+        routeBaseProperties = RouteBaseProperties.newBuilder(false)
                 .proxyActor(createDummyResponseActor(getResponseProvider()))
                 .actorSystem(system())
                 .httpConfig(httpConfig)
