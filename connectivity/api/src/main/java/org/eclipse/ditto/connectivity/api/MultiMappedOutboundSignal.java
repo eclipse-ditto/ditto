@@ -21,13 +21,13 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.base.model.signals.Signal;
 
 import akka.actor.ActorRef;
 
@@ -73,6 +73,11 @@ final class MultiMappedOutboundSignal implements OutboundSignal.MultiMapped {
     @Override
     public List<Target> getTargets() {
         return first().getTargets();
+    }
+
+    @Override
+    public Optional<JsonObject> getExtra() {
+        return first().getExtra();
     }
 
     @Override

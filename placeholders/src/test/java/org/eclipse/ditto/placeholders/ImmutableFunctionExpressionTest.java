@@ -40,6 +40,11 @@ public class ImmutableFunctionExpressionTest {
             "substring-after",
             "lower",
             "upper",
+            "trim",
+            "url-encode",
+            "url-decode",
+            "base64-encode",
+            "base64-decode",
             "delete",
             "replace",
             "split"

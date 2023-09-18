@@ -14,14 +14,15 @@ package org.eclipse.ditto.connectivity.api;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Represent an outbound signal that was mapped to an external message. It wraps the original signal, the mapped
@@ -58,6 +59,11 @@ final class MappedOutboundSignal implements OutboundSignal.Mapped {
     @Override
     public List<Target> getTargets() {
         return delegate.getTargets();
+    }
+
+    @Override
+    public Optional<JsonObject> getExtra() {
+        return delegate.getExtra();
     }
 
     @Override

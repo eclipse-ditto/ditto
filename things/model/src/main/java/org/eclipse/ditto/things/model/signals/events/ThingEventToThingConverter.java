@@ -76,7 +76,7 @@ public final class ThingEventToThingConverter {
      * @param extra value of the extra fields.
      * @return the merged thing if thing information exists in any of the 2 sources, or an empty optional otherwise.
      */
-    public static Optional<Thing> mergeThingWithExtraFields(final Signal<?> signal,
+    public static Optional<Thing> mergeThingWithExtraFields(@Nullable final Signal<?> signal,
             @Nullable final JsonFieldSelector extraFields,
             final JsonObject extra) {
 
