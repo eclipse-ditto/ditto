@@ -34,8 +34,8 @@ import org.eclipse.ditto.things.model.signals.events.AttributeModified;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.junit.Test;
 
-import akka.pattern.AskTimeoutException;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.pattern.AskTimeoutException;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Abstract base test for different {@link SignalEnrichmentFacade} implementations.

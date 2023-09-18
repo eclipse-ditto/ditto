@@ -118,8 +118,8 @@ import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.edge.service.streaming.StreamingSubscriptionManager;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -134,26 +134,26 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.WithSubscriptionId;
 
 import com.typesafe.config.Config;
 
-import akka.Done;
-import akka.NotUsed;
-import akka.actor.AbstractFSMWithStash;
-import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
-import akka.actor.ActorSystem;
-import akka.actor.Cancellable;
-import akka.actor.CoordinatedShutdown;
-import akka.actor.FSM;
-import akka.actor.OneForOneStrategy;
-import akka.actor.Props;
-import akka.actor.Status;
-import akka.actor.SupervisorStrategy;
-import akka.cluster.pubsub.DistributedPubSub;
-import akka.japi.Pair;
-import akka.japi.pf.DeciderBuilder;
-import akka.japi.pf.FSMStateFunctionBuilder;
-import akka.pattern.Patterns;
-import akka.stream.Materializer;
-import akka.stream.javadsl.Sink;
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.AbstractFSMWithStash;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Cancellable;
+import org.apache.pekko.actor.CoordinatedShutdown;
+import org.apache.pekko.actor.FSM;
+import org.apache.pekko.actor.OneForOneStrategy;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.actor.SupervisorStrategy;
+import org.apache.pekko.cluster.pubsub.DistributedPubSub;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.japi.pf.DeciderBuilder;
+import org.apache.pekko.japi.pf.FSMStateFunctionBuilder;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.javadsl.Sink;
 
 /**
  * Base class for ClientActors which implement the connection handling for various connectivity protocols.
@@ -294,7 +294,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         // volatile states
         //
         // DO NOT use state timeout:
-        // FSM state timeout gets reset by any message, AND cannot be longer than 5 minutes (Akka v2.5.23).
+        // FSM state timeout gets reset by any message, AND cannot be longer than 5 minutes (Pekko v2.5.23).
         when(DISCONNECTING, inDisconnectingState());
         when(CONNECTING, inConnectingState());
         when(TESTING, inTestingState());
@@ -374,7 +374,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         cancelOnStopTasks.add(coordinatedShutdown.addCancellableTask(CoordinatedShutdown.PhaseServiceUnbind(),
                 "service-unbind-" + id, askSelfShutdownTask(Control.SERVICE_UNBIND)));
         coordinatedShutdown.addActorTerminationTask(CoordinatedShutdown.PhaseServiceRequestsDone(),
-                "service-requests-done" + id, getSelf(), Optional.of(Control.SERVICE_REQUESTS_DONE));
+                "service-requests-done-" + id, getSelf(), Optional.of(Control.SERVICE_REQUESTS_DONE));
     }
 
     private boolean shouldAnyTargetSendConnectionAnnouncements() {
@@ -444,8 +444,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     /**
-     * Handles {@link TestConnection} commands by returning a CompletionState of {@link akka.actor.Status.Status Status}
-     * which may be {@link akka.actor.Status.Success Success} or {@link akka.actor.Status.Failure Failure}.
+     * Handles {@link TestConnection} commands by returning a CompletionState of {@link org.apache.pekko.actor.Status.Status Status}
+     * which may be {@link org.apache.pekko.actor.Status.Success Success} or {@link org.apache.pekko.actor.Status.Failure Failure}.
      *
      * @param testConnectionCommand the Connection to test
      * @return the CompletionStage with the test result
@@ -541,7 +541,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     /**
      * Escapes the passed actorName in a actorName valid way. Actor name should be a valid URL with ASCII letters, see
-     * also {@code akka.actor.ActorPath#isValidPathElement}, therefore we encode the name as an ASCII URL.
+     * also {@code pekko.actor.ActorPath#isValidPathElement}, therefore we encode the name as an ASCII URL.
      *
      * @param name the actorName to escape.
      * @return the escaped name.

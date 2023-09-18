@@ -15,7 +15,7 @@ package org.eclipse.ditto.gateway.service.endpoints.directives.auth;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.server.Route;
 
 /**
  * Authentication directive which does not perform any authentication.

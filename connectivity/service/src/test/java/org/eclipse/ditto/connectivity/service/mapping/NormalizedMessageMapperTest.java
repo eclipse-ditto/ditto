@@ -67,7 +67,7 @@ import org.mockito.Mockito;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Tests {@link NormalizedMessageMapper}.

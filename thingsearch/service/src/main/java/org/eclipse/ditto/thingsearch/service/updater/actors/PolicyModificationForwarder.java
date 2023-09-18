@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.thingsearch.service.updater.actors;
 
-import static akka.cluster.pubsub.DistributedPubSubMediator.SubscribeAck;
+import static org.apache.pekko.cluster.pubsub.DistributedPubSubMediator.SubscribeAck;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -21,7 +21,7 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockNamespaceBehavior;
@@ -32,21 +32,21 @@ import org.eclipse.ditto.thingsearch.api.PolicyReferenceTag;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.ThingsSearchUpdaterPersistence;
 
-import akka.Done;
-import akka.NotUsed;
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.CoordinatedShutdown;
-import akka.actor.Props;
-import akka.actor.Status;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
-import akka.stream.KillSwitch;
-import akka.stream.KillSwitches;
-import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.CoordinatedShutdown;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.event.DiagnosticLoggingAdapter;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.KillSwitch;
+import org.apache.pekko.stream.KillSwitches;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Actor that forwards policy tags (emitted by PolicyPersistence after each policy modification) to updater
@@ -91,7 +91,7 @@ final class PolicyModificationForwarder extends AbstractActor {
     /**
      * Create Props for this actor.
      *
-     * @param pubSubMediator Akka pub-sub-mediator
+     * @param pubSubMediator Pekko pub-sub-mediator
      * @param thingsUpdater thingsUpdater
      * @param blockedNamespaces blocked namespaces.
      * @return the Props object.

@@ -17,7 +17,7 @@ import org.eclipse.ditto.base.service.signaltransformer.placeholdersubstitution.
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Things specific SignalTransformer which applies substitution of placeholders on a thing command

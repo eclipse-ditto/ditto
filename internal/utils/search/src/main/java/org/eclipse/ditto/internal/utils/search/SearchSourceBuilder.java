@@ -41,8 +41,8 @@ import org.eclipse.ditto.thingsearch.model.SortOption;
 import org.eclipse.ditto.thingsearch.model.SortOptionEntry;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
 
 /**
  * Builder for {@link SearchSource}.

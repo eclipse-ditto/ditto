@@ -23,7 +23,7 @@ import org.eclipse.ditto.rql.query.Query;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Search Query Validator to be loaded by reflection.

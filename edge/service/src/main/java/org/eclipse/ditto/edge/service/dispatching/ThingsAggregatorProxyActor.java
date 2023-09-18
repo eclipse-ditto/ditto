@@ -36,9 +36,9 @@ import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
-import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithShutdownBehaviorAndRequestCounting;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithShutdownBehaviorAndRequestCounting;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
@@ -53,17 +53,17 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingRespon
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingsResponse;
 
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.japi.pf.PFBuilder;
-import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
-import akka.stream.Materializer;
-import akka.stream.SourceRef;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.japi.pf.PFBuilder;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.SourceRef;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Acts as a client for {@code ThingsAggregatorActor} which responds
@@ -95,10 +95,10 @@ public final class ThingsAggregatorProxyActor extends AbstractActorWithShutdownB
     }
 
     /**
-     * Creates Akka configuration object Props for this ThingsAggregatorProxyActor.
+     * Creates Pekko configuration object Props for this ThingsAggregatorProxyActor.
      *
      * @param pubSubMediator the pub/sub mediator Actor ref to delegate "asks" for the aggregation to.
-     * @return the Akka configuration Props object
+     * @return the Pekko configuration Props object
      */
     public static Props props(final ActorRef pubSubMediator) {
 

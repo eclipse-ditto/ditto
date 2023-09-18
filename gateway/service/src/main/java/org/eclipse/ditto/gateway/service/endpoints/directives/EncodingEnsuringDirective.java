@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.directives;
 
-import static akka.http.javadsl.server.Directives.complete;
-import static akka.http.javadsl.server.Directives.extractRequestContext;
+import static org.apache.pekko.http.javadsl.server.Directives.complete;
+import static org.apache.pekko.http.javadsl.server.Directives.extractRequestContext;
 
 import java.text.MessageFormat;
 import java.util.function.Supplier;
@@ -22,13 +22,13 @@ import org.eclipse.ditto.gateway.service.endpoints.utils.HttpUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.model.Uri;
-import akka.http.javadsl.server.Route;
-import akka.http.scaladsl.model.IllegalUriException;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.model.Uri;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.http.scaladsl.model.IllegalUriException;
 
 /**
- * Custom Akka Http directive ensuring that request uris are encoded.
+ * Custom Pekko Http directive ensuring that request uris are encoded.
  */
 public final class EncodingEnsuringDirective {
 
@@ -45,7 +45,7 @@ public final class EncodingEnsuringDirective {
         return extractRequestContext(requestContext -> {
             final Uri uri = requestContext.getRequest().getUri();
             try {
-                // per default, Akka evaluates the query params "lazily" in the routes and throws an IllegalUriException
+                // per default, Pekko evaluates the query params "lazily" in the routes and throws an IllegalUriException
                 // in case of error; we evaluate the query params explicitly here to be able to handle this error at
                 // a central location
                 uri.query();

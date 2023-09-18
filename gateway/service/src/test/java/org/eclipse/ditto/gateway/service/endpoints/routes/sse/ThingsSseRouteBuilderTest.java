@@ -49,20 +49,20 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorSystem;
-import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.MediaTypes;
-import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.server.Route;
-import akka.http.javadsl.testkit.TestRoute;
-import akka.http.javadsl.testkit.TestRouteResult;
-import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.Source;
-import akka.stream.javadsl.SourceQueueWithComplete;
-import akka.stream.javadsl.StreamRefs;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.MediaTypes;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.testkit.TestRoute;
+import org.apache.pekko.http.javadsl.testkit.TestRouteResult;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.javadsl.SourceQueueWithComplete;
+import org.apache.pekko.stream.javadsl.StreamRefs;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit test for the route built with {@link ThingsSseRouteBuilder}.
@@ -315,7 +315,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
     /*
      * Please change this method only if you know exactly what you do.
-     * The order of statements and everything else is crucial as SSE route testing is not provided by Akka HTTP
+     * The order of statements and everything else is crucial as SSE route testing is not provided by Pekko HTTP
      * route test kit.
      */
     private void executeThingsRouteTest(final HttpRequest httpRequest, final StartStreaming expectedStartStreaming) {

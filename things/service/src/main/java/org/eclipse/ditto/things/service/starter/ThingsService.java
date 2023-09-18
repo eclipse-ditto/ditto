@@ -23,15 +23,15 @@ import org.slf4j.LoggerFactory;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.Props;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
 
 /**
  * Entry point of the Things Service.
  * <ul>
  * <li>Reads configuration, enhances it with cloud environment settings</li>
  * <li>Sets up ActorSystem</li>
- * <li>Wires up Akka HTTP Routes</li>
+ * <li>Wires up Pekko HTTP Routes</li>
  * </ul>
  */
 public final class ThingsService extends DittoService<ThingsConfig> {
@@ -68,7 +68,7 @@ public final class ThingsService extends DittoService<ThingsConfig> {
     }
 
     @Override
-    protected Config appendAkkaPersistenceMongoUriToRawConfig() {
+    protected Config appendPekkoPersistenceMongoUriToRawConfig() {
         final var mongoDbConfig = serviceSpecificConfig.getMongoDbConfig();
         final String mongoDbUri = mongoDbConfig.getMongoDbUri();
         return rawConfig.withValue(MONGO_URI_CONFIG_PATH, ConfigValueFactory.fromAnyRef(mongoDbUri));

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.directives;
 
-import static akka.http.javadsl.server.Directives.extractRequestContext;
+import static org.apache.pekko.http.javadsl.server.Directives.extractRequestContext;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.gateway.service.endpoints.utils.HttpUtils.getRawRequestUri;
 
@@ -27,24 +27,24 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.api.GatewayServiceUnavailableException;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StoppedTimer;
 import org.eclipse.ditto.internal.utils.tracing.TraceUtils;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 import org.slf4j.Logger;
 
-import akka.http.javadsl.model.ContentTypes;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.server.Directives;
-import akka.http.javadsl.server.RequestContext;
-import akka.http.javadsl.server.Route;
-import akka.util.ByteString;
+import org.apache.pekko.http.javadsl.model.ContentTypes;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.server.Directives;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.util.ByteString;
 
 /**
- * Custom Akka HTTP directive which handles a request timeout.
+ * Custom Pekko HTTP directive which handles a request timeout.
  */
 public final class RequestTimeoutHandlingDirective {
 
@@ -158,7 +158,7 @@ public final class RequestTimeoutHandlingDirective {
 
         final HttpRequest request = requestContext.getRequest();
 
-        /* We have to log and create a trace here because the RequestResultLoggingDirective won't be called by akka
+        /* We have to log and create a trace here because the RequestResultLoggingDirective won't be called by pekko
            in case of a timeout */
         final var httpStatus = cre.getHttpStatus();
 
@@ -182,7 +182,7 @@ public final class RequestTimeoutHandlingDirective {
 
         /*
          * We have to add security response headers explicitly here because SecurityResponseHeadersDirective won't be
-         * called by akka in case of a timeout.
+         * called by pekko in case of a timeout.
          */
         return HttpResponse.create()
                 .withStatus(httpStatus.getCode())

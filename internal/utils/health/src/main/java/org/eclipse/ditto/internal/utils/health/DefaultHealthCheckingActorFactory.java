@@ -16,7 +16,7 @@ import java.util.LinkedHashMap;
 
 import javax.annotation.Nullable;
 
-import akka.actor.Props;
+import org.apache.pekko.actor.Props;
 
 /**
  * Provides an actor for checking and caching the health of a ditto service.
@@ -35,12 +35,12 @@ public final class DefaultHealthCheckingActorFactory {
     private static final String PERSISTENCE_LABEL = "persistence";
 
     /**
-     * Creates Akka configuration object Props for a health checking actor.
+     * Creates Pekko configuration object Props for a health checking actor.
      *
      * @param options the options to configure this actor.
      * @param persistenceCheckerProps props to create persistence health checkers.
      * @param otherProps props of other child actors.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final HealthCheckingActorOptions options, @Nullable final Props persistenceCheckerProps,
             final Props... otherProps) {

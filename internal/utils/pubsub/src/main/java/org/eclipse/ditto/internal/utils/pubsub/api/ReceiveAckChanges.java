@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.pubsub.api;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 /**
  * Abstract super class of change notification requests for {@code AckUpdater}.

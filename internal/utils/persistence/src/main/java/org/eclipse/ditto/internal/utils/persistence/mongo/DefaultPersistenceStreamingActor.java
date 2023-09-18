@@ -19,7 +19,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJou
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
-import akka.actor.Props;
+import org.apache.pekko.actor.Props;
 
 /**
  * Configurable default implementation of {@link AbstractPersistenceStreamingActor}.
@@ -50,7 +50,7 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
     }
 
     /**
-     * Creates Akka configuration object Props for this PersistenceStreamingActor.
+     * Creates Pekko configuration object Props for this PersistenceStreamingActor.
      *
      * @param <T> type of messages to stream.
      * @param elementClass class of the elements.
@@ -58,7 +58,7 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
      * {@link org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr} to {@code T}.
      * The resulting entity will be streamed to the recipient actor.
      * @param entityUnmapper the inverse of {@code entityMapper}.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static <T extends EntityIdWithRevision<?>> Props props(final Class<T> elementClass,
             final Function<PidWithSeqNr, T> entityMapper,

@@ -36,7 +36,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Unit test for {@link SaslPlainCredentialsSupplier}.

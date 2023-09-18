@@ -49,7 +49,7 @@ public interface WebsocketConfig {
 
     /**
      * Returns the factor of maximum throughput at which rejections were sent.
-     * This threshold should never be reached unless Akka HTTP or the underlying TCP implementation is broken.
+     * This threshold should never be reached unless Pekko HTTP or the underlying TCP implementation is broken.
      *
      * @return the factor of maximum throughput at which rejections are sent.
      */

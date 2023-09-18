@@ -41,8 +41,8 @@ import org.junit.rules.TestWatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.actor.ActorRef;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit test for the cleanup of {@link ThingPersistenceActor}.

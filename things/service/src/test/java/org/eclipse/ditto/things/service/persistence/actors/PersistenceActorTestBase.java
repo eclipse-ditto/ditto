@@ -62,11 +62,11 @@ import org.slf4j.Logger;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Base test class for testing persistence actors of the things persistence.
@@ -205,8 +205,8 @@ public abstract class PersistenceActorTestBase {
         requireNonNull(customConfig, "Consider to use ConfigFactory.empty()");
         final Config config = customConfig.withFallback(ConfigFactory.load("test"));
 
-        actorSystem = ActorSystem.create("AkkaTestSystem", ConfigFactory.parseMap(
-                Map.of("akka.actor.provider", "cluster")).withFallback(config));
+        actorSystem = ActorSystem.create("PekkoTestSystem", ConfigFactory.parseMap(
+                Map.of("pekko.actor.provider", "cluster")).withFallback(config));
         pubSubTestProbe = TestProbe.apply("mock-pubSub-mediator", actorSystem);
         pubSubMediator = pubSubTestProbe.ref();
         policiesShardRegionTestProbe = TestProbe.apply("mock-policiesShardRegion", actorSystem);
@@ -292,7 +292,7 @@ public abstract class PersistenceActorTestBase {
      * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
      */
     protected void disableLogging() {
-        actorSystem.eventStream().setLogLevel(akka.stream.Attributes.logLevelOff());
+        actorSystem.eventStream().setLogLevel(org.apache.pekko.stream.Attributes.logLevelOff());
     }
 
     protected DistributedPub<ThingEvent<?>> getDistributedPub() {

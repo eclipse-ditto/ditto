@@ -16,7 +16,7 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import akka.kafka.ConsumerMessage;
+import org.apache.pekko.kafka.ConsumerMessage;
 
 /**
  * Contains a {@link TransformationResult} containing either a

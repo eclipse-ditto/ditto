@@ -20,7 +20,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 
-import akka.actor.Props;
+import org.apache.pekko.actor.Props;
 
 
 /**
@@ -39,9 +39,9 @@ public final class PoliciesPersistenceStreamingActorCreator {
     }
 
     /**
-     * Creates Akka configuration object Props for this PersistenceQueriesActor.
+     * Creates Pekko configuration object Props for this PersistenceQueriesActor.
      *
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props() {
         return DefaultPersistenceStreamingActor.props(PolicyTag.class,

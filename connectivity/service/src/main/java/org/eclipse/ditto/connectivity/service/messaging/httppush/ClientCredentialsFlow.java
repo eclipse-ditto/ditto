@@ -17,11 +17,11 @@ import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.jwt.model.JwtInvalidException;
 
-import akka.NotUsed;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.headers.HttpCredentials;
-import akka.japi.Pair;
-import akka.stream.javadsl.Flow;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.headers.HttpCredentials;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.stream.javadsl.Flow;
 
 /**
  * Flow of HTTP requests that authenticate via client-credentials flow.

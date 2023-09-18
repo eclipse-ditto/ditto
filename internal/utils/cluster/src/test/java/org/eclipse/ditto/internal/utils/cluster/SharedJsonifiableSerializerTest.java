@@ -47,8 +47,8 @@ import org.junit.runners.Parameterized;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ExtendedActorSystem;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit test for {@link JsonJsonifiableSerializer} and {@link CborJsonifiableSerializer}.

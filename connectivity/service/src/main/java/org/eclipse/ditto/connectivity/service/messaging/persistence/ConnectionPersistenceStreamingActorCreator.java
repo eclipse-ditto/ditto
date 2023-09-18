@@ -18,7 +18,7 @@ import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DefaultPersistenceStreamingActor;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr;
 
-import akka.actor.Props;
+import org.apache.pekko.actor.Props;
 
 
 /**
@@ -36,9 +36,9 @@ public final class ConnectionPersistenceStreamingActorCreator {
     }
 
     /**
-     * Creates Akka configuration object Props for this PersistenceQueriesActor.
+     * Creates Pekko configuration object Props for this PersistenceQueriesActor.
      *
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props() {
         return DefaultPersistenceStreamingActor.props(ConnectionTag.class,

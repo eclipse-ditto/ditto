@@ -17,7 +17,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 /**
  * Abstract base implementation for {@link WithOrigin}.

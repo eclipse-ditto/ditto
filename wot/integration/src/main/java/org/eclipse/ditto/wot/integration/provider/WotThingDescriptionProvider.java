@@ -26,8 +26,8 @@ import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.wot.model.ThingDescription;
 
-import akka.actor.ActorSystem;
-import akka.actor.Extension;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Extension;
 
 /**
  * Extension for providing WoT (Web of Things) {@link ThingDescription}s for given {@code thingId}s from either a

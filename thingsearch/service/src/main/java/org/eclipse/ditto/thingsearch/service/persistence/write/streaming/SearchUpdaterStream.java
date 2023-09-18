@@ -23,11 +23,11 @@ import org.eclipse.ditto.thingsearch.service.updater.actors.ThingUpdater;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.javadsl.Flow;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Stream from the cache of Thing changes to the persistence of the search index.

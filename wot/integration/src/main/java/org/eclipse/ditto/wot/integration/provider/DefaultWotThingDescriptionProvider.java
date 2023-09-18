@@ -26,8 +26,8 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.FeatureToggle;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.DefinitionIdentifier;
@@ -44,9 +44,9 @@ import org.eclipse.ditto.wot.model.ThingDefinitionInvalidException;
 import org.eclipse.ditto.wot.model.ThingDescription;
 import org.eclipse.ditto.wot.model.WotInternalErrorException;
 
-import akka.actor.AbstractExtensionId;
-import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.AbstractExtensionId;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
 
 /**
  * Default Ditto specific implementation of {@link WotThingDescriptionProvider}.

@@ -74,21 +74,21 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.Connecti
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.ThrottledLoggerMetricsAlert;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.Done;
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.FSM;
-import akka.actor.Props;
-import akka.actor.Status;
-import akka.japi.pf.FSMStateFunctionBuilder;
-import akka.pattern.Patterns;
-import akka.stream.javadsl.Sink;
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.FSM;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.japi.pf.FSMStateFunctionBuilder;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.javadsl.Sink;
 
 /**
  * Actor which manages a connection to an AMQP 1.0 server using the Qpid JMS client.
@@ -168,16 +168,16 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     /**
-     * Creates Akka configuration object for this actor.
+     * Creates Pekko configuration object for this actor.
      *
      * @param connection the connection.
      * @param commandForwarderActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param configOverwrites an override for the default connectivity config values -
      * @param actorSystem the actor system.
-     * as Typesafe {@code Config} because this one is serializable in Akka by default.
+     * as Typesafe {@code Config} because this one is serializable in Pekko by default.
      * @param dittoHeaders headers of the command that caused this actor to be created.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final Connection connection, final ActorRef commandForwarderActor,
             final ActorRef connectionActor, final Config configOverwrites, final ActorSystem actorSystem,
@@ -187,14 +187,14 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     /**
-     * Creates Akka configuration object for this actor.
+     * Creates Pekko configuration object for this actor.
      *
      * @param connection connection parameters.
      * @param commandForwarderActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param jmsConnectionFactory the JMS connection factory.
      * @param actorSystem the actor system.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props propsForTest(final Connection connection, @Nullable final ActorRef commandForwarderActor,
             final ActorRef connectionActor, final JmsConnectionFactory jmsConnectionFactory,

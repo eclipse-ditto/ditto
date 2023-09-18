@@ -20,12 +20,12 @@ import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 
 import com.typesafe.config.Config;
 
-import akka.NotUsed;
-import akka.actor.ActorSystem;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.server.Route;
-import akka.stream.javadsl.Flow;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.stream.javadsl.Flow;
 
 /**
  * Extension to add a custom bind flow for HTTP requests.

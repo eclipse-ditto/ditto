@@ -41,7 +41,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.internal.models.streaming.StreamedSnapshot;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamSnapshots;
-import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
+import org.eclipse.ditto.internal.utils.pekko.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.health.ResetHealthEvents;
 import org.eclipse.ditto.internal.utils.health.ResetHealthEventsResponse;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
@@ -72,17 +72,17 @@ import org.junit.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.Done;
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.japi.Pair;
-import akka.stream.Materializer;
-import akka.stream.SourceRef;
-import akka.stream.javadsl.Source;
-import akka.stream.javadsl.StreamRefs;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.SourceRef;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.javadsl.StreamRefs;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit test for {@link BackgroundSyncActor}.
@@ -122,7 +122,7 @@ public final class BackgroundSyncActorTest {
 
     @Before
     public void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TEST_CONFIG);
+        actorSystem = ActorSystem.create("PekkoTestSystem", TEST_CONFIG);
         thingsUpdater = new TestKit(actorSystem);
         pubSub = new TestKit(actorSystem);
         policiesShardRegion = new TestKit(actorSystem);

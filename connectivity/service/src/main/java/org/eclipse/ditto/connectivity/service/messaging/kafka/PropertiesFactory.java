@@ -33,10 +33,10 @@ import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
 
 import com.typesafe.config.Config;
 
-import akka.kafka.CommitterSettings;
-import akka.kafka.ConnectionCheckerSettings;
-import akka.kafka.ConsumerSettings;
-import akka.kafka.ProducerSettings;
+import org.apache.pekko.kafka.CommitterSettings;
+import org.apache.pekko.kafka.ConnectionCheckerSettings;
+import org.apache.pekko.kafka.ConsumerSettings;
+import org.apache.pekko.kafka.ProducerSettings;
 
 /**
  * Creates Kafka properties from a given {@link org.eclipse.ditto.connectivity.model.Connection} configuration.
@@ -96,11 +96,11 @@ final class PropertiesFactory {
      * @return the settings.
      */
     ConsumerSettings<String, ByteBuffer> getConsumerSettings(final boolean dryRun) {
-        final Config alpakkaConfig = config.getConsumerConfig().getAlpakkaConfig();
+        final Config pekkoConnectorsConfig = config.getConsumerConfig().getPekkoConnectorsConfig();
         final ConnectionCheckerSettings connectionCheckerSettings =
-                ConnectionCheckerSettings.apply(alpakkaConfig.getConfig("connection-checker"));
+                ConnectionCheckerSettings.apply(pekkoConnectorsConfig.getConfig("connection-checker"));
         final ConsumerSettings<String, ByteBuffer> consumerSettings =
-                ConsumerSettings.apply(alpakkaConfig, new StringDeserializer(), new ByteBufferDeserializer())
+                ConsumerSettings.apply(pekkoConnectorsConfig, new StringDeserializer(), new ByteBufferDeserializer())
                         .withBootstrapServers(bootstrapServers)
                         .withGroupId(connection.getId().toString())
                         .withClientId(clientId + "-consumer")
@@ -115,13 +115,13 @@ final class PropertiesFactory {
     }
 
     CommitterSettings getCommitterSettings() {
-        final Config committerConfig = config.getCommitterConfig().getAlpakkaConfig();
+        final Config committerConfig = config.getCommitterConfig().getPekkoConnectorsConfig();
         return CommitterSettings.apply(committerConfig);
     }
 
     ProducerSettings<String, ByteBuffer> getProducerSettings() {
-        final Config alpakkaConfig = config.getProducerConfig().getAlpakkaConfig();
-        return ProducerSettings.apply(alpakkaConfig, new StringSerializer(), new ByteBufferSerializer())
+        final Config pekkoConnectorsConfig = config.getProducerConfig().getPekkoConnectorsConfig();
+        return ProducerSettings.apply(pekkoConnectorsConfig, new StringSerializer(), new ByteBufferSerializer())
                 .withBootstrapServers(bootstrapServers)
                 .withProperties(getClientIdProperties())
                 .withProperties(getTrustedSelfSignedCertificates())
@@ -194,7 +194,7 @@ final class PropertiesFactory {
 
     /**
      * Convert a structured Config into flat map from config paths to values.
-     * Replicates Alpakka Kafka client's interpretation of client Config.
+     * Replicates Pekko Connectors Kafka client's interpretation of client Config.
      *
      * @param config the Config object.
      * @return flat map from config paths to values.

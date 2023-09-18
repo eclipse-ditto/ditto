@@ -21,8 +21,8 @@ import java.util.function.Function;
 import org.eclipse.ditto.base.api.common.Shutdown;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.models.streaming.LowerBound;
-import org.eclipse.ditto.internal.utils.akka.controlflow.ResumeSource;
-import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
+import org.eclipse.ditto.internal.utils.pekko.controlflow.ResumeSource;
+import org.eclipse.ditto.internal.utils.pekko.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.health.AbstractBackgroundStreamingActorWithConfigWithStatusReport;
 import org.eclipse.ditto.internal.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -42,14 +42,14 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.Backgro
 
 import com.typesafe.config.Config;
 
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.japi.Pair;
-import akka.japi.function.Procedure;
-import akka.japi.pf.ReceiveBuilder;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.japi.function.Procedure;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Cluster-singleton responsible for background synchronization.
@@ -104,10 +104,10 @@ public final class BackgroundSyncActor
     }
 
     /**
-     * Create Akka Props object for the background sync actor.
+     * Create Pekko Props object for the background sync actor.
      *
      * @param config the config of the background sync actor.
-     * @param pubSubMediator Akka pub-sub mediator.
+     * @param pubSubMediator Pekko pub-sub mediator.
      * @param thingsSearchPersistence the search persistence to access the search index.
      * @param backgroundSyncPersistence persistence for bookmarks of background sync progress.
      * @param policiesShardRegion the policies shard region to query policy revisions.

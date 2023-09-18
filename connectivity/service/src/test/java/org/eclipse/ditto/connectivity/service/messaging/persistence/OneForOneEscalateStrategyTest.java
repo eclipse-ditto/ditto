@@ -24,11 +24,11 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import akka.actor.ActorContext;
-import akka.actor.ActorInitializationException;
-import akka.actor.ActorPath;
-import akka.actor.ChildRestartStats;
-import akka.actor.InternalActorRef;
+import org.apache.pekko.actor.ActorContext;
+import org.apache.pekko.actor.ActorInitializationException;
+import org.apache.pekko.actor.ActorPath;
+import org.apache.pekko.actor.ChildRestartStats;
+import org.apache.pekko.actor.InternalActorRef;
 import scala.collection.Iterable;
 import scala.collection.immutable.List;
 

@@ -25,14 +25,14 @@ import org.junit.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.cluster.Cluster;
-import akka.japi.pf.ReceiveBuilder;
-import akka.stream.Attributes;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.stream.Attributes;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Abstract class to test the service root actors.
@@ -65,14 +65,14 @@ public abstract class AbstractDittoRootActorTest {
     protected ActorSystem createActorSystem() {
         final Map<String, Object> configMap = Map.of(
                 // bind random ports
-                "akka.management.http.port", 0,
-                "akka.remote.artery.canonical.port", 0,
-                "akka.cluster.seed-nodes", List.of(),
+                "pekko.management.http.port", 0,
+                "pekko.remote.artery.canonical.port", 0,
+                "pekko.cluster.seed-nodes", List.of(),
                 "ditto.http.port", 0,
                 "ditto.metrics.prometheus.port", 0,
 
                 // turn off System.exit(0) in the post-shutdown hook to avoid JVM termination at the end of this test
-                "akka.coordinated-shutdown.exit-jvm", "off"
+                "pekko.coordinated-shutdown.exit-jvm", "off"
         );
         final Config config = ConfigFactory.parseMap(overrideConfig())
                 .withFallback(ConfigFactory.parseMap(configMap))

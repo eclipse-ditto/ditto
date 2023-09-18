@@ -38,17 +38,17 @@ import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
 
-import akka.actor.Props;
-import akka.japi.Pair;
-import akka.japi.pf.ReceiveBuilder;
-import akka.stream.BoundedSourceQueue;
-import akka.stream.KillSwitch;
-import akka.stream.KillSwitches;
-import akka.stream.QueueOfferResult;
-import akka.stream.UniqueKillSwitch;
-import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.stream.BoundedSourceQueue;
+import org.apache.pekko.stream.KillSwitch;
+import org.apache.pekko.stream.KillSwitches;
+import org.apache.pekko.stream.QueueOfferResult;
+import org.apache.pekko.stream.UniqueKillSwitch;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Actor responsible for converting outbound {@code Signal}s to a {@code GenericMqttPublish} and sending them to an

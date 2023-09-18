@@ -62,16 +62,16 @@ import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 
-import com.newmotion.akka.rabbitmq.ChannelCreated;
-import com.newmotion.akka.rabbitmq.ChannelMessage;
+import com.github.pjfanning.pekko.rabbitmq.ChannelCreated;
+import com.github.pjfanning.pekko.rabbitmq.ChannelMessage;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.ConfirmListener;
 import com.rabbitmq.client.ReturnListener;
 
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.japi.pf.ReceiveBuilder;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 
 /**
  * Responsible for publishing {@link ExternalMessage}s into RabbitMQ / AMQP 0.9.1.
@@ -116,13 +116,13 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     }
 
     /**
-     * Creates Akka configuration object {@link Props} for this {@code RabbitMQPublisherActor}.
+     * Creates Pekko configuration object {@link Props} for this {@code RabbitMQPublisherActor}.
      *
      * @param connection the connection this publisher belongs to
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props props(final Connection connection,
             final ConnectivityStatusResolver connectivityStatusResolver,

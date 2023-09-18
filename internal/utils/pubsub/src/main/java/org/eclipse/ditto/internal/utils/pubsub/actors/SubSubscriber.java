@@ -17,7 +17,7 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
 
-import akka.actor.Props;
+import org.apache.pekko.actor.Props;
 
 /**
  * Actor that distributes messages to local subscribers.

@@ -20,23 +20,23 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.internal.utils.akka.PingCommand;
-import org.eclipse.ditto.internal.utils.akka.PingCommandResponse;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.PingCommand;
+import org.eclipse.ditto.internal.utils.pekko.PingCommandResponse;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.config.RateConfig;
 import org.eclipse.ditto.json.JsonValue;
 
-import akka.NotUsed;
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.Cancellable;
-import akka.actor.Props;
-import akka.japi.pf.ReceiveBuilder;
-import akka.stream.Materializer;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Cancellable;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Actor which pings an {@link AbstractPersistenceActor}s containing journal entries tagged with
@@ -103,12 +103,12 @@ public final class PersistencePingActor extends AbstractActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this Actor.
+     * Creates Pekko configuration object Props for this Actor.
      *
      * @param persistenceActorShardRegion the shard region of the target PersistenceActor.
      * @param pingConfig the Configuration to apply for this ping actor.
      * @param readJournal readJournal to extract current PIDs from.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final ActorRef persistenceActorShardRegion, final PingConfig pingConfig,
             final MongoReadJournal readJournal) {
@@ -117,12 +117,12 @@ public final class PersistencePingActor extends AbstractActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this Actor.
+     * Creates Pekko configuration object Props for this Actor.
      *
      * @param persistenceActorShardRegion the shard region of the target PersistenceActor.
      * @param pingConfig the Configuration to apply for this ping actor.
      * @param persistenceIdsSourceSupplier supplier of persistence id sources.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props propsForTests(final ActorRef persistenceActorShardRegion, final PingConfig pingConfig,
             final Supplier<Source<String, NotUsed>> persistenceIdsSourceSupplier) {

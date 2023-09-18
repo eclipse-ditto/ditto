@@ -18,15 +18,15 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
-import akka.actor.ActorSystem;
-import akka.dispatch.MessageDispatcher;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.dispatch.MessageDispatcher;
 
 /**
  * Loads the {@link org.eclipse.ditto.policies.model.Policy} from the policies shard region and wraps it into a

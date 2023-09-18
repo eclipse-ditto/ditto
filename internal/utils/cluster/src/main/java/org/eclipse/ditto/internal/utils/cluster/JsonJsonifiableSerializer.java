@@ -20,7 +20,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
-import akka.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
 
 /**
  * Serializer of Eclipse Ditto for Jsonifiables via string-based {@code ditto-json}.

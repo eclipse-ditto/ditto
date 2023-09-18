@@ -31,7 +31,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Unit test for {@link DefaultJwtAuthenticationResultProvider}.

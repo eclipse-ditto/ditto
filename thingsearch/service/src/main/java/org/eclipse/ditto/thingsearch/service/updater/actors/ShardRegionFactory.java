@@ -25,10 +25,10 @@ import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.cluster.sharding.ClusterSharding;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.sharding.ClusterSharding;
 
 /**
  * Factory for Shard Region {@link ActorRef}s of different services.

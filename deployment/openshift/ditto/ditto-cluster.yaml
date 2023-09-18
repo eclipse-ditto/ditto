@@ -29,7 +29,7 @@ spec:
           containerPort: 2551
           protocol: TCP
         - name: management
-          containerPort: 8558
+          containerPort: 7626
           protocol: TCP
         readinessProbe:
           httpGet:
@@ -49,7 +49,7 @@ spec:
           requests:
             memory: "512Mi"
           limits:
-            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://pekko.apache.org/docs/pekko/current/additional/deploying.html#in-kubernetes
             memory: "512Mi"
         env:
         - name: INSTANCE_INDEX
@@ -68,7 +68,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: JAVA_TOOL_OPTIONS
-          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s -Dakka.cluster.distributed-data.durable.lmdb.dir=/var/tmp/ddata"
+          value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dpekko.coordinated-shutdown.exit-jvm=on -Dpekko.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s -Dpekko.cluster.distributed-data.durable.lmdb.dir=/var/tmp/ddata"
         - name: MONGO_DB_URI
           valueFrom:
             secretKeyRef:
@@ -102,7 +102,7 @@ spec:
           containerPort: 2551
           protocol: TCP
         - name: management
-          containerPort: 8558
+          containerPort: 7626
           protocol: TCP
         readinessProbe:
           httpGet:
@@ -122,7 +122,7 @@ spec:
           requests:
             memory: "512Mi"
           limits:
-            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://pekko.apache.org/docs/pekko/current/additional/deploying.html#in-kubernetes
             memory: "512Mi"
         env:
         - name: INSTANCE_INDEX
@@ -141,7 +141,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: JAVA_TOOL_OPTIONS
-          value: "-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s"
+          value: "-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dpekko.coordinated-shutdown.exit-jvm=on -Dpekko.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dpekko.cluster.failure-detector.threshold=15.0 -Dpekko.cluster.failure-detector.expected-response-after=3s -Dpekko.cluster.failure-detector.acceptable-heartbeat-pause=7s"
         - name: MONGO_DB_URI
           valueFrom:
             secretKeyRef:
@@ -174,7 +174,7 @@ spec:
           containerPort: 2551
           protocol: TCP
         - name: management
-          containerPort: 8558
+          containerPort: 7626
           protocol: TCP
         readinessProbe:
           httpGet:
@@ -194,7 +194,7 @@ spec:
           requests:
             memory: "512Mi"
           limits:
-            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://pekko.apache.org/docs/pekko/current/additional/deploying.html#in-kubernetes
             memory: "512Mi"
         env:
         - name: INSTANCE_INDEX
@@ -212,7 +212,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: JAVA_TOOL_OPTIONS
-          value: "-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s"
+          value: "-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dpekko.coordinated-shutdown.exit-jvm=on -Dpekko.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dpekko.cluster.failure-detector.threshold=15.0 -Dpekko.cluster.failure-detector.expected-response-after=3s -Dpekko.cluster.failure-detector.acceptable-heartbeat-pause=7s"
         - name: MONGO_DB_URI
           valueFrom:
             secretKeyRef:
@@ -245,7 +245,7 @@ spec:
           containerPort: 2551
           protocol: TCP
         - name: management
-          containerPort: 8558
+          containerPort: 7626
           protocol: TCP
         readinessProbe:
           httpGet:
@@ -265,7 +265,7 @@ spec:
           requests:
             memory: "512Mi"
           limits:
-            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://pekko.apache.org/docs/pekko/current/additional/deploying.html#in-kubernetes
             memory: "512Mi"
         env:
         - name: INSTANCE_INDEX
@@ -284,7 +284,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: JAVA_TOOL_OPTIONS
-          value: "-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s"
+          value: "-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dpekko.coordinated-shutdown.exit-jvm=on -Dpekko.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dpekko.cluster.failure-detector.threshold=15.0 -Dpekko.cluster.failure-detector.expected-response-after=3s -Dpekko.cluster.failure-detector.acceptable-heartbeat-pause=7s"
         - name: MONGO_DB_URI
           valueFrom:
             secretKeyRef:
@@ -317,7 +317,7 @@ spec:
           containerPort: 2551
           protocol: TCP
         - name: management
-          containerPort: 8558
+          containerPort: 7626
           protocol: TCP
         readinessProbe:
           httpGet:
@@ -337,7 +337,7 @@ spec:
           requests:
             memory: "512Mi"
           limits:
-            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://pekko.apache.org/docs/pekko/current/additional/deploy.html#in-kubernetes
             memory: "512Mi"
         env:
           - name: ENABLE_PRE_AUTHENTICATION
@@ -360,7 +360,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: JAVA_TOOL_OPTIONS
-          value: "-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s"
+          value: "-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dpekko.coordinated-shutdown.exit-jvm=on -Dpekko.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dpekko.cluster.failure-detector.threshold=15.0 -Dpekko.cluster.failure-detector.expected-response-after=3s -Dpekko.cluster.failure-detector.acceptable-heartbeat-pause=7s"
         - name: DEVOPS_PASSWORD
           value: "dittoPW1!"
 ---

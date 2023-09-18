@@ -20,7 +20,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.bson.Document;
-import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
+import org.eclipse.ditto.internal.utils.pekko.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,15 +30,15 @@ import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
-import akka.Done;
-import akka.NotUsed;
-import akka.japi.Pair;
-import akka.japi.pf.PFBuilder;
-import akka.stream.Attributes;
-import akka.stream.Materializer;
-import akka.stream.javadsl.BroadcastHub;
-import akka.stream.javadsl.RestartSource;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.japi.pf.PFBuilder;
+import org.apache.pekko.stream.Attributes;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.javadsl.BroadcastHub;
+import org.apache.pekko.stream.javadsl.RestartSource;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * MongoDB implementation of {@link TimestampPersistence}.

@@ -17,8 +17,8 @@ import java.util.List;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 
-import akka.NotUsed;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Persistence ops on entities.

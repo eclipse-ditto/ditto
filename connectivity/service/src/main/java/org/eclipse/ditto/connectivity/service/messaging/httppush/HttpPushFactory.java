@@ -25,12 +25,12 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.Connecti
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 
-import akka.actor.ActorSystem;
-import akka.event.LoggingAdapter;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.HttpResponse;
-import akka.japi.Pair;
-import akka.stream.javadsl.Flow;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.event.LoggingAdapter;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.stream.javadsl.Flow;
 import scala.util.Try;
 
 /**
@@ -50,7 +50,7 @@ public interface HttpPushFactory {
     /**
      * Create a flow to send HTTP(S) requests.
      *
-     * @param system the actor system with the default Akka HTTP configuration.
+     * @param system the actor system with the default Pekko HTTP configuration.
      * @param log logger for the flow.
      * @param requestTimeout timeout of each request.
      * @return flow from request-correlationId pairs to response-correlationId pairs.
@@ -66,7 +66,7 @@ public interface HttpPushFactory {
     /**
      * Create a flow to send HTTP(S) requests.
      *
-     * @param system the actor system with the default Akka HTTP configuration.
+     * @param system the actor system with the default Pekko HTTP configuration.
      * @param log logger for the flow.
      * @param requestTimeout timeout of each request.
      * @param timer timer to measure HTTP requests.

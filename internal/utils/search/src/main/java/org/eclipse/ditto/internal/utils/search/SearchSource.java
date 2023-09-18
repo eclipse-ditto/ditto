@@ -24,10 +24,10 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.utils.akka.controlflow.ResumeSource;
-import org.eclipse.ditto.internal.utils.akka.controlflow.ResumeSourceBuilder;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.controlflow.ResumeSource;
+import org.eclipse.ditto.internal.utils.pekko.controlflow.ResumeSourceBuilder;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -42,18 +42,18 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingRespon
 import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
 import org.eclipse.ditto.thingsearch.api.events.ThingsOutOfSync;
 
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
-import akka.japi.Pair;
-import akka.japi.pf.PFBuilder;
-import akka.pattern.Patterns;
-import akka.stream.Graph;
-import akka.stream.RemoteStreamRefActorTerminatedException;
-import akka.stream.SourceRef;
-import akka.stream.SourceShape;
-import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.japi.pf.PFBuilder;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.Graph;
+import org.apache.pekko.stream.RemoteStreamRefActorTerminatedException;
+import org.apache.pekko.stream.SourceRef;
+import org.apache.pekko.stream.SourceShape;
+import org.apache.pekko.stream.javadsl.Flow;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Source of search results for one query.

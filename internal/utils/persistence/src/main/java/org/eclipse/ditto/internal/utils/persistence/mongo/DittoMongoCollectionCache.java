@@ -24,7 +24,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 
-import akka.contrib.persistence.mongodb.MongoCollectionCache;
+import pekko.contrib.persistence.mongodb.MongoCollectionCache;
 import scala.Function1;
 import scala.concurrent.Future;
 

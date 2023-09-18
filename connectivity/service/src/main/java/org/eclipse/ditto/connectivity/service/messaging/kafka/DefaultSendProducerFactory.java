@@ -14,9 +14,9 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import java.nio.ByteBuffer;
 
-import akka.actor.ActorSystem;
-import akka.kafka.ProducerSettings;
-import akka.kafka.javadsl.SendProducer;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.kafka.ProducerSettings;
+import org.apache.pekko.kafka.javadsl.SendProducer;
 
 /**
  * Default implementation of {@link SendProducerFactory}.

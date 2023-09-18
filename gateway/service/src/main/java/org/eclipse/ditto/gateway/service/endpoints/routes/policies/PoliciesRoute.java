@@ -52,12 +52,12 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 
-import akka.http.javadsl.server.PathMatchers;
-import akka.http.javadsl.server.RequestContext;
-import akka.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.server.PathMatchers;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
 
 /**
- * Builder for creating Akka HTTP routes for {@code /policies}.
+ * Builder for creating Pekko HTTP routes for {@code /policies}.
  */
 public final class PoliciesRoute extends AbstractRoute {
 

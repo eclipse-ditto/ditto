@@ -37,7 +37,7 @@ import org.eclipse.ditto.connectivity.model.ReplyTarget;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.config.DefaultHonoConfig;
 import org.eclipse.ditto.connectivity.service.config.HonoConfig;
-import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
+import org.eclipse.ditto.internal.utils.pekko.ActorSystemResource;
 import org.eclipse.ditto.json.JsonFactory;
 import org.junit.Before;
 import org.junit.Rule;

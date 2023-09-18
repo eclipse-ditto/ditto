@@ -23,11 +23,11 @@ import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpConnectionSigning;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpRequestSigning;
 
-import akka.NotUsed;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.headers.HttpCredentials;
-import akka.stream.javadsl.Source;
-import akka.util.ByteString;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.headers.HttpCredentials;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.util.ByteString;
 
 /**
  * Signing of HTTP requests and AMQP connection strings with Azure SASL.

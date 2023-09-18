@@ -35,24 +35,24 @@ import org.eclipse.ditto.gateway.service.endpoints.actors.AbstractHttpRequestAct
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CloudEventsConfig;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 
-import akka.actor.Status;
-import akka.http.javadsl.model.ContentType;
-import akka.http.javadsl.model.ContentTypes;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.server.RequestContext;
-import akka.http.javadsl.server.Route;
-import akka.stream.javadsl.Sink;
-import akka.util.ByteString;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.http.javadsl.model.ContentType;
+import org.apache.pekko.http.javadsl.model.ContentTypes;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.util.ByteString;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.CloudEventData;
 import io.cloudevents.core.message.MessageReader;
@@ -60,7 +60,7 @@ import io.cloudevents.http.HttpMessageFactory;
 import io.cloudevents.rw.CloudEventRWException;
 
 /**
- * Builder for creating Akka HTTP route for {@code /cloudevents}.
+ * Builder for creating Pekko HTTP route for {@code /cloudevents}.
  */
 public final class CloudEventsRoute extends AbstractRoute {
 
@@ -200,7 +200,7 @@ public final class CloudEventsRoute extends AbstractRoute {
                 });
 
                 if (!sawContentType.get()) {
-                    // we didn't see the content type in the header, so extract it from akka's request
+                    // we didn't see the content type in the header, so extract it from pekko's request
                     acceptor.accept(DittoHeaderDefinition.CONTENT_TYPE.getKey(),
                             ctx.getRequest().entity().getContentType().mediaType().toString());
                 }

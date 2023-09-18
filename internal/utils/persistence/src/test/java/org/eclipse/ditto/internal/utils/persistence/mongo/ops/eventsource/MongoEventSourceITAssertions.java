@@ -30,7 +30,7 @@ import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespaceResponse;
-import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
+import org.eclipse.ditto.internal.utils.pekko.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
@@ -44,11 +44,11 @@ import org.mockito.Mockito;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.PoisonPill;
-import akka.cluster.pubsub.DistributedPubSub;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.PoisonPill;
+import org.apache.pekko.cluster.pubsub.DistributedPubSub;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests subclasses of {@link org.eclipse.ditto.internal.utils.persistence.operations.AbstractPersistenceOperationsActor} which provide purging by namespace on a event source
@@ -115,7 +115,7 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
      * Start an entity's persistence actor.
      *
      * @param system the actor system.
-     * @param pubSubMediator Akka pub-sub mediator.
+     * @param pubSubMediator Pekko pub-sub mediator.
      * @param id ID of the entity.
      * @return reference to the entity actor.
      */
@@ -125,7 +125,7 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
      * Starts the NamespaceOps actor.
      *
      * @param actorSystem the actor system.
-     * @param pubSubMediator Akka pub-sub mediator.
+     * @param pubSubMediator Pekko pub-sub mediator.
      * @param config configuration with info about event journal, snapshot store, metadata and database.
      * @return reference of the NamespaceOps actor.
      */
@@ -175,20 +175,20 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
     protected Config getEventSourcingConfiguration() {
         // - do not log dead letters (i.e., events for which there is no subscriber)
         // - bind to random available port
-        // - do not attempt to join an Akka cluster
+        // - do not attempt to join an Pekko cluster
         // - do not shutdown jvm on exit (breaks unit tests)
         // - make Mongo URI known to the persistence plugin and to the NamespaceOps actor
-        final String testConfig = "akka.log-dead-letters=0\n" +
-                "akka.persistence.journal-plugin-fallback.circuit-breaker.call-timeout=30s\n" +
-                "akka.coordinated-shutdown.terminate-actor-system=off\n" +
-                "akka.coordinated-shutdown.run-by-actor-system-terminate=off\n" +
-                "akka-contrib-mongodb-persistence-policies-journal.circuit-breaker.call-timeout=30s\n" +
-                "akka-contrib-mongodb-persistence-things-journal.circuit-breaker.call-timeout=30s\n" +
-                "akka.remote.artery.bind.port=0\n" +
-                "akka.cluster.seed-nodes=[]\n" +
-                "akka.coordinated-shutdown.exit-jvm=off\n" +
+        final String testConfig = "pekko.log-dead-letters=0\n" +
+                "pekko.persistence.journal-plugin-fallback.circuit-breaker.call-timeout=30s\n" +
+                "pekko.coordinated-shutdown.terminate-actor-system=off\n" +
+                "pekko.coordinated-shutdown.run-by-actor-system-terminate=off\n" +
+                "pekko-contrib-mongodb-persistence-policies-journal.circuit-breaker.call-timeout=30s\n" +
+                "pekko-contrib-mongodb-persistence-things-journal.circuit-breaker.call-timeout=30s\n" +
+                "pekko.remote.artery.bind.port=0\n" +
+                "pekko.cluster.seed-nodes=[]\n" +
+                "pekko.coordinated-shutdown.exit-jvm=off\n" +
                 "ditto.things.log-incoming-messages=true\n" +
-                "akka.contrib.persistence.mongodb.mongo.mongouri=\"" + mongoDbUri + "\"\n";
+                "pekko.contrib.persistence.mongodb.mongo.mongouri=\"" + mongoDbUri + "\"\n";
 
         // load the service config for info about event journal, snapshot store and metadata
         return ConfigFactory.parseString(testConfig).withFallback(RawConfigSupplier.of(getServiceName()).get());

@@ -26,15 +26,15 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
-import akka.actor.ActorRef;
-import akka.actor.Scheduler;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Scheduler;
 
 /**
  * Asynchronous cache loader that loads a value by asking an actor provided by a "Entity-Region-Provider".

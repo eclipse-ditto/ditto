@@ -26,7 +26,7 @@ import org.mutabilitydetector.unittesting.AllowedReason;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.cluster.ddata.Replicator;
+import org.apache.pekko.cluster.ddata.Replicator;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
@@ -47,7 +47,7 @@ public final class DefaultDistributedDataConfigTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(DefaultDistributedDataConfig.class, areImmutable(),
-                AllowedReason.provided(DefaultAkkaReplicatorConfig.class,
+                AllowedReason.provided(DefaultPekkoReplicatorConfig.class,
                         Replicator.WriteConsistency.class).areAlsoImmutable());
     }
 

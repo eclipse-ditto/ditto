@@ -16,11 +16,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
-import akka.actor.ActorRef;
-import akka.actor.Address;
-import akka.cluster.ddata.Key;
-import akka.cluster.ddata.ORMultiMap;
-import akka.cluster.ddata.Replicator;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Address;
+import org.apache.pekko.cluster.ddata.Key;
+import org.apache.pekko.cluster.ddata.ORMultiMap;
+import org.apache.pekko.cluster.ddata.Replicator;
 
 /**
  * Reader of distributed Bloom filters of subscribed topics.

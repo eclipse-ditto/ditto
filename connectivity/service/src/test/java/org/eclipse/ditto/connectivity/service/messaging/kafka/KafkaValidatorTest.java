@@ -38,8 +38,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import akka.actor.ActorSystem;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit test for {@link KafkaValidator}.
@@ -57,7 +57,7 @@ public final class KafkaValidatorTest {
     public static void initTestFixture() {
         defaultSpecificConfig = new HashMap<>();
         defaultSpecificConfig.put("bootstrapServers", "localhost:1883");
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        actorSystem = ActorSystem.create("PekkoTestSystem", TestConstants.CONFIG);
         connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
     }
 

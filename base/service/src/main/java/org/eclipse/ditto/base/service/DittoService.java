@@ -47,17 +47,17 @@ import com.typesafe.config.ConfigRenderOptions;
 import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueFactory;
 
-import akka.Done;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.CoordinatedShutdown;
-import akka.actor.Props;
-import akka.cluster.Cluster;
-import akka.cluster.pubsub.DistributedPubSub;
-import akka.http.javadsl.Http;
-import akka.http.javadsl.model.Uri;
-import akka.management.cluster.bootstrap.ClusterBootstrap;
-import akka.management.javadsl.AkkaManagement;
+import org.apache.pekko.Done;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.CoordinatedShutdown;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.cluster.pubsub.DistributedPubSub;
+import org.apache.pekko.http.javadsl.Http;
+import org.apache.pekko.http.javadsl.model.Uri;
+import org.apache.pekko.management.cluster.bootstrap.ClusterBootstrap;
+import org.apache.pekko.management.javadsl.PekkoManagement;
 import ch.qos.logback.classic.LoggerContext;
 import kamon.Kamon;
 import kamon.prometheus.PrometheusReporter;
@@ -71,11 +71,11 @@ import kamon.prometheus.PrometheusReporter;
  * <ol>
  * <li>{@link #determineRawConfig()},</li>
  * <li>{@link #createActorSystem(com.typesafe.config.Config)},</li>
- * <li>{@link #startStatusSupplierActor(akka.actor.ActorSystem)},</li>
- * <li>{@link #startServiceRootActors(akka.actor.ActorSystem, org.eclipse.ditto.base.service.config.ServiceSpecificConfig)}.
+ * <li>{@link #startStatusSupplierActor(org.apache.pekko.actor.ActorSystem)},</li>
+ * <li>{@link #startServiceRootActors(org.apache.pekko.actor.ActorSystem, org.eclipse.ditto.base.service.config.ServiceSpecificConfig)}.
  * <ol>
- * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)},</li>
- * <li>{@link #startMainRootActor(akka.actor.ActorSystem, akka.actor.Props)},</li>
+ * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, org.apache.pekko.actor.ActorRef)},</li>
+ * <li>{@link #startMainRootActor(org.apache.pekko.actor.ActorSystem, org.apache.pekko.actor.Props)},</li>
  * </ol>
  * </li>
  * </ol>
@@ -95,7 +95,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      */
     public static final String DITTO_CONFIG_PATH = ScopedConfig.DITTO_SCOPE;
 
-    protected static final String MONGO_URI_CONFIG_PATH = "akka.contrib.persistence.mongodb.mongo.mongouri";
+    protected static final String MONGO_URI_CONFIG_PATH = "pekko.contrib.persistence.mongodb.mongo.mongouri";
 
     protected final Config rawConfig;
     protected final C serviceSpecificConfig;
@@ -207,7 +207,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      */
     private ActorSystem doStart() {
         logRuntimeParameters();
-        final var actorSystemConfig = appendDittoInfo(appendAkkaPersistenceMongoUriToRawConfig());
+        final var actorSystemConfig = appendDittoInfo(appendPekkoPersistenceMongoUriToRawConfig());
         startKamon();
         final var actorSystem = createActorSystem(actorSystemConfig);
         initializeActorSystem(actorSystem);
@@ -215,7 +215,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         return actorSystem;
     }
 
-    protected Config appendAkkaPersistenceMongoUriToRawConfig() {
+    protected Config appendPekkoPersistenceMongoUriToRawConfig() {
         return rawConfig;
     }
 
@@ -255,9 +255,9 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
     }
 
     /**
-     * Starts the Akka actor system as well as all required actors.
+     * Starts the Pekko actor system as well as all required actors.
      * <p>
-     * May be overridden to change the way how the Akka actor system and actors are started. <em>Note: If this method is
+     * May be overridden to change the way how the Pekko actor system and actors are started. <em>Note: If this method is
      * overridden, none of the following mentioned methods and their descendant methods will be called
      * automatically:</em>
      * </p>
@@ -267,10 +267,10 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * <li>{@link #startServiceRootActors(ActorSystem, org.eclipse.ditto.base.service.config.ServiceSpecificConfig)}.</li>
      * </ul>
      *
-     * @param actorSystem the Akka ActorSystem to be initialized.
+     * @param actorSystem the Pekko ActorSystem to be initialized.
      */
     private void initializeActorSystem(final ActorSystem actorSystem) {
-        startAkkaManagement(actorSystem);
+        startPekkoManagement(actorSystem);
         startClusterBootstrap(actorSystem);
 
         startStatusSupplierActor(actorSystem);
@@ -310,7 +310,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
     }
 
     /**
-     * Creates the Akka actor system. May be overridden to change the way how the actor system is created.
+     * Creates the Pekko actor system. May be overridden to change the way how the actor system is created.
      *
      * @param config the configuration settings of this service.
      * @return the actor system.
@@ -319,15 +319,15 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         return ActorSystem.create(CLUSTER_NAME, config);
     }
 
-    private void startAkkaManagement(final ActorSystem actorSystem) {
-        logger.info("Starting AkkaManagement ...");
-        final var akkaManagement = AkkaManagement.get(actorSystem);
-        final CompletionStage<Uri> startPromise = akkaManagement.start();
+    private void startPekkoManagement(final ActorSystem actorSystem) {
+        logger.info("Starting PekkoManagement ...");
+        final var pekkoManagement = PekkoManagement.get(actorSystem);
+        final CompletionStage<Uri> startPromise = pekkoManagement.start();
         startPromise.whenComplete((uri, throwable) -> {
             if (null != throwable) {
-                logger.error("Error during start of AkkaManagement: <{}>!", throwable.getMessage(), throwable);
+                logger.error("Error during start of PekkoManagement: <{}>!", throwable.getMessage(), throwable);
             } else {
-                logger.info("Started AkkaManagement on URI <{}>.", uri);
+                logger.info("Started PekkoManagement on URI <{}>.", uri);
             }
         });
     }
@@ -342,7 +342,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * Starts the {@link org.eclipse.ditto.internal.utils.health.status.StatusSupplierActor}.
      * May be overridden to change the way how the actor is started.
      *
-     * @param actorSystem Akka actor system for starting actors.
+     * @param actorSystem Pekko actor system for starting actors.
      */
     private void startStatusSupplierActor(final ActorSystem actorSystem) {
         startActor(actorSystem, StatusSupplierActor.props(rootActorName), StatusSupplierActor.ACTOR_NAME);
@@ -361,7 +361,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * Starts the {@link org.eclipse.ditto.base.service.devops.DevOpsCommandsActor}.
      * May be overridden to change the way how the actor is started.
      *
-     * @param actorSystem Akka actor system for starting actors.
+     * @param actorSystem Pekko actor system for starting actors.
      */
     private void startDevOpsCommandsActor(final ActorSystem actorSystem) {
         startActor(actorSystem, DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), serviceName,
@@ -375,11 +375,11 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * is overridden, the following methods will not be called automatically:</em>
      * </p>
      * <ul>
-     * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)},</li>
-     * <li>{@link #startMainRootActor(akka.actor.ActorSystem, akka.actor.Props)},</li>
+     * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, org.apache.pekko.actor.ActorRef)},</li>
+     * <li>{@link #startMainRootActor(org.apache.pekko.actor.ActorSystem, org.apache.pekko.actor.Props)},</li>
      * </ul>
      *
-     * @param actorSystem Akka actor system for starting actors.
+     * @param actorSystem Pekko actor system for starting actors.
      * @param serviceSpecificConfig the configuration settings of this service.
      */
     private void startServiceRootActors(final ActorSystem actorSystem, final C serviceSpecificConfig) {
@@ -437,7 +437,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * Starts the main root actor of this service. May be overridden to change the way of starting this service's root
      * actor.
      *
-     * @param actorSystem Akka actor system for starting actors.
+     * @param actorSystem Pekko actor system for starting actors.
      * @param mainRootActorProps the Props of the main root actor.
      */
     private ActorRef startMainRootActor(final ActorSystem actorSystem, final Props mainRootActorProps) {
@@ -452,9 +452,9 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
                     logger.info("Initiated coordinated shutdown; gracefully shutting down ...");
                     coordinatedShutdown.getShutdownReason().ifPresent(reason ->
                             logger.info("Shutdown reason was - <{}>", reason));
-                    final CompletionStage<Done> stop = AkkaManagement.get(actorSystem).stop();
+                    final CompletionStage<Done> stop = PekkoManagement.get(actorSystem).stop();
                     return stop.thenApply(done -> {
-                        logger.info("AkkaManagement stopped!");
+                        logger.info("PekkoManagement stopped!");
                         return done;
                     });
 

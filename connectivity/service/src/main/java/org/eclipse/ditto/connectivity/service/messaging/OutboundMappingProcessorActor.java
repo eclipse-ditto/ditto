@@ -74,8 +74,8 @@ import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.edge.service.placeholders.ThingJsonPlaceholder;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
-import org.eclipse.ditto.internal.utils.akka.controlflow.AbstractGraphActor;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.controlflow.AbstractGraphActor;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.json.JsonFactory;
@@ -103,19 +103,19 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
 
-import akka.Done;
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.actor.Status;
-import akka.japi.Pair;
-import akka.japi.pf.PFBuilder;
-import akka.stream.QueueOfferResult;
-import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.japi.pf.PFBuilder;
+import org.apache.pekko.stream.QueueOfferResult;
+import org.apache.pekko.stream.javadsl.Flow;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 import scala.PartialFunction;
 import scala.runtime.BoxedUnit;
 
@@ -193,7 +193,7 @@ public final class OutboundMappingProcessorActor
      */
     public static void issueWeakAcknowledgements(final Signal<?> signal,
             final Predicate<AcknowledgementLabel> isWeakAckLabel,
-            final akka.actor.ActorContext actorContext,
+            final org.apache.pekko.actor.ActorContext actorContext,
             final ThreadSafeDittoLoggingAdapter log) {
         final Set<AcknowledgementRequest> requestedAcks = signal.getDittoHeaders().getAcknowledgementRequests();
         final boolean customAckRequested = requestedAcks.stream()
@@ -272,7 +272,7 @@ public final class OutboundMappingProcessorActor
     }
 
     /**
-     * Creates Akka configuration object for this actor.
+     * Creates Pekko configuration object for this actor.
      *
      * @param clientActor the client actor that created this mapping actor.
      * @param outboundMappingProcessors the MessageMappingProcessors to use for outbound messages. If at least as many
@@ -280,7 +280,7 @@ public final class OutboundMappingProcessorActor
      * @param connection the connection.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
      * @param processorPoolSize how many message processing may happen in parallel per direction (incoming or outgoing).
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final ActorRef clientActor,
             final List<OutboundMappingProcessor> outboundMappingProcessors,

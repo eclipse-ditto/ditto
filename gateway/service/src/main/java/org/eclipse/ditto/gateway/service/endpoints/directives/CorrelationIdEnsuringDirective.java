@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.directives;
 
-import static akka.http.javadsl.server.Directives.extractRequestContext;
+import static org.apache.pekko.http.javadsl.server.Directives.extractRequestContext;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -21,15 +21,15 @@ import java.util.function.Function;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 
-import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.server.Route;
 
 /**
- * Custom Akka Http directive adding a correlationId to the request, if it does not yet exist.
+ * Custom Pekko Http directive adding a correlationId to the request, if it does not yet exist.
  */
 @Immutable
 public final class CorrelationIdEnsuringDirective {

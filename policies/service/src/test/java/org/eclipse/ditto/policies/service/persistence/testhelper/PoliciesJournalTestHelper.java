@@ -27,17 +27,17 @@ import java.util.stream.Collectors;
 import org.bson.BsonDocument;
 import org.eclipse.ditto.policies.model.PolicyId;
 
-import akka.NotUsed;
-import akka.actor.ActorSystem;
-import akka.persistence.inmemory.query.javadsl.InMemoryReadJournal;
-import akka.persistence.query.EventEnvelope;
-import akka.persistence.query.PersistenceQuery;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.persistence.inmemory.query.javadsl.InMemoryReadJournal;
+import org.apache.pekko.persistence.query.EventEnvelope;
+import org.apache.pekko.persistence.query.PersistenceQuery;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
- * Helper class which provides functionality for testing with Akka persistence journal for the policies services.
- * Requires akka-persistence-inmemory (by com.github.dnvriend).
+ * Helper class which provides functionality for testing with Pekko persistence journal for the policies services.
+ * Requires pekko-persistence-inmemory (by com.github.alstanchev).
  *
  * @param <J> the domain specific datatype stored in the journal
  */

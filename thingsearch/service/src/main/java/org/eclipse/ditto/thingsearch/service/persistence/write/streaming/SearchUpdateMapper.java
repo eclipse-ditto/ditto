@@ -25,9 +25,9 @@ import org.slf4j.Logger;
 
 import com.typesafe.config.Config;
 
-import akka.NotUsed;
-import akka.actor.ActorSystem;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Search Update Mapper to be loaded by reflection.

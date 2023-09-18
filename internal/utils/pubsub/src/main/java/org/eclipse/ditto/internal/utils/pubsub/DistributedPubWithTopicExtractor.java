@@ -20,7 +20,7 @@ import org.eclipse.ditto.internal.utils.pubsub.actors.Publisher;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 /**
  * Package-private implementation of {@link DistributedPub} for publication access from an {@link DistributedPub}

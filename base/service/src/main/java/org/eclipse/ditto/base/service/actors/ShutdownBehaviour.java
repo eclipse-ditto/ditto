@@ -21,10 +21,10 @@ import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.PoisonPill;
-import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.japi.pf.ReceiveBuilder;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.PoisonPill;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 
 /**
  * Responsible for shutting down the given actor in case a shutdown command contains a reason that is applicable for the
@@ -48,7 +48,7 @@ public final class ShutdownBehaviour {
      * Create the actor behavior from its entity ID and reference.
      *
      * @param entityId entity ID to react to.
-     * @param pubSubMediator Akka pub-sub mediator.
+     * @param pubSubMediator Pekko pub-sub mediator.
      * @param self reference of the actor itself.
      * @return the actor behavior.
      */
@@ -64,7 +64,7 @@ public final class ShutdownBehaviour {
      * Create the actor behavior from its entity ID (without namespace) and reference.
      *
      * @param entityId entity ID to react to.
-     * @param pubSubMediator Akka pub-sub mediator.
+     * @param pubSubMediator Pekko pub-sub mediator.
      * @param self reference of the actor itself.
      * @return the actor behavior.
      */
@@ -79,7 +79,7 @@ public final class ShutdownBehaviour {
      * Create the actor behavior from a namespace and ID.
      *
      * @param entityId the entity ID.
-     * @param pubSubMediator Akka pub-sub mediator.
+     * @param pubSubMediator Pekko pub-sub mediator.
      * @param self reference of the actor itself.
      * @param namespace the namespace of the actor.
      * @return the actor behavior.

@@ -14,7 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Functional interface for creator of {@code RequestSigning} from {@code HmacCredentials}.

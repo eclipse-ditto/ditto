@@ -25,9 +25,9 @@ import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.ReadSubjectExtractor;
 import org.eclipse.ditto.things.model.ThingId;
 
-import akka.actor.ActorContext;
-import akka.actor.ActorRefFactory;
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorContext;
+import org.apache.pekko.actor.ActorRefFactory;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Pub-sub factory for live signals.

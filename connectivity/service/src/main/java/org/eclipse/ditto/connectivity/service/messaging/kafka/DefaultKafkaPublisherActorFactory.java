@@ -19,7 +19,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 
-import akka.actor.Props;
+import org.apache.pekko.actor.Props;
 
 /**
  * Default implementation, providing a {@link KafkaPublisherActor}.

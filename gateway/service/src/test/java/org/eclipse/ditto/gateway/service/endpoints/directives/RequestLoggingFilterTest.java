@@ -20,8 +20,8 @@ import java.util.UUID;
 
 import org.junit.Test;
 
-import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.model.Uri;
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.Uri;
 
 /**
  * Tests {@link org.eclipse.ditto.gateway.service.endpoints.directives.RequestLoggingFilter}.

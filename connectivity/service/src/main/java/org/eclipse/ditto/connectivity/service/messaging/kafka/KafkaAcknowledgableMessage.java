@@ -21,10 +21,10 @@ import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 
-import akka.kafka.ConsumerMessage;
+import org.apache.pekko.kafka.ConsumerMessage;
 
 /**
- * Wraps an {@link AcknowledgeableMessage} and provides a future of {@link akka.kafka.ConsumerMessage.CommittableOffset}
+ * Wraps an {@link AcknowledgeableMessage} and provides a future of {@link org.apache.pekko.kafka.ConsumerMessage.CommittableOffset}
  * which is completed:
  * <ul>
  * <li><em>successfully</em> once the requested acknowledgement was issued/settled</li>

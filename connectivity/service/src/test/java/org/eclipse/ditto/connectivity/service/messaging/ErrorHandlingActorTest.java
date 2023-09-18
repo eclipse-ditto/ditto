@@ -36,10 +36,10 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.cluster.pubsub.DistributedPubSub;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.cluster.pubsub.DistributedPubSub;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests error handling behaviour of {@link org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceActor}.
@@ -57,7 +57,7 @@ public class ErrorHandlingActorTest extends WithMockServers {
     private static Duration DISCONNECT_TIMEOUT;
 
     public void setUp(final boolean allowFirstCreateCommand, final boolean allowCloseCommands) {
-        actorSystem = ActorSystem.create("AkkaTestSystem", ConfigFactory.parseMap(
+        actorSystem = ActorSystem.create("PekkoTestSystem", ConfigFactory.parseMap(
                         Map.of("ditto.extensions.client-actor-props-factory",
                                 "org.eclipse.ditto.connectivity.service.messaging.FaultyClientActorPropsFactory",
                                 "allowFirstCreateCommand", allowFirstCreateCommand, "allowCloseCommands",

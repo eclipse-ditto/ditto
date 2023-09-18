@@ -28,7 +28,7 @@ import org.eclipse.ditto.json.JsonValue;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Pre-Enforcer which checks that commands that modify entities cause no harm downstream.

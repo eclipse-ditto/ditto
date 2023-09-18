@@ -30,7 +30,7 @@ import org.eclipse.ditto.protocol.TopicPath;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Abstract implementation of {@link MessageMapper} which adds an id field and also its initialization from mapping

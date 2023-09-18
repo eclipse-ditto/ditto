@@ -28,13 +28,13 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 
-import akka.http.javadsl.server.Directives;
-import akka.http.javadsl.server.PathMatchers;
-import akka.http.javadsl.server.RequestContext;
-import akka.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.server.Directives;
+import org.apache.pekko.http.javadsl.server.PathMatchers;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
 
 /**
- * Builder for creating Akka HTTP routes for {@code /search/things}.
+ * Builder for creating Pekko HTTP routes for {@code /search/things}.
  */
 public final class ThingSearchRoute extends AbstractRoute {
 

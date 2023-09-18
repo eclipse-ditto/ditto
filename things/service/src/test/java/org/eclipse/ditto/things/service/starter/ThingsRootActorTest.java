@@ -17,8 +17,8 @@ import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.common.config.ThingsConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
-import akka.actor.ActorSystem;
-import akka.actor.Props;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
 
 /**
  * Tests {@link ThingsRootActor}.

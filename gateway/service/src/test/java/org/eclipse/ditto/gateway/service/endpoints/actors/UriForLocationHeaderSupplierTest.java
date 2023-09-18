@@ -22,9 +22,9 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
 
-import akka.http.javadsl.model.HttpMethods;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.Uri;
+import org.apache.pekko.http.javadsl.model.HttpMethods;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.Uri;
 
 /**
  * Unit test for {@link UriForLocationHeaderSupplier}.

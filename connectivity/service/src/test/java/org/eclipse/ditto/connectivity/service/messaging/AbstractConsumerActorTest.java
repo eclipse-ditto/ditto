@@ -36,7 +36,7 @@ import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
@@ -54,14 +54,14 @@ import org.mockito.Mockito;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.stream.javadsl.Sink;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
 
 public abstract class AbstractConsumerActorTest<M> {
@@ -88,7 +88,7 @@ public abstract class AbstractConsumerActorTest<M> {
 
     @Before
     public void init() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", CONFIG);
+        actorSystem = ActorSystem.create("PekkoTestSystem", CONFIG);
         protocolAdapterProvider = ProtocolAdapterProvider.load(TestConstants.PROTOCOL_CONFIG, actorSystem);
         connectionActorProbe = TestProbe.apply("connectionActor", actorSystem);
     }

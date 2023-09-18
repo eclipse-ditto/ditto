@@ -38,14 +38,14 @@ import org.junit.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.stream.SourceRef;
-import akka.stream.javadsl.Source;
-import akka.stream.testkit.javadsl.TestSink;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.stream.SourceRef;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.testkit.javadsl.TestSink;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Test for {@link DefaultPersistenceStreamingActor}.
@@ -59,7 +59,7 @@ public final class DefaultPersistenceStreamingActorTest {
     @BeforeClass
     public static void initActorSystem() {
         final Config config = ConfigFactory.load("test");
-        actorSystem = ActorSystem.create("AkkaTestSystem", config);
+        actorSystem = ActorSystem.create("PekkoTestSystem", config);
     }
 
     @AfterClass

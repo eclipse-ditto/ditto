@@ -20,15 +20,15 @@ import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthent
 import org.eclipse.ditto.gateway.service.health.StatusAndHealthProvider;
 import org.eclipse.ditto.internal.utils.health.cluster.ClusterStatus;
 
-import akka.http.javadsl.model.ContentTypes;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.server.PathMatchers;
-import akka.http.javadsl.server.Route;
-import akka.http.javadsl.server.directives.RouteDirectives;
+import org.apache.pekko.http.javadsl.model.ContentTypes;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.server.PathMatchers;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.server.directives.RouteDirectives;
 
 /**
- * Builder for creating Akka HTTP routes for {@code /status}.
+ * Builder for creating Pekko HTTP routes for {@code /status}.
  */
 public final class OverallStatusRoute extends RouteDirectives {
 

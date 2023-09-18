@@ -41,14 +41,14 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 
-import akka.http.javadsl.model.ContentTypes;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.server.PathMatchers;
-import akka.http.javadsl.server.RequestContext;
-import akka.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.model.ContentTypes;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.server.PathMatchers;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
 
 /**
- * Builder for creating Akka HTTP routes for {@code /devops}.
+ * Builder for creating Pekko HTTP routes for {@code /devops}.
  */
 public final class DevOpsRoute extends AbstractRoute {
 

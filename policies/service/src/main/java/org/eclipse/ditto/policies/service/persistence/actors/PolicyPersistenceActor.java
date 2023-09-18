@@ -47,10 +47,10 @@ import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 import org.eclipse.ditto.policies.service.persistence.actors.strategies.commands.PolicyCommandStrategies;
 import org.eclipse.ditto.policies.service.persistence.actors.strategies.events.PolicyEventStrategies;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.persistence.RecoveryCompleted;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.persistence.RecoveryCompleted;
 
 /**
  * PersistentActor which "knows" the state of a single {@link Policy}.
@@ -66,12 +66,12 @@ public final class PolicyPersistenceActor
     /**
      * The ID of the journal plugin this persistence actor uses.
      */
-    static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-policies-journal";
+    static final String JOURNAL_PLUGIN_ID = "pekko-contrib-mongodb-persistence-policies-journal";
 
     /**
      * The ID of the snapshot plugin this persistence actor uses.
      */
-    static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-policies-snapshots";
+    static final String SNAPSHOT_PLUGIN_ID = "pekko-contrib-mongodb-persistence-policies-snapshots";
 
     private final ActorRef pubSubMediator;
     private final PolicyConfig policyConfig;
@@ -110,14 +110,14 @@ public final class PolicyPersistenceActor
     }
 
     /**
-     * Creates Akka configuration object {@link Props} for this PolicyPersistenceActor.
+     * Creates Pekko configuration object {@link Props} for this PolicyPersistenceActor.
      *
      * @param policyId the ID of the Policy this Actor manages.
      * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the policy.
      * @param pubSubMediator the PubSub mediator actor.
      * @param announcementManager manager of policy announcements.
      * @param policyConfig the policy config.
-     * @return the Akka configuration Props object
+     * @return the Pekko configuration Props object
      */
     public static Props props(final PolicyId policyId,
             final MongoReadJournal mongoReadJournal,

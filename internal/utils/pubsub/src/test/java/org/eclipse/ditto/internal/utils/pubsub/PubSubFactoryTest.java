@@ -56,21 +56,21 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorContext;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.PoisonPill;
-import akka.actor.Props;
-import akka.actor.Terminated;
-import akka.cluster.Cluster;
-import akka.cluster.ClusterEvent;
-import akka.japi.pf.ReceiveBuilder;
-import akka.stream.Attributes;
-import akka.testkit.TestActor;
-import akka.testkit.TestActorRef;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorContext;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.PoisonPill;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Terminated;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.cluster.ClusterEvent;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.stream.Attributes;
+import org.apache.pekko.testkit.TestActor;
+import org.apache.pekko.testkit.TestActorRef;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.concurrent.duration.Duration;
 
 /**

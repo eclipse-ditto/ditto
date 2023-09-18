@@ -80,16 +80,16 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.CoordinatedShutdown;
-import akka.actor.FSM;
-import akka.actor.Props;
-import akka.actor.Status;
-import akka.http.javadsl.model.Uri;
-import akka.http.scaladsl.model.IllegalUriException;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.CoordinatedShutdown;
+import org.apache.pekko.actor.FSM;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.http.javadsl.model.Uri;
+import org.apache.pekko.http.scaladsl.model.IllegalUriException;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit test for basic {@link BaseClientActor} functionality.
@@ -113,7 +113,7 @@ public final class BaseClientActorTest {
 
     @BeforeClass
     public static void beforeClass() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        actorSystem = ActorSystem.create("PekkoTestSystem", TestConstants.CONFIG);
         connectivityConfig =
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
         DISCONNECT_TIMEOUT = connectivityConfig.getClientConfig().getDisconnectAnnouncementTimeout()
@@ -614,7 +614,7 @@ public final class BaseClientActorTest {
     @Test
     public void sendsConnectionClosedAnnouncementBeforeSystemShutdown() {
         final ActorSystem closableActorSystem =
-                ActorSystem.create("AkkaTestSystem-closableActorSystem", TestConstants.CONFIG);
+                ActorSystem.create("PekkoTestSystem-closableActorSystem", TestConstants.CONFIG);
         new TestKit(closableActorSystem) {{
             final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection = createConnectionWithConnectivityAnnouncementTarget(randomConnectionId);
@@ -773,13 +773,13 @@ public final class BaseClientActorTest {
         }
 
         /**
-         * Creates Akka configuration object for this actor.
+         * Creates Pekko configuration object for this actor.
          *
          * @param connection the connection.
          * @param connectionActor the connectionPersistenceActor which created this client.
          * @param proxyActor the actor used to send signals into the ditto cluster.
          * @param publisherActor the actor that publishes to external system
-         * @return the Akka configuration Props object.
+         * @return the Pekko configuration Props object.
          */
         public static Props props(final Connection connection, final ActorRef connectionActor,
                 final ActorRef proxyActor,
@@ -790,14 +790,14 @@ public final class BaseClientActorTest {
         }
 
         /**
-         * Creates Akka configuration object for this actor.
+         * Creates Pekko configuration object for this actor.
          *
          * @param connection the connection.
          * @param connectionActor the connectionPersistenceActor which created this client.
          * @param proxyActor the actor used to send signals into the ditto cluster.
          * @param publisherActor the actor that publishes to external system
          * @param config the config to pass the BaseClientActor, e.g. containing test specific overrides.
-         * @return the Akka configuration Props object.
+         * @return the Pekko configuration Props object.
          */
         public static Props props(final Connection connection, final ActorRef connectionActor,
                 final ActorRef proxyActor,

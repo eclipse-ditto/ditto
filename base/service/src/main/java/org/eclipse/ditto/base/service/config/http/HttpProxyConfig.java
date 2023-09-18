@@ -16,7 +16,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
-import akka.http.javadsl.ClientTransport;
+import org.apache.pekko.http.javadsl.ClientTransport;
 
 /**
  * Provides configuration settings for the HTTP proxy.
@@ -60,10 +60,10 @@ public interface HttpProxyConfig {
     String getPassword();
 
     /**
-     * Converts the proxy settings to an Akka HTTP client transport object.
+     * Converts the proxy settings to an Pekko HTTP client transport object.
      * Does not check whether the proxy is enabled.
      *
-     * @return an Akka HTTP client transport object matching this config.
+     * @return an Pekko HTTP client transport object matching this config.
      */
     ClientTransport toClientTransport();
 

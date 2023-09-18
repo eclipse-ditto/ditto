@@ -131,16 +131,16 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
-import akka.actor.PoisonPill;
-import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.japi.pf.ReceiveBuilder;
-import akka.testkit.TestActorRef;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.PoisonPill;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.testkit.TestActorRef;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.PartialFunction;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
@@ -183,8 +183,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     @Before
     public void setUp() {
         final Config customConfig = ConfigFactory.empty()
-                .withValue("akka.actor.provider",
-                        ConfigValueFactory.fromAnyRef("akka.cluster.ClusterActorRefProvider"));
+                .withValue("pekko.actor.provider",
+                        ConfigValueFactory.fromAnyRef("org.apache.pekko.cluster.ClusterActorRefProvider"));
         setup(customConfig);
     }
 
@@ -234,7 +234,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 expectMsgEquals(ETagTestUtils.retrieveThingResponse(thing, null, expectedHeaders));
 
                 // terminate thing persistence actor
-                final String thingActorPath = String.format("akka://AkkaTestSystem/user/%s/pa", thingId);
+                final String thingActorPath = String.format("pekko://PekkoTestSystem/user/%s/pa", thingId);
                 final ActorSelection thingActorSelection = actorSystem.actorSelection(thingActorPath);
                 final Future<ActorRef> thingActorFuture =
                         thingActorSelection.resolveOne(Duration.create(5, TimeUnit.SECONDS));

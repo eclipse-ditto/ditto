@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.directives.auth;
 
-import static akka.http.javadsl.server.Directives.extractRequestContext;
+import static org.apache.pekko.http.javadsl.server.Directives.extractRequestContext;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
@@ -28,15 +28,15 @@ import org.eclipse.ditto.gateway.service.util.config.security.DevOpsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.server.AuthorizationFailedRejection;
-import akka.http.javadsl.server.Directives;
-import akka.http.javadsl.server.RequestContext;
-import akka.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.server.AuthorizationFailedRejection;
+import org.apache.pekko.http.javadsl.server.Directives;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
 import scala.util.Try;
 
 /**
- * Custom Akka Http directive performing oauth2 with an {@link #expectedSubjects expected subject}.
+ * Custom Pekko Http directive performing oauth2 with an {@link #expectedSubjects expected subject}.
  */
 public final class DevOpsOAuth2AuthenticationDirective implements DevopsAuthenticationDirective {
 

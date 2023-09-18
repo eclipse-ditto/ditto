@@ -43,8 +43,8 @@ import org.eclipse.ditto.gateway.service.endpoints.actors.AbstractHttpRequestAct
 import org.eclipse.ditto.gateway.service.endpoints.actors.HttpRequestActorPropsFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.ContentTypeValidationDirective;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -52,32 +52,32 @@ import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonValue;
 
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.actor.Status;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.MediaTypes;
-import akka.http.javadsl.server.AllDirectives;
-import akka.http.javadsl.server.RequestContext;
-import akka.http.javadsl.server.Route;
-import akka.stream.ActorAttributes;
-import akka.stream.Attributes;
-import akka.stream.Supervision;
-import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.RunnableGraph;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
-import akka.stream.javadsl.StreamConverters;
-import akka.util.ByteString;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.MediaTypes;
+import org.apache.pekko.http.javadsl.server.AllDirectives;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.stream.ActorAttributes;
+import org.apache.pekko.stream.Attributes;
+import org.apache.pekko.stream.Supervision;
+import org.apache.pekko.stream.javadsl.Flow;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.RunnableGraph;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.javadsl.StreamConverters;
+import org.apache.pekko.util.ByteString;
 
 /**
- * Base class for Akka HTTP routes.
+ * Base class for Pekko HTTP routes.
  */
 public abstract class AbstractRoute extends AllDirectives {
 
     /**
-     * Don't configure URL decoding as JsonParseOptions because Akka-Http already decodes the fields-param and we would
+     * Don't configure URL decoding as JsonParseOptions because Pekko-Http already decodes the fields-param and we would
      * decode twice.
      */
     public static final JsonParseOptions JSON_FIELD_SELECTOR_PARSE_OPTIONS = JsonFactory.newParseOptionsBuilder()
@@ -85,10 +85,10 @@ public abstract class AbstractRoute extends AllDirectives {
             .build();
 
     /**
-     * Timeout for Akka HTTP. Timeout is normally managed in HttpRequestActor and AcknowledgementAggregatorActor.
-     * The Akka HTTP timeout is only there to prevent resource leak.
+     * Timeout for Pekko HTTP. Timeout is normally managed in HttpRequestActor and AcknowledgementAggregatorActor.
+     * The Pekko HTTP timeout is only there to prevent resource leak.
      */
-    private static final scala.concurrent.duration.Duration AKKA_HTTP_TIMEOUT =
+    private static final scala.concurrent.duration.Duration PEKKO_HTTP_TIMEOUT =
             scala.concurrent.duration.Duration.create(2, TimeUnit.MINUTES);
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(AbstractRoute.class);
@@ -351,10 +351,10 @@ public abstract class AbstractRoute extends AllDirectives {
     /**
      * Validate the passed {@code optionalTimeout} with the passed
      * {@code checkTimeoutFunction} falling back to the optional {@code defaultTimeout} wrapping the passed
-     * {@code inner} route. Set Akka HTTP timeout to a ceiling because the actual timeout handling happens in
+     * {@code inner} route. Set Pekko HTTP timeout to a ceiling because the actual timeout handling happens in
      * HttpRequestActor and AcknowledgementAggregatorActor.
      *
-     * @param optionalTimeout the custom timeout to use as Akka HTTP request timeout adjusting the configured default
+     * @param optionalTimeout the custom timeout to use as Pekko HTTP request timeout adjusting the configured default
      * one.
      * @param checkTimeoutFunction a function to check the passed optionalTimeout for validity e. g. within some bounds.
      * @param inner the inner Route to wrap.
@@ -385,7 +385,7 @@ public abstract class AbstractRoute extends AllDirectives {
 
     private Route increaseHttpRequestTimeout(final java.util.function.Function<Duration, Route> inner,
             final scala.concurrent.duration.Duration requestTimeout) {
-        return withRequestTimeout(AKKA_HTTP_TIMEOUT,
+        return withRequestTimeout(PEKKO_HTTP_TIMEOUT,
                 () -> inner.apply(Duration.ofMillis(requestTimeout.toMillis())));
     }
 

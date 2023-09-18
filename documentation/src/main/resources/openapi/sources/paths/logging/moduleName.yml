@@ -55,7 +55,7 @@ put:
         example: |-
           {
             "level": "info",
-            "logger": "akka.actor.CoordinatedShutdown"
+            "logger": "org.apache.pekko.actor.CoordinatedShutdown"
           }
   responses:
     '201':

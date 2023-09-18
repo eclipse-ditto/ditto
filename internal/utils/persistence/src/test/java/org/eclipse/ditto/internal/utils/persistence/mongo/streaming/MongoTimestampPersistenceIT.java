@@ -37,12 +37,12 @@ import com.mongodb.reactivestreams.client.MongoCollection;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorSystem;
-import akka.stream.Materializer;
-import akka.stream.SystemMaterializer;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.SystemMaterializer;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link MongoTimestampPersistence}.
@@ -83,7 +83,7 @@ public final class MongoTimestampPersistenceIT {
     @Before
     public void setUp() {
         final Config config = ConfigFactory.load("test");
-        actorSystem = ActorSystem.create("AkkaTestSystem", config);
+        actorSystem = ActorSystem.create("PekkoTestSystem", config);
         materializer = SystemMaterializer.get(actorSystem).materializer();
         syncPersistence = MongoTimestampPersistence.initializedInstance(KNOWN_COLLECTION, mongoClient, materializer);
     }

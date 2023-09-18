@@ -5,7 +5,7 @@ keywords: operating, docker, docker-compose, devops, logging, logstash, elk, mon
 permalink: installation-operating.html
 ---
 
-[pubsubmediator]: https://doc.akka.io/docs/akka/current/distributed-pub-sub.html
+[pubsubmediator]: https://pekko.apache.org/docs/pekko/current/distributed-pub-sub.html
 
 Once you have successfully started Ditto, proceed with setting it up for continuous operation.
 
@@ -26,8 +26,8 @@ the following environment variables in order to configure the connection to the 
 * `MONGO_DB_CONNECTION_POOL_SIZE`: Configure MongoDB connection pool size
 * `MONGO_DB_READ_PREFERENCE`: Configure MongoDB read preference
 * `MONGO_DB_WRITE_CONCERN`: Configure MongoDB write concern
-* `AKKA_PERSISTENCE_MONGO_JOURNAL_WRITE_CONCERN`: Configure Akka Persistence MongoDB journal write concern
-* `AKKA_PERSISTENCE_MONGO_SNAPS_WRITE_CONCERN`: Configure Akka Persistence MongoDB snapshot write concern
+* `PEKKO_PERSISTENCE_MONGO_JOURNAL_WRITE_CONCERN`: Configure Pekko Persistence MongoDB journal write concern
+* `PEKKO_PERSISTENCE_MONGO_SNAPS_WRITE_CONCERN`: Configure Pekko Persistence MongoDB snapshot write concern
 
 ### Ditto configuration
 
@@ -165,7 +165,7 @@ may be put in front of Ditto to handle the token-logic like e.g. loading/saving 
 it to Ditto as `Authorization` header.
 
 **If the chosen OIDC provider uses a self-signed certificate**, the certificate has to be retrieved and configured for 
-the akka-http ssl configuration.
+the pekko-http ssl configuration.
 
 ```
 ssl-config {
@@ -1161,7 +1161,7 @@ To do so safely, perform the following steps in sequence.
 
 ##### Block all messages to a namespace
 
-Send a piggyback command to [Akka's pub-sub-mediator][pubsubmediator] with type `namespaces.commands:blockNamespace`
+Send a piggyback command to [Pekko's pub-sub-mediator][pubsubmediator] with type `namespaces.commands:blockNamespace`
 to block all messages sent to actors belonging to a namespace.
 
 `PUT /devops/piggyback?timeout=10s`
@@ -1194,7 +1194,7 @@ or until you proceed with [step 4](#unblock-messages-to-a-namespace), which unbl
 
 ##### Shutdown all actors in a namespace
 
-Send a piggyback command to [Akka's pub-sub-mediator][pubsubmediator] with type `common.commands:shutdown`
+Send a piggyback command to [Pekko's pub-sub-mediator][pubsubmediator] with type `common.commands:shutdown`
 to request all actors in a namespace to shut down. The value of `piggybackCommand/reason/type` must be
 `purge-namespace`; otherwise, the namespace's actors will not stop themselves.
 
@@ -1219,7 +1219,7 @@ Feel free to send the shutdown command several times to make sure.
 
 ##### Erase all data in a namespace from the persistence
 
-Send a piggyback command to [Akka's pub-sub-mediator][pubsubmediator] with type `namespaces.commands:purgeNamespace`
+Send a piggyback command to [Pekko's pub-sub-mediator][pubsubmediator] with type `namespaces.commands:purgeNamespace`
 to erase all data from the persistence.
 It is better to purge a namespace after
 [blocking](#block-all-messages-to-a-namespace) it and
@@ -1278,7 +1278,7 @@ Note that to see responses from multiple resource types, the header `aggregate` 
 
 ##### Unblock messages to a namespace
 
-Send a piggyback command to [Akka's pub-sub-mediator][pubsubmediator] with type `namespaces.commands:unblockNamespace`
+Send a piggyback command to [Pekko's pub-sub-mediator][pubsubmediator] with type `namespaces.commands:unblockNamespace`
 to stop blocking messages to a namespace.
 
 `PUT /devops/piggyback?timeout=10s`

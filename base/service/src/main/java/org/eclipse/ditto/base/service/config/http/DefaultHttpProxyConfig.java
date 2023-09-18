@@ -23,8 +23,8 @@ import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 
 import com.typesafe.config.Config;
 
-import akka.http.javadsl.ClientTransport;
-import akka.http.javadsl.model.headers.HttpCredentials;
+import org.apache.pekko.http.javadsl.ClientTransport;
+import org.apache.pekko.http.javadsl.model.headers.HttpCredentials;
 
 /**
  * This class is the default implementation of the HTTP proxy config.

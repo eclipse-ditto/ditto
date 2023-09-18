@@ -21,7 +21,7 @@ import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.MappedInboundExternalMessage;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 /**
  * Outcome of mapping one inbound external message.

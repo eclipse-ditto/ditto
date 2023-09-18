@@ -43,10 +43,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
-import akka.actor.ActorSystem;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit tests for {@link AcknowledgementForwarderActor}.
@@ -63,7 +63,7 @@ public final class AcknowledgementForwarderActorTest {
     @Before
     public void setUp() {
         final Config config = ConfigFactory.load("test");
-        actorSystem = ActorSystem.create("AkkaTestSystem", config);
+        actorSystem = ActorSystem.create("PekkoTestSystem", config);
         acknowledgementConfig = DefaultAcknowledgementConfig.of(ConfigFactory.load("acknowledgement-test"));
     }
 

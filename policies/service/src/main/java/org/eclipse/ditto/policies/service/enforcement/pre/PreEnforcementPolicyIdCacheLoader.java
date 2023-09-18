@@ -30,8 +30,8 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAcc
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
-import akka.actor.ActorRef;
-import akka.actor.Scheduler;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Scheduler;
 
 /**
  * Cache loader used for Policy existence check in pre-enforcement.

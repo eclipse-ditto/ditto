@@ -24,12 +24,12 @@ import org.eclipse.ditto.gateway.service.util.config.security.DevOpsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.http.javadsl.server.Directives;
-import akka.http.javadsl.server.Route;
-import akka.http.javadsl.server.directives.SecurityDirectives;
+import org.apache.pekko.http.javadsl.server.Directives;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.server.directives.SecurityDirectives;
 
 /**
- * Custom Akka Http directive performing basic auth for a defined {@link #USER_DEVOPS devops user}.
+ * Custom Pekko Http directive performing basic auth for a defined {@link #USER_DEVOPS devops user}.
  */
 public final class DevOpsBasicAuthenticationDirective implements DevopsAuthenticationDirective {
 

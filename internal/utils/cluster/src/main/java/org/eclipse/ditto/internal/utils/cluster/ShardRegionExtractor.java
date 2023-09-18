@@ -29,8 +29,8 @@ import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
 import org.eclipse.ditto.json.JsonObject;
 
-import akka.actor.ActorSystem;
-import akka.cluster.sharding.ShardRegion;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.cluster.sharding.ShardRegion;
 
 /**
  * Implementation of {@link ShardRegion.MessageExtractor} which does a {@code hashCode} based sharding with the

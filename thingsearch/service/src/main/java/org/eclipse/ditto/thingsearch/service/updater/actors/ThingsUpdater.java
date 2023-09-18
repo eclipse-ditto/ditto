@@ -22,9 +22,9 @@ import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.internal.models.streaming.IdentifiableStreamingMessage;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.streaming.StreamAck;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.internal.utils.namespaces.BlockNamespaceBehavior;
@@ -38,13 +38,13 @@ import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoUpdateThing;
 import org.eclipse.ditto.thingsearch.api.events.ThingsOutOfSync;
 import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
 
-import akka.actor.AbstractActorWithTimers;
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.cluster.sharding.ShardRegion;
-import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
+import org.apache.pekko.actor.AbstractActorWithTimers;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.cluster.sharding.ShardRegion;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.Patterns;
 
 /**
  * This Actor subscribes to messages the Things service emits, when it starts a new ThingActor (a Thing becomes "hot").
@@ -81,14 +81,14 @@ final class ThingsUpdater extends AbstractActorWithTimers {
     }
 
     /**
-     * Creates Akka configuration object for this actor.
+     * Creates Pekko configuration object for this actor.
      *
      * @param thingUpdaterShardRegion shard region of thing-updaters
      * @param updaterConfig configuration for updaters.
      * @param blockedNamespaces cache of namespaces to block.
      * @param pubSubMediator the pubsub mediator for subscription for SudoUpdateThing commands, or null if
      * the subscription is not wanted.
-     * @return the Akka configuration Props object
+     * @return the Pekko configuration Props object
      */
     static Props props(final ActorRef thingUpdaterShardRegion,
             final UpdaterConfig updaterConfig,

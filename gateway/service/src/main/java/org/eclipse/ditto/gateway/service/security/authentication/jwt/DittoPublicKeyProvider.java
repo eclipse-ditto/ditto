@@ -65,12 +65,12 @@ import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalListener;
 
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.HttpResponse;
-import akka.stream.Materializer;
-import akka.stream.SystemMaterializer;
-import akka.stream.javadsl.Sink;
-import akka.util.ByteString;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.SystemMaterializer;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.util.ByteString;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 

@@ -28,9 +28,9 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
 
-import akka.kafka.ProducerMessage;
-import akka.kafka.javadsl.SendProducer;
-import akka.kafka.testkit.ProducerResultFactory;
+import org.apache.pekko.kafka.ProducerMessage;
+import org.apache.pekko.kafka.javadsl.SendProducer;
+import org.apache.pekko.kafka.testkit.ProducerResultFactory;
 
 /**
  * Creates mock {@code SendProducer}s.

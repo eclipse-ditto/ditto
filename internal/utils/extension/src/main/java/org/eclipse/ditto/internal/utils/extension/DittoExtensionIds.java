@@ -17,13 +17,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
+import org.eclipse.ditto.internal.utils.pekko.PekkoClassLoader;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint.ExtensionId.ExtensionIdConfig;
 
-import akka.actor.AbstractExtensionId;
-import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
-import akka.actor.Extension;
+import org.apache.pekko.actor.AbstractExtensionId;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.Extension;
 
 public final class DittoExtensionIds implements Extension {
 
@@ -54,7 +54,7 @@ public final class DittoExtensionIds implements Extension {
         @Override
         public DittoExtensionIds createExtension(final ExtendedActorSystem system) {
 
-            return AkkaClassLoader.instantiate(system, DittoExtensionIds.class,
+            return PekkoClassLoader.instantiate(system, DittoExtensionIds.class,
                     DittoExtensionIds.class.getCanonicalName(),
                     List.of(),
                     List.of());

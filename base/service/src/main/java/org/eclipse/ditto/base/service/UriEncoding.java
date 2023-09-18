@@ -34,7 +34,7 @@ public final class UriEncoding {
     private static final IntPredicate ALLOWED_IN_PATH_SEGMENT = UriEncoding::isPchar;
     /*
      * Workaround: '+' needs to be escaped to '%2B', otherwise it will be recognized as blank when decoding with MIME
-     * format {@code application/x-www-form-urlencoded} - what most servers do (such as akka-http).
+     * format {@code application/x-www-form-urlencoded} - what most servers do (such as pekko-http).
      */
     private static final IntPredicate ALLOWED_IN_QUERY = c -> c != '+' && (isPchar(c) || '/' == c || '?' == c);
     private static final IntPredicate ALLOWED_IN_QUERY_PARAM =

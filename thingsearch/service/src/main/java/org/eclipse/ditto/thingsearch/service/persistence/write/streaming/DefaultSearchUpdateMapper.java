@@ -12,16 +12,16 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 
 import com.typesafe.config.Config;
 
-import akka.NotUsed;
-import akka.actor.ActorSystem;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Default {@code SearchUpdateMapper} for custom search update processing.

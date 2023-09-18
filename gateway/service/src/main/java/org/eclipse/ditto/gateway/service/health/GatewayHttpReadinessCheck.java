@@ -16,12 +16,12 @@ import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
-import akka.actor.ActorSelection;
-import akka.actor.ActorSystem;
-import akka.pattern.Patterns;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.pattern.Patterns;
 
 /**
- * Health check supplier for Akka Management checking whether the {@code GatewayRootActor} already started the HTTP
+ * Health check supplier for Pekko Management checking whether the {@code GatewayRootActor} already started the HTTP
  * route.
  */
 public final class GatewayHttpReadinessCheck implements Supplier<CompletionStage<Boolean>> {

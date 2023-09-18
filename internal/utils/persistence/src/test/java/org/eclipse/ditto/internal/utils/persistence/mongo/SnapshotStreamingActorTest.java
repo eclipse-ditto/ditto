@@ -36,17 +36,17 @@ import org.mockito.Mockito;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.Done;
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.stream.SourceRef;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.stream.SourceRef;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Test for {@link SnapshotStreamingActor}.
@@ -62,7 +62,7 @@ public final class SnapshotStreamingActorTest {
     @Before
     public void initActorSystem() {
         final Config config = ConfigFactory.load("test");
-        actorSystem = ActorSystem.create("AkkaTestSystem", config);
+        actorSystem = ActorSystem.create("PekkoTestSystem", config);
         mockClient = Mockito.mock(DittoMongoClient.class);
         mockReadJournal = Mockito.mock(MongoReadJournal.class);
         pubSubMediatorTestProbe = TestProbe.apply("pubSubMediator", actorSystem);

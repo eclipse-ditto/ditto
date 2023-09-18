@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.base.service.actors;
 
-import static akka.http.javadsl.server.Directives.logRequest;
-import static akka.http.javadsl.server.Directives.logResult;
+import static org.apache.pekko.http.javadsl.server.Directives.logRequest;
+import static org.apache.pekko.http.javadsl.server.Directives.logResult;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -22,28 +22,28 @@ import java.util.NoSuchElementException;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.service.config.http.HttpConfig;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.internal.utils.config.LocalHostAddressSupplier;
 import org.eclipse.ditto.internal.utils.health.routes.StatusRoute;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorInitializationException;
-import akka.actor.ActorKilledException;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.InvalidActorNameException;
-import akka.actor.OneForOneStrategy;
-import akka.actor.Props;
-import akka.actor.Status;
-import akka.actor.SupervisorStrategy;
-import akka.cluster.Cluster;
-import akka.http.javadsl.Http;
-import akka.http.javadsl.server.Route;
-import akka.japi.pf.DeciderBuilder;
-import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.AskTimeoutException;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorInitializationException;
+import org.apache.pekko.actor.ActorKilledException;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.InvalidActorNameException;
+import org.apache.pekko.actor.OneForOneStrategy;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.actor.SupervisorStrategy;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.http.javadsl.Http;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.japi.pf.DeciderBuilder;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.AskTimeoutException;
 import scala.PartialFunction;
 
 /**

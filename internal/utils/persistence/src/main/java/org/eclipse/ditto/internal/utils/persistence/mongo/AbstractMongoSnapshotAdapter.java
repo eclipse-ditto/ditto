@@ -31,8 +31,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.slf4j.Logger;
 
-import akka.persistence.SelectedSnapshot;
-import akka.persistence.SnapshotOffer;
+import org.apache.pekko.persistence.SelectedSnapshot;
+import org.apache.pekko.persistence.SnapshotOffer;
 
 /**
  * Abstract implementation of a MongoDB specific {@link SnapshotAdapter} for a {@link Jsonifiable}.

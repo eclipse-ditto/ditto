@@ -37,19 +37,19 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.pattern.AskTimeoutException;
-import akka.stream.Attributes;
-import akka.stream.Materializer;
-import akka.stream.SourceRef;
-import akka.stream.SystemMaterializer;
-import akka.stream.javadsl.Source;
-import akka.stream.javadsl.StreamRefs;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.pattern.AskTimeoutException;
+import org.apache.pekko.stream.Attributes;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.SourceRef;
+import org.apache.pekko.stream.SystemMaterializer;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.javadsl.StreamRefs;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
 
 /**

@@ -108,10 +108,10 @@ import org.eclipse.ditto.connectivity.service.messaging.validation.CustomConnect
 import org.eclipse.ditto.connectivity.service.messaging.validation.DittoConnectivityCommandValidator;
 import org.eclipse.ditto.connectivity.service.util.ConnectionPubSub;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.internal.utils.akka.PingCommand;
-import org.eclipse.ditto.internal.utils.akka.logging.CommonMdcEntryKey;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.PingCommand;
+import org.eclipse.ditto.internal.utils.pekko.logging.CommonMdcEntryKey;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
@@ -129,21 +129,21 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateS
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.actor.Status;
-import akka.actor.SupervisorStrategy;
-import akka.cluster.Cluster;
-import akka.cluster.routing.ClusterRouterPool;
-import akka.cluster.routing.ClusterRouterPoolSettings;
-import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
-import akka.persistence.RecoveryCompleted;
-import akka.routing.Broadcast;
-import akka.routing.ConsistentHashingPool;
-import akka.routing.ConsistentHashingRouter;
-import akka.routing.Pool;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.actor.SupervisorStrategy;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.cluster.routing.ClusterRouterPool;
+import org.apache.pekko.cluster.routing.ClusterRouterPoolSettings;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.persistence.RecoveryCompleted;
+import org.apache.pekko.routing.Broadcast;
+import org.apache.pekko.routing.ConsistentHashingPool;
+import org.apache.pekko.routing.ConsistentHashingRouter;
+import org.apache.pekko.routing.Pool;
 
 /**
  * Handles {@code *Connection} commands and manages the persistence of connection. The actual connection handling to the
@@ -161,12 +161,12 @@ public final class ConnectionPersistenceActor
     /**
      * The ID of the journal plugin this persistence actor uses.
      */
-    public static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-journal";
+    public static final String JOURNAL_PLUGIN_ID = "pekko-contrib-mongodb-persistence-connection-journal";
 
     /**
      * The ID of the snapshot plugin this persistence actor uses.
      */
-    public static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-snapshots";
+    public static final String SNAPSHOT_PLUGIN_ID = "pekko-contrib-mongodb-persistence-connection-snapshots";
 
     private static final Duration DEFAULT_RETRIEVE_STATUS_TIMEOUT = Duration.ofMillis(500L);
     private static final Duration GRACE_PERIOD_NOT_RETRIEVING_CONNECTION_STATUS_AFTER_RECOVERY = Duration.ofSeconds(10);
@@ -263,7 +263,7 @@ public final class ConnectionPersistenceActor
     }
 
     /**
-     * Creates Akka configuration object for this actor.
+     * Creates Pekko configuration object for this actor.
      *
      * @param connectionId the connection ID.
      * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the connection.
@@ -271,7 +271,7 @@ public final class ConnectionPersistenceActor
      * @param pubSubMediator pub-sub-mediator for the shutdown behavior.
      * @param pubSubMediator the pubSubMediator
      * @param connectivityConfigOverwrites the overwrites for the connectivity config for the given connection.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final ConnectionId connectionId,
             final MongoReadJournal mongoReadJournal,

@@ -31,26 +31,26 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextC
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
-import org.eclipse.ditto.internal.utils.akka.controlflow.TimeoutFlow;
+import org.eclipse.ditto.internal.utils.pekko.controlflow.TimeoutFlow;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 
-import akka.actor.ActorSystem;
-import akka.event.LoggingAdapter;
-import akka.http.javadsl.ClientTransport;
-import akka.http.javadsl.ConnectHttp;
-import akka.http.javadsl.ConnectionContext;
-import akka.http.javadsl.Http;
-import akka.http.javadsl.HttpsConnectionContext;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.Uri;
-import akka.http.javadsl.model.headers.HttpCredentials;
-import akka.http.javadsl.settings.ClientConnectionSettings;
-import akka.http.javadsl.settings.ConnectionPoolSettings;
-import akka.http.javadsl.settings.ParserSettings;
-import akka.japi.Pair;
-import akka.stream.javadsl.Flow;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.event.LoggingAdapter;
+import org.apache.pekko.http.javadsl.ClientTransport;
+import org.apache.pekko.http.javadsl.ConnectHttp;
+import org.apache.pekko.http.javadsl.ConnectionContext;
+import org.apache.pekko.http.javadsl.Http;
+import org.apache.pekko.http.javadsl.HttpsConnectionContext;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.Uri;
+import org.apache.pekko.http.javadsl.model.headers.HttpCredentials;
+import org.apache.pekko.http.javadsl.settings.ClientConnectionSettings;
+import org.apache.pekko.http.javadsl.settings.ConnectionPoolSettings;
+import org.apache.pekko.http.javadsl.settings.ParserSettings;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.stream.javadsl.Flow;
 import scala.util.Failure;
 import scala.util.Try;
 
@@ -251,8 +251,8 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
 
         final ParserSettings parserSettings = ParserSettings.forClient(system);
 
-        // start with the default maximum cached value per header of Akka HTTP.
-        // "default=12" should be kept consistent with akka-http reference.conf
+        // start with the default maximum cached value per header of Pekko HTTP.
+        // "default=12" should be kept consistent with pekko-http reference.conf
         final Map<String, Object> disambiguator = new HashMap<>(parserSettings.getHeaderValueCacheLimits());
         disambiguator.put(id.toString(), disambiguator.getOrDefault("default", 12));
 

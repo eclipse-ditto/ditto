@@ -20,4 +20,4 @@ import javax.annotation.concurrent.Immutable;
  * @since 3.0.0
  */
 @Immutable
-public record StopShardedActor() implements AkkaJacksonCborSerializable {}
+public record StopShardedActor() implements PekkoJacksonCborSerializable {}

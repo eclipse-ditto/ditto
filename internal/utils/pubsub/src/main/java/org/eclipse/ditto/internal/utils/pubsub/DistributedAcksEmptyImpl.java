@@ -22,8 +22,8 @@ import org.eclipse.ditto.internal.utils.ddata.DistributedData;
 import org.eclipse.ditto.internal.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.internal.utils.pubsub.api.AcksDeclared;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * An implementation of {@link DistributedAcks}

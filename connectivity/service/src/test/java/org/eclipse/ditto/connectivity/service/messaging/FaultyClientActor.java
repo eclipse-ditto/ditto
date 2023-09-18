@@ -16,12 +16,12 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnect
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.DeleteConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 
-import akka.actor.AbstractActor;
-import akka.actor.Props;
-import akka.actor.Status;
-import akka.event.DiagnosticLoggingAdapter;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.event.DiagnosticLoggingAdapter;
 
 /**
  * A ClientActor implementation that fails for every command received and answers with an exception. If {@code

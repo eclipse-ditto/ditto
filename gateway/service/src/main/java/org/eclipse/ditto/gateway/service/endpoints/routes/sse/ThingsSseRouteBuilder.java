@@ -90,30 +90,30 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 import com.typesafe.config.Config;
 
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
-import akka.actor.ActorSystem;
-import akka.http.javadsl.marshalling.sse.EventStreamMarshalling;
-import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.model.MediaTypes;
-import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.model.headers.Accept;
-import akka.http.javadsl.model.sse.ServerSentEvent;
-import akka.http.javadsl.server.PathMatchers;
-import akka.http.javadsl.server.RequestContext;
-import akka.http.javadsl.server.Route;
-import akka.http.javadsl.server.directives.RouteDirectives;
-import akka.japi.pf.PFBuilder;
-import akka.pattern.Patterns;
-import akka.stream.KillSwitch;
-import akka.stream.KillSwitches;
-import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.marshalling.sse.EventStreamMarshalling;
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.MediaTypes;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.model.headers.Accept;
+import org.apache.pekko.http.javadsl.model.sse.ServerSentEvent;
+import org.apache.pekko.http.javadsl.server.PathMatchers;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.server.directives.RouteDirectives;
+import org.apache.pekko.japi.pf.PFBuilder;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.KillSwitch;
+import org.apache.pekko.stream.KillSwitches;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.Source;
 import scala.PartialFunction;
 
 /**
- * Builder for creating Akka HTTP routes for SSE (Server Sent Events) {@code /things} and {@code /search} routes.
+ * Builder for creating Pekko HTTP routes for SSE (Server Sent Events) {@code /things} and {@code /search} routes.
  */
 @NotThreadSafe
 public final class ThingsSseRouteBuilder extends RouteDirectives implements SseRouteBuilder {
@@ -196,7 +196,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
      * @param actorSystem the actor system.
      * @param streamingActor is used for actual event streaming.
      * @param streamingConfig the streaming configuration.
-     * @param pubSubMediator akka pub-sub mediator for error reporting by the search source.
+     * @param pubSubMediator pekko pub-sub mediator for error reporting by the search source.
      * @param headerTranslator the header translator used for translating to external headers.
      * @return the instance.
      * @throws NullPointerException if {@code streamingActor} is {@code null}.

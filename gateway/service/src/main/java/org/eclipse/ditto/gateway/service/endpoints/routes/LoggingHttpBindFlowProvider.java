@@ -14,14 +14,14 @@ package org.eclipse.ditto.gateway.service.endpoints.routes;
 
 import com.typesafe.config.Config;
 
-import akka.NotUsed;
-import akka.actor.ActorSystem;
-import akka.event.Logging;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.server.Directives;
-import akka.http.javadsl.server.Route;
-import akka.stream.javadsl.Flow;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.event.Logging;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.server.Directives;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.stream.javadsl.Flow;
 
 /**
  * Default HTTP bind flow provider, which logs the requests.

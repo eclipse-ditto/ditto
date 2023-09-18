@@ -48,9 +48,9 @@ import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfi
 import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformers;
-import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithStashWithTimers;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -67,25 +67,25 @@ import org.eclipse.ditto.json.JsonObject;
 
 import com.typesafe.config.Config;
 
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.OneForOneStrategy;
-import akka.actor.PoisonPill;
-import akka.actor.Props;
-import akka.actor.ReceiveTimeout;
-import akka.actor.Status;
-import akka.actor.SupervisorStrategy;
-import akka.actor.Terminated;
-import akka.cluster.sharding.ShardRegion;
-import akka.japi.pf.DeciderBuilder;
-import akka.japi.pf.FI;
-import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.AskTimeoutException;
-import akka.pattern.Patterns;
-import akka.persistence.query.EventEnvelope;
-import akka.stream.javadsl.Source;
-import akka.stream.javadsl.StreamRefs;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.OneForOneStrategy;
+import org.apache.pekko.actor.PoisonPill;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.ReceiveTimeout;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.actor.SupervisorStrategy;
+import org.apache.pekko.actor.Terminated;
+import org.apache.pekko.cluster.sharding.ShardRegion;
+import org.apache.pekko.japi.pf.DeciderBuilder;
+import org.apache.pekko.japi.pf.FI;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.AskTimeoutException;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.persistence.query.EventEnvelope;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.javadsl.StreamRefs;
 
 /**
  * Sharded Supervisor of persistent actors. It:
@@ -432,7 +432,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     /**
      * Asks the "target actor" (being either the {@link AbstractPersistenceActor} for "twin" commands or e.g. a
      * pub/sub actor reference for "live" commands/messages) - which is determined by
-     * {@link #getTargetActorForSendingEnforcedMessageTo(Object, boolean, akka.actor.ActorRef)} - the passed {@code message}.
+     * {@link #getTargetActorForSendingEnforcedMessageTo(Object, boolean, org.apache.pekko.actor.ActorRef)} - the passed {@code message}.
      *
      * @param message the message to ask the target actor.
      * @param shouldSendResponse whether the message should send a response or not.

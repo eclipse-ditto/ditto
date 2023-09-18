@@ -12,10 +12,10 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.directives;
 
-import static akka.http.javadsl.server.Directives.complete;
-import static akka.http.javadsl.server.Directives.extractActorSystem;
-import static akka.http.javadsl.server.Directives.extractRequestContext;
-import static akka.http.javadsl.server.Directives.redirect;
+import static org.apache.pekko.http.javadsl.server.Directives.complete;
+import static org.apache.pekko.http.javadsl.server.Directives.extractActorSystem;
+import static org.apache.pekko.http.javadsl.server.Directives.extractRequestContext;
+import static org.apache.pekko.http.javadsl.server.Directives.redirect;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.List;
@@ -28,19 +28,19 @@ import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.slf4j.Logger;
 
-import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.model.Uri;
-import akka.http.javadsl.server.RequestContext;
-import akka.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.model.Uri;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
 
 /**
- * Custom Akka Http directive ensuring that proxied requests only come via HTTPs.
+ * Custom Pekko Http directive ensuring that proxied requests only come via HTTPs.
  */
 public final class HttpsEnsuringDirective {
 

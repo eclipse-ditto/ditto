@@ -23,7 +23,7 @@ import org.eclipse.ditto.jwt.model.JsonWebToken;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Responsible for extraction of an {@link org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult} out of a

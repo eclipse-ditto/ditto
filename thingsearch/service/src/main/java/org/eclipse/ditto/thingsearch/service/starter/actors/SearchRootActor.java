@@ -16,7 +16,7 @@ import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConst
 
 import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
-import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
+import org.eclipse.ditto.internal.utils.pekko.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
@@ -32,12 +32,12 @@ import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersis
 import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQueryBuilderFactory;
 import org.eclipse.ditto.thingsearch.service.updater.actors.SearchUpdaterRootActor;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
-import akka.stream.SystemMaterializer;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.event.Logging;
+import org.apache.pekko.event.LoggingAdapter;
+import org.apache.pekko.stream.SystemMaterializer;
 
 /**
  * Our "Parent" Actor which takes care of supervision of all other Actors in our system.
@@ -119,11 +119,11 @@ public final class SearchRootActor extends DittoRootActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this SearchRootActor.
+     * Creates Pekko configuration object Props for this SearchRootActor.
      *
      * @param searchConfig the configuration settings of this service.
      * @param pubSubMediator the PubSub mediator Actor.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final SearchConfig searchConfig, final ActorRef pubSubMediator) {
         return Props.create(SearchRootActor.class, searchConfig, pubSubMediator);

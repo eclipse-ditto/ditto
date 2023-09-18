@@ -20,14 +20,14 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 
-import akka.stream.Materializer;
-import akka.stream.OverflowStrategy;
-import akka.stream.QueueOfferResult;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.SourceQueueWithComplete;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.OverflowStrategy;
+import org.apache.pekko.stream.QueueOfferResult;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.SourceQueueWithComplete;
 
 /**
  * This class provides the previous default of telling messages to a mapping actor instead of using a stream
@@ -56,13 +56,13 @@ public abstract class LegacyBaseConsumerActor extends BaseConsumerActor {
 
         final var materializer = Materializer.createMaterializer(this::getContext);
 
-        messageMappingSourceQueue = akka.stream.javadsl.Source
+        messageMappingSourceQueue = org.apache.pekko.stream.javadsl.Source
                 .<AcknowledgeableMessage>queue(connectivityConfig.getMappingConfig().getBufferSize(),
                         OverflowStrategy.dropNew())
                 .to(getMessageMappingSink())
                 .run(materializer);
 
-        dreSourceQueue = akka.stream.javadsl.Source
+        dreSourceQueue = org.apache.pekko.stream.javadsl.Source
                 .<DittoRuntimeException>queue(connectivityConfig.getMappingConfig().getBufferSize(),
                         OverflowStrategy.dropNew())
                 .to(getDittoRuntimeExceptionSink())

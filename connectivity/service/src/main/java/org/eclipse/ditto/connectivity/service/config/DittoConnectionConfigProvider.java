@@ -24,8 +24,8 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Default implementation of {@link ConnectionConfigProvider} which simply builds and returns a

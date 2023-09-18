@@ -17,10 +17,10 @@ import java.util.function.Supplier;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.json.JsonPointer;
 
-import akka.http.javadsl.model.HttpMethod;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.Query;
-import akka.http.javadsl.model.Uri;
+import org.apache.pekko.http.javadsl.model.HttpMethod;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.Query;
+import org.apache.pekko.http.javadsl.model.Uri;
 
 /**
  * Returns the URI for the location header for HTTP responses when a resource was created.

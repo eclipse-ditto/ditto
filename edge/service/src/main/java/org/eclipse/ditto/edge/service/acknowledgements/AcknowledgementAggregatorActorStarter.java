@@ -38,14 +38,14 @@ import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorRefFactory;
-import akka.actor.Address;
-import akka.cluster.Cluster;
-import akka.japi.pf.PFBuilder;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorRefFactory;
+import org.apache.pekko.actor.Address;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.japi.pf.PFBuilder;
 import scala.PartialFunction;
 
 /**

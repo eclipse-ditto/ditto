@@ -18,18 +18,18 @@ import java.net.ConnectException;
 import java.util.NoSuchElementException;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorKilledException;
-import akka.actor.ActorRef;
-import akka.actor.InvalidActorNameException;
-import akka.actor.OneForOneStrategy;
-import akka.actor.Props;
-import akka.actor.SupervisorStrategy;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.pf.DeciderBuilder;
-import akka.pattern.AskTimeoutException;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorKilledException;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.InvalidActorNameException;
+import org.apache.pekko.actor.OneForOneStrategy;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.SupervisorStrategy;
+import org.apache.pekko.event.DiagnosticLoggingAdapter;
+import org.apache.pekko.japi.pf.DeciderBuilder;
+import org.apache.pekko.pattern.AskTimeoutException;
 
 /**
  * Supervisor actor for cluster singletons which accepts a {@link SupervisorStrategy} (e.g. the one from the root
@@ -121,21 +121,21 @@ final class ClusterSingletonSupervisorActor extends AbstractActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this Actor.
+     * Creates Pekko configuration object Props for this Actor.
      *
      * @param childProps the Props of the child to create (the actual singleton).
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final Props childProps) {
         return Props.create(ClusterSingletonSupervisorActor.class, childProps);
     }
 
     /**
-     * Creates Akka configuration object Props for this Actor.
+     * Creates Pekko configuration object Props for this Actor.
      *
      * @param childProps the Props of the child to create (the actual singleton).
      * @param supervisorStrategy the {@link SupervisorStrategy} to apply.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final Props childProps, final SupervisorStrategy supervisorStrategy) {
 

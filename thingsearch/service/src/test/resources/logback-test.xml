@@ -17,14 +17,14 @@
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%date{ISO8601} %-5level [%X{x-correlation-id}] %logger{20} %X{akkaSource} - %msg%n</pattern>
+            <pattern>%date{ISO8601} %-5level [%X{x-correlation-id}] %logger{20} %X{pekkoSource} - %msg%n</pattern>
         </encoder>
     </appender>
 
     <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
         <target>System.err</target>
         <encoder>
-            <pattern>%date{ISO8601} %-5level [%X{x-correlation-id}] %logger{20} %X{akkaSource} - %msg%n</pattern>
+            <pattern>%date{ISO8601} %-5level [%X{x-correlation-id}] %logger{20} %X{pekkoSource} - %msg%n</pattern>
         </encoder>
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
             <level>ERROR</level>
@@ -34,7 +34,7 @@
     <!-- Log level for the application -->
     <logger name="org.eclipse.ditto" level="${LOG_LEVEL_APPLICATION:-INFO}"/>
     <logger name="org.mongodb.driver" level="WARN"/>
-    <logger name="akka.stream.Materializer" level="ERROR"/>
+    <logger name="org.apache.pekko.stream.Materializer" level="ERROR"/>
     <logger name="org.eclipse.ditto.internal.utils" level="WARN"/>
 
     <root level="${LOG_LEVEL_TEST:-WARN}">

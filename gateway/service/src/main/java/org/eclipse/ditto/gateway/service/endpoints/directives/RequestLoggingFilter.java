@@ -17,9 +17,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.StreamSupport;
 
-import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.model.Query;
-import akka.http.javadsl.model.Uri;
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.Query;
+import org.apache.pekko.http.javadsl.model.Uri;
 
 /**
  * Provides methods to redact sensitive parameter/header values from (raw) URIs and headers e.g. for logging purposes.
@@ -33,7 +33,7 @@ final class RequestLoggingFilter {
     private RequestLoggingFilter() {}
 
     /**
-     * Determines whether a {@link akka.http.javadsl.model.Query} contains parameters that need filtering.
+     * Determines whether a {@link org.apache.pekko.http.javadsl.model.Query} contains parameters that need filtering.
      *
      * @param query the query to check
      * @return {@code true} if the given Query requires filtering
@@ -91,7 +91,7 @@ final class RequestLoggingFilter {
     }
 
     /**
-     * Redacts unwanted header values with {@code ***} in an iterable of {@link akka.http.javadsl.model.HttpHeader}s.
+     * Redacts unwanted header values with {@code ***} in an iterable of {@link org.apache.pekko.http.javadsl.model.HttpHeader}s.
      *
      * @param headers the headers to redact
      * @return the redacted headers

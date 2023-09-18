@@ -31,7 +31,7 @@ import org.eclipse.ditto.protocol.ProtocolFactory;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * A message mapper implementation for the Ditto Protocol.

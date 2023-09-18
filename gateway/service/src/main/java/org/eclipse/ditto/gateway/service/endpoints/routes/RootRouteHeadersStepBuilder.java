@@ -29,9 +29,9 @@ import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.gateway.api.GatewayDuplicateHeaderException;
 
-import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.model.HttpMessage;
-import akka.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.HttpMessage;
+import org.apache.pekko.http.javadsl.server.RequestContext;
 
 /**
  * This class provides a fluent API for building a CompletionStage that eventually supplies the {@link DittoHeaders} for

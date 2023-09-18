@@ -40,20 +40,20 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentMatchers;
 
-import akka.NotUsed;
-import akka.actor.ActorSystem;
-import akka.japi.Pair;
-import akka.kafka.CommitterSettings;
-import akka.kafka.ConsumerMessage;
-import akka.kafka.javadsl.Consumer;
-import akka.stream.BoundedSourceQueue;
-import akka.stream.Materializer;
-import akka.stream.QueueOfferResult;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
-import akka.stream.testkit.TestSubscriber;
-import akka.stream.testkit.javadsl.TestSink;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.kafka.CommitterSettings;
+import org.apache.pekko.kafka.ConsumerMessage;
+import org.apache.pekko.kafka.javadsl.Consumer;
+import org.apache.pekko.stream.BoundedSourceQueue;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.QueueOfferResult;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.testkit.TestSubscriber;
+import org.apache.pekko.stream.testkit.javadsl.TestSink;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 public final class AtLeastOnceConsumerStreamTest {
 
@@ -66,7 +66,7 @@ public final class AtLeastOnceConsumerStreamTest {
 
     @Before
     public void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem");
+        actorSystem = ActorSystem.create("PekkoTestSystem");
         final Consumer.Control control = mock(Consumer.Control.class);
         source = Source.<ConsumerMessage.CommittableMessage<String, ByteBuffer>>queue(1)
                 .mapMaterializedValue(queue -> {

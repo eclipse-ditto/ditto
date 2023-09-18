@@ -41,7 +41,7 @@ import org.junit.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.http.javadsl.model.MediaTypes;
+import org.apache.pekko.http.javadsl.model.MediaTypes;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**

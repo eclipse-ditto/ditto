@@ -21,16 +21,16 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyComm
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.dispatch.DequeBasedMessageQueue;
-import akka.dispatch.Envelope;
-import akka.dispatch.MailboxType;
-import akka.dispatch.MessageQueue;
-import akka.dispatch.ProducesMessageQueue;
-import akka.dispatch.UnboundedDequeBasedMessageQueueSemantics;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.dispatch.DequeBasedMessageQueue;
+import org.apache.pekko.dispatch.Envelope;
+import org.apache.pekko.dispatch.MailboxType;
+import org.apache.pekko.dispatch.MessageQueue;
+import org.apache.pekko.dispatch.ProducesMessageQueue;
+import org.apache.pekko.dispatch.UnboundedDequeBasedMessageQueueSemantics;
+import org.apache.pekko.event.Logging;
+import org.apache.pekko.event.LoggingAdapter;
 
 /**
  * Mailbox which handles {@link PolicyModifyCommand}s which should be passed to the {@link org.eclipse.ditto.policies.service.persistence.actors.PolicyPersistenceActor} in a
@@ -52,7 +52,7 @@ public class PolicyPersistenceActorMailbox implements MailboxType,
 
     /**
      * Creates a new {@code PolicyBoundedMailbox}.
-     * This constructor signature must exist, it will be called by Akka.
+     * This constructor signature must exist, it will be called by Pekko.
      *
      * @param settings the ActorSystem settings.
      * @param config the config.

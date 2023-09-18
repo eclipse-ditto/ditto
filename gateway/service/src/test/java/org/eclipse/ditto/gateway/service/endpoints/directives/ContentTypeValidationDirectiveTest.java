@@ -27,16 +27,16 @@ import org.eclipse.ditto.base.model.exceptions.UnsupportedMediaTypeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.junit.Test;
 
-import akka.http.javadsl.model.ContentType;
-import akka.http.javadsl.model.ContentTypes;
-import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.MediaTypes;
-import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.server.RequestContext;
-import akka.http.javadsl.server.Route;
-import akka.http.javadsl.testkit.JUnitRouteTest;
-import akka.http.javadsl.testkit.TestRouteResult;
+import org.apache.pekko.http.javadsl.model.ContentType;
+import org.apache.pekko.http.javadsl.model.ContentTypes;
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.MediaTypes;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.testkit.JUnitRouteTest;
+import org.apache.pekko.http.javadsl.testkit.TestRouteResult;
 
 public final class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
 
@@ -133,7 +133,7 @@ public final class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
     }
 
     /**
-     * When akka can't parse the content-type header, it appears as rawHeader and application/octet-streams is used
+     * When pekko can't parse the content-type header, it appears as rawHeader and application/octet-streams is used
      * as default, this behaviour is simulated here.
      */
     @Test

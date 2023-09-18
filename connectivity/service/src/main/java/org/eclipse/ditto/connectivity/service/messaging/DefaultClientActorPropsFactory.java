@@ -26,9 +26,9 @@ import org.eclipse.ditto.connectivity.service.messaging.rabbitmq.RabbitMQClientA
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
 
 /**
  * The default implementation of {@link ClientActorPropsFactory}. Singleton which is created just once

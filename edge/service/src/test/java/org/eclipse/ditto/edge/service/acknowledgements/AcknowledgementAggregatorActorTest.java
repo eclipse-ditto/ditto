@@ -33,7 +33,7 @@ import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutEx
 import org.eclipse.ditto.edge.service.acknowledgements.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingCommandResponseAcknowledgementProvider;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
-import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
+import org.eclipse.ditto.internal.utils.pekko.ActorSystemResource;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThing;
@@ -50,9 +50,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link AcknowledgementAggregatorActor}.

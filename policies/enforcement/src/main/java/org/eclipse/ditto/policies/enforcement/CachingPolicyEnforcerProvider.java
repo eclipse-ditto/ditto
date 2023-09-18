@@ -21,8 +21,8 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
@@ -34,17 +34,17 @@ import org.slf4j.Logger;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.cluster.ddata.ORSet;
-import akka.cluster.ddata.Replicator;
-import akka.cluster.pubsub.DistributedPubSub;
-import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.dispatch.MessageDispatcher;
-import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.ddata.ORSet;
+import org.apache.pekko.cluster.ddata.Replicator;
+import org.apache.pekko.cluster.pubsub.DistributedPubSub;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.dispatch.MessageDispatcher;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.Patterns;
 
 /**
  * Transparent caching layer for {@link org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider}

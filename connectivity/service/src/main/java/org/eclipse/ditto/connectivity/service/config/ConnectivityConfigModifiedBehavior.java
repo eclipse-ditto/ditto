@@ -22,10 +22,10 @@ import org.eclipse.ditto.base.model.signals.events.Event;
 
 import com.typesafe.config.Config;
 
-import akka.actor.AbstractActor;
-import akka.actor.Actor;
-import akka.actor.ActorRef;
-import akka.japi.pf.ReceiveBuilder;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.Actor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 
 /**
  * Behavior to modify this actor's {@link ConnectivityConfig} and register for changes to {@link ConnectivityConfig}.

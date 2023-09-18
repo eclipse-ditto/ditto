@@ -48,14 +48,14 @@ import org.mockito.Mockito;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Address;
-import akka.cluster.Cluster;
-import akka.cluster.ddata.ORMultiMap;
-import akka.cluster.ddata.Replicator;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Address;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.cluster.ddata.ORMultiMap;
+import org.apache.pekko.cluster.ddata.Replicator;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link AckUpdater}.
@@ -230,7 +230,7 @@ public final class AckUpdaterTest {
             // the current cluster member
             final var config = PubSubConfig.of(system1);
             final var ownAddress = Cluster.get(system1).selfAddress();
-            final var nonexistentAddress = Address.apply("akka", "unknown-system");
+            final var nonexistentAddress = Address.apply("pekko", "unknown-system");
             final var addressMap = Map.of(nonexistentAddress, "unknown-value");
             final DData<Address, String, LiteralUpdate> ddata = mockDistributedData(addressMap);
             final ActorRef underTest = system1.actorOf(AckUpdater.props(config, ownAddress, ddata));

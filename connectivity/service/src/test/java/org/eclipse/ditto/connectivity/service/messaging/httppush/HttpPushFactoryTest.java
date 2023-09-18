@@ -54,26 +54,26 @@ import org.junit.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.NotUsed;
-import akka.actor.ActorSystem;
-import akka.http.impl.engine.client.ProxyConnectionFailedException;
-import akka.http.javadsl.Http;
-import akka.http.javadsl.ServerBinding;
-import akka.http.javadsl.model.HttpMethods;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.model.headers.Authorization;
-import akka.japi.Pair;
-import akka.stream.KillSwitches;
-import akka.stream.OverflowStrategy;
-import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.SinkQueueWithCancel;
-import akka.stream.javadsl.Source;
-import akka.stream.javadsl.SourceQueueWithComplete;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.impl.engine.client.ProxyConnectionFailedException;
+import org.apache.pekko.http.javadsl.Http;
+import org.apache.pekko.http.javadsl.ServerBinding;
+import org.apache.pekko.http.javadsl.model.HttpMethods;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.model.headers.Authorization;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.stream.KillSwitches;
+import org.apache.pekko.stream.OverflowStrategy;
+import org.apache.pekko.stream.javadsl.Flow;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.SinkQueueWithCancel;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.javadsl.SourceQueueWithComplete;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.util.Failure;
 import scala.util.Try;
 
@@ -197,8 +197,8 @@ public final class HttpPushFactoryTest {
         // WHEN: request is made
         sourceQueue.offer(request);
 
-        // THEN: CONNECT request is made to the Akka HTTP test server.
-        // THEN: Akka HTTP server rejects CONNECT request, creating a failed response
+        // THEN: CONNECT request is made to the Pekko HTTP test server.
+        // THEN: Pekko HTTP server rejects CONNECT request, creating a failed response
         final Optional<Try<HttpResponse>> optionalTryResponse = sinkQueue.pull().toCompletableFuture().join();
         assertThat(optionalTryResponse).isNotEmpty();
         final Try<HttpResponse> tryResponse = optionalTryResponse.get();
@@ -234,7 +234,7 @@ public final class HttpPushFactoryTest {
             assertThat(responseOrError1.get().status()).isEqualTo(response1.status());
 
             // WHEN: In-flight request is killed
-            // THEN: Akka HTTP responds with status 500
+            // THEN: Pekko HTTP responds with status 500
             responseQueue.offer(new CompletableFuture<>());
             sourceQueue.offer(request2);
             assertThat(requestQueue.take().getUri()).isEqualTo(request2.getUri());

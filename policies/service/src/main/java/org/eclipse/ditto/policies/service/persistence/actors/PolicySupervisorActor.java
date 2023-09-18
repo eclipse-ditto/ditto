@@ -37,9 +37,9 @@ import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 import org.eclipse.ditto.policies.service.enforcement.PolicyCommandEnforcement;
 import org.eclipse.ditto.policies.service.persistence.actors.announcements.PolicyAnnouncementManager;
 
-import akka.actor.ActorKilledException;
-import akka.actor.ActorRef;
-import akka.actor.Props;
+import org.apache.pekko.actor.ActorKilledException;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
 
 /**
  * Supervisor for {@link org.eclipse.ditto.policies.service.persistence.actors.PolicyPersistenceActor} which means

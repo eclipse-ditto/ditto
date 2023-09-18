@@ -21,8 +21,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 
-import akka.actor.ActorRef;
-import akka.actor.Status;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Status;
 
 /**
  * Immutable implementation of {@link ConnectionFailure}.

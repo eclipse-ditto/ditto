@@ -254,6 +254,14 @@
         <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>apache-releases</id>
+            <name>apache-releases</name>
+            <url>https://repository.apache.org/content/repositories/releases/</url>
+        </repository>
+    </repositories>
+
     <build>
         <pluginManagement>
             <plugins>

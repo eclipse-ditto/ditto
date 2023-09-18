@@ -26,8 +26,8 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
 import org.eclipse.ditto.internal.utils.http.DefaultHttpClientFacade;
@@ -44,18 +44,18 @@ import org.eclipse.ditto.wot.model.WotThingModelNotAccessibleException;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
-import akka.actor.ActorSystem;
-import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.MediaRanges;
-import akka.http.javadsl.model.MediaTypes;
-import akka.http.javadsl.model.headers.Accept;
-import akka.http.javadsl.model.headers.Location;
-import akka.stream.Materializer;
-import akka.stream.SystemMaterializer;
-import akka.stream.javadsl.Sink;
-import akka.util.ByteString;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.MediaRanges;
+import org.apache.pekko.http.javadsl.model.MediaTypes;
+import org.apache.pekko.http.javadsl.model.headers.Accept;
+import org.apache.pekko.http.javadsl.model.headers.Location;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.SystemMaterializer;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.util.ByteString;
 
 /**
  * Default implementation of {@link WotThingModelFetcher} which should be not Ditto specific.

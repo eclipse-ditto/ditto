@@ -33,7 +33,7 @@ spec:
       labels:
         app.kubernetes.io/name: {{ include "ditto.name" . }}-policies
         app.kubernetes.io/instance: {{ .Release.Name }}
-        actorSystemName: {{ .Values.akka.actorSystemName }}
+        actorSystemName: {{ .Values.pekko.actorSystemName }}
         {{- with .Values.policies.additionalLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -126,7 +126,7 @@ spec:
                 -XX:InitialRAMPercentage={{ .Values.policies.jvm.heapRamPercentage }}
                 -XX:MaxGCPauseMillis={{ .Values.policies.jvm.maxGcPauseMillis }}
                 {{ .Values.policies.additionalJvmOptions }}
-                {{- .Values.global.akkaOptions }}
+                {{- .Values.global.pekkoOptions }}
                 {{- if .Values.global.logging.customConfigFile.enabled }}
                 -Dlogback.configurationFile=/opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
                 {{- end }}
@@ -195,9 +195,9 @@ spec:
               value: "{{ .Values.global.limits.maxHeadersSize }}"
             - name: LIMITS_MESSAGES_AUTH_SUBJECTS_COUNT
               value: "{{ .Values.global.limits.maxAuthSubjectsCount }}"
-            - name: AKKA_PERSISTENCE_MONGO_JOURNAL_WRITE_CONCERN
+            - name: PEKKO_PERSISTENCE_MONGO_JOURNAL_WRITE_CONCERN
               value: "{{ .Values.policies.config.mongodb.journalWriteConcern }}"
-            - name: AKKA_PERSISTENCE_MONGO_SNAPS_WRITE_CONCERN
+            - name: PEKKO_PERSISTENCE_MONGO_SNAPS_WRITE_CONCERN
               value: "{{ .Values.policies.config.mongodb.snapsWriteConcern }}"
             - name: BREAKER_MAXTRIES
               value: "{{ .Values.policies.config.mongodb.journalCircuitBreaker.maxTries }}"
@@ -247,10 +247,10 @@ spec:
               containerPort: 8080
               protocol: TCP
             - name: remoting
-              containerPort: {{ .Values.akka.remoting.port }}
+              containerPort: {{ .Values.pekko.remoting.port }}
               protocol: TCP
             - name: management
-              containerPort: {{ .Values.akka.mgmthttp.port }}
+              containerPort: {{ .Values.pekko.mgmthttp.port }}
               protocol: TCP
             {{- if .Values.global.prometheus.enabled }}
             - name: prometheus
@@ -291,7 +291,7 @@ spec:
               memory: {{ .Values.policies.resources.memoryMi }}Mi
             limits:
               # ## no cpu limit to avoid CFS scheduler limits
-              # ref: https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+              # ref: https://pekko.apache.org/docs/pekko/current/additional/deploying.html#deploying-to-kubernetes
               # cpu: ""
               memory: {{ .Values.policies.resources.memoryMi }}Mi
           {{- if .Values.openshift.enabled }}

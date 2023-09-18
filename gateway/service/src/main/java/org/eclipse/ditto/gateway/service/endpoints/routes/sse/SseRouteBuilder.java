@@ -21,12 +21,12 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.gateway.service.streaming.StreamingAuthorizationEnforcer;
 
-import akka.actor.ActorRef;
-import akka.http.javadsl.server.RequestContext;
-import akka.http.javadsl.server.Route;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
 
 /**
- * Builder with a fluent API for creating Akka HTTP routes for SSE (Server Sent Events).
+ * Builder with a fluent API for creating Pekko HTTP routes for SSE (Server Sent Events).
  */
 public interface SseRouteBuilder {
 
@@ -78,7 +78,7 @@ public interface SseRouteBuilder {
     SseRouteBuilder withProxyActor(@Nullable ActorRef proxyActor);
 
     /**
-     * Creates the Akka HTTP route for SSE.
+     * Creates the Pekko HTTP route for SSE.
      *
      * @param requestContext provides the HTTP request.
      * @param dittoHeadersSupplier provides the Ditto headers to be used.

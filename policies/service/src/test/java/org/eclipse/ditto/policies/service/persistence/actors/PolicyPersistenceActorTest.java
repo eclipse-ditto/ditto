@@ -129,21 +129,21 @@ import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.AbstractActor;
-import akka.actor.Actor;
-import akka.actor.ActorRef;
-import akka.actor.OneForOneStrategy;
-import akka.actor.PoisonPill;
-import akka.actor.Props;
-import akka.actor.SupervisorStrategy;
-import akka.cluster.Cluster;
-import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.cluster.sharding.ClusterSharding;
-import akka.cluster.sharding.ClusterShardingSettings;
-import akka.japi.pf.DeciderBuilder;
-import akka.japi.pf.ReceiveBuilder;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.Actor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.OneForOneStrategy;
+import org.apache.pekko.actor.PoisonPill;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.SupervisorStrategy;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.cluster.sharding.ClusterSharding;
+import org.apache.pekko.cluster.sharding.ClusterShardingSettings;
+import org.apache.pekko.japi.pf.DeciderBuilder;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.PartialFunction;
 
 /**

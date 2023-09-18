@@ -25,10 +25,10 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.service.common.config.DefaultPolicyConfig;
 
-import akka.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
 
 /**
- * Abstract base EventAdapter for {@link PolicyEvent}s persisted into akka-persistence event-journal.
+ * Abstract base EventAdapter for {@link PolicyEvent}s persisted into pekko-persistence event-journal.
  * Converts Events to MongoDB BSON objects and vice versa.
  */
 public abstract class AbstractPolicyMongoEventAdapter extends AbstractMongoEventAdapter<PolicyEvent<?>> {

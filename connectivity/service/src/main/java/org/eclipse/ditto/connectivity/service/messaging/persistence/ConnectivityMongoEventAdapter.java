@@ -15,7 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence;
 import java.util.HashMap;
 import java.util.Map;
 
-import akka.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
 import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.EventJsonDeserializer;
@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * EventAdapter for {@link ConnectivityEvent}s persisted into
- * akka-persistence event-journal. Converts Events to MongoDB BSON objects and vice versa.
+ * pekko-persistence event-journal. Converts Events to MongoDB BSON objects and vice versa.
  */
 public final class ConnectivityMongoEventAdapter extends AbstractMongoEventAdapter<ConnectivityEvent<?>> {
 

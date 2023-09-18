@@ -25,7 +25,7 @@ import org.eclipse.ditto.base.model.headers.HeaderDefinition;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
-import akka.http.javadsl.model.MediaTypes;
+import org.apache.pekko.http.javadsl.model.MediaTypes;
 
 /**
  * Provides configuration settings of the Gateway service's HTTP behaviour.
@@ -169,7 +169,7 @@ public interface HttpConfig extends org.eclipse.ditto.base.service.config.http.H
          * PUT and POST resources validate that the content-type of a request is supported. With this config value
          * additional media-types can be specified, which will also be accepted. Default value
          * 'application/octet-stream' is for unknown or not further specified payload and request without any
-         * content-type declaration will also be mapped to this type by akka-http.
+         * content-type declaration will also be mapped to this type by pekko-http.
          *
          * @since 1.1.0
          */

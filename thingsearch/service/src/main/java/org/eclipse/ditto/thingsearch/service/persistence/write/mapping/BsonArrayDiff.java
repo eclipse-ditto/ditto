@@ -32,7 +32,7 @@ import org.bson.BsonString;
 import org.bson.BsonValue;
 import org.eclipse.ditto.json.JsonPointer;
 
-import akka.japi.Pair;
+import org.apache.pekko.japi.Pair;
 
 /**
  * Diff between 2 BSON arrays. Only used for the flattened key-value array because Ditto has no API for array

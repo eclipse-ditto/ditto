@@ -42,8 +42,8 @@ import org.mockito.Mockito;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Unit test for {@link ResponseReceiverCache}.
@@ -64,7 +64,7 @@ public final class ResponseReceiverCacheTest {
     @BeforeClass
     public static void setupTest() {
         final Config config = ConfigFactory.load("test");
-        actorSystem = ActorSystem.create("AkkaTestSystem", config);
+        actorSystem = ActorSystem.create("PekkoTestSystem", config);
     }
 
     @Test

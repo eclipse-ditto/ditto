@@ -33,7 +33,7 @@ import org.eclipse.ditto.policies.model.SubjectId;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Implementation of {@link JwtAuthorizationSubjectsProvider} for Google JWTs.
@@ -43,7 +43,7 @@ public final class DittoJwtAuthorizationSubjectsProvider implements JwtAuthoriza
 
     private final JwtSubjectIssuersConfig jwtSubjectIssuersConfig;
 
-    @SuppressWarnings("unused") //Loaded via reflection by AkkaExtension.
+    @SuppressWarnings("unused") //Loaded via reflection by PekkoExtension.
     public DittoJwtAuthorizationSubjectsProvider(final ActorSystem actorSystem, final Config extensionConfig) {
         this(jwtSubjectIssuersConfig(actorSystem));
     }

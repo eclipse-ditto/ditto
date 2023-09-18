@@ -19,8 +19,8 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
-import akka.http.javadsl.server.RequestContext;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.server.RequestContext;
 
 /**
  * Null implementation for {@link StreamingAuthorizationEnforcer}.

@@ -35,7 +35,7 @@ import org.eclipse.ditto.connectivity.model.HonoAddressAlias;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
+import org.eclipse.ditto.internal.utils.pekko.ActorSystemResource;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.junit.Before;
 import org.junit.ClassRule;

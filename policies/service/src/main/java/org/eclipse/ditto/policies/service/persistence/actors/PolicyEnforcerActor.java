@@ -30,7 +30,7 @@ import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.service.enforcement.PolicyCommandEnforcement;
 
-import akka.actor.Props;
+import org.apache.pekko.actor.Props;
 
 /**
  * Enforcer responsible for enforcing {@link PolicyCommand}s and filtering {@link PolicyCommandResponse}s utilizing the
@@ -48,7 +48,7 @@ public final class PolicyEnforcerActor extends
     }
 
     /**
-     * Creates Akka configuration object Props for this Actor.
+     * Creates Pekko configuration object Props for this Actor.
      *
      * @param policyId the PolicyId this enforcer actor is responsible for.
      * @param policyCommandEnforcement the policy command enforcement logic to apply in the enforcer.

@@ -15,12 +15,12 @@ package org.eclipse.ditto.internal.utils.persistence;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import akka.actor.AbstractActor;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.pf.ReceiveBuilder;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.event.DiagnosticLoggingAdapter;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 
 /**
- * A wrapper of the result of {@link akka.japi.pf.ReceiveBuilder} that never fails.
+ * A wrapper of the result of {@link org.apache.pekko.japi.pf.ReceiveBuilder} that never fails.
  */
 public final class SafeRecovery {
 
@@ -28,7 +28,7 @@ public final class SafeRecovery {
      * Creates a Receive for recovery such that exceptions are logged as warnings
      * and not thrown. Recovery messages causing exceptions have no effect.
      *
-     * @param log The Akka logger to write warnings to.
+     * @param log The Pekko logger to write warnings to.
      * @param receiveRecover The Receive to wrap around.
      *
      * @return the created Receive.

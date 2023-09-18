@@ -60,12 +60,12 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResources
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubject;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjects;
 
-import akka.http.javadsl.server.PathMatchers;
-import akka.http.javadsl.server.RequestContext;
-import akka.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.server.PathMatchers;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
 
 /**
- * Builder for creating Akka HTTP routes for Policy {@code /entries}.
+ * Builder for creating Pekko HTTP routes for Policy {@code /entries}.
  */
 final class PolicyEntriesRoute extends AbstractRoute {
 

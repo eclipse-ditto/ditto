@@ -22,7 +22,7 @@ import org.bson.types.ObjectId;
 
 import com.mongodb.client.model.Filters;
 
-import akka.contrib.persistence.mongodb.SnapshottingFieldNames$;
+import pekko.contrib.persistence.mongodb.SnapshottingFieldNames$;
 
 /**
  * A record that hold optional filters for retrieving snapshots from persistence.

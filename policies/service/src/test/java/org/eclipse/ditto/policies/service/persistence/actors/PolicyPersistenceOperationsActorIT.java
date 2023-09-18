@@ -54,14 +54,14 @@ import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 
-import akka.Done;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.stream.javadsl.Source;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.Done;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link org.eclipse.ditto.policies.service.persistence.actors.PolicyPersistenceOperationsActor}.

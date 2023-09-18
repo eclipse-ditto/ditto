@@ -14,8 +14,8 @@ package org.eclipse.ditto.gateway.service.endpoints.actors;
 
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnections;
 
-import akka.actor.ActorRef;
-import akka.actor.Props;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
 
 /**
  * Actor for retrieving multiple connections.

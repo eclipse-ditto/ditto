@@ -27,8 +27,8 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
@@ -40,15 +40,15 @@ import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
-import akka.actor.Props;
-import akka.cluster.ddata.Key;
-import akka.cluster.ddata.ORMultiMap;
-import akka.cluster.ddata.Replicator;
-import akka.japi.Pair;
-import akka.japi.pf.ReceiveBuilder;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.ddata.Key;
+import org.apache.pekko.cluster.ddata.ORMultiMap;
+import org.apache.pekko.cluster.ddata.Replicator;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 import scala.jdk.javaapi.CollectionConverters;
 
 /**

@@ -19,7 +19,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.internal.utils.akka.PingCommand;
+import org.eclipse.ditto.internal.utils.pekko.PingCommand;
 import org.eclipse.ditto.internal.utils.persistentactors.config.DefaultPingConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
 import org.junit.AfterClass;
@@ -29,12 +29,12 @@ import org.junit.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.stream.javadsl.Source;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link PersistencePingActor}.
@@ -47,7 +47,7 @@ public final class PersistencePingActorTest {
 
     @BeforeClass
     public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", CONFIG);
+        actorSystem = ActorSystem.create("PekkoTestSystem", CONFIG);
     }
 
     @AfterClass

@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * SnapshotAdapter for {@link String}s persisted to/from MongoDB.

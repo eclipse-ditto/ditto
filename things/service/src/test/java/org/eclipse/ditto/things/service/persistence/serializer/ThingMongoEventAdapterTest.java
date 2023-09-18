@@ -33,10 +33,10 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
-import akka.persistence.journal.EventSeq;
-import akka.persistence.journal.Tagged;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.persistence.journal.EventSeq;
+import org.apache.pekko.persistence.journal.Tagged;
 import scala.jdk.javaapi.CollectionConverters;
 
 /**

@@ -25,7 +25,7 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Command strategies of {@code PolicyPersistenceActor}.
@@ -88,7 +88,7 @@ public final class PolicyCommandStrategies
 
     /**
      * @param policyConfig the PolicyConfig of the Policy service to apply.
-     * @param system the Akka ActorSystem to use in order to e.g. dynamically load classes.
+     * @param system the Pekko ActorSystem to use in order to e.g. dynamically load classes.
      * @return command strategies for policy persistence actor.
      */
     public static PolicyCommandStrategies getInstance(final PolicyConfig policyConfig,

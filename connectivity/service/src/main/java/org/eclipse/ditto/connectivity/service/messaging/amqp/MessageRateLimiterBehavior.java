@@ -17,11 +17,11 @@ import java.time.Duration;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
 import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 
-import akka.actor.AbstractActor;
-import akka.actor.Actor;
-import akka.actor.Timers;
-import akka.event.LoggingAdapter;
-import akka.japi.pf.ReceiveBuilder;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.Actor;
+import org.apache.pekko.actor.Timers;
+import org.apache.pekko.event.LoggingAdapter;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 
 /**
  * Mixin for limitation of unacknowledged messages or messages

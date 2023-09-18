@@ -33,15 +33,15 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.ActorRefFactory;
-import akka.actor.ActorSelection;
-import akka.actor.Props;
-import akka.actor.ReceiveTimeout;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorRefFactory;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.ReceiveTimeout;
 
 /**
  * Actor which is created with an acknowledgement requester actor reference that requested to receive custom
@@ -80,12 +80,12 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this AcknowledgementForwarderActor.
+     * Creates Pekko configuration object Props for this AcknowledgementForwarderActor.
      *
      * @param commandForwarder the actor ref of the edge command forwarder actor.
      * @param dittoHeaders the DittoHeaders of the Signal which contained the request for Acknowledgements.
      * @param defaultTimeout the default timeout to apply when {@code dittoHeaders} did not contain a specific timeout.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props props(final ActorSelection commandForwarder, final DittoHeaders dittoHeaders,
             final Duration defaultTimeout) {

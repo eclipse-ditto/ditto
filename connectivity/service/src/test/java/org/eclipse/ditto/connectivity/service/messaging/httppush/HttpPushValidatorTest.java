@@ -43,8 +43,8 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorSystem;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit test for {@link HttpPushValidator}.
@@ -62,7 +62,7 @@ public final class HttpPushValidatorTest {
     public static void initTestFixture() {
         defaultSpecificConfig = new HashMap<>();
         defaultSpecificConfig.put("parallelism", "1");
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        actorSystem = ActorSystem.create("PekkoTestSystem", TestConstants.CONFIG);
         connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
     }
 

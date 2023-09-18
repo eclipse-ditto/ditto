@@ -23,9 +23,9 @@ We had to skip Ditto version 3.3.1, as there were errors in our release pipeline
 This is a complete list of the
 [merged pull requests](https://github.com/eclipse-ditto/ditto/pulls?q=is%3Apr+milestone%3A3.3.2).
 
-#### [Fix blocking Akka dispatcher thread on WoT skeleton creation](https://github.com/eclipse-ditto/ditto/pull/1666)
+#### [Fix blocking Pekko dispatcher thread on WoT skeleton creation](https://github.com/eclipse-ditto/ditto/pull/1666)
 
-Ditto's [WoT integration](basic-wot-integration.html) did block the Akka dispatcher thread which could lead to deadlock 
+Ditto's [WoT integration](basic-wot-integration.html) did block the Pekko dispatcher thread which could lead to deadlock 
 situations when e.g. creating new twins based on a WoT ThingModel.  
 
 This was solved and the complete WoT operations are now executed asynchronously.

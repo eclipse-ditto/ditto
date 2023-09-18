@@ -40,15 +40,15 @@ import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.Connecti
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.actor.Status;
-import akka.dispatch.MessageDispatcher;
-import akka.event.DiagnosticLoggingAdapter;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.dispatch.MessageDispatcher;
+import org.apache.pekko.event.DiagnosticLoggingAdapter;
 
 /**
  * This actor executes operations (connect/disconnect) on JMS Connection/Session. It is separated into an actor
@@ -103,13 +103,13 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     }
 
     /**
-     * Creates Akka configuration object {@link Props} for this {@code JMSConnectionHandlingActor}.
+     * Creates Pekko configuration object {@link Props} for this {@code JMSConnectionHandlingActor}.
      *
      * @param connection the connection
      * @param exceptionListener the exception listener
      * @param jmsConnectionFactory the jms connection factory
      * @param connectionLogger used to log failures during certificate validation.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props props(final Connection connection, final ExceptionListener exceptionListener,
             final JmsConnectionFactory jmsConnectionFactory, final ConnectionLogger connectionLogger) {

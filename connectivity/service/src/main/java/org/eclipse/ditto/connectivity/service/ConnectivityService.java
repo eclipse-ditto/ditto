@@ -23,14 +23,14 @@ import org.slf4j.LoggerFactory;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.Props;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
 
 /**
  * Entry point of the Connectivity service.
  * <ul>
  *     <li>Reads configuration, enhances it with cloud environment settings.</li>
- *     <li>Sets up Akka actor system.</li>
+ *     <li>Sets up Pekko actor system.</li>
  * </ul>
  */
 @AllParametersAndReturnValuesAreNonnullByDefault
@@ -39,7 +39,7 @@ public final class ConnectivityService extends DittoService<ConnectivityConfig> 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConnectivityService.class);
 
     /**
-     * Name for the Akka Actor System of the Connectivity service.
+     * Name for the Pekko Actor System of the Connectivity service.
      */
     public static final String SERVICE_NAME = "connectivity";
 
@@ -68,7 +68,7 @@ public final class ConnectivityService extends DittoService<ConnectivityConfig> 
     }
 
     @Override
-    protected Config appendAkkaPersistenceMongoUriToRawConfig() {
+    protected Config appendPekkoPersistenceMongoUriToRawConfig() {
         final var mongoDbConfig = serviceSpecificConfig.getMongoDbConfig();
         final String mongoDbUri = mongoDbConfig.getMongoDbUri();
         return rawConfig.withValue(MONGO_URI_CONFIG_PATH, ConfigValueFactory.fromAnyRef(mongoDbUri));

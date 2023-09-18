@@ -31,8 +31,8 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorSystem;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit test for {@link DefaultDittoHeadersValidator}.
@@ -44,7 +44,7 @@ public final class DefaultDittoHeadersValidatorTest {
 
     @BeforeClass
     public static void init() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", ConfigFactory.load("test"));
+        actorSystem = ActorSystem.create("PekkoTestSystem", ConfigFactory.load("test"));
     }
 
     @AfterClass

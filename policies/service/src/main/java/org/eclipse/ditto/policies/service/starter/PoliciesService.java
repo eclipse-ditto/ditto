@@ -22,8 +22,8 @@ import org.slf4j.LoggerFactory;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.Props;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
 
 /**
  * Entry point of the Policies Service.
@@ -62,7 +62,7 @@ public final class PoliciesService extends DittoService<PoliciesConfig> {
     }
 
     @Override
-    protected Config appendAkkaPersistenceMongoUriToRawConfig() {
+    protected Config appendPekkoPersistenceMongoUriToRawConfig() {
         final var mongoDbConfig = serviceSpecificConfig.getMongoDbConfig();
         final String mongoDbUri = mongoDbConfig.getMongoDbUri();
         return rawConfig.withValue(MONGO_URI_CONFIG_PATH, ConfigValueFactory.fromAnyRef(mongoDbUri));

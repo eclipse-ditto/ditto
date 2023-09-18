@@ -17,8 +17,8 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.policies.service.common.config.DittoPoliciesConfig;
 import org.eclipse.ditto.policies.service.common.config.PoliciesConfig;
 
-import akka.actor.ActorSystem;
-import akka.actor.Props;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
 
 /**
  * Tests {@link org.eclipse.ditto.policies.service.starter.PoliciesRootActor}.

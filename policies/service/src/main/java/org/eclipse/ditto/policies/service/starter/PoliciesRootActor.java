@@ -17,7 +17,7 @@ import static org.eclipse.ditto.policies.api.PoliciesMessagingConstants.CLUSTER_
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
@@ -42,12 +42,12 @@ import org.eclipse.ditto.policies.service.persistence.actors.PoliciesPersistence
 import org.eclipse.ditto.policies.service.persistence.actors.PolicyPersistenceOperationsActor;
 import org.eclipse.ditto.policies.service.persistence.actors.PolicySupervisorActor;
 
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.cluster.sharding.ClusterShardingSettings;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.sharding.ClusterShardingSettings;
+import org.apache.pekko.event.DiagnosticLoggingAdapter;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.Patterns;
 
 /**
  * Parent Actor which takes care of supervision of all other Actors in our system.
@@ -142,11 +142,11 @@ public final class PoliciesRootActor extends DittoRootActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this PoliciesRootActor.
+     * Creates Pekko configuration object Props for this PoliciesRootActor.
      *
      * @param policiesConfig the configuration reader of this service.
      * @param pubSubMediator the PubSub mediator Actor.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final PoliciesConfig policiesConfig, final ActorRef pubSubMediator) {
 

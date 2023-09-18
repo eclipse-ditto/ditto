@@ -18,8 +18,8 @@ import org.eclipse.ditto.internal.utils.persistence.operations.NamespacePersiste
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.thingsearch.api.PolicyReferenceTag;
 
-import akka.NotUsed;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * The persistence for the search updater service.

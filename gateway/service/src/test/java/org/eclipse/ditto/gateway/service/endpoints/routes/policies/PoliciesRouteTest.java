@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes.policies;
 
-import static akka.http.javadsl.model.ContentTypes.APPLICATION_JSON;
+import static org.apache.pekko.http.javadsl.model.ContentTypes.APPLICATION_JSON;
 
 import java.util.List;
 
@@ -39,9 +39,9 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyAction
 import org.junit.Before;
 import org.junit.Test;
 
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.testkit.TestRoute;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.testkit.TestRoute;
 
 /**
  * Tests {@link PoliciesRoute}.

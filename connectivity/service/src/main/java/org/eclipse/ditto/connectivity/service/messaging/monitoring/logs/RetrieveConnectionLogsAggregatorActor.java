@@ -25,13 +25,13 @@ import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionTimeoutException;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionLogs;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionLogsResponse;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.actor.ReceiveTimeout;
-import akka.event.DiagnosticLoggingAdapter;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.ReceiveTimeout;
+import org.apache.pekko.event.DiagnosticLoggingAdapter;
 
 /**
  * An aggregation actor which receives {@link org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionLogs}
@@ -66,14 +66,14 @@ public final class RetrieveConnectionLogsAggregatorActor extends AbstractActor {
     }
 
     /**
-     * Creates Akka configuration object for this actor.
+     * Creates Pekko configuration object for this actor.
      *
      * @param connection the {@code Connection} for which to aggregate the logs for.
      * @param sender the ActorRef of the sender to which to answer the response to.
      * @param originalHeaders the DittoHeaders to use for the response message.
      * @param timeout the timeout to apply in order to receive the response.
      * @param maxLogSizeBytes the maximum length of all log entries JSON representation.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final Connection connection, final ActorRef sender,
             final DittoHeaders originalHeaders, final Duration timeout, final long maxLogSizeBytes) {

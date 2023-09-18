@@ -21,11 +21,11 @@ import org.eclipse.ditto.gateway.service.streaming.StreamingAuthorizationEnforce
 import org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 
-import akka.http.javadsl.server.RequestContext;
-import akka.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
 
 /**
- * Builder with a fluent API for creating Akka HTTP routes for websocket connections.
+ * Builder with a fluent API for creating Pekko HTTP routes for websocket connections.
  */
 public interface WebSocketRouteBuilder {
 
@@ -97,7 +97,7 @@ public interface WebSocketRouteBuilder {
     WebSocketRouteBuilder withWebSocketConfigProvider(WebSocketConfigProvider webSocketConfigProvider);
 
     /**
-     * Creates the Akka HTTP route for websocket.
+     * Creates the Pekko HTTP route for websocket.
      *
      * @param version the WS API version.
      * @param correlationId the correlation ID of the request to open the WS connection.

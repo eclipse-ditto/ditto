@@ -23,7 +23,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Signal transformer used for {@link EdgeCommandForwarderActorTest} to artificially delay certain commands in their

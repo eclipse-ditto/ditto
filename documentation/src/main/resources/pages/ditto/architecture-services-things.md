@@ -24,7 +24,7 @@ Other services can communicate with the things service via:
 
 ## Persistence
 
-The things service uses [Akka persistence](https://doc.akka.io/docs/akka/current/persistence.html?language=java) and 
+The things service uses [Pekko persistence](https://pekko.apache.org/docs/pekko/current/persistence.html?language=java) and 
 with that [Event sourcing](basic-signals.html#architectural-style) in order to persist changes to 
 and restore persisted [things](basic-thing.html).
 

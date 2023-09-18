@@ -14,7 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.internal;
 
 import javax.annotation.Nullable;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 /**
  * Messaging internal event when a

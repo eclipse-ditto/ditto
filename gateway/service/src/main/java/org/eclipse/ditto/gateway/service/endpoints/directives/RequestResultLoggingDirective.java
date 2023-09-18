@@ -12,10 +12,10 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.directives;
 
-import static akka.http.javadsl.server.Directives.extractRequest;
-import static akka.http.javadsl.server.Directives.logRequest;
-import static akka.http.javadsl.server.Directives.logResult;
-import static akka.http.javadsl.server.Directives.mapRouteResult;
+import static org.apache.pekko.http.javadsl.server.Directives.extractRequest;
+import static org.apache.pekko.http.javadsl.server.Directives.logRequest;
+import static org.apache.pekko.http.javadsl.server.Directives.logResult;
+import static org.apache.pekko.http.javadsl.server.Directives.mapRouteResult;
 import static org.eclipse.ditto.gateway.service.endpoints.directives.RequestLoggingFilter.filterHeaders;
 import static org.eclipse.ditto.gateway.service.endpoints.directives.RequestLoggingFilter.filterRawUri;
 import static org.eclipse.ditto.gateway.service.endpoints.directives.RequestLoggingFilter.filterUri;
@@ -23,14 +23,14 @@ import static org.eclipse.ditto.gateway.service.endpoints.directives.RequestLogg
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.gateway.service.endpoints.utils.HttpUtils;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 
-import akka.http.javadsl.server.Complete;
-import akka.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.server.Complete;
+import org.apache.pekko.http.javadsl.server.Route;
 
 /**
- * Custom Akka Http directive logging the StatusCode and duration of the route.
+ * Custom Pekko Http directive logging the StatusCode and duration of the route.
  */
 public final class RequestResultLoggingDirective {
 
@@ -52,8 +52,8 @@ public final class RequestResultLoggingDirective {
      * @return the new Route wrapping {@code inner} with logging
      */
     public static Route logRequestResult(final CharSequence correlationId, final Supplier<Route> inner) {
-        // add akka standard logging to the route
-        final Supplier<Route> innerWithAkkaLoggingRoute = () -> logRequest("http-request", () ->
+        // add pekko standard logging to the route
+        final Supplier<Route> innerWithPekkoLoggingRoute = () -> logRequest("http-request", () ->
                 logResult("http-response", inner));
 
         // add our own logging with time measurement and creating a kamon trace
@@ -79,12 +79,12 @@ public final class RequestResultLoggingDirective {
                          /* routeResult could be Rejected, if no route is able to handle the request -> but this should
                             not happen when rejections are handled before this directive is called. */
                     logger.warn("Unexpected routeResult for request {} '{}': {}, routeResult will be handled by " +
-                                    "akka default RejectionHandler.", requestMethod, filteredRelativeRequestUri,
+                                    "pekko default RejectionHandler.", requestMethod, filteredRelativeRequestUri,
                             routeResult);
                 }
 
                 return routeResult;
-            }, innerWithAkkaLoggingRoute);
+            }, innerWithPekkoLoggingRoute);
         });
     }
 

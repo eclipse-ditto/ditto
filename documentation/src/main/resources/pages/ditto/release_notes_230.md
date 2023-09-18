@@ -33,8 +33,8 @@ The following notable fixes are included:
 The following non-functional work is also included:
 
 * Update of several used dependencies:
-  * Akka: `2.6.18`
-  * Akka Management: `1.1.2`
+  * Pekko: `2.6.18`
+  * Pekko Management: `1.1.2`
   * Caffeine: `3.0.5`
   * Classindex: `3.11`
   * Cloudevents: `2.3.0`

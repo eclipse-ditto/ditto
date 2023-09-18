@@ -36,13 +36,13 @@ import org.junit.Test;
 
 import com.mongodb.MongoCommandException;
 
-import akka.Done;
-import akka.actor.ActorSystem;
-import akka.stream.Materializer;
-import akka.stream.SystemMaterializer;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.Done;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.SystemMaterializer;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * MongoDB integration test for {@link IndexInitializer}.
@@ -96,7 +96,7 @@ public final class IndexInitializerIT {
 
     @Before
     public void before() {
-        system = ActorSystem.create("AkkaTestSystem");
+        system = ActorSystem.create("PekkoTestSystem");
         materializer = SystemMaterializer.get(system).materializer();
 
         requireNonNull(MONGO_RESOURCE);

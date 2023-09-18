@@ -23,7 +23,7 @@ import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorContext;
+import org.apache.pekko.actor.ActorContext;
 
 /**
  * Provides configuration settings for the statistics actor.

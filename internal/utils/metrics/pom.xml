@@ -46,12 +46,12 @@
             <artifactId>kamon-executors_${scala.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-actor_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-actor_${scala.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-http_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-http_${scala.version}</artifactId>
             <scope>provided</scope>
         </dependency>
 
@@ -59,8 +59,14 @@
             <!-- This dependency is required to build the MongoMetricsBuilder. It should be provided, because
              parent is using mongodb -->
             <groupId>com.github.scullxbones</groupId>
-            <artifactId>akka-persistence-mongo-common_${scala.version}</artifactId>
+            <artifactId>pekko-persistence-mongodb_${scala.version}</artifactId>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <!-- This dependency is required to build the ScalaDriverPersistenceExtension. Otherwise
+             java.lang.ClassNotFoundException: nl.grons.metrics4.scala.BaseBuilder is thrown -->
+            <groupId>nl.grons</groupId>
+            <artifactId>metrics4-scala_${scala.version}</artifactId>
         </dependency>
     </dependencies>
 

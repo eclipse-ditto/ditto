@@ -25,8 +25,8 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
 
-import akka.actor.ActorRef;
-import akka.actor.Props;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
 
 /**
  * Ops for the event-sourcing persistence of things.
@@ -52,7 +52,7 @@ public final class ThingPersistenceOperationsActor extends AbstractPersistenceOp
     /**
      * Create Props of this actor.
      *
-     * @param pubSubMediator Akka pub-sub mediator.
+     * @param pubSubMediator Pekko pub-sub mediator.
      * @param mongoDbConfig the MongoDB configuration settings.
      * @param config Configuration with info about event journal, snapshot store and database.
      * @param persistenceOperationsConfig the persistence operations config.

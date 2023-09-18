@@ -70,8 +70,8 @@ import org.eclipse.ditto.gateway.service.streaming.signals.RefreshSession;
 import org.eclipse.ditto.gateway.service.streaming.signals.StartStreaming;
 import org.eclipse.ditto.gateway.service.streaming.signals.StopStreaming;
 import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.search.SubscriptionManager;
@@ -87,21 +87,21 @@ import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
-import akka.Done;
-import akka.actor.AbstractActorWithTimers;
-import akka.actor.ActorRef;
-import akka.actor.Cancellable;
-import akka.actor.CoordinatedShutdown;
-import akka.actor.Props;
-import akka.actor.Terminated;
-import akka.japi.pf.PFBuilder;
-import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
-import akka.stream.KillSwitch;
-import akka.stream.SourceRef;
-import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.SourceQueueWithComplete;
+import org.apache.pekko.Done;
+import org.apache.pekko.actor.AbstractActorWithTimers;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Cancellable;
+import org.apache.pekko.actor.CoordinatedShutdown;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Terminated;
+import org.apache.pekko.japi.pf.PFBuilder;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.KillSwitch;
+import org.apache.pekko.stream.SourceRef;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.SourceQueueWithComplete;
 import scala.PartialFunction;
 
 /**
@@ -190,7 +190,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     }
 
     /**
-     * Creates Akka configuration object Props for this StreamingSessionActor.
+     * Creates Pekko configuration object Props for this StreamingSessionActor.
      *
      * @param connect the command to start a streaming session.
      * @param dittoProtocolSub manager of subscriptions.
@@ -201,7 +201,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
      * @param streamingSubscriptionManagerProps Props of the subscription manager for streaming subscription commands.
      * @param jwtValidator validator of JWT tokens.
      * @param jwtAuthenticationResultProvider provider of JWT authentication results.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props props(final Connect connect,
             final DittoProtocolSub dittoProtocolSub,

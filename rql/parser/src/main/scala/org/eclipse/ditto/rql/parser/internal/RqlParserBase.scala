@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.rql.parser.internal
 
-import akka.parboiled2._
-import akka.shapeless._
+import org.parboiled2._
+import org.parboiled2.support.hlist._
 
 import scala.{:: => _}
 

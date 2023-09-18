@@ -69,11 +69,11 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifi
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.pattern.AskTimeoutException;
-import akka.pattern.Patterns;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.pattern.AskTimeoutException;
+import org.apache.pekko.pattern.Patterns;
 
 /**
  * Enforcer responsible for enforcing {@link ThingCommand}s and filtering {@link ThingCommandResponse}s utilizing the
@@ -109,7 +109,7 @@ public final class ThingEnforcerActor
     }
 
     /**
-     * Creates Akka configuration object Props for this Actor.
+     * Creates Pekko configuration object Props for this Actor.
      *
      * @param thingId the ThingId this enforcer actor is responsible for.
      * @param thingEnforcement the thing enforcement logic to apply in the enforcer.

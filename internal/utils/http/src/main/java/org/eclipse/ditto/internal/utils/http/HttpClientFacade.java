@@ -14,12 +14,12 @@ package org.eclipse.ditto.internal.utils.http;
 
 import java.util.concurrent.CompletionStage;
 
-import akka.actor.ActorSystem;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.HttpResponse;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
 
 /**
- * Provides a pre-configured Akka HTTP client.
+ * Provides a pre-configured Pekko HTTP client.
  */
 public interface HttpClientFacade {
 
@@ -32,7 +32,7 @@ public interface HttpClientFacade {
     CompletionStage<HttpResponse> createSingleHttpRequest(HttpRequest request);
 
     /**
-     * @return an {@link akka.actor.ActorSystem} instance which can be used for stream execution.
+     * @return an {@link org.apache.pekko.actor.ActorSystem} instance which can be used for stream execution.
      */
     ActorSystem getActorSystem();
 

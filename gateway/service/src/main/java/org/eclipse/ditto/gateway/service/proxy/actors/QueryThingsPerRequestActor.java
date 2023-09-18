@@ -21,9 +21,9 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithShutdownBehavior;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithShutdownBehavior;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -40,13 +40,13 @@ import org.eclipse.ditto.thingsearch.model.SearchResult;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
 
-import akka.Done;
-import akka.actor.ActorRef;
-import akka.actor.Cancellable;
-import akka.actor.CoordinatedShutdown;
-import akka.actor.Props;
-import akka.actor.ReceiveTimeout;
-import akka.pattern.Patterns;
+import org.apache.pekko.Done;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Cancellable;
+import org.apache.pekko.actor.CoordinatedShutdown;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.ReceiveTimeout;
+import org.apache.pekko.pattern.Patterns;
 
 /**
  * Actor which is started for each {@link QueryThings} command in the gateway handling the response from
@@ -92,9 +92,9 @@ final class QueryThingsPerRequestActor extends AbstractActorWithShutdownBehavior
     }
 
     /**
-     * Creates Akka configuration object Props for this QueryThingsPerRequestActor.
+     * Creates Pekko configuration object Props for this QueryThingsPerRequestActor.
      *
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props props(final QueryThings queryThings,
             final ActorRef commandForwarderActor,

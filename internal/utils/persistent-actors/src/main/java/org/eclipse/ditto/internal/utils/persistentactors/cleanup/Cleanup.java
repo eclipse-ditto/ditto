@@ -23,13 +23,13 @@ import java.util.stream.LongStream;
 
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 
-import akka.NotUsed;
-import akka.japi.Pair;
-import akka.stream.Materializer;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
- * An Akka stream to handle background cleanup regulated by insert times.
+ * An Pekko stream to handle background cleanup regulated by insert times.
  */
 final class Cleanup {
 

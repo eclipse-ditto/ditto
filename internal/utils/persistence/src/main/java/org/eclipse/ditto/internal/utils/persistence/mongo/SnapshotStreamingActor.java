@@ -25,9 +25,9 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.internal.models.streaming.StreamedSnapshot;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamSnapshots;
-import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithShutdownBehavior;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithShutdownBehavior;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
@@ -38,21 +38,21 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
-import akka.Done;
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.actor.CoordinatedShutdown;
-import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSub;
-import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
-import akka.stream.KillSwitches;
-import akka.stream.Materializer;
-import akka.stream.SharedKillSwitch;
-import akka.stream.SourceRef;
-import akka.stream.javadsl.Source;
-import akka.stream.javadsl.StreamRefs;
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.CoordinatedShutdown;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.pubsub.DistributedPubSub;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.KillSwitches;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.SharedKillSwitch;
+import org.apache.pekko.stream.SourceRef;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.javadsl.StreamRefs;
 
 
 /**
@@ -108,7 +108,7 @@ public final class SnapshotStreamingActor extends AbstractActorWithShutdownBehav
     }
 
     /**
-     * Create Akka Props object for this actor.
+     * Create Pekko Props object for this actor.
      *
      * @param pid2EntityId function mapping PID to entity ID.
      * @param entityId2Pid function mapping entity ID to PID.
@@ -121,7 +121,7 @@ public final class SnapshotStreamingActor extends AbstractActorWithShutdownBehav
     }
 
     /**
-     * Create Akka Props object for this actor with given Mongo client and read journal.
+     * Create Pekko Props object for this actor with given Mongo client and read journal.
      * This is useful for unit tests with a mocked MongoDB.
      *
      * @param pid2EntityId function mapping PID to entity ID.

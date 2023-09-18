@@ -61,19 +61,19 @@ import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.japi.pf.ReceiveBuilder;
-import akka.stream.Attributes;
-import akka.stream.OverflowStrategy;
-import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
-import akka.stream.javadsl.SourceQueueWithComplete;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.stream.Attributes;
+import org.apache.pekko.stream.OverflowStrategy;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.javadsl.SourceQueueWithComplete;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -169,7 +169,7 @@ public final class StreamingSessionActorHeaderInteractionTest {
                 final DittoHeaders receivedHeaders = receivedModifyThing.getDittoHeaders();
                 if (AcknowledgementAggregatorActorStarter.shouldStartForIncoming(modifyThing)) {
                     assertThat(receivedHeaders.get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey()))
-                            .startsWith("akka:");
+                            .startsWith("pekko:");
                     receivedModifyThing = receivedModifyThing.setDittoHeaders(
                             receivedHeaders.toBuilder()
                                     .removeHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey())

@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 public final class CreationRestrictionPreEnforcerTest {
 

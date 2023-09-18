@@ -57,11 +57,11 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
-import akka.actor.ExtendedActorSystem;
-import akka.io.BufferPool;
-import akka.io.DirectByteBufferPool;
-import akka.serialization.ByteBufferSerializer;
-import akka.serialization.SerializerWithStringManifest;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.io.BufferPool;
+import org.apache.pekko.io.DirectByteBufferPool;
+import org.apache.pekko.serialization.ByteBufferSerializer;
+import org.apache.pekko.serialization.SerializerWithStringManifest;
 
 /**
  * Abstract {@link SerializerWithStringManifest} which handles serializing and deserializing {@link Jsonifiable}s
@@ -80,9 +80,9 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     private static final JsonFieldDefinition<JsonValue> JSON_PAYLOAD =
             JsonFactory.newJsonValueFieldDefinition("payload");
 
-    private static final String CONFIG_DIRECT_BUFFER_SIZE = "akka.actor.serializers-json.direct-buffer-size";
+    private static final String CONFIG_DIRECT_BUFFER_SIZE = "pekko.actor.serializers-json.direct-buffer-size";
     private static final String CONFIG_DIRECT_BUFFER_POOL_LIMIT =
-            "akka.actor.serializers-json.direct-buffer-pool-limit";
+            "pekko.actor.serializers-json.direct-buffer-pool-limit";
 
     private static final Config FALLBACK_CONF = ConfigFactory.empty()
             .withValue(CONFIG_DIRECT_BUFFER_SIZE, ConfigValueFactory.fromAnyRef("64 KiB"))

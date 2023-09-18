@@ -31,8 +31,8 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
-import akka.cluster.ddata.ORMultiMap;
-import akka.japi.Pair;
+import org.apache.pekko.cluster.ddata.ORMultiMap;
+import org.apache.pekko.japi.Pair;
 import scala.jdk.javaapi.CollectionConverters;
 
 /**

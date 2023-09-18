@@ -18,7 +18,7 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 /**
  * Write operations for a collection of local subscriptions.

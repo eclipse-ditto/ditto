@@ -29,25 +29,25 @@ import org.eclipse.ditto.policies.model.PolicyId;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.pattern.Patterns;
-import akka.persistence.Persistence;
-import akka.persistence.SelectedSnapshot;
-import akka.persistence.SnapshotProtocol;
-import akka.persistence.SnapshotSelectionCriteria;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.persistence.Persistence;
+import org.apache.pekko.persistence.SelectedSnapshot;
+import org.apache.pekko.persistence.SnapshotProtocol;
+import org.apache.pekko.persistence.SnapshotSelectionCriteria;
 import scala.Option;
 
 /**
- * Helper class which provides functionality for testing with Akka persistence snapshots for the policies
+ * Helper class which provides functionality for testing with Pekko persistence snapshots for the policies
  * services.
- * Requires akka-persistence-inmemory (by com.github.dnvriend).
+ * Requires pekko-persistence-inmemory (by com.github.dnvriend).
  *
  * @param <S> the domain specific datatype stored as snapshot
  */
 public final class PoliciesSnapshotTestHelper<S> {
 
-    private static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-policies-snapshots";
+    private static final String SNAPSHOT_PLUGIN_ID = "pekko-contrib-mongodb-persistence-policies-snapshots";
     private static final int WAIT_TIMEOUT = 3;
 
     private final Function<PolicyId, String> domainIdToPersistenceId;

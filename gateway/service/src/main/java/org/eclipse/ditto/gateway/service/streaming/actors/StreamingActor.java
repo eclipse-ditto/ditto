@@ -23,10 +23,10 @@ import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtValidato
 import org.eclipse.ditto.gateway.service.streaming.signals.Connect;
 import org.eclipse.ditto.gateway.service.util.config.streaming.DefaultStreamingConfig;
 import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
-import org.eclipse.ditto.internal.utils.akka.actors.ModifyConfigBehavior;
-import org.eclipse.ditto.internal.utils.akka.actors.RetrieveConfigBehavior;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.actors.ModifyConfigBehavior;
+import org.eclipse.ditto.internal.utils.pekko.actors.RetrieveConfigBehavior;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
@@ -34,15 +34,15 @@ import org.eclipse.ditto.internal.utils.search.SubscriptionManager;
 
 import com.typesafe.config.Config;
 
-import akka.actor.AbstractActorWithTimers;
-import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
-import akka.actor.OneForOneStrategy;
-import akka.actor.Props;
-import akka.actor.SupervisorStrategy;
-import akka.japi.pf.DeciderBuilder;
-import akka.japi.pf.ReceiveBuilder;
-import akka.stream.Materializer;
+import org.apache.pekko.actor.AbstractActorWithTimers;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.OneForOneStrategy;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.SupervisorStrategy;
+import org.apache.pekko.japi.pf.DeciderBuilder;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.stream.Materializer;
 
 /**
  * Parent Actor for {@link StreamingSessionActor}s delegating most of the messages to a specific session.
@@ -107,7 +107,7 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
     }
 
     /**
-     * Creates Akka configuration object Props for this StreamingActor.
+     * Creates Pekko configuration object Props for this StreamingActor.
      *
      * @param dittoProtocolSub the Ditto protocol sub access.
      * @param commandRouter the command router used to send signals into the cluster.
@@ -115,9 +115,9 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
      * @param jwtAuthenticationResultProvider the JwtAuthenticationResultProvider.
      * @param streamingConfig the streaming config.
      * @param headerTranslator translates headers from external sources or to external sources.
-     * @param pubSubMediator the ActorRef to the Akka pub/sub mediator.
+     * @param pubSubMediator the ActorRef to the Pekko pub/sub mediator.
      * @param commandForwarder the ActorRef of the actor to forward commands to.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final DittoProtocolSub dittoProtocolSub,
             final ActorRef commandRouter,

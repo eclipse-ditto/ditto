@@ -19,7 +19,7 @@ import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 
 import com.typesafe.config.Config;
 
-import akka.cluster.ddata.Replicator;
+import org.apache.pekko.cluster.ddata.Replicator;
 
 /**
  * This class is the default implementation of the distributed data config.
@@ -32,14 +32,14 @@ public final class DefaultDistributedDataConfig implements DistributedDataConfig
     private final Duration writeTimeout;
     private final Replicator.WriteConsistency subscriptionWriteConsistency;
     private final Duration subscriptionDelay;
-    private final AkkaReplicatorConfig akkaReplicatorConfig;
+    private final PekkoReplicatorConfig pekkoReplicatorConfig;
     private final int numberOfShards;
     private final int subscriberPoolSize;
 
     private DefaultDistributedDataConfig(final Config configWithFallback) {
         readTimeout = configWithFallback.getDuration(DistributedDataConfigValue.READ_TIMEOUT.getConfigPath());
         writeTimeout = configWithFallback.getDuration(DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath());
-        akkaReplicatorConfig = DefaultAkkaReplicatorConfig.of(configWithFallback);
+        pekkoReplicatorConfig = DefaultPekkoReplicatorConfig.of(configWithFallback);
         subscriptionWriteConsistency = toWriteConsistency(configWithFallback.getString(
                         DistributedDataConfigValue.SUBSCRIPTION_WRITE_CONSISTENCY.getConfigPath()),
                 configWithFallback.getDuration(DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath()));
@@ -54,7 +54,7 @@ public final class DefaultDistributedDataConfig implements DistributedDataConfig
             final CharSequence replicatorRole) {
         readTimeout = configWithFallback.getDuration(DistributedDataConfigValue.READ_TIMEOUT.getConfigPath());
         writeTimeout = configWithFallback.getDuration(DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath());
-        akkaReplicatorConfig = DefaultAkkaReplicatorConfig.of(configWithFallback, replicatorName, replicatorRole);
+        pekkoReplicatorConfig = DefaultPekkoReplicatorConfig.of(configWithFallback, replicatorName, replicatorRole);
         subscriptionWriteConsistency = toWriteConsistency(configWithFallback.getString(
                         DistributedDataConfigValue.SUBSCRIPTION_WRITE_CONSISTENCY.getConfigPath()),
                 configWithFallback.getDuration(DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath()));
@@ -116,8 +116,8 @@ public final class DefaultDistributedDataConfig implements DistributedDataConfig
     }
 
     @Override
-    public AkkaReplicatorConfig getAkkaReplicatorConfig() {
-        return akkaReplicatorConfig;
+    public PekkoReplicatorConfig getPekkoReplicatorConfig() {
+        return pekkoReplicatorConfig;
     }
 
     @Override
@@ -143,13 +143,13 @@ public final class DefaultDistributedDataConfig implements DistributedDataConfig
                 Objects.equals(writeTimeout, that.writeTimeout) &&
                 Objects.equals(subscriptionWriteConsistency, that.subscriptionWriteConsistency) &&
                 Objects.equals(subscriptionDelay, that.subscriptionDelay) &&
-                Objects.equals(akkaReplicatorConfig, that.akkaReplicatorConfig) &&
+                Objects.equals(pekkoReplicatorConfig, that.pekkoReplicatorConfig) &&
                 subscriberPoolSize == that.subscriberPoolSize;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(readTimeout, writeTimeout, akkaReplicatorConfig, subscriptionWriteConsistency,
+        return Objects.hash(readTimeout, writeTimeout, pekkoReplicatorConfig, subscriptionWriteConsistency,
                 subscriptionDelay, numberOfShards, subscriberPoolSize);
     }
 
@@ -160,7 +160,7 @@ public final class DefaultDistributedDataConfig implements DistributedDataConfig
                 ", writeTimeout=" + writeTimeout +
                 ", subscriptionWriteConsistency=" + subscriptionWriteConsistency +
                 ", subscriptionDelay" + subscriptionDelay +
-                ", akkaReplicatorConfig=" + akkaReplicatorConfig +
+                ", pekkoReplicatorConfig=" + pekkoReplicatorConfig +
                 ", numberOfShards=" + numberOfShards +
                 ", subscriberPoolSize=" + subscriberPoolSize +
                 "]";

@@ -33,7 +33,7 @@ spec:
       labels:
         app.kubernetes.io/name: {{ include "ditto.name" . }}-gateway
         app.kubernetes.io/instance: {{ .Release.Name }}
-        actorSystemName: {{ .Values.akka.actorSystemName }}
+        actorSystemName: {{ .Values.pekko.actorSystemName }}
         {{- with .Values.gateway.additionalLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -127,7 +127,7 @@ spec:
                 -XX:InitialRAMPercentage={{ .Values.gateway.jvm.heapRamPercentage }}
                 -XX:MaxGCPauseMillis={{ .Values.gateway.jvm.maxGcPauseMillis }}
                 {{ .Values.gateway.additionalJvmOptions }}
-                {{- .Values.global.akkaOptions }}
+                {{- .Values.global.pekkoOptions }}
                 {{- if .Values.global.logging.customConfigFile.enabled }}
                 -Dlogback.configurationFile=/opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
                 {{- end }}
@@ -228,10 +228,10 @@ spec:
               containerPort: {{ .Values.gateway.service.port }}
               protocol: TCP
             - name: remoting
-              containerPort: {{ .Values.akka.remoting.port }}
+              containerPort: {{ .Values.pekko.remoting.port }}
               protocol: TCP
             - name: management
-              containerPort: {{ .Values.akka.mgmthttp.port }}
+              containerPort: {{ .Values.pekko.mgmthttp.port }}
               protocol: TCP
             {{- if .Values.global.prometheus.enabled }}
             - name: prometheus
@@ -272,7 +272,7 @@ spec:
               memory: {{ .Values.gateway.resources.memoryMi }}Mi
             limits:
               # ## no cpu limit to avoid CFS scheduler limits
-              # ref: https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+              # ref: https://pekko.apache.org/docs/pekko/current/additional/deploying.html#deploying-to-kubernetes
               # cpu: ""
               memory: {{ .Values.gateway.resources.memoryMi }}Mi
           {{- if .Values.openshift.enabled }}

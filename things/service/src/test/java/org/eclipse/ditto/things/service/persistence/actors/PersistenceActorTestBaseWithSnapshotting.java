@@ -55,7 +55,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
-import akka.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
 
 /**
  * Base test class for testing snapshotting of persistence actors.

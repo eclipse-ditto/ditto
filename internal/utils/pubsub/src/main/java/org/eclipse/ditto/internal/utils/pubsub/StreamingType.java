@@ -20,7 +20,7 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 
 /**
  * Enumeration of the different types which can be streamed (e.g. to an open Websocket connection). Each
- * type is also aware of the key used for distributed pub/sub in the Akka cluster.
+ * type is also aware of the key used for distributed pub/sub in the Pekko cluster.
  */
 public enum StreamingType {
 
@@ -64,7 +64,7 @@ public enum StreamingType {
     }
 
     /**
-     * @return the key used for distributed pub/sub in the Akka cluster for this StreamingType.
+     * @return the key used for distributed pub/sub in the Pekko cluster for this StreamingType.
      */
     public String getDistributedPubSubTopic() {
         return distributedPubSubTopic;

@@ -15,7 +15,7 @@ package org.eclipse.ditto.internal.utils.pubsub.api;
 import java.util.Collection;
 import java.util.Set;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 /**
  * Abstract base class for subscription requests.

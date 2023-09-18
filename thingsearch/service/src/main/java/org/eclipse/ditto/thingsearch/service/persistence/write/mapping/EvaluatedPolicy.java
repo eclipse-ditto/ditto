@@ -38,7 +38,7 @@ import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.Resources;
 
-import akka.japi.Pair;
+import org.apache.pekko.japi.Pair;
 
 /**
  * Policy evaluated for a thing.

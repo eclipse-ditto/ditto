@@ -39,8 +39,8 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.gateway.service.proxy.config.StatisticsConfig;
 import org.eclipse.ditto.gateway.service.proxy.config.StatisticsShardConfig;
-import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithStashWithTimers;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
@@ -57,17 +57,17 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Address;
-import akka.actor.Props;
-import akka.cluster.Cluster;
-import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.cluster.sharding.ClusterSharding;
-import akka.cluster.sharding.ShardRegion;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.AskTimeoutException;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Address;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.cluster.sharding.ClusterSharding;
+import org.apache.pekko.cluster.sharding.ShardRegion;
+import org.apache.pekko.event.DiagnosticLoggingAdapter;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.AskTimeoutException;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -110,10 +110,10 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
     }
 
     /**
-     * Creates Akka configuration object Props for this StatisticsActor.
+     * Creates Pekko configuration object Props for this StatisticsActor.
      *
      * @param pubSubMediator the Pub/Sub mediator to use.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props props(final ActorRef pubSubMediator) {
 

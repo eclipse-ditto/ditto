@@ -34,8 +34,8 @@ import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
-import akka.actor.ActorSystem;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Base class for MqttValidator tests.
@@ -49,7 +49,7 @@ abstract class AbstractMqttValidatorTest {
 
     @BeforeClass
     public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        actorSystem = ActorSystem.create("PekkoTestSystem", TestConstants.CONFIG);
         connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
     }
 

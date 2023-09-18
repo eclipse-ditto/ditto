@@ -12,18 +12,18 @@
  */
 package org.eclipse.ditto.internal.utils.pubsub.actors;
 
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataWriter;
 
-import akka.actor.AbstractActorWithTimers;
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.event.LoggingAdapter;
-import akka.japi.pf.ReceiveBuilder;
+import org.apache.pekko.actor.AbstractActorWithTimers;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.event.LoggingAdapter;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 
 /**
- * Remove remote subscriber on cluster event {@link akka.cluster.ClusterEvent.MemberRemoved}.
+ * Remove remote subscriber on cluster event {@link org.apache.pekko.cluster.ClusterEvent.MemberRemoved}.
  */
 public final class PubUpdater extends AbstractActorWithTimers implements ClusterMemberRemovedAware {
 

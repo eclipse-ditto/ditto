@@ -15,9 +15,9 @@ package org.eclipse.ditto.internal.utils.pubsub.ddata.literal;
 import org.eclipse.ditto.internal.utils.ddata.DistributedData;
 import org.eclipse.ditto.internal.utils.ddata.DistributedDataConfig;
 
-import akka.actor.ActorSystem;
-import akka.actor.Address;
-import akka.cluster.ddata.ORMultiMap;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Address;
+import org.apache.pekko.cluster.ddata.ORMultiMap;
 
 /**
  * Abstract class of distributed data extension provider to be instantiated at user site.

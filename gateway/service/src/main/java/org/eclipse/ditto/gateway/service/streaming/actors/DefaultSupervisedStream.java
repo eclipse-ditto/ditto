@@ -15,8 +15,8 @@ package org.eclipse.ditto.gateway.service.streaming.actors;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 
-import akka.Done;
-import akka.stream.KillSwitch;
+import org.apache.pekko.Done;
+import org.apache.pekko.stream.KillSwitch;
 
 /**
  * Implementation of {@link SupervisedStream}.

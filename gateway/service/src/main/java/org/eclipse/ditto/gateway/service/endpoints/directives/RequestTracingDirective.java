@@ -12,9 +12,9 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.directives;
 
-import static akka.http.javadsl.server.Directives.extractRequest;
-import static akka.http.javadsl.server.Directives.mapRequest;
-import static akka.http.javadsl.server.Directives.mapRouteResult;
+import static org.apache.pekko.http.javadsl.server.Directives.extractRequest;
+import static org.apache.pekko.http.javadsl.server.Directives.mapRequest;
+import static org.apache.pekko.http.javadsl.server.Directives.mapRouteResult;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.net.URI;
@@ -32,24 +32,24 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.TraceInformationGenerator;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
 import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 
-import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.Uri;
-import akka.http.javadsl.server.Complete;
-import akka.http.javadsl.server.Route;
-import akka.http.javadsl.server.RouteResult;
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.Uri;
+import org.apache.pekko.http.javadsl.server.Complete;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.server.RouteResult;
 
 /**
- * Custom Akka Http directive tracing the request.
+ * Custom Pekko Http directive tracing the request.
  */
 @Immutable
 public final class RequestTracingDirective {

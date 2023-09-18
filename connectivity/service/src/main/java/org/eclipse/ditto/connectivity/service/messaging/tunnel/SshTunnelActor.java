@@ -48,13 +48,13 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailu
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 
-import akka.actor.AbstractActorWithTimers;
-import akka.actor.Props;
-import akka.event.LoggingAdapter;
-import akka.pattern.Patterns;
+import org.apache.pekko.actor.AbstractActorWithTimers;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.event.LoggingAdapter;
+import org.apache.pekko.pattern.Patterns;
 
 /**
  * Establishes an SSH tunnel using to the data from the given connection. The tunnel can be started/stopped with the
@@ -117,7 +117,7 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
     }
 
     /**
-     * Create Akka actor configuration Props object for the SSH tunnel actor.
+     * Create Pekko actor configuration Props object for the SSH tunnel actor.
      *
      * @param connection the connection to create the SSH tunnel for.
      * @param connectivityStatusResolver connectivity status resolver to resolve the SSH tunnel status based on

@@ -31,8 +31,8 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccess
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
-import akka.actor.ActorRef;
-import akka.actor.Scheduler;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Scheduler;
 
 /**
  * Cache loader used for Thing existence check in pre-enforcement.

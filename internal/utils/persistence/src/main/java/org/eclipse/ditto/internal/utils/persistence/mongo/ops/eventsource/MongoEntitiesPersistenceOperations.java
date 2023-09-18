@@ -25,8 +25,8 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.ops.MongoOpsUtil;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
-import akka.NotUsed;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Entities Ops on MongoDB EventSource persistence.

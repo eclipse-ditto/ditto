@@ -25,8 +25,8 @@ import org.eclipse.ditto.base.model.entity.Revision;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.internal.models.streaming.LowerBound;
-import org.eclipse.ditto.internal.utils.akka.controlflow.MergeSortedAsPair;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.controlflow.MergeSortedAsPair;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
@@ -42,11 +42,11 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.slf4j.Logger;
 
-import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.japi.Pair;
-import akka.pattern.Patterns;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Merging a stream of thing snapshots with a stream of metadata from the search index to detect

@@ -66,7 +66,7 @@ public interface KafkaProducerConfig {
      *
      * @return consumer configuration needed by the Kafka client.
      */
-    Config getAlpakkaConfig();
+    Config getPekkoConnectorsConfig();
 
     /**
      * @return timeout before the producer is initialized and considered "ready".

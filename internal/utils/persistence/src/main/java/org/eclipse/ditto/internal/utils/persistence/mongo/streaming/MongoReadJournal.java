@@ -53,36 +53,37 @@ import com.mongodb.reactivestreams.client.AggregatePublisher;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.typesafe.config.Config;
 
-import akka.Done;
-import akka.NotUsed;
-import akka.actor.ActorSystem;
-import akka.contrib.persistence.mongodb.JavaDslMongoReadJournal;
-import akka.contrib.persistence.mongodb.JournallingFieldNames$;
-import akka.contrib.persistence.mongodb.SnapshottingFieldNames$;
-import akka.japi.Pair;
-import akka.persistence.query.EventEnvelope;
-import akka.persistence.query.Offset;
-import akka.persistence.query.PersistenceQuery;
-import akka.persistence.query.javadsl.CurrentEventsByPersistenceIdQuery;
-import akka.persistence.query.javadsl.CurrentEventsByTagQuery;
-import akka.persistence.query.javadsl.CurrentPersistenceIdsQuery;
-import akka.persistence.query.javadsl.EventsByPersistenceIdQuery;
-import akka.persistence.query.javadsl.EventsByTagQuery;
-import akka.persistence.query.javadsl.PersistenceIdsQuery;
-import akka.stream.Attributes;
-import akka.stream.Materializer;
-import akka.stream.RestartSettings;
-import akka.stream.SystemMaterializer;
-import akka.stream.javadsl.RestartSource;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.persistence.query.EventEnvelope;
+import org.apache.pekko.persistence.query.Offset;
+import org.apache.pekko.persistence.query.PersistenceQuery;
+import org.apache.pekko.persistence.query.javadsl.CurrentEventsByPersistenceIdQuery;
+import org.apache.pekko.persistence.query.javadsl.CurrentEventsByTagQuery;
+import org.apache.pekko.persistence.query.javadsl.CurrentPersistenceIdsQuery;
+import org.apache.pekko.persistence.query.javadsl.EventsByPersistenceIdQuery;
+import org.apache.pekko.persistence.query.javadsl.EventsByTagQuery;
+import org.apache.pekko.persistence.query.javadsl.PersistenceIdsQuery;
+import org.apache.pekko.stream.Attributes;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.RestartSettings;
+import org.apache.pekko.stream.SystemMaterializer;
+import org.apache.pekko.stream.javadsl.RestartSource;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+
+import pekko.contrib.persistence.mongodb.JavaDslMongoReadJournal;
+import pekko.contrib.persistence.mongodb.JournallingFieldNames$;
+import pekko.contrib.persistence.mongodb.SnapshottingFieldNames$;
 
 /**
- * Reads the event journal of {@code com.github.scullxbones.akka-persistence-mongo} plugin.
- * In the Akka system configuration,
+ * Reads the event journal of {@code com.github.scullxbones.pekko-persistence-mongo} plugin.
+ * In the Pekko system configuration,
  * <ul>
  * <li>
- * {@code akka.persistence.journal.auto-start-journals} must contain exactly 1 configuration key {@code
+ * {@code pekko.persistence.journal.auto-start-journals} must contain exactly 1 configuration key {@code
  * <JOURNAL_KEY>},
  * </li>
  * <li>
@@ -113,10 +114,10 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
      */
     public static final String PRIORITY_TAG_PREFIX = "priority-";
 
-    private static final String AKKA_PERSISTENCE_JOURNAL_AUTO_START =
-            "akka.persistence.journal.auto-start-journals";
-    private static final String AKKA_PERSISTENCE_SNAPS_AUTO_START =
-            "akka.persistence.snapshot-store.auto-start-snapshot-stores";
+    private static final String PEKKO_PERSISTENCE_JOURNAL_AUTO_START =
+            "pekko.persistence.journal.auto-start-journals";
+    private static final String PEKKO_PERSISTENCE_SNAPS_AUTO_START =
+            "pekko.persistence.snapshot-store.auto-start-snapshot-stores";
 
     private static final String JOURNAL_COLLECTION_NAME_KEY = "overrides.journal-collection";
     private static final String SNAPS_COLLECTION_NAME_KEY = "overrides.snaps-collection";
@@ -169,7 +170,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
     private final DittoMongoClient mongoClient;
     private final IndexInitializer indexInitializer;
 
-    private final JavaDslMongoReadJournal akkaReadJournal;
+    private final JavaDslMongoReadJournal pekkoReadJournal;
 
     private MongoReadJournal(final String journalCollection,
             final String snapsCollection,
@@ -182,7 +183,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
         this.mongoClient = mongoClient;
         final var materializer = SystemMaterializer.get(actorSystem).materializer();
         indexInitializer = IndexInitializer.of(mongoClient.getDefaultDatabase(), materializer);
-        akkaReadJournal = PersistenceQuery.get(actorSystem)
+        pekkoReadJournal = PersistenceQuery.get(actorSystem)
                 .getReadJournalFor(JavaDslMongoReadJournal.class, readJournalConfigurationKey);
     }
 
@@ -202,15 +203,15 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
     /**
      * Creates a new {@code MongoReadJournal}.
      *
-     * @param config The Akka system configuration.
+     * @param config The Pekko system configuration.
      * @param mongoClient The Mongo client wrapper.
      * @return A {@code MongoReadJournal} object.
      */
     public static MongoReadJournal newInstance(final Config config, final DittoMongoClient mongoClient,
             final ActorSystem actorSystem) {
 
-        final String autoStartJournalKey = extractAutoStartConfigKey(config, AKKA_PERSISTENCE_JOURNAL_AUTO_START);
-        final String autoStartSnapsKey = extractAutoStartConfigKey(config, AKKA_PERSISTENCE_SNAPS_AUTO_START);
+        final String autoStartJournalKey = extractAutoStartConfigKey(config, PEKKO_PERSISTENCE_JOURNAL_AUTO_START);
+        final String autoStartSnapsKey = extractAutoStartConfigKey(config, PEKKO_PERSISTENCE_SNAPS_AUTO_START);
         final String journalCollection =
                 getOverrideCollectionName(config.getConfig(autoStartJournalKey), JOURNAL_COLLECTION_NAME_KEY);
         final String snapshotCollection =
@@ -601,33 +602,33 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
     public Source<EventEnvelope, NotUsed> currentEventsByPersistenceId(final String persistenceId,
             final long fromSequenceNr,
             final long toSequenceNr) {
-        return akkaReadJournal.currentEventsByPersistenceId(persistenceId, fromSequenceNr, toSequenceNr);
+        return pekkoReadJournal.currentEventsByPersistenceId(persistenceId, fromSequenceNr, toSequenceNr);
     }
 
     @Override
     public Source<EventEnvelope, NotUsed> currentEventsByTag(final String tag, final Offset offset) {
-        return akkaReadJournal.currentEventsByTag(tag, offset);
+        return pekkoReadJournal.currentEventsByTag(tag, offset);
     }
 
     @Override
     public Source<String, NotUsed> currentPersistenceIds() {
-        return akkaReadJournal.currentPersistenceIds();
+        return pekkoReadJournal.currentPersistenceIds();
     }
 
     @Override
     public Source<EventEnvelope, NotUsed> eventsByPersistenceId(final String persistenceId, final long fromSequenceNr,
             final long toSequenceNr) {
-        return akkaReadJournal.eventsByPersistenceId(persistenceId, fromSequenceNr, toSequenceNr);
+        return pekkoReadJournal.eventsByPersistenceId(persistenceId, fromSequenceNr, toSequenceNr);
     }
 
     @Override
     public Source<EventEnvelope, NotUsed> eventsByTag(final String tag, final Offset offset) {
-        return akkaReadJournal.eventsByTag(tag, offset);
+        return pekkoReadJournal.eventsByTag(tag, offset);
     }
 
     @Override
     public Source<String, NotUsed> persistenceIds() {
-        return akkaReadJournal.persistenceIds();
+        return pekkoReadJournal.persistenceIds();
     }
 
     private Source<List<String>, NotUsed> listPidsInJournal(final MongoCollection<Document> journal,
@@ -748,11 +749,13 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
                             "                  0,\n" +
                             "                  {\n" +
                             "                     $subtract: [\n" +
-                            "                        1000,\n" + // assumption: max prio is 1000 - all higher prios are not correctly ordered
+                            "                        1000,\n" +
+                            // assumption: max prio is 1000 - all higher prios are not correctly ordered
                             "                        {\n" +
                             "                           $strLenCP: {\n" +
                             "                              $substrCP: [\n" +
-                            "                                 \"$$tag\", " + PRIORITY_TAG_PREFIX.length() + ", { $strLenCP: \"$$tag\" }\n" +
+                            "                                 \"$$tag\", " + PRIORITY_TAG_PREFIX.length() +
+                            ", { $strLenCP: \"$$tag\" }\n" +
                             "                              ]\n" +
                             "                           }\n" +
                             "                        }\n" +
@@ -788,7 +791,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
         if (mongoClient.getDittoSettings().isDocumentDbCompatibilityMode()) {
             aggregatePublisher = journal.aggregate(pipeline);
         } else {
-            aggregatePublisher =  journal.aggregate(pipeline)
+            aggregatePublisher = journal.aggregate(pipeline)
                     .collation(Collation.builder().locale("en_US").numericOrdering(true).build());
         }
 
@@ -842,7 +845,8 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
                 .withMaxRestarts(maxRestarts, minBackOff);
         return RestartSource.onFailuresWithBackoff(restartSettings, () ->
                 Source.fromPublisher(journal.aggregate(pipeline)
-                        .batchSize(batchSize) // use batchSize also for the cursor batchSize (16 by default bc of backpressure!)
+                                .batchSize(batchSize)
+                        // use batchSize also for the cursor batchSize (16 by default bc of backpressure!)
                 )
         );
     }
@@ -900,7 +904,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
                                 new Document().append("$ne", Arrays.asList("$" + LIFECYCLE, "DELETED")))
                         .append("then", "$$DESCEND")
                         .append("else", includeDeleted ? "$$DESCEND" : "$$PRUNE")
-        )));
+                )));
 
         // group stage 2: group by max encountered pid, "push" all elements calculated in previous "redact"
         final String maxPid = "m";
@@ -968,20 +972,20 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
     /**
      * Extract the auto-start journal/snaps config from the configuration of the actor system.
      * <p>
-     * It assumes that in the Akka system configuration,
-     * {@code akka.persistence.journal.auto-start-journals} or
-     * {@code akka.persistence.snapshot-store.auto-start-snapshot-stores}
+     * It assumes that in the Pekko system configuration,
+     * {@code pekko.persistence.journal.auto-start-journals} or
+     * {@code pekko.persistence.snapshot-store.auto-start-snapshot-stores}
      * contains exactly 1 configuration key, which points to the configuration of the auto-start journal/snapshot-store.
      *
      * @param config the system configuration.
-     * @param key either {@code akka.persistence.journal.auto-start-journals} or
-     * {@code akka.persistence.snapshot-store.auto-start-snapshot-stores}.
+     * @param key either {@code pekko.persistence.journal.auto-start-journals} or
+     * {@code pekko.persistence.snapshot-store.auto-start-snapshot-stores}.
      */
     private static String extractAutoStartConfigKey(final Config config, final String key) {
         final List<String> autoStartJournals = config.getStringList(key);
         if (autoStartJournals.size() != 1) {
             final String message = String.format("Expect %s to be a singleton list, but it is List(%s)",
-                    AKKA_PERSISTENCE_JOURNAL_AUTO_START,
+                    PEKKO_PERSISTENCE_JOURNAL_AUTO_START,
                     String.join(", ", autoStartJournals));
             throw new IllegalArgumentException(message);
         } else {
@@ -999,7 +1003,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
      * @param journalOrSnapsConfig The journal or snapshot-store configuration.
      * @param key Config key of the collection name.
      * @return The name of the event journal collection.
-     * @throws IllegalArgumentException if {@code akka.persistence.journal.auto-start-journal} is not a singleton list.
+     * @throws IllegalArgumentException if {@code pekko.persistence.journal.auto-start-journal} is not a singleton list.
      * @throws com.typesafe.config.ConfigException.Missing if a relevant config value is missing.
      * @throws com.typesafe.config.ConfigException.WrongType if a relevant config value has not the expected type.
      */

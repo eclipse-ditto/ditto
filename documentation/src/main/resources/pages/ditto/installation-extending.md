@@ -6,18 +6,18 @@ permalink: installation-extending.html
 ---
 
 ## Create Extensions for Ditto
-Ditto offers the possibility to execute custom behaviour by utilizing Akka extensions. The places which can be 
+Ditto offers the possibility to execute custom behaviour by utilizing Pekko extensions. The places which can be 
 extended by such custom behaviour are marked by extending the `DittoExtensionPoint` interface. Add a new 
 implementation of an interface extending `DittoExtensionPoint` for changing its behaviour.
 
-The implementation needs a public constructor accepting an ActorSystem and Config, for the Akka Classloader to load 
+The implementation needs a public constructor accepting an ActorSystem and Config, for the Pekko Classloader to load 
 the extension via reflection.
 ```java
 public CustomExtension(final ActorSystem actorSystem, final Config config) {}
 ```
 
 ## Configure Extensions
-In order for the Akka Classloader to load the correct implementation of a `DittoExtensionPoint`, the 
+In order for the Pekko Classloader to load the correct implementation of a `DittoExtensionPoint`, the 
 implementation has to be configured. This can be done by adding the `CONFIG_KEY` of the extension either to the 
 `<service-name>-extension.conf` if the extension should only be loaded in specific services, or to the `reference.conf`
 for a global scope.

@@ -24,8 +24,8 @@ import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
-import akka.http.javadsl.model.HttpRequest;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
 
 /**
  * Provider for gateway-service of signal-enriching facades that uses an async Caffeine cache in order to load

@@ -28,10 +28,10 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit tests for {@link EntityTaskScheduler}.
@@ -45,7 +45,7 @@ public final class EntityTaskSchedulerTest {
 
     @BeforeClass
     public static void init() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", ConfigFactory.load("test"));
+        actorSystem = ActorSystem.create("PekkoTestSystem", ConfigFactory.load("test"));
     }
 
     @AfterClass

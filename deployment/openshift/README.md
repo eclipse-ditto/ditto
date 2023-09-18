@@ -28,7 +28,7 @@ Running OpenShift cluster with at least developer access.
 ## Start Eclipse Ditto
 
 ### Apply the pod reader role 
-This is necessary for the pods to access the Kubernetes API and then build the akka cluster.
+This is necessary for the pods to access the Kubernetes API and then build the pekko cluster.
 ```bash
 cd <DITTO_PATH>
 oc apply -f pod-reader-role.yaml

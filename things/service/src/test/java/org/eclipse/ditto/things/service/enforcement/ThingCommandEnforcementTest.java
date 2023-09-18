@@ -95,8 +95,8 @@ import org.junit.Test;
 import org.junit.rules.TestName;
 import org.mockito.Mockito;
 
-import akka.actor.ActorRef;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.concurrent.duration.Duration;
 
 /**

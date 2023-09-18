@@ -27,7 +27,7 @@ import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPe
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionSupervisorActor;
 import org.eclipse.ditto.edge.service.dispatching.EdgeCommandForwarderActor;
 import org.eclipse.ditto.edge.service.dispatching.ShardRegions;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
@@ -46,14 +46,14 @@ import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.actor.SupervisorStrategy;
-import akka.cluster.sharding.ClusterSharding;
-import akka.cluster.sharding.ClusterShardingSettings;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.pf.DeciderBuilder;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.SupervisorStrategy;
+import org.apache.pekko.cluster.sharding.ClusterSharding;
+import org.apache.pekko.cluster.sharding.ClusterShardingSettings;
+import org.apache.pekko.event.DiagnosticLoggingAdapter;
+import org.apache.pekko.japi.pf.DeciderBuilder;
 import scala.PartialFunction;
 
 /**
@@ -128,11 +128,11 @@ public final class ConnectivityRootActor extends DittoRootActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this ConnectivityRootActor.
+     * Creates Pekko configuration object Props for this ConnectivityRootActor.
      *
      * @param connectivityConfig the configuration of the Connectivity service.
      * @param pubSubMediator the PubSub mediator Actor.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     public static Props props(final ConnectivityConfig connectivityConfig, final ActorRef pubSubMediator) {
 

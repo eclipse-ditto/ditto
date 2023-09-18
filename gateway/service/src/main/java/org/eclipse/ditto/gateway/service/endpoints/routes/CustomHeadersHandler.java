@@ -16,7 +16,7 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
-import akka.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.RequestContext;
 
 /**
  * Responsible for adding custom headers.

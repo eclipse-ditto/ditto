@@ -34,10 +34,10 @@ import org.eclipse.ditto.json.JsonValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.actor.ExtendedActorSystem;
-import akka.persistence.journal.EventAdapter;
-import akka.persistence.journal.EventSeq;
-import akka.persistence.journal.Tagged;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.persistence.journal.EventAdapter;
+import org.apache.pekko.persistence.journal.EventSeq;
+import org.apache.pekko.persistence.journal.Tagged;
 
 /**
  * Abstract event adapter for persisting Ditto {@link Event}s.

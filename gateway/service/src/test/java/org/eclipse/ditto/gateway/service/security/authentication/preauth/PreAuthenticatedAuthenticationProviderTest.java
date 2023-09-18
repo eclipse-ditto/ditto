@@ -32,12 +32,12 @@ import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.Query;
-import akka.http.javadsl.model.Uri;
-import akka.http.javadsl.server.RequestContext;
-import akka.japi.Pair;
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.Query;
+import org.apache.pekko.http.javadsl.model.Uri;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.japi.Pair;
 
 /**
  * Unit test {@link PreAuthenticatedAuthenticationProvider}.

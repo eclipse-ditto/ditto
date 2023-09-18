@@ -36,7 +36,7 @@ import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 import org.eclipse.ditto.connectivity.service.config.DefaultFieldsEncryptionConfig;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionMongoSnapshotAdapter;
-import org.eclipse.ditto.internal.utils.akka.PingCommand;
+import org.eclipse.ditto.internal.utils.pekko.PingCommand;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonValue;
 import org.junit.AfterClass;
@@ -47,16 +47,16 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigValueFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSub;
-import akka.japi.Creator;
-import akka.persistence.AbstractPersistentActor;
-import akka.persistence.RecoveryCompleted;
-import akka.persistence.SnapshotMetadata;
-import akka.persistence.SnapshotOffer;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.pubsub.DistributedPubSub;
+import org.apache.pekko.japi.Creator;
+import org.apache.pekko.persistence.AbstractPersistentActor;
+import org.apache.pekko.persistence.RecoveryCompleted;
+import org.apache.pekko.persistence.SnapshotMetadata;
+import org.apache.pekko.persistence.SnapshotOffer;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit test for {@link org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceActor}.
@@ -68,8 +68,8 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
             DittoTracingInitResource.disableDittoTracing();
 
     private static final String PERSISTENCE_ID_PREFIX = "connection:";
-    private static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-journal";
-    private static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-snapshots";
+    private static final String JOURNAL_PLUGIN_ID = "pekko-contrib-mongodb-persistence-connection-journal";
+    private static final String SNAPSHOT_PLUGIN_ID = "pekko-contrib-mongodb-persistence-connection-snapshots";
 
     private static ActorSystem actorSystem;
     private static ActorRef pubSubMediator;
@@ -84,7 +84,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
 
     @BeforeClass
     public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        actorSystem = ActorSystem.create("PekkoTestSystem", TestConstants.CONFIG);
         pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
         proxyActor = actorSystem.actorOf(TestConstants.ProxyActorMock.props());
     }
@@ -136,21 +136,21 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
 
     @Test
     public void testRecoveryOfConnectionWithBlockedHost() {
-        final ActorSystem akkaTestSystem =
-                ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG.withValue("ditto.connectivity.connection" +
+        final ActorSystem pekkoTestSystem =
+                ActorSystem.create("PekkoTestSystem", TestConstants.CONFIG.withValue("ditto.connectivity.connection" +
                         ".blocked-hostnames", ConfigValueFactory.fromAnyRef("127.0.0.1")));
-        final ActorRef mediator = DistributedPubSub.get(akkaTestSystem).mediator();
+        final ActorRef mediator = DistributedPubSub.get(pekkoTestSystem).mediator();
         final ActorRef proxyActor = actorSystem.actorOf(TestConstants.ProxyActorMock.props());
 
         try {
-            new TestKit(akkaTestSystem) {{
+            new TestKit(pekkoTestSystem) {{
                 final Queue<ConnectivityEvent<?>> existingEvents = new LinkedList<>(List.of(connectionCreated));
                 final Props fakeProps = FakePersistenceActor.props(connectionId, getRef(), existingEvents);
 
-                akkaTestSystem.actorOf(fakeProps);
+                pekkoTestSystem.actorOf(fakeProps);
                 expectMsgEquals("persisted");
 
-                final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, akkaTestSystem,
+                final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, pekkoTestSystem,
                         mediator, proxyActor);
 
                 underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -161,7 +161,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
                         .hasMessageContaining("The configured host '127.0.0.1' may not be used for the connection");
             }};
         } finally {
-            TestKit.shutdownActorSystem(akkaTestSystem);
+            TestKit.shutdownActorSystem(pekkoTestSystem);
         }
     }
 

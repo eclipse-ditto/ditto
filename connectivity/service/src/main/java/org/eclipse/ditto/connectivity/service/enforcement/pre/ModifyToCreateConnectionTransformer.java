@@ -22,7 +22,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.ModifyConnec
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Transforms a ModifyConnection into a CreateConnection if the connection does not exist already.

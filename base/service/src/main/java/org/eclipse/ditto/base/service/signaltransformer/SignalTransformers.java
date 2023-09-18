@@ -20,8 +20,8 @@ import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint.ExtensionId.ExtensionIdConfig;
@@ -29,7 +29,7 @@ import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint.ExtensionI
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValue;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 public final class SignalTransformers implements DittoExtensionPoint, SignalTransformer {
 

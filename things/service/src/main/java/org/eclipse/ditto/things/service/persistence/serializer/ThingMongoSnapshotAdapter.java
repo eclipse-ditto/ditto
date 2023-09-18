@@ -35,9 +35,9 @@ import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.cluster.pubsub.DistributedPubSub;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.cluster.pubsub.DistributedPubSub;
 
 /**
  * A {@link org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter} for snapshotting a
@@ -62,7 +62,7 @@ public final class ThingMongoSnapshotAdapter extends AbstractMongoSnapshotAdapte
     /**
      * Constructs a new {@code ThingMongoSnapshotAdapter}.
      *
-     * @param pubSubMediator Akka pubsub mediator with which to publish snapshot events.
+     * @param pubSubMediator Pekko pubsub mediator with which to publish snapshot events.
      */
     public ThingMongoSnapshotAdapter(final ActorRef pubSubMediator) {
         super(LOGGER);

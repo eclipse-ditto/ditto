@@ -28,11 +28,11 @@ import org.slf4j.LoggerFactory;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
-import akka.Done;
-import akka.NotUsed;
-import akka.stream.Materializer;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Initializes indexes on a MongoDB collection.
@@ -54,7 +54,7 @@ public final class IndexInitializer {
      * Returns a new {@code MongoIndexInitializer}.
      *
      * @param db the mongo client to use for creating indexes.
-     * @param materializer the materializer for akka streams.
+     * @param materializer the materializer for pekko streams.
      * @return the index initializer.
      */
     public static IndexInitializer of(final MongoDatabase db,

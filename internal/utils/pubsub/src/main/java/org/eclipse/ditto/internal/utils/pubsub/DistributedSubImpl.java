@@ -29,8 +29,8 @@ import org.eclipse.ditto.internal.utils.pubsub.api.SubAck;
 import org.eclipse.ditto.internal.utils.pubsub.api.Subscribe;
 import org.eclipse.ditto.internal.utils.pubsub.api.Unsubscribe;
 
-import akka.actor.ActorRef;
-import akka.pattern.Patterns;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.pattern.Patterns;
 
 /**
  * Package-private implementation of {@link DistributedSub}.

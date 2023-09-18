@@ -14,9 +14,9 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.model;
 
 import org.junit.Test;
 
-import akka.actor.ActorSelection;
-import akka.actor.ActorSystem;
-import akka.testkit.TestProbe;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.TestProbe;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**

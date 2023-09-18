@@ -19,14 +19,14 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.Cancellable;
-import akka.actor.Props;
-import akka.japi.pf.ReceiveBuilder;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Cancellable;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 
 /**
- * This is just a wrapper for the {@link akka.cluster.sbr.SplitBrainResolver akka sbr} with an addition, that this
+ * This is just a wrapper for the {@link org.apache.pekko.cluster.sbr.SplitBrainResolver pekko sbr} with an addition, that this
  * sbr can be turned off/on via {@link ModifySplitBrainResolver} sent as piggyback command to /system/cluster/core/daemon/downingProvider
  */
 final class DittoSplitBrainResolver extends AbstractActor {
@@ -83,10 +83,10 @@ final class DittoSplitBrainResolver extends AbstractActor {
             autoEnabling.cancel();
         }
         if (modifySplitBrainResolver.isEnabled() && splitBrainResolverActor == null) {
-            LOGGER.info("Enabling Akka split brain resolver");
+            LOGGER.info("Enabling Pekko split brain resolver");
             splitBrainResolverActor = startChildActor(splitBrainResolverProps);
         } else if (!modifySplitBrainResolver.isEnabled() && splitBrainResolverActor != null) {
-            LOGGER.info("Stopping Akka split brain resolver");
+            LOGGER.info("Stopping Pekko split brain resolver");
             getContext().stop(splitBrainResolverActor);
             splitBrainResolverActor = null;
         }

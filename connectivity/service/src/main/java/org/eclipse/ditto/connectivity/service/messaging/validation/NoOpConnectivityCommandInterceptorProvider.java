@@ -20,7 +20,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 public class NoOpConnectivityCommandInterceptorProvider implements CustomConnectivityCommandInterceptorProvider{
 

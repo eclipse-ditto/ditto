@@ -24,7 +24,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * The collection of the command strategies of {@code ThingPersistenceActor}.
@@ -55,7 +55,7 @@ public final class ThingCommandStrategies
     /**
      * Returns the <em>singleton</em> instance of {@code ThingReceiveStrategy}.
      *
-     * @param system the Akka ActorSystem to use in order to e.g. dynamically load classes.
+     * @param system the Pekko ActorSystem to use in order to e.g. dynamically load classes.
      * @return the instance.
      */
     public static ThingCommandStrategies getInstance(final ActorSystem system) {

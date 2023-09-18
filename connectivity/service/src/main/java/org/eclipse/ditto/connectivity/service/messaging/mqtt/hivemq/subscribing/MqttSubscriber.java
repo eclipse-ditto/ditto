@@ -25,9 +25,9 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subs
 
 import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 
-import akka.NotUsed;
-import akka.japi.Pair;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.stream.javadsl.Source;
 import scala.util.Failure;
 import scala.util.Success;
 import scala.util.Try;
@@ -62,9 +62,9 @@ public final class MqttSubscriber {
      * For each connection source an MQTT Subscribe message is created and sent to the broker by the client.
      * The MQTT Subscribe message contains an MQTT Subscription for each address of the connection source where the
      * address is regarded as MQTT filter topic and the MQTT QoS is taken from the connection source as provided.
-     * The returned Akka stream contains the results of the client's subscribing for each connection source.
+     * The returned Pekko stream contains the results of the client's subscribing for each connection source.
      * If a connection source does not provide any addresses then no Subscribe message is created for that source –
-     * thus, there is no {@code SubscribeResult} in the returned Akka stream for that connection source.
+     * thus, there is no {@code SubscribeResult} in the returned Pekko stream for that connection source.
      * A connection source address might not be a valid MQTT filter topic.
      * In this case the SubscribeResult for the associated connection source is a failure.
      * <p>
@@ -72,7 +72,7 @@ public final class MqttSubscriber {
      * succeeded.
      *
      * @param connectionSources the connection sources to subscribe for.
-     * @return an Akka stream containing the client subscribing results with their associated connection sources.
+     * @return an Pekko stream containing the client subscribing results with their associated connection sources.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public Source<SubscribeResult, NotUsed> subscribeForConnectionSources(

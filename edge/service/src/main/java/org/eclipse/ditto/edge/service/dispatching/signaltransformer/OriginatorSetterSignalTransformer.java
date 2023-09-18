@@ -27,7 +27,7 @@ import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Pre-Enforcer which sets additional headers to a signal.

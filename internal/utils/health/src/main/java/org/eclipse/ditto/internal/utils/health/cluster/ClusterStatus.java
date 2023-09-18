@@ -33,7 +33,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
- * Holds the status of the akka cluster.
+ * Holds the status of the pekko cluster.
  */
 @Immutable
 public final class ClusterStatus implements Jsonifiable<JsonObject> {

@@ -52,16 +52,16 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingRespon
 import org.junit.Rule;
 import org.junit.Test;
 
-import akka.Done;
-import akka.actor.ActorRef;
-import akka.http.javadsl.model.ContentTypes;
-import akka.http.javadsl.model.HttpEntities;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.ResponseEntity;
-import akka.http.javadsl.model.StatusCodes;
-import akka.testkit.javadsl.TestKit;
-import akka.util.ByteString;
+import org.apache.pekko.Done;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.http.javadsl.model.ContentTypes;
+import org.apache.pekko.http.javadsl.model.HttpEntities;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.ResponseEntity;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.testkit.javadsl.TestKit;
+import org.apache.pekko.util.ByteString;
 
 /**
  * Unit test for {@link HttpRequestActor}.
@@ -118,7 +118,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
         final DittoHeaders receivedHeaders = receivedModifyAttribute.getDittoHeaders();
         if (AcknowledgementAggregatorActorStarter.shouldStartForIncoming(command)) {
             assertThat(receivedHeaders.get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey()))
-                    .startsWith("akka:");
+                    .startsWith("pekko:");
             receivedModifyAttribute = receivedModifyAttribute.setDittoHeaders(
                     receivedHeaders.toBuilder()
                             .removeHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey())

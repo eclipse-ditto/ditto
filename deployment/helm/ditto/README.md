@@ -106,7 +106,7 @@ things:
 
 ### Configuration via system properties
 
-Not all Ditto/Akka configuration options have an environment variable overwrite defined in the configuration.  
+Not all Ditto/Pekko configuration options have an environment variable overwrite defined in the configuration.  
 For configurations without such an environment variable overwrite, the option can be configured via Java system property.  
 The documentation on how this works can be found in the 
 [HOCON documentation](https://github.com/lightbend/config/blob/main/HOCON.md#conventional-override-by-system-properties),
@@ -121,7 +121,7 @@ simply configure:
 things:
   # ...
   systemProps:
-    - "-Dakka-contrib-mongodb-persistence-things-journal.overrides.journal-collection=another_fancy_name"
+    - "-Dpekko-contrib-mongodb-persistence-things-journal.overrides.journal-collection=another_fancy_name"
 ```
 
 

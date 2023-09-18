@@ -12,8 +12,9 @@
  */
 package org.eclipse.ditto.base.model.signals;
 
-import akka.actor.ActorSystem;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.javadsl.TestKit;
+
 
 /**
  * Manage creation and termination of actor systems for tests.

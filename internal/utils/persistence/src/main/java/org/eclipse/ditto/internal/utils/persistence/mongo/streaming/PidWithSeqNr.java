@@ -25,7 +25,7 @@ public final class PidWithSeqNr {
     /**
      * Creates a pair from {@code String} and {@code long}.
      *
-     * @param persistenceId the Akka persistence persistenceId.
+     * @param persistenceId the Pekko persistence persistenceId.
      * @param sequenceNr the sequence number.
      */
     public PidWithSeqNr(final String persistenceId, final long sequenceNr) {

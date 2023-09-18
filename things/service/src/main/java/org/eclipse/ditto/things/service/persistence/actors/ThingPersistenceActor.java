@@ -53,10 +53,10 @@ import org.eclipse.ditto.things.service.common.config.ThingConfig;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.ThingCommandStrategies;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.events.ThingEventStrategies;
 
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.japi.pf.ReceiveBuilder;
-import akka.persistence.RecoveryCompleted;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.persistence.RecoveryCompleted;
 
 /**
  * PersistentActor which "knows" the state of a single {@link Thing}.
@@ -72,12 +72,12 @@ public final class ThingPersistenceActor
     /**
      * The ID of the journal plugin this persistence actor uses.
      */
-    static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-journal";
+    static final String JOURNAL_PLUGIN_ID = "pekko-contrib-mongodb-persistence-things-journal";
 
     /**
      * The ID of the snapshot plugin this persistence actor uses.
      */
-    static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-snapshots";
+    static final String SNAPSHOT_PLUGIN_ID = "pekko-contrib-mongodb-persistence-things-snapshots";
 
     private static final AckExtractor<ThingEvent<?>> ACK_EXTRACTOR =
             AckExtractor.of(ThingEvent::getEntityId, ThingEvent::getDittoHeaders);
@@ -102,12 +102,12 @@ public final class ThingPersistenceActor
     }
 
     /**
-     * Creates Akka configuration object {@link Props} for this ThingPersistenceActor.
+     * Creates Pekko configuration object {@link Props} for this ThingPersistenceActor.
      *
      * @param thingId the Thing ID this Actor manages.
      * @param mongoReadJournal the ReadJournal used for gaining access to historical values of the thing.
      * @param distributedPub the distributed-pub access to publish thing events.
-     * @return the Akka configuration Props object
+     * @return the Pekko configuration Props object
      */
     public static Props props(final ThingId thingId,
             final MongoReadJournal mongoReadJournal,

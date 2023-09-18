@@ -19,23 +19,23 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DData;
 
-import akka.actor.AbstractActor;
-import akka.actor.Actor;
-import akka.actor.ActorRef;
-import akka.actor.Address;
-import akka.actor.Timers;
-import akka.cluster.Cluster;
-import akka.cluster.ClusterEvent;
-import akka.cluster.Member;
-import akka.cluster.MemberStatus;
-import akka.cluster.ddata.ORMultiMap;
-import akka.cluster.ddata.Replicator;
-import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.Actor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Address;
+import org.apache.pekko.actor.Timers;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.cluster.ClusterEvent;
+import org.apache.pekko.cluster.Member;
+import org.apache.pekko.cluster.MemberStatus;
+import org.apache.pekko.cluster.ddata.ORMultiMap;
+import org.apache.pekko.cluster.ddata.Replicator;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.Patterns;
 
 /**
  * Mixin to subscribe for cluster events.

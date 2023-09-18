@@ -88,27 +88,27 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.5, sum(irate(akka_persistence_mongo_journal_scala_official_write_append_seconds_bucket{job=~\"$Application\", instance=~\"$Instance\"}[5m]) > 0) by (le, job, instance))",
+          "expr": "histogram_quantile(0.5, sum(irate(pekko_persistence_mongo_journal_scala_official_write_append_seconds_bucket{job=~\"$Application\", instance=~\"$Instance\"}[5m]) > 0) by (le, job, instance))",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
           "legendFormat": "{{job}} ({{instance}}) - mean",
           "refId": "A",
-          "target": "aliasByNode(stats.gauges.$Application.$Host.akka-persistence-mongo.journal.casbah.write.append.timer.p50, 2, 3, -1)",
+          "target": "aliasByNode(stats.gauges.$Application.$Host.pekko-persistence-mongo.journal.casbah.write.append.timer.p50, 2, 3, -1)",
           "textEditor": true
         },
         {
-          "expr": "histogram_quantile(0.95, sum(irate(akka_persistence_mongo_journal_scala_official_write_append_seconds_bucket{job=~\"$Application\", instance=~\"$Instance\"}[5m]) > 0) by (le, job, instance))",
+          "expr": "histogram_quantile(0.95, sum(irate(pekko_persistence_mongo_journal_scala_official_write_append_seconds_bucket{job=~\"$Application\", instance=~\"$Instance\"}[5m]) > 0) by (le, job, instance))",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
           "legendFormat": "{{job}} ({{instance}}) - 95th percentile",
           "refId": "B",
-          "target": "aliasByNode(stats.gauges.$Application.$Host.akka-persistence-mongo.journal.casbah.write.append.timer.p95, 2, 3, -1)",
+          "target": "aliasByNode(stats.gauges.$Application.$Host.pekko-persistence-mongo.journal.casbah.write.append.timer.p95, 2, 3, -1)",
           "textEditor": true
         },
         {
-          "expr": "histogram_quantile(0.5, sum(irate(akka_persistence_mongo_journal_scala_official_write_append_seconds_bucket{job=\"things\"}[5m]) > 0) by (le)) or vector(0)",
+          "expr": "histogram_quantile(0.5, sum(irate(pekko_persistence_mongo_journal_scala_official_write_append_seconds_bucket{job=\"things\"}[5m]) > 0) by (le)) or vector(0)",
           "format": "time_series",
           "hide": true,
           "intervalFactor": 1,
@@ -216,33 +216,33 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(akka_persistence_mongo_journal_scala_official_write_append_seconds_count{job=~\"$Application\", instance=~\"$Instance\"}[1m]))",
+          "expr": "sum(rate(pekko_persistence_mongo_journal_scala_official_write_append_seconds_count{job=~\"$Application\", instance=~\"$Instance\"}[1m]))",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
           "legendFormat": "inserts/seconds (1m)",
           "refId": "A",
-          "target": "alias(sumSeries(stats.gauges.$Application.$Host.akka-persistence-mongo.journal.casbah.write.append.timer.m1_rate), 'inserts/second 1min')",
+          "target": "alias(sumSeries(stats.gauges.$Application.$Host.pekko-persistence-mongo.journal.casbah.write.append.timer.m1_rate), 'inserts/second 1min')",
           "textEditor": true
         },
         {
-          "expr": "sum(rate(akka_persistence_mongo_journal_scala_official_write_append_seconds_count{job=~\"$Application\", instance=~\"$Instance\"}[5m]))",
+          "expr": "sum(rate(pekko_persistence_mongo_journal_scala_official_write_append_seconds_count{job=~\"$Application\", instance=~\"$Instance\"}[5m]))",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
           "legendFormat": "inserts/seconds (5m)",
           "refId": "C",
-          "target": "alias(sumSeries(stats.gauges.$Application.$Host.akka-persistence-mongo.journal.casbah.write.append.timer.m5_rate), 'inserts/second 5min')",
+          "target": "alias(sumSeries(stats.gauges.$Application.$Host.pekko-persistence-mongo.journal.casbah.write.append.timer.m5_rate), 'inserts/second 5min')",
           "textEditor": true
         },
         {
-          "expr": "sum(rate(akka_persistence_mongo_journal_scala_official_write_append_seconds_count{job=~\"$Application\", instance=~\"$Instance\"}[15m]))",
+          "expr": "sum(rate(pekko_persistence_mongo_journal_scala_official_write_append_seconds_count{job=~\"$Application\", instance=~\"$Instance\"}[15m]))",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
           "legendFormat": "inserts/seconds (15m)",
           "refId": "D",
-          "target": "alias(sumSeries(stats.gauges.$Application.$Host.akka-persistence-mongo.journal.casbah.write.append.timer.m15_rate), 'inserts/second 15min')",
+          "target": "alias(sumSeries(stats.gauges.$Application.$Host.pekko-persistence-mongo.journal.casbah.write.append.timer.m15_rate), 'inserts/second 15min')",
           "textEditor": true
         }
       ],
@@ -355,23 +355,23 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.5, sum(irate(akka_persistence_mongo_journal_scala_official_read_max_seq_seconds_bucket{job=~\"$Application\", instance=~\"$Instance\"}[5m]) > 0) by (le, job, instance))",
+          "expr": "histogram_quantile(0.5, sum(irate(pekko_persistence_mongo_journal_scala_official_read_max_seq_seconds_bucket{job=~\"$Application\", instance=~\"$Instance\"}[5m]) > 0) by (le, job, instance))",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
           "legendFormat": "{{job}} ({{instance}}) - mean",
           "refId": "C",
-          "target": "aliasByNode(stats.gauges.$Application.$Host.akka-persistence-mongo.journal.casbah.read.replay.timer.p50, 2, 3, -1)",
+          "target": "aliasByNode(stats.gauges.$Application.$Host.pekko-persistence-mongo.journal.casbah.read.replay.timer.p50, 2, 3, -1)",
           "textEditor": true
         },
         {
-          "expr": "histogram_quantile(0.95, sum(irate(akka_persistence_mongo_journal_scala_official_read_max_seq_seconds_bucket{job=~\"$Application\", instance=~\"$Instance\"}[5m]) > 0) by (le, job, instance))",
+          "expr": "histogram_quantile(0.95, sum(irate(pekko_persistence_mongo_journal_scala_official_read_max_seq_seconds_bucket{job=~\"$Application\", instance=~\"$Instance\"}[5m]) > 0) by (le, job, instance))",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
           "legendFormat": "{{job}} ({{instance}}) - 95th percentile",
           "refId": "D",
-          "target": "aliasByNode(stats.gauges.$Application.$Host.akka-persistence-mongo.journal.casbah.read.replay.timer.p95, 2, 3, -1)",
+          "target": "aliasByNode(stats.gauges.$Application.$Host.pekko-persistence-mongo.journal.casbah.read.replay.timer.p95, 2, 3, -1)",
           "textEditor": true
         }
       ],
@@ -469,33 +469,33 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(akka_persistence_mongo_journal_scala_official_read_max_seq_seconds_count{job=~\"$Application\", instance=~\"$Instance\"}[1m]))",
+          "expr": "sum(rate(pekko_persistence_mongo_journal_scala_official_read_max_seq_seconds_count{job=~\"$Application\", instance=~\"$Instance\"}[1m]))",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
           "legendFormat": "reads/second (1m)",
           "refId": "B",
-          "target": "alias(sumSeries(stats.gauges.$Application.$Host.akka-persistence-mongo.journal.casbah.read.replay.timer.m1_rate), 'reads/second 1min')",
+          "target": "alias(sumSeries(stats.gauges.$Application.$Host.pekko-persistence-mongo.journal.casbah.read.replay.timer.m1_rate), 'reads/second 1min')",
           "textEditor": true
         },
         {
-          "expr": "sum(rate(akka_persistence_mongo_journal_scala_official_read_max_seq_seconds_count{job=~\"$Application\", instance=~\"$Instance\"}[5m]))",
+          "expr": "sum(rate(pekko_persistence_mongo_journal_scala_official_read_max_seq_seconds_count{job=~\"$Application\", instance=~\"$Instance\"}[5m]))",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
           "legendFormat": "reads/second (5m)",
           "refId": "E",
-          "target": "alias(sumSeries(stats.gauges.$Application.$Host.akka-persistence-mongo.journal.casbah.read.replay.timer.m5_rate), 'reads/second 5min')",
+          "target": "alias(sumSeries(stats.gauges.$Application.$Host.pekko-persistence-mongo.journal.casbah.read.replay.timer.m5_rate), 'reads/second 5min')",
           "textEditor": true
         },
         {
-          "expr": "sum(rate(akka_persistence_mongo_journal_scala_official_read_max_seq_seconds_count{job=~\"$Application\", instance=~\"$Instance\"}[15m]))",
+          "expr": "sum(rate(pekko_persistence_mongo_journal_scala_official_read_max_seq_seconds_count{job=~\"$Application\", instance=~\"$Instance\"}[15m]))",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
           "legendFormat": "reads/second (15m)",
           "refId": "F",
-          "target": "alias(sumSeries(stats.gauges.$Application.$Host.akka-persistence-mongo.journal.casbah.read.replay.timer.m15_rate), 'reads/second 15min')",
+          "target": "alias(sumSeries(stats.gauges.$Application.$Host.pekko-persistence-mongo.journal.casbah.read.replay.timer.m15_rate), 'reads/second 15min')",
           "textEditor": true
         }
       ],
@@ -785,7 +785,7 @@
         "name": "Application",
         "options": [],
         "query": {
-          "query": "label_values(akka_persistence_mongo_journal_scala_official_read_max_seq_seconds_bucket, job)",
+          "query": "label_values(pekko_persistence_mongo_journal_scala_official_read_max_seq_seconds_bucket, job)",
           "refId": "prometheus-Application-Variable-Query"
         },
         "refresh": 1,

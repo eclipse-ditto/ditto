@@ -16,7 +16,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.junit.Before;
 import org.junit.Test;
 
-import akka.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.RequestContext;
 
 /**
  * Tests {@link JwtAuthenticationProvider}.

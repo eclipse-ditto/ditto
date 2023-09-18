@@ -19,7 +19,7 @@ import org.eclipse.ditto.json.CborFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
-import akka.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
 
 /**
  * Serializer of Eclipse Ditto for Jsonifiables via CBOR-based {@code ditto-json}.

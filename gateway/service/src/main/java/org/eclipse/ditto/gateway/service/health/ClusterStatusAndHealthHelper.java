@@ -29,8 +29,8 @@ import java.util.function.Supplier;
 
 import org.eclipse.ditto.base.service.CompletableFutureUtils;
 import org.eclipse.ditto.gateway.service.util.config.health.HealthCheckConfig;
-import org.eclipse.ditto.internal.utils.akka.SimpleCommand;
-import org.eclipse.ditto.internal.utils.akka.SimpleCommandResponse;
+import org.eclipse.ditto.internal.utils.pekko.SimpleCommand;
+import org.eclipse.ditto.internal.utils.pekko.SimpleCommandResponse;
 import org.eclipse.ditto.internal.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
 import org.eclipse.ditto.internal.utils.health.cluster.ClusterRoleStatus;
@@ -43,8 +43,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 
-import akka.actor.ActorSystem;
-import akka.pattern.Patterns;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.pattern.Patterns;
 
 /**
  * Helper for retrieving status and health information via the cluster.

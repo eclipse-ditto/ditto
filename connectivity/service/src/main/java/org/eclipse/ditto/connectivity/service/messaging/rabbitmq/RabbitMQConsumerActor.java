@@ -40,7 +40,7 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.internal.utils.tracing.span.TracingSpans;
@@ -51,11 +51,11 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 
-import akka.Done;
-import akka.NotUsed;
-import akka.actor.Props;
-import akka.japi.pf.ReceiveBuilder;
-import akka.stream.javadsl.Sink;
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.stream.javadsl.Sink;
 
 
 /**
@@ -93,7 +93,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
     }
 
     /**
-     * Creates Akka configuration object {@link Props} for this {@code RabbitMQConsumerActor}.
+     * Creates Pekko configuration object {@link Props} for this {@code RabbitMQConsumerActor}.
      *
      * @param sourceAddress the source address.
      * @param inboundMappingSink the mapping sink where received messages are forwarded to
@@ -103,7 +103,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      */
     static Props props(final String sourceAddress,
             final Sink<Object, NotUsed> inboundMappingSink,

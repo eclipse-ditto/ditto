@@ -17,8 +17,8 @@ import org.eclipse.ditto.internal.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataWriter;
 
-import akka.actor.ActorSystem;
-import akka.actor.Address;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Address;
 
 /**
  * Access to distributed data of literal topics.

@@ -44,11 +44,11 @@ import org.eclipse.ditto.base.service.acknowledgements.AcknowledgementAggregator
 import org.eclipse.ditto.internal.models.signal.CommandHeaderRestoration;
 import org.eclipse.ditto.internal.models.signal.correlation.CommandAndCommandResponseMatchingValidator;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 
-import akka.actor.AbstractActorWithTimers;
-import akka.actor.Props;
+import org.apache.pekko.actor.AbstractActorWithTimers;
+import org.apache.pekko.actor.Props;
 
 /**
  * Actor which is created for an {@code ThingModifyCommand} containing {@code AcknowledgementRequests} responsible for
@@ -142,7 +142,7 @@ public final class AcknowledgementAggregatorActor<C extends Command<C>> extends 
     }
 
     /**
-     * Creates Akka configuration object Props for this AcknowledgementAggregatorActor.
+     * Creates Pekko configuration object Props for this AcknowledgementAggregatorActor.
      *
      * @param entityId the entity ID of the originating signal.
      * @param signal the originating signal.
@@ -153,7 +153,7 @@ public final class AcknowledgementAggregatorActor<C extends Command<C>> extends 
      * @param matchingValidationFailureConsumer optional handler for response validation failures.
      * @param responseAcknowledgementProvider an Acknowledgement provider which provide Acks based on processed command
      * responses or ditto runtime exceptions.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      * @throws org.eclipse.ditto.base.model.acks.AcknowledgementRequestParseException if a contained acknowledgement
      * request could not be parsed.
      */
@@ -177,7 +177,7 @@ public final class AcknowledgementAggregatorActor<C extends Command<C>> extends 
     }
 
     /**
-     * Creates Akka configuration object Props for this AcknowledgementAggregatorActor.
+     * Creates Pekko configuration object Props for this AcknowledgementAggregatorActor.
      *
      * @param entityId the entity ID of the originating signal.
      * @param signal the originating signal.
@@ -189,7 +189,7 @@ public final class AcknowledgementAggregatorActor<C extends Command<C>> extends 
      * @param matchingValidationFailureConsumer optional handler for response validation failures.
      * @param responseAcknowledgementProvider an Acknowledgement providers which provide Acks based on
      * processed command responses or ditto runtime exceptions.
-     * @return the Akka configuration Props object.
+     * @return the Pekko configuration Props object.
      * @throws org.eclipse.ditto.base.model.acks.AcknowledgementRequestParseException if a contained acknowledgement
      * request could not be parsed.
      */

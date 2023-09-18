@@ -57,7 +57,7 @@ import org.mutabilitydetector.unittesting.AllowedReason;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Tests {@link org.eclipse.ditto.policies.service.persistence.actors.strategies.commands.TopLevelPolicyActionCommandStrategy}.

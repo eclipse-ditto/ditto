@@ -19,9 +19,9 @@ import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpConnectionSigning;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpRequestSigning;
 
-import akka.NotUsed;
-import akka.http.javadsl.model.HttpRequest;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * No-op implementation of {@link Signing} for other authentication mechanisms.

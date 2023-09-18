@@ -17,9 +17,9 @@ import org.eclipse.ditto.connectivity.model.Connection;
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
 
 @SuppressWarnings("unused")
 public final class FaultyClientActorPropsFactory implements ClientActorPropsFactory {

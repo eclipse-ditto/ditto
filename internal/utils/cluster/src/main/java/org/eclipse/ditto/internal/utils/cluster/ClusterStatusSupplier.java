@@ -27,9 +27,9 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.health.cluster.ClusterRoleStatus;
 import org.eclipse.ditto.internal.utils.health.cluster.ClusterStatus;
 
-import akka.actor.Address;
-import akka.cluster.Cluster;
-import akka.cluster.Member;
+import org.apache.pekko.actor.Address;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.cluster.Member;
 
 /**
  * Util class that helps to retrieve the cluster status.

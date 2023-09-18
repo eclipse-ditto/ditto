@@ -65,16 +65,16 @@ public class DefaultKafkaConfigTest {
         assertThat(underTest.getConsumerConfig().getThrottlingConfig().getInterval()).isEqualTo(Duration.ofSeconds(1));
 
         assertThat(underTest.getConsumerConfig()
-                .getAlpakkaConfig()
-                .getDuration("poll-interval")) // from akka.kafka.consumer
+                .getPekkoConnectorsConfig()
+                .getDuration("poll-interval")) // from pekko.kafka.consumer
                 .isEqualTo(DEFAULT_POLL_INTERVAL);
-        assertThat(underTest.getConsumerConfig().getAlpakkaConfig().getDuration("poll-timeout")) // from kafka-test.conf
+        assertThat(underTest.getConsumerConfig().getPekkoConnectorsConfig().getDuration("poll-timeout")) // from kafka-test.conf
                 .isEqualTo(DEFAULT_POLL_TIMEOUT);
 
-        assertThat(underTest.getProducerConfig().getParallelism()) // from akka.kafka.producer
+        assertThat(underTest.getProducerConfig().getParallelism()) // from pekko.kafka.producer
                 .isEqualTo(DEFAULT_PARALLELISM);
         assertThat(
-                underTest.getProducerConfig().getAlpakkaConfig().getDuration("close-timeout")) // from kafka-test.conf
+                underTest.getProducerConfig().getPekkoConnectorsConfig().getDuration("close-timeout")) // from kafka-test.conf
                 .isEqualTo(DEFAULT_CLOSE_TIMEOUT);
 
         assertThat(underTest.getProducerConfig().getQueueSize()).isEqualTo(39);

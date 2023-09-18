@@ -52,11 +52,11 @@ import org.junit.BeforeClass;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.stream.Attributes;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.Attributes;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Base test class for testing persistence actors of the policies persistence.
@@ -152,7 +152,7 @@ public abstract class PersistenceActorTestBase {
     }
 
     private void init(final Config config) {
-        actorSystem = ActorSystem.create("AkkaTestSystem", config);
+        actorSystem = ActorSystem.create("PekkoTestSystem", config);
         pubSubMediatorTestProbe = new TestProbe(actorSystem, "mock-pubSub-mediator");
         pubSubMediator = pubSubMediatorTestProbe.ref();
         dittoHeadersV2 = createDittoHeaders(JsonSchemaVersion.V_2, AUTH_SUBJECT);

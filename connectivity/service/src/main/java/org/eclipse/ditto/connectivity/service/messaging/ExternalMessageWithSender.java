@@ -14,7 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging;
 
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 
-import akka.actor.ActorRef;
+import org.apache.pekko.actor.ActorRef;
 
 /**
  * This record bundles an {@link ExternalMessage} with the sender of this message.

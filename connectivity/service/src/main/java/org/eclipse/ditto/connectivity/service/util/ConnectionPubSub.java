@@ -25,11 +25,11 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedSub;
 import org.eclipse.ditto.internal.utils.pubsub.api.SubAck;
 
-import akka.actor.AbstractExtensionId;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
-import akka.actor.Extension;
+import org.apache.pekko.actor.AbstractExtensionId;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.Extension;
 
 /**
  * Pub-sub for messages between client actors of a connection.

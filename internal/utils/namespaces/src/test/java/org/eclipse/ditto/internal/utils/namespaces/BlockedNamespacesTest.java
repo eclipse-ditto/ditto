@@ -24,11 +24,11 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorSystem;
-import akka.cluster.ddata.ORSet;
-import akka.cluster.ddata.Replicator;
-import akka.stream.Attributes;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.cluster.ddata.ORSet;
+import org.apache.pekko.cluster.ddata.Replicator;
+import org.apache.pekko.stream.Attributes;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit test for {@link BlockedNamespaces}.

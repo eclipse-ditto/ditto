@@ -27,8 +27,8 @@ import org.eclipse.ditto.thingsearch.service.common.model.ResultListImpl;
 import org.eclipse.ditto.thingsearch.service.common.model.TimestampedThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 
-import akka.NotUsed;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Interface for thing operations on the persistence used within the search service.

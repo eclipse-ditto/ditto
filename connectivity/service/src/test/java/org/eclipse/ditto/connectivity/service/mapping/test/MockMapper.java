@@ -33,7 +33,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAr
 
 import com.typesafe.config.Config;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 @AllParametersAndReturnValuesAreNonnullByDefault
 public final class MockMapper implements MessageMapper {

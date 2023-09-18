@@ -15,14 +15,14 @@ package org.eclipse.ditto.internal.utils.persistentactors.cleanup;
 import java.time.Duration;
 import java.util.concurrent.atomic.LongAccumulator;
 
-import org.eclipse.ditto.internal.utils.akka.controlflow.Transistor;
+import org.eclipse.ditto.internal.utils.pekko.controlflow.Transistor;
 import org.eclipse.ditto.internal.utils.metrics.mongo.MongoMetricsBuilder;
 
-import akka.NotUsed;
-import akka.event.LoggingAdapter;
-import akka.stream.SourceShape;
-import akka.stream.javadsl.GraphDSL;
-import akka.stream.javadsl.Source;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.event.LoggingAdapter;
+import org.apache.pekko.stream.SourceShape;
+import org.apache.pekko.stream.javadsl.GraphDSL;
+import org.apache.pekko.stream.javadsl.Source;
 
 final class Credits {
 

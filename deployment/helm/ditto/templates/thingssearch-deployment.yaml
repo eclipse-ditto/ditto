@@ -33,7 +33,7 @@ spec:
       labels:
         app.kubernetes.io/name: {{ include "ditto.name" . }}-thingssearch
         app.kubernetes.io/instance: {{ .Release.Name }}
-        actorSystemName: {{ .Values.akka.actorSystemName }}
+        actorSystemName: {{ .Values.pekko.actorSystemName }}
         {{- with .Values.thingsSearch.additionalLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -126,7 +126,7 @@ spec:
                 -XX:InitialRAMPercentage={{ .Values.thingsSearch.jvm.heapRamPercentage }}
                 -XX:MaxGCPauseMillis={{ .Values.thingsSearch.jvm.maxGcPauseMillis }}
                 {{ .Values.thingsSearch.additionalJvmOptions }}
-                {{- .Values.global.akkaOptions }}
+                {{- .Values.global.pekkoOptions }}
                 {{- if .Values.global.logging.customConfigFile.enabled }}
                 -Dlogback.configurationFile=/opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
                 {{- end }}
@@ -229,10 +229,10 @@ spec:
             {{- end }}
           ports:
             - name: remoting
-              containerPort: {{ .Values.akka.remoting.port }}
+              containerPort: {{ .Values.pekko.remoting.port }}
               protocol: TCP
             - name: management
-              containerPort: {{ .Values.akka.mgmthttp.port }}
+              containerPort: {{ .Values.pekko.mgmthttp.port }}
               protocol: TCP
             {{- if .Values.global.prometheus.enabled }}
             - name: prometheus
@@ -273,7 +273,7 @@ spec:
               memory: {{ .Values.thingsSearch.resources.memoryMi }}Mi
             limits:
               # ## no cpu limit to avoid CFS scheduler limits
-              # ref: https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+              # ref: https://pekko.apache.org/docs/pekko/current/additional/deploying.html#deploying-to-kubernetes
               # cpu: ""
               memory: {{ .Values.thingsSearch.resources.memoryMi }}Mi
           {{- if .Values.openshift.enabled }}

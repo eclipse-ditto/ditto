@@ -37,7 +37,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-internal-utils-akka</artifactId>
+            <artifactId>ditto-internal-utils-pekko</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -60,18 +60,17 @@
             <artifactId>ditto-base-model</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-cluster_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-cluster_${scala.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-cluster-sharding_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-cluster-sharding_${scala.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-serialization-jackson_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-serialization-jackson_${scala.version}</artifactId>
         </dependency>
-
         <!-- annotations used in our code, so manually add the import: -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -93,7 +92,7 @@
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-internal-utils-akka</artifactId>
+            <artifactId>ditto-internal-utils-pekko</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -104,8 +103,8 @@
             <type>test-jar</type>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-testkit_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

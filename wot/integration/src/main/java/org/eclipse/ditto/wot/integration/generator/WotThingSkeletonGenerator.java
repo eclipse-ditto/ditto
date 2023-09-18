@@ -23,7 +23,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.wot.integration.provider.WotThingModelFetcher;
 import org.eclipse.ditto.wot.model.ThingModel;
 
-import akka.actor.ActorSystem;
+import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Generator for WoT (Web of Things) based Ditto {@link Thing}s and {@link Feature} skeletons based on

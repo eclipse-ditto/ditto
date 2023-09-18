@@ -55,7 +55,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-internal-utils-akka</artifactId>
+            <artifactId>ditto-internal-utils-pekko</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -173,18 +173,18 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-http-testkit_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-http-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-stream-testkit_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-stream-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-testkit_${scala.version}</artifactId>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -207,7 +207,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-internal-utils-akka</artifactId>
+            <artifactId>ditto-internal-utils-pekko</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>

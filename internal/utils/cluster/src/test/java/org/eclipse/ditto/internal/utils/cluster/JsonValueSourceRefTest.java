@@ -32,14 +32,14 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.NotUsed;
-import akka.actor.ActorSystem;
-import akka.stream.Materializer;
-import akka.stream.SourceRef;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
-import akka.stream.javadsl.StreamRefs;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.SourceRef;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.javadsl.StreamRefs;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import scala.concurrent.duration.FiniteDuration;
 

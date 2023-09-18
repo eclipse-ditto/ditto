@@ -45,16 +45,16 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
-import akka.actor.ActorSystem;
-import akka.stream.Materializer;
-import akka.stream.SystemMaterializer;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
-import akka.testkit.javadsl.TestKit;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.SystemMaterializer;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link MongoReadJournal}.
- * CAUTION: Do not use Akka streams testkit; it does not work for Source.fromPublisher against reactive-streams client.
+ * CAUTION: Do not use Pekko streams testkit; it does not work for Source.fromPublisher against reactive-streams client.
  */
 @RunWith(Parameterized.class)
 public final class MongoReadJournalIT {
@@ -105,8 +105,8 @@ public final class MongoReadJournalIT {
         final String mongoUri =
                 String.format("mongodb://%s:%d/%s", MONGO_RESOURCE.getBindIp(), MONGO_RESOURCE.getPort(), MONGO_DB);
         final Config config = ConfigFactory.load("mongo-read-journal-test")
-                .withValue("akka.contrib.persistence.mongodb.mongo.mongouri", ConfigValueFactory.fromAnyRef(mongoUri));
-        actorSystem = ActorSystem.create("AkkaTestSystem", config);
+                .withValue("pekko.contrib.persistence.mongodb.mongo.mongouri", ConfigValueFactory.fromAnyRef(mongoUri));
+        actorSystem = ActorSystem.create("PekkoTestSystem", config);
         materializer = SystemMaterializer.get(actorSystem).materializer();
         readJournal = MongoReadJournal.newInstance(config, mongoClient, actorSystem);
     }
