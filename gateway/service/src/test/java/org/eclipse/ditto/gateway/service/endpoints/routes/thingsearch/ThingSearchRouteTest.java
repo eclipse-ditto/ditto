@@ -16,18 +16,17 @@ import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import java.util.List;
 
+import org.apache.pekko.http.javadsl.model.FormData;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.testkit.TestRoute;
+import org.apache.pekko.japi.Pair;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.Before;
 import org.junit.Test;
-
-import akka.http.javadsl.model.FormData;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.server.Route;
-import akka.http.javadsl.testkit.TestRoute;
-import akka.japi.Pair;
 
 /**
  * Builder for creating Akka HTTP routes for {@code /search/things}.
