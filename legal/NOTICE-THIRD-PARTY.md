@@ -190,14 +190,14 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/pjfanning/pekko-rabbitmq_2.13/7.0.0/pekko-rabbitmq_2.13-7.0.0-sources.jar
 
 
-## pekko-persistence-mongodb (1.0)
+## pekko-persistence-mongodb (1.0.1)
 
-* Maven coordinates: `com.github.scullxbones:pekko-persistence-mongodb_2.13:1.0`
+* Maven coordinates: `com.github.scullxbones:pekko-persistence-mongodb_2.13:1.0.1`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/scullxbones/pekko-persistence-mongo
 * Sources: 
    * declared as SCM: https://github.com/scullxbones/pekko-persistence-mongo
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/scullxbones/pekko-persistence-mongodb_2.13/1.0/pekko-persistence-mongodb_2.13-1.0-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/scullxbones/pekko-persistence-mongodb_2.13/1.0.1/pekko-persistence-mongodb_2.13-1.0.1-sources.jar
 
 
 ## AutoValue Annotations (1.9)
@@ -630,14 +630,14 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=io/opentelemetry/opentelemetry-semconv/1.13.0-alpha/opentelemetry-semconv-1.13.0-alpha-sources.jar
 
 
-## Non-Blocking Reactive Foundation for the JVM (3.2.22.RELEASE)
+## Non-Blocking Reactive Foundation for the JVM (3.5.0)
 
-* Maven coordinates: `io.projectreactor:reactor-core:3.2.22.RELEASE`
+* Maven coordinates: `io.projectreactor:reactor-core:3.5.0`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/reactor/reactor-core
 * Sources: 
    * declared as SCM: https://github.com/reactor/reactor-core
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/projectreactor/reactor-core/3.2.22.RELEASE/reactor-core-3.2.22.RELEASE-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/projectreactor/reactor-core/3.5.0/reactor-core-3.5.0-sources.jar
 
 
 ## RxJava (2.2.19)
@@ -1170,34 +1170,44 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/lz4/lz4-java/1.8.0/lz4-java-1.8.0-sources.jar
 
 
-## BSON (4.3.4)
+## BSON (4.10.2)
 
-* Maven coordinates: `org.mongodb:bson:4.3.4`
+* Maven coordinates: `org.mongodb:bson:4.10.2`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://bsonspec.org
 * Sources: 
    * declared as SCM: https://github.com/mongodb/mongo-java-driver
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/bson/4.3.4/bson-4.3.4-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/bson/4.10.2/bson-4.10.2-sources.jar
 
 
-## MongoDB Java Driver Core (4.3.4)
+## BSON Record Codec (4.10.2)
 
-* Maven coordinates: `org.mongodb:mongodb-driver-core:4.3.4`
+* Maven coordinates: `org.mongodb:bson-record-codec:4.10.2`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: http://www.mongodb.org
+* Project: https://www.mongodb.com/
 * Sources: 
    * declared as SCM: https://github.com/mongodb/mongo-java-driver
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/mongodb-driver-core/4.3.4/mongodb-driver-core-4.3.4-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/bson-record-codec/4.10.2/bson-record-codec-4.10.2-sources.jar
 
 
-## The MongoDB Reactive Streams Driver (4.3.4)
+## MongoDB Java Driver Core (4.10.2)
 
-* Maven coordinates: `org.mongodb:mongodb-driver-reactivestreams:4.3.4`
+* Maven coordinates: `org.mongodb:mongodb-driver-core:4.10.2`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: http://www.mongodb.org
+* Project: https://www.mongodb.com/
 * Sources: 
    * declared as SCM: https://github.com/mongodb/mongo-java-driver
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/mongodb-driver-reactivestreams/4.3.4/mongodb-driver-reactivestreams-4.3.4-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/mongodb-driver-core/4.10.2/mongodb-driver-core-4.10.2-sources.jar
+
+
+## The MongoDB Reactive Streams Driver (4.10.2)
+
+* Maven coordinates: `org.mongodb:mongodb-driver-reactivestreams:4.10.2`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://www.mongodb.com/
+* Sources: 
+   * declared as SCM: https://github.com/mongodb/mongo-java-driver
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/mongodb-driver-reactivestreams/4.10.2/mongodb-driver-reactivestreams-4.10.2-sources.jar
 
 
 ## Mongo Scala Bson Library (4.10.2)
@@ -1210,14 +1220,14 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/scala/mongo-scala-bson_2.13/4.10.2/mongo-scala-bson_2.13-4.10.2-sources.jar
 
 
-## Mongo Scala Driver (4.3.4)
+## Mongo Scala Driver (4.10.2)
 
-* Maven coordinates: `org.mongodb.scala:mongo-scala-driver_2.13:4.3.4`
+* Maven coordinates: `org.mongodb.scala:mongo-scala-driver_2.13:4.10.2`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: http://www.mongodb.org
+* Project: https://www.mongodb.com/
 * Sources: 
    * declared as SCM: https://github.com/mongodb/mongo-java-driver
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/scala/mongo-scala-driver_2.13/4.3.4/mongo-scala-driver_2.13-4.3.4-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/scala/mongo-scala-driver_2.13/4.10.2/mongo-scala-driver_2.13-4.10.2-sources.jar
 
 
 ## rhino-runtime (1.7.14)
@@ -1320,24 +1330,24 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/reactivestreams/reactive-streams/1.0.4/reactive-streams-1.0.4-sources.jar
 
 
-## Scala Library (2.13.10)
+## Scala Library (2.13.12)
 
-* Maven coordinates: `org.scala-lang:scala-library:2.13.10`
+* Maven coordinates: `org.scala-lang:scala-library:2.13.12`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://www.scala-lang.org/
 * Sources: 
    * declared as SCM: https://github.com/scala/scala
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/scala-lang/scala-library/2.13.10/scala-library-2.13.10-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/scala-lang/scala-library/2.13.12/scala-library-2.13.12-sources.jar
 
 
-## Scala Reflect (2.13.10)
+## Scala Reflect (2.13.12)
 
-* Maven coordinates: `org.scala-lang:scala-reflect:2.13.10`
+* Maven coordinates: `org.scala-lang:scala-reflect:2.13.12`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://www.scala-lang.org/
 * Sources: 
    * declared as SCM: https://github.com/scala/scala
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/scala-lang/scala-reflect/2.13.10/scala-reflect-2.13.10-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/scala-lang/scala-reflect/2.13.12/scala-reflect-2.13.12-sources.jar
 
 
 ## scala-java8-compat (1.0.2)

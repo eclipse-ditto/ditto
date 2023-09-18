@@ -10,6 +10,7 @@
 target/
 /ditto_all_dependencies/
 dependencies.txt
+dependency-reduced-pom.xml
 /deployment/docker/.env
 /deployment/docker/sandbox/.env
 /deployment/docker/sandbox/postgres
@@ -23,4 +24,3 @@ deployment/helm/eclipse-ditto/charts/*
 .factorypath
 ui/node_modules
 ui/dist
-

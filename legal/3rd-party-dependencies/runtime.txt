@@ -5,7 +5,7 @@ com.squareup.okio:okio:jar:2.8.0:runtime
 io.jsonwebtoken:jjwt-impl:jar:0.11.5:runtime
 io.opentelemetry:opentelemetry-exporter-otlp-common:jar:1.13.0:runtime
 io.opentelemetry:opentelemetry-semconv:jar:1.13.0-alpha:runtime
-io.projectreactor:reactor-core:jar:3.2.22.RELEASE:runtime
+io.projectreactor:reactor-core:jar:3.5.0:runtime
 javax.inject:javax.inject:jar:1:runtime
 net.jodah:failsafe:jar:2.4.4:runtime
 net.logstash.logback:logstash-logback-encoder:jar:7.2:runtime
@@ -15,6 +15,9 @@ org.jetbrains.kotlin:kotlin-stdlib:jar:1.4.10:runtime
 org.jetbrains:annotations:jar:13.0:runtime
 org.jetbrains:annotations:jar:16.0.3:runtime
 org.komamitsu:phi-accural-failure-detector:jar:0.0.5:runtime
+org.mongodb:bson-record-codec:jar:4.10.2:runtime
+org.mongodb:mongodb-driver-reactivestreams:jar:4.10.2:runtime
 org.msgpack:jackson-dataformat-msgpack:jar:0.9.1:runtime
 org.msgpack:msgpack-core:jar:0.9.1:runtime
+org.scala-lang:scala-reflect:jar:2.13.12:runtime
 org.xerial.snappy:snappy-java:jar:1.1.8.1:runtime
