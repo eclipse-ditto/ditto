@@ -19,21 +19,6 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
-import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
-import org.eclipse.ditto.internal.utils.cache.entry.Entry;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
-import org.eclipse.ditto.policies.api.PolicyTag;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.slf4j.Logger;
-
-import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
-
 import org.apache.pekko.actor.AbstractActor;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
@@ -45,6 +30,20 @@ import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
 import org.apache.pekko.dispatch.MessageDispatcher;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.pattern.Patterns;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
+import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.slf4j.Logger;
+
+import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
 /**
  * Transparent caching layer for {@link org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider}
@@ -86,7 +85,7 @@ final class CachingPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider
     @Override
     public CompletionStage<Optional<PolicyEnforcer>> getPolicyEnforcer(@Nullable final PolicyId policyId) {
         if (policyId == null) {
-            return CompletableFuture.completedStage(Optional.empty());
+            return CompletableFuture.completedFuture(Optional.empty());
         }
         return Patterns.ask(cachingPolicyEnforcerProviderActor, policyId, LOCAL_POLICY_RETRIEVAL_TIMEOUT)
                 .thenApply(response -> {

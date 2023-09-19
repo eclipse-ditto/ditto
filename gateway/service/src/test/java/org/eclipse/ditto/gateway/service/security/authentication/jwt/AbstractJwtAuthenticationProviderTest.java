@@ -21,6 +21,9 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.server.RequestContext;
 import org.assertj.core.api.AssertionsForClassTypes;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -41,10 +44,6 @@ import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import org.apache.pekko.http.javadsl.model.HttpHeader;
-import org.apache.pekko.http.javadsl.model.HttpRequest;
-import org.apache.pekko.http.javadsl.server.RequestContext;
 
 /**
  * Provides tests for {@link JwtAuthenticationProvider}.
@@ -119,7 +118,7 @@ abstract class AbstractJwtAuthenticationProviderTest {
         when(jwtValidator.validate(any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
         when(authenticationContextProvider.getAuthenticationResult(any(JsonWebToken.class), any(DittoHeaders.class)))
-                .thenReturn(CompletableFuture.completedStage(JwtAuthenticationResult.successful(knownDittoHeaders,
+                .thenReturn(CompletableFuture.completedFuture(JwtAuthenticationResult.successful(knownDittoHeaders,
                         AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                                 AuthorizationSubject.newInstance("myAuthSubj")),
                         ImmutableJsonWebToken.fromToken(JwtTestConstants.VALID_JWT_TOKEN))));
@@ -134,7 +133,7 @@ abstract class AbstractJwtAuthenticationProviderTest {
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
         lenient().when(
                 authenticationContextProvider.getAuthenticationResult(any(JsonWebToken.class), any(DittoHeaders.class)))
-                .thenReturn(CompletableFuture.completedStage(JwtAuthenticationResult.successful(knownDittoHeaders,
+                .thenReturn(CompletableFuture.completedFuture(JwtAuthenticationResult.successful(knownDittoHeaders,
                         AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                                 AuthorizationSubject.newInstance("myAuthSubj")),
                         ImmutableJsonWebToken.fromToken(JwtTestConstants.VALID_JWT_TOKEN))));

@@ -16,6 +16,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
 import org.eclipse.ditto.edge.service.dispatching.EdgeCommandForwarderActor;
 import org.eclipse.ditto.internal.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
 import org.eclipse.ditto.internal.models.signalenrichment.DefaultSignalEnrichmentProviderConfig;
@@ -23,9 +25,6 @@ import org.eclipse.ditto.internal.models.signalenrichment.DittoCachingSignalEnri
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.http.javadsl.model.HttpRequest;
 
 /**
  * Provider for gateway-service of signal-enriching facades that uses an async Caffeine cache in order to load
@@ -62,7 +61,7 @@ public final class DefaultGatewaySignalEnrichmentProvider implements GatewaySign
 
     @Override
     public CompletionStage<SignalEnrichmentFacade> getFacade(final HttpRequest request) {
-        return CompletableFuture.completedStage(facade);
+        return CompletableFuture.completedFuture(facade);
     }
 
 }

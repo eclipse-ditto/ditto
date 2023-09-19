@@ -29,6 +29,15 @@ import javax.annotation.Nullable;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.Uri;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -44,15 +53,6 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProv
 
 import com.typesafe.config.Config;
 
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.actor.Status;
-import org.apache.pekko.http.javadsl.model.HttpRequest;
-import org.apache.pekko.http.javadsl.model.HttpResponse;
-import org.apache.pekko.http.javadsl.model.Uri;
-import org.apache.pekko.japi.Pair;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
 import scala.util.Try;
 
 /**
@@ -129,7 +129,7 @@ public final class HttpPushClientActor extends BaseClientActor {
     @Override
     protected CompletionStage<Void> stopConsuming() {
         // nothing to do: HTTP connections do not consume.
-        return CompletableFuture.completedStage(null);
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override

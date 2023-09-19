@@ -29,6 +29,21 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorContext;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.PoisonPill;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Terminated;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.cluster.ClusterEvent;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.stream.Attributes;
+import org.apache.pekko.testkit.TestActor;
+import org.apache.pekko.testkit.TestActorRef;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotUniqueException;
@@ -56,21 +71,6 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
-import org.apache.pekko.actor.AbstractActor;
-import org.apache.pekko.actor.ActorContext;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.PoisonPill;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.actor.Terminated;
-import org.apache.pekko.cluster.Cluster;
-import org.apache.pekko.cluster.ClusterEvent;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.apache.pekko.stream.Attributes;
-import org.apache.pekko.testkit.TestActor;
-import org.apache.pekko.testkit.TestActorRef;
-import org.apache.pekko.testkit.TestProbe;
-import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.concurrent.duration.Duration;
 
 /**
@@ -735,7 +735,7 @@ public final class PubSubFactoryTest {
             if (x instanceof Throwable) {
                 return CompletableFuture.failedStage((Throwable) x);
             } else {
-                return CompletableFuture.completedStage(x);
+                return CompletableFuture.completedFuture(x);
             }
         }).join();
         return stage;

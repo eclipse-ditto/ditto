@@ -26,6 +26,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Address;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.cluster.ddata.ORMultiMap;
+import org.apache.pekko.cluster.ddata.Replicator;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.internal.utils.pubsub.LiteralDDataProvider;
 import org.eclipse.ditto.internal.utils.pubsub.api.AcksDeclared;
@@ -47,15 +55,6 @@ import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Address;
-import org.apache.pekko.cluster.Cluster;
-import org.apache.pekko.cluster.ddata.ORMultiMap;
-import org.apache.pekko.cluster.ddata.Replicator;
-import org.apache.pekko.testkit.TestProbe;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link AckUpdater}.
@@ -285,9 +284,9 @@ public final class AckUpdaterTest {
         final var writer = Mockito.mock(DDataWriter.class);
         Mockito.when(mock.getReader()).thenReturn(reader);
         Mockito.when(mock.getWriter()).thenReturn(writer);
-        Mockito.when(reader.get(any(), any())).thenReturn(CompletableFuture.completedStage(Optional.of(map)));
-        Mockito.when(reader.getAllShards(any())).thenReturn(CompletableFuture.completedStage(List.of(map)));
-        Mockito.when(writer.put(any(), any(), any())).thenReturn(CompletableFuture.completedStage(null));
+        Mockito.when(reader.get(any(), any())).thenReturn(CompletableFuture.completedFuture(Optional.of(map)));
+        Mockito.when(reader.getAllShards(any())).thenReturn(CompletableFuture.completedFuture(List.of(map)));
+        Mockito.when(writer.put(any(), any(), any())).thenReturn(CompletableFuture.completedFuture(null));
         return mock;
     }
 

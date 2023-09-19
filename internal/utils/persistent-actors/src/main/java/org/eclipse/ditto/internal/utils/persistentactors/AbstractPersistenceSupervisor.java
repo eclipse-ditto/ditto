@@ -24,6 +24,25 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.OneForOneStrategy;
+import org.apache.pekko.actor.PoisonPill;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.ReceiveTimeout;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.actor.SupervisorStrategy;
+import org.apache.pekko.actor.Terminated;
+import org.apache.pekko.cluster.sharding.ShardRegion;
+import org.apache.pekko.japi.pf.DeciderBuilder;
+import org.apache.pekko.japi.pf.FI;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.AskTimeoutException;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.persistence.query.EventEnvelope;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.javadsl.StreamRefs;
 import org.bson.BsonDocument;
 import org.eclipse.ditto.base.api.commands.sudo.SudoCommand;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
@@ -48,9 +67,6 @@ import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfi
 import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformers;
-import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithStashWithTimers;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -58,6 +74,9 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
+import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithStashWithTimers;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoEventAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
@@ -66,26 +85,6 @@ import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.json.JsonObject;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.OneForOneStrategy;
-import org.apache.pekko.actor.PoisonPill;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.actor.ReceiveTimeout;
-import org.apache.pekko.actor.Status;
-import org.apache.pekko.actor.SupervisorStrategy;
-import org.apache.pekko.actor.Terminated;
-import org.apache.pekko.cluster.sharding.ShardRegion;
-import org.apache.pekko.japi.pf.DeciderBuilder;
-import org.apache.pekko.japi.pf.FI;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.apache.pekko.pattern.AskTimeoutException;
-import org.apache.pekko.pattern.Patterns;
-import org.apache.pekko.persistence.query.EventEnvelope;
-import org.apache.pekko.stream.javadsl.Source;
-import org.apache.pekko.stream.javadsl.StreamRefs;
 
 /**
  * Sharded Supervisor of persistent actors. It:
@@ -330,7 +329,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      * @return the potentially modified command.
      */
     protected CompletionStage<Object> modifyEnforcerActorEnforcedSignalResponse(final Object enforcedCommand) {
-        return CompletableFuture.completedStage(enforcedCommand);
+        return CompletableFuture.completedFuture(enforcedCommand);
     }
 
     /**
@@ -343,7 +342,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      */
     protected CompletionStage<Object> modifyTargetActorCommandResponse(final Signal<?> enforcedSignal,
             final Object persistenceCommandResponse) {
-        return CompletableFuture.completedStage(persistenceCommandResponse);
+        return CompletableFuture.completedFuture(persistenceCommandResponse);
     }
 
 
@@ -532,12 +531,12 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                         .exceptionally(throwable -> targetActorWithMessage.responseOrErrorConverter().apply(throwable));
             } else {
                 targetActorWithMessage.targetActor().tell(targetActorWithMessage.message(), getSelf());
-                return CompletableFuture.completedStage(new Status.Success(MessageFormat.format(
+                return CompletableFuture.completedFuture(new Status.Success(MessageFormat.format(
                         "message <{0}> sent via tell", targetActorWithMessage.message().getClass().getSimpleName()))
                 );
             }
         } else {
-            return CompletableFuture.completedStage(null);
+            return CompletableFuture.completedFuture(null);
         }
     }
 
@@ -557,7 +556,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             final ActorRef sender) {
 
         if (null != persistenceActorChild) {
-            return CompletableFuture.completedStage(
+            return CompletableFuture.completedFuture(
                     new TargetActorWithMessage(
                             persistenceActorChild,
                             message,
@@ -565,7 +564,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                             Function.identity()
                     ));
         } else {
-            return CompletableFuture.completedStage(null);
+            return CompletableFuture.completedFuture(null);
         }
     }
 
@@ -932,7 +931,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                     });
         } else {
             log.withCorrelationId(signal).error("Could not enforce signal because enforcerChild was not present");
-            return CompletableFuture.completedStage(null);
+            return CompletableFuture.completedFuture(null);
         }
     }
 
@@ -997,7 +996,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                     .debug("Received DittoRuntimeException as response from enforcerChild: {}", dre);
             return CompletableFuture.failedFuture(dre);
         } else {
-            return CompletableFuture.completedStage(
+            return CompletableFuture.completedFuture(
                     new EnforcedSignalAndTargetActorResponse(null, null)
             );
         }
@@ -1028,17 +1027,17 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         } else if (targetActorResponse.response() instanceof Status.Success success) {
             log.withCorrelationId(targetActorResponse.enforcedSignal())
                     .info("Got success message from target actor: {}", success);
-            return CompletableFuture.completedStage(success);
+            return CompletableFuture.completedFuture(success);
         } else if (targetActorResponse.response() instanceof AskTimeoutException askTimeoutException) {
             log.withCorrelationId(targetActorResponse.enforcedSignal())
                     .warning("Encountered ask timeout from target actor: {}", askTimeoutException.getMessage());
-            return CompletableFuture.completedStage(null);
+            return CompletableFuture.completedFuture(null);
         } else if (targetActorResponse.response() instanceof Throwable throwable) {
             return CompletableFuture.failedFuture(throwable);
         } else {
             log.withCorrelationId(targetActorResponse.enforcedSignal())
                     .warning("Unexpected response from target actor: {}", targetActorResponse);
-            return CompletableFuture.completedStage(null);
+            return CompletableFuture.completedFuture(null);
         }
     }
 

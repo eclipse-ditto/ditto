@@ -123,7 +123,7 @@ public final class QueryParser {
         final DittoHeaders headers = sudoCountThings.getDittoHeaders();
         final String filters = sudoCountThings.getFilter().orElse(null);
         final Criteria criteria = queryFilterCriteriaFactory.filterCriteria(filters, headers);
-        return CompletableFuture.completedStage(queryBuilderFactory.newUnlimitedBuilder(criteria).build());
+        return CompletableFuture.completedFuture(queryBuilderFactory.newUnlimitedBuilder(criteria).build());
     }
 
     /**

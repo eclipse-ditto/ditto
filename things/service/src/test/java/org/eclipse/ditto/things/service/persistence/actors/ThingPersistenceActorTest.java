@@ -25,6 +25,16 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.PoisonPill;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.testkit.TestActorRef;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.base.api.common.Shutdown;
@@ -131,16 +141,6 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
-import org.apache.pekko.actor.AbstractActor;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSelection;
-import org.apache.pekko.actor.PoisonPill;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.apache.pekko.testkit.TestActorRef;
-import org.apache.pekko.testkit.TestProbe;
-import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.PartialFunction;
 import scala.concurrent.Await;
 import scala.concurrent.Future;
@@ -202,7 +202,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final CreatePolicyResponse createPolicyResponse = CreatePolicyResponse.of(POLICY_ID, inlinePolicy,
                 DittoHeaders.empty());
         when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(inlinePolicy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(inlinePolicy))));
 
         new TestKit(actorSystem) {
             {
@@ -224,7 +224,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thing);
                 when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
-                        .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(inlinePolicy))));
+                        .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(inlinePolicy))));
                 // retrieve created thing
                 final RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeadersV2);
                 underTest.tell(retrieveThing, getRef());
@@ -2033,7 +2033,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final CreatePolicyResponse createPolicyResponse = CreatePolicyResponse.of(POLICY_ID, inlinePolicy,
                 DittoHeaders.empty());
         when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(inlinePolicy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(inlinePolicy))));
 
         final DeletePolicyResponse deletePolicyResponse = DeletePolicyResponse.of(POLICY_ID, dittoHeaders);
 
@@ -2075,7 +2075,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                         Permissions.newInstance(Permission.READ, Permission.WRITE))
                 .build();
         when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(inlinePolicy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(inlinePolicy))));
 
         new TestKit(actorSystem) {
             {
@@ -2114,7 +2114,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final CreatePolicyResponse createPolicyResponse = CreatePolicyResponse.of(POLICY_ID, inlinePolicy,
                 DittoHeaders.empty());
         when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(inlinePolicy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(inlinePolicy))));
 
         final DeletePolicyResponse deletePolicyResponse = DeletePolicyResponse.of(POLICY_ID, dittoHeaders);
 

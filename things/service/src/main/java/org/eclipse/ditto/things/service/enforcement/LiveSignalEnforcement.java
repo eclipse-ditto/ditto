@@ -108,7 +108,7 @@ final class LiveSignalEnforcement
                     .build();
         }
 
-        return CompletableFuture.completedStage(result);
+        return CompletableFuture.completedFuture(result);
     }
 
     @Override
@@ -151,7 +151,7 @@ final class LiveSignalEnforcement
         } else {
             result = commandResponse;
         }
-        return CompletableFuture.completedStage(result);
+        return CompletableFuture.completedFuture(result);
     }
 
     private Signal<?> enforceLiveSignal(final StreamingType streamingType, final Signal<?> liveSignal,

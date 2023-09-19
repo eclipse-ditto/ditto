@@ -22,6 +22,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
@@ -57,8 +59,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
-import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
-import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.PartialFunction;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -94,9 +94,9 @@ public final class SmartChannelEnforcementTest extends AbstractThingEnforcementT
                 .build();
         sudoRetrieveThingResponse = SudoRetrieveThingResponse.of(thing, DittoHeaders.empty());
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
         when(policyEnforcerProvider.getPolicyEnforcer(null))
-                .thenReturn(CompletableFuture.completedStage(Optional.empty()));
+                .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
     }
 
     @Test

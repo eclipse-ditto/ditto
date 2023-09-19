@@ -25,6 +25,16 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.PoisonPill;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.japi.pf.FSMStateFunctionBuilder;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
@@ -60,16 +70,6 @@ import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 import com.hivemq.client.mqtt.lifecycle.MqttDisconnectSource;
 import com.typesafe.config.Config;
 
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.PoisonPill;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.actor.Status;
-import org.apache.pekko.japi.pf.FSMStateFunctionBuilder;
-import org.apache.pekko.pattern.Patterns;
-import org.apache.pekko.stream.javadsl.Keep;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
 import scala.concurrent.ExecutionContextExecutor;
 
 /**
@@ -218,7 +218,7 @@ public final class MqttClientActor extends BaseClientActor {
     @Override
     protected CompletionStage<Void> stopConsuming() {
         if (genericMqttClient == null) {
-            return CompletableFuture.completedStage(null);
+            return CompletableFuture.completedFuture(null);
         } else {
             final var mqttTopicFilters =
                     getSourceAddresses().map(MqttTopicFilter::of).toArray(MqttTopicFilter[]::new);

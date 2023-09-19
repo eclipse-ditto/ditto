@@ -22,6 +22,8 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.pattern.AskTimeoutException;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -69,9 +71,6 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingRespon
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import org.apache.pekko.pattern.AskTimeoutException;
-import org.apache.pekko.testkit.javadsl.TestKit;
-
 /**
  * Tests commands that triggers different or multiple commands internally.
  */
@@ -110,7 +109,7 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
                     SudoRetrieveThingResponse.of(thing.toJson(FieldType.all()), DittoHeaders.empty());
             final Policy policy = defaultPolicy(policyId);
             when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                    .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
             // WHEN: received RetrieveThing
             final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("_policy", "thingId");
@@ -154,7 +153,7 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
                     SudoRetrieveThingResponse.of(thing.toJson(FieldType.all()), DittoHeaders.empty());
             final Policy policy = thingOnlyPolicy(policyId);
             when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                    .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
             // WHEN: received RetrieveThing
             final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("_policy", "thingId");
@@ -201,7 +200,7 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
                     SudoRetrieveThingResponse.of(thing.toJson(FieldType.all()), DittoHeaders.empty());
             final Policy policy = thingOnlyPolicy(policyId);
             when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                    .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
             // WHEN: received RetrieveThing
             final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("_policy", "thingId");
@@ -255,7 +254,7 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
                     SudoRetrieveThingResponse.of(thing.toJson(FieldType.all()), DittoHeaders.empty());
             final Policy policy = defaultPolicy(policyId);
             when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                    .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
             // WHEN: received RetrieveThing but both shard regions time out
             final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("_policy", "thingId");
@@ -312,7 +311,7 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
                     SudoRetrieveThingResponse.of(thing.toJson(FieldType.all()), DittoHeaders.empty());
             final Policy policy = defaultPolicy(policyId);
             when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                    .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
             // WHEN: received ModifyThing
             final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
@@ -341,7 +340,7 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             final Policy policy = defaultPolicy(policyId);
             final var retrievePolicyResponse = RetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
             when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                    .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
             // WHEN: received CreateThing
             final CreateThing createThing = CreateThing.of(thing, null, DEFAULT_HEADERS);
 
@@ -365,7 +364,7 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             final Thing thing = emptyThing(thingId, null);
             final Policy policy = defaultPolicy(policyId);
             when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                    .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
             // WHEN: received CreateThing
             final var createThing = CreateThing.of(thing, null, DEFAULT_HEADERS);
@@ -413,7 +412,7 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             final Thing thing = emptyThing(thingId, policyId);
             final Policy policy = defaultPolicy(policyId);
             when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                    .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
             // WHEN: received CreateThing
             final var createThing = CreateThing.of(thing, policy.toJson(), DEFAULT_HEADERS);
@@ -440,7 +439,7 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             final Thing thing = emptyThing(thingId, policyId);
             final Policy policy = thingOnlyPolicy(policyId);
             when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                    .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
             // WHEN: received CreateThing whose inline policy does not permit creation of itself
             final var createThing = CreateThing.of(thing, policy.toJson(), DEFAULT_HEADERS);

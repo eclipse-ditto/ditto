@@ -15,14 +15,13 @@ package org.eclipse.ditto.connectivity.service.enforcement.pre;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.ModifyConnection;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Transforms a ModifyConnection into a CreateConnection if the connection does not exist already.
@@ -55,7 +54,7 @@ public final class ModifyToCreateConnectionTransformer implements SignalTransfor
                         }
                     });
         } else {
-            return CompletableFuture.completedStage(signal);
+            return CompletableFuture.completedFuture(signal);
         }
     }
 

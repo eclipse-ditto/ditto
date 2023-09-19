@@ -15,12 +15,11 @@ package org.eclipse.ditto.thingsearch.service.persistence.query.validation;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.rql.query.Query;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Default {@link QueryCriteriaValidator},
@@ -40,6 +39,6 @@ public final class DefaultQueryCriteriaValidator implements QueryCriteriaValidat
 
     @Override
     public CompletionStage<Query> validateQuery(final Command<?> command, final Query query) {
-        return CompletableFuture.completedStage(query);
+        return CompletableFuture.completedFuture(query);
     }
 }

@@ -20,6 +20,14 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.AbstractExtensionId;
+import org.apache.pekko.actor.ActorContext;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorRefFactory;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.internal.utils.ddata.DistributedDataConfig;
@@ -31,15 +39,6 @@ import org.eclipse.ditto.internal.utils.pubsub.api.ReceiveLocalAcks;
 import org.eclipse.ditto.internal.utils.pubsub.api.ReceiveRemoteAcks;
 import org.eclipse.ditto.internal.utils.pubsub.api.RemoveSubscriberAcks;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.literal.LiteralDData;
-
-import org.apache.pekko.actor.AbstractExtensionId;
-import org.apache.pekko.actor.ActorContext;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorRefFactory;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.ExtendedActorSystem;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.pattern.Patterns;
 
 /**
  * Package-private implementation of {@link DistributedAcks}.
@@ -133,7 +132,7 @@ final class DistributedAcksImpl implements DistributedAcks {
 
     private static CompletionStage<AcksDeclared> processAskResponse(final Object askResponse) {
         if (askResponse instanceof AcksDeclared acksDeclared) {
-            return CompletableFuture.completedStage( acksDeclared);
+            return CompletableFuture.completedFuture( acksDeclared);
         } else if (askResponse instanceof Throwable throwable) {
             return CompletableFuture.failedStage(throwable);
         } else {

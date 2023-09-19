@@ -18,6 +18,7 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -25,8 +26,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Default implementation of {@link JwtAuthenticationResultProvider}.
@@ -45,7 +44,7 @@ public final class DefaultJwtAuthenticationResultProvider implements JwtAuthenti
             final DittoHeaders dittoHeaders) {
 
         final List<AuthorizationSubject> authSubjects = authSubjectsProvider.getAuthorizationSubjects(jwt);
-        return CompletableFuture.completedStage(JwtAuthenticationResult.successful(dittoHeaders,
+        return CompletableFuture.completedFuture(JwtAuthenticationResult.successful(dittoHeaders,
                 AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.JWT, authSubjects),
                 jwt));
     }

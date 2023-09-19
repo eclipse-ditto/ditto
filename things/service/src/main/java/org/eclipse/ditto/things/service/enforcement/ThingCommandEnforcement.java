@@ -21,6 +21,9 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -31,10 +34,10 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandToExceptionRegistry;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
@@ -77,10 +80,6 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
-
-import org.apache.pekko.Done;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Authorizes {@link ThingCommand}s and filters {@link ThingCommandResponse}s.
@@ -146,7 +145,7 @@ final class ThingCommandEnforcement
 
         if (command.getCategory() == Command.Category.QUERY && !command.getDittoHeaders().isResponseRequired()) {
             // ignore query command with response-required=false
-            return CompletableFuture.completedStage(null);
+            return CompletableFuture.completedFuture(null);
         }
 
         final ThingCommand<?> authorizedCommand;
@@ -180,7 +179,7 @@ final class ThingCommandEnforcement
                 return CompletableFuture.failedStage(error);
             }
         }
-        return CompletableFuture.completedStage(authorizedCommand);
+        return CompletableFuture.completedFuture(authorizedCommand);
     }
 
     private static ThingQueryCommand<?> ensureTwinChannel(final ThingQueryCommand<?> command) {
@@ -216,13 +215,13 @@ final class ThingCommandEnforcement
                 final ThingQueryCommandResponse<?> filteredResponse =
                         buildJsonViewForThingQueryCommandResponse(thingQueryCommandResponse,
                                 policyEnforcer.getEnforcer());
-                return CompletableFuture.completedStage(filteredResponse);
+                return CompletableFuture.completedFuture(filteredResponse);
             } catch (final RuntimeException e) {
                 throw reportError("Error after building JsonView", e, commandResponse.getDittoHeaders());
             }
         } else {
             // no filtering required for non ThingQueryCommandResponse:
-            return CompletableFuture.completedStage(commandResponse);
+            return CompletableFuture.completedFuture(commandResponse);
         }
     }
 
@@ -370,7 +369,7 @@ final class ThingCommandEnforcement
         if (shouldDeletePolicy(createThing)) {
             return deletePolicy(policyEnforcer.getPolicy().flatMap(Policy::getEntityId).orElseThrow(), createThing);
         }
-        return CompletableFuture.completedStage(Done.getInstance());
+        return CompletableFuture.completedFuture(Done.getInstance());
     }
 
     private static boolean shouldDeletePolicy(final CreateThing createThing) {
@@ -408,7 +407,7 @@ final class ThingCommandEnforcement
                     if (Boolean.FALSE.equals(success)) {
                         return doDeletePolicy(deletePolicy);
                     }
-                    return CompletableFuture.completedStage(Done.getInstance());
+                    return CompletableFuture.completedFuture(Done.getInstance());
                 });
     }
 

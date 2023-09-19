@@ -27,7 +27,6 @@ import javax.annotation.Nullable;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
-
 import org.apache.pekko.kafka.ProducerMessage;
 import org.apache.pekko.kafka.javadsl.SendProducer;
 import org.apache.pekko.kafka.testkit.ProducerResultFactory;
@@ -120,7 +119,7 @@ final class MockSendProducerFactory implements SendProducerFactory {
                                 (ProducerMessage.Message<String, ByteBuffer, CompletableFuture<RecordMetadata>>) envelope;
                         published.offer(message.record());
 
-                        return CompletableFuture.completedStage(ProducerResultFactory.result(dummyMetadata, message));
+                        return CompletableFuture.completedFuture(ProducerResultFactory.result(dummyMetadata, message));
                     });
         } else if (!shouldThrowException){
             when(producer.sendEnvelope(any(ProducerMessage.Envelope.class)))

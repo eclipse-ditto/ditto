@@ -50,7 +50,7 @@ public final class ModifyToCreatePolicyTransformerTest {
         final var policyId = PolicyId.generateRandom();
         final var modifyPolicy =
                 ModifyPolicy.of(policyId, Policy.newBuilder(policyId).build(), DittoHeaders.of(Map.of("foo", "bar")));
-        when(existenceChecker.checkExistence(modifyPolicy)).thenReturn(CompletableFuture.completedStage(true));
+        when(existenceChecker.checkExistence(modifyPolicy)).thenReturn(CompletableFuture.completedFuture(true));
 
         final Signal<?> result = underTest.apply(modifyPolicy).toCompletableFuture().join();
 
@@ -63,7 +63,7 @@ public final class ModifyToCreatePolicyTransformerTest {
         final var policyId = PolicyId.generateRandom();
         final var modifyPolicy =
                 ModifyPolicy.of(policyId, Policy.newBuilder(policyId).build(), DittoHeaders.of(Map.of("foo", "bar")));
-        when(existenceChecker.checkExistence(modifyPolicy)).thenReturn(CompletableFuture.completedStage(false));
+        when(existenceChecker.checkExistence(modifyPolicy)).thenReturn(CompletableFuture.completedFuture(false));
 
         final Signal<?> result = underTest.apply(modifyPolicy).toCompletableFuture().join();
 

@@ -25,11 +25,20 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
+import org.apache.pekko.actor.AbstractActorWithTimers;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Address;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.actor.Terminated;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.cluster.ddata.Replicator;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.eclipse.ditto.base.model.acks.PubSubTerminatedException;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pubsub.api.RemoveSubscriber;
 import org.eclipse.ditto.internal.utils.pubsub.api.Request;
 import org.eclipse.ditto.internal.utils.pubsub.api.SubAck;
@@ -42,16 +51,6 @@ import org.eclipse.ditto.internal.utils.pubsub.ddata.SubscriptionsReader;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.compressed.CompressedDData;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.compressed.CompressedSubscriptions;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.literal.LiteralUpdate;
-
-import org.apache.pekko.actor.AbstractActorWithTimers;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.Address;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.actor.Status;
-import org.apache.pekko.actor.Terminated;
-import org.apache.pekko.cluster.Cluster;
-import org.apache.pekko.cluster.ddata.Replicator;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
 
 /**
  * Manages local subscriptions. Request distributed data update at regular intervals at the highest write consistency
@@ -227,7 +226,7 @@ public final class SubUpdater extends AbstractActorWithTimers
             if (!diff.isEmpty()) {
                 ddataOp = ddata.getWriter().put(subscriber, nextUpdate.diff(previousUpdate), writeConsistency);
             } else {
-                ddataOp = CompletableFuture.completedStage(null);
+                ddataOp = CompletableFuture.completedFuture(null);
             }
             previousUpdate = nextUpdate;
             topicSizeMetric.set(subscriptions.estimateSize());

@@ -32,6 +32,8 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.japi.Pair;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
@@ -70,9 +72,6 @@ import org.eclipse.ditto.wot.model.ThingDefinitionInvalidException;
 import org.eclipse.ditto.wot.model.ThingModel;
 import org.eclipse.ditto.wot.model.TmOptional;
 import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
-
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.japi.Pair;
 
 /**
  * Default Ditto specific implementation of {@link WotThingSkeletonGenerator}.
@@ -499,9 +498,9 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                             return combinedIdentifiers;
                         });
             } else {
-                return CompletableFuture.completedStage(Collections.<DefinitionIdentifier>emptyList());
+                return CompletableFuture.completedFuture(Collections.<DefinitionIdentifier>emptyList());
             }
-        }).orElseGet(() -> CompletableFuture.completedStage(Collections.emptyList()));
+        }).orElseGet(() -> CompletableFuture.completedFuture(Collections.emptyList()));
     }
 
     private static class Submodel {

@@ -51,6 +51,26 @@ import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.AbstractFSMWithStash;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Cancellable;
+import org.apache.pekko.actor.CoordinatedShutdown;
+import org.apache.pekko.actor.FSM;
+import org.apache.pekko.actor.OneForOneStrategy;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.actor.SupervisorStrategy;
+import org.apache.pekko.cluster.pubsub.DistributedPubSub;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.japi.pf.DeciderBuilder;
+import org.apache.pekko.japi.pf.FSMStateFunctionBuilder;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.javadsl.Sink;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.FatalPubSubException;
 import org.eclipse.ditto.base.model.acks.PubSubTerminatedException;
@@ -118,12 +138,12 @@ import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.edge.service.streaming.StreamingSubscriptionManager;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
@@ -133,27 +153,6 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.WithSubscriptionId;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.Done;
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.AbstractFSMWithStash;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSelection;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Cancellable;
-import org.apache.pekko.actor.CoordinatedShutdown;
-import org.apache.pekko.actor.FSM;
-import org.apache.pekko.actor.OneForOneStrategy;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.actor.Status;
-import org.apache.pekko.actor.SupervisorStrategy;
-import org.apache.pekko.cluster.pubsub.DistributedPubSub;
-import org.apache.pekko.japi.Pair;
-import org.apache.pekko.japi.pf.DeciderBuilder;
-import org.apache.pekko.japi.pf.FSMStateFunctionBuilder;
-import org.apache.pekko.pattern.Patterns;
-import org.apache.pekko.stream.Materializer;
-import org.apache.pekko.stream.javadsl.Sink;
 
 /**
  * Base class for ClientActors which implement the connection handling for various connectivity protocols.
@@ -2075,7 +2074,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             // only resub for connection; the initial subscription happened in preStart independent of publisher actors
             final CompletionStage<Void> connectionSub = resubscribe
                     ? connectionPubSub.subscribe(connection.getId(), getSelf(), true).thenApply(unused -> null)
-                    : CompletableFuture.completedStage(null);
+                    : CompletableFuture.completedFuture(null);
             return subscribe.thenCompose(unused -> declare).thenCompose(unused -> connectionSub);
         }
     }

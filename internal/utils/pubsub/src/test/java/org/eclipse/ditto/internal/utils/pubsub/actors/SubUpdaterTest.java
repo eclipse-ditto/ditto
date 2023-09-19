@@ -22,6 +22,13 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.cluster.ddata.ORMultiMap;
+import org.apache.pekko.cluster.ddata.Replicator;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.internal.utils.ddata.DefaultDistributedDataConfig;
 import org.eclipse.ditto.internal.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.internal.utils.pubsub.api.SubAck;
@@ -37,14 +44,6 @@ import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.cluster.Cluster;
-import org.apache.pekko.cluster.ddata.ORMultiMap;
-import org.apache.pekko.cluster.ddata.Replicator;
-import org.apache.pekko.testkit.TestProbe;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link SubUpdater}.
@@ -139,7 +138,7 @@ public final class SubUpdaterTest {
 
             // WHEN: SubUpdater is requested to resubscribe
             final var writer = ddata.getWriter();
-            Mockito.when(writer.reset(any(), any(), any())).thenReturn(CompletableFuture.completedStage(null));
+            Mockito.when(writer.reset(any(), any(), any())).thenReturn(CompletableFuture.completedFuture(null));
             final var resubscribe = Subscribe.of(List.of("topic"), subscriberRef, true, null, null, true);
             underTest.tell(resubscribe, getRef());
 
@@ -161,7 +160,7 @@ public final class SubUpdaterTest {
 
             // WHEN: SubUpdater is requested to resubscribe
             final var writer = ddata.getWriter();
-            Mockito.when(writer.reset(any(), any(), any())).thenReturn(CompletableFuture.completedStage(null));
+            Mockito.when(writer.reset(any(), any(), any())).thenReturn(CompletableFuture.completedFuture(null));
             final var resubscribe = Subscribe.of(List.of("topic"), subscriberRef, true, null, null, true);
             underTest.tell(resubscribe, getRef());
 
@@ -193,10 +192,10 @@ public final class SubUpdaterTest {
         Mockito.when(mock.getWriter()).thenReturn(writer);
         Mockito.when(mock.getSeeds()).thenReturn(List.of(1, 2));
         Mockito.when(mock.getConfig()).thenReturn(ddataConfig);
-        Mockito.when(reader.get(any(), any())).thenReturn(CompletableFuture.completedStage(Optional.of(map)));
-        Mockito.when(reader.getAllShards(any())).thenReturn(CompletableFuture.completedStage(List.of(map)));
-        Mockito.when(writer.put(any(), any(), any())).thenReturn(CompletableFuture.completedStage(null));
-        Mockito.when(writer.reset(any(), any(), any())).thenReturn(CompletableFuture.completedStage(null));
+        Mockito.when(reader.get(any(), any())).thenReturn(CompletableFuture.completedFuture(Optional.of(map)));
+        Mockito.when(reader.getAllShards(any())).thenReturn(CompletableFuture.completedFuture(List.of(map)));
+        Mockito.when(writer.put(any(), any(), any())).thenReturn(CompletableFuture.completedFuture(null));
+        Mockito.when(writer.reset(any(), any(), any())).thenReturn(CompletableFuture.completedFuture(null));
         return mock;
     }
 

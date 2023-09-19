@@ -19,20 +19,19 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithResource;
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint.ExtensionId.ExtensionIdConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Extension to provide the Pre-Enforcers for a service.
@@ -68,7 +67,7 @@ public final class PreEnforcerProvider implements DittoExtensionPoint {
      */
     public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
         final StartedTimer timer = createTimer(signal);
-        CompletionStage<Signal<?>> prior = CompletableFuture.completedStage(signal);
+        CompletionStage<Signal<?>> prior = CompletableFuture.completedFuture(signal);
         for (final PreEnforcer preEnforcer : preEnforcers) {
             prior = prior.thenCompose(preEnforcer);
         }

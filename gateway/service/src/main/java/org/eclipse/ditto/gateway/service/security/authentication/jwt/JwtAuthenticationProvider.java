@@ -22,6 +22,7 @@ import java.util.function.Function;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.apache.pekko.http.javadsl.server.RequestContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationContextType;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -33,8 +34,6 @@ import org.eclipse.ditto.gateway.service.security.authentication.TimeMeasuringAu
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
-
-import org.apache.pekko.http.javadsl.server.RequestContext;
 
 /**
  * Handles authentication by JWT.
@@ -139,7 +138,7 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
                         LOGGER.withCorrelationId(dittoHeaders).debug("The JWT is invalid.", reasonForInvalidity);
                         final DittoRuntimeException reasonForFailure =
                                 buildJwtUnauthorizedException(dittoHeaders, reasonForInvalidity);
-                        return CompletableFuture.completedStage(
+                        return CompletableFuture.completedFuture(
                                 DefaultAuthenticationResult.failed(dittoHeaders, reasonForFailure));
                     }
                     return tryToGetAuthenticationResult(jwt, dittoHeaders);

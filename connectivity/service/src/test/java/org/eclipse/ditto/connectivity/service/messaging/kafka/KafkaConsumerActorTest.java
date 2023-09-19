@@ -32,6 +32,18 @@ import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.kafka.javadsl.Consumer;
+import org.apache.pekko.stream.BoundedSourceQueue;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -45,19 +57,6 @@ import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolv
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.junit.Before;
 import org.junit.Test;
-
-import org.apache.pekko.Done;
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.japi.Pair;
-import org.apache.pekko.kafka.javadsl.Consumer;
-import org.apache.pekko.stream.BoundedSourceQueue;
-import org.apache.pekko.stream.Materializer;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
-import org.apache.pekko.testkit.TestProbe;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@code KafkaConsumerActor}.
@@ -97,7 +96,7 @@ public final class KafkaConsumerActorTest extends AbstractConsumerActorTest<Cons
 
             final ActorRef underTest = actorSystem.actorOf(getConsumerActorProps(inboundMappingSink, payloadMapping));
 
-            doAnswer(inv -> CompletableFuture.completedStage(Done.getInstance())).when(control)
+            doAnswer(inv -> CompletableFuture.completedFuture(Done.getInstance())).when(control)
                     .drainAndShutdown(any(), any());
             underTest.tell(KafkaConsumerActor.GracefulStop.START, getRef());
             expectMsg(Done.getInstance());

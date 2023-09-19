@@ -86,13 +86,13 @@ class PolicyImportsPreEnforcerTest {
         PolicyEnforcerProvider policyEnforcerProvider = Mockito.mock(PolicyEnforcerProvider.class);
 
         when(policyEnforcerProvider.getPolicyEnforcer(IMPORTED_POLICY_ID))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(IMPORTED))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(IMPORTED))));
         when(policyEnforcerProvider.getPolicyEnforcer(IMPORTING_POLICY_ID))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(IMPORTING))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(IMPORTING))));
         when(policyEnforcerProvider.getPolicyEnforcer(IMPORT_NOT_FOUND_POLICY_ID))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(IMPORT_NOT_FOUND))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(IMPORT_NOT_FOUND))));
         when(policyEnforcerProvider.getPolicyEnforcer(argThat(id -> !KNOWN_IDS.contains(id))))
-                .thenReturn(CompletableFuture.completedStage(Optional.empty()));
+                .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
 
         policyImportsPreEnforcer = new PolicyImportsPreEnforcer(policyEnforcerProvider);
     }

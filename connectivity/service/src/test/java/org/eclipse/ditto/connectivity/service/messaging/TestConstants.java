@@ -54,6 +54,16 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.InvalidActorNameException;
+import org.apache.pekko.actor.PoisonPill;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.sharding.ShardRegion;
+import org.apache.pekko.event.DiagnosticLoggingAdapter;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.testkit.TestProbe;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.FilteredAcknowledgementRequest;
@@ -105,11 +115,11 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMon
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.ConnectivityCounterRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionSupervisorActor;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
 import org.eclipse.ditto.internal.utils.protocol.config.ProtocolConfig;
@@ -140,17 +150,6 @@ import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.AbstractActor;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.InvalidActorNameException;
-import org.apache.pekko.actor.PoisonPill;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.cluster.sharding.ShardRegion;
-import org.apache.pekko.event.DiagnosticLoggingAdapter;
-import org.apache.pekko.pattern.Patterns;
-import org.apache.pekko.testkit.TestProbe;
 
 public final class TestConstants {
 
@@ -279,20 +278,20 @@ public final class TestConstants {
             public CompletionStage<Void> updateLiveSubscriptions(final Collection<StreamingType> types,
                     final Collection<String> topics, final ActorRef subscriber) {
                 doDelegate(d -> d.updateLiveSubscriptions(types, topics, subscriber));
-                return CompletableFuture.completedStage(null);
+                return CompletableFuture.completedFuture(null);
             }
 
             @Override
             public CompletionStage<Void> removeTwinSubscriber(final ActorRef subscriber,
                     final Collection<String> topics) {
                 doDelegate(d -> d.removeTwinSubscriber(subscriber, topics));
-                return CompletableFuture.completedStage(null);
+                return CompletableFuture.completedFuture(null);
             }
 
             @Override
             public CompletionStage<Void> removePolicyAnnouncementSubscriber(final ActorRef subscriber,
                     final Collection<String> topics) {
-                return CompletableFuture.completedStage(null);
+                return CompletableFuture.completedFuture(null);
             }
 
             @Override
@@ -302,7 +301,7 @@ public final class TestConstants {
                 if (delegate != null) {
                     return delegate.declareAcknowledgementLabels(acknowledgementLabels, subscriber, group);
                 } else {
-                    return CompletableFuture.completedStage(null);
+                    return CompletableFuture.completedFuture(null);
                 }
             }
 

@@ -22,15 +22,14 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.internal.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.internal.utils.pubsub.api.RemoveSubscriber;
 import org.eclipse.ditto.internal.utils.pubsub.api.Request;
 import org.eclipse.ditto.internal.utils.pubsub.api.SubAck;
 import org.eclipse.ditto.internal.utils.pubsub.api.Subscribe;
 import org.eclipse.ditto.internal.utils.pubsub.api.Unsubscribe;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.pattern.Patterns;
 
 /**
  * Package-private implementation of {@link DistributedSub}.
@@ -104,7 +103,7 @@ final class DistributedSubImpl implements DistributedSub {
 
     private static CompletionStage<SubAck> processAskResponse(final Object askResponse) {
         if (askResponse instanceof SubAck subAck) {
-            return CompletableFuture.completedStage(subAck);
+            return CompletableFuture.completedFuture(subAck);
         } else if (askResponse instanceof Throwable throwable) {
             return CompletableFuture.failedStage(throwable);
         } else {

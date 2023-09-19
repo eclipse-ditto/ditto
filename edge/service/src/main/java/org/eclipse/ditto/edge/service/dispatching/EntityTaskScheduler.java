@@ -22,16 +22,15 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
-
 import org.apache.pekko.actor.AbstractActor;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 
 /**
  * This class allows chaining futures related for a single entity.
@@ -84,7 +83,7 @@ final class EntityTaskScheduler extends AbstractActor {
         final ActorRef sender = sender();
         final CompletionStage<?> taskCs = taskCsPerEntityId.compute(task.entityId(), (entityId, previousTaskCS) -> {
             final CompletionStage<?> previous =
-                    previousTaskCS != null ? previousTaskCS : CompletableFuture.completedStage(null);
+                    previousTaskCS != null ? previousTaskCS : CompletableFuture.completedFuture(null);
             return scheduleTaskAfter(previous, task);
         });
         scheduledTasks.increment();

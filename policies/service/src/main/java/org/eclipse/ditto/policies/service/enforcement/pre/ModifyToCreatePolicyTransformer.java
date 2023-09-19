@@ -15,14 +15,13 @@ package org.eclipse.ditto.policies.service.enforcement.pre;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Transforms a ModifyPolicy into a CreatePolicy if the thing does not exist already.
@@ -51,7 +50,7 @@ public final class ModifyToCreatePolicyTransformer implements SignalTransformer 
                         }
                     });
         } else {
-            return CompletableFuture.completedStage(signal);
+            return CompletableFuture.completedFuture(signal);
         }
     }
 

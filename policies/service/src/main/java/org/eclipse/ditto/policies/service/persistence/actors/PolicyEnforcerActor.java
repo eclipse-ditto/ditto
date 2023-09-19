@@ -17,6 +17,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
+import org.apache.pekko.actor.Props;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.policies.enforcement.AbstractPolicyLoadingEnforcerActor;
@@ -29,8 +30,6 @@ import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.service.enforcement.PolicyCommandEnforcement;
-
-import org.apache.pekko.actor.Props;
 
 /**
  * Enforcer responsible for enforcing {@link PolicyCommand}s and filtering {@link PolicyCommandResponse}s utilizing the
@@ -63,7 +62,7 @@ public final class PolicyEnforcerActor extends
 
     @Override
     protected CompletionStage<PolicyId> providePolicyIdForEnforcement(final Signal<?> signal) {
-        return CompletableFuture.completedStage(entityId);
+        return CompletableFuture.completedFuture(entityId);
     }
 
     @Override

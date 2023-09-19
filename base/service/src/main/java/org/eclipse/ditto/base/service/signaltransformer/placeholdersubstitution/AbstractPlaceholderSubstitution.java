@@ -61,7 +61,7 @@ public abstract class AbstractPlaceholderSubstitution implements SignalTransform
         } else {
             result = signal;
         }
-        return CompletableFuture.completedStage(result);
+        return CompletableFuture.completedFuture(result);
     }
 
     /**

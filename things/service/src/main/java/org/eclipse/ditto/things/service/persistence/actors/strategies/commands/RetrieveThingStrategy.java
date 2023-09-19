@@ -20,6 +20,7 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
@@ -42,8 +43,6 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveWotThingDes
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.wot.integration.provider.WotThingDescriptionProvider;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * This strategy handles the {@link RetrieveThing} command.
@@ -141,7 +140,7 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
                             )
                     );
         } else {
-            return CompletableFuture.completedStage(notAccessible(command));
+            return CompletableFuture.completedFuture(notAccessible(command));
         }
     }
 

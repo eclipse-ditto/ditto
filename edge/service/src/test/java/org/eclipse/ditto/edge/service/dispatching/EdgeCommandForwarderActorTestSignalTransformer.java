@@ -17,13 +17,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Signal transformer used for {@link EdgeCommandForwarderActorTest} to artificially delay certain commands in their
@@ -42,7 +41,7 @@ public final class EdgeCommandForwarderActorTestSignalTransformer implements Sig
             return new CompletableFuture<Signal<?>>()
                     .completeOnTimeout(signal, CREATE_THING_TRANSFORMATION_DURATION.toMillis(), TimeUnit.MILLISECONDS);
         } else {
-            return CompletableFuture.completedStage(signal);
+            return CompletableFuture.completedFuture(signal);
         }
     }
 

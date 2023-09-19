@@ -18,6 +18,8 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.japi.pf.PFBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
@@ -31,8 +33,6 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 
 import com.typesafe.config.Config;
 
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.japi.pf.PFBuilder;
 import scala.PartialFunction;
 
 /**
@@ -75,7 +75,7 @@ public final class DefaultNamespaceAppender implements SignalTransformer {
 
     @Override
     public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
-        return CompletableFuture.completedStage(signalTransformer.apply(signal));
+        return CompletableFuture.completedFuture(signalTransformer.apply(signal));
     }
 
     private CreateThing handleCreateThing(final CreateThing createThing) {

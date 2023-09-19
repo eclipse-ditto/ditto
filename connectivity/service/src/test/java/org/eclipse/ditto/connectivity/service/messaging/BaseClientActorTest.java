@@ -32,6 +32,16 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.CoordinatedShutdown;
+import org.apache.pekko.actor.FSM;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.http.javadsl.model.Uri;
+import org.apache.pekko.http.scaladsl.model.IllegalUriException;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -79,17 +89,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.CoordinatedShutdown;
-import org.apache.pekko.actor.FSM;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.actor.Status;
-import org.apache.pekko.http.javadsl.model.Uri;
-import org.apache.pekko.http.scaladsl.model.IllegalUriException;
-import org.apache.pekko.testkit.TestProbe;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit test for basic {@link BaseClientActor} functionality.
@@ -820,7 +819,7 @@ public final class BaseClientActorTest {
         protected CompletionStage<Void> stopConsuming() {
             logger.info("stopConsuming");
             delegate.stopConsuming();
-            return CompletableFuture.completedStage(null);
+            return CompletableFuture.completedFuture(null);
         }
 
         @Override
