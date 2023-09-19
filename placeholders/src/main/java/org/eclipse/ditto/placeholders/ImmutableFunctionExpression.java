@@ -44,7 +44,8 @@ final class ImmutableFunctionExpression implements FunctionExpression {
             new PipelineFunctionBase64Decode(),    // fn:base64-decode()
             new PipelineFunctionDelete(),          // fn:delete()
             new PipelineFunctionReplace(),         // fn:replace('from', 'to')
-            new PipelineFunctionSplit()            // fn:split(' ')
+            new PipelineFunctionSplit(),           // fn:split(' ')
+            new PipelineFunctionJoin()             // fn:join(',')
     ));
 
     @Override
