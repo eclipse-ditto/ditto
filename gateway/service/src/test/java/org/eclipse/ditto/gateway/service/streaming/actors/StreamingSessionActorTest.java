@@ -25,6 +25,21 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.pekko.actor.Actor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.PoisonPill;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.stream.KillSwitch;
+import org.apache.pekko.stream.KillSwitches;
+import org.apache.pekko.stream.OverflowStrategy;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.javadsl.SourceQueueWithComplete;
+import org.apache.pekko.stream.testkit.TestSubscriber;
+import org.apache.pekko.stream.testkit.javadsl.TestSink;
+import org.apache.pekko.testkit.TestActor;
+import org.apache.pekko.testkit.TestProbe;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotDeclaredException;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotUniqueException;
@@ -74,22 +89,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.Actor;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.PoisonPill;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.stream.KillSwitch;
-import org.apache.pekko.stream.KillSwitches;
-import org.apache.pekko.stream.OverflowStrategy;
-import org.apache.pekko.stream.javadsl.Keep;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
-import org.apache.pekko.stream.javadsl.SourceQueueWithComplete;
-import org.apache.pekko.stream.testkit.TestSubscriber;
-import org.apache.pekko.stream.testkit.javadsl.TestSink;
-import org.apache.pekko.testkit.TestActor;
-import org.apache.pekko.testkit.TestProbe;
 
 /**
  * Tests {@link StreamingSessionActor}.
@@ -177,7 +176,7 @@ public final class StreamingSessionActorTest {
 
     @Test
     public void sendDeclaredAckForGlobalDispatching() {
-        onDeclareAckLabels(CompletableFuture.completedStage(null));
+        onDeclareAckLabels(CompletableFuture.completedFuture(null));
         final var acknowledgement = Acknowledgement.of(AcknowledgementLabel.of("ack"),
                 ThingId.of("thing:id"),
                 HttpStatus.OK,
@@ -192,7 +191,7 @@ public final class StreamingSessionActorTest {
 
     @Test
     public void sendMalformedAck() {
-        onDeclareAckLabels(CompletableFuture.completedStage(null));
+        onDeclareAckLabels(CompletableFuture.completedFuture(null));
         final var acknowledgement = Acknowledgement.of(AcknowledgementLabel.of("ack"),
                 ThingId.of("thing:id"),
                 HttpStatus.OK,
@@ -210,7 +209,7 @@ public final class StreamingSessionActorTest {
 
     @Test
     public void sendNonDeclaredAck() {
-        onDeclareAckLabels(CompletableFuture.completedStage(null));
+        onDeclareAckLabels(CompletableFuture.completedFuture(null));
         final var acknowledgement = Acknowledgement.of(AcknowledgementLabel.of("ack2"),
                 ThingId.of("thing:id"),
                 HttpStatus.OK,
@@ -227,7 +226,7 @@ public final class StreamingSessionActorTest {
 
     @Test
     public void acknowledgementRequestsAreRestrictedToDeclaredAcks() {
-        onDeclareAckLabels(CompletableFuture.completedStage(null));
+        onDeclareAckLabels(CompletableFuture.completedFuture(null));
         setUpMockForTwinEventsSubscription();
         final var dittoHeaders = DittoHeaders.newBuilder()
                 .correlationId("corr:" + testName.getMethodName())
@@ -270,7 +269,7 @@ public final class StreamingSessionActorTest {
         Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
         Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(Mockito.any(), Mockito.any()))
-                .thenReturn(CompletableFuture.completedStage(JwtAuthenticationResult.successful(DittoHeaders.empty(),
+                .thenReturn(CompletableFuture.completedFuture(JwtAuthenticationResult.successful(DittoHeaders.empty(),
                         AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                                 AuthorizationSubject.newInstance("new:auth-subject")),
                         Mockito.mock(JsonWebToken.class))));
@@ -290,7 +289,7 @@ public final class StreamingSessionActorTest {
         Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
         Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(Mockito.any(), Mockito.any()))
-                .thenReturn(CompletableFuture.completedStage(JwtAuthenticationResult.successful(DittoHeaders.empty(),
+                .thenReturn(CompletableFuture.completedFuture(JwtAuthenticationResult.successful(DittoHeaders.empty(),
                         authorizationContext,
                         Mockito.mock(JsonWebToken.class))));
         final var testKit = actorSystemResource.newTestKit();
@@ -308,7 +307,7 @@ public final class StreamingSessionActorTest {
         Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
         Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(Mockito.any(), Mockito.any()))
-                .thenReturn(CompletableFuture.completedStage(JwtAuthenticationResult.successful(DittoHeaders.empty(),
+                .thenReturn(CompletableFuture.completedFuture(JwtAuthenticationResult.successful(DittoHeaders.empty(),
                         authorizationContext,
                         Mockito.mock(JsonWebToken.class))));
 
@@ -329,7 +328,7 @@ public final class StreamingSessionActorTest {
         Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
         Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(Mockito.any(), Mockito.any()))
-                .thenReturn(CompletableFuture.completedStage(JwtAuthenticationResult.successful(DittoHeaders.empty(),
+                .thenReturn(CompletableFuture.completedFuture(JwtAuthenticationResult.successful(DittoHeaders.empty(),
                         authorizationContext,
                         Mockito.mock(JsonWebToken.class))));
         final var jwt = Jwt.newInstance(getTokenString(Instant.now()), testName.getMethodName());
@@ -409,7 +408,7 @@ public final class StreamingSessionActorTest {
 
     private void setUpMockForTwinEventsSubscription() {
         Mockito.when(mockSub.subscribe(Mockito.any(), Mockito.any(), Mockito.any()))
-                .thenReturn(CompletableFuture.completedStage(null));
+                .thenReturn(CompletableFuture.completedFuture(null));
     }
 
     private void subscribeForTwinEvents(final ActorRef underTest) {

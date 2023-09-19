@@ -23,12 +23,15 @@ import java.util.concurrent.Executor;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.AbstractExtensionId;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.FeatureToggle;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.DefinitionIdentifier;
 import org.eclipse.ditto.things.model.Feature;
@@ -43,10 +46,6 @@ import org.eclipse.ditto.wot.integration.generator.WotThingSkeletonGenerator;
 import org.eclipse.ditto.wot.model.ThingDefinitionInvalidException;
 import org.eclipse.ditto.wot.model.ThingDescription;
 import org.eclipse.ditto.wot.model.WotInternalErrorException;
-
-import org.apache.pekko.actor.AbstractExtensionId;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.ExtendedActorSystem;
 
 /**
  * Default Ditto specific implementation of {@link WotThingDescriptionProvider}.
@@ -147,10 +146,10 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
                         });
 
             } else {
-                return CompletableFuture.completedStage(Optional.empty());
+                return CompletableFuture.completedFuture(Optional.empty());
             }
         } else {
-            return CompletableFuture.completedStage(Optional.empty());
+            return CompletableFuture.completedFuture(Optional.empty());
         }
     }
 
@@ -184,10 +183,10 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
                             return Optional.empty();
                         });
             } else {
-                return CompletableFuture.completedStage(Optional.empty());
+                return CompletableFuture.completedFuture(Optional.empty());
             }
         } else {
-            return CompletableFuture.completedStage(Optional.empty());
+            return CompletableFuture.completedFuture(Optional.empty());
         }
     }
 

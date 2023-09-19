@@ -56,7 +56,7 @@ final class StreamRequestingCommandEnforcement
         final ResourceKey resourceKey = ResourceKey.newInstance(signal.getResourceType(), signal.getResourcePath());
         if (policyEnforcer.getEnforcer().hasUnrestrictedPermissions(resourceKey,
                 signal.getDittoHeaders().getAuthorizationContext(), Permissions.newInstance(Permission.READ))) {
-            return CompletableFuture.completedStage(
+            return CompletableFuture.completedFuture(
                     ThingCommandEnforcement.addEffectedReadSubjectsToThingSignal(signal, policyEnforcer.getEnforcer())
             );
         } else {
@@ -84,6 +84,6 @@ final class StreamRequestingCommandEnforcement
     @Override
     public CompletionStage<CommandResponse<?>> filterResponse(final CommandResponse<?> commandResponse,
             final PolicyEnforcer policyEnforcer) {
-        return CompletableFuture.completedStage(commandResponse);
+        return CompletableFuture.completedFuture(commandResponse);
     }
 }

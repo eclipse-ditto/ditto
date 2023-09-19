@@ -19,6 +19,11 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.api.commands.sudo.SudoCommand;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
@@ -27,21 +32,15 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.policies.enforcement.pre.PreEnforcerProvider;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
-import org.apache.pekko.japi.Pair;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.apache.pekko.pattern.Patterns;
 
 /**
  * Abstract enforcer of commands performing authorization / enforcement of incoming signals.
@@ -230,7 +229,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
                             }))
                     .thenCompose(policyEnforcer -> doFilterResponse(commandResponse, policyEnforcer));
         } else {
-            return CompletableFuture.completedStage(commandResponse);
+            return CompletableFuture.completedFuture(commandResponse);
         }
     }
 

@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.EntityNotCreatableException;
@@ -33,8 +34,6 @@ import org.eclipse.ditto.policies.enforcement.config.DefaultEntityCreationConfig
 import org.eclipse.ditto.policies.enforcement.config.EntityCreationConfig;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Pre-Enforcer for evaluating if creation of new entities should be restricted.
@@ -149,7 +148,7 @@ public final class CreationRestrictionPreEnforcer implements PreEnforcer {
         final CompletionStage<Signal<?>> result;
 
         if (isCreatingCommand(signal)) {
-            result = CompletableFuture.completedStage(handleCreatingCommand(signal));
+            result = CompletableFuture.completedFuture(handleCreatingCommand(signal));
         } else {
             result = CompletableFuture.completedFuture(signal);
         }

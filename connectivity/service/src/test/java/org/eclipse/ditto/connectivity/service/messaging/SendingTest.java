@@ -102,7 +102,7 @@ public final class SendingTest {
     public void createInstanceWithNullSendingContext() {
         assertThatNullPointerException()
                 .isThrownBy(
-                        () -> new Sending(null, CompletableFuture.completedStage(null), connectionIdResolver, logger))
+                        () -> new Sending(null, CompletableFuture.completedFuture(null), connectionIdResolver, logger))
                 .withMessage("The sendingContext must not be null!")
                 .withNoCause();
     }
@@ -118,7 +118,7 @@ public final class SendingTest {
     @Test
     public void createInstanceWithNullLogger() {
         assertThatNullPointerException()
-                .isThrownBy(() -> new Sending(sendingContext, CompletableFuture.completedStage(null),
+                .isThrownBy(() -> new Sending(sendingContext, CompletableFuture.completedFuture(null),
                         connectionIdResolver, null))
                 .withMessage("The logger must not be null!")
                 .withNoCause();
@@ -143,7 +143,7 @@ public final class SendingTest {
                 .message("Message sending terminated without the expected acknowledgement.")
                 .description("Please contact the service team.")
                 .build();
-        final Sending underTest = new Sending(sendingContext, CompletableFuture.completedStage(null),
+        final Sending underTest = new Sending(sendingContext, CompletableFuture.completedFuture(null),
                 connectionIdResolver, logger);
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
@@ -162,7 +162,7 @@ public final class SendingTest {
         final var acknowledgementStatus = HttpStatus.ACCEPTED;
         Mockito.when(acknowledgement.getHttpStatus()).thenReturn(acknowledgementStatus);
         final Sending underTest =
-                new Sending(sendingContext, CompletableFuture.completedStage(sendResult), connectionIdResolver,
+                new Sending(sendingContext, CompletableFuture.completedFuture(sendResult), connectionIdResolver,
                         logger);
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
@@ -188,7 +188,7 @@ public final class SendingTest {
                 .description("Payload: " + acknowledgementPayload)
                 .build();
         final Sending underTest =
-                new Sending(sendingContext, CompletableFuture.completedStage(sendResult), connectionIdResolver,
+                new Sending(sendingContext, CompletableFuture.completedFuture(sendResult), connectionIdResolver,
                         logger);
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
@@ -250,7 +250,7 @@ public final class SendingTest {
         final var commandResponseStatus = HttpStatus.ACCEPTED;
         Mockito.when(commandResponse.getHttpStatus()).thenReturn(commandResponseStatus);
         final Sending underTest =
-                new Sending(sendingContext, CompletableFuture.completedStage(sendResult), connectionIdResolver,
+                new Sending(sendingContext, CompletableFuture.completedFuture(sendResult), connectionIdResolver,
                         logger);
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
@@ -270,7 +270,7 @@ public final class SendingTest {
         final var commandResponseStatus = HttpStatus.CONFLICT;
         Mockito.when(commandResponse.getHttpStatus()).thenReturn(commandResponseStatus);
         final Sending underTest =
-                new Sending(sendingContext, CompletableFuture.completedStage(sendResult), connectionIdResolver,
+                new Sending(sendingContext, CompletableFuture.completedFuture(sendResult), connectionIdResolver,
                         logger);
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
@@ -293,7 +293,7 @@ public final class SendingTest {
         final CommandResponse<?> commandResponse = null;
         final SendResult sendResult = new SendResult(commandResponse, DittoHeaders.empty());
         final Sending underTest =
-                new Sending(sendingContext, CompletableFuture.completedStage(sendResult), connectionIdResolver,
+                new Sending(sendingContext, CompletableFuture.completedFuture(sendResult), connectionIdResolver,
                         logger);
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);

@@ -71,7 +71,7 @@ public final class PolicyCommandEnforcement
         if (signal instanceof Command<?> command &&
                 command.getCategory() == Command.Category.QUERY && !command.getDittoHeaders().isResponseRequired()) {
             // ignore query command with response-required=false
-            return CompletableFuture.completedStage(null);
+            return CompletableFuture.completedFuture(null);
         }
 
         final Enforcer enforcer = policyEnforcer.getEnforcer();
@@ -100,7 +100,7 @@ public final class PolicyCommandEnforcement
             }
         }
 
-        return CompletableFuture.completedStage(authorizedCommand);
+        return CompletableFuture.completedFuture(authorizedCommand);
     }
 
     private PolicyCommand<?> authorizeCreatePolicy(final Enforcer enforcer,
@@ -153,7 +153,7 @@ public final class PolicyCommandEnforcement
             // no filtering required for non PolicyQueryCommandResponses:
             result = commandResponse;
         }
-        return CompletableFuture.completedStage(result);
+        return CompletableFuture.completedFuture(result);
     }
 
     @SuppressWarnings("unchecked")

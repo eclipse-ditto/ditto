@@ -21,6 +21,11 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.pattern.AskTimeoutException;
+import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
@@ -68,12 +73,6 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotCreata
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.pattern.AskTimeoutException;
-import org.apache.pekko.pattern.Patterns;
 
 /**
  * Enforcer responsible for enforcing {@link ThingCommand}s and filtering {@link ThingCommandResponse}s utilizing the
@@ -143,7 +142,7 @@ public final class ThingEnforcerActor
                                     return getDreForMissingPolicyEnforcer(thingCommand, policyId)
                                             .thenCompose(CompletableFuture::failedStage);
                                 } else {
-                                    return CompletableFuture.completedStage(policyEnforcer);
+                                    return CompletableFuture.completedFuture(policyEnforcer);
                                 }
                             }));
         }
@@ -258,7 +257,7 @@ public final class ThingEnforcerActor
                                     dittoHeadersWithoutPreconditionHeaders)
                             .thenApply(PolicyId::of);
                 })
-                .orElseGet(() -> CompletableFuture.completedStage(PolicyId.of(policyIdOrPlaceholder)))
+                .orElseGet(() -> CompletableFuture.completedFuture(PolicyId.of(policyIdOrPlaceholder)))
                 .thenCompose(resolvedPolicyId -> retrievePolicyWithEnforcement(dittoHeaders, resolvedPolicyId)
                         .thenApply(Policy::toBuilder)
                         .thenApply(policyBuilder -> policyBuilder.setId(policyIdForCopiedPolicy)

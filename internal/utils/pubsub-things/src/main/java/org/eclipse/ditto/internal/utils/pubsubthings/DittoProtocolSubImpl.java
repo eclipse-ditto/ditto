@@ -24,6 +24,10 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.AbstractExtensionId;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -33,11 +37,6 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedSub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.pubsub.api.SubAck;
 import org.eclipse.ditto.internal.utils.pubsubpolicies.PolicyAnnouncementPubSubFactory;
-
-import org.apache.pekko.actor.AbstractExtensionId;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.ExtendedActorSystem;
 
 /**
  * Default implementation of {@link DittoProtocolSub}.
@@ -109,8 +108,8 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
                         ? liveSignalSub.subscribeWithFilterAndGroup(topics, subscriber, toFilter(liveTypes), null,
                         false)
                         : liveSignalSub.unsubscribeWithAck(topics, subscriber),
-                hasTwinEvents -> CompletableFuture.completedStage(null),
-                hasPolicyAnnouncements -> CompletableFuture.completedStage(null)
+                hasTwinEvents -> CompletableFuture.completedFuture(null),
+                hasPolicyAnnouncements -> CompletableFuture.completedFuture(null)
         ).thenApply(consistent -> null);
     }
 

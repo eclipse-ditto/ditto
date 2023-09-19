@@ -19,6 +19,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -46,8 +47,6 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImpo
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Pre-Enforcer for authorizing modifications to policy imports.
@@ -91,7 +90,7 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
         } else if (signal instanceof ModifyPolicyImport modifyPolicyImport) {
             return doApply(Stream.of(modifyPolicyImport.getPolicyImport()), modifyPolicyImport);
         } else {
-            return CompletableFuture.completedStage(signal);
+            return CompletableFuture.completedFuture(signal);
         }
     }
 
@@ -108,7 +107,7 @@ public class PolicyImportsPreEnforcer implements PreEnforcer {
                         policyImport -> getPolicyEnforcer(policyImport.getImportedPolicyId(), dittoHeaders).thenApply(
                                 importedPolicyEnforcer -> authorize(command, importedPolicyEnforcer,
                                         policyImport)))
-                .reduce(CompletableFuture.completedStage(true), (s1, s2) -> s1.thenCombine(s2, (b1, b2) -> b1 && b2))
+                .reduce(CompletableFuture.completedFuture(true), (s1, s2) -> s1.thenCombine(s2, (b1, b2) -> b1 && b2))
                 .thenApply(ignored -> command);
     }
 

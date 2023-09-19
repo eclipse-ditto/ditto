@@ -52,7 +52,7 @@ public final class ModifyToCreateThingTransformerTest {
         final var thingId = ThingId.generateRandom();
         final var modifyThing = ModifyThing.of(thingId, Thing.newBuilder().setId(thingId).build(), null, null,
                 DittoHeaders.of(Map.of("foo", "bar")));
-        when(existenceChecker.checkExistence(modifyThing)).thenReturn(CompletableFuture.completedStage(true));
+        when(existenceChecker.checkExistence(modifyThing)).thenReturn(CompletableFuture.completedFuture(true));
 
         final Signal<?> result = underTest.apply(modifyThing).toCompletableFuture().join();
 
@@ -65,7 +65,7 @@ public final class ModifyToCreateThingTransformerTest {
         final var thingId = ThingId.generateRandom();
         final var mergeThing = MergeThing.withThing(thingId, Thing.newBuilder().setId(thingId).build(),
                 DittoHeaders.of(Map.of("foo", "bar")));
-        when(existenceChecker.checkExistence(mergeThing)).thenReturn(CompletableFuture.completedStage(false));
+        when(existenceChecker.checkExistence(mergeThing)).thenReturn(CompletableFuture.completedFuture(false));
 
         final Signal<?> result = underTest.apply(mergeThing).toCompletableFuture().join();
 
@@ -82,7 +82,7 @@ public final class ModifyToCreateThingTransformerTest {
         final var thingId = ThingId.generateRandom();
         final var mergeThing = MergeThing.withThing(thingId, Thing.newBuilder().setId(thingId).build(),
                 DittoHeaders.of(Map.of("foo", "bar")));
-        when(existenceChecker.checkExistence(mergeThing)).thenReturn(CompletableFuture.completedStage(true));
+        when(existenceChecker.checkExistence(mergeThing)).thenReturn(CompletableFuture.completedFuture(true));
 
         final Signal<?> result = underTest.apply(mergeThing).toCompletableFuture().join();
 
@@ -95,7 +95,7 @@ public final class ModifyToCreateThingTransformerTest {
         final var thingId = ThingId.generateRandom();
         final var modifyThing = ModifyThing.of(thingId, Thing.newBuilder().setId(thingId).build(), null, null,
                 DittoHeaders.of(Map.of("foo", "bar")));
-        when(existenceChecker.checkExistence(modifyThing)).thenReturn(CompletableFuture.completedStage(false));
+        when(existenceChecker.checkExistence(modifyThing)).thenReturn(CompletableFuture.completedFuture(false));
 
         final Signal<?> result = underTest.apply(modifyThing).toCompletableFuture().join();
 

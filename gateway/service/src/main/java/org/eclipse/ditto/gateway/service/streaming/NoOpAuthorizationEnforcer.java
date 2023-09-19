@@ -15,12 +15,11 @@ package org.eclipse.ditto.gateway.service.streaming;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.server.RequestContext;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.http.javadsl.server.RequestContext;
 
 /**
  * Null implementation for {@link StreamingAuthorizationEnforcer}.
@@ -39,7 +38,7 @@ public final class NoOpAuthorizationEnforcer implements StreamingAuthorizationEn
     @Override
     public CompletionStage<DittoHeaders> checkAuthorization(final RequestContext requestContext,
             final DittoHeaders dittoHeaders) {
-        return CompletableFuture.completedStage(dittoHeaders);
+        return CompletableFuture.completedFuture(dittoHeaders);
     }
 
 }

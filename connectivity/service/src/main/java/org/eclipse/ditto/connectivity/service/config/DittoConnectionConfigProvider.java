@@ -17,15 +17,14 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Default implementation of {@link ConnectionConfigProvider} which simply builds and returns a
@@ -48,7 +47,7 @@ public class DittoConnectionConfigProvider implements ConnectionConfigProvider {
             @Nullable final DittoHeaders dittoHeaders, final ActorRef subscriber) {
 
         // nothing to do, config changes are not supported by the default implementation
-        return CompletableFuture.completedStage(null);
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override

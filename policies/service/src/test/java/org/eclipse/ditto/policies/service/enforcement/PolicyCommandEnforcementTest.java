@@ -29,6 +29,12 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.testkit.TestActorRef;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -93,13 +99,6 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.testkit.TestActorRef;
-import org.apache.pekko.testkit.TestProbe;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link PolicyCommandEnforcement} in context of a {@link PolicyEnforcerActor}.
@@ -392,7 +391,7 @@ public final class PolicyCommandEnforcementTest {
         new TestKit(system) {{
             final RetrievePolicy retrievePolicy = RetrievePolicy.of(POLICY_ID, DITTO_HEADERS);
             when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
-                    .thenReturn(CompletableFuture.completedStage(Optional.empty()));
+                    .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
 
             supervisor.tell(retrievePolicy, getRef());
 
@@ -658,7 +657,7 @@ public final class PolicyCommandEnforcementTest {
 
     private void mockDefaultPolicyEnforcerResponse() {
         when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(POLICY))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(POLICY))));
     }
 
     private void mockPolicyEnforcerResponseWithoutRead() {
@@ -671,7 +670,7 @@ public final class PolicyCommandEnforcementTest {
                 .build();
 
         when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
     }
 
     private void mockPolicyEnforcerResponseWithoutWrite() {
@@ -684,7 +683,7 @@ public final class PolicyCommandEnforcementTest {
                 .build();
 
         when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
     }
 
     private void mockEnforcerProviderWithPolicyWithoutReadOnEntries() {
@@ -697,7 +696,7 @@ public final class PolicyCommandEnforcementTest {
                 .build();
 
         when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
     }
 
     private void mockPolicyEnforcerResponseWithOnlyReadOnEntries() {
@@ -712,7 +711,7 @@ public final class PolicyCommandEnforcementTest {
                 .build();
 
         when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
     }
 
     private void mockPolicyEnforcerResponseWithoutWriteOnEntries() {
@@ -725,7 +724,7 @@ public final class PolicyCommandEnforcementTest {
                 .build();
 
         when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
     }
 
     private void mockPolicyEnforcerResponseForActions() {
@@ -753,7 +752,7 @@ public final class PolicyCommandEnforcementTest {
                 .build();
 
         when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
     }
 
     private TestProbe createPubSubMediatorProbe() {

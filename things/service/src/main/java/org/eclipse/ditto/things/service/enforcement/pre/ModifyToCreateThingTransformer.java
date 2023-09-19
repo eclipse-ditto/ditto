@@ -18,6 +18,7 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.json.JsonObject;
@@ -29,8 +30,6 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Transforms a ModifyThing and a MergeThing command into a CreateThing if the thing does not exist already.
@@ -62,7 +61,7 @@ public final class ModifyToCreateThingTransformer implements SignalTransformer {
                                 return (Signal<?>) input.thingModifyCommand();
                             }
                         })
-                ).orElse(CompletableFuture.completedStage(signal));
+                ).orElse(CompletableFuture.completedFuture(signal));
     }
 
     private static Optional<InputParams> calculateInputParams(final Signal<?> signal) {

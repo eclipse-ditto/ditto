@@ -36,6 +36,16 @@ import javax.jms.MessageConsumer;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.FSM;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.japi.pf.FSMStateFunctionBuilder;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsConnectionListener;
 import org.apache.qpid.jms.JmsSession;
@@ -78,17 +88,6 @@ import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdap
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.Done;
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.FSM;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.actor.Status;
-import org.apache.pekko.japi.pf.FSMStateFunctionBuilder;
-import org.apache.pekko.pattern.Patterns;
-import org.apache.pekko.stream.javadsl.Sink;
 
 /**
  * Actor which manages a connection to an AMQP 1.0 server using the Qpid JMS client.
@@ -432,7 +431,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             return completionStage.thenApply(object -> Done.getInstance()).exceptionally(t -> Done.getInstance());
         } else {
             logger.debug("Not starting consumers, no sources were configured");
-            return CompletableFuture.completedStage(Done.getInstance());
+            return CompletableFuture.completedFuture(Done.getInstance());
         }
     }
 

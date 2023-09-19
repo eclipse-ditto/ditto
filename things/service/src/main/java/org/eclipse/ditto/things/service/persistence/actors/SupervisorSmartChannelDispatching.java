@@ -19,6 +19,10 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.pattern.AskTimeoutException;
+import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.model.exceptions.AskException;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -36,11 +40,6 @@ import org.eclipse.ditto.internal.utils.persistentactors.TargetActorWithMessage;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSelection;
-import org.apache.pekko.pattern.AskTimeoutException;
-import org.apache.pekko.pattern.Patterns;
 
 /**
  * Functionality used in {@link ThingSupervisorActor} for the "smart channel selection"
@@ -98,7 +97,7 @@ final class SupervisorSmartChannelDispatching {
                         );
                     } else {
                         // directly respond with twin response to sender
-                        return CompletableFuture.completedStage(new TargetActorWithMessage(
+                        return CompletableFuture.completedFuture(new TargetActorWithMessage(
                                 sender,
                                 twinQueryCommandResponse,
                                 Duration.ZERO,

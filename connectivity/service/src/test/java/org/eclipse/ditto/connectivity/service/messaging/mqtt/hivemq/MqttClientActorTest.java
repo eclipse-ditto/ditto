@@ -36,6 +36,14 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.http.javadsl.model.Uri;
+import org.apache.pekko.testkit.TestActorRef;
+import org.apache.pekko.testkit.TestProbe;
 import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
@@ -90,14 +98,6 @@ import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
 import com.typesafe.config.ConfigFactory;
 
-import org.apache.pekko.Done;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.actor.Status;
-import org.apache.pekko.http.javadsl.model.Uri;
-import org.apache.pekko.testkit.TestActorRef;
-import org.apache.pekko.testkit.TestProbe;
 import io.reactivex.Flowable;
 import io.reactivex.Single;
 
@@ -301,7 +301,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
         final var connection = ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
                 .connectionStatus(ConnectivityStatus.CLOSED)
                 .build();
-        when(genericMqttClient.connect(any())).thenReturn(CompletableFuture.completedStage(null));
+        when(genericMqttClient.connect(any())).thenReturn(CompletableFuture.completedFuture(null));
         final var testKit = actorSystemResource.newTestKit();
         final var underTest = testKit.watch(TestActorRef.apply(
                 createClientActor(commandForwarder.ref(), connection),

@@ -39,6 +39,26 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.marshalling.sse.EventStreamMarshalling;
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.MediaTypes;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.model.headers.Accept;
+import org.apache.pekko.http.javadsl.model.sse.ServerSentEvent;
+import org.apache.pekko.http.javadsl.server.PathMatchers;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.server.directives.RouteDirectives;
+import org.apache.pekko.japi.pf.PFBuilder;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.KillSwitch;
+import org.apache.pekko.stream.KillSwitches;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.Source;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -90,26 +110,6 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 import com.typesafe.config.Config;
 
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSelection;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.http.javadsl.marshalling.sse.EventStreamMarshalling;
-import org.apache.pekko.http.javadsl.model.HttpHeader;
-import org.apache.pekko.http.javadsl.model.MediaTypes;
-import org.apache.pekko.http.javadsl.model.StatusCodes;
-import org.apache.pekko.http.javadsl.model.headers.Accept;
-import org.apache.pekko.http.javadsl.model.sse.ServerSentEvent;
-import org.apache.pekko.http.javadsl.server.PathMatchers;
-import org.apache.pekko.http.javadsl.server.RequestContext;
-import org.apache.pekko.http.javadsl.server.Route;
-import org.apache.pekko.http.javadsl.server.directives.RouteDirectives;
-import org.apache.pekko.japi.pf.PFBuilder;
-import org.apache.pekko.pattern.Patterns;
-import org.apache.pekko.stream.KillSwitch;
-import org.apache.pekko.stream.KillSwitches;
-import org.apache.pekko.stream.javadsl.Keep;
-import org.apache.pekko.stream.javadsl.Source;
 import scala.PartialFunction;
 
 /**
@@ -370,7 +370,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                 .orElse(null);
 
         final CompletionStage<SignalEnrichmentFacade> facadeStage = signalEnrichmentProvider == null
-                ? CompletableFuture.completedStage(null)
+                ? CompletableFuture.completedFuture(null)
                 : signalEnrichmentProvider.getFacade(ctx.getRequest());
 
 
@@ -461,7 +461,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
 
         final List<ThingId> targetThingIds = List.of(ThingId.of(thingId));
         final CompletionStage<SignalEnrichmentFacade> facadeStage = signalEnrichmentProvider == null
-                ? CompletableFuture.completedStage(null)
+                ? CompletableFuture.completedFuture(null)
                 : signalEnrichmentProvider.getFacade(ctx.getRequest());
 
         final var sseSourceStage = facadeStage.thenCompose(facade -> dittoHeadersStage.thenCompose(
@@ -654,7 +654,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             final SessionedJsonifiable jsonifiable) {
 
         final Supplier<CompletionStage<List<Message<P>>>> emptySupplier =
-                () -> CompletableFuture.completedStage(List.of());
+                () -> CompletableFuture.completedFuture(List.of());
         if (targetThingIds.contains(messageCommand.getEntityId())) {
             return jsonifiable.getSession()
                     .map(session -> jsonifiable.retrieveExtraFields(facade)

@@ -26,6 +26,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
@@ -45,7 +47,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
@@ -93,10 +94,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-import org.mockito.Mockito;
 
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.concurrent.duration.Duration;
 
 /**
@@ -124,7 +122,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(thingWithEmptyPolicy, DittoHeaders.empty());
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(emptyPolicy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(emptyPolicy))));
 
         new TestKit(system) {{
             supervisor.tell(getReadCommand(), getRef());
@@ -145,7 +143,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
     public void rejectQueryByThingNotAccessibleException() {
         final DittoRuntimeException error = ThingNotAccessibleException.newBuilder(THING_ID).build();
         when(policyEnforcerProvider.getPolicyEnforcer(null))
-                .thenReturn(CompletableFuture.completedStage(Optional.empty()));
+                .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
         new TestKit(system) {{
             supervisor.tell(getReadCommand(), getRef());
             expectAndAnswerSudoRetrieveThing(error);
@@ -157,7 +155,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
     public void rejectUpdateByThingNotAccessibleException() {
         final DittoRuntimeException error = ThingNotAccessibleException.newBuilder(THING_ID).build();
         when(policyEnforcerProvider.getPolicyEnforcer(null))
-                .thenReturn(CompletableFuture.completedStage(Optional.empty()));
+                .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
         new TestKit(system) {{
             supervisor.tell(getModifyCommand(), getRef());
             expectAndAnswerSudoRetrieveThing(error);
@@ -211,7 +209,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                 .build();
         final Thing thing = newThing().build();
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
         new TestKit(system) {{
             final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers());
@@ -245,7 +243,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(thingWithPolicy, DittoHeaders.empty());
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
         new TestKit(system) {{
             final ThingCommand<?> write = getModifyCommand();
@@ -296,7 +294,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(thingWithPolicy, DittoHeaders.empty());
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
 
         new TestKit(system) {{
@@ -352,7 +350,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(thing, DittoHeaders.empty());
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
         new TestKit(system) {{
 
@@ -413,7 +411,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(newThingWithAttributeWithPolicyId(policyId), DittoHeaders.empty());
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
         new TestKit(system) {{
             // WHEN: Live channel condition is set on an unreadable feature
@@ -450,7 +448,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                 .build();
         final Thing thing = newThing().build();
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
         new TestKit(system) {{
             final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers());
@@ -476,7 +474,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
         final PolicyId policyId = PolicyId.of(THING_ID);
         final Policy policy = provideDefaultImplicitPolicy(policyId);
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
         new TestKit(system) {{
             final CreateThing createThing = CreateThing.of(thing, null, headers());
@@ -537,7 +535,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                 RetrieveAttributeResponse.of(THING_ID, JsonPointer.of("x"), JsonValue.of(5), headers());
 
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
         new TestKit(system) {{
             // GIVEN: all commands are sent in one batch
@@ -601,7 +599,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                 .build();
         final Thing thing = newThing().build();
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
         new TestKit(system) {{
             final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers());
@@ -683,7 +681,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             } else {
                 final Policy policyWithNewId = policy.toBuilder().setId(newPolicyId).build();
                 when(policyEnforcerProvider.getPolicyEnforcer(newPolicyId))
-                        .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policyWithNewId))));
+                        .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policyWithNewId))));
                 // after that, a copy of the policy is created:
                 policiesShardRegionProbe.reply(
                         CreatePolicyResponse.of(newPolicyId, policyWithNewId, headers())
@@ -776,7 +774,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(thingWithPolicy, DittoHeaders.empty());
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
         new TestKit(system) {{
             final DittoHeaders dittoHeaders = headers().toBuilder()
@@ -807,7 +805,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(thingWithPolicy, DittoHeaders.empty());
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
         new TestKit(system) {{
             final DittoHeaders dittoHeaders = headers().toBuilder()

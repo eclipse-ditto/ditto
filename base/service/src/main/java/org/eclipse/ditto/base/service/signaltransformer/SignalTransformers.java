@@ -19,17 +19,16 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint.ExtensionId.ExtensionIdConfig;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValue;
-
-import org.apache.pekko.actor.ActorSystem;
 
 public final class SignalTransformers implements DittoExtensionPoint, SignalTransformer {
 
@@ -57,7 +56,7 @@ public final class SignalTransformers implements DittoExtensionPoint, SignalTran
 
     @Override
     public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
-        CompletionStage<Signal<?>> prior = CompletableFuture.completedStage(signal);
+        CompletionStage<Signal<?>> prior = CompletableFuture.completedFuture(signal);
         for (final SignalTransformer signalTransformer : transformers) {
             prior = prior.thenCompose(signalTransformer);
         }

@@ -21,6 +21,11 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.javadsl.Source;
 import org.eclipse.ditto.base.model.entity.Revision;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.models.streaming.AbstractEntityIdWithRevision;
@@ -41,12 +46,6 @@ import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.slf4j.Logger;
-
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.japi.Pair;
-import org.apache.pekko.pattern.Patterns;
-import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Merging a stream of thing snapshots with a stream of metadata from the search index to detect
@@ -184,7 +183,7 @@ public final class BackgroundSyncStream {
             } else {
                 final CompletionStage<Boolean> consistencyCheckCs = persistedPolicyId
                         .map(policyId -> checkReferencedPoliciesForConsistency(policyId, indexed))
-                        .orElseGet(() -> CompletableFuture.completedStage(true));
+                        .orElseGet(() -> CompletableFuture.completedFuture(true));
                 return Source.completionStage(consistencyCheckCs)
                         .flatMapConcat(policiesAreConsistent -> {
                             if (Boolean.TRUE.equals(policiesAreConsistent)) {
@@ -230,7 +229,7 @@ public final class BackgroundSyncStream {
         return retrievePolicy(thingPolicyId)
                 .thenCompose(optionalPolicy -> {
                     if (optionalPolicy.isEmpty()) {
-                        return CompletableFuture.completedStage(false);
+                        return CompletableFuture.completedFuture(false);
                     } else {
                         final Optional<Long> persistedThingPolicyRevision = optionalPolicy.get().getRevision()
                                 .map(Revision::toLong);
@@ -238,7 +237,7 @@ public final class BackgroundSyncStream {
                                 indexed.getThingPolicyTag().map(AbstractEntityIdWithRevision::getRevision);
 
                         if (!persistedThingPolicyRevision.equals(indexedThingPolicyRevision)) {
-                            return CompletableFuture.completedStage(false);
+                            return CompletableFuture.completedFuture(false);
                         }
 
                         final List<PolicyId> importedPolicyIds = optionalPolicy.get().getPolicyImports()
@@ -251,7 +250,7 @@ public final class BackgroundSyncStream {
                         // -1 because we need to ignore the actual thing policy which is also included in referenced policies.
                         if (importedPolicyIds.size() != (indexedReferencedPolicyTags.size() - 1)) {
                             // Number of referenced policies changed. Trigger update.
-                            return CompletableFuture.completedStage(false);
+                            return CompletableFuture.completedFuture(false);
                         }
 
                         final List<CompletableFuture<Boolean>> completionStages = importedPolicyIds.stream()

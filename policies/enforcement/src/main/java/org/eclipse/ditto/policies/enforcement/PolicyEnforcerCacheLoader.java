@@ -64,7 +64,7 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<PolicyI
             return PolicyEnforcer.withResolvedImports(policy, policyResolver)
                     .thenApply(enforcer -> Entry.of(revision, enforcer));
         } else {
-            return CompletableFuture.completedStage(Entry.nonexistent());
+            return CompletableFuture.completedFuture(Entry.nonexistent());
         }
     }
 

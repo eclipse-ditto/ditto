@@ -19,6 +19,7 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -38,8 +39,6 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureResp
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveWotThingDescriptionResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.wot.integration.provider.WotThingDescriptionProvider;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature} command.
@@ -109,11 +108,11 @@ final class RetrieveFeatureStrategy extends AbstractThingCommandStrategy<Retriev
                             )
                             ).thenApply(WithDittoHeaders.class::cast)
                     )
-                    .orElseGet(() -> CompletableFuture.completedStage(ExceptionFactory.featureNotFound(command.getEntityId(), featureId,
+                    .orElseGet(() -> CompletableFuture.completedFuture(ExceptionFactory.featureNotFound(command.getEntityId(), featureId,
                             command.getDittoHeaders())
                     ));
         } else {
-            return CompletableFuture.completedStage(
+            return CompletableFuture.completedFuture(
                     ExceptionFactory.featureNotFound(command.getEntityId(), featureId,
                     command.getDittoHeaders())
             );

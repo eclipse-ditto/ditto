@@ -19,12 +19,11 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoHeadersTooLargeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Default implementation for {@link DittoHeadersValidator}.
@@ -64,7 +63,7 @@ public final class DefaultDittoHeadersValidator implements DittoHeadersValidator
                     .dittoHeaders(dittoHeaders)
                     .build());
         }
-        return CompletableFuture.completedStage(dittoHeaders);
+        return CompletableFuture.completedFuture(dittoHeaders);
     }
 
     private CompletionStage<DittoHeaders> validateAuthorizationContext(final DittoHeaders dittoHeaders) {
@@ -75,7 +74,7 @@ public final class DefaultDittoHeadersValidator implements DittoHeadersValidator
                             .dittoHeaders(dittoHeaders)
                             .build());
         }
-        return CompletableFuture.completedStage(dittoHeaders);
+        return CompletableFuture.completedFuture(dittoHeaders);
     }
 
     @Override

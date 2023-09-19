@@ -20,6 +20,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -63,8 +65,6 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
-import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.PartialFunction;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -90,7 +90,7 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(thingWithEmptyPolicy, DittoHeaders.empty());
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(emptyPolicy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(emptyPolicy))));
 
         new TestKit(system) {{
             supervisor.tell(thingMessageCommand("abc"), getRef());
@@ -110,7 +110,7 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(thingWithEmptyPolicy, DittoHeaders.empty());
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(emptyPolicy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(emptyPolicy))));
 
         new TestKit(system) {{
             supervisor.tell(getRetrieveThingCommand(liveHeaders()), getRef());
@@ -137,7 +137,7 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(thingWithPolicy, DittoHeaders.empty());
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
         new TestKit(system) {{
             final ThingCommand<?> write = getModifyFeatureCommand(liveHeaders());
@@ -177,7 +177,7 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(thingWithPolicy, DittoHeaders.empty());
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
         new TestKit(system) {{
             final DittoHeaders headers = liveHeaders();
@@ -224,7 +224,7 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(thingWithPolicy, DittoHeaders.empty());
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
         new TestKit(system) {{
             final DittoHeaders headers = liveHeaders();
@@ -297,7 +297,7 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(thingWithPolicy, DittoHeaders.empty());
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
         new TestKit(system) {{
 
@@ -345,7 +345,7 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(thingWithPolicy, DittoHeaders.empty());
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
         new TestKit(system) {{
             final MessageCommand<?, ?> msgCommand = thingMessageCommand("abc");
@@ -372,7 +372,7 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(thingWithPolicy, DittoHeaders.empty());
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
         new TestKit(system) {{
             final MessageCommand<?, ?> msgCommand = featureMessageCommand();
@@ -394,7 +394,7 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(thingWithEmptyPolicy, DittoHeaders.empty());
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(emptyPolicy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(emptyPolicy))));
         new TestKit(system) {{
             supervisor.tell(liveEventGranted(), getRef());
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
@@ -418,7 +418,7 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(thingWithPolicy, DittoHeaders.empty());
         when(policyEnforcerProvider.getPolicyEnforcer(policyId))
-                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(PolicyEnforcer.of(policy))));
 
         new TestKit(system) {{
             final ThingEvent<?> liveEventGranted = liveEventGranted();

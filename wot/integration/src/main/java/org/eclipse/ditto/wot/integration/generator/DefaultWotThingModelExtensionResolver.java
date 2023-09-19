@@ -71,7 +71,7 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
                 )
                 .map(extendedModelsFut -> extendedModelsFut.thenComposeAsync(extendedModels -> {
                     if (extendedModels.isEmpty()) {
-                        return CompletableFuture.completedStage(thingModel);
+                        return CompletableFuture.completedFuture(thingModel);
                     } else {
                         CompletionStage<ThingModel.Builder> currentStage =
                                 resolveThingModelExtensions(extendedModels.get(0), dittoHeaders) // recurse!
@@ -87,7 +87,7 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
                         return currentStage.thenApply(ThingModel.Builder::build);
                     }
                 }, executor))
-                .orElse(CompletableFuture.completedStage(thingModel));
+                .orElse(CompletableFuture.completedFuture(thingModel));
     }
 
     private BiFunction<ThingModel.Builder, ThingModel, ThingModel.Builder> mergeThingModelIntoBuilder() {
@@ -115,7 +115,7 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
                         return potentiallyResolveRefs(field.getValue().asObject(), dittoHeaders)  // recurse!
                                 .thenApply(refs -> JsonField.newInstance(field.getKey(), refs));
                     } else {
-                        return CompletableFuture.completedStage(field);
+                        return CompletableFuture.completedFuture(field);
                     }
                 })
                 .map(CompletionStage::toCompletableFuture)
@@ -144,7 +144,7 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
                                 .filter(JsonValue::isObject)
                                 .map(JsonValue::asObject)
                                 .map(CompletableFuture::completedStage)
-                                .orElseGet(() -> CompletableFuture.completedStage(null))
+                                .orElseGet(() -> CompletableFuture.completedFuture(null))
                         , executor
                 )
                 .thenApply(refObject ->
