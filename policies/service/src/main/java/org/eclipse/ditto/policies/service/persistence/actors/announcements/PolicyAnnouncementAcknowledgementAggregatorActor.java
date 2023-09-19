@@ -64,7 +64,7 @@ final class PolicyAnnouncementAcknowledgementAggregatorActor extends AbstractAct
         aggregator = AcknowledgementAggregator.getInstance(policyAnnouncement.getEntityId(), correlationId, timeout,
                 HeaderTranslator.empty());
         aggregator.addAcknowledgementRequests(acknowledgementRequests);
-        log.withCorrelationId(correlationId)
+        log.withCorrelationId(dittoHeaders)
                 .info("Starting to wait for all requested acknowledgements <{}> for a maximum duration of <{}>.",
                         acknowledgementRequests, timeout);
     }

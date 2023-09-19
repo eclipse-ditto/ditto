@@ -18,8 +18,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -189,21 +187,20 @@ final class SupervisorInlinePolicyEnrichment {
                     if (response instanceof RetrievePolicyResponse retrievePolicyResponse) {
                         return Optional.of(retrievePolicyResponse);
                     } else {
-                        log.withCorrelationId(getCorrelationIdOrNull(response, retrievePolicy))
+                        log.withCorrelationId(getEffectiveHeaders(response, retrievePolicy))
                                 .info("No authorized response when retrieving inlined policy <{}> for thing <{}>: {}",
                                         retrievePolicy.getEntityId(), thingId, response);
                         return Optional.<RetrievePolicyResponse>empty();
                     }
                 }
         ).exceptionally(error -> {
-            log.withCorrelationId(getCorrelationIdOrNull(error, retrievePolicy))
+            log.withCorrelationId(getEffectiveHeaders(error, retrievePolicy))
                     .error(error, "Retrieving inlined policy after RetrieveThing");
             return Optional.empty();
         });
     }
 
-    @Nullable
-    private static CharSequence getCorrelationIdOrNull(final Object signal, final WithDittoHeaders fallBackSignal) {
+    private static DittoHeaders getEffectiveHeaders(final Object signal, final WithDittoHeaders fallBackSignal) {
 
         final WithDittoHeaders withDittoHeaders;
         if (isWithDittoHeaders(signal)) {
@@ -211,8 +208,7 @@ final class SupervisorInlinePolicyEnrichment {
         } else {
             withDittoHeaders = fallBackSignal;
         }
-        final var dittoHeaders = withDittoHeaders.getDittoHeaders();
-        return dittoHeaders.getCorrelationId().orElse(null);
+        return withDittoHeaders.getDittoHeaders();
     }
 
     private static boolean isWithDittoHeaders(final Object o) {

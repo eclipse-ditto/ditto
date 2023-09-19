@@ -68,6 +68,11 @@
             <artifactId>logback-classic</artifactId>
         </dependency>
         <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <scope>provided</scope> <!-- provided by actual service -->
+        </dependency>
+        <dependency>
             <groupId>org.apache.pekko</groupId>
             <artifactId>pekko-actor_${scala.version}</artifactId>
         </dependency>

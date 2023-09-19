@@ -14,13 +14,20 @@ package org.eclipse.ditto.gateway.service.security.authentication.preauth;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.Query;
+import org.apache.pekko.http.javadsl.model.Uri;
+import org.apache.pekko.http.javadsl.server.RequestContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationContextType;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
@@ -37,11 +44,6 @@ import org.eclipse.ditto.gateway.service.security.utils.HttpUtils;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
-
-import org.apache.pekko.http.javadsl.model.HttpRequest;
-import org.apache.pekko.http.javadsl.model.Query;
-import org.apache.pekko.http.javadsl.model.Uri;
-import org.apache.pekko.http.javadsl.server.RequestContext;
 
 /**
  * Handles authentication by using a defined header field {@link org.eclipse.ditto.gateway.service.security.HttpHeader#X_DITTO_PRE_AUTH} which proxies in front
@@ -120,7 +122,14 @@ public final class PreAuthenticatedAuthenticationProvider
                 AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.PRE_AUTHENTICATED_HTTP,
                         authorizationSubjects);
 
-        LOGGER.withCorrelationId(dittoHeaders)
+        final var combinedHeaders = new HashMap<>(dittoHeaders);
+        combinedHeaders.putAll(StreamSupport.stream(requestContext.getRequest().getHeaders().spliterator(), false)
+                .collect(Collectors.toMap(
+                        org.apache.pekko.http.javadsl.model.HttpHeader::name,
+                        org.apache.pekko.http.javadsl.model.HttpHeader::value
+                ))
+        );
+        LOGGER.withCorrelationId(combinedHeaders)
                 .info("Pre-authentication has been applied resulting in AuthorizationContext <{}>.", authContext);
 
         return CompletableFuture.completedFuture(DefaultAuthenticationResult.successful(dittoHeaders, authContext));

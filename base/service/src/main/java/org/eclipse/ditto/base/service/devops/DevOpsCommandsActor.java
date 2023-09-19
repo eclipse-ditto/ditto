@@ -522,8 +522,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
             final var dittoHeaders = devOpsCommand.getDittoHeaders();
             aggregateResults = isAggregateResults(dittoHeaders);
             this.expectedResponses = expectedResponses;
-            logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-            logger.setCorrelationId(dittoHeaders);
+            logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this).withCorrelationId(dittoHeaders);
         }
 
         private static boolean isAggregateResults(final DittoHeaders dittoHeaders) {

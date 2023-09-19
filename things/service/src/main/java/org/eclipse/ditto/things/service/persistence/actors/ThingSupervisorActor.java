@@ -355,7 +355,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         final String correlationId = rollback.initialCommand().getDittoHeaders().getCorrelationId()
                 .orElse("unexpected:" + UUID.randomUUID());
         if (policyCreatedEvent != null) {
-            log.withCorrelationId(correlationId)
+            log.withCorrelationId(rollback.initialCommand())
                     .warning("Rolling back created policy as consequence of received RollbackCreatedPolicy " +
                             "message: {}", rollback);
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
@@ -366,19 +366,20 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             AskWithRetry.askWithRetry(policiesShardRegion, deletePolicy,
                     enforcementConfig.getAskWithRetryConfig(),
                     getContext().system(), response -> {
-                        log.withCorrelationId(correlationId)
+                        log.withCorrelationId(rollback.initialCommand())
                                 .info("Policy <{}> deleted after rolling back it's creation. " +
                                         "Policies shard region response: <{}>", deletePolicy.getEntityId(), response);
                         rollback.completeInitialResponse();
                         return response;
                     }).exceptionally(throwable -> {
-                log.withCorrelationId(correlationId).error(throwable, "Failed to rollback Policy Create");
+                log.withCorrelationId(rollback.initialCommand())
+                        .error(throwable, "Failed to rollback Policy Create");
                 rollback.completeInitialResponse();
                 return null;
             });
 
         } else {
-            log.withCorrelationId(correlationId)
+            log.withCorrelationId(rollback.initialCommand())
                     .debug("Not initiating policy rollback as none was created.");
             rollback.completeInitialResponse();
         }

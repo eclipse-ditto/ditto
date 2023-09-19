@@ -12,7 +12,10 @@
  */
 package org.eclipse.ditto.gateway.api;
 
+import static java.util.Objects.requireNonNull;
+
 import java.net.URI;
+import java.text.MessageFormat;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -38,7 +41,10 @@ public final class GatewayDuplicateHeaderException extends DittoRuntimeException
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "duplicate.header.field";
 
     private static final String DEFAULT_MESSAGE =
-            "The send request contains headers which include a duplicate header field!";
+            "The message contains headers which include a duplicate header field!";
+
+    private static final String MESSAGE_TEMPLATE_WITH_KNOWN_DUPLICATED_HEADERNAME =
+            "The message contains headers which include a duplicate header field: ''{0}''";
 
     private static final String DEFAULT_DESCRIPTION =
             "A request must not contain multiple header fields with the same field name. " +
@@ -63,6 +69,17 @@ public final class GatewayDuplicateHeaderException extends DittoRuntimeException
      */
     public static Builder newBuilder() {
         return new Builder();
+    }
+
+    /**
+     * A mutable builder for a {@code GatewayDuplicateHeaderException} with a known duplicated header key.
+     *
+     * @param duplicatedHeaderName the name of the duplicated header.
+     * @throws NullPointerException if {@code duplicatedHeaderName} parameter is null.
+     * @return the builder.
+     */
+    public static Builder newBuilder(final CharSequence duplicatedHeaderName) {
+        return new Builder(requireNonNull(duplicatedHeaderName));
     }
 
     /**
@@ -115,6 +132,12 @@ public final class GatewayDuplicateHeaderException extends DittoRuntimeException
         private Builder() {
             description(DEFAULT_DESCRIPTION);
             message(DEFAULT_MESSAGE);
+            href(DEFAULT_HREF);
+        }
+
+        private Builder(final CharSequence duplicatedHeaderName) {
+            description(DEFAULT_DESCRIPTION);
+            message(MessageFormat.format(MESSAGE_TEMPLATE_WITH_KNOWN_DUPLICATED_HEADERNAME, duplicatedHeaderName));
             href(DEFAULT_HREF);
         }
 

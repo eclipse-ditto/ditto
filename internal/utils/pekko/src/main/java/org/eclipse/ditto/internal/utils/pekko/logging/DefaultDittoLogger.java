@@ -14,6 +14,9 @@ package org.eclipse.ditto.internal.utils.pekko.logging;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collection;
+import java.util.Map;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -61,13 +64,18 @@ final class DefaultDittoLogger implements DittoLogger, AutoCloseableSlf4jLogger 
     }
 
     @Override
+    public DefaultDittoLogger withCorrelationId(@Nullable final Map<String, String> headers) {
+        return withMdcEntries(CommonMdcEntryKey.extractMdcEntriesFromHeaders(headers));
+    }
+
+    @Override
     public DefaultDittoLogger withCorrelationId(@Nullable final WithDittoHeaders withDittoHeaders) {
         return withCorrelationId(null != withDittoHeaders ? withDittoHeaders.getDittoHeaders() : null);
     }
 
     @Override
     public DefaultDittoLogger withCorrelationId(@Nullable final DittoHeaders dittoHeaders) {
-        return withCorrelationId(null != dittoHeaders ? dittoHeaders.getCorrelationId().orElse(null) : null);
+        return withCorrelationId(null != dittoHeaders ? dittoHeaders : Map.of());
     }
 
     @Override
@@ -75,17 +83,6 @@ final class DefaultDittoLogger implements DittoLogger, AutoCloseableSlf4jLogger 
         currentLogger = autoCloseableSlf4jLogger;
         currentLogger.setCorrelationId(correlationId);
         return this;
-    }
-
-    @Override
-    public DefaultDittoLogger setCorrelationId(final WithDittoHeaders withDittoHeaders) {
-        return setCorrelationId(checkNotNull(withDittoHeaders, "withDittoHeaders").getDittoHeaders());
-    }
-
-    @Override
-    public DefaultDittoLogger setCorrelationId(final DittoHeaders dittoHeaders) {
-        checkNotNull(dittoHeaders, "dittoHeaders");
-        return setCorrelationId(dittoHeaders.getCorrelationId().orElse(null));
     }
 
     @Override
@@ -138,6 +135,15 @@ final class DefaultDittoLogger implements DittoLogger, AutoCloseableSlf4jLogger 
         for (final MdcEntry furtherMdcEntry : furtherMdcEntries) {
             currentLogger.putMdcEntry(furtherMdcEntry.getKey(), furtherMdcEntry.getValueOrNull());
         }
+        return this;
+    }
+
+    @Override
+    public DefaultDittoLogger withMdcEntries(final Collection<MdcEntry> mdcEntries) {
+        checkNotNull(mdcEntries, "mdcEntries");
+
+        currentLogger = autoClosingSlf4jLogger;
+        mdcEntries.forEach(mdcEntry -> currentLogger.putMdcEntry(mdcEntry.getKey(), mdcEntry.getValueOrNull()));
         return this;
     }
 

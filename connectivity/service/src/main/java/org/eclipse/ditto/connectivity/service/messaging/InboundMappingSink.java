@@ -21,7 +21,6 @@ import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
@@ -169,14 +168,12 @@ public final class InboundMappingSink {
             final InboundMappingProcessor inboundMappingProcessor) {
 
         final var externalMessage = withSender.externalMessage();
-        @Nullable final var correlationId =
-                externalMessage.findHeaderIgnoreCase(DittoHeaderDefinition.CORRELATION_ID.getKey()).orElse(null);
-        logger.withCorrelationId(correlationId)
+        logger.withCorrelationId(externalMessage.getHeaders())
                 .debug("Handling ExternalMessage: {}", externalMessage);
         try {
             return mapExternalMessageToSignal(withSender, inboundMappingProcessor);
         } catch (final Exception e) {
-            logger.withCorrelationId(correlationId)
+            logger.withCorrelationId(externalMessage.getHeaders())
                     .error("Handling exception when mapping external message: {}", e.getMessage());
             return InboundMappingOutcomes.of(withSender.externalMessage(), e, withSender.sender());
         }

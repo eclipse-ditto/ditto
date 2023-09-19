@@ -365,7 +365,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
                     .start();
             headers = startedSpan.propagateContext(headers);
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
-            final ExternalMessage externalMessage = extractPayloadFromMessage(message, builder, correlationId)
+            final ExternalMessage externalMessage = extractPayloadFromMessage(message, builder)
                     .withAuthorizationContext(source.getAuthorizationContext())
                     .withEnforcement(headerEnforcementFilterFactory.getFilter(headers))
                     .withHeaderMapping(source.getHeaderMapping())
@@ -374,10 +374,10 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
                     .build();
             inboundMonitor.success(externalMessage);
             final Map<String, String> externalMessageHeaders = externalMessage.getHeaders();
-            logger.withCorrelationId(correlationId)
+            logger.withCorrelationId(headers)
                     .info("Received message from AMQP 1.0 with externalMessageHeaders: {}", externalMessageHeaders);
             if (logger.isDebugEnabled()) {
-                logger.withCorrelationId(correlationId).debug("Received message from AMQP 1.0 with payload: {}",
+                logger.withCorrelationId(headers).debug("Received message from AMQP 1.0 with payload: {}",
                         externalMessage.getTextPayload().orElse("binary"));
             }
             forwardToMapping(externalMessage,
@@ -404,7 +404,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
                 inboundMonitor.exception(e);
             }
             startedSpan.tagAsFailed(e);
-            logger.withCorrelationId(correlationId)
+            logger.withCorrelationId(headers)
                     .error(e, "Unexpected {}: {}", e.getClass().getName(), e.getMessage());
         } finally {
             startedSpan.finish();
@@ -422,8 +422,6 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
     private void acknowledge(final JmsMessage message, final boolean isSuccess, final boolean redeliver,
             final Map<String, String> externalMessageHeaders) {
 
-        final Optional<String> correlationId = Optional.ofNullable(
-                externalMessageHeaders.get(DittoHeaderDefinition.CORRELATION_ID.getKey()));
         try {
             final String messageId = message.getJMSMessageID();
             recordAckForRateLimit(messageId, isSuccess, redeliver);
@@ -437,8 +435,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
                 ackType = redeliver ? MODIFIED_FAILED : REJECTED;
                 ackTypeName = redeliver ? "modified[delivery-failed]" : "rejected";
             }
-            final String jmsCorrelationID = message.getJMSCorrelationID();
-            logger.withCorrelationId(correlationId.orElse(jmsCorrelationID))
+            logger.withCorrelationId(externalMessageHeaders)
                     .info(MessageFormat.format(
                             "Acking <{0}> with original external message headers=<{1}>, isSuccess=<{2}>, ackType=<{3} {4}>",
                             messageId,
@@ -457,15 +454,15 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
                         "Sending negative acknowledgement: <{0}>", ackTypeName);
             }
         } catch (final IllegalStateException e) {
-            logger.withCorrelationId(correlationId.orElse(null))
+            logger.withCorrelationId(externalMessageHeaders)
                     .warning(e, "Failed to ack an AMQP message because of server side issues");
         } catch (final Exception e) {
-            logger.withCorrelationId(correlationId.orElse(null)).error(e, "Failed to ack an AMQP message");
+            logger.withCorrelationId(externalMessageHeaders).error(e, "Failed to ack an AMQP message");
         }
     }
 
     private ExternalMessageBuilder extractPayloadFromMessage(final JmsMessage message,
-            final ExternalMessageBuilder builder, @Nullable final String correlationId) throws JMSException {
+            final ExternalMessageBuilder builder) throws JMSException {
         if (message instanceof TextMessage textMessage) {
             final String payload = textMessage.getText();
             if (payload == null) {
@@ -487,7 +484,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
             if (logger.isDebugEnabled()) {
                 final Destination destination = message.getJMSDestination();
                 final Map<String, String> headersMapFromJmsMessage = extractHeadersMapFromJmsMessage(message);
-                logger.withCorrelationId(correlationId)
+                logger.withCorrelationId(headersMapFromJmsMessage)
                         .debug("Received message at '{}' of unsupported type ({}) with headers: {}",
                                 destination, message.getClass().getName(), headersMapFromJmsMessage);
             }

@@ -19,6 +19,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.net.URI;
 import java.text.MessageFormat;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -32,6 +33,8 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.gateway.api.GatewayDuplicateHeaderException;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
@@ -149,7 +152,29 @@ public final class RequestTracingDirective {
             @Nullable final CharSequence correlationId
     ) {
         return mapRequest(
-                req -> adjustSpanContextHeadersOfRequest(req, startedSpan.propagateContext(Map.of())),
+                req -> {
+                    final Set<String> headerNames = new HashSet<>();
+                    return adjustSpanContextHeadersOfRequest(req, startedSpan.propagateContext(
+                            StreamSupport.stream(httpRequest.getHeaders().spliterator(), false)
+                                    .map(httpHeader -> {
+                                        if (!headerNames.add(httpHeader.name())) {
+                                            throw GatewayDuplicateHeaderException.newBuilder(httpHeader.name())
+                                                    .dittoHeaders(DittoHeaders.newBuilder()
+                                                            .correlationId(correlationId)
+                                                            .build()
+                                                    ).build();
+                                        }
+                                        return httpHeader;
+                                    })
+                                    .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value, (dv1, dv2) -> {
+                                        throw GatewayDuplicateHeaderException.newBuilder()
+                                                .dittoHeaders(DittoHeaders.newBuilder()
+                                                        .correlationId(correlationId)
+                                                        .build()
+                                                ).build();
+                                    }))
+                    ));
+                },
                 () -> mapRouteResult(
                         routeResult -> tryToHandleRouteResult(routeResult, httpRequest, startedSpan, correlationId),
                         innerRouteSupplier

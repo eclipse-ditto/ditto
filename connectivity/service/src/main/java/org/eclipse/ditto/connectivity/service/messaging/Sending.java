@@ -13,8 +13,9 @@
 package org.eclipse.ditto.connectivity.service.messaging;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.base.model.headers.DittoHeaderDefinition.CORRELATION_ID;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
@@ -29,7 +30,6 @@ import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
@@ -217,10 +217,9 @@ final class Sending implements SendingOrDropped {
                                 dittoRuntimeException.getClass().getSimpleName(), dittoRuntimeException.getMessage());
             } else {
                 publishedMonitor.exception(message, exception);
-                final DittoHeaders internalHeaders = message.getInternalHeaders();
-                @Nullable final String correlationId = internalHeaders.getCorrelationId()
-                        .orElseGet(() -> message.findHeaderIgnoreCase(CORRELATION_ID.getKey()).orElse(null));
-                logger.withCorrelationId(correlationId)
+                final Map<String, String> combinedHeaders = new HashMap<>(message.getHeaders());
+                combinedHeaders.putAll(message.getInternalHeaders());
+                logger.withCorrelationId(combinedHeaders)
                         .info("Unexpected failure when publishing signal  - {}: {}",
                                 exception.getClass().getSimpleName(), exception.getMessage());
             }

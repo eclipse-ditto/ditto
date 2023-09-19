@@ -13,7 +13,6 @@
 package org.eclipse.ditto.connectivity.service.messaging;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.base.model.headers.DittoHeaderDefinition.CORRELATION_ID;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -314,11 +313,10 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             final int maxPayloadBytesForSignal) {
 
         final var message = outbound.getExternalMessage();
-        final String correlationId = message.getHeaders().get(CORRELATION_ID.getKey());
         final Signal<?> outboundSource = outbound.getSource();
         final List<Target> outboundTargets = outbound.getTargets();
 
-        final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(correlationId);
+        final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(message.getHeaders());
         final Optional<SendingContext> replyTargetSendingContext = getSendingContext(outbound);
 
         final List<SendingContext> sendingContexts = replyTargetSendingContext

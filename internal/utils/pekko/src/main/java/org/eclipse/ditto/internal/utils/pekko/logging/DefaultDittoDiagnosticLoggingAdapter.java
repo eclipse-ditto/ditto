@@ -24,7 +24,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 
 import org.apache.pekko.event.DiagnosticLoggingAdapter;
-import scala.collection.JavaConverters;
 import scala.collection.immutable.Seq;
 
 /**
@@ -73,29 +72,18 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
     }
 
     @Override
+    public DefaultDittoDiagnosticLoggingAdapter withCorrelationId(@Nullable final Map<String, String> headers) {
+        return withMdcEntries(CommonMdcEntryKey.extractMdcEntriesFromHeaders(headers));
+    }
+
+    @Override
     public DefaultDittoDiagnosticLoggingAdapter withCorrelationId(@Nullable final WithDittoHeaders withDittoHeaders) {
         return withCorrelationId(null != withDittoHeaders ? withDittoHeaders.getDittoHeaders() : null);
     }
 
     @Override
     public DefaultDittoDiagnosticLoggingAdapter withCorrelationId(@Nullable final DittoHeaders dittoHeaders) {
-        return withCorrelationId(null != dittoHeaders ? dittoHeaders.getCorrelationId().orElse(null) : null);
-    }
-
-    @Override
-    public DefaultDittoDiagnosticLoggingAdapter setCorrelationId(@Nullable final CharSequence correlationId) {
-        return setMdcEntry(CommonMdcEntryKey.CORRELATION_ID, correlationId);
-    }
-
-    @Override
-    public DefaultDittoDiagnosticLoggingAdapter setCorrelationId(final WithDittoHeaders withDittoHeaders) {
-        return setCorrelationId(checkNotNull(withDittoHeaders, "withDittoHeaders").getDittoHeaders());
-    }
-
-    @Override
-    public DefaultDittoDiagnosticLoggingAdapter setCorrelationId(final DittoHeaders dittoHeaders) {
-        checkNotNull(dittoHeaders, "dittoHeaders");
-        return setCorrelationId(dittoHeaders.getCorrelationId().orElse(null));
+        return withCorrelationId(null != dittoHeaders ? dittoHeaders : Map.of());
     }
 
     @Override
@@ -151,30 +139,6 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
     }
 
     @Override
-    public DefaultDittoDiagnosticLoggingAdapter setMdcEntry(final MdcEntry mdcEntry,
-            final Seq<MdcEntry> furtherMdcEntries) {
-
-        currentLogger = loggingAdapter;
-        putToMdcOfAllLoggerStates(mdcEntry.getKey(), mdcEntry.getValueOrNull());
-        final Collection<MdcEntry> furtherMdcEntriesCollection = JavaConverters.asJavaCollection(furtherMdcEntries);
-        furtherMdcEntriesCollection.forEach(furtherMdcEntry -> putToMdcOfAllLoggerStates(furtherMdcEntry.getKey(),
-                furtherMdcEntry.getValueOrNull()));
-        return this;
-    }
-
-    @Override
-    public DefaultDittoDiagnosticLoggingAdapter setMdcEntry(final MdcEntry mdcEntry,
-            final MdcEntry... furtherMdcEntries) {
-
-        currentLogger = loggingAdapter;
-        putToMdcOfAllLoggerStates(mdcEntry.getKey(), mdcEntry.getValueOrNull());
-        for (final MdcEntry furtherMdcEntry : furtherMdcEntries) {
-            putToMdcOfAllLoggerStates(furtherMdcEntry.getKey(), furtherMdcEntry.getValueOrNull());
-        }
-        return this;
-    }
-
-    @Override
     public DefaultDittoDiagnosticLoggingAdapter putMdcEntry(final CharSequence key,
             @Nullable final CharSequence value) {
 
@@ -223,6 +187,15 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
         for (final MdcEntry furtherMdcEntry : furtherMdcEntries) {
             currentLogger.putMdcEntry(furtherMdcEntry.getKey(), furtherMdcEntry.getValueOrNull());
         }
+        return this;
+    }
+
+    @Override
+    public DefaultDittoDiagnosticLoggingAdapter withMdcEntries(final Collection<MdcEntry> mdcEntries) {
+        checkNotNull(mdcEntries, "mdcEntries");
+
+        currentLogger = autoDiscardingLoggingAdapter;
+        mdcEntries.forEach(mdcEntry -> currentLogger.putMdcEntry(mdcEntry.getKey(), mdcEntry.getValueOrNull()));
         return this;
     }
 

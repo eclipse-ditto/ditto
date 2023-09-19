@@ -360,6 +360,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
         final ThreadSafeDittoLoggingAdapter logger = mock(ThreadSafeDittoLoggingAdapter.class);
         when(logger.withCorrelationId(any(DittoHeaders.class)))
                 .thenReturn(logger);
+        when(logger.withCorrelationId(any(Map.class))).thenReturn(logger);
         when(logger.withCorrelationId(Mockito.nullable(CharSequence.class)))
                 .thenReturn(logger);
         when(logger.withCorrelationId(any(WithDittoHeaders.class)))
