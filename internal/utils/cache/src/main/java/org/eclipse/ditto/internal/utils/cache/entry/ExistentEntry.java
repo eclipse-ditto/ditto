@@ -46,6 +46,11 @@ final class ExistentEntry<T> implements Entry<T> {
     }
 
     @Override
+    public boolean isFetchError() {
+        return false;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
