@@ -180,7 +180,7 @@ services:
     restart: always
 
   swagger-ui:
-    image: docker.io/swaggerapi/swagger-ui:v4.14.3
+    image: docker.io/swaggerapi/swagger-ui:v5.7.2
     mem_limit: 32m
     restart: always
     environment:

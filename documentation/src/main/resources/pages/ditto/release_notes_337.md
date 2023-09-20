@@ -31,7 +31,7 @@ e.g. a not existing policy import and e.g. always produced a text indicating to 
 Issued acknowledgement label for target must start with connection ID.  
 This can be achieved by using `connection:id` placeholder.  
 Usually placeholders allow using spaces inside (right after opening and right before closing) curly brackets, 
-for example, `{{ connection:id }}`.  
+for example, `{%raw%}{{ connection:id }}{%endraw%}`.  
 But validation did not allow spaces in placeholder in target issued acknowledgement label.
 
 
