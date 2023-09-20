@@ -47,7 +47,8 @@ public class ImmutableFunctionExpressionTest {
             "base64-decode",
             "delete",
             "replace",
-            "split"
+            "split",
+            "join"
     )));
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
 
