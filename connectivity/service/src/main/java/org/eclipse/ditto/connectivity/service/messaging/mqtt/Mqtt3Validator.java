@@ -34,6 +34,8 @@ import org.eclipse.ditto.placeholders.PlaceholderFactory;
 
 import org.apache.pekko.actor.ActorSystem;
 
+import com.hivemq.client.mqtt.MqttVersion;
+
 /**
  * Connection specification for Mqtt 3.1.1 protocol.
  */
@@ -150,12 +152,12 @@ public final class Mqtt3Validator extends AbstractMqttValidator {
     }
 
     private static void checkIfKeyIsAllowed(final String key, final DittoHeaders dittoHeaders) {
-        if (!MqttHeader.getHeaderNames().contains(key)) {
+        if (!MqttHeader.getHeaderNames(MqttVersion.MQTT_3_1_1).contains(key)) {
             final String message = String.format("The header '%s' is not allowed in MQTT 3.1.1 target header mapping.",
                     key);
             final String description = String.format(
                     "The following headers are allowed and are directly applied to the published MQTT message: %s",
-                    MqttHeader.getHeaderNames());
+                    MqttHeader.getHeaderNames(MqttVersion.MQTT_3_1_1));
             throw ConnectionConfigurationInvalidException
                     .newBuilder(message)
                     .description(description)
@@ -196,12 +198,12 @@ public final class Mqtt3Validator extends AbstractMqttValidator {
 
         @Override
         public List<String> getSupportedNames() {
-            return MqttHeader.getHeaderNames();
+            return MqttHeader.getHeaderNames(MqttVersion.MQTT_3_1_1);
         }
 
         @Override
         public boolean supports(final String name) {
-            return MqttHeader.getHeaderNames().contains(name);
+            return MqttHeader.getHeaderNames(MqttVersion.MQTT_3_1_1).contains(name);
         }
     }
 }

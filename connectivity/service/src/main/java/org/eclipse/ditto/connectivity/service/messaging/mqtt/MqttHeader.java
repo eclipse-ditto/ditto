@@ -15,6 +15,8 @@ package org.eclipse.ditto.connectivity.service.messaging.mqtt;
 import java.util.Arrays;
 import java.util.List;
 
+import com.hivemq.client.mqtt.MqttVersion;
+
 /**
  * Defines well-known MQTT properties that should be extracted from consumed mqtt messages and made available for
  * source header mappings. E.g. the mqtt topic on which the message was received is available in the header
@@ -22,18 +24,25 @@ import java.util.List;
  */
 public enum MqttHeader {
 
-    MQTT_TOPIC("mqtt.topic"),
-    MQTT_QOS("mqtt.qos"),
-    MQTT_RETAIN("mqtt.retain"),
-    MQTT_MESSAGE_EXPIRY_INTERVAL("mqtt.message-expiry-interval");
+    MQTT_TOPIC("mqtt.topic", MqttVersion.MQTT_3_1_1),
+    MQTT_QOS("mqtt.qos", MqttVersion.MQTT_3_1_1),
+    MQTT_RETAIN("mqtt.retain", MqttVersion.MQTT_3_1_1),
+    MQTT_MESSAGE_EXPIRY_INTERVAL("mqtt.message-expiry-interval", MqttVersion.MQTT_5_0);
 
     private final String name;
 
     /**
-     * @param name the header name to be used in source header mappings
+     * MQTT version where the header was introduced.
      */
-    MqttHeader(final String name) {
+    private final MqttVersion mqttVersion;
+
+    /**
+     * @param name the header name to be used in source header mappings
+     * @param mqttVersion MQTT version where the header was introduced
+     */
+    MqttHeader(final String name, final MqttVersion mqttVersion) {
         this.name = name;
+        this.mqttVersion = mqttVersion;
     }
 
     /**
@@ -44,10 +53,22 @@ public enum MqttHeader {
     }
 
     /**
-     * @return list of default header names used for mqtt sources
+       @param mqttVersion MQTT version to get headers for
+     * @return list of header names that are available in provided MQTT version
      */
-    public static List<String> getHeaderNames() {
-        return Arrays.stream(values()).map(MqttHeader::getName).toList();
+    public static List<String> getHeaderNames(final MqttVersion mqttVersion) {
+        return Arrays.stream(values())
+                .filter(value -> value.isAvailableInMqttVersion(mqttVersion))
+                .map(MqttHeader::getName)
+                .toList();
+    }
+
+    /**
+     * @param mqttVersion MQTT version to check
+     * @return true if the header is available in provided MQTT version otherwise false
+     */
+    private boolean isAvailableInMqttVersion(final MqttVersion mqttVersion) {
+        return this.mqttVersion.compareTo(mqttVersion) <= 0;
     }
 
 }
