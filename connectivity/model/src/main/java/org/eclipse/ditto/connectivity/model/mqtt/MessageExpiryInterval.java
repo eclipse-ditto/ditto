@@ -24,7 +24,7 @@ import javax.annotation.concurrent.Immutable;
  * The maximum seconds is {@value MAX_INTERVAL_SECONDS}.
  */
 @Immutable
-public class MessageExpiryInterval {
+public final class MessageExpiryInterval {
 
     public static final long MIN_INTERVAL_SECONDS = 1L;
 
@@ -36,6 +36,14 @@ public class MessageExpiryInterval {
         this.seconds = seconds;
     }
 
+    /**
+     * Returns an instance of {@code MessageExpiryInterval} for the specified interval.
+     *
+     * @param seconds the message expiry interval duration in seconds. The value must be between
+     * {@value #MIN_INTERVAL_SECONDS} and {@value #MAX_INTERVAL_SECONDS} (both inclusive).
+     * @return the MessageExpiryInterval for interval of {@code seconds}.
+     * @throws IllegalMessageExpiryIntervalSecondsException if the seconds is less than {@value MIN_INTERVAL_SECONDS} or greater than {@value #MAX_INTERVAL_SECONDS}.
+     */
     public static MessageExpiryInterval of(final long seconds)
             throws IllegalMessageExpiryIntervalSecondsException {
         if (seconds < MIN_INTERVAL_SECONDS || seconds > MAX_INTERVAL_SECONDS) {
@@ -50,10 +58,20 @@ public class MessageExpiryInterval {
         return new MessageExpiryInterval(seconds);
     }
 
+    /**
+     * Returns an instance of the empty {@code MessageExpiryInterval}.
+     *
+     * @return the empty message expiry interval.
+     */
     public static MessageExpiryInterval empty() {
         return new MessageExpiryInterval(null);
     }
 
+    /**
+     * Returns message expiry interval seconds.
+     *
+     * @return optional count of seconds in the interval.
+     */
     public OptionalLong getAsOptionalLong() {
         return seconds != null ?
                 OptionalLong.of(seconds) :

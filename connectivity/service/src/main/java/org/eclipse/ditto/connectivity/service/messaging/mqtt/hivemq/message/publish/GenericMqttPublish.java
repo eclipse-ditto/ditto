@@ -112,6 +112,11 @@ public abstract class GenericMqttPublish {
      */
     public abstract boolean isRetain();
 
+    /**
+     * Returns expiry interval for this Publish message.
+     *
+     * @return message expiry interval.
+     */
     public abstract MessageExpiryInterval getMessageExpiryInterval();
 
     public abstract Optional<ByteBuffer> getCorrelationData();
@@ -238,6 +243,12 @@ public abstract class GenericMqttPublish {
             return this;
         }
 
+        /**
+         * Sets message expiry interval.
+         *
+         * @param messageExpiryInterval expiry interval of the Publish
+         * @return this Builder instance for method chaining.
+         */
         public Builder messageExpiryInterval(final MessageExpiryInterval messageExpiryInterval) {
             this.messageExpiryInterval = messageExpiryInterval;
             return this;
