@@ -206,6 +206,10 @@ ingress:
     #  of its containers crashing, for it to be considered available
     #  ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#min-ready-seconds
     minReadySeconds: 10
+    # as NGINX Ingress Controller on its pod shutdown tends to interrupt connections, we need to include 
+    # some wait time so that existing connections are fully handled before the pod is really shut down. 
+    # ref: https://medium.com/codecademy-engineering/kubernetes-nginx-and-zero-downtime-in-production-2c910c6a5ed8
+    preStopWait: 15
     # specify how many old ReplicaSets for ingress controller deployment will be retained
     # ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy
     revisionHistoryLimit: 5
