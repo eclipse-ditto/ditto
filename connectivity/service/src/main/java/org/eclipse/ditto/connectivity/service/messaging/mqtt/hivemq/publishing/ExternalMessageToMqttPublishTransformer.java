@@ -29,6 +29,8 @@ import org.eclipse.ditto.base.model.common.CharsetDeterminer;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.mqtt.IllegalMessageExpiryIntervalSecondsException;
+import org.eclipse.ditto.connectivity.model.mqtt.MessageExpiryInterval;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttHeader;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.common.InvalidMqttQosCodeException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
@@ -108,6 +110,7 @@ final class ExternalMessageToMqttPublishTransformer {
 
         return GenericMqttPublish.builder(mqttTopic, mqttQos)
                 .retain(retain)
+                .messageExpiryInterval(getMessageExpiryIntervalOrEmpty(externalMessageHeaders))
                 .payload(getPayloadOrNull(externalMessage, charset))
                 .correlationData(getCorrelationDataOrNull(externalMessageHeaders, charset))
                 .responseTopic(getResponseTopicOrNull(externalMessageHeaders))
@@ -184,6 +187,28 @@ final class ExternalMessageToMqttPublishTransformer {
                 throw new InvalidHeaderValueException(retainHeaderName,
                         MessageFormat.format("<{0}> is not a boolean.", retainHeaderValue));
             }
+        }
+        return result;
+    }
+
+    private static MessageExpiryInterval getMessageExpiryIntervalOrEmpty(final Map<String, String> externalMessageHeaders) {
+        final MessageExpiryInterval result;
+        final var messageExpiryIntervalHeaderName = MqttHeader.MQTT_MESSAGE_EXPIRY_INTERVAL.getName();
+        @Nullable final var messageExpiryIntervalValue = externalMessageHeaders.get(messageExpiryIntervalHeaderName);
+        if (messageExpiryIntervalValue != null) {
+            try {
+                final var seconds = Long.parseLong(messageExpiryIntervalValue);
+                result = seconds == 0 ?
+                        MessageExpiryInterval.empty() :
+                        MessageExpiryInterval.of(seconds);
+            } catch (NumberFormatException e) {
+                throw new InvalidHeaderValueException(messageExpiryIntervalHeaderName,
+                        MessageFormat.format("<{0}> is not a number.", messageExpiryIntervalValue));
+            } catch (IllegalMessageExpiryIntervalSecondsException e) {
+                throw new InvalidHeaderValueException(messageExpiryIntervalHeaderName, e.getMessage());
+            }
+        } else {
+            result = MessageExpiryInterval.empty();
         }
         return result;
     }

@@ -256,6 +256,14 @@ public final class Mqtt3ValidatorTest extends AbstractMqttValidatorTest {
     }
 
     @Test
+    public void testInvalidSourceMappingValueIfMqtt5HeaderIsUsed() {
+        final HeaderMapping invalidHeaderMapping = ConnectivityModelFactory.newHeaderMapping(Map.of(
+                "timeout", "{{ header:mqtt.message-expiry-interval }}"
+        ));
+        testSourceMapping(invalidHeaderMapping, "header:mqtt.message-expiry-interval");
+    }
+
+    @Test
     public void testValidSourceMappingKeys() {
         final HeaderMapping validHeaderMapping = ConnectivityModelFactory.newHeaderMapping(Map.of(
                 "mqtt.topic", "{{ header:mqtt.topic }}",

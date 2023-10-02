@@ -18,12 +18,15 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
+import org.eclipse.ditto.connectivity.model.mqtt.IllegalMessageExpiryIntervalSecondsException;
+import org.eclipse.ditto.connectivity.model.mqtt.MessageExpiryInterval;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -53,6 +56,8 @@ public final class GenericMqttPublishTest {
     private static final MqttTopic MQTT_TOPIC = MqttTopic.of("/source/my-connection");
     private static final MqttQos MQTT_QOS = MqttQos.AT_LEAST_ONCE;
     private static final boolean RETAIN = true;
+    private static final Long MESSAGE_EXPIRY_INTERVAL = 10L;
+    private static final Long INVALID_MESSAGE_EXPIRY_INTERVAL = -1L;
     private static final ByteBuffer PAYLOAD = ByteBufferUtils.fromUtf8String("""
             {
               "topic": "org.eclipse.ditto/fancy-thing/things/twin/commands/modify",
@@ -131,6 +136,13 @@ public final class GenericMqttPublishTest {
             final var underTest = GenericMqttPublish.ofMqtt3Publish(mqtt3Publish);
 
             assertThat(underTest.isRetain()).isTrue();
+        }
+
+        @Test
+        public void getMessageExpiryIntervalReturnsEmptyOptional() {
+            final var underTest = GenericMqttPublish.ofMqtt3Publish(mqtt3Publish);
+
+            assertThat(underTest.getMessageExpiryInterval().getAsOptionalLong()).isEmpty();
         }
 
         @Test
@@ -261,6 +273,7 @@ public final class GenericMqttPublishTest {
                 .topic(MQTT_TOPIC)
                 .qos(MQTT_QOS)
                 .retain(true)
+                .messageExpiryInterval(MESSAGE_EXPIRY_INTERVAL)
                 .payload(PAYLOAD)
                 .contentType(CONTENT_TYPE)
                 .userProperties(Mqtt5UserProperties.of(USER_PROPERTIES.stream()
@@ -325,6 +338,45 @@ public final class GenericMqttPublishTest {
             final var underTest = GenericMqttPublish.ofMqtt5Publish(Mqtt5Publish.builder().topic(MQTT_TOPIC).build());
 
             assertThat(underTest.isRetain()).isFalse();
+        }
+
+        @Test
+        public void getMessageExpiryIntervalReturnsEmptyOptionalLongIfAbsent() {
+            final var underTest = GenericMqttPublish.ofMqtt5Publish(Mqtt5Publish.builder()
+                    .topic(MQTT_TOPIC)
+                    .build());
+
+            assertThat(underTest.getMessageExpiryInterval().getAsOptionalLong()).isEmpty();
+        }
+
+        @Test
+        public void getMessageExpiryIntervalReturnsOptionalLongContainingExpectedValueIfPresent() {
+            final var underTest = GenericMqttPublish.ofMqtt5Publish(Mqtt5Publish.builder()
+                    .topic(MQTT_TOPIC)
+                    .messageExpiryInterval(MESSAGE_EXPIRY_INTERVAL)
+                    .build());
+
+            assertThat(underTest.getMessageExpiryInterval().getAsOptionalLong()).hasValue(MESSAGE_EXPIRY_INTERVAL);
+        }
+
+        @Test
+        public void getMessageExpiryIntervalReturnsEmptyOptionalLongIfSetNoMessageExpiryInterval() {
+            final var underTest = GenericMqttPublish.ofMqtt5Publish(Mqtt5Publish.builder()
+                    .topic(MQTT_TOPIC)
+                    .noMessageExpiry()
+                    .build());
+
+            assertThat(underTest.getMessageExpiryInterval().getAsOptionalLong()).isEmpty();
+        }
+
+        @Test
+        public void getMessageExpiryIntervalReturnsEmptyOptionalLongIfMessageExpiryIntervalIsInvalid() {
+            final var mqtt5Publish = Mockito.mock(Mqtt5Publish.class);
+            Mockito.when(mqtt5Publish.getMessageExpiryInterval()).thenReturn(OptionalLong.of(INVALID_MESSAGE_EXPIRY_INTERVAL));
+            Mockito.when(mqtt5Publish.getTopic()).thenReturn(MQTT_TOPIC);
+            final var underTest = GenericMqttPublish.ofMqtt5Publish(mqtt5Publish);
+
+            assertThat(underTest.getMessageExpiryInterval().getAsOptionalLong()).isEmpty();
         }
 
         @Test
@@ -539,12 +591,14 @@ public final class GenericMqttPublishTest {
         private GenericMqttPublish underTest;
 
         @Before
-        public void before() {
+        public void before()
+                throws IllegalMessageExpiryIntervalSecondsException {
             correlationData = ByteBuffer.wrap(
                     String.valueOf(testNameCorrelationId.getCorrelationId()).getBytes(StandardCharsets.UTF_8)
             );
             underTest = GenericMqttPublish.builder(MQTT_TOPIC, MQTT_QOS)
                     .retain(true)
+                    .messageExpiryInterval(MessageExpiryInterval.of(MESSAGE_EXPIRY_INTERVAL))
                     .payload(PAYLOAD)
                     .contentType(CONTENT_TYPE)
                     .correlationData(correlationData)
@@ -568,6 +622,9 @@ public final class GenericMqttPublishTest {
             softly.assertThat(underTest.getTopic()).as("topic").isEqualTo(MQTT_TOPIC);
             softly.assertThat(underTest.getQos()).as("QoS").isEqualTo(MQTT_QOS);
             softly.assertThat(underTest.isRetain()).as("retain").isTrue();
+            softly.assertThat(underTest.getMessageExpiryInterval().getAsOptionalLong())
+                    .as("message expiry interval")
+                    .hasValue(MESSAGE_EXPIRY_INTERVAL);
             softly.assertThat(underTest.getPayload()).as("payload").hasValue(PAYLOAD);
             softly.assertThat(underTest.getContentType()).as("content type").hasValue(CONTENT_TYPE);
             softly.assertThat(underTest.getCorrelationData()).as("correlation data").hasValue(correlationData);
@@ -615,6 +672,9 @@ public final class GenericMqttPublishTest {
             softly.assertThat(mqtt5Publish.getTopic()).as("topic").isEqualTo(underTest.getTopic());
             softly.assertThat(mqtt5Publish.getQos()).as("QoS").isEqualTo(underTest.getQos());
             softly.assertThat(mqtt5Publish.isRetain()).as("retain").isEqualTo(underTest.isRetain());
+            softly.assertThat(mqtt5Publish.getMessageExpiryInterval())
+                    .as("message expiry interval")
+                    .isEqualTo(underTest.getMessageExpiryInterval().getAsOptionalLong());
             softly.assertThat(mqtt5Publish.getPayload()).as("payload").isEqualTo(underTest.getPayload());
             softly.assertThat(mqtt5Publish.getContentType())
                     .as("content type")

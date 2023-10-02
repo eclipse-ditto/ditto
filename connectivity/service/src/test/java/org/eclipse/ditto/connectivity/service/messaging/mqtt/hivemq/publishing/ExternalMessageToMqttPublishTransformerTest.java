@@ -28,6 +28,8 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.GenericTarget;
+import org.eclipse.ditto.connectivity.model.mqtt.IllegalMessageExpiryIntervalSecondsException;
+import org.eclipse.ditto.connectivity.model.mqtt.MessageExpiryInterval;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttHeader;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.MqttPublishTransformationException;
@@ -55,13 +57,14 @@ public final class ExternalMessageToMqttPublishTransformerTest {
     private static final MqttQos MQTT_QOS = MqttQos.AT_LEAST_ONCE;
     private static final MqttQos MQTT_QOS_FALL_BACK = MqttQos.EXACTLY_ONCE;
     private static final Boolean RETAIN = true;
-    private static final Boolean RETAIN_FALL_BACK = false;
+    private static final Long MESSAGE_EXPIRY_INTERVAL = 10L;
     private static final ContentType CONTENT_TYPE = ContentType.APPLICATION_JSON;
     private static final MqttTopic REPLY_TO_TOPIC = MqttTopic.of("replies");
     private static final Set<UserProperty> USER_PROPERTIES =
             Set.of(new UserProperty(MqttHeader.MQTT_TOPIC.getName(), MQTT_TOPIC.toString()),
                     new UserProperty(MqttHeader.MQTT_QOS.getName(), String.valueOf(MQTT_QOS.getCode())),
                     new UserProperty(MqttHeader.MQTT_RETAIN.getName(), String.valueOf(RETAIN)),
+                    new UserProperty(MqttHeader.MQTT_MESSAGE_EXPIRY_INTERVAL.getName(), String.valueOf(MESSAGE_EXPIRY_INTERVAL)),
                     new UserProperty("foo", "bar"),
                     new UserProperty("bar", "baz"),
                     new UserProperty("baz", "foo"));
@@ -119,10 +122,12 @@ public final class ExternalMessageToMqttPublishTransformerTest {
     }
 
     @Test
-    public void transformFullyFledgedExternalMessageReturnsExpectedTransformationSuccessResult() {
+    public void transformFullyFledgedExternalMessageReturnsExpectedTransformationSuccessResult()
+            throws IllegalMessageExpiryIntervalSecondsException {
         final var correlationId = testNameCorrelationId.getCorrelationId();
         final var genericMqttPublish = GenericMqttPublish.builder(MQTT_TOPIC, MQTT_QOS)
                 .retain(RETAIN)
+                .messageExpiryInterval(MessageExpiryInterval.of(MESSAGE_EXPIRY_INTERVAL))
                 .payload(PAYLOAD)
                 .correlationData(ByteBufferUtils.fromUtf8String(correlationId.toString()))
                 .contentType(CONTENT_TYPE.getValue())
@@ -134,6 +139,7 @@ public final class ExternalMessageToMqttPublishTransformerTest {
                         .putHeader(MqttHeader.MQTT_TOPIC.getName(), MQTT_TOPIC.toString())
                         .putHeader(MqttHeader.MQTT_QOS.getName(), String.valueOf(MQTT_QOS.getCode()))
                         .putHeader(MqttHeader.MQTT_RETAIN.getName(), String.valueOf(genericMqttPublish.isRetain()))
+                        .putHeader(MqttHeader.MQTT_MESSAGE_EXPIRY_INTERVAL.getName(), String.valueOf(genericMqttPublish.getMessageExpiryInterval()))
                         .correlationId(correlationId)
                         .putHeader(ExternalMessage.REPLY_TO_HEADER, REPLY_TO_TOPIC.toString())
                         .contentType(CONTENT_TYPE)
@@ -277,11 +283,91 @@ public final class ExternalMessageToMqttPublishTransformerTest {
     }
 
     @Test
-    public void transformFullyFledgedExternalMessageWithBlankHeaderReturnsExpectedTransformationSuccessResult() {
+    public void transformExternalMessageWithoutMessageExpiryIntervalValueInHeadersFallsBackToNoMessageExpiryInterval() {
+        Mockito.when(externalMessage.getHeaders()).thenReturn(DittoHeaders.empty());
+
+        assertThat(ExternalMessageToMqttPublishTransformer.transform(externalMessage, mqttPublishTarget))
+                .isEqualTo(TransformationSuccess.of(externalMessage,
+                        GenericMqttPublish.builder(MQTT_TOPIC_FALL_BACK, MQTT_QOS_FALL_BACK)
+                                .build()));
+    }
+
+    @Test
+    public void transformExternalMessageWithZeroMessageExpiryIntervalValueReturnsNoMessageExpiryInterval() {
+        Mockito.when(externalMessage.getHeaders())
+                .thenReturn(DittoHeaders.newBuilder()
+                        .putHeader(MqttHeader.MQTT_MESSAGE_EXPIRY_INTERVAL.getName(), "0")
+                        .build());
+
+        assertThat(ExternalMessageToMqttPublishTransformer.transform(externalMessage, mqttPublishTarget))
+                .isEqualTo(TransformationSuccess.of(externalMessage,
+                        GenericMqttPublish.builder(MQTT_TOPIC_FALL_BACK, MQTT_QOS_FALL_BACK)
+                                .userProperties(Set.of(new UserProperty(MqttHeader.MQTT_MESSAGE_EXPIRY_INTERVAL.getName(), "0")))
+                                .build()));
+    }
+
+    @Test
+    public void transformExternalMessageWithInvalidMessageExpiryIntervalValueYieldsTransformationFailure() {
+        final var invalidMessageExpiryIntervalValue = "-1";
+        Mockito.when(externalMessage.getHeaders())
+                .thenReturn(DittoHeaders.newBuilder()
+                        .putHeader(MqttHeader.MQTT_MESSAGE_EXPIRY_INTERVAL.getName(), invalidMessageExpiryIntervalValue)
+                        .build());
+
+        Mockito.when(externalMessage.getInternalHeaders())
+                .thenReturn(DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build());
+
+        final var transformationResult =
+                ExternalMessageToMqttPublishTransformer.transform(externalMessage, mqttPublishTarget);
+
+        assertThat(transformationResult.getErrorOrThrow())
+                .isInstanceOf(MqttPublishTransformationException.class)
+                .hasMessage("""
+                                Failed to transform ExternalMessage to GenericMqttPublish: \
+                                Invalid value for header <%s>: \
+                                Expected message expiry interval seconds to be within [%s, %s] but it was <%s>.\
+                                """,
+                        MqttHeader.MQTT_MESSAGE_EXPIRY_INTERVAL.getName(),
+                        MessageExpiryInterval.MIN_INTERVAL_SECONDS,
+                        MessageExpiryInterval.MAX_INTERVAL_SECONDS,
+                        invalidMessageExpiryIntervalValue)
+                .hasCauseInstanceOf(InvalidHeaderValueException.class);
+    }
+
+    @Test
+    public void transformExternalMessageWithNonIntegerMessageExpiryIntervalValueYieldsTransformationFailure() {
+        final var invalidMessageExpiryIntervalValue = "zoiglfrex";
+        Mockito.when(externalMessage.getHeaders())
+                .thenReturn(DittoHeaders.newBuilder()
+                        .putHeader(MqttHeader.MQTT_MESSAGE_EXPIRY_INTERVAL.getName(), invalidMessageExpiryIntervalValue)
+                        .build());
+
+        Mockito.when(externalMessage.getInternalHeaders())
+                .thenReturn(DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build());
+
+        final var transformationResult =
+                ExternalMessageToMqttPublishTransformer.transform(externalMessage, mqttPublishTarget);
+
+        assertThat(transformationResult.getErrorOrThrow())
+                .isInstanceOf(MqttPublishTransformationException.class)
+                .hasMessage("""
+                                Failed to transform ExternalMessage to GenericMqttPublish: \
+                                Invalid value for header <%s>: \
+                                <%s> is not a number.\
+                                """,
+                        MqttHeader.MQTT_MESSAGE_EXPIRY_INTERVAL.getName(),
+                        invalidMessageExpiryIntervalValue)
+                .hasCauseInstanceOf(InvalidHeaderValueException.class);
+    }
+
+    @Test
+    public void transformFullyFledgedExternalMessageWithBlankHeaderReturnsExpectedTransformationSuccessResult()
+            throws IllegalMessageExpiryIntervalSecondsException {
         final var correlationId = testNameCorrelationId.getCorrelationId();
         final var genericMqttPublish = GenericMqttPublish.builder(MQTT_TOPIC, MQTT_QOS)
                 .retain(RETAIN)
                 .payload(PAYLOAD)
+                .messageExpiryInterval(MessageExpiryInterval.of(MESSAGE_EXPIRY_INTERVAL))
                 .correlationData(ByteBufferUtils.fromUtf8String(correlationId.toString()))
                 .contentType(CONTENT_TYPE.getValue())
                 .responseTopic(REPLY_TO_TOPIC)
@@ -292,6 +378,7 @@ public final class ExternalMessageToMqttPublishTransformerTest {
                         .putHeader(MqttHeader.MQTT_TOPIC.getName(), MQTT_TOPIC.toString())
                         .putHeader(MqttHeader.MQTT_QOS.getName(), String.valueOf(MQTT_QOS.getCode()))
                         .putHeader(MqttHeader.MQTT_RETAIN.getName(), String.valueOf(genericMqttPublish.isRetain()))
+                        .putHeader(MqttHeader.MQTT_MESSAGE_EXPIRY_INTERVAL.getName(), String.valueOf(MESSAGE_EXPIRY_INTERVAL))
                         .putHeader("ablankheader", "")
                         .correlationId(correlationId)
                         .putHeader(ExternalMessage.REPLY_TO_HEADER, REPLY_TO_TOPIC.toString())

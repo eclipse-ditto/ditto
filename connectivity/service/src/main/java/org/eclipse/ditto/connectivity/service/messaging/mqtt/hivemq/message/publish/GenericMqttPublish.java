@@ -17,6 +17,7 @@ import java.text.MessageFormat;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -27,6 +28,8 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.common.CharsetDeterminer;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.connectivity.model.mqtt.IllegalMessageExpiryIntervalSecondsException;
+import org.eclipse.ditto.connectivity.model.mqtt.MessageExpiryInterval;
 
 import com.hivemq.client.mqtt.MqttVersion;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
@@ -109,6 +112,13 @@ public abstract class GenericMqttPublish {
      */
     public abstract boolean isRetain();
 
+    /**
+     * Returns expiry interval for this Publish message.
+     *
+     * @return message expiry interval.
+     */
+    public abstract MessageExpiryInterval getMessageExpiryInterval();
+
     public abstract Optional<ByteBuffer> getCorrelationData();
 
     public abstract Optional<MqttTopic> getResponseTopic();
@@ -169,9 +179,16 @@ public abstract class GenericMqttPublish {
     public abstract Mqtt5Publish getAsMqtt5Publish();
 
     private static Mqtt5Publish getAsMqtt5Publish(final GenericMqttPublish genericMqttPublish) {
-        return Mqtt5Publish.builder()
+        var builder = Mqtt5Publish.builder()
                 .topic(genericMqttPublish.getTopic())
-                .qos(genericMqttPublish.getQos())
+                .qos(genericMqttPublish.getQos());
+
+        final var messageExpiryInterval = genericMqttPublish.getMessageExpiryInterval().getAsOptionalLong();
+        if (messageExpiryInterval.isPresent()) {
+            builder = builder.messageExpiryInterval(messageExpiryInterval.getAsLong());
+        }
+
+        return builder
                 .retain(genericMqttPublish.isRetain())
                 .payload(genericMqttPublish.getPayload().orElse(null))
                 .correlationData(genericMqttPublish.getCorrelationData().orElse(null))
@@ -196,6 +213,7 @@ public abstract class GenericMqttPublish {
         private final MqttTopic mqttTopic;
         private final MqttQos mqttQos;
         private boolean retain;
+        private MessageExpiryInterval messageExpiryInterval;
         @Nullable private ByteBuffer payload;
         @Nullable private ByteBuffer correlationData;
         @Nullable private MqttTopic responseTopic;
@@ -206,6 +224,7 @@ public abstract class GenericMqttPublish {
             this.mqttTopic = ConditionChecker.checkNotNull(mqttTopic, "mqttTopic");
             this.mqttQos = ConditionChecker.checkNotNull(mqttQos, "mqttQos");
             retain = false;
+            messageExpiryInterval = MessageExpiryInterval.empty();
             payload = null;
             correlationData = null;
             responseTopic = null;
@@ -221,6 +240,17 @@ public abstract class GenericMqttPublish {
          */
         public Builder retain(final boolean retain) {
             this.retain = retain;
+            return this;
+        }
+
+        /**
+         * Sets message expiry interval.
+         *
+         * @param messageExpiryInterval expiry interval of the Publish
+         * @return this Builder instance for method chaining.
+         */
+        public Builder messageExpiryInterval(final MessageExpiryInterval messageExpiryInterval) {
+            this.messageExpiryInterval = messageExpiryInterval;
             return this;
         }
 
@@ -275,6 +305,7 @@ public abstract class GenericMqttPublish {
         private final MqttTopic mqttTopic;
         private final MqttQos mqttQos;
         private final boolean retain;
+        private final MessageExpiryInterval messageExpiryInterval;
         @Nullable private final ByteBuffer payload;
         @Nullable private final ByteBuffer correlationData;
         @Nullable private final MqttTopic responseTopic;
@@ -285,6 +316,7 @@ public abstract class GenericMqttPublish {
             mqttTopic = builder.mqttTopic;
             mqttQos = builder.mqttQos;
             retain = builder.retain;
+            messageExpiryInterval = builder.messageExpiryInterval;
             payload = builder.payload;
             correlationData = builder.correlationData;
             responseTopic = builder.responseTopic;
@@ -305,6 +337,11 @@ public abstract class GenericMqttPublish {
         @Override
         public boolean isRetain() {
             return retain;
+        }
+
+        @Override
+        public MessageExpiryInterval getMessageExpiryInterval() {
+            return messageExpiryInterval;
         }
 
         @Override
@@ -368,6 +405,7 @@ public abstract class GenericMqttPublish {
             return Objects.equals(mqttTopic, that.mqttTopic) &&
                     mqttQos == that.mqttQos &&
                     retain == that.retain &&
+                    Objects.equals(messageExpiryInterval, that.messageExpiryInterval) &&
                     Objects.equals(payload, that.payload) &&
                     Objects.equals(correlationData, that.correlationData) &&
                     Objects.equals(responseTopic, that.responseTopic) &&
@@ -380,6 +418,7 @@ public abstract class GenericMqttPublish {
             return Objects.hash(mqttTopic,
                     mqttQos,
                     retain,
+                    messageExpiryInterval,
                     payload,
                     correlationData,
                     responseTopic,
@@ -393,6 +432,7 @@ public abstract class GenericMqttPublish {
                     "mqttTopic=" + mqttTopic +
                     ", mqttQos=" + mqttQos +
                     ", retain=" + retain +
+                    ", messageExpiryInterval=" + messageExpiryInterval +
                     ", payload=" + getPayloadAsHumanReadable().orElse(null) +
                     ", correlationData=" + correlationData +
                     ", responseTopic=" + responseTopic +
@@ -424,6 +464,11 @@ public abstract class GenericMqttPublish {
         @Override
         public boolean isRetain() {
             return mqtt3Publish.isRetain();
+        }
+
+        @Override
+        public MessageExpiryInterval getMessageExpiryInterval() {
+            return MessageExpiryInterval.empty();
         }
 
         @Override
@@ -523,6 +568,20 @@ public abstract class GenericMqttPublish {
         @Override
         public boolean isRetain() {
             return mqtt5Publish.isRetain();
+        }
+
+        @Override
+        public MessageExpiryInterval getMessageExpiryInterval() {
+            final var messageExpiryInterval = mqtt5Publish.getMessageExpiryInterval();
+            try {
+                return messageExpiryInterval.isPresent() ?
+                        MessageExpiryInterval.of(messageExpiryInterval.getAsLong()) :
+                        MessageExpiryInterval.empty();
+            } catch (IllegalMessageExpiryIntervalSecondsException e) {
+                // If we received message, assume message broker knows that it's correct, so don't drop it.
+                // But as we can't handle such values, fall back to empty message expiry interval.
+                return MessageExpiryInterval.empty();
+            }
         }
 
         @Override

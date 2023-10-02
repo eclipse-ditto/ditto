@@ -94,6 +94,7 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import com.hivemq.client.mqtt.MqttVersion;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
 import com.typesafe.config.ConfigFactory;
@@ -289,7 +290,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
         testKit.expectNoMessage();
         final var modifyThing = commandForwarder.expectMsgClass(ModifyThing.class);
         assertThat(modifyThing.getDittoHeaders())
-                .doesNotContainKeys(MqttHeader.getHeaderNames().toArray(String[]::new));
+                .doesNotContainKeys(MqttHeader.getHeaderNames(MqttVersion.MQTT_5_0).toArray(String[]::new));
 
         underTest.tell(RetrieveConnectionMetrics.of(CONNECTION_ID, dittoHeadersWithCorrelationId), testKit.getRef());
 

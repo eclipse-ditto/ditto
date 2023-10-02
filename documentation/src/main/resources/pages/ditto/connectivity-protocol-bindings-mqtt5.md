@@ -25,6 +25,7 @@ Supported MQTT 5 properties, which are interpreted in a specific way are:
 * `8 (0x08) Response Topic`: The MQTT topic a requests response is expected in.
   If a command sets the header `reply-to`, then its response is published at the topic equal to the header value.
 * `3 (0x03) Content Type`: The UTF-8 encoded string representation of the payloads content MIME type.
+* `2 (0x02) Message Expiry Interval`: Lifetime of the message in seconds.
 
 ## Specific connection configuration
 
@@ -64,6 +65,7 @@ In addition, Ditto extracts the following headers from each consumed message:
 * `mqtt.topic`: contains the MQTT topic on which a message was received 
 * `mqtt.qos`: contains the MQTT QoS value of a received message
 * `mqtt.retain`: contains the MQTT retain flag of a received message
+* `mqtt.message-expiry-interval`: contains the MQTT 5 message expiry interval of a received message
 * `correlation-id`: contains the MQTT 5 "correlation data" value
 * `reply-to`: contains the MQTT 5 "response topic" value
 * `content-type`: contains the MQTT 5 "content type" value
@@ -156,6 +158,7 @@ The following headers have a special meaning in that the values are applied dire
 * `mqtt.topic`: overwrites the topic configured for the target 
 * `mqtt.qos`: overwrites the qos level configured in the target 
 * `mqtt.retain`: controls whether the MQTT retain flag is set on the published message  
+* `mqtt.message-expiry-interval`: sets MQTT 5 message expiry interval of the published message  
 
 #### Target acknowledgement handling
 
