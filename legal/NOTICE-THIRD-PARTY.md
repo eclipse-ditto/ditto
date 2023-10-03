@@ -1,23 +1,23 @@
 # Third-party Content
 
-## Logback Classic Module (1.2.11)
+## Logback Classic Module (1.2.12)
 
-* Maven coordinates: `ch.qos.logback:logback-classic:1.2.11`
+* Maven coordinates: `ch.qos.logback:logback-classic:1.2.12`
 * License: [EPL-1.0](https://spdx.org/licenses/EPL-1.0.html), [LGPL-2.1](https://spdx.org/licenses/LGPL-2.1.html)
 * Project: http://logback.qos.ch/logback-classic
 * Sources: 
-   * declared as SCM: https://github.com/ceki/logback/logback-classic
-   * Maven sources: https://search.maven.org/remotecontent?filepath=ch/qos/logback/logback-classic/1.2.11/logback-classic-1.2.11-sources.jar
+   * declared as SCM: https://github.com/qos-ch/logback/logback-classic
+   * Maven sources: https://search.maven.org/remotecontent?filepath=ch/qos/logback/logback-classic/1.2.12/logback-classic-1.2.12-sources.jar
 
 
-## Logback Core Module (1.2.11)
+## Logback Core Module (1.2.12)
 
-* Maven coordinates: `ch.qos.logback:logback-core:1.2.11`
+* Maven coordinates: `ch.qos.logback:logback-core:1.2.12`
 * License: [EPL-1.0](https://spdx.org/licenses/EPL-1.0.html), [LGPL-2.1](https://spdx.org/licenses/LGPL-2.1.html)
 * Project: http://logback.qos.ch/logback-core
 * Sources: 
-   * declared as SCM: https://github.com/ceki/logback/logback-core
-   * Maven sources: https://search.maven.org/remotecontent?filepath=ch/qos/logback/logback-core/1.2.11/logback-core-1.2.11-sources.jar
+   * declared as SCM: https://github.com/qos-ch/logback/logback-core
+   * Maven sources: https://search.maven.org/remotecontent?filepath=ch/qos/logback/logback-core/1.2.12/logback-core-1.2.12-sources.jar
 
 
 ## minimal-json (0.9.5)
@@ -110,14 +110,14 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/module/jackson-module-scala_2.13/2.14.3/jackson-module-scala_2.13-2.14.3-sources.jar
 
 
-## Caffeine cache (3.1.6)
+## Caffeine cache (3.1.8)
 
-* Maven coordinates: `com.github.ben-manes.caffeine:caffeine:3.1.6`
+* Maven coordinates: `com.github.ben-manes.caffeine:caffeine:3.1.8`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/ben-manes/caffeine
 * Sources: 
    * declared as SCM: https://github.com/ben-manes/caffeine
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/ben-manes/caffeine/caffeine/3.1.6/caffeine-3.1.6-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/ben-manes/caffeine/caffeine/3.1.8/caffeine-3.1.8-sources.jar
 
 
 ## jffi (1.2.18)
@@ -370,184 +370,184 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=io/jsonwebtoken/jjwt-impl/0.11.5/jjwt-impl-0.11.5-sources.jar
 
 
-## kamon-core (2.5.8)
+## kamon-core (2.6.4)
 
-* Maven coordinates: `io.kamon:kamon-core_2.13:2.5.8`
+* Maven coordinates: `io.kamon:kamon-core_2.13:2.6.4`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-core_2.13/2.5.8/kamon-core_2.13-2.5.8-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-core_2.13/2.6.4/kamon-core_2.13-2.6.4-sources.jar
 
 
-## kamon-executors (2.5.8)
+## kamon-executors (2.6.4)
 
-* Maven coordinates: `io.kamon:kamon-executors_2.13:2.5.8`
+* Maven coordinates: `io.kamon:kamon-executors_2.13:2.6.4`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-executors_2.13/2.5.8/kamon-executors_2.13-2.5.8-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-executors_2.13/2.6.4/kamon-executors_2.13-2.6.4-sources.jar
 
 
-## kamon-instrumentation-common (2.5.8)
+## kamon-instrumentation-common (2.6.4)
 
-* Maven coordinates: `io.kamon:kamon-instrumentation-common_2.13:2.5.8`
+* Maven coordinates: `io.kamon:kamon-instrumentation-common_2.13:2.6.4`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-instrumentation-common_2.13/2.5.8/kamon-instrumentation-common_2.13-2.5.8-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-instrumentation-common_2.13/2.6.4/kamon-instrumentation-common_2.13-2.6.4-sources.jar
 
 
-## kamon-opentelemetry (2.5.8)
+## kamon-opentelemetry (2.6.4)
 
-* Maven coordinates: `io.kamon:kamon-opentelemetry_2.13:2.5.8`
+* Maven coordinates: `io.kamon:kamon-opentelemetry_2.13:2.6.4`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-opentelemetry_2.13/2.5.8/kamon-opentelemetry_2.13-2.5.8-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-opentelemetry_2.13/2.6.4/kamon-opentelemetry_2.13-2.6.4-sources.jar
 
 
-## kamon-prometheus (2.5.8)
+## kamon-prometheus (2.6.4)
 
-* Maven coordinates: `io.kamon:kamon-prometheus_2.13:2.5.8`
+* Maven coordinates: `io.kamon:kamon-prometheus_2.13:2.6.4`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-prometheus_2.13/2.5.8/kamon-prometheus_2.13-2.5.8-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-prometheus_2.13/2.6.4/kamon-prometheus_2.13-2.6.4-sources.jar
 
 
-## kamon-system-metrics (2.5.8)
+## kamon-system-metrics (2.6.4)
 
-* Maven coordinates: `io.kamon:kamon-system-metrics_2.13:2.5.8`
+* Maven coordinates: `io.kamon:kamon-system-metrics_2.13:2.6.4`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-system-metrics_2.13/2.5.8/kamon-system-metrics_2.13-2.5.8-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-system-metrics_2.13/2.6.4/kamon-system-metrics_2.13-2.6.4-sources.jar
 
 
-## Netty/Buffer (4.1.86.Final)
+## Netty/Buffer (4.1.99.Final)
 
-* Maven coordinates: `io.netty:netty-buffer:4.1.86.Final`
+* Maven coordinates: `io.netty:netty-buffer:4.1.99.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-buffer/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-buffer
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-buffer/4.1.86.Final/netty-buffer-4.1.86.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-buffer/4.1.99.Final/netty-buffer-4.1.99.Final-sources.jar
 
 
-## Netty/Codec (4.1.86.Final)
+## Netty/Codec (4.1.99.Final)
 
-* Maven coordinates: `io.netty:netty-codec:4.1.86.Final`
+* Maven coordinates: `io.netty:netty-codec:4.1.99.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-codec/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-codec
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-codec/4.1.86.Final/netty-codec-4.1.86.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-codec/4.1.99.Final/netty-codec-4.1.99.Final-sources.jar
 
 
-## Netty/Codec/HTTP (4.1.86.Final)
+## Netty/Codec/HTTP (4.1.99.Final)
 
-* Maven coordinates: `io.netty:netty-codec-http:4.1.86.Final`
+* Maven coordinates: `io.netty:netty-codec-http:4.1.99.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-codec-http/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-codec-http
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-codec-http/4.1.86.Final/netty-codec-http-4.1.86.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-codec-http/4.1.99.Final/netty-codec-http-4.1.99.Final-sources.jar
 
 
-## Netty/Common (4.1.86.Final)
+## Netty/Common (4.1.99.Final)
 
-* Maven coordinates: `io.netty:netty-common:4.1.86.Final`
+* Maven coordinates: `io.netty:netty-common:4.1.99.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-common/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-common
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-common/4.1.86.Final/netty-common-4.1.86.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-common/4.1.99.Final/netty-common-4.1.99.Final-sources.jar
 
 
-## Netty/Handler (4.1.86.Final)
+## Netty/Handler (4.1.99.Final)
 
-* Maven coordinates: `io.netty:netty-handler:4.1.86.Final`
+* Maven coordinates: `io.netty:netty-handler:4.1.99.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-handler/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-handler
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-handler/4.1.86.Final/netty-handler-4.1.86.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-handler/4.1.99.Final/netty-handler-4.1.99.Final-sources.jar
 
 
-## Netty/Resolver (4.1.86.Final)
+## Netty/Resolver (4.1.99.Final)
 
-* Maven coordinates: `io.netty:netty-resolver:4.1.86.Final`
+* Maven coordinates: `io.netty:netty-resolver:4.1.99.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-resolver/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-resolver
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-resolver/4.1.86.Final/netty-resolver-4.1.86.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-resolver/4.1.99.Final/netty-resolver-4.1.99.Final-sources.jar
 
 
-## Netty/Transport (4.1.86.Final)
+## Netty/Transport (4.1.99.Final)
 
-* Maven coordinates: `io.netty:netty-transport:4.1.86.Final`
+* Maven coordinates: `io.netty:netty-transport:4.1.99.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-transport/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-transport
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport/4.1.86.Final/netty-transport-4.1.86.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport/4.1.99.Final/netty-transport-4.1.99.Final-sources.jar
 
 
-## Netty/Transport/Classes/Epoll (4.1.86.Final)
+## Netty/Transport/Classes/Epoll (4.1.99.Final)
 
-* Maven coordinates: `io.netty:netty-transport-classes-epoll:4.1.86.Final`
+* Maven coordinates: `io.netty:netty-transport-classes-epoll:4.1.99.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-transport-classes-epoll/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-transport-classes-epoll
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-classes-epoll/4.1.86.Final/netty-transport-classes-epoll-4.1.86.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-classes-epoll/4.1.99.Final/netty-transport-classes-epoll-4.1.99.Final-sources.jar
 
 
-## Netty/Transport/Classes/KQueue (4.1.86.Final)
+## Netty/Transport/Classes/KQueue (4.1.99.Final)
 
-* Maven coordinates: `io.netty:netty-transport-classes-kqueue:4.1.86.Final`
+* Maven coordinates: `io.netty:netty-transport-classes-kqueue:4.1.99.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-transport-classes-kqueue/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-transport-classes-kqueue
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-classes-kqueue/4.1.86.Final/netty-transport-classes-kqueue-4.1.86.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-classes-kqueue/4.1.99.Final/netty-transport-classes-kqueue-4.1.99.Final-sources.jar
 
 
-## Netty/Transport/Native/Epoll (4.1.86.Final)
+## Netty/Transport/Native/Epoll (4.1.99.Final)
 
-* Maven coordinates: `io.netty:netty-transport-native-epoll:4.1.86.Final`
+* Maven coordinates: `io.netty:netty-transport-native-epoll:4.1.99.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-transport-native-epoll/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-transport-native-epoll
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-native-epoll/4.1.86.Final/netty-transport-native-epoll-4.1.86.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-native-epoll/4.1.99.Final/netty-transport-native-epoll-4.1.99.Final-sources.jar
 
 
-## Netty/Transport/Native/KQueue (4.1.86.Final)
+## Netty/Transport/Native/KQueue (4.1.99.Final)
 
-* Maven coordinates: `io.netty:netty-transport-native-kqueue:4.1.86.Final`
+* Maven coordinates: `io.netty:netty-transport-native-kqueue:4.1.99.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-transport-native-kqueue/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-transport-native-kqueue
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-native-kqueue/4.1.86.Final/netty-transport-native-kqueue-4.1.86.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-native-kqueue/4.1.99.Final/netty-transport-native-kqueue-4.1.99.Final-sources.jar
 
 
-## Netty/Transport/Native/Unix/Common (4.1.86.Final)
+## Netty/Transport/Native/Unix/Common (4.1.99.Final)
 
-* Maven coordinates: `io.netty:netty-transport-native-unix-common:4.1.86.Final`
+* Maven coordinates: `io.netty:netty-transport-native-unix-common:4.1.99.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-transport-native-unix-common/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-transport-native-unix-common
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-native-unix-common/4.1.86.Final/netty-transport-native-unix-common-4.1.86.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-native-unix-common/4.1.99.Final/netty-transport-native-unix-common-4.1.99.Final-sources.jar
 
 
 ## OpenTelemetry Java (1.13.0)
@@ -1040,34 +1040,34 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/sshd/sshd-core/2.9.2/sshd-core-2.9.2-sources.jar
 
 
-## Atteo Class Index (3.11)
+## Atteo Class Index (3.13)
 
-* Maven coordinates: `org.atteo.classindex:classindex:3.11`
+* Maven coordinates: `org.atteo.classindex:classindex:3.13`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://atteo.org/static/classindex/classindex
 * Sources: 
    * declared as SCM: https://github.com/atteo/classindex/classindex
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/atteo/classindex/classindex/3.11/classindex-3.11-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/atteo/classindex/classindex/3.13/classindex-3.13-sources.jar
 
 
-## commons-compiler (3.1.7)
+## commons-compiler (3.1.10)
 
-* Maven coordinates: `org.codehaus.janino:commons-compiler:3.1.7`
+* Maven coordinates: `org.codehaus.janino:commons-compiler:3.1.10`
 * License: [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)
 * Project: http://janino-compiler.github.io/commons-compiler/
 * Sources: 
    * declared as SCM: https://github.com/janino-compiler/commons-compiler
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/codehaus/janino/commons-compiler/3.1.7/commons-compiler-3.1.7-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/codehaus/janino/commons-compiler/3.1.10/commons-compiler-3.1.10-sources.jar
 
 
-## janino (3.1.7)
+## janino (3.1.10)
 
-* Maven coordinates: `org.codehaus.janino:janino:3.1.7`
+* Maven coordinates: `org.codehaus.janino:janino:3.1.10`
 * License: [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)
 * Project: http://janino-compiler.github.io/janino/
 * Sources: 
    * declared as SCM: https://github.com/janino-compiler/janino
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/codehaus/janino/janino/3.1.7/janino-3.1.7-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/codehaus/janino/janino/3.1.10/janino-3.1.10-sources.jar
 
 
 ## Java Concurrency Tools Core Library (2.1.2)
