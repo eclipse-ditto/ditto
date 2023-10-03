@@ -646,7 +646,7 @@ spec:
         lifecycle:
           preStop:
             exec:
-              command: ["sleep", "95"]
+              command: ["sleep", "{{ .Values.ingress.controller.preStopWait }}"]
         env:
         - name: POD_NAME
           valueFrom:
