@@ -43,6 +43,7 @@ import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.hivemq.client.mqtt.MqttVersion;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
@@ -341,6 +342,15 @@ public final class MqttPublishToExternalMessageTransformerTest {
                 MqttPublishToExternalMessageTransformer.newInstance(SOURCE_ADDRESS, SOURCE_WITHOUT_ENFORCEMENT);
         final var userPropertyValue = "user property";
 
+        var userProperties = Stream.concat(
+                MqttHeader.getHeaderNames(MqttVersion.MQTT_5_0)
+                        .stream()
+                        .map(specialHeaderName -> Mqtt5UserProperty.of(specialHeaderName, userPropertyValue)),
+                Stream.of(
+                        Mqtt5UserProperty.of(DittoHeaderDefinition.CONTENT_TYPE.getKey(), userPropertyValue),
+                        Mqtt5UserProperty.of(DittoHeaderDefinition.REPLY_TO.getKey(), userPropertyValue),
+                        Mqtt5UserProperty.of(DittoHeaderDefinition.CORRELATION_ID.getKey(), userPropertyValue))
+        ).collect(Collectors.toList());
         final var transformationResult = underTest.transform(GenericMqttPublish.ofMqtt5Publish(Mqtt5Publish.builder()
                 .topic(MQTT_TOPIC)
                 .qos(MQTT_QOS)
@@ -348,15 +358,7 @@ public final class MqttPublishToExternalMessageTransformerTest {
                 .correlationData(ByteBufferUtils.fromUtf8String(CORRELATION_ID))
                 .responseTopic(RESPONSE_TOPIC)
                 .contentType(CONTENT_TYPE)
-                .userProperties(Mqtt5UserProperties.of(Stream.concat(
-                        MqttHeader.getHeaderNames()
-                                .stream()
-                                .map(specialHeaderName -> Mqtt5UserProperty.of(specialHeaderName, userPropertyValue)),
-                        Stream.of(
-                                Mqtt5UserProperty.of(DittoHeaderDefinition.CONTENT_TYPE.getKey(), userPropertyValue),
-                                Mqtt5UserProperty.of(DittoHeaderDefinition.REPLY_TO.getKey(), userPropertyValue),
-                                Mqtt5UserProperty.of(DittoHeaderDefinition.CORRELATION_ID.getKey(), userPropertyValue))
-                ).collect(Collectors.toList())))
+                .userProperties(Mqtt5UserProperties.of(userProperties))
                 .payload(PAYLOAD)
                 .build()));
 

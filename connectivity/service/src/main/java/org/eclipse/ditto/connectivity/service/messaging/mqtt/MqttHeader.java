@@ -64,6 +64,13 @@ public enum MqttHeader {
     }
 
     /**
+     * @return list of header names that are available in at least one MQTT version
+     */
+    public static List<String> getAllHeaderNames() {
+        return Arrays.stream(values()).map(MqttHeader::getName).toList();
+    }
+
+    /**
      * @param mqttVersion MQTT version to check
      * @return true if the header is available in provided MQTT version otherwise false
      */

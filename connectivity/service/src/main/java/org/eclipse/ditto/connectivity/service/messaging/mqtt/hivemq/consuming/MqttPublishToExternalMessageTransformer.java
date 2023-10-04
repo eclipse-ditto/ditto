@@ -58,7 +58,7 @@ import com.hivemq.client.mqtt.MqttVersion;
 final class MqttPublishToExternalMessageTransformer {
 
     private static final Set<String> KNOWN_MQTT_HEADER_NAMES = Stream.concat(
-            MqttHeader.getHeaderNames().stream(),
+            MqttHeader.getAllHeaderNames().stream(),
             Stream.of(DittoHeaderDefinition.CONTENT_TYPE.getKey(),
                     DittoHeaderDefinition.CORRELATION_ID.getKey(),
                     DittoHeaderDefinition.REPLY_TO.getKey())
@@ -185,14 +185,10 @@ final class MqttPublishToExternalMessageTransformer {
                 .ifPresent(contentType -> result.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), contentType));
 
         genericMqttPublish.userProperties()
-                .filter(MqttPublishToExternalMessageTransformer::notKnownMqttHeader)
+                .filter(userProperty -> !KNOWN_MQTT_HEADER_NAMES.contains(userProperty.name()))
                 .forEach(userProperty -> result.put(userProperty.name(), userProperty.value()));
 
         return result;
-    }
-
-    private static boolean notKnownMqttHeader(UserProperty userProperty) {
-        return !KNOWN_MQTT_HEADER_NAMES.contains(userProperty.name());
     }
 
     private static String getTopicAsString(final GenericMqttPublish genericMqttPublish) {

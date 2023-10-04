@@ -50,4 +50,16 @@ public class MqttHeaderTest {
 
         softly.assertThat(actual).containsExactlyInAnyOrderElementsOf(expected);
     }
+
+    @Test
+    public void getAllHeaderNamesReturnsExpectedHeaders() {
+        final var expected = List.of(
+                MqttHeader.MQTT_TOPIC.getName(),
+                MqttHeader.MQTT_QOS.getName(),
+                MqttHeader.MQTT_RETAIN.getName(),
+                MqttHeader.MQTT_MESSAGE_EXPIRY_INTERVAL.getName());
+        final var actual = MqttHeader.getAllHeaderNames();
+
+        softly.assertThat(actual).containsExactlyInAnyOrderElementsOf(expected);
+    }
 }
