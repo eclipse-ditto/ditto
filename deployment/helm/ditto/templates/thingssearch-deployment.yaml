@@ -126,7 +126,7 @@ spec:
                 -XX:InitialRAMPercentage={{ .Values.thingsSearch.jvm.heapRamPercentage }}
                 -XX:MaxGCPauseMillis={{ .Values.thingsSearch.jvm.maxGcPauseMillis }}
                 {{ .Values.thingsSearch.additionalJvmOptions }}
-                {{- .Values.global.pekkoOptions }}
+                {{ .Values.global.pekkoOptions }}
                 {{- if .Values.global.logging.customConfigFile.enabled }}
                 -Dlogback.configurationFile=/opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
                 {{- end }}
