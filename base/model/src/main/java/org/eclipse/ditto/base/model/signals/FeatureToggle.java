@@ -40,6 +40,12 @@ public final class FeatureToggle {
     public static final String HISTORICAL_APIS_ENABLED = "ditto.devops.feature.historical-apis-enabled";
 
     /**
+     * System property name of the property defining whether the known MQTT headers (e.g., mqtt.topic) are preserved in outgoing message.
+     * @since 3.4.0
+     */
+    public static final String PRESERVE_KNOWN_MQTT_HEADERS_ENABLED = "ditto.devops.feature.preserve-known-mqtt-headers-enabled";
+
+    /**
      * Resolves the system property {@value MERGE_THINGS_ENABLED}.
      */
     private static final boolean IS_MERGE_THINGS_ENABLED = resolveProperty(MERGE_THINGS_ENABLED);
@@ -53,6 +59,11 @@ public final class FeatureToggle {
      * Resolves the system property {@value HISTORICAL_APIS_ENABLED}.
      */
     private static final boolean IS_HISTORICAL_APIS_ENABLED = resolveProperty(HISTORICAL_APIS_ENABLED);
+
+    /**
+     * Resolves the system property {@value PRESERVE_KNOWN_MQTT_HEADERS_ENABLED}.
+     */
+    private static final boolean IS_PRESERVE_KNOWN_MQTT_HEADERS_ENABLED = resolveProperty(PRESERVE_KNOWN_MQTT_HEADERS_ENABLED);
 
     private static boolean resolveProperty(final String propertyName) {
         final String propertyValue = System.getProperty(propertyName, Boolean.TRUE.toString());
@@ -142,5 +153,16 @@ public final class FeatureToggle {
      */
     public static boolean isHistoricalApiAccessFeatureEnabled() {
         return IS_HISTORICAL_APIS_ENABLED;
+    }
+
+    /**
+     * Returns whether the known MQTT headers are preserved in outgoing message based on the system property
+     * {@value PRESERVE_KNOWN_MQTT_HEADERS_ENABLED}.
+     *
+     * @return whether the known MQTT headers are preserved or not.
+     * @since 3.4.0
+     */
+    public static boolean isPreserveKnownMqttHeadersFeatureEnabled() {
+        return IS_PRESERVE_KNOWN_MQTT_HEADERS_ENABLED;
     }
 }

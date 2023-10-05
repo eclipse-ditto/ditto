@@ -43,6 +43,7 @@ import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.hivemq.client.mqtt.MqttVersion;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
@@ -333,6 +334,50 @@ public final class MqttPublishToExternalMessageTransformerTest {
                 .isInstanceOf(MqttPublishTransformationException.class)
                 .hasMessageContaining(input)
                 .hasCauseInstanceOf(UnresolvedPlaceholderException.class);
+    }
+
+    @Test
+    public void transformMqtt5PublishWithKnownHeadersAsUserPropertiesReturnsExpectedTransformationSuccess() {
+        final var underTest =
+                MqttPublishToExternalMessageTransformer.newInstance(SOURCE_ADDRESS, SOURCE_WITHOUT_ENFORCEMENT);
+        final var userPropertyValue = "user property";
+
+        var userProperties = Stream.concat(
+                MqttHeader.getHeaderNames(MqttVersion.MQTT_5_0)
+                        .stream()
+                        .map(specialHeaderName -> Mqtt5UserProperty.of(specialHeaderName, userPropertyValue)),
+                Stream.of(
+                        Mqtt5UserProperty.of(DittoHeaderDefinition.CONTENT_TYPE.getKey(), userPropertyValue),
+                        Mqtt5UserProperty.of(DittoHeaderDefinition.REPLY_TO.getKey(), userPropertyValue),
+                        Mqtt5UserProperty.of(DittoHeaderDefinition.CORRELATION_ID.getKey(), userPropertyValue))
+        ).collect(Collectors.toList());
+        final var transformationResult = underTest.transform(GenericMqttPublish.ofMqtt5Publish(Mqtt5Publish.builder()
+                .topic(MQTT_TOPIC)
+                .qos(MQTT_QOS)
+                .retain(RETAIN)
+                .correlationData(ByteBufferUtils.fromUtf8String(CORRELATION_ID))
+                .responseTopic(RESPONSE_TOPIC)
+                .contentType(CONTENT_TYPE)
+                .userProperties(Mqtt5UserProperties.of(userProperties))
+                .payload(PAYLOAD)
+                .build()));
+
+        assertThat(transformationResult.getSuccessValueOrThrow())
+                .isEqualTo(ExternalMessageFactory.newExternalMessageBuilder(
+                                Stream.of(
+                                        Map.entry(MqttHeader.MQTT_TOPIC.getName(), MQTT_TOPIC.toString()),
+                                        Map.entry(MqttHeader.MQTT_QOS.getName(), String.valueOf(MQTT_QOS.getCode())),
+                                        Map.entry(MqttHeader.MQTT_RETAIN.getName(), String.valueOf(RETAIN)),
+                                        Map.entry(DittoHeaderDefinition.CORRELATION_ID.getKey(), CORRELATION_ID),
+                                        Map.entry(DittoHeaderDefinition.REPLY_TO.getKey(), RESPONSE_TOPIC.toString()),
+                                        Map.entry(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE)
+                                ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+                        .withTextAndBytes(ByteBufferUtils.toUtf8String(PAYLOAD), PAYLOAD)
+                        .withAuthorizationContext(AUTHORIZATION_CONTEXT)
+                        .withSourceAddress(SOURCE_ADDRESS)
+                        .withHeaderMapping(HEADER_MAPPING)
+                        .withPayloadMapping(PAYLOAD_MAPPING)
+                        .build());
     }
 
 }

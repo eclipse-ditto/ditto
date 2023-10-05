@@ -20,6 +20,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -41,6 +44,7 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publ
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.TransformationFailure;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.TransformationResult;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.TransformationSuccess;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.UserProperty;
 import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 
@@ -52,6 +56,13 @@ import com.hivemq.client.mqtt.MqttVersion;
  */
 @NotThreadSafe
 final class MqttPublishToExternalMessageTransformer {
+
+    private static final Set<String> KNOWN_MQTT_HEADER_NAMES = Stream.concat(
+            MqttHeader.getAllHeaderNames().stream(),
+            Stream.of(DittoHeaderDefinition.CONTENT_TYPE.getKey(),
+                    DittoHeaderDefinition.CORRELATION_ID.getKey(),
+                    DittoHeaderDefinition.REPLY_TO.getKey())
+    ).collect(Collectors.toSet());
 
     private final String sourceAddress;
     private final Source connectionSource;
@@ -174,6 +185,7 @@ final class MqttPublishToExternalMessageTransformer {
                 .ifPresent(contentType -> result.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), contentType));
 
         genericMqttPublish.userProperties()
+                .filter(userProperty -> !KNOWN_MQTT_HEADER_NAMES.contains(userProperty.name()))
                 .forEach(userProperty -> result.put(userProperty.name(), userProperty.value()));
 
         return result;

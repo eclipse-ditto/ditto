@@ -21,6 +21,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -28,6 +29,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.common.CharsetDeterminer;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.mqtt.IllegalMessageExpiryIntervalSecondsException;
 import org.eclipse.ditto.connectivity.model.mqtt.MessageExpiryInterval;
@@ -49,19 +51,14 @@ import com.hivemq.client.mqtt.datatypes.MqttTopic;
 @Immutable
 final class ExternalMessageToMqttPublishTransformer {
 
-    /*
-     * Actually it would be correct to also include MqttHeader.MQTT_TOPIC,
-     * MqttHeader.MQTT_QOS and MqttHeader.MQTT_RETAIN in the set of the known
-     * MQTT header names because they are already dedicated properties in the
-     * MQTT Publish.
-     * However, as the named headers were included in user properties
-     * up to the present, there might be users who rely on their presence.
-     * Excluding the headers from user properties would then break
-     * functionality.
-     */
-    private static final Set<String> KNOWN_MQTT_HEADER_NAMES = Set.of(DittoHeaderDefinition.CORRELATION_ID.getKey(),
-            ExternalMessage.REPLY_TO_HEADER,
-            ExternalMessage.CONTENT_TYPE_HEADER);
+    private static final Set<String> KNOWN_MQTT_HEADER_NAMES = Stream.concat(
+            Stream.of(DittoHeaderDefinition.CORRELATION_ID.getKey(),
+                ExternalMessage.REPLY_TO_HEADER,
+                ExternalMessage.CONTENT_TYPE_HEADER),
+            FeatureToggle.isPreserveKnownMqttHeadersFeatureEnabled() ?
+                Stream.empty() :
+                MqttHeader.getAllHeaderNames().stream())
+            .collect(Collectors.toSet());
 
     private ExternalMessageToMqttPublishTransformer() {
         throw new AssertionError();

@@ -290,7 +290,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
         testKit.expectNoMessage();
         final var modifyThing = commandForwarder.expectMsgClass(ModifyThing.class);
         assertThat(modifyThing.getDittoHeaders())
-                .doesNotContainKeys(MqttHeader.getHeaderNames(MqttVersion.MQTT_5_0).toArray(String[]::new));
+                .doesNotContainKeys(MqttHeader.getAllHeaderNames().toArray(String[]::new));
 
         underTest.tell(RetrieveConnectionMetrics.of(CONNECTION_ID, dittoHeadersWithCorrelationId), testKit.getRef());
 
