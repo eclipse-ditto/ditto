@@ -1,0 +1,330 @@
+# Copyright (c) 2023 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+apiVersion: k6.io/v1alpha1
+kind: K6
+metadata:
+  name: k6-ditto-benchmark-test
+  namespace: ditto-benchmark
+spec:
+  parallelism: 1
+  script:
+    configMap:
+      name: k6-test
+      file: k6-test.js
+  arguments: --include-system-env-vars
+  runner:
+    image: mostafamoradian/xk6-kafka:latest
+    resources:
+      requests:
+        cpu: 2
+        memory: 16000Mi
+    env:
+      - name: CREATE_DITTO_CONNECTIONS
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: CREATE_DITTO_CONNECTIONS
+      - name: DELETE_DITTO_CONNECTIONS
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: DELETE_DITTO_CONNECTIONS
+      - name: HTTP_PUSH_CONNECTION_CLIENT_COUNT
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: HTTP_PUSH_CONNECTION_CLIENT_COUNT
+      - name: HTTP_PUSH_CONNECTION_PARALLELISM
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: HTTP_PUSH_CONNECTION_PARALLELISM
+      - name: SCENARIOS_TO_RUN
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: SCENARIOS_TO_RUN
+      - name: AUTHORIZATION_HEADER_VALUE
+        valueFrom:
+          secretKeyRef:
+            name: k6-test-secret
+            key: AUTHORIZATION_HEADER_VALUE
+      - name: PRODUCE_THINGS_BATCH_SIZE
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: PRODUCE_THINGS_BATCH_SIZE
+      - name: BATCH_SIZE
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: BATCH_SIZE
+      - name: DELETE_THINGS
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: DELETE_THINGS
+      - name: LOG_REMAINING
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: LOG_REMAINING
+      - name: CREATE_THINGS
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: CREATE_THINGS
+      - name: SETUP_TIMEOUT
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: SETUP_TIMEOUT
+      - name: TEARDOWN_TIMEOUT
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: TEARDOWN_TIMEOUT
+      - name: THINGS_COUNT
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: THINGS_COUNT
+      - name: THINGS_START_INDEX
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: THINGS_START_INDEX
+      - name: MODIFY_THINGS_DURATION
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: MODIFY_THINGS_DURATION
+      - name: MODIFY_THINGS_PER_SECOND
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: MODIFY_THINGS_PER_SECOND
+      - name: MODIFY_THINGS_PRE_ALLOCATED_VUS
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: MODIFY_THINGS_PRE_ALLOCATED_VUS
+      - name: MODIFY_THINGS_MAX_VUS
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: MODIFY_THINGS_MAX_VUS
+      - name: MODIFY_THINGS_START_TIME
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: MODIFY_THINGS_START_TIME
+      - name: READ_THINGS_DURATION
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: READ_THINGS_DURATION
+      - name: READ_THINGS_PER_SECOND
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: READ_THINGS_PER_SECOND
+      - name: READ_THINGS_PRE_ALLOCATED_VUS
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: READ_THINGS_PRE_ALLOCATED_VUS
+      - name: READ_THINGS_MAX_VUS
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: READ_THINGS_MAX_VUS
+      - name: READ_THINGS_START_TIME
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: READ_THINGS_START_TIME
+      - name: SEARCH_THINGS_DURATION
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: SEARCH_THINGS_DURATION
+      - name: SEARCH_THINGS_PER_SECOND
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: SEARCH_THINGS_PER_SECOND
+      - name: SEARCH_THINGS_PRE_ALLOCATED_VUS
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: SEARCH_THINGS_PRE_ALLOCATED_VUS
+      - name: SEARCH_THINGS_MAX_VUS
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: SEARCH_THINGS_MAX_VUS
+      - name: SEARCH_THINGS_START_TIME
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: SEARCH_THINGS_START_TIME
+      - name: DEVICE_LIVE_MESSAGES_DURATION
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: DEVICE_LIVE_MESSAGES_DURATION
+      - name: DEVICE_LIVE_MESSAGES_PER_SECOND
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: DEVICE_LIVE_MESSAGES_PER_SECOND
+      - name: DEVICE_LIVE_MESSAGES_PRE_ALLOCATED_VUS
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: DEVICE_LIVE_MESSAGES_PRE_ALLOCATED_VUS
+      - name: DEVICE_LIVE_MESSAGES_MAX_VUS
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: DEVICE_LIVE_MESSAGES_MAX_VUS
+      - name: DEVICE_LIVE_MESSAGES_START_TIME
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: DEVICE_LIVE_MESSAGES_START_TIME
+      - name: KAFKA_BOOTSTRAP_SERVERS
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: KAFKA_BOOTSTRAP_SERVERS
+      - name: CREATE_UPDATE_THING_SOURCE_TOPIC
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: CREATE_UPDATE_THING_SOURCE_TOPIC
+      - name: CREATE_UPDATE_THING_SOURCE_TOPIC_PARTITIONS
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: CREATE_UPDATE_THING_SOURCE_TOPIC_PARTITIONS
+      - name: CREATE_UPDATE_THING_REPLY_TOPIC
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: CREATE_UPDATE_THING_REPLY_TOPIC
+      - name: CREATE_UPDATE_THING_REPLY_TOPIC_PARTITIONS
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: CREATE_UPDATE_THING_REPLY_TOPIC_PARTITIONS
+      - name: CREATE_UPDATE_THING_CONSUMER_GROUP_ID
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: CREATE_UPDATE_THING_CONSUMER_GROUP_ID
+      - name: CREATE_UPDATE_THING_CONSUMER_MAX_WAIT_TIME_S
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: CREATE_UPDATE_THING_CONSUMER_MAX_WAIT_TIME_S
+      - name: CREATE_UPDATE_THING_CONSUMER_SESSION_TIMEOUT_TIME_S
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: CREATE_UPDATE_THING_CONSUMER_SESSION_TIMEOUT_TIME_S
+      - name: KAFKA_PRODUCER_LOGGER_ENABLED
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: KAFKA_PRODUCER_LOGGER_ENABLED
+      - name: KAFKA_CONSUMER_LOGGER_ENABLED
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: KAFKA_CONSUMER_LOGGER_ENABLED
+      - name: KAFKA_CONNECTION_QOS
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: KAFKA_CONNECTION_QOS
+      - name: KAFKA_CONNECTION_CUSTOM_ACK
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: KAFKA_CONNECTION_CUSTOM_ACK
+      - name: KAFKA_CONNECTION_CONSUMER_CONSUMER_COUNT
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: KAFKA_CONNECTION_CONSUMER_CONSUMER_COUNT
+      - name: KAFKA_TARGET_CONNECTION_CLIENT_COUNT
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: KAFKA_TARGET_CONNECTION_CLIENT_COUNT
+      - name: KAFKA_SOURCE_CONNECTION_CLIENT_COUNT
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: KAFKA_SOURCE_CONNECTION_CLIENT_COUNT
+      - name: KAFKA_SOURCE_CONNECTION_PROCESSOR_POOL_SIZE
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: KAFKA_CONNECTION_PROCESSOR_POOL_SIZE
+      - name: DEVICE_NAMESPACE
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: DEVICE_NAMESPACE
+      - name: DEVICE_ID_TEMPLATE
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: DEVICE_ID_TEMPLATE
+      - name: DITTO_BASE_URI
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: DITTO_BASE_URI
+      - name: DITTO_AUTH_CONTEXT
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: DITTO_AUTH_CONTEXT
+      - name: PUSH_ENDPOINT_URI
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: PUSH_ENDPOINT_URI
+      - name: PUSH_ENDPOINT_LIVE_MESSAGE_PATH
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: PUSH_ENDPOINT_LIVE_MESSAGE_PATH
+      - name: PUSH_ENDPOINT_EVENTS_PATH
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: PUSH_ENDPOINT_EVENTS_PATH
+      - name: THINGS_WARMUP_MAX_DURATION
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: THINGS_WARMUP_MAX_DURATION
+      - name: THINGS_WARMUP_START_TIME
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: THINGS_WARMUP_START_TIME
