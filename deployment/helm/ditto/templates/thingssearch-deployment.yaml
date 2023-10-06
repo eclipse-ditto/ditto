@@ -161,7 +161,7 @@ spec:
             - name: CLUSTER_DOWNING_DOWN_ALL_WHEN_UNSTABLE
               value: "{{ .Values.global.cluster.downAllWhenUnstable }}"
             - name: REMOTE_MAX_FRAMESIZE
-              value: "{{ .Values.global.limits.akkaClusterMaxFramesize }}"
+              value: "{{ .Values.global.limits.clusterMaxFramesize }}"
             - name: LIMITS_THINGS_MAX_SIZE
               value: "{{ .Values.global.limits.thingsMaxSize }}"
             - name: LIMITS_POLICIES_MAX_SIZE

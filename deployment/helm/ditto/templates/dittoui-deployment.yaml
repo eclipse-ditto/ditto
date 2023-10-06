@@ -68,7 +68,7 @@ spec:
               cpu: {{ mulf .Values.dittoui.resources.cpu 1000 }}m
               memory: {{ .Values.dittoui.resources.memoryMi }}Mi
             limits:
-              # cpu: ""
+              # cpu: # don't limit
               memory: {{ .Values.dittoui.resources.memoryMi }}Mi
           volumeMounts:
             - name: dittoui-nginx-conf

@@ -93,7 +93,7 @@ spec:
               cpu: {{ mulf .Values.nginx.resources.cpu 1000 }}m
               memory: {{ .Values.nginx.resources.memoryMi }}Mi
             limits:
-              # cpu: ""
+              # cpu: # don't limit
               memory: {{ .Values.nginx.resources.memoryMi }}Mi
           volumeMounts:
             - name: nginx-conf

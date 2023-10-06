@@ -54,8 +54,8 @@ global:
     downAllWhenUnstable: "on"
   # limits contains information about limit configuration, e.g. towards max. entity and payload sizes
   limits:
-    # akkaClusterMaxFramesize the maximum serialized message size in the cluster, including header data, default: 256 KiB
-    akkaClusterMaxFramesize: 256k
+    # clusterMaxFramesize the maximum serialized message size in the cluster, including header data, default: 256 KiB
+    clusterMaxFramesize: 256k
     # thingsMaxSize the maximum possible size of "Thing" entities, default: 100k
     thingsMaxSize: 100k
     # policiesMaxSize the maximum possible size of "Policy" entities, default: 100k
@@ -1238,7 +1238,13 @@ connectivity:
       timerThreshold: 100ms
       # creditsPerBatch configures how many "cleanup credits" should be generated per "interval" as long as the
       creditsPerBatch: 5
-    # persistence holds configuration regarding (pekko) persistence of connections (event journal and snapshots)
+      # deleteFinalDeletedSnapshot configures whether for a deleted entity, the final snapshot (containing the
+      #  "deleted" information) should be deleted or not.
+      #  If the final snapshot is not deleted, re-creating the entity will cause that the recreated entity starts with
+      #  a revision number 1 higher than the previously deleted entity. If the final snapshot is deleted as well,
+      #  recreation of an entity with the same ID will lead to revisionNumber=1 after its recreation.
+      deleteFinalDeletedSnapshot: true
+    # persistence holds configuration regarding (akka) persistence of connections (event journal and snapshots)
     persistence:
       # keep closed, inactive connections for that amount of time in memory when no other use did happen:
       activityCheckInterval: 45m

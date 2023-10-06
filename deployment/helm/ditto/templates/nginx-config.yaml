@@ -24,7 +24,7 @@ metadata:
 {{ $labels | indent 4 }}
 data:
   {{ $path | replace "nginx-config/" ""}}: |-
-{{ $root.Files.Get $path | indent 4 }}
+{{ tpl ($root.Files.Get $path) $ | indent 4 }}
 ---
 {{- end -}}
 {{- end -}}
