@@ -1,9 +1,9 @@
 ---
 title: "Eclipse Ditto Benchmark"
-published: false
-permalink: 2023-08-23-ditto-benchmark.html
+published: true
+permalink: 2023-10-12-ditto-benchmark.html
 layout: post
-author: vvasilevbosch
+author: vasil_vasilev
 tags: [blog]
 hide_sidebar: true
 sidebar: false
@@ -11,23 +11,24 @@ toc: true
 
 ---
 
-This blog post is presenting a benchmark of Eclipse Ditto. It consists of a few scenarios to cover most important ditto functionalities, test the performance and provide a tuning guide. This benchmark is done via the [benchmark-tool](https://github.com/bosch-io/ditto/tree/master/benchmark-tool), based on [k6](https://k6.io/) load testing tool
+This blog post is presenting a benchmark of Eclipse Ditto. It consists of a few scenarios to cover most important ditto functionalities, test the performance and provide a tuning guide. This benchmark is done via the [benchmark-tool](https://github.com/eclipse/ditto/tree/master/benchmark-tool), based on [k6](https://k6.io/) load testing tool
 
 ## Setup and used tools
 
 - EKS cluster using [m5.4xlarge](https://aws.amazon.com/ec2/instance-types/m5/) nodes.
 
-- Deployed Ditto using [ditto's official helm chart](https://artifacthub.io/packages/helm/eclipse-iot/ditto).
+- Deployed Ditto using [ditto's official helm chart](https://github.com/eclipse-ditto/ditto/tree/master/deployment/helm), version 3.0.0, ditto version 3.3.5.
 
-- Deployed [bitnami]([Helm Charts to deploy Apache Kafka in Kubernetes](https://bitnami.com/stack/kafka/helm)) kafka helm chart.
+- Deployed [bitnami](https://bitnami.com/stack/kafka/helm) kafka helm chart, version 23.0.7, kafka version 3.4.0.
 
 - Deployed [MMock](https://github.com/jmartin82/mmock) instance - used as a 'dummy' receiver for ditto events and device commands.
 
 - [k6](https://k6.io/) - load testing tool, used to implement the benchmark scenarios.
 
-- Deployed [k6-operator]([GitHub - grafana/k6-operator: An operator for running distributed k6 tests.](https://github.com/grafana/k6-operator)) - Kubernetes operator for running distributed k6 tests.
+- Deployed [k6-operator](https://github.com/grafana/k6-operator) - Kubernetes operator for running distributed k6 tests.
 
-- [MongoDB](https://cloud.mongodb.com/) instance of type [M50](https://www.mongodb.com/docs/atlas/manage-clusters/#nvme-considerations)
+- [MongoDB](https://cloud.mongodb.com/) instance of type [M50](https://www.mongodb.
+  com/docs/atlas/manage-clusters/#nvme-considerations), version 5.0.21
 
 ## Scenarios
 
@@ -43,14 +44,14 @@ The benchmark test consists of 4 test scenarios that can be executed independent
 
 ## Preparation
 
-1 000 000 things are created with the [benchmark-tool](https://github.boschdevcloud.com/bosch-iot-things/ditto/tree/feature/ditto-benchmark-test) by sending Ditto protocol messages to the topic that a Ditto Kafka connection is configured to read from. This connection has an [implicitThingCreation mapper](https://eclipse.dev/ditto/connectivity-mapping.html#implicitthingcreation-mapper) configured.
+1 000 000 things are created with the [benchmark-tool](https://github.com/eclipse/ditto/tree/master/benchmark-tool) by sending Ditto protocol messages to the topic that a Ditto Kafka connection is configured to read from. This connection has an [implicitThingCreation mapper](connectivity-mapping.html#implicitthingcreation-mapper) configured.
 
 The thing template, configured in the connection mapper looks like the following:
 
 ```json
 {
   "thing": {
-    "thingId": "{{ header:device_id }}",
+    "thingId": "{%raw%}{{ header:device_id }}{%endraw%}",
     "_policy": {
       "entries": {
         "DEVICE": {
@@ -220,7 +221,7 @@ Example message:
 device_id:org.eclipse.ditto:test-thing-1,ditto_message:y!{"topic":"org.eclipse.ditto/test-thing-1/things/twin/commands/modify","path":"features/coffee-brewer/properties/brewed-coffees","value":"10"}
 ```
 
-In this scenario, connectivity service is used to create a ditto kafka connection, which reads messages from the provided topic, maps them to a ditto modify command and forwards it to things service. The things service then executes mongodb update query and generates the [thing modified event]([Things - Create-Or-Modify protocol specification • Eclipse Ditto™ • a digital twin framework](https://eclipse.dev/ditto/protocol-specification-things-create-or-modify.html#event)), which is pushed to the MMock service instance via an HTTP Push connection. Also, the kafka connection is configured with [qos=1]([Apache Kafka 2.x protocol binding • Eclipse Ditto™ • a digital twin framework](https://eclipse.dev/ditto/connectivity-protocol-bindings-kafka2.html#quality-of-service)), which means if there is no acknowledgement that the thing is persisted, the operation will be retried.
+In this scenario, connectivity service is used to create a ditto kafka connection, which reads messages from the provided topic, maps them to a ditto modify command and forwards it to things service. The things service then executes mongodb update query and generates the [thing modified event](protocol-specification-things-create-or-modify.html#event), which is pushed to the MMock service instance via an HTTP Push connection. Also, the kafka connection is configured with [qos=1](connectivity-protocol-bindings-kafka2.html#quality-of-service), which means if there is no acknowledgement that the thing is persisted, the operation will be retried.
 
 The HTTP Push connection looks like the following:
 
@@ -234,7 +235,7 @@ The HTTP Push connection looks like the following:
   "sources": [],
   "targets": [
     {
-      "address": "POST:/{{ thing:id }}",
+      "address": "POST:/{%raw%}{{ thing:id }}{%endraw%}",
       "topics": [
         "_/_/things/twin/events?filter=eq(topic:action,'modified')"
       ],
@@ -277,9 +278,9 @@ The kafka connection looks like the following:
         "nginx:ditto"
       ],
       "enforcement": {
-        "input": "{{ header:device_id }}",
+        "input": "{%raw%}{{ header:device_id }}{%endraw%}",
         "filters": [
-          "{{ entity:id }}"
+          "{%raw%}{{ entity:id }}{%endraw%}"
         ]
       },
       "headerMapping": {},
@@ -304,7 +305,7 @@ The kafka connection looks like the following:
     "ditto": {
       "mappingEngine": "Ditto",
       "options": {
-        "thingId": "{{ header:device_id }}"
+        "thingId": "{%raw%}{{ header:device_id }}{%endraw%}"
       },
       "incomingConditions": {
         "sampleCondition": "fn:filter(header:ditto_message,'exists')"
@@ -354,7 +355,7 @@ Scaling connectivity instance and changing our connection to have **clientCount*
 
 ### Device live messages(commands)
 
-This scenario executes HTTP POST requests to ditto's [live channel]([Protocol twin/live channel • Eclipse Ditto™ • a digital twin framework](https://eclipse.dev/ditto/protocol-twinlive.html#live)). An HTTP Push connection is subscribed for them and in turn pushes to a MMock instance that acts as a 'dummy' device receiver of live messages/commands and simply responds with pre-configured ditto response.
+This scenario executes HTTP POST requests to ditto's [live channel](protocol-twinlive.html#live). An HTTP Push connection is subscribed for them and in turn pushes to a MMock instance that acts as a 'dummy' device receiver of live messages/commands and simply responds with pre-configured ditto response.
 
 The HTTP POST request looks like the following:
 
@@ -367,12 +368,12 @@ MMock pre-configured response looks like the following:
 
 ```json
 {
-  "topic": "{{request.body.topic}}",
+  "topic": "{%raw%}{{request.body.topic}}{%endraw%}",
   "status": "200",
   "value": "ok",
-  "path": "{{request.body.path}}",
+  "path": "{%raw%}{{request.body.path}}{%endraw%}",
   "headers": {
-    "correlation-id": "{{request.body.headers.correlation-id}}",
+    "correlation-id": "{%raw%}{{request.body.headers.correlation-id}}{%endraw%}",
     "content-type": "application/json"
   }
 }
