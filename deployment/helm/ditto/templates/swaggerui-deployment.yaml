@@ -54,7 +54,7 @@ spec:
             - |
                mkdir -p /usr/share/nginx/html/openapi
                curl -sL https://raw.githubusercontent.com/eclipse/ditto/{{ .Chart.AppVersion }}/documentation/src/main/resources/openapi/ditto-api-2.yml -o /usr/share/nginx/html/openapi/ditto-api-2.yml
-               sed --in-place "\=- url: 'https://ditto.eclipseprojects.io/api/2'=d" /usr/share/nginx/html/openapi/ditto-api-2.yml
+               sed --in-place "\=- url: 'https://ditto.eclipseprojects.io/'=d" /usr/share/nginx/html/openapi/ditto-api-2.yml
                sed --in-place "/description: online Ditto Sandbox/d" /usr/share/nginx/html/openapi/ditto-api-2.yml
                echo "removing Google auth from ditto-api-2.yml"
                sed --in-place "/- Google:/,+1d" /usr/share/nginx/html/openapi/ditto-api-2.yml
@@ -73,7 +73,7 @@ spec:
                sed --in-place "/- DevOpsBearer: \[]/d" /usr/share/nginx/html/openapi/ditto-api-2.yml
                sed --in-place "/    DevOpsBearer:/,+4d" /usr/share/nginx/html/openapi/ditto-api-2.yml
                {{- end }}
-               sed --in-place "s=- url: /api/2=- url: {{ .Values.global.proxyPart }}/api/2=g" /usr/share/nginx/html/openapi/ditto-api-2.yml
+               sed --in-place "s=- url: /=- url: {{ .Values.global.proxyPart }}/=g" /usr/share/nginx/html/openapi/ditto-api-2.yml
                cp -rv /usr/share/nginx/html/openapi/. /init-config/
           volumeMounts:
             - name: swagger-ui-init-config
@@ -104,7 +104,7 @@ spec:
               cpu: {{ mulf .Values.swaggerui.resources.cpu 1000 }}m
               memory: {{ .Values.swaggerui.resources.memoryMi }}Mi
             limits:
-              # cpu: ""
+              # cpu: # don't limit
               memory: {{ .Values.swaggerui.resources.memoryMi }}Mi
           volumeMounts:
             - name: swagger-ui-init-config

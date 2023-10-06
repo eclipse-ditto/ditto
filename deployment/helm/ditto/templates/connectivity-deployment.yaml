@@ -164,7 +164,7 @@ spec:
               value: "{{ .Values.global.prometheus.port }}"
             {{- end }}
             - name: REMOTE_MAX_FRAMESIZE
-              value: "{{ .Values.global.limits.akkaClusterMaxFramesize }}"
+              value: "{{ .Values.global.limits.clusterMaxFramesize }}"
             - name: LIMITS_THINGS_MAX_SIZE
               value: "{{ .Values.global.limits.thingsMaxSize }}"
             - name: LIMITS_POLICIES_MAX_SIZE
@@ -211,6 +211,8 @@ spec:
               value: "{{ .Values.connectivity.config.cleanup.timerThreshold }}"
             - name: CLEANUP_CREDITS_PER_BATCH
               value: "{{ .Values.connectivity.config.cleanup.creditsPerBatch }}"
+            - name: CLEANUP_DELETE_FINAL_DELETED_SNAPSHOT
+              value: "{{ .Values.connectivity.config.cleanup.deleteFinalDeletedSnapshot }}"
             - name: CONNECTION_SNAPSHOT_INTERVAL
               value: "{{ .Values.connectivity.config.persistence.snapshots.interval }}"
             - name: CONNECTION_SNAPSHOT_THRESHOLD

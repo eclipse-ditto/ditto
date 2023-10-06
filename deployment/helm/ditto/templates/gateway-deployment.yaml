@@ -161,7 +161,7 @@ spec:
               value: "{{ .Values.global.prometheus.port }}"
             {{- end }}
             - name: REMOTE_MAX_FRAMESIZE
-              value: "{{ .Values.global.limits.akkaClusterMaxFramesize }}"
+              value: "{{ .Values.global.limits.clusterMaxFramesize }}"
             - name: LIMITS_THINGS_MAX_SIZE
               value: "{{ .Values.global.limits.thingsMaxSize }}"
             - name: LIMITS_POLICIES_MAX_SIZE

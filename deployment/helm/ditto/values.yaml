@@ -54,8 +54,8 @@ global:
     downAllWhenUnstable: "on"
   # limits contains information about limit configuration, e.g. towards max. entity and payload sizes
   limits:
-    # akkaClusterMaxFramesize the maximum serialized message size in the cluster, including header data, default: 256 KiB
-    akkaClusterMaxFramesize: 256k
+    # clusterMaxFramesize the maximum serialized message size in the cluster, including header data, default: 256 KiB
+    clusterMaxFramesize: 256k
     # thingsMaxSize the maximum possible size of "Thing" entities, default: 100k
     thingsMaxSize: 100k
     # policiesMaxSize the maximum possible size of "Policy" entities, default: 100k
