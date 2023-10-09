@@ -16,6 +16,7 @@ import static org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants.
 
 import java.time.Duration;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
@@ -170,48 +171,56 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
         final DittoDiagnosticLoggingAdapter logger = log.withCorrelationId(cmd);
         logger.info("Retrieving all connection IDs ...");
         try {
-            final Source<String, NotUsed> idsFromSnapshots = getIdsFromSnapshotsSource()
+            final Source<String, NotUsed> idsFromSnapshots = persistenceIdsFromSnapshotSourceSupplier.get()
+                    .via(Flow.fromFunction(result -> {
+                        logger.debug("getIdsFromSnapshotsSource element: <{}>", result);
+                        return result;
+                    }))
+                    .map(this::extractPersistenceIdFromDocument)
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
                     .via(Flow.fromFunction(result -> {
                         logger.debug("idsFromSnapshots element: <{}>", result);
                         return result;
                     }));
             final Source<String, NotUsed> idsFromJournal = persistenceIdsFromJournalSourceSupplier.get()
+                    .via(Flow.fromFunction(result -> {
+                        logger.debug("idsFromJournalSource element: <{}>", result);
+                        return result;
+                    }))
                     .filter(ConnectionIdsRetrievalActor::isNotDeleted)
-                    .filter(ConnectionIdsRetrievalActor::isNotEmptyEvent)
                     .map(document -> document.getString(MongoReadJournal.J_EVENT_PID))
                     .via(Flow.fromFunction(result -> {
                         logger.debug("idsFromJournal element: <{}>", result);
                         return result;
                     }));
 
-            final CompletionStage<CommandResponse> retrieveAllConnectionIdsResponse =
-                    persistenceIdsFromJournalSourceSupplier.get()
-                            .filter(ConnectionIdsRetrievalActor::isDeleted)
-                            .map(document -> document.getString(MongoReadJournal.J_EVENT_PID))
+            final CompletionStage<List<String>> deletedPidsStage = persistenceIdsFromJournalSourceSupplier.get()
+                    .filter(ConnectionIdsRetrievalActor::isDeleted)
+                    .map(document -> document.getString(MongoReadJournal.J_EVENT_PID))
+                    .runWith(Sink.seq(), materializer);
+
+            final CompletionStage<CommandResponse> retrieveAllConnectionIdsResponse = deletedPidsStage
+                    .thenApply(deletedIdsFromJournal -> {
+                        logger.debug("deletedIdsFromJournal element: <{}>", deletedIdsFromJournal);
+                        return deletedIdsFromJournal;
+                    })
+                    .thenCompose(deletedIdsFromJournal -> idsFromSnapshots.concat(idsFromJournal)
+                            .filter(pid -> !deletedIdsFromJournal.contains(pid))
+                            .filter(pid -> pid.startsWith(ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX))
+                            .map(pid -> pid.substring(
+                                    ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX.length()))
                             .runWith(Sink.seq(), materializer)
-                            .thenCompose(deletedIdsFromJournal -> idsFromSnapshots.concat(idsFromJournal)
-                                    .filter(pid -> !deletedIdsFromJournal.contains(pid))
-                                    .filter(pid -> pid.startsWith(ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX))
-                                    .map(pid -> pid.substring(
-                                            ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX.length()))
-                                    .runWith(Sink.seq(), materializer)
-                            )
-                            .thenApply(idList -> idList.stream().sorted().toList())
-                            .thenApply(LinkedHashSet::new)
-                            .thenApply(ids -> buildResponse(cmd, ids))
-                            .exceptionally(throwable -> buildErrorResponse(throwable, cmd.getDittoHeaders()));
+                    )
+                    .thenApply(idList -> idList.stream().sorted().toList())
+                    .thenApply(LinkedHashSet::new)
+                    .thenApply(ids -> buildResponse(cmd, ids))
+                    .exceptionally(throwable -> buildErrorResponse(throwable, cmd.getDittoHeaders()));
             Patterns.pipe(retrieveAllConnectionIdsResponse, getContext().dispatcher()).to(getSender());
         } catch (final Exception e) {
             log.info("Failed to load persistence ids from journal/snapshots.", e);
             getSender().tell(buildErrorResponse(e, cmd.getDittoHeaders()), getSelf());
         }
-    }
-
-    private Source<String, NotUsed> getIdsFromSnapshotsSource() {
-        return persistenceIdsFromSnapshotSourceSupplier.get()
-                .map(this::extractPersistenceIdFromDocument)
-                .filter(Optional::isPresent)
-                .map(Optional::get);
     }
 
     @SuppressWarnings({"rawtypes", "java:S3740"})
