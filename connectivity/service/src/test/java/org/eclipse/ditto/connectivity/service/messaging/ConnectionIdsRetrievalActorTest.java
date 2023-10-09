@@ -24,27 +24,26 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.bson.Document;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.model.ConnectivityInternalErrorException;
-import org.eclipse.ditto.connectivity.service.config.ConnectionIdsRetrievalConfig;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceActor;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityErrorResponse;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveAllConnectionIds;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveAllConnectionIdsResponse;
-import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
-import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.testkit.javadsl.TestKit;
+import org.bson.Document;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.connectivity.model.ConnectivityInternalErrorException;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityErrorResponse;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveAllConnectionIds;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveAllConnectionIdsResponse;
+import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
+import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
+import org.eclipse.ditto.connectivity.service.config.ConnectionIdsRetrievalConfig;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceActor;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 /**
  * Tests {@link ConnectionIdsRetrievalActor}.
@@ -125,7 +124,7 @@ public final class ConnectionIdsRetrievalActorTest {
     }
 
     private static Document doc(final String id) {
-        return new Document("_id", pid(id));
+        return new Document("_id", pid(id)).append(MongoReadJournal.LIFECYCLE, "ACTIVE");
     }
 
     private static String pid(final String id) {
