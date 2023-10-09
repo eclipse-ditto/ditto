@@ -1,7 +1,7 @@
 ---
 title: "Eclipse Ditto Benchmark"
 published: true
-permalink: 2023-10-12-ditto-benchmark.html
+permalink: 2023-10-09-ditto-benchmark.html
 layout: post
 author: vasil_vasilev
 tags: [blog]
