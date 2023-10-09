@@ -87,60 +87,6 @@ abstract class DittoDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAd
   /** Removes the correlation ID from the MDC for all subsequent log operations. */
   def discardCorrelationId(): Unit
 
-  /** Sets the specified diagnostic context value as identified by the specified key to this logger's MDC for all
-   * subsequent log operations until it gets manually discarded.
-   * <p>
-   * Providing `null` as value has the same effect as calling [[MdcEntrySettable removeMdcEntry(CharSequence)]] with
-   * the specified key.
-   * </p>
-   *
-   * @param key   the key which identifies the diagnostic value.
-   * @param value the diagnostic value which is identified by `key`.
-   * @return this logger instance to allow method chaining.
-   * @throws NullPointerException     if `key` is `null`.
-   * @throws IllegalArgumentException if `key` is empty.
-   */
-  def setMdcEntry(key: CharSequence, @Nullable value: CharSequence): DittoDiagnosticLoggingAdapter
-
-  /** Sets the specified diagnostic context values as identified by the specified keys to this logger's MDC for all
-   * subsequent log operations until it gets manually discarded.
-   * <p>
-   * Providing `null` for any value has the same effect as calling [[MdcEntrySettable removeMdcEntry(CharSequence)]]
-   * with its associated key.
-   * </p>
-   *
-   * @param k1 the first key which identifies the diagnostic value `v1`.
-   * @param v1 the first diagnostic value which is identified by `k1`.
-   * @param k2 the second key which identifies the diagnostic value `v2`.
-   * @param v2 the second diagnostic value which is identified by `k2`.
-   * @return this logger instance to allow method chaining.
-   * @throws NullPointerException     if `k1` or `k2` is `null`.
-   * @throws IllegalArgumentException if `k1` or `k2` is empty.
-   */
-  def setMdcEntries(k1: CharSequence, @Nullable v1: CharSequence,
-                    k2: CharSequence, @Nullable v2: CharSequence): DittoDiagnosticLoggingAdapter
-
-  /** Sets the specified diagnostic context values as identified by the specified keys to this logger's MDC for all
-   * subsequent log operations until it gets manually discarded.
-   * <p>
-   * Providing `null` for any value has the same effect as calling [[MdcEntrySettable removeMdcEntry(CharSequence)}]]
-   * with its associated key.
-   * </p>
-   *
-   * @param k1 the first key which identifies the diagnostic value `v1`.
-   * @param v1 the first diagnostic value which is identified by `k1`.
-   * @param k2 the second key which identifies the diagnostic value `v2`.
-   * @param v2 the second diagnostic value which is identified by `k2`.
-   * @param k3 the third key which identifies the diagnostic value `v3`.
-   * @param v3 the third diagnostic value which is identified by `k3`.
-   * @return this logger instance to allow method chaining.
-   * @throws NullPointerException     if `k1`, `k2` or `k3` is `null`.
-   * @throws IllegalArgumentException if `k1`, `k2` or `k3` is empty.
-   */
-  def setMdcEntries(k1: CharSequence, @Nullable v1: CharSequence,
-                    k2: CharSequence, @Nullable v2: CharSequence,
-                    k3: CharSequence, @Nullable v3: CharSequence): DittoDiagnosticLoggingAdapter
-
   /** Removes the currently set diagnostic value from the MDC which is identified by the specified key.
    *
    * @param key the key which identifies the value to be discarded.
