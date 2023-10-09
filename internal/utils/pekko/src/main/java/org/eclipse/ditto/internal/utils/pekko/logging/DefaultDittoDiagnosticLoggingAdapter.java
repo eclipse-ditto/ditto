@@ -20,10 +20,10 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.apache.pekko.event.DiagnosticLoggingAdapter;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 
+import org.apache.pekko.event.DiagnosticLoggingAdapter;
 import scala.collection.immutable.Seq;
 
 /**
@@ -34,10 +34,15 @@ import scala.collection.immutable.Seq;
 final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingAdapter {
 
     private final AbstractDiagnosticLoggingAdapter loggingAdapter;
+    private final AbstractDiagnosticLoggingAdapter autoDiscardingLoggingAdapter;
+    private AbstractDiagnosticLoggingAdapter currentLogger;
 
-    private DefaultDittoDiagnosticLoggingAdapter(final AbstractDiagnosticLoggingAdapter loggingAdapter) {
+    private DefaultDittoDiagnosticLoggingAdapter(final AbstractDiagnosticLoggingAdapter loggingAdapter,
+            final AbstractDiagnosticLoggingAdapter autoDiscardingLoggingAdapter) {
 
         this.loggingAdapter = loggingAdapter;
+        this.autoDiscardingLoggingAdapter = autoDiscardingLoggingAdapter;
+        currentLogger = autoDiscardingLoggingAdapter;
     }
 
     /**
@@ -55,12 +60,14 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
         final DefaultDiagnosticLoggingAdapter loggingAdapter =
                 DefaultDiagnosticLoggingAdapter.of(diagnosticLoggingAdapter, loggerName);
 
-        return new DefaultDittoDiagnosticLoggingAdapter(loggingAdapter);
+        return new DefaultDittoDiagnosticLoggingAdapter(loggingAdapter,
+                AutoDiscardingDiagnosticLoggingAdapter.of(loggingAdapter));
     }
 
     @Override
     public DefaultDittoDiagnosticLoggingAdapter withCorrelationId(@Nullable final CharSequence correlationId) {
-        loggingAdapter.putMdcEntry(CommonMdcEntryKey.CORRELATION_ID, correlationId);
+        currentLogger = autoDiscardingLoggingAdapter;
+        currentLogger.putMdcEntry(CommonMdcEntryKey.CORRELATION_ID, correlationId);
         return this;
     }
 
@@ -89,11 +96,13 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
             @Nullable final CharSequence value) {
 
         putToMdcOfAllLoggerStates(key, value);
+        currentLogger = loggingAdapter;
         return this;
     }
 
     private void putToMdcOfAllLoggerStates(final CharSequence key, @Nullable final CharSequence value) {
         loggingAdapter.putMdcEntry(key, value);
+        autoDiscardingLoggingAdapter.putMdcEntry(key, value);
     }
 
     @Override
@@ -102,6 +111,7 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
 
         putToMdcOfAllLoggerStates(k1, v1);
         putToMdcOfAllLoggerStates(k2, v2);
+        currentLogger = loggingAdapter;
         return this;
     }
 
@@ -113,23 +123,27 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
         putToMdcOfAllLoggerStates(k1, v1);
         putToMdcOfAllLoggerStates(k2, v2);
         putToMdcOfAllLoggerStates(k3, v3);
+        currentLogger = loggingAdapter;
         return this;
     }
 
     @Override
     public void discardMdcEntry(final CharSequence key) {
         removeFromMdcOfAllLoggerStates(key);
+        currentLogger = loggingAdapter;
     }
 
     private void removeFromMdcOfAllLoggerStates(final CharSequence key) {
         loggingAdapter.removeMdcEntry(key);
+        autoDiscardingLoggingAdapter.removeMdcEntry(key);
     }
 
     @Override
     public DefaultDittoDiagnosticLoggingAdapter putMdcEntry(final CharSequence key,
             @Nullable final CharSequence value) {
 
-        loggingAdapter.putMdcEntry(key, value);
+        currentLogger = loggingAdapter;
+        currentLogger.putMdcEntry(key, value);
         return this;
     }
 
@@ -137,7 +151,8 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
     public DefaultDittoDiagnosticLoggingAdapter withMdcEntry(final CharSequence key,
             @Nullable final CharSequence value) {
 
-        loggingAdapter.putMdcEntry(key, value);
+        currentLogger = autoDiscardingLoggingAdapter;
+        currentLogger.putMdcEntry(key, value);
         return this;
     }
 
@@ -145,8 +160,9 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
     public DefaultDittoDiagnosticLoggingAdapter withMdcEntries(final CharSequence k1, @Nullable final CharSequence v1,
             final CharSequence k2, @Nullable final CharSequence v2) {
 
-        loggingAdapter.putMdcEntry(k1, v1);
-        loggingAdapter.putMdcEntry(k2, v2);
+        currentLogger = autoDiscardingLoggingAdapter;
+        currentLogger.putMdcEntry(k1, v1);
+        currentLogger.putMdcEntry(k2, v2);
         return this;
     }
 
@@ -155,9 +171,10 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
             final CharSequence k2, @Nullable final CharSequence v2,
             final CharSequence k3, @Nullable final CharSequence v3) {
 
-        loggingAdapter.putMdcEntry(k1, v1);
-        loggingAdapter.putMdcEntry(k2, v2);
-        loggingAdapter.putMdcEntry(k3, v3);
+        currentLogger = autoDiscardingLoggingAdapter;
+        currentLogger.putMdcEntry(k1, v1);
+        currentLogger.putMdcEntry(k2, v2);
+        currentLogger.putMdcEntry(k3, v3);
         return this;
     }
 
@@ -165,9 +182,10 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
     public DittoDiagnosticLoggingAdapter withMdcEntry(final MdcEntry mdcEntry, final MdcEntry... furtherMdcEntries) {
         checkNotNull(furtherMdcEntries, "furtherMdcEntries");
 
-        loggingAdapter.putMdcEntry(mdcEntry.getKey(), mdcEntry.getValueOrNull());
+        currentLogger = autoDiscardingLoggingAdapter;
+        currentLogger.putMdcEntry(mdcEntry.getKey(), mdcEntry.getValueOrNull());
         for (final MdcEntry furtherMdcEntry : furtherMdcEntries) {
-            loggingAdapter.putMdcEntry(furtherMdcEntry.getKey(), furtherMdcEntry.getValueOrNull());
+            currentLogger.putMdcEntry(furtherMdcEntry.getKey(), furtherMdcEntry.getValueOrNull());
         }
         return this;
     }
@@ -176,7 +194,8 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
     public DefaultDittoDiagnosticLoggingAdapter withMdcEntries(final Collection<MdcEntry> mdcEntries) {
         checkNotNull(mdcEntries, "mdcEntries");
 
-        mdcEntries.forEach(mdcEntry -> loggingAdapter.putMdcEntry(mdcEntry.getKey(), mdcEntry.getValueOrNull()));
+        currentLogger = autoDiscardingLoggingAdapter;
+        mdcEntries.forEach(mdcEntry -> currentLogger.putMdcEntry(mdcEntry.getKey(), mdcEntry.getValueOrNull()));
         return this;
     }
 
@@ -186,97 +205,99 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
 
         checkNotNull(furtherMdcEntries, "furtherMdcEntries");
 
-        loggingAdapter.putMdcEntry(mdcEntry.getKey(), mdcEntry.getValueOrNull());
-        furtherMdcEntries.foreach(furtherMdcEntry -> loggingAdapter.putMdcEntry(furtherMdcEntry.getKey(),
+        currentLogger = autoDiscardingLoggingAdapter;
+        currentLogger.putMdcEntry(mdcEntry.getKey(), mdcEntry.getValueOrNull());
+        furtherMdcEntries.foreach(furtherMdcEntry -> currentLogger.putMdcEntry(furtherMdcEntry.getKey(),
                 furtherMdcEntry.getValueOrNull()));
         return this;
     }
 
     @Override
     public DefaultDittoDiagnosticLoggingAdapter removeMdcEntry(final CharSequence key) {
-        loggingAdapter.removeMdcEntry(key);
+        currentLogger.removeMdcEntry(key);
         return this;
     }
 
     @Override
     public DefaultDittoDiagnosticLoggingAdapter discardMdcEntries() {
-        loggingAdapter.discardMdcEntries();
+        currentLogger.discardMdcEntries();
+        currentLogger = autoDiscardingLoggingAdapter;
         return this;
     }
 
     @Override
     public String getName() {
-        return loggingAdapter.getName();
+        return currentLogger.getName();
     }
 
     @Override
     public boolean isErrorEnabled() {
-        return loggingAdapter.isErrorEnabled();
+        return currentLogger.isErrorEnabled();
     }
 
     @Override
     public boolean isWarningEnabled() {
-        return loggingAdapter.isWarningEnabled();
+        return currentLogger.isWarningEnabled();
     }
 
     @Override
     public boolean isInfoEnabled() {
-        return loggingAdapter.isInfoEnabled();
+        return currentLogger.isInfoEnabled();
     }
 
     @Override
     public boolean isDebugEnabled() {
-        return loggingAdapter.isDebugEnabled();
+        return currentLogger.isDebugEnabled();
     }
 
     @Override
     public void notifyError(final String message) {
-        loggingAdapter.notifyError(message);
+        currentLogger.notifyError(message);
     }
 
     @Override
     public void notifyError(final Throwable cause, final String message) {
-        loggingAdapter.notifyError(cause, message);
+        currentLogger.notifyError(cause, message);
     }
 
     @Override
     public void notifyWarning(final String message) {
-        loggingAdapter.notifyWarning(message);
+        currentLogger.notifyWarning(message);
     }
 
     @Override
     public void notifyInfo(final String message) {
-        loggingAdapter.notifyInfo(message);
+        currentLogger.notifyInfo(message);
     }
 
     @Override
     public void notifyDebug(final String message) {
-        loggingAdapter.notifyDebug(message);
+        currentLogger.notifyDebug(message);
     }
 
     @Override
     public scala.collection.immutable.Map<String, Object> mdc() {
-        return loggingAdapter.mdc();
+        return currentLogger.mdc();
     }
 
     @Override
     public void mdc(final scala.collection.immutable.Map<String, Object> mdc) {
-        loggingAdapter.mdc(mdc);
+        currentLogger.mdc(mdc);
     }
 
     @Override
     public Map<String, Object> getMDC() {
-        return loggingAdapter.getMDC();
+        return currentLogger.getMDC();
     }
 
     @Override
     public void setMDC(final Map<String, Object> jMdc) {
-        loggingAdapter.setMDC(jMdc);
+        currentLogger.setMDC(jMdc);
     }
 
     @Override
     public void clearMDC() {
-        loggingAdapter.clearMDC();
+        currentLogger.clearMDC();
     }
 
 }

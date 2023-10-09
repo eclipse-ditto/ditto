@@ -15,24 +15,13 @@ package org.eclipse.ditto.connectivity.service.messaging;
 import static org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants.CONNECTION_ID_RETRIEVAL_ACTOR_NAME;
 
 import java.time.Duration;
-import java.util.LinkedHashSet;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.AbstractActor;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.cluster.pubsub.DistributedPubSub;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.apache.pekko.pattern.Patterns;
-import org.apache.pekko.stream.Materializer;
-import org.apache.pekko.stream.javadsl.Flow;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
 import org.bson.Document;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -47,11 +36,22 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveAllCo
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
 import org.eclipse.ditto.connectivity.service.config.ConnectionIdsRetrievalConfig;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceActor;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.EmptyEvent;
+
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.pubsub.DistributedPubSub;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Actor handling messages related to connections e.g. retrieving all connections ids.
@@ -167,22 +167,14 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
     }
 
     private void getAllConnectionIDs(final WithDittoHeaders cmd) {
-        final DittoDiagnosticLoggingAdapter logger = log.withCorrelationId(cmd);
-        logger.info("Retrieving all connection IDs ...");
+        log.withCorrelationId(cmd)
+                .info("Retrieving all connection IDs ...");
         try {
-            final Source<String, NotUsed> idsFromSnapshots = getIdsFromSnapshotsSource()
-                    .via(Flow.fromFunction(result -> {
-                        logger.debug("idsFromSnapshots element: <{}>", result);
-                        return result;
-                    }));
+            final Source<String, NotUsed> idsFromSnapshots = getIdsFromSnapshotsSource();
             final Source<String, NotUsed> idsFromJournal = persistenceIdsFromJournalSourceSupplier.get()
                     .filter(ConnectionIdsRetrievalActor::isNotDeleted)
                     .filter(ConnectionIdsRetrievalActor::isNotEmptyEvent)
-                    .map(document -> document.getString(MongoReadJournal.J_EVENT_PID))
-                    .via(Flow.fromFunction(result -> {
-                        logger.debug("idsFromJournal element: <{}>", result);
-                        return result;
-                    }));
+                    .map(document -> document.getString(MongoReadJournal.J_EVENT_PID));
 
             final CompletionStage<CommandResponse> retrieveAllConnectionIdsResponse =
                     persistenceIdsFromJournalSourceSupplier.get()
@@ -194,10 +186,8 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
                                     .filter(pid -> pid.startsWith(ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX))
                                     .map(pid -> pid.substring(
                                             ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX.length()))
-                                    .runWith(Sink.seq(), materializer)
-                            )
-                            .thenApply(idList -> idList.stream().sorted().toList())
-                            .thenApply(LinkedHashSet::new)
+                                    .runWith(Sink.seq(), materializer))
+                            .thenApply(HashSet::new)
                             .thenApply(ids -> buildResponse(cmd, ids))
                             .exceptionally(throwable -> buildErrorResponse(throwable, cmd.getDittoHeaders()));
             Patterns.pipe(retrieveAllConnectionIdsResponse, getContext().dispatcher()).to(getSender());
