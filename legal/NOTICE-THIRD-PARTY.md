@@ -170,14 +170,14 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/jnr/jnr-x86asm/1.0.2/jnr-x86asm-1.0.2-sources.jar
 
 
-## zstd-jni (1.5.0-2)
+## zstd-jni (1.5.5-1)
 
-* Maven coordinates: `com.github.luben:zstd-jni:1.5.0-2`
+* Maven coordinates: `com.github.luben:zstd-jni:1.5.5-1`
 * License: [BSD-2-Clause](https://spdx.org/licenses/BSD-2-Clause.html)
 * Project: https://github.com/luben/zstd-jni
 * Sources: 
    * declared as SCM: https://github.com/luben/zstd-jni
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/luben/zstd-jni/1.5.0-2/zstd-jni-1.5.0-2-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/luben/zstd-jni/1.5.5-1/zstd-jni-1.5.5-1-sources.jar
 
 
 ## pekko-rabbitmq (7.0.0)
@@ -230,24 +230,24 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/hierynomus/asn-one/0.5.0/asn-one-0.5.0-sources.jar
 
 
-## HiveMQ MQTT Client (1.3.0)
+## HiveMQ MQTT Client (1.3.3)
 
-* Maven coordinates: `com.hivemq:hivemq-mqtt-client:1.3.0`
+* Maven coordinates: `com.hivemq:hivemq-mqtt-client:1.3.3`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/hivemq/hivemq-mqtt-client
 * Sources: 
    * declared as SCM: https://github.com/hivemq/hivemq-mqtt-client
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/hivemq/hivemq-mqtt-client/1.3.0/hivemq-mqtt-client-1.3.0-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/hivemq/hivemq-mqtt-client/1.3.3/hivemq-mqtt-client-1.3.3-sources.jar
 
 
-## RabbitMQ Java Client (5.14.2)
+## RabbitMQ Java Client (5.14.3)
 
-* Maven coordinates: `com.rabbitmq:amqp-client:5.14.2`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html), [GPL-2.0](https://spdx.org/licenses/GPL-2.0.html), [MPL 2.0](https://spdx.org/licenses/MPL 2.0.html)
+* Maven coordinates: `com.rabbitmq:amqp-client:5.14.3`
+* License: [AL 2.0](https://spdx.org/licenses/AL 2.0.html), [GPL-2.0](https://spdx.org/licenses/GPL-2.0.html), [MPL 2.0](https://spdx.org/licenses/MPL 2.0.html)
 * Project: https://www.rabbitmq.com
 * Sources: 
    * declared as SCM: https://github.com/rabbitmq/rabbitmq-java-client
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/rabbitmq/amqp-client/5.14.2/amqp-client-5.14.2-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/rabbitmq/amqp-client/5.14.3/amqp-client-5.14.3-sources.jar
 
 
 ## okhttp (4.9.3)
@@ -370,64 +370,64 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=io/jsonwebtoken/jjwt-impl/0.11.5/jjwt-impl-0.11.5-sources.jar
 
 
-## kamon-core (2.6.4)
+## kamon-core (2.6.5)
 
-* Maven coordinates: `io.kamon:kamon-core_2.13:2.6.4`
+* Maven coordinates: `io.kamon:kamon-core_2.13:2.6.5`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-core_2.13/2.6.4/kamon-core_2.13-2.6.4-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-core_2.13/2.6.5/kamon-core_2.13-2.6.5-sources.jar
 
 
-## kamon-executors (2.6.4)
+## kamon-executors (2.6.5)
 
-* Maven coordinates: `io.kamon:kamon-executors_2.13:2.6.4`
+* Maven coordinates: `io.kamon:kamon-executors_2.13:2.6.5`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-executors_2.13/2.6.4/kamon-executors_2.13-2.6.4-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-executors_2.13/2.6.5/kamon-executors_2.13-2.6.5-sources.jar
 
 
-## kamon-instrumentation-common (2.6.4)
+## kamon-instrumentation-common (2.6.5)
 
-* Maven coordinates: `io.kamon:kamon-instrumentation-common_2.13:2.6.4`
+* Maven coordinates: `io.kamon:kamon-instrumentation-common_2.13:2.6.5`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-instrumentation-common_2.13/2.6.4/kamon-instrumentation-common_2.13-2.6.4-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-instrumentation-common_2.13/2.6.5/kamon-instrumentation-common_2.13-2.6.5-sources.jar
 
 
-## kamon-opentelemetry (2.6.4)
+## kamon-opentelemetry (2.6.5)
 
-* Maven coordinates: `io.kamon:kamon-opentelemetry_2.13:2.6.4`
+* Maven coordinates: `io.kamon:kamon-opentelemetry_2.13:2.6.5`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-opentelemetry_2.13/2.6.4/kamon-opentelemetry_2.13-2.6.4-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-opentelemetry_2.13/2.6.5/kamon-opentelemetry_2.13-2.6.5-sources.jar
 
 
-## kamon-prometheus (2.6.4)
+## kamon-prometheus (2.6.5)
 
-* Maven coordinates: `io.kamon:kamon-prometheus_2.13:2.6.4`
+* Maven coordinates: `io.kamon:kamon-prometheus_2.13:2.6.5`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-prometheus_2.13/2.6.4/kamon-prometheus_2.13-2.6.4-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-prometheus_2.13/2.6.5/kamon-prometheus_2.13-2.6.5-sources.jar
 
 
-## kamon-system-metrics (2.6.4)
+## kamon-system-metrics (2.6.5)
 
-* Maven coordinates: `io.kamon:kamon-system-metrics_2.13:2.6.4`
+* Maven coordinates: `io.kamon:kamon-system-metrics_2.13:2.6.5`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-system-metrics_2.13/2.6.4/kamon-system-metrics_2.13-2.6.4-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-system-metrics_2.13/2.6.5/kamon-system-metrics_2.13-2.6.5-sources.jar
 
 
 ## Netty/Buffer (4.1.99.Final)
@@ -640,14 +640,14 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=io/projectreactor/reactor-core/3.5.0/reactor-core-3.5.0-sources.jar
 
 
-## RxJava (2.2.19)
+## RxJava (2.2.21)
 
-* Maven coordinates: `io.reactivex.rxjava2:rxjava:2.2.19`
+* Maven coordinates: `io.reactivex.rxjava2:rxjava:2.2.21`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/ReactiveX/RxJava
 * Sources: 
    * declared as SCM: scm:git:https://github.com/ReactiveX/RxJava
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/reactivex/rxjava2/rxjava/2.2.19/rxjava-2.2.19-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/reactivex/rxjava2/rxjava/2.2.21/rxjava-2.2.21-sources.jar
 
 
 ## spray-json (1.3.6)
@@ -730,14 +730,14 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/agrona/agrona/1.15.1/agrona-1.15.1-sources.jar
 
 
-## Apache Kafka (3.0.2)
+## Apache Kafka (3.5.1)
 
-* Maven coordinates: `org.apache.kafka:kafka-clients:3.0.2`
+* Maven coordinates: `org.apache.kafka:kafka-clients:3.5.1`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://kafka.apache.org
 * Sources: 
    * declared as SCM: not declared
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/kafka/kafka-clients/3.0.2/kafka-clients-3.0.2-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/kafka/kafka-clients/3.5.1/kafka-clients-3.5.1-sources.jar
 
 
 ## pekko-actor (1.0.1)
@@ -1000,24 +1000,24 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/pekko/pekko-stream_2.13/1.0.1/pekko-stream_2.13-1.0.1-sources.jar
 
 
-## Proton-J (0.34.0)
+## Proton-J (0.34.1)
 
-* Maven coordinates: `org.apache.qpid:proton-j:0.34.0`
+* Maven coordinates: `org.apache.qpid:proton-j:0.34.1`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://qpid.apache.org/proton/proton-j
 * Sources: 
    * declared as SCM: https://gitbox.apache.org/repos/asf?p=qpid-proton-j/proton-j
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/qpid/proton-j/0.34.0/proton-j-0.34.0-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/qpid/proton-j/0.34.1/proton-j-0.34.1-sources.jar
 
 
-## QpidJMS Client (1.7.0)
+## QpidJMS Client (1.10.0)
 
-* Maven coordinates: `org.apache.qpid:qpid-jms-client:1.7.0`
+* Maven coordinates: `org.apache.qpid:qpid-jms-client:1.10.0`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://qpid.apache.org/qpid-jms-client
 * Sources: 
    * declared as SCM: https://gitbox.apache.org/repos/asf?p=qpid-jms/qpid-jms-client
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/qpid/qpid-jms-client/1.7.0/qpid-jms-client-1.7.0-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/qpid/qpid-jms-client/1.10.0/qpid-jms-client-1.10.0-sources.jar
 
 
 ## Apache Mina SSHD :: Common support utilities (2.9.2)
@@ -1410,13 +1410,13 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/webjars/npm/long/3.2.0/long-3.2.0-sources.jar
 
 
-## snappy-java (1.1.8.1)
+## snappy-java (1.1.10.1)
 
-* Maven coordinates: `org.xerial.snappy:snappy-java:1.1.8.1`
+* Maven coordinates: `org.xerial.snappy:snappy-java:1.1.10.1`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/xerial/snappy-java
 * Sources: 
    * declared as SCM: https://github.com/xerial/snappy-java
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/xerial/snappy/snappy-java/1.1.8.1/snappy-java-1.1.8.1-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/xerial/snappy/snappy-java/1.1.10.1/snappy-java-1.1.10.1-sources.jar
 
 

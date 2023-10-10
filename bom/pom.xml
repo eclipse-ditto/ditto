@@ -75,7 +75,7 @@
         <janino.version>3.1.10</janino.version>
 
         <!-- ### Metrics and Tracing -->
-        <kamon.version>2.6.4</kamon.version>
+        <kamon.version>2.6.5</kamon.version>
 
         <jsr305.version>3.0.2</jsr305.version>
 
