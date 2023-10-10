@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
+import org.apache.pekko.http.javadsl.server.RequestContext;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
@@ -45,8 +46,6 @@ import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import org.apache.pekko.http.javadsl.server.RequestContext;
 
 /**
  * Unit test for {@link AuthenticationChain}.
@@ -144,8 +143,9 @@ public final class AuthenticationChainTest {
             throws ExecutionException, InterruptedException {
 
         final RequestContext requestContextMock = mock(RequestContext.class);
-        final IllegalStateException expectedException = new IllegalStateException("No applicable authentication " +
-                "provider was found!");
+        final GatewayAuthenticationFailedException expectedException = GatewayAuthenticationFailedException
+                .newBuilder("No applicable authentication provider was found!")
+                .build();
         when(authenticationProviderA.isApplicable(requestContextMock)).thenReturn(false);
         when(authenticationProviderB.isApplicable(requestContextMock)).thenReturn(false);
         final AuthenticationChain underTest =
