@@ -1,6 +1,7 @@
 ---
 title: "Eclipse Ditto Benchmark"
 published: true
+keywords: benchmark, load, loadtest, performance, scalability
 permalink: 2023-10-09-ditto-benchmark.html
 layout: post
 author: vasil_vasilev
@@ -8,7 +9,6 @@ tags: [blog]
 hide_sidebar: true
 sidebar: false
 toc: true
-
 ---
 
 This blog post is presenting a benchmark of Eclipse Ditto. It consists of a few scenarios to cover most important ditto functionalities, test the performance and provide a tuning guide. This benchmark is done via the [benchmark-tool](https://github.com/eclipse/ditto/tree/master/benchmark-tool), based on [k6](https://k6.io/) load testing tool
@@ -27,8 +27,7 @@ This blog post is presenting a benchmark of Eclipse Ditto. It consists of a few 
 
 - Deployed [k6-operator](https://github.com/grafana/k6-operator) - Kubernetes operator for running distributed k6 tests.
 
-- [MongoDB](https://cloud.mongodb.com/) instance of type [M50](https://www.mongodb.
-  com/docs/atlas/manage-clusters/#nvme-considerations), version 5.0.21
+- [MongoDB](https://cloud.mongodb.com/) instance of type [M50](https://www.mongodb.com/docs/atlas/manage-clusters/#nvme-considerations), version 5.0.21
 
 ## Scenarios
 

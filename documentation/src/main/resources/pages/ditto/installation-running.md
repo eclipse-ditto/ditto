@@ -21,7 +21,7 @@ In order to start Ditto, you'll need:
      * 4.4
      * 5.0
    * Alternatively, [Amazon DocumentDB (with MongoDB compatibility)](https://aws.amazon.com/documentdb/) may also be used,
-     however with some limitations, see the [section about DocumentDB below](#managed-amazon-documentdb--with-mongodb-compatibility-)
+     however with some limitations, see the [section about DocumentDB below](#managed-amazon-documentdb-with-mongodb-compatibility)
 * the built Docker images of Ditto
     * either by building them as described in [Building Ditto](installation-building.html),
     * or by using the pre-built [Ditto images on Docker Hub](https://hub.docker.com/u/eclipse/).
