@@ -22,19 +22,18 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonRuntimeException;
-import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
-
 import org.apache.pekko.http.javadsl.model.HttpResponse;
 import org.apache.pekko.http.javadsl.model.StatusCodes;
 import org.apache.pekko.http.javadsl.server.Directives;
 import org.apache.pekko.http.javadsl.server.ExceptionHandler;
 import org.apache.pekko.http.javadsl.server.Route;
 import org.apache.pekko.japi.pf.FI;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.json.JsonRuntimeException;
 
 /**
  * This class provides an {@link ExceptionHandler} for the root route.
@@ -104,7 +103,7 @@ public final class RootRouteExceptionHandler {
         final Optional<String> correlationIdOptional = dittoHeaders.getCorrelationId();
         final String simpleExceptionName = exception.getClass().getSimpleName();
         if (correlationIdOptional.isEmpty()) {
-            LOGGER.warn("Correlation ID was missing in headers of <{}>!", simpleExceptionName);
+            LOGGER.info("Correlation ID was missing in headers of <{}>!", simpleExceptionName);
         }
 
         // We do not want to print stack trace of exception thus exception must not be last argument of logger call.

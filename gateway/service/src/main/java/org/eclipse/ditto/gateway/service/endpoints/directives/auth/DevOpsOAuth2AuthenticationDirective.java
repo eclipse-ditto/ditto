@@ -20,6 +20,11 @@ import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.server.AuthorizationFailedRejection;
+import org.apache.pekko.http.javadsl.server.Directives;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.api.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
@@ -28,11 +33,6 @@ import org.eclipse.ditto.gateway.service.util.config.security.DevOpsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.pekko.http.javadsl.model.HttpHeader;
-import org.apache.pekko.http.javadsl.server.AuthorizationFailedRejection;
-import org.apache.pekko.http.javadsl.server.Directives;
-import org.apache.pekko.http.javadsl.server.RequestContext;
-import org.apache.pekko.http.javadsl.server.Route;
 import scala.util.Try;
 
 /**
@@ -123,7 +123,7 @@ public final class DevOpsOAuth2AuthenticationDirective implements DevopsAuthenti
         if (authenticationResultTry.isSuccess()) {
             final AuthenticationResult authenticationResult = authenticationResultTry.get();
             if (!authenticationResult.isSuccess()) {
-                LOGGER.warn("DevOps Oauth authentication was not successful for request: '{}' because of '{}'.",
+                LOGGER.info("DevOps OAuth authentication was not successful for request: '{}' because of '{}'.",
                         requestContext.getRequest(), authenticationResult.getReasonOfFailure().getMessage());
                 return Directives.failWith(authenticationResult.getReasonOfFailure());
             } else {
