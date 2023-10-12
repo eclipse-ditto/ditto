@@ -246,7 +246,7 @@ public final class IfEqualPreconditionHeader<C extends Command<?>> implements Pr
                     if (null == oldValue) {
                         return command;
                     } else if (command instanceof WithOptionalEntity<?> commandWithEntity) {
-                        return JsonMergePatch.compute(oldValue, newValue)
+                        return JsonMergePatch.compute(oldValue, newValue, false)
                                 .map(jsonMergePatch -> {
                                     final JsonValue jsonValue = jsonMergePatch.asJsonValue();
                                     return (C) commandWithEntity.setEntity(jsonValue);

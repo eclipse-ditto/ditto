@@ -23,6 +23,7 @@ Eclipse Ditto 3.4.0 focuses on the following areas:
 * Addition of a **new placeholder** to use **in connections** to use **payload of the thing JSON** e.g. in headers or addresses
 * New **placeholder functions** for **joining** multiple elements into a single string and doing **URL-encoding and -decoding**
 * Configure **MQTT message expiry interval for published messages** via a header
+* **Reduce patch/merge thing commands** to **modify** only the **actually changed values** with a new option
 * UI enhancements:
   * Adding sending messages to Things
   * Made UI (at least navigation bar) responsive for small screen sizes
@@ -88,6 +89,17 @@ Resolving issue [#1729](https://github.com/eclipse-ditto/ditto/issues/1729), a f
 header `mqtt.message-expiry-interval` as part of a [MQTT5 target header mapping](connectivity-protocol-bindings-mqtt5.html#target-header-mapping),
 dynamically influencing the MQTT message expiry interval, e.g. as part of a payload mapper for certain to-be-published 
 messages, or as a header mapping for all published messages.
+
+#### Reduce patch/merge thing commands to modify only the actually changed values with a new option
+
+In [#1772](https://github.com/eclipse-ditto/ditto/pull/1772) the existing [if-equal header](httpapi-concepts.html#conditional-headers)
+has been enhanced with a new option: `skip-minimizing-merge`.  
+Performing a [merge/patch command](protocol-specification-things-merge.html) and specifying this option as header will
+cause that the merge command's payload will be minimized to only the values which will actually be changed in the thing.
+
+This reduces e.g. required storage in the MongoDB a lot, if redundant data is often sent and
+also reduces the emitted event payload to [subscribers](basic-changenotifications.html) to only the actually changed 
+parts of the thing, reducing network load and making it more clear what actually changed with a "merge event".
 
 #### Enhancements in Ditto explorer UI
 

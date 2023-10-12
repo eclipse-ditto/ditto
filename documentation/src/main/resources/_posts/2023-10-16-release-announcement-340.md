@@ -36,6 +36,7 @@ Eclipse Ditto 3.4.0 focuses on the following areas:
 * Addition of a **new placeholder** to use **in connections** to use **payload of the thing JSON** e.g. in headers or addresses
 * New **placeholder functions** for **joining** multiple elements into a single string and doing **URL-encoding and -decoding**
 * Configure **MQTT message expiry interval for published messages** via a header
+* **Reduce patch/merge thing commands** to **modify** only the **actually changed values** with a new option
 * UI enhancements:
   * Adding sending messages to Things
   * Made UI (at least navigation bar) responsive for small screen sizes

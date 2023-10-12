@@ -37,9 +37,10 @@ public enum IfEqual {
     /**
      * Option which will skip the update of a twin if the new value is the same (via {@code equal()}) than the value
      * before.
-     * And additionally minimized a "Merge" command to only the actually changed fields compared to the current state
+     * And additionally minimizes a "Merge" command to only the actually changed fields compared to the current state
      * of the entity. This can be beneficial to reduce (persisted and emitted) events to the minimum of what actually
      * did change.
+     *
      * @since 3.4.0
      */
     SKIP_MINIMIZING_MERGE("skip-minimizing-merge");

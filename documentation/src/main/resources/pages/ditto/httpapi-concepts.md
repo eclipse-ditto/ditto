@@ -622,11 +622,18 @@ The following request headers can be used to issue a conditional request:
             * for read requests, status `304 (Not Modified)` without response body, with the current entity-tag of the
               resource as `ETag` header
 * `if-equal`:
-   * The `if-equal` header can take the values `'update'` (which is the default if omitted) or `'skip'`
-   * Write the resource only
-      * in case `if-equal: 'update'` is defined - even if the entity is equal before the update.
+   * The `if-equal` header can take the values `'update'` (which is the default if omitted), `'skip'` or `'skip-minimizing-merge'`
+   * Modify/Update the resource only
+      * in case `if-equal: 'update'` is defined always updates - even if the entity is equal before the update.
       * in case `if-equal: 'skip'` is defined, the entity will not be updated if it is equal before the update.  
-        In this case a 'Not Modified' 304 status is returned.
+        In this case a 'Precondition Failed' 412 status is returned.
+      * in case `if-equal: 'skip-minimizing-merge'` is defined, the entity will not be updated if it is equal before the update.  
+        In this case a 'Precondition Failed' 412 status is returned.
+        Additionally, [Merge commands](protocol-specification-things-merge.html) will be minimized to only the fields 
+        which actually changed, compared to the current state of the entity.
+         * this reduces the part of a merge/patch command to the actually changed elements, removing non-changed elements
+         * this reduces e.g. required storage in the MongoDB by a lot, if redundant data is sent often
+         * this also reduces the event payload (e.g. emitted to subscribers) to only the actually changed parts of the thing
 
 Note that the Ditto HTTP API always provides a `strong` entity-tag in the `ETag` header, thus you will never receive a
 `weak` entity-tag (see [RFC-7232 Section 2.1](https://tools.ietf.org/html/rfc7232#section-2.1)). If you convert this

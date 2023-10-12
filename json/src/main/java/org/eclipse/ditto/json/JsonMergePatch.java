@@ -43,18 +43,38 @@ public final class JsonMergePatch {
      *
      * @param oldValue the original value
      * @param newValue the new changed value
-     * @return a JSON merge patch according to <a href="https://datatracker.ietf.org/doc/html/rfc7386">RFC 7386</a> or empty if values are equal.
+     * @return a JSON merge patch according to <a href="https://datatracker.ietf.org/doc/html/rfc7386">RFC 7386</a>
+     * or empty if values are equal.
      */
     public static Optional<JsonMergePatch> compute(final JsonValue oldValue, final JsonValue newValue) {
-        return computeForValue(oldValue, newValue).map(JsonMergePatch::of);
+        return compute(oldValue, newValue, true);
     }
 
-    private static Optional<JsonValue> computeForValue(final JsonValue oldValue, final JsonValue newValue) {
+    /**
+     * This method computes the change from the given {@code oldValue} to the given {@code newValue}.
+     * The result is a JSON merge patch according to <a href="https://datatracker.ietf.org/doc/html/rfc7386">RFC 7386</a>.
+     *
+     * @param oldValue the original value
+     * @param newValue the new changed value
+     * @param deleteMissingFieldsWithNull whether to delete fields contained in {@code oldValue} by setting those to
+     * {@code null} as defined in RFC 7386. This is the default behavior in order to create a valid JSON merge patch.
+     * @return a JSON merge patch according to <a href="https://datatracker.ietf.org/doc/html/rfc7386">RFC 7386</a>
+     * or empty if values are equal.
+     * @since 3.4.0
+     */
+    public static Optional<JsonMergePatch> compute(final JsonValue oldValue, final JsonValue newValue,
+            final boolean deleteMissingFieldsWithNull) {
+        return computeForValue(oldValue, newValue, deleteMissingFieldsWithNull).map(JsonMergePatch::of);
+    }
+
+    private static Optional<JsonValue> computeForValue(final JsonValue oldValue, final JsonValue newValue,
+            final boolean deleteMissingFieldsWithNull) {
         @Nullable final JsonValue diff;
         if (oldValue.equals(newValue)) {
             diff = null;
         } else if (oldValue.isObject() && newValue.isObject()) {
-            diff = computeForObject(oldValue.asObject(), newValue.asObject()).orElse(null);
+            diff = computeForObject(oldValue.asObject(), newValue.asObject(), deleteMissingFieldsWithNull)
+                    .orElse(null);
         } else {
             diff = newValue;
         }
@@ -62,7 +82,8 @@ public final class JsonMergePatch {
     }
 
     private static Optional<JsonObject> computeForObject(final JsonObject oldJsonObject,
-            final JsonObject newJsonObject) {
+            final JsonObject newJsonObject,
+            final boolean deleteMissingFieldsWithNull) {
         final JsonObjectBuilder builder = JsonObject.newBuilder();
         final List<JsonKey> oldKeys = oldJsonObject.getKeys();
         final List<JsonKey> newKeys = newJsonObject.getKeys();
@@ -72,10 +93,12 @@ public final class JsonMergePatch {
                 .collect(Collectors.toList());
         addedKeys.forEach(key -> newJsonObject.getValue(key).ifPresent(value -> builder.set(key, value)));
 
-        final List<JsonKey> deletedKeys = oldKeys.stream()
-                .filter(key -> !newKeys.contains(key))
-                .collect(Collectors.toList());
-        deletedKeys.forEach(key -> builder.set(key, JsonValue.nullLiteral()));
+        if (deleteMissingFieldsWithNull) {
+            final List<JsonKey> deletedKeys = oldKeys.stream()
+                    .filter(key -> !newKeys.contains(key))
+                    .collect(Collectors.toList());
+            deletedKeys.forEach(key -> builder.set(key, JsonValue.nullLiteral()));
+        }
 
         final List<JsonKey> keptKeys = oldKeys.stream()
                 .filter(newKeys::contains)
@@ -84,7 +107,8 @@ public final class JsonMergePatch {
             final Optional<JsonValue> oldValue = oldJsonObject.getValue(key);
             final Optional<JsonValue> newValue = newJsonObject.getValue(key);
             if (oldValue.isPresent() && newValue.isPresent()) {
-                computeForValue(oldValue.get(), newValue.get()).ifPresent(diff -> builder.set(key, diff));
+                computeForValue(oldValue.get(), newValue.get(), deleteMissingFieldsWithNull)
+                        .ifPresent(diff -> builder.set(key, diff));
             } else if (oldValue.isPresent()) {
                 // Should never happen because deleted keys were handled before
                 builder.set(key, JsonValue.nullLiteral());
@@ -98,7 +122,7 @@ public final class JsonMergePatch {
     }
 
     /**
-     * Creates a {@link JsonMergePatch} with an patch object containing the given {@code mergePatch} at the given {@code path}.
+     * Creates a {@link JsonMergePatch} with a patch object containing the given {@code mergePatch} at the given {@code path}.
      *
      * @param path The path on which the given {@code mergePatch} should be applied later.
      * @param mergePatch the actual patch.
