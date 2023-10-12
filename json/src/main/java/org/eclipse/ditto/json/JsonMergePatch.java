@@ -146,7 +146,7 @@ public final class JsonMergePatch {
             return JsonFactory.nullObject();
         }
 
-        final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
+        final JsonObjectBuilder builder = jsonObject2.toBuilder();
         // add fields of jsonObject1
         jsonObject1.forEach(jsonField -> {
             final JsonKey key = jsonField.getKey();
@@ -154,9 +154,8 @@ public final class JsonMergePatch {
             final Optional<JsonValue> maybeValue2 = jsonObject2.getValue(key);
 
             if (value1.isNull()) {
-                return;
-            }
-            if (maybeValue2.isPresent()) {
+                builder.remove(key);
+            } else if (maybeValue2.isPresent()) {
                 builder.set(key, mergeJsonValues(value1, maybeValue2.get()));
             } else {
                 if (value1.isObject()) {
@@ -171,8 +170,8 @@ public final class JsonMergePatch {
 
         // add fields of jsonObject2 not present in jsonObject1
         jsonObject2.forEach(jsonField -> {
-            if (!jsonObject1.contains(jsonField.getKey()) && !toBeNulledKeysByRegex.contains(jsonField.getKey())) {
-                builder.set(jsonField);
+            if (!jsonObject1.contains(jsonField.getKey()) && toBeNulledKeysByRegex.contains(jsonField.getKey())) {
+                builder.remove(jsonField.getKey());
             }
         });
 

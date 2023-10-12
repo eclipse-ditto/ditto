@@ -150,6 +150,12 @@ public final class PolicyImportsModified extends AbstractPolicyEvent<PolicyImpor
     }
 
     @Override
+    public PolicyImportsModified setEntity(final JsonValue entity) {
+        return of(getPolicyEntityId(), PoliciesModelFactory.newPolicyImports(entity.asObject()), getRevision(),
+                getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.of("/imports");
     }

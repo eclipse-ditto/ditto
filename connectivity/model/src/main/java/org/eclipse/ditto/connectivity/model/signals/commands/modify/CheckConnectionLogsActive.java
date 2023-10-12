@@ -22,6 +22,14 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommand;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
+import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -29,14 +37,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommand;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
-import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Command that will enable logging in a {@link org.eclipse.ditto.connectivity.model.Connection}.
@@ -56,7 +57,7 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    protected static final JsonFieldDefinition<String> JSON_TIMESTAMP =
+    static final JsonFieldDefinition<String> JSON_TIMESTAMP =
             JsonFactory.newStringFieldDefinition("timestamp", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
@@ -189,6 +190,11 @@ public final class CheckConnectionLogsActive extends AbstractCommand<CheckConnec
     @Override
     public CheckConnectionLogsActive setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(connectionId, timestamp, dittoHeaders);
+    }
+
+    @Override
+    public CheckConnectionLogsActive setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

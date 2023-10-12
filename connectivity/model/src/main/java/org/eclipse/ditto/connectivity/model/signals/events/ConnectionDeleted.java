@@ -31,6 +31,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * This event is emitted after a {@link org.eclipse.ditto.connectivity.model.Connection} was deleted.
@@ -128,6 +129,11 @@ public final class ConnectionDeleted extends AbstractConnectivityEvent<Connectio
     public ConnectionDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(getEntityId(), getRevision(), getTimestamp().orElse(null), dittoHeaders,
                 getMetadata().orElse(null));
+    }
+
+    @Override
+    public ConnectionDeleted setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

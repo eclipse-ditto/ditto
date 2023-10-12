@@ -269,6 +269,15 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
     }
 
     @Override
+    public ModifyThing setEntity(final JsonValue entity) {
+        final JsonObject jsonObject = entity.asObject();
+        final JsonObject initialPolicyObject = jsonObject.getValue(JSON_INLINE_POLICY).orElse(null);
+        final String localPolicyIdOrPlaceholder = jsonObject.getValue(JSON_COPY_POLICY_FROM).orElse(null);
+        return of(thingId, ThingsModelFactory.newThing(jsonObject), initialPolicyObject, localPolicyIdOrPlaceholder,
+                getDittoHeaders());
+    }
+
+    @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);

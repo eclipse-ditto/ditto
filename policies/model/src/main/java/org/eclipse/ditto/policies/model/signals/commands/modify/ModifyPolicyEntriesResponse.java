@@ -32,6 +32,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 
@@ -156,6 +157,11 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
     @Override
     public ModifyPolicyEntriesResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return newInstance(policyId, getHttpStatus(), dittoHeaders);
+    }
+
+    @Override
+    public ModifyPolicyEntriesResponse setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

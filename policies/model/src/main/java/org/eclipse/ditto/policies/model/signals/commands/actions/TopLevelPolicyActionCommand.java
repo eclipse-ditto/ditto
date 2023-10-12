@@ -26,6 +26,14 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommand;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.JsonParsable;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
+import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
@@ -37,18 +45,10 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommand;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.SubjectId;
-import org.eclipse.ditto.base.model.signals.JsonParsable;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
-import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyActionFailedException;
 
@@ -207,6 +207,11 @@ public final class TopLevelPolicyActionCommand extends AbstractCommand<TopLevelP
     @Override
     public TopLevelPolicyActionCommand setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new TopLevelPolicyActionCommand(policyActionCommand.setDittoHeaders(dittoHeaders), authorizedLabels);
+    }
+
+    @Override
+    public TopLevelPolicyActionCommand setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

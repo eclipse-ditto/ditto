@@ -35,6 +35,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -208,6 +209,11 @@ public final class DeleteResourceResponse extends AbstractCommandResponse<Delete
     @Override
     public DeleteResourceResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return newInstance(policyId, label, resourceKey, getHttpStatus(), dittoHeaders);
+    }
+
+    @Override
+    public DeleteResourceResponse setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

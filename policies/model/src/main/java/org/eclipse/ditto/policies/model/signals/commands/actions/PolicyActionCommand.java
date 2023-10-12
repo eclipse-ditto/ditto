@@ -14,13 +14,13 @@ package org.eclipse.ditto.policies.model.signals.commands.actions;
 
 import java.util.Set;
 
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.SubjectId;
-import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyActionFailedException;
 
@@ -30,7 +30,7 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyAction
  * @param <T> the type of the implementing class.
  * @since 2.0.0
  */
-public interface PolicyActionCommand<T extends PolicyActionCommand<T>> extends PolicyCommand<T>, WithOptionalEntity {
+public interface PolicyActionCommand<T extends PolicyActionCommand<T>> extends PolicyCommand<T>, WithOptionalEntity<T> {
 
     /**
      * Path of Policy actions as part of the {@link #getResourcePath()}.

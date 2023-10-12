@@ -19,6 +19,12 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommand;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
+import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -26,18 +32,12 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommand;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Resources;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
-import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
 
 /**
  * This command modifies {@link org.eclipse.ditto.policies.model.Resources} of a {@link org.eclipse.ditto.policies.model.PolicyEntry}.
@@ -173,6 +173,11 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
         return Optional.of(resources.toJson(schemaVersion, FieldType.regularOrSpecial()));
+    }
+
+    @Override
+    public ModifyResources setEntity(final JsonValue entity) {
+        return of(policyId, label, PoliciesModelFactory.newResources(entity.asObject()), getDittoHeaders());
     }
 
     @Override

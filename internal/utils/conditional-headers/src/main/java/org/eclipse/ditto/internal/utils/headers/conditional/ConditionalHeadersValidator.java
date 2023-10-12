@@ -183,7 +183,7 @@ public final class ConditionalHeadersValidator {
 
     private <C extends Command<?>> C applyIfEqual(final C command, @Nullable final Entity<?> entity) {
         return IfEqualPreconditionHeader.fromDittoHeaders(command, validationSettings)
-                .map(ifEqual -> ifEqual.handleCommand(() -> ifEqual.meetsConditionFor(entity)))
+                .map(ifEqual -> ifEqual.handleCommand(() -> ifEqual.meetsConditionFor(entity), entity))
                 .orElse(command);
     }
 

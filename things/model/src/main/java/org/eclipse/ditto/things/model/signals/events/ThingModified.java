@@ -141,6 +141,12 @@ public final class ThingModified extends AbstractThingEvent<ThingModified>
     }
 
     @Override
+    public ThingModified setEntity(final JsonValue entity) {
+        return of(ThingsModelFactory.newThing(entity.asObject()), getRevision(), getTimestamp().orElse(null),
+                getDittoHeaders(), getMetadata().orElse(null));
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.empty();
     }

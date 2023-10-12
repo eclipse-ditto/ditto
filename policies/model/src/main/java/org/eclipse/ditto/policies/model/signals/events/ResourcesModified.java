@@ -165,6 +165,12 @@ public final class ResourcesModified extends AbstractPolicyEvent<ResourcesModifi
     }
 
     @Override
+    public ResourcesModified setEntity(final JsonValue entity) {
+        return of(getPolicyEntityId(), label, PoliciesModelFactory.newResources(entity.asObject()), getRevision(),
+                getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         final String path = "/entries/" + label + "/resources";
         return JsonPointer.of(path);

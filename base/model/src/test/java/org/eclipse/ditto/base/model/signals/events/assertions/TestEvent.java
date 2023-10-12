@@ -18,14 +18,15 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
 
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableEvent;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 @JsonParsableEvent(name = TestEvent.NAME, typePrefix = TestEvent.TYPE_PREFIX)
@@ -90,5 +91,10 @@ public final class TestEvent implements Event<TestEvent> {
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate) {
         return JsonObject.empty();
+    }
+
+    @Override
+    public TestEvent setEntity(final JsonValue entity) {
+        return this;
     }
 }

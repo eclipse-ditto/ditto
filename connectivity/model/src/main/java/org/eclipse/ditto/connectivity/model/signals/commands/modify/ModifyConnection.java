@@ -15,26 +15,28 @@ package org.eclipse.ditto.connectivity.model.signals.commands.modify;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommand;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
+import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
+import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommand;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
-import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Command which modifies a {@link org.eclipse.ditto.connectivity.model.Connection}.
@@ -134,6 +136,16 @@ public final class ModifyConnection extends AbstractCommand<ModifyConnection>
     @Override
     public Category getCategory() {
         return Category.MODIFY;
+    }
+
+    @Override
+    public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
+        return Optional.of(connection.toJson(schemaVersion, FieldType.regularOrSpecial()));
+    }
+
+    @Override
+    public ModifyConnection setEntity(final JsonValue entity) {
+        return of(ConnectivityModelFactory.connectionFromJson(entity.asObject()), getDittoHeaders());
     }
 
     @Override

@@ -22,6 +22,7 @@ import org.eclipse.ditto.base.model.signals.events.EventJsonDeserializer;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * This event is emitted after a stream is established for items to be streamed in the back-end.
@@ -93,6 +94,11 @@ public final class StreamingSubscriptionCreated
     @Override
     public StreamingSubscriptionCreated setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new StreamingSubscriptionCreated(getSubscriptionId(), getEntityId(), dittoHeaders);
+    }
+
+    @Override
+    public StreamingSubscriptionCreated setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

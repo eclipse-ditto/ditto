@@ -127,6 +127,11 @@ public final class StreamingSubscriptionHasNext
     }
 
     @Override
+    public StreamingSubscriptionHasNext setEntity(final JsonValue entity) {
+        return this;
+    }
+
+    @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder) {
         jsonObjectBuilder.set(JsonFields.ITEM, item);
     }

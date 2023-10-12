@@ -33,6 +33,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
@@ -153,6 +154,11 @@ public final class PolicyImportDeleted extends AbstractPolicyEvent<PolicyImportD
     public PolicyImportDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(getPolicyEntityId(), importedPolicyId, getRevision(), getTimestamp().orElse(null), dittoHeaders,
                 getMetadata().orElse(null));
+    }
+
+    @Override
+    public PolicyImportDeleted setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

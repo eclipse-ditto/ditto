@@ -79,7 +79,8 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
 
         final JsonObject policyJsonObject = policy.toJson();
 
-        PolicyImportsValidator.validatePolicyImports(policy.getEntityId().get(), policy.getPolicyImports());
+        PolicyImportsValidator.validatePolicyImports(policy.getEntityId().orElse(null),
+                policy.getPolicyImports());
 
         PolicyCommandSizeValidator.getInstance().ensureValidSize(
                 policyJsonObject::getUpperBoundForStringSize,
@@ -150,6 +151,11 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
         return Optional.of(policy.toJson(schemaVersion, FieldType.regularOrSpecial()));
+    }
+
+    @Override
+    public CreatePolicy setEntity(final JsonValue entity) {
+        return of(PoliciesModelFactory.newPolicy(entity.asObject()), getDittoHeaders());
     }
 
     @Override

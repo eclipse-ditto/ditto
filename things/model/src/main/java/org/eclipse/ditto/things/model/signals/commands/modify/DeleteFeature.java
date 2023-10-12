@@ -33,6 +33,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 
@@ -151,6 +152,11 @@ public final class DeleteFeature extends AbstractCommand<DeleteFeature> implemen
     @Override
     public DeleteFeature setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(thingId, featureId, dittoHeaders);
+    }
+
+    @Override
+    public DeleteFeature setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

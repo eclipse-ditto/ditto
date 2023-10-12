@@ -166,6 +166,12 @@ public final class SubjectsModified extends AbstractPolicyEvent<SubjectsModified
     }
 
     @Override
+    public SubjectsModified setEntity(final JsonValue entity) {
+        return of(getPolicyEntityId(), label, PoliciesModelFactory.newSubjects(entity.asObject()), getRevision(),
+                getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         final String path = "/entries/" + label + "/subjects";
         return JsonPointer.of(path);

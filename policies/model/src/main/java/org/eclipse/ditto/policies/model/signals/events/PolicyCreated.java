@@ -140,6 +140,12 @@ public final class PolicyCreated extends AbstractPolicyEvent<PolicyCreated> impl
     }
 
     @Override
+    public PolicyCreated setEntity(final JsonValue entity) {
+        return of(PoliciesModelFactory.newPolicy(entity.asObject()), getRevision(), getTimestamp().orElse(null),
+                getDittoHeaders(), getMetadata().orElse(null));
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.empty();
     }

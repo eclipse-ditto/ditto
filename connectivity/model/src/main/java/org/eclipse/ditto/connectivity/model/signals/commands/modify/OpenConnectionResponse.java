@@ -34,6 +34,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Response to a {@link OpenConnection} command.
@@ -140,6 +141,11 @@ public final class OpenConnectionResponse extends AbstractCommandResponse<OpenCo
     @Override
     public OpenConnectionResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(connectionId, dittoHeaders);
+    }
+
+    @Override
+    public OpenConnectionResponse setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

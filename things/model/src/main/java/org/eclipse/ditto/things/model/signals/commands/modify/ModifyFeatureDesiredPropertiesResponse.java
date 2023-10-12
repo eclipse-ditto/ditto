@@ -248,6 +248,13 @@ public final class ModifyFeatureDesiredPropertiesResponse
         return Optional.ofNullable(desiredPropertiesCreated);
     }
 
+    @Override
+    public ModifyFeatureDesiredPropertiesResponse setEntity(final JsonValue entity) {
+        return newInstance(thingId, featureId,
+                getHttpStatus() == HttpStatus.CREATED ? ThingsModelFactory.newFeatureProperties(entity.asObject()) : null,
+                getHttpStatus(), getDittoHeaders());
+    }
+
     /**
      * ModifyFeatureDesiredPropertiesResponse is only available in JsonSchemaVersion V_2.
      *

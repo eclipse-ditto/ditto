@@ -160,6 +160,12 @@ public final class SubjectsDeletedPartially extends AbstractPolicyActionEvent<Su
     }
 
     @Override
+    public SubjectsDeletedPartially setEntity(final JsonValue entity) {
+        return new SubjectsDeletedPartially(getPolicyEntityId(), entity.asObject(), getRevision(),
+                getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.empty();
     }

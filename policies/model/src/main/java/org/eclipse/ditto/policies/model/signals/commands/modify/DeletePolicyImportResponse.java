@@ -33,6 +33,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 
@@ -167,6 +168,11 @@ public final class DeletePolicyImportResponse extends AbstractCommandResponse<De
     @Override
     public DeletePolicyImportResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(policyId, importedPolicyId, dittoHeaders);
+    }
+
+    @Override
+    public DeletePolicyImportResponse setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

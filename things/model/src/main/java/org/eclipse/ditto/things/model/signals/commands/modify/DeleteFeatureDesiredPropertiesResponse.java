@@ -35,6 +35,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
@@ -203,6 +204,11 @@ public final class DeleteFeatureDesiredPropertiesResponse
     @Override
     public DeleteFeatureDesiredPropertiesResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return newInstance(thingId, featureId, getHttpStatus(), dittoHeaders);
+    }
+
+    @Override
+    public DeleteFeatureDesiredPropertiesResponse setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

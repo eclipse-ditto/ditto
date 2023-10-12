@@ -33,7 +33,9 @@ import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonMergePatch;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 
 /**
@@ -108,12 +110,12 @@ public final class IfEqualPreconditionHeader<C extends Command<?>> implements Pr
             return false;
         }
 
-        if (ifEqual == IfEqual.SKIP) {
+        if (ifEqual == IfEqual.SKIP || ifEqual == IfEqual.SKIP_MINIMIZING_MERGE) {
             if (command.getCategory() == Command.Category.MODIFY &&
-                    command instanceof WithOptionalEntity withOptionalEntity) {
+                    command instanceof WithOptionalEntity<?> withOptionalEntity) {
                 return meetsConditionForModifyCommand(entity, withOptionalEntity);
             } else if (command.getCategory() == Command.Category.MERGE &&
-                    command instanceof WithOptionalEntity withOptionalEntity) {
+                    command instanceof WithOptionalEntity<?> withOptionalEntity) {
                 return meetsConditionForMergeCommand(entity, withOptionalEntity);
             } else {
                 // other commands to "MODIFY" and "MERGE" do never match the "if-equal" precondition header
@@ -126,23 +128,29 @@ public final class IfEqualPreconditionHeader<C extends Command<?>> implements Pr
     }
 
     private Boolean meetsConditionForModifyCommand(final Entity<?> entity,
-            final WithOptionalEntity withOptionalEntity) {
+            final WithOptionalEntity<?> withOptionalEntity) {
 
         return withOptionalEntity.getEntity()
                 .map(newValue -> {
-                    final Predicate<JsonField> nonHiddenAndNamespace =
-                            FieldType.notHidden()
-                                    .or(jsonField -> jsonField.getKey().equals(JsonKey.of("_namespace")));
+                    final Predicate<JsonField> fieldPredicate = calculatePredicate(command.getResourcePath());
                     final Optional<JsonValue> previousValue =
-                            entity.toJson(JsonSchemaVersion.LATEST, nonHiddenAndNamespace)
+                            entity.toJson(JsonSchemaVersion.LATEST, fieldPredicate)
                                     .getValue(command.getResourcePath());
-                    return previousValue.filter(jsonValue -> jsonValue.equals(newValue))
+                    final JsonValue adjustedNewValue;
+                    if (newValue.isObject()) {
+                        adjustedNewValue = newValue.asObject()
+                                .filter(calculatePredicateForNew(command.getResourcePath()));
+                    } else {
+                        adjustedNewValue = newValue;
+                    }
+                    return previousValue.filter(jsonValue -> jsonValue.equals(adjustedNewValue))
                             .isPresent();
                 })
                 .orElse(false);
     }
 
-    private Boolean meetsConditionForMergeCommand(final Entity<?> entity, final WithOptionalEntity withOptionalEntity) {
+    private Boolean meetsConditionForMergeCommand(final Entity<?> entity,
+            final WithOptionalEntity<?> withOptionalEntity) {
 
         return withOptionalEntity.getEntity()
                 .map(newValue -> {
@@ -150,10 +158,9 @@ public final class IfEqualPreconditionHeader<C extends Command<?>> implements Pr
                     if (newValue.isObject()) {
                         final JsonObject newObject;
                         if (command.getResourcePath().isEmpty()) {
-                            // filter "special fields" for e.g. on thing level the inline "_policy":
                             newObject = newValue.asObject()
                                     .stream()
-                                    .filter(jsonField -> !jsonField.getKeyName().startsWith("_"))
+                                    .filter(calculatePredicateForNew(command.getResourcePath()))
                                     .collect(JsonCollectors.fieldsToObject());
                         } else {
                             newObject = newValue.asObject();
@@ -183,18 +190,30 @@ public final class IfEqualPreconditionHeader<C extends Command<?>> implements Pr
      * Handles the {@link #command} field of this class by invoking the passed {@code isCompletelyEqualSupplier} to
      * check whether the affected entity would be completely equal after applying the {@link #command}.
      *
+     * @param isCompletelyEqualSupplier a boolean supplier for evaluating lazily whether this command's modifications
+     * would lead to the equal entity than it was before.
+     * @param entity the previous entity.
      * @return the potentially adjusted Command.
      */
-    C handleCommand(final BooleanSupplier isCompletelyEqualSupplier) {
+    C handleCommand(final BooleanSupplier isCompletelyEqualSupplier, @Nullable final Entity<?> entity) {
 
         final C potentiallyAdjustedCommand;
+        final Command.Category category = command.getCategory();
         if (ifEqual == IfEqual.UPDATE) {
             // default behavior - no change, just use the complete modify command, not matter what:
             potentiallyAdjustedCommand = command;
+        } else if (ifEqual == IfEqual.SKIP_MINIMIZING_MERGE && category == Command.Category.MERGE) {
+            // lazily check for equality as this might be expensive to do:
+            final boolean completelyEqual = isCompletelyEqualSupplier.getAsBoolean();
+            if (completelyEqual) {
+                potentiallyAdjustedCommand = respondWithPreconditionFailed();
+            } else {
+                // not completely equal and a merge command
+                potentiallyAdjustedCommand = adjustMergeCommandByOnlyKeepingChanges(command, entity);
+            }
         } else if (ifEqual == IfEqual.SKIP) {
             // lazily check for equality as this might be expensive to do:
             final boolean completelyEqual = isCompletelyEqualSupplier.getAsBoolean();
-            final Command.Category category = command.getCategory();
             if (completelyEqual &&
                     (category == Command.Category.MODIFY || category == Command.Category.MERGE)) {
                 potentiallyAdjustedCommand = respondWithPreconditionFailed();
@@ -205,6 +224,58 @@ public final class IfEqualPreconditionHeader<C extends Command<?>> implements Pr
             potentiallyAdjustedCommand = command;
         }
         return potentiallyAdjustedCommand;
+    }
+
+    private C adjustMergeCommandByOnlyKeepingChanges(final C command, @Nullable final Entity<?> entity) {
+        if (null != entity && command instanceof WithOptionalEntity<?> withOptionalEntity) {
+            return adjustMergeCommandByOnlyKeepingChanges(command, entity, withOptionalEntity);
+        } else {
+            return command;
+        }
+    }
+
+    private C adjustMergeCommandByOnlyKeepingChanges(final C command,
+            final Entity<?> entity,
+            final WithOptionalEntity<?> withOptionalEntity) {
+
+        return withOptionalEntity.getEntity()
+                .map(newValue -> {
+                    final Predicate<JsonField> fieldPredicate = calculatePredicate(command.getResourcePath());
+                    final JsonValue oldValue = entity.toJson(JsonSchemaVersion.LATEST, fieldPredicate)
+                            .getValue(command.getResourcePath()).orElse(null);
+                    if (null == oldValue) {
+                        return command;
+                    } else if (command instanceof WithOptionalEntity<?> commandWithEntity) {
+                        return JsonMergePatch.compute(oldValue, newValue)
+                                .map(jsonMergePatch -> {
+                                    final JsonValue jsonValue = jsonMergePatch.asJsonValue();
+                                    return (C) commandWithEntity.setEntity(jsonValue);
+                                })
+                                .orElse(command);
+                    } else {
+                        return command;
+                    }
+                })
+                .orElse(command);
+    }
+
+    private static Predicate<JsonField> calculatePredicate(final JsonPointer resourcePath) {
+        if (resourcePath.isEmpty()) {
+            return FieldType.notHidden()
+                    .and(Predicate.not(jsonField -> jsonField.getKey().equals(JsonKey.of("thingId"))))
+                    .and(Predicate.not(jsonField -> jsonField.getKey().equals(JsonKey.of("policyId"))));
+        } else {
+            return FieldType.notHidden();
+        }
+    }
+
+    private static Predicate<JsonField> calculatePredicateForNew(final JsonPointer resourcePath) {
+        if (resourcePath.isEmpty()) {
+            // filter "special fields" for e.g. on thing level the inline "_policy":
+            return jsonField -> !jsonField.getKeyName().startsWith("_");
+        } else {
+            return jsonField -> true;
+        }
     }
 
     private C respondWithPreconditionFailed() {

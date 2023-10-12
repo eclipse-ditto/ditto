@@ -56,8 +56,8 @@ import org.eclipse.ditto.json.JsonValue;
  */
 @JsonParsableCommandResponse(type = Acknowledgement.TYPE)
 @Immutable
-public final class Acknowledgement implements CommandResponse<Acknowledgement>, WithOptionalEntity, WithEntityType,
-        SignalWithEntityId<Acknowledgement> {
+public final class Acknowledgement implements CommandResponse<Acknowledgement>, WithOptionalEntity<Acknowledgement>,
+        WithEntityType, SignalWithEntityId<Acknowledgement> {
 
     /**
      * The type of {@code Acknowledgement} signals.
@@ -231,6 +231,7 @@ public final class Acknowledgement implements CommandResponse<Acknowledgement>, 
      * @return the Acknowledgement with set payload.
      * @since 1.2.0
      */
+    @Override
     public Acknowledgement setEntity(final @Nullable JsonValue payload) {
         if (payload != null) {
             return of(label, entityId, httpStatus, dittoHeaders, payload);

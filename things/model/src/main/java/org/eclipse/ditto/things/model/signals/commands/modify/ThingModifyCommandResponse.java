@@ -22,7 +22,7 @@ import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
  * @param <T> the type of the implementing class.
  */
 public interface ThingModifyCommandResponse<T extends ThingModifyCommandResponse<T>> extends ThingCommandResponse<T>,
-        WithOptionalEntity {
+        WithOptionalEntity<T> {
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);

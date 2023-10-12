@@ -136,6 +136,12 @@ public final class ConnectionModified extends AbstractConnectivityEvent<Connecti
     }
 
     @Override
+    public ConnectionModified setEntity(final JsonValue entity) {
+        return of(ConnectivityModelFactory.connectionFromJson(entity.asObject()), getRevision(),
+                getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.empty();
     }

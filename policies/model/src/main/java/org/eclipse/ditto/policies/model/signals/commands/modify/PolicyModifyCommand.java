@@ -21,7 +21,7 @@ import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
  *
  * @param <T> the type of the implementing class.
  */
-public interface PolicyModifyCommand<T extends PolicyModifyCommand<T>> extends PolicyCommand<T>, WithOptionalEntity {
+public interface PolicyModifyCommand<T extends PolicyModifyCommand<T>> extends PolicyCommand<T>, WithOptionalEntity<T> {
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
