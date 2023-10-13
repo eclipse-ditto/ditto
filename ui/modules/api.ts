@@ -346,7 +346,6 @@ export async function callDittoREST(method, path, body = null,
     throw new Error('An error occurred: ' + response.status);
   }
   if (response.status !== 204) {
-    console.log(...response.headers);
     if (returnHeaders) {
       return response;
     } else {
