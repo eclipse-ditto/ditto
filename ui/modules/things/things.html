@@ -14,30 +14,31 @@
     <div>
         <div class="row resizable_pane" style="height: 40vh;">
             <div class="col-md-7 resizable_flex_column">
-                <div class="input-group input-group-sm mb-1 mt-1">
+                <form class="input-group input-group-sm mb-1 mt-1" autocomplete="off">
                     <div class="btn-group dropend">
                         <button id="searchFavorite" class="btn btn-outline-secondary btn-sm" data-bs-toggle="tooltip"
                             title="Toggle favorite for search filter">
                             <i id="favIcon" class="bi bi-star"></i>
                         </button>
                     </div>
-                    <input type="search" class="form-control form-control-sm" 
-                        id="searchFilterEdit" spellcheck=false autocomplete="off"></input>
-                    <button id="searchThings" class="btn btn-outline-secondary btn-sm" data-bs-toggle="tooltip"
+                    <input autocomplete="false" name="hidden" type="text" style="display:none;">
+                    <input type="text" class="form-control form-control-sm" id="searchFilterEdit" name="search"
+                           spellcheck=false autocomplete="off" />
+                    <button type="button" id="searchThings" class="btn btn-outline-secondary btn-sm" data-bs-toggle="tooltip"
                         title="Search things by thingId or valid ditto search filter">
                         search
                     </button>
-                    <button id="pinnedThings" class="btn btn-outline-secondary btn-sm me-3 button_round_right"
+                    <button type="button" id="pinnedThings" class="btn btn-outline-secondary btn-sm me-3 button_round_right"
                         data-bs-toggle="tooltip" title="Pinned things: get the list of all individually pinned things">
                         pinned
                     </button>
-                    <button id="tableSettings" class="btn btn-outline-secondary btn-sm button_round_both"
+                    <button type="button" id="tableSettings" class="btn btn-outline-secondary btn-sm button_round_both"
                         data-bs-toggle="modal" data-bs-target="#fieldsModal">
                         <span data-bs-toggle="tooltip" title="Adjust fields for things table">
                             <i class="bi bi-gear"></i>
                         </span>
                     </button>
-                </div>
+                </form>
                 <div class="table-wrap">
                     <table class="table table-striped table-hover table-sm">
                         <thead>
