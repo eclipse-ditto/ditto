@@ -196,3 +196,11 @@ h5>.badge {
 .autoComplete_wrapper ul > li[aria-selected="true"] {
     background-color: rgba(123, 123, 123, 0.1);
 }
+
+.spinner-border {
+    visibility:hidden;
+}
+
+button.busy .spinner-border {
+    visibility:visible !important;
+}

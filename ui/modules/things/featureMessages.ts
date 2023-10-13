@@ -1,23 +1,23 @@
 /*
-* Copyright (c) 2022 Contributors to the Eclipse Foundation
-*
-* See the NOTICE file(s) distributed with this work for additional
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0
-*
-* SPDX-License-Identifier: EPL-2.0
-*/
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
 
 /* eslint-disable require-jsdoc */
 import * as API from '../api.js';
 import * as Environments from '../environments/environments.js';
 import * as Utils from '../utils.js';
-import * as Things from './things.js';
-import * as Features from './features.js';
 import featureMessagesHTML from './featureMessages.html';
+import * as Features from './features.js';
+import * as Things from './things.js';
 
 let theFeatureId;
 
@@ -59,6 +59,8 @@ export async function ready() {
     Utils.assert(theFeatureId, 'Please select a Feature', dom.tableValidationFeature);
     Utils.assert(dom.inputMessageSubject.value, 'Please give a Subject', dom.inputMessageSubject);
     Utils.assert(dom.inputMessageTimeout.value, 'Please give a timeout', dom.inputMessageTimeout);
+    dom.buttonMessageSend.classList.add('busy');
+    dom.buttonMessageSend.disabled = true;
     messageFeature();
   };
 
@@ -113,7 +115,7 @@ export async function ready() {
  * Calls Ditto to send a message with the parameters of the fields in the UI
  */
 function messageFeature() {
-  const payload = JSON.parse(acePayload.getValue());
+  const payload = acePayload && acePayload.getValue().length > 0 && JSON.parse(acePayload.getValue());
   aceResponse.setValue('');
   API.callDittoREST('POST', '/things/' + Things.theThing.thingId +
       '/features/' + theFeatureId +
@@ -121,10 +123,14 @@ function messageFeature() {
       '?timeout=' + dom.inputMessageTimeout.value,
   payload,
   ).then((data) => {
+    dom.buttonMessageSend.classList.remove('busy');
+    dom.buttonMessageSend.disabled = false;
     if (dom.inputMessageTimeout.value > 0) {
       aceResponse.setValue(JSON.stringify(data, null, 2), -1);
     }
   }).catch((err) => {
+    dom.buttonMessageSend.classList.remove('busy');
+    dom.buttonMessageSend.disabled = false;
     aceResponse.setValue('');
   });
 }
@@ -145,7 +151,7 @@ function clearAllFields() {
   dom.inputMessageTemplate.value = null;
   dom.inputMessageSubject.value = null;
   dom.inputMessageTimeout.value = '10';
-  acePayload.setValue('{}');
+  acePayload.setValue('');
   aceResponse.setValue('');
   dom.ulMessageTemplates.innerHTML = '';
 }
