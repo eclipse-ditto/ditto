@@ -40,7 +40,7 @@ export async function ready() {
   Utils.addTab(
       document.getElementById('tabItemsThing'),
       document.getElementById('tabContentThing'),
-      'Message to Thing',
+      'send Message',
       messagesHTML,
   );
 
