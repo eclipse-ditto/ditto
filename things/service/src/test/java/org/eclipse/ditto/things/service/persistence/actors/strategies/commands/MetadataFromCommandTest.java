@@ -38,9 +38,9 @@ import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
-
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -153,6 +153,22 @@ public final class MetadataFromCommandTest {
                 .build();
 
         final MetadataFromCommand underTest = MetadataFromCommand.of(modifyFeature, thingWithoutMetadata, null);
+
+        assertThat(underTest.get()).isEqualTo(expected);
+    }
+
+    @Test
+    public void createMetadataOnSingleProperty() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .putMetadata(MetadataHeaderKey.parse("created_by"), JsonValue.of("createMetadataOnSingleProperty"))
+                .build();
+        final ModifyFeatureProperty modifyFeatureProperty = ModifyFeatureProperty.of(thingWithoutMetadata.getEntityId().orElseThrow(),
+                fluxCapacitor.getId(), JsonPointer.of("grumbo"), JsonValue.of(23), dittoHeaders);
+        final Metadata expected = Metadata.newBuilder()
+                .set(JsonPointer.of("created_by"), "createMetadataOnSingleProperty")
+                .build();
+
+        final MetadataFromCommand underTest = MetadataFromCommand.of(modifyFeatureProperty, thingWithoutMetadata, null);
 
         assertThat(underTest.get()).isEqualTo(expected);
     }
