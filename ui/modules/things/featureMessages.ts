@@ -67,6 +67,7 @@ export async function ready() {
   dom.buttonMessageFavorite.onclick = () => {
     const templateName = dom.inputMessageTemplate.value;
     const featureId = theFeatureId;
+    const payload = acePayload.getValue();
     Utils.assert(featureId, 'Please select a Feature', dom.tableValidationFeature);
     Utils.assert(templateName, 'Please give a name for the template', dom.inputMessageTemplate);
     Environments.current().messageTemplates[featureId] = Environments.current().messageTemplates[featureId] || {};
@@ -79,7 +80,7 @@ export async function ready() {
       Environments.current().messageTemplates[featureId][templateName] = {
         subject: dom.inputMessageSubject.value,
         timeout: dom.inputMessageTimeout.value,
-        payload: JSON.parse(acePayload.getValue()),
+        ...(payload) && {payload: JSON.parse(payload)},
       };
       acePayload.session.getUndoManager().markClean();
     }

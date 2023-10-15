@@ -60,6 +60,7 @@ export async function ready() {
 
   dom.buttonThingMessageFavorite.onclick = () => {
     const templateName = dom.inputThingMessageTemplate.value;
+    const payload = acePayload.getValue();
     Utils.assert(templateName, 'Please give a name for the template', dom.inputThingMessageTemplate);
     Environments.current().messageTemplates['/'] = Environments.current().messageTemplates['/'] || {};
     if (Object.keys(Environments.current().messageTemplates['/']).includes(templateName) &&
@@ -71,7 +72,7 @@ export async function ready() {
       Environments.current().messageTemplates['/'][templateName] = {
         subject: dom.inputThingMessageSubject.value,
         timeout: dom.inputThingMessageTimeout.value,
-        payload: JSON.parse(acePayload.getValue()),
+        ...(payload) && {payload: JSON.parse(payload)},
       };
       acePayload.session.getUndoManager().markClean();
     }
@@ -132,9 +133,7 @@ function onEnvironmentChanged(modifiedField) {
   if (!modifiedField) {
     clearAllFields();
   }
-  if (modifiedField === 'messageTemplates') {
-    refillTemplates();
-  }
+  refillTemplates();
 }
 
 function clearAllFields() {
