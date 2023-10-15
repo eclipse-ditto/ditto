@@ -45,7 +45,7 @@ export async function ready() {
   Utils.addTab(
       document.getElementById('tabItemsFeatures'),
       document.getElementById('tabContentFeatures'),
-      'send Message',
+      'Send Message',
       featureMessagesHTML,
   );
 
