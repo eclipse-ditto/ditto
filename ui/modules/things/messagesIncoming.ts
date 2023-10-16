@@ -61,11 +61,24 @@ function onMessage(messageData) {
   messages.push(messageData);
   dom.badgeMessageIncomingCount.textContent = messages.length;
 
+  function getColumnValues() {
+    if (messageData['_context'] && messageData['_context'].value) {
+      return [
+        ...messageData['_context'].value.features ? Object.keys(messageData['_context'].value.features) : [],
+        ...messageData['_context'].value.attributes ? Object.keys(messageData['_context'].value.attributes) : []
+      ];
+    } else {
+      return [
+        ...messageData['features'] ? Object.keys(messageData.features) : [],
+        ...messageData['attributes'] ? Object.keys(messageData.attributes) : []
+      ]
+    }
+  }
+
   Utils.addTableRow(
       dom.tbodyMessagesIncoming,
       messageData._revision, false, false,
-      [...messageData['_context'].value.features ? Object.keys(messageData['_context'].value.features) : [],
-        ...messageData['_context'].value.attributes ? Object.keys(messageData['_context'].value.attributes) : []],
+      getColumnValues(),
       Utils.formatDate(messageData._modified, true),
   );
 }
