@@ -18,6 +18,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
@@ -42,8 +43,6 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * A message mapper implementation for normalized changes.
@@ -181,6 +180,7 @@ public final class NormalizedMessageMapper extends AbstractMessageMapper {
         // add fields of an event protocol message excluding "value" and "status"
         builder.set(JsonifiableAdaptable.JsonFields.TOPIC, adaptable.getTopicPath().getPath());
         builder.set(Payload.JsonFields.PATH, payload.getPath().toString());
+        builder.set(Payload.JsonFields.VALUE, adaptable.getPayload().getValue().orElse(JsonValue.nullLiteral()));
         payload.getFields().ifPresent(fields -> builder.set(Payload.JsonFields.FIELDS, fields.toString()));
         builder.set(JsonifiableAdaptable.JsonFields.HEADERS, dittoHeadersToJson(dittoHeaders));
 

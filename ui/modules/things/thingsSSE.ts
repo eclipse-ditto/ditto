@@ -1,15 +1,15 @@
 /*
-* Copyright (c) 2022 Contributors to the Eclipse Foundation
-*
-* See the NOTICE file(s) distributed with this work for additional
-* information regarding copyright ownership.
-*
-* This program and the accompanying materials are made available under the
-* terms of the Eclipse Public License 2.0 which is available at
-* http://www.eclipse.org/legal/epl-2.0
-*
-* SPDX-License-Identifier: EPL-2.0
-*/
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
 /* eslint-disable require-jsdoc */
 /* eslint-disable arrow-parens */
 // @ts-check
@@ -18,7 +18,6 @@ import * as Environments from '../environments/environments.js';
 
 import * as Things from './things.js';
 import * as ThingsSearch from './thingsSearch.js';
-import merge from 'lodash/merge';
 
 let selectedThingEventSource;
 let thingsTableEventSource;
@@ -57,7 +56,8 @@ function onSelectedThingChanged(newThingJson, isNewThingId) {
     selectedThingEventSource && selectedThingEventSource.close();
     console.log('SSE Start: SELECTED THING : ' + newThingJson.thingId);
     selectedThingEventSource = API.getEventSource(newThingJson.thingId,
-        'fields=thingId,attributes,features,_revision,_modified');
+        'fields=thingId,policyId,definition,attributes,features,_revision,_created,_modified,_metadata,_context/topic,_context/path,_context/value' +
+      '&extraFields=thingId,policyId,definition,attributes,features,_revision,_created,_modified,_metadata');
     selectedThingEventSource.onmessage = onMessageSelectedThing;
   }
 }
@@ -78,8 +78,8 @@ function onEnvironmentChanged(modifiedField) {
 
 function onMessageSelectedThing(event) {
   if (event.data && event.data !== '') {
-    const merged = merge(Things.theThing, JSON.parse(event.data));
-    Things.setTheThing(merged);
+    const completeChangedThing = JSON.parse(event.data);
+    Things.setTheThing(completeChangedThing);
     notifyAll(JSON.parse(event.data));
   }
 }

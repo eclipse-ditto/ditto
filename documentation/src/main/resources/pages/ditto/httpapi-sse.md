@@ -96,6 +96,27 @@ An example without filtering would look like this:
 http://localhost:8080/api/2/things?fields=thingId,attributes&extraFields=attributes
 ```
 
+##### Enriching `_context`
+
+One special field which can be enriched for the SSE is the `_context` field.  
+As the SSE format returns a "normalized" view in form of the [thing JSON]( basic-thing.html#model-specification) 
+of change events, some "context" of the event gets lost, e.g. on which `path` the event was issued or whether is was 
+a "merged" or "modified" event.
+
+To obtain this kind of context information, select the `_context` field as `extraFields`, e.g.:
+```
+http://localhost:8080/api/2/things?fields=thingId,attributes&extraFields=attributes,_context
+```
+
+The `_context` will contain:
+* `topic`: the [Ditto Protocol topic](protocol-specification.html#topic)
+* `path`: the [Ditto Protocol path](protocol-specification.html#path)
+* `value`: the [Ditto Protocol value](protocol-specification.html#value)
+* `headers`: the [Ditto Protocol headers](protocol-specification.html#headers)
+
+It is also possible to select only specific context information, e.g.: `extraFields=_context/topic,_context/path,_context/value`
+in order to exclude the `headers`.
+
 #### Filtering by namespaces
 
 As described in [change notifications](basic-changenotifications.html#by-namespaces), it is possible to subscribe only

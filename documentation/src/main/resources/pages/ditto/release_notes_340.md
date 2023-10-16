@@ -23,23 +23,29 @@ Eclipse Ditto 3.4.0 focuses on the following areas:
 * Addition of a **new placeholder** to use **in connections** to use **payload of the thing JSON** e.g. in headers or addresses
 * New **placeholder functions** for **joining** multiple elements into a single string and doing **URL-encoding and -decoding**
 * Configure **MQTT message expiry interval for published messages** via a header
+* UI enhancements:
+  * Adding sending messages to Things
+  * Made UI (at least navigation bar) responsive for small screen sizes
+  * Increase size of JSON editors in "edit" mode
 
 The following non-functional work is also included:
 
 * **Swapping the [Akka toolkit](https://akka.io)** (because of its switch of license to [BSL License](https://www.lightbend.com/akka/license-faq) after Akka v2.6.x)
   **with its fork [Apache Pekko](https://pekko.apache.org/)** which remains Apache 2.0 licensed.
-* Support for using AWS DocumentDB as a replacement for MongoDB
-* Improve logging by adding the W3C traceparent header as MDC field to logs
+* Support for using **AWS DocumentDB** as a replacement for MongoDB
+* Improve logging by adding the **W3C Trace Context** `traceparent` header as MDC field to logs
 * Adjust handling of special MQTT headers in MQTT 5
 * Optimize docker files
 * Migration of Ditto UI to TypeScript
-* There now is an official [Eclipse Ditto Benchmark](2023-10-09-ditto-benchmark.html) which shows how Ditto is able
+* There now is an official **[Eclipse Ditto Benchmark](2023-10-09-ditto-benchmark.html)** which shows how Ditto is able
   to scale horizontally and provides some tuning tips
-* Addition of a benchmark tooling to run own Ditto benchmarks
+* Addition of a **benchmark tooling** to run own Ditto benchmarks
 
 The following notable fixes are included:
 
 * Fixed that failed retrieval of a policy (e.g. after policy change) leads to search index being "emptied out"
+* Fixed that putting metadata when updating a single scalar value did not work
+* UI fix, fixing that patching a thing will null values did not reflect that change in the UI
 
 ### New features
 
@@ -82,6 +88,19 @@ Resolving issue [#1729](https://github.com/eclipse-ditto/ditto/issues/1729), a f
 header `mqtt.message-expiry-interval` as part of a [MQTT5 target header mapping](connectivity-protocol-bindings-mqtt5.html#target-header-mapping),
 dynamically influencing the MQTT message expiry interval, e.g. as part of a payload mapper for certain to-be-published 
 messages, or as a header mapping for all published messages.
+
+#### Enhancements in Ditto explorer UI
+
+The UI was mainly enhanced with new features in a single PR, [#1773](https://github.com/eclipse-ditto/ditto/pull/1773).  
+In detail, the following improvements and fixes were added:  
+* add a tab "Message to Thing" to send thing messages
+* add a loading spinner to the "Send" (message) button and deactivate it while sending
+* update a complete Thing using "PATCH" and with the new 3.4.0 header "if-equal: skip-minimizing-merge"
+* only send eTag if it could be retrieved when updating complete thing
+* added missing `ilike` predicate to the search slot
+* made UI more responsive for small screens
+* prevent browser for doing autocomplete in the "search" input field
+* increase size of the "Things" JSON editor - keep sizes and position of other JSON editors as they were
 
 
 ### Changes
@@ -142,6 +161,16 @@ to TypeScript, introducing `npm` to build the UI.
 A bug [#1703](https://github.com/eclipse-ditto/ditto/issues/1703) was fixed, where the search index for things which 
 could not fetch an updated policy via a cache-loader, was basically dropped.  
 This could e.g. happen if a single policy is used by a lot of things and this was updated.
+
+#### Fixed that putting metadata when updating a single scalar value did not work
+
+The reported bug [#1631](https://github.com/eclipse-ditto/ditto/issues/1631), where the header `put-metadata` did not 
+have an effect when updating a single scalar value, was fixed.
+
+#### UI fix, fixing that patching a thing will null values did not reflect that change in the UI
+
+The reported bug [#1712](https://github.com/eclipse-ditto/ditto/issues/1712) was fixed, the UI now correctly updates
+when e.g. something was removed from a thing by a merge/patch update, using a `null` value.
 
 ### Helm Chart
 

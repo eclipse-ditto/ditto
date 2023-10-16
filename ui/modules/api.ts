@@ -12,9 +12,9 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
+import { EventSourcePolyfill } from 'event-source-polyfill';
 import * as Environments from './environments/environments.js';
 import * as Utils from './utils.js';
-import {EventSourcePolyfill} from 'event-source-polyfill';
 
 
 const config = {
@@ -320,11 +320,12 @@ export function setAuthHeader(forDevOps) {
 export async function callDittoREST(method, path, body = null,
     additionalHeaders = null, returnHeaders = false, devOps = false) {
   let response;
+  const contentType = method === 'PATCH' ? 'application/merge-patch+json' : 'application/json';
   try {
     response = await fetch(Environments.current().api_uri + (devOps ? '' : '/api/2') + path, {
       method: method,
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': contentType,
         [authHeaderKey]: authHeaderValue,
         ...additionalHeaders,
       },

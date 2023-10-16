@@ -16,15 +16,15 @@
 /* eslint-disable no-invalid-this */
 /* eslint-disable arrow-parens */
 
-import {JSONPath} from 'jsonpath-plus';
+import { JSONPath } from 'jsonpath-plus';
 
 import * as API from '../api.js';
+import * as Environments from '../environments/environments.js';
 
 import * as Utils from '../utils.js';
 import * as Fields from './fields.js';
 import * as Things from './things.js';
 import * as ThingsSSE from './thingsSSE.js';
-import * as Environments from '../environments/environments.js';
 
 let lastSearch = '';
 let theSearchCursor;
@@ -78,7 +78,7 @@ function onThingsTableClicked(event) {
  */
 export function searchTriggered(filter) {
   lastSearch = filter;
-  const regex = /^(eq\(|ne\(|gt\(|ge\(|lt\(|le\(|in\(|like\(|exists\(|and\(|or\(|not\().*/;
+  const regex = /^(eq\(|ne\(|gt\(|ge\(|lt\(|le\(|in\(|like\(|ilike\(|exists\(|and\(|or\(|not\().*/;
   if (filter === '' || regex.test(filter)) {
     searchThings(filter);
   } else {

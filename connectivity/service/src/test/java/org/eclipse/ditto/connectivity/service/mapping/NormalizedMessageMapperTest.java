@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Instant;
 import java.util.Map;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -46,7 +47,6 @@ import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThing;
@@ -66,8 +66,6 @@ import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Tests {@link NormalizedMessageMapper}.
@@ -133,6 +131,7 @@ public final class NormalizedMessageMapperTest {
                         "  \"_context\": {\n" +
                         "    \"topic\": \"thing/created/things/twin/events/created\",\n" +
                         "    \"path\": \"/\",\n" +
+                        "    \"value\":{\"thingId\":\"thing:created\",\"policyId\":\"thing:created\",\"attributes\":{\"x\":5},\"features\":{\"feature\":{\"properties\":{\"y\":6}}}},\n" +
                         "    \"headers\": {\n" +
                         "      \"response-required\": \"false\",\n" +
                         "      \"content-type\": \"application/json\"\n" +
@@ -174,6 +173,7 @@ public final class NormalizedMessageMapperTest {
                         "  \"_context\": {\n" +
                         "    \"topic\": \"thing/merged/things/twin/events/merged\",\n" +
                         "    \"path\": \"/\",\n" +
+                        "    \"value\":{\"thingId\":\"thing:merged\",\"attributes\":{\"x\":5},\"features\":{\"feature\":{\"properties\":{\"y\":6}}}},\n" +
                         "    \"headers\": {\n" +
                         "      \"response-required\": \"false\",\n" +
                         "      \"content-type\": \"application/merge-patch+json\"\n" +
@@ -218,6 +218,7 @@ public final class NormalizedMessageMapperTest {
                         "  \"_context\": {\n" +
                         "    \"topic\": \"thing/merged/things/twin/events/merged\",\n" +
                         "    \"path\": \"/\",\n" +
+                        "    \"value\":{\"thingId\":\"thing:merged\",\"attributes\":{\"x\":5},\"features\":{\"feature\":{\"properties\":{\"y\":6}}}},\n" +
                         "    \"headers\": {\n" +
                         "      \"response-required\": \"false\",\n" +
                         "      \"content-type\": \"application/merge-patch+json\"\n" +
@@ -251,6 +252,7 @@ public final class NormalizedMessageMapperTest {
                         "  \"_context\": {\n" +
                         "    \"topic\": \"thing/merged/things/twin/events/merged\",\n" +
                         "    \"path\": \"/\",\n" +
+                        "    \"value\":{\"thingId\":\"thing:merged\"},\n" +
                         "    \"headers\": {\n" +
                         "      \"response-required\": \"false\",\n" +
                         "      \"content-type\": \"application/merge-patch+json\"\n" +
@@ -309,6 +311,7 @@ public final class NormalizedMessageMapperTest {
                 .set("_context", JsonObject.newBuilder()
                         .set("topic", "the.namespace/the-thing-id/things/twin/events/merged")
                         .set("path", "/features/transmission")
+                        .set("value", JsonFactory.readFrom("{\"properties\":{\"cur_speed\":80}}"))
                         .set("headers", JsonObject.newBuilder()
                                 .set("response-required", "false")
                                 .set("content-type", "application/merge-patch+json")
@@ -345,6 +348,7 @@ public final class NormalizedMessageMapperTest {
                         "  \"_context\": {\n" +
                         "    \"topic\": \"thing/id/things/twin/events/modified\",\n" +
                         "    \"path\": \"/features/featureId/properties/the/quick/brown/fox/jumps/over/the/lazy/dog\",\n" +
+                        "    \"value\":9,\n" +
                         "    \"headers\": {\n" +
                         "      \"response-required\": \"false\",\n" +
                         "      \"content-type\": \"application/json\"\n" +
