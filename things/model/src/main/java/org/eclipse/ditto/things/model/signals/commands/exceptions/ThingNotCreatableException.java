@@ -113,8 +113,9 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
      * @param reason the reason why the implicit policy creation failed.
      * @return the builder.
      */
-    public static Builder newBuilderForOtherReason(final ThingId thingId, final PolicyId policyId, final String reason) {
-        return new Builder(thingId, policyId, reason);
+    public static Builder newBuilderForOtherReason(final HttpStatus httpStatus, final ThingId thingId, final PolicyId policyId, final String reason) {
+        return new Builder(thingId, policyId, reason)
+                .httpStatus(httpStatus);
     }
 
     /**

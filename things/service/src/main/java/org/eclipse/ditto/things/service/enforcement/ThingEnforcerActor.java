@@ -425,7 +425,7 @@ public final class ThingEnforcerActor
                     .dittoHeaders(command.getDittoHeaders())
                     .build();
         } else {
-            return ThingNotCreatableException.newBuilderForOtherReason(command.getEntityId(), policyId,
+            return ThingNotCreatableException.newBuilderForOtherReason(policyException.getHttpStatus(), command.getEntityId(), policyId,
                             policyException.getMessage())
                     .dittoHeaders(command.getDittoHeaders())
                     .build();
