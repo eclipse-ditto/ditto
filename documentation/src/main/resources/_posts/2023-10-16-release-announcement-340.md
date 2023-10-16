@@ -1,7 +1,7 @@
 ---
 title: "Announcing Eclipse Ditto Release 3.4.0"
 published: true
-permalink: 2023-10-12-release-announcement-340.html
+permalink: 2023-10-16-release-announcement-340.html
 layout: post
 author: thomas_jaeckle
 tags: [blog]
@@ -36,23 +36,29 @@ Eclipse Ditto 3.4.0 focuses on the following areas:
 * Addition of a **new placeholder** to use **in connections** to use **payload of the thing JSON** e.g. in headers or addresses
 * New **placeholder functions** for **joining** multiple elements into a single string and doing **URL-encoding and -decoding**
 * Configure **MQTT message expiry interval for published messages** via a header
+* UI enhancements:
+  * Adding sending messages to Things
+  * Made UI (at least navigation bar) responsive for small screen sizes
+  * Increase size of JSON editors in "edit" mode
 
 The following non-functional work is also included:
 
 * **Swapping the [Akka toolkit](https://akka.io)** (because of its switch of license to [BSL License](https://www.lightbend.com/akka/license-faq) after Akka v2.6.x)
   **with its fork [Apache Pekko](https://pekko.apache.org/)** which remains Apache 2.0 licensed.
-* Support for using AWS DocumentDB as a replacement for MongoDB
-* Improve logging by adding the W3C traceparent header as MDC field to logs
+* Support for using **AWS DocumentDB** as a replacement for MongoDB
+* Improve logging by adding the **W3C Trace Context** `traceparent` header as MDC field to logs
 * Adjust handling of special MQTT headers in MQTT 5
 * Optimize docker files
 * Migration of Ditto UI to TypeScript
-* There now is an official [Eclipse Ditto Benchmark](2023-10-09-ditto-benchmark.html) which shows how Ditto is able
+* There now is an official **[Eclipse Ditto Benchmark](2023-10-09-ditto-benchmark.html)** which shows how Ditto is able
   to scale horizontally and provides some tuning tips
-* Addition of a benchmark tooling to run own Ditto benchmarks
+* Addition of a **benchmark tooling** to run own Ditto benchmarks
 
 The following notable fixes are included:
 
 * Fixed that failed retrieval of a policy (e.g. after policy change) leads to search index being "emptied out"
+* Fixed that putting metadata when updating a single scalar value did not work
+* UI fix, fixing that patching a thing will null values did not reflect that change in the UI
 
 Please have a look at the [3.4.0 release notes](release_notes_340.html) for a more detailed information on the release.
 
