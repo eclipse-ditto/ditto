@@ -46,10 +46,6 @@ tbody {
     border-top: 0 !important;
 }
 
-body { 
-    padding-top: 60px;
-}
-
 #authorizationModal label {
     display: inline;
 }
@@ -81,8 +77,7 @@ textarea {
 }
 
 .nav-link {
-    padding-top: 0.1rem;
-    padding-bottom: 0.1rem;
+    padding: 0.1rem 0.4rem;
 }
 
 .tab-pane {
@@ -179,6 +174,13 @@ hr {
     background-color: white;
 }
 
+.editForgroundBig {
+    position: absolute;
+    right: 24px;
+    width: 90%;
+    height: 80%;
+}
+
 .dropdown-menu {
     max-height: 80vh;
     overflow-y: auto;
@@ -195,4 +197,12 @@ h5>.badge {
 
 .autoComplete_wrapper ul > li[aria-selected="true"] {
     background-color: rgba(123, 123, 123, 0.1);
+}
+
+.spinner-border {
+    visibility:hidden;
+}
+
+button.busy .spinner-border {
+    visibility:visible !important;
 }

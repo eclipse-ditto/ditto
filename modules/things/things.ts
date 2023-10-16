@@ -1,24 +1,24 @@
 /* eslint-disable new-cap */
 /*
-* Copyright (c) 2022 Contributors to the Eclipse Foundation
-*
-* See the NOTICE file(s) distributed with this work for additional
-* information regarding copyright ownership.
-*
-* This program and the accompanying materials are made available under the
-* terms of the Eclipse Public License 2.0 which is available at
-* http://www.eclipse.org/legal/epl-2.0
-*
-* SPDX-License-Identifier: EPL-2.0
-*/
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
 /* eslint-disable require-jsdoc */
 // @ts-check
 import * as API from '../api.js';
 
 import * as Utils from '../utils.js';
-import {TabHandler} from '../utils/tabHandler.js';
-import * as ThingsSearch from './thingsSearch.js';
+import { TabHandler } from '../utils/tabHandler.js';
 import thingsHTML from './things.html';
+import * as ThingsSearch from './thingsSearch.js';
 
 export let theThing;
 
@@ -57,7 +57,7 @@ export function refreshThing(thingId, successCallback = null) {
   console.assert(thingId && thingId !== '', 'thingId expected');
   API.callDittoREST('GET',
       `/things/${thingId}?` +
-      'fields=thingId%2CpolicyId%2Cdefinition%2Cattributes%2Cfeatures%2C_created%2C_modified%2C_revision')
+      'fields=thingId%2CpolicyId%2Cdefinition%2Cattributes%2Cfeatures%2C_created%2C_modified%2C_revision%2C_metadata')
       .then((thing) => {
         setTheThing(thing);
         successCallback && successCallback();

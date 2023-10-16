@@ -23,17 +23,17 @@
                     <hr />
                     <div class="row">
                         <div class="col-md-5">
-                            <input type="radio" id="main-userpass" name="main-auth" value="basic"></input>
+                            <input type="radio" id="main-userpass" name="main-auth" value="basic" />
                             <label for="main-userpass">Basic</label>
                         </div>
                         <div class="col-md-7">
                             <div class="input-group input-group-sm mb-1">
                                 <label for="userName" class="input-group-text">Username</label>
-                                <input type="text" class="form-control form-control-sm" id="userName"></input>
+                                <input type="text" class="form-control form-control-sm" id="userName" name="username" />
                             </div>
                             <div class="input-group input-group-sm mb-1">
                                 <label for="password" class="input-group-text">Password</label>
-                                <input type="password" class="form-control form-control-sm" id="password"></input>
+                                <input type="password" class="form-control form-control-sm" id="password" name="password" />
                             </div>
                         </div>
                     </div>
@@ -45,13 +45,13 @@
                         <div class="col-md-7">
                             <div class="input-group input-group-sm mb-1">
                                 <label for="bearer" class="input-group-text">Bearer</label>
-                                <input type="password" class="form-control form-control-sm" id="bearer"></input>
+                                <input type="password" class="form-control form-control-sm" id="bearer" name="bearer" />
                             </div>
                         </div>
                     </div>
                     <div class="row pt-2">
                         <div class="col-md-5">
-                            <input type="radio" id="main-pre" name="main-auth" value="pre"></input>
+                            <input type="radio" id="main-pre" name="main-auth" value="pre" />
                             <label for="main-pre">Pre authenticated<br />
                                 <small>(via HTTP header 'x-ditto-pre-authenticated', must take the form
                                     <code>prefix:suffix</code>)</small>
@@ -60,7 +60,7 @@
                         <div class="col-md-7">
                             <div class="input-group input-group-sm mb-1">
                                 <label for="dittoPreAuthenticatedUsername" class="input-group-text">prefix:suffix</label>
-                                <input type="text" class="form-control form-control-sm" id="dittoPreAuthenticatedUsername"></input>
+                                <input type="text" class="form-control form-control-sm" id="dittoPreAuthenticatedUsername" name="pre-authenticated-username"  />
                             </div>
                         </div>
                     </div>
@@ -71,29 +71,29 @@
                     <hr />
                     <div class="row">
                         <div class="col-md-5">
-                            <input type="radio" id="devops-userpass" name="devops-auth" value="basic"></input>
+                            <input type="radio" id="devops-userpass" name="devops-auth" value="basic" />
                             <label for="devops-userpass">Basic<br /></label>
                         </div>
                         <div class="col-md-7">
                             <div class="input-group input-group-sm mb-1">
                                 <label for="devOpsUserName" class="input-group-text">DevOps Username</label>
-                                <input type="text" class="form-control form-control-sm" id="devOpsUserName"></input>
+                                <input type="text" class="form-control form-control-sm" id="devOpsUserName" name="username" />
                             </div>
                             <div class="input-group input-group-sm mb-1">
                                 <label for="devOpsPassword" class="input-group-text">DevOps Password</label>
-                                <input type="password" class="form-control form-control-sm" id="devOpsPassword"></input>
+                                <input type="password" class="form-control form-control-sm" id="devOpsPassword" name="password" />
                             </div>
                         </div>
                     </div>
                     <div class="row pt-2">
                         <div class="col-md-5">
-                            <input type="radio" id="devops-bearer" name="devops-auth" value="bearer"></input>
+                            <input type="radio" id="devops-bearer" name="devops-auth" value="bearer" />
                             <label for="devops-bearer">Bearer<br /><small>(JWT OAuth2.0 Bearer token)</small></label>
                         </div>
                         <div class="col-md-7">
                             <div class="input-group input-group-sm mb-1">
                                 <label for="bearerDevOps" class="input-group-text">DevOps Bearer</label>
-                                <input type="password" class="form-control form-control-sm" id="bearerDevOps"></input>
+                                <input type="password" class="form-control form-control-sm" id="bearerDevOps" name="devops-bearer" />
                             </div>
                             <div class="input-group input-group-sm mb-1">
                         </div>
