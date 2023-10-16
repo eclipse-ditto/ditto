@@ -169,8 +169,10 @@ function refillTemplates() {
 }
 
 function onFeatureChanged(featureId) {
-  theFeatureId = featureId;
-  clearAllFields();
-  refillTemplates();
+  if (featureId !== theFeatureId) {
+    theFeatureId = featureId;
+    clearAllFields();
+    refillTemplates();
+  }
 }
 
