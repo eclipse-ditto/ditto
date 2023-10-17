@@ -35,6 +35,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Response to a {@link TestConnection} command.
@@ -175,6 +176,11 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
     @Override
     public TestConnectionResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return success(connectionId, testResult, dittoHeaders);
+    }
+
+    @Override
+    public TestConnectionResponse setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

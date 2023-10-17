@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 
 /**
@@ -131,6 +132,11 @@ public final class ThingDefinitionDeleted extends AbstractThingEvent<ThingDefini
     }
 
     @Override
+    public ThingDefinitionDeleted setEntity(final JsonValue entity) {
+        return this;
+    }
+
+    @Override
     public Command.Category getCommandCategory() {
         return Command.Category.DELETE;
     }
@@ -145,5 +151,7 @@ public final class ThingDefinitionDeleted extends AbstractThingEvent<ThingDefini
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + "]";
     }
+
+
 
 }

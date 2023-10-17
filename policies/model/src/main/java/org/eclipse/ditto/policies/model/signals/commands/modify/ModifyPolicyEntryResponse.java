@@ -240,6 +240,14 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
     }
 
     @Override
+    public ModifyPolicyEntryResponse setEntity(final JsonValue entity) {
+        return newInstance(policyId,
+                getHttpStatus() == HttpStatus.CREATED ? PoliciesModelFactory.newPolicyEntry(label, entity.asObject()) :
+                        null,
+                label, getHttpStatus(), getDittoHeaders());
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.of("/entries/" + label);
     }

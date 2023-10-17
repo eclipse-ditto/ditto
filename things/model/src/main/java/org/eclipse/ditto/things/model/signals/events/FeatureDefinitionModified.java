@@ -167,6 +167,12 @@ public final class FeatureDefinitionModified extends AbstractThingEvent<FeatureD
     }
 
     @Override
+    public FeatureDefinitionModified setEntity(final JsonValue entity) {
+        return of(getEntityId(), featureId, ThingsModelFactory.newFeatureDefinition(entity.asArray()), getRevision(),
+                getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return JsonFactory.newPointer("/features/" + featureId + "/definition");
     }

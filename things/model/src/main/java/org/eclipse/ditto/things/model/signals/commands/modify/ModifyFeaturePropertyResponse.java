@@ -271,6 +271,16 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
     }
 
     @Override
+    public ModifyFeaturePropertyResponse setEntity(final JsonValue entity) {
+        return newInstance(thingId,
+                featureId,
+                featurePropertyPointer,
+                getHttpStatus() == HttpStatus.CREATED ? entity : null,
+                getHttpStatus(),
+                getDittoHeaders());
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.of("/features/" + featureId + "/properties" + featurePropertyPointer);
     }

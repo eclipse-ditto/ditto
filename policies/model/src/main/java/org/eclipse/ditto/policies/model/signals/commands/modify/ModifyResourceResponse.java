@@ -267,6 +267,13 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
     }
 
     @Override
+    public ModifyResourceResponse setEntity(final JsonValue entity) {
+        return newInstance(policyId, label, resourceKey,
+                getHttpStatus() == HttpStatus.CREATED ? PoliciesModelFactory.newResource(resourceKey, entity) : null,
+                getHttpStatus(), getDittoHeaders());
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.of("/entries/" + label + "/resources/" + resourceKey);
     }

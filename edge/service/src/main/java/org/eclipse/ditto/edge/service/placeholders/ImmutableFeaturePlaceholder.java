@@ -70,7 +70,7 @@ final class ImmutableFeaturePlaceholder implements FeaturePlaceholder {
             featureIds = Collections.singletonList((withFeatureId).getFeatureId());
         } else if (signal instanceof ThingModifyCommand || signal instanceof ThingModifiedEvent ||
                 signal instanceof ThingModifyCommandResponse) {
-            featureIds = ((WithOptionalEntity) signal).getEntity()
+            featureIds = ((WithOptionalEntity<?>) signal).getEntity()
                     .map(value -> resolveFeatureIds(signal.getResourcePath(), value))
                     .orElseGet(List::of);
         } else {

@@ -16,18 +16,19 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
 
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapterTest;
+import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
 import org.eclipse.ditto.protocol.TestConstants;
 import org.eclipse.ditto.protocol.TestConstants.Policies;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.UnknownCommandException;
-import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapterTest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -94,6 +95,10 @@ public final class PolicyModifyCommandAdapterTest implements ProtocolAdapterTest
             return this;
         }
 
+        @Override
+        public UnknownPolicyModifyCommand setEntity(final JsonValue entity) {
+            return this;
+        }
     }
 
 }

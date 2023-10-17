@@ -160,6 +160,12 @@ public final class ThingDefinitionModified extends AbstractThingEvent<ThingDefin
     }
 
     @Override
+    public ThingDefinitionModified setEntity(final JsonValue entity) {
+        return of(getEntityId(), ThingsModelFactory.newDefinition(entity.asString()), getRevision(),
+                getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         final String path = Thing.JsonFields.DEFINITION.getPointer().toString();
         return JsonPointer.of(path);

@@ -172,6 +172,11 @@ public final class CreateThingResponse extends AbstractCommandResponse<CreateThi
     }
 
     @Override
+    public CreateThingResponse setEntity(final JsonValue entity) {
+        return newInstance(ThingsModelFactory.newThing(entity.asObject()), getHttpStatus(), getDittoHeaders());
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.empty();
     }

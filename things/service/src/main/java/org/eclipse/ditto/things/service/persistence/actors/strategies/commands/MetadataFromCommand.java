@@ -88,7 +88,7 @@ final class MetadataFromCommand implements Supplier<Metadata> {
         final Thing existingOrEmptyThing =
                 Objects.requireNonNullElseGet(existingThing, () -> Thing.newBuilder().build());
 
-        if (command instanceof WithOptionalEntity withOptionalEntity) {
+        if (command instanceof WithOptionalEntity<?> withOptionalEntity) {
             final var mergedThing = withOptionalEntity.getEntity()
                     .map(entity -> {
                         final var resourcePath = command.getResourcePath();

@@ -516,6 +516,18 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
     }
 
     @Override
+    public MergeThing setEntity(final JsonValue entity) {
+        if (path.isEmpty()) {
+            final JsonObject jsonObject = entity.asObject();
+            final JsonObject initialPolicyObject = jsonObject.getValue(JSON_INLINE_POLICY).orElse(null);
+            final String localPolicyIdOrPlaceholder = jsonObject.getValue(JSON_COPY_POLICY_FROM).orElse(null);
+            return new MergeThing(thingId, path, entity, initialPolicyObject, localPolicyIdOrPlaceholder, getDittoHeaders());
+        } else {
+            return new MergeThing(thingId, path, entity, initialPolicy, policyIdOrPlaceholder, getDittoHeaders());
+        }
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return path;
     }

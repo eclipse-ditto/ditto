@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.model.signals.commands.modify;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -35,6 +36,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Command which creates a {@link org.eclipse.ditto.connectivity.model.Connection}.
@@ -133,6 +135,16 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
     @Override
     public Category getCategory() {
         return Category.CREATE;
+    }
+
+    @Override
+    public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
+        return Optional.of(connection.toJson(schemaVersion, FieldType.regularOrSpecial()));
+    }
+
+    @Override
+    public CreateConnection setEntity(final JsonValue entity) {
+        return of(ConnectivityModelFactory.connectionFromJson(entity.asObject()), getDittoHeaders());
     }
 
     @Override

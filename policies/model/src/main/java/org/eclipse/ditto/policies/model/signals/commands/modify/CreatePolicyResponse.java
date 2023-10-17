@@ -178,6 +178,12 @@ public final class CreatePolicyResponse extends AbstractCommandResponse<CreatePo
     }
 
     @Override
+    public CreatePolicyResponse setEntity(final JsonValue entity) {
+        return newInstance(policyId, PoliciesModelFactory.newPolicy(entity.asObject()), getHttpStatus(),
+                getDittoHeaders());
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.empty();
     }

@@ -34,7 +34,7 @@ import org.eclipse.ditto.json.JsonObject;
  * @param <T> the type of the implementing class.
  */
 @IndexSubclasses
-public interface Event<T extends Event<T>> extends Signal<T>, WithOptionalEntity {
+public interface Event<T extends Event<T>> extends Signal<T>, WithOptionalEntity<T> {
 
     /**
      * Type qualifier of events.

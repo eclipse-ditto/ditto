@@ -217,6 +217,11 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
     }
 
     @Override
+    public ModifyPolicyIdResponse setEntity(final JsonValue entity) {
+        return newInstance(thingId, PolicyId.of(entity.asString()), getHttpStatus(), getDittoHeaders());
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.of(Thing.JsonFields.POLICY_ID.getPointer().toString());
     }

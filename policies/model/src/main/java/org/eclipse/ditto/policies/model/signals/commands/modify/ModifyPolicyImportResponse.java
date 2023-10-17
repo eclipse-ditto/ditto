@@ -223,6 +223,14 @@ public final class ModifyPolicyImportResponse extends AbstractCommandResponse<Mo
     }
 
     @Override
+    public ModifyPolicyImportResponse setEntity(final JsonValue entity) {
+        return newInstance(policyId, importedPolicyId,
+                getHttpStatus() == HttpStatus.CREATED ?
+                        PoliciesModelFactory.newPolicyImport(importedPolicyId, entity.asObject()) : null,
+                getHttpStatus(), getDittoHeaders());
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         if (policyImportCreated == null) {
             return JsonPointer.empty();

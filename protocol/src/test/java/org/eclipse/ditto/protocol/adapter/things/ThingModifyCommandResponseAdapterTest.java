@@ -16,24 +16,24 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
 
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.ThingsModelFactory;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocol.LiveTwinTest;
 import org.eclipse.ditto.protocol.Payload;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocol.TestConstants;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.UnknownCommandResponseException;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapterTest;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteAttributeResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteAttributesResponse;
@@ -113,6 +113,11 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
             @Override
             public ThingModifyCommandResponse<?> setDittoHeaders(final DittoHeaders dittoHeaders) {
+                return this;
+            }
+
+            @Override
+            public ThingModifyCommandResponse<?> setEntity(final JsonValue entity) {
                 return this;
             }
 

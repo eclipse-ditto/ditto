@@ -34,6 +34,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Response to a {@link ResetConnectionMetrics} command.
@@ -144,6 +145,11 @@ public final class ResetConnectionMetricsResponse extends AbstractCommandRespons
     @Override
     public ResetConnectionMetricsResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(connectionId, dittoHeaders);
+    }
+
+    @Override
+    public ResetConnectionMetricsResponse setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

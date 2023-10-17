@@ -147,6 +147,12 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
     }
 
     @Override
+    public PolicyIdModified setEntity(final JsonValue entity) {
+        return of(getEntityId(), PolicyId.of(entity.asString()), getRevision(), getTimestamp().orElse(null),
+                getDittoHeaders(), getMetadata().orElse(null));
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         final String path = Thing.JsonFields.POLICY_ID.getPointer().toString();
         return JsonPointer.of(path);

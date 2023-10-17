@@ -20,10 +20,10 @@ If the Thing did not yet exist, it is created.
 
 ### Command
 
-| Field     | Value                   |
-|-----------|-------------------------|
-| **topic** | `<namespace>/<thingName>/things/<channel>/commands/merge`     |
-| **path**  | `/`     |
+| Field     | Value                                                                                                                                                              |
+|-----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/merge`                                                                                                          |
+| **path**  | `/`                                                                                                                                                                |
 | **value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc7396) format that is applied to the [Thing](basic-thing.html#thing) referenced in the `topic`. |
 
 ### Response

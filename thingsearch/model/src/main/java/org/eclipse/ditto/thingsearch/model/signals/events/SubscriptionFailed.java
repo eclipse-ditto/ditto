@@ -16,16 +16,17 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableEvent;
 import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
 import org.eclipse.ditto.base.model.signals.events.EventJsonDeserializer;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * This event is emitted after a stream of search results failed.
@@ -119,6 +120,11 @@ public final class SubscriptionFailed extends AbstractSubscriptionEvent<Subscrip
     @Override
     public SubscriptionFailed setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new SubscriptionFailed(getSubscriptionId(), error, dittoHeaders);
+    }
+
+    @Override
+    public SubscriptionFailed setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

@@ -174,6 +174,14 @@ public final class FeatureDesiredPropertiesCreated extends AbstractThingEvent<Fe
     }
 
     @Override
+    public FeatureDesiredPropertiesCreated setEntity(final JsonValue entity) {
+        return of(getEntityId(), featureId,
+                entity.isNull() ? ThingsModelFactory.nullFeatureProperties() :
+                        ThingsModelFactory.newFeatureProperties(entity.asObject()), getRevision(),
+                getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         final String path = "/features/" + featureId + "/desiredProperties";
         return JsonPointer.of(path);
@@ -182,8 +190,7 @@ public final class FeatureDesiredPropertiesCreated extends AbstractThingEvent<Fe
     @Override
     public FeatureDesiredPropertiesCreated setRevision(final long revision) {
         return of(getEntityId(), featureId, desiredProperties, revision, getTimestamp().orElse(null),
-                getDittoHeaders(),
-                getMetadata().orElse(null));
+                getDittoHeaders(), getMetadata().orElse(null));
     }
 
     @Override

@@ -167,6 +167,12 @@ public final class AttributeCreated extends AbstractThingEvent<AttributeCreated>
     }
 
     @Override
+    public AttributeCreated setEntity(final JsonValue entity) {
+        return of(getEntityId(), attributePointer, entity, getRevision(), getTimestamp().orElse(null),
+                getDittoHeaders(), getMetadata().orElse(null));
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         final String path = "/attributes" + attributePointer;
         return JsonPointer.of(path);

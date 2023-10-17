@@ -16,15 +16,16 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonParsableEvent;
+import org.eclipse.ditto.base.model.signals.events.EventJsonDeserializer;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.JsonParsableEvent;
-import org.eclipse.ditto.base.model.signals.events.EventJsonDeserializer;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * This event is emitted after a page of search result is ready.
@@ -116,6 +117,11 @@ public final class SubscriptionHasNextPage extends AbstractSubscriptionEvent<Sub
     @Override
     public SubscriptionHasNextPage setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new SubscriptionHasNextPage(getSubscriptionId(), items, dittoHeaders);
+    }
+
+    @Override
+    public SubscriptionHasNextPage setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

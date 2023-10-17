@@ -168,6 +168,11 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
     }
 
     @Override
+    public ModifyPolicyEntries setEntity(final JsonValue entity) {
+        return of(policyId, PoliciesModelFactory.newPolicyEntries(entity.asObject()), getDittoHeaders());
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.of("/entries");
     }

@@ -269,6 +269,15 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     }
 
     @Override
+    public CreateThing setEntity(final JsonValue entity) {
+        final JsonObject jsonObject = entity.asObject();
+        final JsonObject initialPolicyObject = jsonObject.getValue(JSON_INLINE_POLICY).orElse(null);
+        final String localPolicyIdOrPlaceholder = jsonObject.getValue(JSON_COPY_POLICY_FROM).orElse(null);
+        return of(ThingsModelFactory.newThing(jsonObject), initialPolicyObject, localPolicyIdOrPlaceholder,
+                getDittoHeaders());
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.empty();
     }

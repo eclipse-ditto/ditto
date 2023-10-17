@@ -36,6 +36,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
@@ -159,6 +160,11 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
     @Override
     public MergeThingResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return newInstance(thingId, path, getHttpStatus(), dittoHeaders);
+    }
+
+    @Override
+    public MergeThingResponse setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

@@ -206,6 +206,14 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
     }
 
     @Override
+    public ModifyFeaturesResponse setEntity(final JsonValue entity) {
+        return newInstance(thingId,
+                getHttpStatus() == HttpStatus.CREATED ? ThingsModelFactory.newFeatures(entity.asObject()) :
+                        ThingsModelFactory.nullFeatures(),
+                getHttpStatus(), getDittoHeaders());
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.of("/features");
     }

@@ -13,9 +13,9 @@
 package org.eclipse.ditto.connectivity.model.signals.commands.modify;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.model.WithConnectionId;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
+import org.eclipse.ditto.connectivity.model.WithConnectionId;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
 
 /**
@@ -25,7 +25,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand
  * @param <T> the type of the implementing class.
  */
 public interface ConnectivityModifyCommandResponse<T extends ConnectivityModifyCommandResponse<T>>
-        extends ConnectivityCommandResponse<T>, WithOptionalEntity, WithConnectionId, SignalWithEntityId<T> {
+        extends ConnectivityCommandResponse<T>, WithOptionalEntity<T>, WithConnectionId, SignalWithEntityId<T> {
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
