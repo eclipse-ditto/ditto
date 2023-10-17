@@ -212,7 +212,7 @@ final class MetadataFromCommand implements Supplier<Metadata> {
                 } else if (metadataHeaderKey.getPath().getLevelCount() == 1) {
                     metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeaderValue);
                 }
-            } else if (metadataHeaderKey.getPath().getLevelCount() > 1 || metadataHeaderValue.isObject()) {
+            } else {
                 metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeaderValue);
             }
         };
