@@ -43,8 +43,7 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.conn
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscribe;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscription;
-import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.config.DefaultTracingConfig;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
@@ -82,9 +81,9 @@ public final class MqttClientActorIT {
     @Parameterized.Parameter
     public static MqttVersion mqttVersion;
 
-//    @ClassRule
-//    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
-//            DittoTracingInitResource.disableDittoTracing();
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
 //    @ClassRule
 //    public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
@@ -116,7 +115,6 @@ public final class MqttClientActorIT {
     @BeforeClass
     public static void beforeClass() {
         actorsTestConfig = ConfigFactory.load("test.conf");
-        DittoTracing.init(DefaultTracingConfig.of(actorsTestConfig));
 //        mongoClient = provideClientWrapper();
     }
 
