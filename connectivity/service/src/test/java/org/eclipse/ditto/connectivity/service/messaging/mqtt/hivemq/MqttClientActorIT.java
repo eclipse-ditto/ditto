@@ -17,11 +17,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.collect.Sets;
 import com.hivemq.client.mqtt.MqttClient;
 import com.hivemq.client.mqtt.MqttGlobalPublishFilter;
+import com.hivemq.client.mqtt.MqttVersion;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
+import com.hivemq.client.mqtt.datatypes.MqttTopic;
+import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
+import com.hivemq.client.mqtt.mqtt3.Mqtt3BlockingClient;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
-import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Status;
@@ -33,8 +37,15 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.*;
+import org.eclipse.ditto.connectivity.model.mqtt.ReceiveMaximum;
+import org.eclipse.ditto.connectivity.model.mqtt.SessionExpiryInterval;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.KeepAliveInterval;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.connect.GenericMqttConnect;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscribe;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscription;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.config.DefaultTracingConfig;
 import org.eclipse.ditto.json.JsonFactory;
@@ -42,16 +53,29 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.junit.*;
 import org.junit.rules.TestName;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+import javax.annotation.Nullable;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 /**
  * Tests {@link MqttClientActor}.
  */
+@RunWith(Parameterized.class)
 public final class MqttClientActorIT {
+
+    @Parameterized.Parameters(name = "MQTT version {0}")
+    public static Collection<MqttVersion> mqttVersions() {
+        return List.of(MqttVersion.MQTT_3_1_1, MqttVersion.MQTT_5_0);
+    }
+
+    @Parameterized.Parameter
+    public static MqttVersion mqttVersion;
 
 //    @ClassRule
 //    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
@@ -63,6 +87,12 @@ public final class MqttClientActorIT {
     private static final String CLIENT_ID_DITTO = "ditto";
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION,
             AuthorizationModelFactory.newAuthSubject("nginx:ditto"));
+    private static final Duration CONNECTION_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration COMMAND_TIMEOUT = Duration.ofSeconds(5);
+    private static final Duration NO_MESSAGE_TIMEOUT = Duration.ofSeconds(3);
+    // https://github.com/eclipse-ditto/ditto/issues/1767
+    private static final int TIMEOUT_BEFORE_PUBLISH = 3;
+    private static final int MESSAGES_FROM_PREVIOUS_SESSION_TIMEOUT = 3;
 
     private static Config actorsTestConfig;
 
@@ -75,7 +105,7 @@ public final class MqttClientActorIT {
 //    private MongoCollection<Document> thingsCollection;
 
     @BeforeClass
-    public static void startMongoResource() {
+    public static void beforeClass() {
         actorsTestConfig = ConfigFactory.load("test.conf");
         DittoTracing.init(DefaultTracingConfig.of(actorsTestConfig));
 //        mongoClient = provideClientWrapper();
@@ -90,8 +120,7 @@ public final class MqttClientActorIT {
 
     private void cleanPreviousSession() {
         final var mqttClient = getMqttClient(CLIENT_ID_DITTO);
-        mqttClient.connectWith().cleanStart(true).send();
-        mqttClient.disconnect();
+        mqttClient.cleanSession();
     }
 
     /*private static DittoMongoClient provideClientWrapper() {
@@ -135,9 +164,9 @@ public final class MqttClientActorIT {
                     ConfigFactory.empty()));
 
             underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(Duration.ofSeconds(30), new Status.Success(BaseClientState.CONNECTED));
+            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.CONNECTED));
 
-            sleep(3);
+            sleep(TIMEOUT_BEFORE_PUBLISH);
 
             final var mqttClient = getMqttClient(name.getMethodName());
 
@@ -146,10 +175,10 @@ public final class MqttClientActorIT {
             mqttClient.disconnect();
 
             expectMergeThingMessage(this, "key", "test");
-            expectNoMessage(Duration.ofSeconds(3));
+            expectNoMessage(NO_MESSAGE_TIMEOUT);
 
             underTest.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(Duration.ofSeconds(30), new Status.Success(BaseClientState.DISCONNECTED));
+            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.DISCONNECTED));
 
             ensureAllMessagesAcknowledged();
 
@@ -175,9 +204,9 @@ public final class MqttClientActorIT {
                     ConfigFactory.empty()));
 
             underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(Duration.ofSeconds(30), new Status.Success(BaseClientState.CONNECTED));
+            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.CONNECTED));
 
-            sleep(3);
+            sleep(TIMEOUT_BEFORE_PUBLISH);
 
             final var mqttClient = getMqttClient(name.getMethodName());
 
@@ -188,10 +217,10 @@ public final class MqttClientActorIT {
 
             expectMergeThingMessage(this, "key", "test");
             expectMergeThingMessage(this, "key2", "test2");
-            expectNoMessage(Duration.ofSeconds(3));
+            expectNoMessage(NO_MESSAGE_TIMEOUT);
 
             underTest.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(Duration.ofSeconds(30), new Status.Success(BaseClientState.DISCONNECTED));
+            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.DISCONNECTED));
 
             ensureAllMessagesAcknowledged();
         }};
@@ -209,9 +238,9 @@ public final class MqttClientActorIT {
                     ConfigFactory.empty()));
 
             underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(Duration.ofSeconds(30), new Status.Success(BaseClientState.CONNECTED));
+            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.CONNECTED));
 
-            sleep(3);
+            sleep(TIMEOUT_BEFORE_PUBLISH);
 
             final var mqttClient = getMqttClient(name.getMethodName());
 
@@ -223,10 +252,10 @@ public final class MqttClientActorIT {
             expectMergeThingMessages(this,
                     Map.of("key", "test",
                     "key2", "test2"));
-            expectNoMessage(Duration.ofSeconds(3));
+            expectNoMessage(NO_MESSAGE_TIMEOUT);
 
             underTest.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(Duration.ofSeconds(30), new Status.Success(BaseClientState.DISCONNECTED));
+            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.DISCONNECTED));
 
             // https://github.com/eclipse-ditto/ditto/issues/1768
 //            ensureAllMessagesAcknowledged();
@@ -234,10 +263,85 @@ public final class MqttClientActorIT {
 
     @Test
     @Ignore("https://github.com/eclipse-ditto/ditto/issues/1767")
-    public void testFromPersistentSession() {}
+    public void testPersistentSession() {
+        new TestKit(actorSystem) {{
+            ConnectionId connectionId = ConnectionId.of("test");
+            final ActorRef underTest = actorSystem.actorOf(MqttClientActor.props(
+                    getConnection(connectionId, new String[] { "data" }),
+                    getRef(),
+                    getRef(),
+                    DittoHeaders.empty(),
+                    ConfigFactory.empty()));
+            // create session for ditto client ID
+            final var dittoMqttClient = getMqttClient(CLIENT_ID_DITTO);
+            dittoMqttClient.connect(GenericMqttConnect.newInstance(false, KeepAliveInterval.defaultKeepAlive(), SessionExpiryInterval.defaultSessionExpiryInterval(), ReceiveMaximum.defaultReceiveMaximum()));
+            dittoMqttClient.subscribe(GenericMqttSubscribe.of(Set.of(
+                    GenericMqttSubscription.newInstance(MqttTopicFilter.of("data"), MqttQos.EXACTLY_ONCE))));
+            dittoMqttClient.disconnect();
+
+            final var mqttClient = getMqttClient(name.getMethodName());
+
+            mqttClient.connect();
+            publishMergeThingMessage(mqttClient, "data", "key", "test");
+            mqttClient.disconnect();
+
+            underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.CONNECTED));
+
+            expectMergeThingMessage(this, "key", "test");
+            expectNoMessage(NO_MESSAGE_TIMEOUT);
+
+            underTest.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.DISCONNECTED));
+
+            ensureAllMessagesAcknowledged();
+        }};
+    }
+
+    @Test
+    @Ignore("https://github.com/eclipse-ditto/ditto/issues/1767")
+    public void testPersistentSessionMessageFromTopicWhichIsNoLongerSubscribed() {
+        new TestKit(actorSystem) {{
+            ConnectionId connectionId = ConnectionId.of("test");
+            final ActorRef underTest = actorSystem.actorOf(MqttClientActor.props(
+                    getConnection(connectionId, new String[] { "data" }),
+                    getRef(),
+                    getRef(),
+                    DittoHeaders.empty(),
+                    ConfigFactory.empty()));
+            // create session for ditto client ID
+            final var dittoMqttClient = getMqttClient(CLIENT_ID_DITTO);
+            dittoMqttClient.connect(GenericMqttConnect.newInstance(false, KeepAliveInterval.defaultKeepAlive(), SessionExpiryInterval.defaultSessionExpiryInterval(), ReceiveMaximum.defaultReceiveMaximum()));
+            dittoMqttClient.subscribe(GenericMqttSubscribe.of(Set.of(
+                    GenericMqttSubscription.newInstance(MqttTopicFilter.of("data"), MqttQos.EXACTLY_ONCE),
+                    GenericMqttSubscription.newInstance(MqttTopicFilter.of("data2"), MqttQos.EXACTLY_ONCE))));
+            dittoMqttClient.disconnect();
+
+            final var mqttClient = getMqttClient(name.getMethodName());
+
+            mqttClient.connect();
+            publishMergeThingMessage(mqttClient, "data", "key", "test");
+            publishMergeThingMessage(mqttClient, "data2", "key2", "test2");
+            mqttClient.disconnect();
+
+            underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.CONNECTED));
+
+            expectMergeThingMessage(this, "key", "test");
+            expectNoMessage(NO_MESSAGE_TIMEOUT);
+
+            underTest.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.DISCONNECTED));
+
+            ensureAllMessagesAcknowledged();
+        }};
+    }
 
     private static Connection getConnection(ConnectionId connectionId, String[]... sourcesTopics) {
-        return ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT_5, ConnectivityStatus.CLOSED, "tcp://localhost:1883")
+        return ConnectivityModelFactory.newConnectionBuilder(connectionId,
+                        mqttVersion.equals(MqttVersion.MQTT_3_1_1) ? ConnectionType.MQTT : ConnectionType.MQTT_5,
+                        ConnectivityStatus.CLOSED,
+                        "tcp://localhost:1883")
                 .specificConfig(Map.of(
                         "clientId", CLIENT_ID_DITTO,
                         "cleanSession", "false",
@@ -252,45 +356,43 @@ public final class MqttClientActorIT {
                 .build();
     }
 
-    private static void publishMergeThingMessage(Mqtt5BlockingClient mqttClient, String topic, String key, String value) {
-        mqttClient.publish(
-                Mqtt5Publish.builder()
-                        .topic(topic)
-                        .payload(String.format("""
-                                {
-                                    "topic": "test/thing-01/things/twin/commands/merge",
-                                    "path": "/attributes/%s",
-                                    "headers": {
-                                        "content-type": "application/merge-patch+json",
-                                        "requested-acks": []
-                                    },
-                                    "value": "%s"
-                                }
-                                """, key, value).getBytes(StandardCharsets.UTF_8))
-                        .qos(MqttQos.EXACTLY_ONCE)
-                        .contentType("application/vnd.eclipse.ditto+json")
-                        .build()
+    private static void publishMergeThingMessage(GenericBlockingMqttClient mqttClient, String topic, String key, String value) {
+        mqttClient.publish(GenericMqttPublish.builder(MqttTopic.of(topic), MqttQos.EXACTLY_ONCE)
+                    .payload(ByteBuffer.wrap(String.format("""
+{
+    "topic": "test/thing-01/things/twin/commands/merge",
+    "path": "/attributes/%s",
+    "headers": {
+        "content-type": "application/merge-patch+json",
+        "requested-acks": []
+    },
+    "value": "%s"
+}
+""", key, value).getBytes(StandardCharsets.UTF_8)))
+                    .contentType("application/vnd.eclipse.ditto+json")
+                    .build()
         );
     }
 
     private static void sleep(int seconds) {
+        if (seconds == 0) {
+            return;
+        }
+
         try {
             Thread.sleep(seconds * 1000L);
         } catch (InterruptedException ignored) {
         }
     }
 
-    private static Mqtt5BlockingClient getMqttClient(String clientId) {
-        return MqttClient.builder()
-                .useMqttVersion5()
-                .serverHost("localhost")
-                .serverPort(1883)
-                .identifier(clientId)
-                .buildBlocking();
+    private static GenericBlockingMqttClient getMqttClient(String clientId) {
+        return GenericBlockingMqttClientBuilder.newInstance(mqttVersion, "localhost", 1883)
+                .clientIdentifier(clientId)
+                .build();
     }
 
     private void expectMergeThingMessage(TestKit testKit, String key, String value) {
-        final var command = testKit.expectMsgClass(Duration.ofSeconds(30), MergeThing.class);
+        final var command = testKit.expectMsgClass(COMMAND_TIMEOUT, MergeThing.class);
         softly.assertThat((CharSequence) command.getEntityId())
                 .as("entity ID")
                 .isEqualTo(ThingId.of("test:thing-01"));
@@ -303,7 +405,7 @@ public final class MqttClientActorIT {
     }
 
     private void expectMergeThingMessages(TestKit testKit, Map<String, String> updates) {
-        List<Object> messages = testKit.receiveN(2, Duration.ofSeconds(30));
+        List<Object> messages = testKit.receiveN(2, COMMAND_TIMEOUT);
         assertThat(messages).hasSize(2);
         final var actualUpdates = messages.stream()
                 .filter(MergeThing.class::isInstance)
@@ -316,24 +418,160 @@ public final class MqttClientActorIT {
     }
 
     private static void ensureAllMessagesAcknowledged() {
-        final var mqttClient = getMqttClient(CLIENT_ID_DITTO).toAsync();
+        final var mqttClient = getMqttClient(CLIENT_ID_DITTO);
 
-        final var unacknowledgedPublishes = new ArrayList<Mqtt5Publish>();
-        mqttClient.publishes(MqttGlobalPublishFilter.ALL, unacknowledgedPublishes::add);
+        final var unacknowledgedPublishes = new ArrayList<GenericMqttPublish>();
+        mqttClient.setPublishesCallback(MqttGlobalPublishFilter.ALL, unacknowledgedPublishes::add);
 
-        mqttClient.connectWith()
-                .cleanStart(false)
-                // expiry immediately after disconnect to not spoil next tests
-                .sessionExpiryInterval(0)
-                .send()
-                .thenApply(ignored -> {
-                    sleep(3);
-                    return new CompletableFuture<Void>();
-                })
-                .thenApply(ignored -> mqttClient.disconnect())
-                .join();
+        mqttClient.connect(GenericMqttConnect.newInstance(false, KeepAliveInterval.defaultKeepAlive(), SessionExpiryInterval.defaultSessionExpiryInterval(), ReceiveMaximum.defaultReceiveMaximum()));
+        sleep(MESSAGES_FROM_PREVIOUS_SESSION_TIMEOUT);
+        mqttClient.disconnect();
 
         assertThat(unacknowledgedPublishes).isEmpty();
+    }
+
+    private interface GenericBlockingMqttClient {
+        void connect();
+        void connect(final GenericMqttConnect connect);
+        void disconnect();
+        void cleanSession();
+        void setPublishesCallback(MqttGlobalPublishFilter mqttGlobalPublishFilter, Consumer<GenericMqttPublish> callback);
+        void publish(GenericMqttPublish publish);
+        void subscribe(GenericMqttSubscribe subscribe);
+    }
+
+    private static class GenericBlockingMqttClientBuilder {
+        private final MqttVersion mqttVersion;
+        private final String host;
+        private final Integer port;
+        @Nullable private String clientId;
+
+        private GenericBlockingMqttClientBuilder(MqttVersion mqttVersion, String host, int port) {
+            this.mqttVersion = mqttVersion;
+            this.host = host;
+            this.port = port;
+        }
+
+        public static GenericBlockingMqttClientBuilder newInstance(final MqttVersion mqttVersion, String host, int port) {
+            return new GenericBlockingMqttClientBuilder(mqttVersion, host, port);
+        }
+
+        public GenericBlockingMqttClientBuilder clientIdentifier(String clientId) {
+            this.clientId = clientId;
+            return this;
+        }
+
+        public GenericBlockingMqttClient build() {
+            return mqttVersion == MqttVersion.MQTT_3_1_1 ?
+                    new Mqtt3BlockingMqttClient(this) :
+                    new Mqtt5BlockingMqttClient(this);
+        }
+
+        private static final class Mqtt3BlockingMqttClient implements GenericBlockingMqttClient {
+
+            private final Mqtt3BlockingClient client;
+
+            private Mqtt3BlockingMqttClient(GenericBlockingMqttClientBuilder builder) {
+                var mqtt3ClientBuilder = MqttClient.builder()
+                        .useMqttVersion3()
+                        .serverHost(builder.host)
+                        .serverPort(builder.port);
+                if (builder.clientId != null) {
+                    mqtt3ClientBuilder = mqtt3ClientBuilder.identifier(builder.clientId);
+                }
+
+                client = mqtt3ClientBuilder.buildBlocking();
+            }
+
+            @Override
+            public void connect() {
+                client.connect();
+            }
+
+            @Override
+            public void connect(GenericMqttConnect connect) {
+                client.connect(connect.getAsMqtt3Connect());
+            }
+
+            @Override
+            public void disconnect() {
+                client.disconnect();
+            }
+
+            @Override
+            public void cleanSession() {
+                client.connectWith().cleanSession(true).send();
+                client.disconnect();
+            }
+
+            @Override
+            public void setPublishesCallback(MqttGlobalPublishFilter mqttGlobalPublishFilter, Consumer<GenericMqttPublish> callback) {
+                client.toAsync().publishes(mqttGlobalPublishFilter, p -> callback.accept(GenericMqttPublish.ofMqtt3Publish(p)));
+            }
+
+            @Override
+            public void publish(GenericMqttPublish publish) {
+                client.publish(publish.getAsMqtt3Publish());
+            }
+
+            @Override
+            public void subscribe(GenericMqttSubscribe subscribe) {
+                client.subscribe(subscribe.getAsMqtt3Subscribe());
+            }
+        }
+
+        private static final class Mqtt5BlockingMqttClient implements GenericBlockingMqttClient {
+
+            private final Mqtt5BlockingClient client;
+
+            private Mqtt5BlockingMqttClient(GenericBlockingMqttClientBuilder builder) {
+                var mqtt5ClientBuilder = MqttClient.builder()
+                        .useMqttVersion5()
+                        .serverHost(builder.host)
+                        .serverPort(builder.port);
+                if (builder.clientId != null) {
+                    mqtt5ClientBuilder = mqtt5ClientBuilder.identifier(builder.clientId);
+                }
+
+                client = mqtt5ClientBuilder.buildBlocking();
+            }
+
+            @Override
+            public void connect() {
+                client.connect();
+            }
+
+            @Override
+            public void connect(GenericMqttConnect connect) {
+                client.connect(connect.getAsMqtt5Connect());
+            }
+
+            @Override
+            public void disconnect() {
+                client.disconnect();
+            }
+
+            @Override
+            public void cleanSession() {
+                client.connectWith().cleanStart(true).send();
+                client.disconnect();
+            }
+
+            @Override
+            public void setPublishesCallback(MqttGlobalPublishFilter mqttGlobalPublishFilter, Consumer<GenericMqttPublish> callback) {
+                client.toAsync().publishes(mqttGlobalPublishFilter, p -> callback.accept(GenericMqttPublish.ofMqtt5Publish(p)));
+            }
+
+            @Override
+            public void publish(GenericMqttPublish publish) {
+                client.publish(publish.getAsMqtt5Publish());
+            }
+
+            @Override
+            public void subscribe(GenericMqttSubscribe subscribe) {
+                client.subscribe(subscribe.getAsMqtt5Subscribe());
+            }
+        }
     }
 
     /*@Test
