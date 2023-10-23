@@ -275,6 +275,7 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
                         <configuration>
                             <shadedArtifactAttached>true</shadedArtifactAttached>
                             <shadedClassifierName>allinone</shadedClassifierName>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
                             <artifactSet>
                                 <includes>
                                     <include>*:*</include>
