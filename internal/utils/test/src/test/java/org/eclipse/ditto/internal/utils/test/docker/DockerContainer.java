@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.test.mongo;
+package org.eclipse.ditto.internal.utils.test.docker;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -27,7 +27,7 @@ import com.github.dockerjava.api.model.ContainerPort;
 /**
  * Provides an easy way to start, stop and remove the once created docker container.
  */
-final class DockerContainer {
+public final class DockerContainer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DockerContainer.class);
     private static final Integer DOCKER_STOP_TIMEOUT_SECONDS = 5;

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.mapping;
 
-import org.eclipse.ditto.internal.utils.test.mongo.MongoDbResource;
+import org.eclipse.ditto.internal.utils.test.docker.mongo.MongoDbResource;
 import org.junit.ClassRule;
 
 /**
