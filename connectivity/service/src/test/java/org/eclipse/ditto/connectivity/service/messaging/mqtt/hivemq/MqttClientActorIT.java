@@ -43,6 +43,7 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.conn
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscribe;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscription;
+import org.eclipse.ditto.internal.utils.test.docker.mosquitto.MosquittoResource;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.things.model.ThingId;
@@ -85,9 +86,9 @@ public final class MqttClientActorIT {
     public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
             DittoTracingInitResource.disableDittoTracing();
 
-//    @ClassRule
-//    public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
-//    private static DittoMongoClient mongoClient;
+    @ClassRule
+    public static final MosquittoResource MOSQUITTO_RESOURCE = new MosquittoResource("mosquitto.conf");
+
     private static final ConnectionId CONNECTION_ID = ConnectionId.of("connection");
     private static final String CLIENT_ID_DITTO = "ditto";
     private static final String TOPIC_NAME = "data";
@@ -110,7 +111,6 @@ public final class MqttClientActorIT {
 
     private ActorSystem actorSystem;
     private TestProbe commandForwarderProbe;
-//    private MongoCollection<Document> thingsCollection;
 
     @BeforeClass
     public static void beforeClass() {
@@ -148,17 +148,6 @@ public final class MqttClientActorIT {
             actorSystem = null;
         }
     }
-
-    /*@AfterClass
-    public static void stopMongoResource() {
-        try {
-            if (mongoClient != null) {
-                mongoClient.close();
-            }
-        } catch (final IllegalStateException e) {
-            System.err.println("IllegalStateException during shutdown of MongoDB: " + e.getMessage());
-        }
-    }*/
 
     @Test
     public void testSingleTopic() {
@@ -320,7 +309,7 @@ public final class MqttClientActorIT {
         return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID,
                         mqttVersion.equals(MqttVersion.MQTT_3_1_1) ? ConnectionType.MQTT : ConnectionType.MQTT_5,
                         ConnectivityStatus.CLOSED,
-                        "tcp://localhost:1883")
+                        "tcp://" + MOSQUITTO_RESOURCE.getBindIp() + ":" + MOSQUITTO_RESOURCE.getPort())
                 .specificConfig(Map.of(
                         "clientId", CLIENT_ID_DITTO,
                         "cleanSession", "false",
@@ -365,7 +354,7 @@ public final class MqttClientActorIT {
     }
 
     private static GenericBlockingMqttClient getMqttClient(final String clientId) {
-        return GenericBlockingMqttClientBuilder.newInstance(mqttVersion, "localhost", 1883)
+        return GenericBlockingMqttClientBuilder.newInstance(mqttVersion, MOSQUITTO_RESOURCE.getBindIp(), MOSQUITTO_RESOURCE.getPort())
                 .clientIdentifier(clientId)
                 .build();
     }

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.test.mongo;
+package org.eclipse.ditto.internal.utils.test.docker;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -27,7 +27,7 @@ import com.github.dockerjava.api.model.PullResponseItem;
 /**
  * Allows to watch completion of image pulling process and logs its progress.
  */
-final class DockerImagePullHandler implements ResultCallback<PullResponseItem> {
+public final class DockerImagePullHandler implements ResultCallback<PullResponseItem> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DockerImagePullHandler.class);
 
@@ -39,7 +39,7 @@ final class DockerImagePullHandler implements ResultCallback<PullResponseItem> {
         imagePullFuture = new CompletableFuture<>();
     }
 
-    static DockerImagePullHandler newInstance() {
+    public static DockerImagePullHandler newInstance() {
         return new DockerImagePullHandler();
     }
 
