@@ -17,7 +17,7 @@ import java.nio.file.Path;
 import java.util.Objects;
 
 import com.github.dockerjava.api.model.AccessMode;
-import com.github.dockerjava.api.model.PortBinding;
+import com.google.common.base.MoreObjects;
 import org.eclipse.ditto.internal.utils.test.docker.ContainerFactory;
 
 import com.github.dockerjava.api.command.CreateContainerCmd;
@@ -59,10 +59,8 @@ final class MosquittoContainerFactory extends ContainerFactory {
 
     @Override
     protected CreateContainerCmd configureContainer(CreateContainerCmd createContainerCmd) {
-        final var hostConfig = HostConfig.newHostConfig()
-                .withBinds(new Bind(CONFIG_RESOURCES_PATH, new Volume(CONFIG_CONTAINER_PATH), AccessMode.ro))
-                .withPortBindings(PortBinding.parse(String.valueOf(MOSQUITTO_INTERNAL_PORT)));
-        return createContainerCmd
-                .withHostConfig(hostConfig);
+        final var hostConfig = MoreObjects.firstNonNull(createContainerCmd.getHostConfig(), HostConfig.newHostConfig())
+                .withBinds(new Bind(CONFIG_RESOURCES_PATH, new Volume(CONFIG_CONTAINER_PATH), AccessMode.ro));
+        return createContainerCmd.withHostConfig(hostConfig);
     }
 }

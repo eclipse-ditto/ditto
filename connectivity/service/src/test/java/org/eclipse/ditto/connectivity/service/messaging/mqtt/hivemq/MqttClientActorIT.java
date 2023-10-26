@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2023 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -34,6 +35,7 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.*;
+import org.eclipse.ditto.connectivity.model.mqtt.IllegalSessionExpiryIntervalSecondsException;
 import org.eclipse.ditto.connectivity.model.mqtt.ReceiveMaximum;
 import org.eclipse.ditto.connectivity.model.mqtt.SessionExpiryInterval;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
@@ -74,13 +76,21 @@ import scala.jdk.CollectionConverters;
 @RunWith(Parameterized.class)
 public final class MqttClientActorIT {
 
-    @Parameterized.Parameters(name = "MQTT version {0}")
-    public static Collection<MqttVersion> mqttVersions() {
-        return List.of(MqttVersion.MQTT_3_1_1, MqttVersion.MQTT_5_0);
+    @Parameterized.Parameters(name = "MQTT version: {0}, separate publisher client: {1}")
+    public static Collection<Object[]> parameters() {
+        return Arrays.asList(new Object[][] {
+                { MqttVersion.MQTT_3_1_1, true },
+                { MqttVersion.MQTT_3_1_1, false },
+                { MqttVersion.MQTT_5_0, true },
+                { MqttVersion.MQTT_5_0, false },
+        });
     }
 
-    @Parameterized.Parameter
+    @Parameterized.Parameter(0)
     public static MqttVersion mqttVersion;
+
+    @Parameterized.Parameter(1)
+    public static Boolean separatePublisherClient;
 
     @ClassRule
     public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
@@ -101,6 +111,15 @@ public final class MqttClientActorIT {
     // https://github.com/eclipse-ditto/ditto/issues/1767
     private static final int TIMEOUT_BEFORE_PUBLISH = 3;
     private static final int MESSAGES_FROM_PREVIOUS_SESSION_TIMEOUT = 3;
+    private static final SessionExpiryInterval SESSION_EXPIRY_INTERVAL;
+
+    static {
+        try {
+            SESSION_EXPIRY_INTERVAL = SessionExpiryInterval.of(Duration.ofSeconds(60));
+        } catch (IllegalSessionExpiryIntervalSecondsException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private static Config actorsTestConfig;
 
@@ -130,13 +149,6 @@ public final class MqttClientActorIT {
         final var mqttClient = getMqttClient(CLIENT_ID_DITTO);
         mqttClient.cleanSession();
     }
-
-    /*private static DittoMongoClient provideClientWrapper() {
-        return MongoClientWrapper.getBuilder()
-                .connectionString(
-                        "mongodb://" + MONGO_RESOURCE.getBindIp() + ":" + MONGO_RESOURCE.getPort() + "/testSearchDB")
-                .build();
-    }*/
 
     @After
     public void after() {
@@ -241,7 +253,7 @@ public final class MqttClientActorIT {
             final var underTest = getMqttClientActor(getConnection(new String[] { TOPIC_NAME }));
             // create session for ditto client ID
             final var dittoMqttClient = getMqttClient(CLIENT_ID_DITTO);
-            dittoMqttClient.connect(GenericMqttConnect.newInstance(false, KeepAliveInterval.defaultKeepAlive(), SessionExpiryInterval.defaultSessionExpiryInterval(), ReceiveMaximum.defaultReceiveMaximum()));
+            dittoMqttClient.connect(GenericMqttConnect.newInstance(false, KeepAliveInterval.defaultKeepAlive(), SESSION_EXPIRY_INTERVAL, ReceiveMaximum.defaultReceiveMaximum()));
             dittoMqttClient.subscribe(GenericMqttSubscribe.of(Set.of(
                     GenericMqttSubscription.newInstance(MqttTopicFilter.of(TOPIC_NAME), MqttQos.EXACTLY_ONCE))));
             dittoMqttClient.disconnect();
@@ -271,7 +283,7 @@ public final class MqttClientActorIT {
             final var underTest = getMqttClientActor(getConnection(new String[] { TOPIC_NAME }));
             // create session for ditto client ID with subscription to 2 topics
             final var dittoMqttClient = getMqttClient(CLIENT_ID_DITTO);
-            dittoMqttClient.connect(GenericMqttConnect.newInstance(false, KeepAliveInterval.defaultKeepAlive(), SessionExpiryInterval.defaultSessionExpiryInterval(), ReceiveMaximum.defaultReceiveMaximum()));
+            dittoMqttClient.connect(GenericMqttConnect.newInstance(false, KeepAliveInterval.defaultKeepAlive(), SESSION_EXPIRY_INTERVAL, ReceiveMaximum.defaultReceiveMaximum()));
             dittoMqttClient.subscribe(GenericMqttSubscribe.of(Set.of(
                     GenericMqttSubscription.newInstance(MqttTopicFilter.of(TOPIC_NAME), MqttQos.EXACTLY_ONCE),
                     GenericMqttSubscription.newInstance(MqttTopicFilter.of(ANOTHER_TOPIC_NAME), MqttQos.EXACTLY_ONCE))));
@@ -313,7 +325,7 @@ public final class MqttClientActorIT {
                 .specificConfig(Map.of(
                         "clientId", CLIENT_ID_DITTO,
                         "cleanSession", "false",
-                        "separatePublisherClient", "false"))
+                        "separatePublisherClient", String.valueOf(separatePublisherClient)))
                 .setSources(Arrays.stream(sourcesTopics)
                         .map(topics -> ConnectivityModelFactory.newSourceBuilder()
                                 .authorizationContext(AUTHORIZATION_CONTEXT)
