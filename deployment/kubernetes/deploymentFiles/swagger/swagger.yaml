@@ -32,7 +32,7 @@ spec:
     spec:
       containers:
       - name: swagger-ui
-        image: docker.io/swaggerapi/swagger-ui:v5.7.2
+        image: docker.io/swaggerapi/swagger-ui:v5.9.1
         env:
         - name: QUERY_CONFIG_ENABLED
           value: "true"

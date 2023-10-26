@@ -46,7 +46,7 @@ spec:
       {{- end }}
       initContainers:
         - name: {{ .Chart.Name }}-swaggerui-init
-          image: "docker.io/boky/alpine-bootstrap:latest"
+          image: "docker.io/curlimages/curl:8.3.0"
           imagePullPolicy: {{ .Values.swaggerui.image.pullPolicy }}
           command:
             - sh
