@@ -22,6 +22,7 @@ import org.eclipse.ditto.base.model.signals.events.EventJsonDeserializer;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * This event is emitted after all items of a subscription are sent.
@@ -91,6 +92,11 @@ public final class StreamingSubscriptionComplete
     @Override
     public StreamingSubscriptionComplete setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new StreamingSubscriptionComplete(getSubscriptionId(), getEntityId(), dittoHeaders);
+    }
+
+    @Override
+    public StreamingSubscriptionComplete setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

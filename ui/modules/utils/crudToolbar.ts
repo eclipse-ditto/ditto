@@ -30,8 +30,33 @@ class CrudToolbar extends HTMLElement {
     divRoot: null,
   };
 
+  static get observedAttributes() {
+    return [`extraeditclass`];
+  }
+
+  private _extraEditClass: string;
+
+  get extraeditclass() {
+    return this._extraEditClass;
+  }
+
+  set extraeditclass(val: string) {
+    if (val == null) { // check for null and undefined
+      this.removeAttribute('extraeditclass');
+    }
+    else {
+      this.setAttribute('extraeditclass', val);
+    }
+  }
+
   get idValue() {
     return this.dom.inputIdValue.value;
+  }
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (name === `extraeditclass`) {
+      this._extraEditClass = newValue;
+    }
   }
 
   set idValue(newValue) {
@@ -110,6 +135,9 @@ class CrudToolbar extends HTMLElement {
     this.isEditing = !this.isEditing;
     document.getElementById('modalCrudEdit').classList.toggle('editBackground');
     this.dom.divRoot.classList.toggle('editForground');
+    if (this._extraEditClass) {
+      this.dom.divRoot.classList.toggle(this._extraEditClass);
+    }
 
     if (this.isEditing || this.isEditDisabled) {
       this.dom.buttonEdit.setAttribute('hidden', '');

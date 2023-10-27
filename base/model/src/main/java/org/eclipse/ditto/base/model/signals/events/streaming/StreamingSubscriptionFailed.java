@@ -28,6 +28,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * This event is emitted after a stream failed.
@@ -126,6 +127,11 @@ public final class StreamingSubscriptionFailed extends AbstractStreamingSubscrip
     @Override
     public StreamingSubscriptionFailed setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new StreamingSubscriptionFailed(getSubscriptionId(), getEntityId(), error, dittoHeaders);
+    }
+
+    @Override
+    public StreamingSubscriptionFailed setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

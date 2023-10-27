@@ -34,6 +34,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Response to a {@link DeleteConnection} command.
@@ -140,6 +141,11 @@ public final class DeleteConnectionResponse extends AbstractCommandResponse<Dele
     @Override
     public DeleteConnectionResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(connectionId, dittoHeaders);
+    }
+
+    @Override
+    public DeleteConnectionResponse setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

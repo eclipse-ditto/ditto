@@ -125,6 +125,11 @@ public final class ThingsOutOfSync implements Event<ThingsOutOfSync> {
     }
 
     @Override
+    public ThingsOutOfSync setEntity(final JsonValue entity) {
+        return this;
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.empty();
     }
@@ -192,4 +197,5 @@ public final class ThingsOutOfSync implements Event<ThingsOutOfSync> {
                 .set(JSON_THING_IDS, thingIdsJsonArray, predicate)
                 .build();
     }
+
 }

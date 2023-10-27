@@ -786,6 +786,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         objectBuilder.set(CONTEXT, JsonObject.newBuilder()
                 .set(JsonifiableAdaptable.JsonFields.TOPIC, adaptable.getTopicPath().getPath())
                 .set(Payload.JsonFields.PATH, adaptable.getPayload().getPath().toString())
+                .set(Payload.JsonFields.VALUE, adaptable.getPayload().getValue().orElse(JsonValue.nullLiteral()))
                 .set(JsonifiableAdaptable.JsonFields.HEADERS, dittoHeadersToJson(thingEvent.getDittoHeaders()))
                 .build()
         );

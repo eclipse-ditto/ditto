@@ -161,6 +161,14 @@ public final class FeatureCreated extends AbstractThingEvent<FeatureCreated> imp
     }
 
     @Override
+    public FeatureCreated setEntity(final JsonValue entity) {
+        return of(getEntityId(),
+                entity.isNull() ? ThingsModelFactory.nullFeature(getFeatureId()) :
+                        ThingsModelFactory.newFeatureBuilder(entity.asObject()).useId(getFeatureId()).build(),
+                getRevision(), getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return JsonFactory.newPointer("/features/" + getFeatureId());
     }

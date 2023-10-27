@@ -261,6 +261,14 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
     }
 
     @Override
+    public ModifySubjectResponse setEntity(final JsonValue entity) {
+        return newInstance(policyId, label, subjectId,
+                getHttpStatus() == HttpStatus.CREATED ?
+                        PoliciesModelFactory.newSubject(subjectId, entity.asObject()) : null,
+                getHttpStatus(), getDittoHeaders());
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.of("/entries/" + label + "/subjects/" + subjectId);
     }

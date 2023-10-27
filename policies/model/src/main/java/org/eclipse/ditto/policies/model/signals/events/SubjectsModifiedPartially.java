@@ -160,6 +160,12 @@ public final class SubjectsModifiedPartially extends AbstractPolicyActionEvent<S
     }
 
     @Override
+    public SubjectsModifiedPartially setEntity(final JsonValue entity) {
+        return new SubjectsModifiedPartially(getPolicyEntityId(), entity.asObject(), getRevision(),
+                getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.empty();
     }

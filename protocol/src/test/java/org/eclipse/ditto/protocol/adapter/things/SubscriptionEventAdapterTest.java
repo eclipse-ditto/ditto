@@ -16,21 +16,22 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
+import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocol.Payload;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocol.TestConstants;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.UnknownEventException;
-import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapterTest;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.SubscriptionProtocolErrorException;
-import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionComplete;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionCreated;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
@@ -331,6 +332,11 @@ public final class SubscriptionEventAdapterTest implements ProtocolAdapterTest {
         @Override
         public String getManifest() {
             return getType();
+        }
+
+        @Override
+        public UnknownSubscriptionEvent setEntity(final JsonValue entity) {
+            return this;
         }
     }
 }

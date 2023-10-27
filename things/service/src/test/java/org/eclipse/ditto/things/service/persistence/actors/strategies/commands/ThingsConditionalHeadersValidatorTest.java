@@ -41,6 +41,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingPreconditionFailedException;
@@ -48,6 +49,7 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingPrecondit
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
+import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -198,7 +200,76 @@ public class ThingsConditionalHeadersValidatorTest {
 
         assertThatExceptionOfType(ThingPreconditionFailedException.class)
                 .isThrownBy(() -> SUT.applyIfEqualHeader(command, thing))
-                .withMessage("The previous value was equal to the new value and the 'if-equal' header was set to 'skip'.");
+                .withMessage(
+                        "The previous value was equal to the new value and the 'if-equal' header was set to 'skip'.");
+    }
+
+    @Test
+    public void ifEqualSkipMinimizingMergeReducesMergeCommandToActuallyChangedJsonFields() {
+        final ThingId thingId = ThingId.generateRandom();
+        final Thing existingThing = Thing.newBuilder()
+                .setId(thingId)
+                .setAttribute(JsonPointer.of("existing/bar"), JsonValue.of(false))
+                .setAttribute(JsonPointer.of("other-existing"), JsonValue.of(42))
+                .setFeature("some-feature", FeatureProperties.newBuilder()
+                        .set("existing-prop", JsonObject.newBuilder()
+                                .set("foo", 23)
+                                .set("bar", false)
+                                .build()
+                        ).build()
+                )
+                .build();
+
+        final JsonObject mergePayload = JsonObject.newBuilder()
+                .set("attributes", JsonObject.newBuilder()
+                        .set("other-existing", JsonValue.of(42)) // already present in existingThing
+                        .set("new-attr", JsonObject.newBuilder() // new field
+                                .set("nested", JsonValue.of("Fantastic!"))
+                                .build()
+                        ).build()
+                )
+                .set("features", JsonObject.newBuilder()
+                        .set("some-feature", JsonObject.newBuilder()
+                                .set("properties", JsonObject.newBuilder()
+                                        .set("existing-prop", JsonObject.newBuilder()
+                                                .set("foo", 99) // changed value
+                                                .set("bar", false) // already present in existingThing
+                                                .set("bum", "lux!") // new field
+                                                .build()
+                                        ).build()
+                                ).build()
+                        )
+                        .build()
+                ).build();
+        final MergeThing command = MergeThing.of(thingId, JsonPointer.empty(), mergePayload,
+                DittoHeaders.newBuilder().ifEqual(IfEqual.SKIP_MINIMIZING_MERGE).build());
+
+        final JsonObject expectedMergePayload = JsonObject.newBuilder()
+                .set("attributes", JsonObject.newBuilder()
+                        // .set("other-existing", JsonValue.of(42)) // already present in existingThing
+                        .set("new-attr", JsonObject.newBuilder() // new field
+                                .set("nested", JsonValue.of("Fantastic!"))
+                                .build()
+                        ).build()
+                )
+                .set("features", JsonObject.newBuilder()
+                        .set("some-feature", JsonObject.newBuilder()
+                                .set("properties", JsonObject.newBuilder()
+                                        .set("existing-prop", JsonObject.newBuilder()
+                                                .set("foo", 99) // changed value
+                                                // .set("bar", false) // already present in existingThing
+                                                .set("bum", "lux!") // new field
+                                                .build()
+                                        ).build()
+                                ).build()
+                        )
+                        .build()
+                ).build();
+        final MergeThing expectedMergeCommand = MergeThing.of(thingId, JsonPointer.empty(), expectedMergePayload,
+                DittoHeaders.newBuilder().ifEqual(IfEqual.SKIP_MINIMIZING_MERGE).build());
+        final MergeThing adjustedMergeCommand = SUT.applyIfEqualHeader(command, existingThing);
+
+        Assert.assertEquals(expectedMergeCommand, adjustedMergeCommand);
     }
 
     @Test
@@ -243,7 +314,9 @@ public class ThingsConditionalHeadersValidatorTest {
                 .ifNoneMatch(EntityTagMatchers.fromCommaSeparatedString(ifNoneMatchHeaderValue))
                 .build();
 
-        return RetrieveThing.getBuilder(ThingId.of("under:test"), dittoHeaders).withSelectedFields(fieldSelector).build();
+        return RetrieveThing.getBuilder(ThingId.of("under:test"), dittoHeaders)
+                .withSelectedFields(fieldSelector)
+                .build();
 
     }
 

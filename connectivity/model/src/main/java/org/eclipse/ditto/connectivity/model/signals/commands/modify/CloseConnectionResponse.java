@@ -34,6 +34,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Response to a {@link CloseConnection} command.
@@ -140,6 +141,11 @@ public final class CloseConnectionResponse extends AbstractCommandResponse<Close
     @Override
     public CloseConnectionResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(connectionId, dittoHeaders);
+    }
+
+    @Override
+    public CloseConnectionResponse setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

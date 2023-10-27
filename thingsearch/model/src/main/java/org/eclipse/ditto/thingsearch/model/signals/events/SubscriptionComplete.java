@@ -14,12 +14,13 @@ package org.eclipse.ditto.thingsearch.model.signals.events;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableEvent;
 import org.eclipse.ditto.base.model.signals.events.EventJsonDeserializer;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * This event is emitted after all pages of a search subscription are sent.
@@ -83,6 +84,11 @@ public final class SubscriptionComplete extends AbstractSubscriptionEvent<Subscr
     @Override
     public SubscriptionComplete setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new SubscriptionComplete(getSubscriptionId(), dittoHeaders);
+    }
+
+    @Override
+    public SubscriptionComplete setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

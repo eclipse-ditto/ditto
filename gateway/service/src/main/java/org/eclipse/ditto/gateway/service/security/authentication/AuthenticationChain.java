@@ -27,11 +27,11 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.http.javadsl.server.RequestContext;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.gateway.api.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
-
-import org.apache.pekko.http.javadsl.server.RequestContext;
 
 /**
  * Handles authentication by multiple authentication providers.
@@ -199,8 +199,9 @@ public final class AuthenticationChain {
 
         private AuthenticationResult asFailure() {
             if (failureResults.isEmpty()) {
-                return DefaultAuthenticationResult.failed(dittoHeaders,
-                        new IllegalStateException("No applicable authentication provider was found!"));
+                return DefaultAuthenticationResult.failed(dittoHeaders, GatewayAuthenticationFailedException
+                        .newBuilder("No applicable authentication provider was found!")
+                        .build());
             }
 
             if (1 == failureResults.size()) {

@@ -37,17 +37,22 @@
 </head>
 
 <body>
-    <nav class="navbar fixed-top navbar-expand-sm flex-sm-nowrap bg-info navbar-dark">
+    <nav class="navbar sticky-top navbar-expand-lg bg-info navbar-dark center">
         <div class="container-fluid">
-            <a class="navbar-brand"><img
-                    src="https://raw.githubusercontent.com/eclipse/ditto/master/documentation/src/main/resources/images/ditto_allwhite_symbolonly.svg"
-                    style="width:39px;" alt="Eclipse Ditto™"></a>
-            <a class="navbar-brand"><img
-                    src="https://raw.githubusercontent.com/eclipse/ditto/master/documentation/src/main/resources/images/ditto_allwhite_textonly.svg"
-                    style="width:63px;" alt="Eclipse Ditto™"></a>
-            <a class="navbar-brand">explorer</a>
-            <div class="navbar-collapse collapse w-100 justify-content-center" id="mainNavbar">
-                <ul class="navbar-nav text-center">
+            <a class="navbar-brand" href="#">
+                <img
+                  src="https://raw.githubusercontent.com/eclipse/ditto/master/documentation/src/main/resources/images/ditto_allwhite_symbolonly.svg"
+                  style="width:39px;" alt="Eclipse Ditto™">
+                <img
+                  src="https://raw.githubusercontent.com/eclipse/ditto/master/documentation/src/main/resources/images/ditto_allwhite_textonly.svg"
+                  style="width:63px;" alt="Eclipse Ditto™">
+                <span style="vertical-align: middle; padding-left: 5px">explorer</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="mainNavbar">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 px-4 align-items-end">
                     <li class="nav-item" id="tabThings">
                         <a class="nav-link active" data-bs-target="#collapseThings:not(.show)" data-bs-toggle="collapse">
                             Things
@@ -79,15 +84,16 @@
                         </a>
                     </li>
                 </ul>
+                <div class="d-flex">
+                    <span class="navbar-text px-2">Environment:</span>
+                    <select class="form-select form-select-sm me-2" id="environmentSelector"
+                            style="margin-top: auto; margin-bottom: auto;"></select>
+                    <button id="authorize" class="btn btn-outline-light btn-sm"
+                            data-bs-toggle="modal" data-bs-target="#authorizationModal">Authorize</button>
+                </div>
             </div>
-            <ul class="navbar-nav w-50">
-                <a class="nav-link active">Environment:</a>
-                <select class="form-select form-select-sm" id="environmentSelector"
-                    style="margin-top: auto; margin-bottom: auto;"></select>
-                <button id="authorize" class="btn btn-outline-light btn-sm" style="margin-left:5px;"
-                    data-bs-toggle="modal" data-bs-target="#authorizationModal">Authorize</button>
-            </ul>
         </div>
+
     </nav>
     <div class="container-fluid py-3 overflowauto" id="page-content">
         <div class="collapse show" id="collapseThings" data-bs-parent="#page-content">

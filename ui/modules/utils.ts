@@ -14,7 +14,7 @@
 /* eslint-disable quotes */
 import autoComplete from '@tarekraafat/autocomplete.js';
 import * as ace from 'ace-builds/src-noconflict/ace';
-import { Toast, Modal } from 'bootstrap';
+import { Modal, Toast } from 'bootstrap';
 
 
 const dom = {
@@ -65,6 +65,7 @@ export const addTableRow = function (table, key, selected, withClipBoardCopy = f
 export function addCheckboxToRow(row, id, checked, onToggle) {
   const td = row.insertCell(0);
   td.style.verticalAlign = 'middle';
+  td.style.width = '25px';
   const checkBox = document.createElement('input');
   checkBox.type = 'checkbox';
   checkBox.id = id;

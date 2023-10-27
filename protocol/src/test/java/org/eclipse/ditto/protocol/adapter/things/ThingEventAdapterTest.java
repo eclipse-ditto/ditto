@@ -1656,6 +1656,11 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
         public ThingId getEntityId() {
             return TestConstants.THING_ID;
         }
+
+        @Override
+        public UnknownThingEvent setEntity(final JsonValue entity) {
+            return this;
+        }
     }
 
     private DittoHeaders setChannelHeader(final DittoHeaders dittoHeaders) {

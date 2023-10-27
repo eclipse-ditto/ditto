@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import java.time.Duration;
 import java.util.Map;
 
+import org.apache.pekko.event.DiagnosticLoggingAdapter;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.Rule;
 import org.junit.Test;
@@ -27,8 +28,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import org.apache.pekko.event.DiagnosticLoggingAdapter;
 
 /**
  * Unit test for {@link DefaultDittoDiagnosticLoggingAdapter}.
@@ -95,9 +94,8 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         underTest.info(msg1);
         underTest.info(msg2);
 
-        Mockito.verify(plainLoggingAdapter).setMDC(Map.of(CORRELATION_ID_KEY, correlationId));
+        Mockito.verify(plainLoggingAdapter, Mockito.times(2)).setMDC(Map.of(CORRELATION_ID_KEY, correlationId));
         Mockito.verify(plainLoggingAdapter).notifyInfo(msg1);
-        Mockito.verify(plainLoggingAdapter).setMDC(Map.of());
         Mockito.verify(plainLoggingAdapter).notifyInfo(msg2);
     }
 
@@ -113,7 +111,6 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
 
         Mockito.verify(plainLoggingAdapter).setMDC(Map.of(CONNECTION_ID_KEY, CONNECTION_ID_VALUE));
         Mockito.verify(plainLoggingAdapter).notifyDebug(msg);
-        Mockito.verify(plainLoggingAdapter).setMDC(Map.of());
     }
 
     @Test
@@ -130,7 +127,6 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         Mockito.verify(plainLoggingAdapter)
                 .setMDC(Map.of(CORRELATION_ID_KEY, correlationId, CONNECTION_ID_KEY, CONNECTION_ID_VALUE));
         Mockito.verify(plainLoggingAdapter).notifyDebug(msg);
-        Mockito.verify(plainLoggingAdapter).setMDC(Map.of());
     }
 
     @Test
@@ -149,7 +145,6 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         Mockito.verify(plainLoggingAdapter)
                 .setMDC(Map.of(CORRELATION_ID_KEY, correlationId, CONNECTION_ID_KEY, CONNECTION_ID_VALUE, k3, v3));
         Mockito.verify(plainLoggingAdapter).notifyDebug(msg);
-        Mockito.verify(plainLoggingAdapter).setMDC(Map.of());
     }
 
     @Test
@@ -167,7 +162,6 @@ public final class DefaultDittoDiagnosticLoggingAdapterTest {
         Mockito.verify(plainLoggingAdapter)
                 .setMDC(Map.of(CORRELATION_ID_KEY, correlationId, CONNECTION_ID_KEY, CONNECTION_ID_VALUE));
         Mockito.verify(plainLoggingAdapter).notifyWarning(msg);
-        Mockito.verify(plainLoggingAdapter).setMDC(Map.of());
     }
 
     @Test

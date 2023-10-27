@@ -20,22 +20,23 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
+import org.eclipse.ditto.base.api.persistence.SnapshotTaken;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableEvent;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
-import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
-import org.eclipse.ditto.base.api.persistence.SnapshotTaken;
 
 /**
  * Event published when a thing snapshot is taken.
@@ -179,6 +180,11 @@ public final class ThingSnapshotTaken extends SnapshotTaken<ThingSnapshotTaken> 
                 .metadata(getMetadata().orElse(null))
                 .dittoHeaders(dittoHeaders)
                 .build();
+    }
+
+    @Override
+    public ThingSnapshotTaken setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

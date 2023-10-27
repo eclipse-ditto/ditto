@@ -71,7 +71,7 @@ public final class ThingAcknowledgementsFactory {
      * @since 2.0.0
      */
     public static Acknowledgements newAcknowledgements(final EntityId entityId,
-            final Collection<? extends Acknowledgement> acknowledgements,
+            final Collection<Acknowledgement> acknowledgements,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 

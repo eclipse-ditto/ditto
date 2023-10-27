@@ -12,9 +12,9 @@
  */
 
 import * as Utils from '../utils.js';
+import messagesIncomingHTML from './messagesIncoming.html';
 import * as Things from './things.js';
 import * as ThingsSSE from './thingsSSE.js';
-import messagesIncomingHTML from './messagesIncoming.html';
 /* eslint-disable prefer-const */
 /* eslint-disable max-len */
 /* eslint-disable no-invalid-this */
@@ -61,11 +61,24 @@ function onMessage(messageData) {
   messages.push(messageData);
   dom.badgeMessageIncomingCount.textContent = messages.length;
 
+  function getColumnValues() {
+    if (messageData['_context'] && messageData['_context'].value) {
+      return [
+        ...messageData['_context'].value.features ? Object.keys(messageData['_context'].value.features) : [],
+        ...messageData['_context'].value.attributes ? Object.keys(messageData['_context'].value.attributes) : []
+      ];
+    } else {
+      return [
+        ...messageData['features'] ? Object.keys(messageData.features) : [],
+        ...messageData['attributes'] ? Object.keys(messageData.attributes) : []
+      ]
+    }
+  }
+
   Utils.addTableRow(
       dom.tbodyMessagesIncoming,
       messageData._revision, false, false,
-      [...messageData['features'] ? Object.keys(messageData.features) : [],
-        ...messageData['attributes'] ? Object.keys(messageData.attributes) : []],
+      getColumnValues(),
       Utils.formatDate(messageData._modified, true),
   );
 }

@@ -161,6 +161,12 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged> implement
     }
 
     @Override
+    public ThingMerged setEntity(final JsonValue entity) {
+        return of(thingId, path, entity, getRevision(), getTimestamp().orElse(null), getDittoHeaders(),
+                getMetadata().orElse(null));
+    }
+
+    @Override
     public JsonSchemaVersion[] getSupportedSchemaVersions() {
         return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
     }

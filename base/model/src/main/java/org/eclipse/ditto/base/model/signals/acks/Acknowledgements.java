@@ -71,8 +71,8 @@ import org.eclipse.ditto.json.JsonValue;
 @JsonParsableCommandResponse(type = Acknowledgements.TYPE)
 @Immutable
 public final class Acknowledgements
-        implements Iterable<Acknowledgement>, CommandResponse<Acknowledgements>, WithOptionalEntity, WithEntityType,
-        SignalWithEntityId<Acknowledgements> {
+        implements Iterable<Acknowledgement>, CommandResponse<Acknowledgements>, WithOptionalEntity<Acknowledgements>,
+        WithEntityType, SignalWithEntityId<Acknowledgements> {
 
     static final String TYPE = "acknowledgements";
     private final EntityId entityId;
@@ -81,7 +81,7 @@ public final class Acknowledgements
     private final DittoHeaders dittoHeaders;
 
     private Acknowledgements(final EntityId entityId,
-            final Collection<? extends Acknowledgement> acknowledgements,
+            final Collection<Acknowledgement> acknowledgements,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
@@ -107,7 +107,7 @@ public final class Acknowledgements
      * @throws IllegalArgumentException if the given {@code acknowledgements} are empty or if the entity IDs or entity
      * types of the given acknowledgements are not equal.
      */
-    public static Acknowledgements of(final Collection<? extends Acknowledgement> acknowledgements,
+    public static Acknowledgements of(final Collection<Acknowledgement> acknowledgements,
             final DittoHeaders dittoHeaders) {
 
         argumentNotEmpty(acknowledgements, "acknowledgements");
@@ -130,7 +130,7 @@ public final class Acknowledgements
      * @since 2.0.0
      */
     public static Acknowledgements of(final EntityId entityId,
-            final Collection<? extends Acknowledgement> acknowledgements,
+            final Collection<Acknowledgement> acknowledgements,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
@@ -142,8 +142,8 @@ public final class Acknowledgements
         return new Acknowledgements(entityId, acknowledgements, httpStatus, dittoHeaders);
     }
 
-    private static EntityId getEntityId(final Iterable<? extends Acknowledgement> acknowledgements) {
-        final Iterator<? extends Acknowledgement> acknowledgementIterator = acknowledgements.iterator();
+    private static EntityId getEntityId(final Iterable<Acknowledgement> acknowledgements) {
+        final Iterator<Acknowledgement> acknowledgementIterator = acknowledgements.iterator();
         Acknowledgement acknowledgement = acknowledgementIterator.next();
         final EntityId entityId = acknowledgement.getEntityId();
         while (acknowledgementIterator.hasNext()) {
@@ -157,7 +157,7 @@ public final class Acknowledgements
         return entityId;
     }
 
-    private static HttpStatus getCombinedHttpStatus(final Collection<? extends Acknowledgement> acknowledgements) {
+    private static HttpStatus getCombinedHttpStatus(final Collection<Acknowledgement> acknowledgements) {
         final HttpStatus result;
         if (1 == acknowledgements.size()) {
             result = acknowledgements.stream()
@@ -165,7 +165,7 @@ public final class Acknowledgements
                     .map(Acknowledgement::getHttpStatus)
                     .orElse(HttpStatus.INTERNAL_SERVER_ERROR);
         } else {
-            final Stream<? extends Acknowledgement> acknowledgementStream = acknowledgements.stream();
+            final Stream<Acknowledgement> acknowledgementStream = acknowledgements.stream();
             final boolean allAcknowledgementsSuccessful = acknowledgementStream.allMatch(Acknowledgement::isSuccess);
             if (allAcknowledgementsSuccessful) {
                 result = HttpStatus.OK;
@@ -362,6 +362,11 @@ public final class Acknowledgements
             result = Optional.of(acknowledgementsEntitiesToJson(schemaVersion));
         }
         return result;
+    }
+
+    @Override
+    public Acknowledgements setEntity(final JsonValue entity) {
+        return this;
     }
 
     private JsonObject acknowledgementsEntitiesToJson(final JsonSchemaVersion schemaVersion) {

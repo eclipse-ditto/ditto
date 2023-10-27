@@ -10,33 +10,35 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
+import { Dropdown } from 'bootstrap';
 /* eslint-disable new-cap */
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './main.scss';
-import {Dropdown} from 'bootstrap';
-
-import * as Authorization from './modules/environments/authorization.js';
-import * as Environments from './modules/environments/environments.js';
-import * as Attributes from './modules/things/attributes.js';
-import * as Features from './modules/things/features.js';
-import * as FeatureMessages from './modules/things/featureMessages.js';
-import * as Fields from './modules/things/fields.js';
-import * as SearchFilter from './modules/things/searchFilter.js';
-import * as Things from './modules/things/things.js';
-import * as ThingsSearch from './modules/things/thingsSearch.js';
-import * as ThingsCRUD from './modules/things/thingsCRUD.js';
-import * as ThingsSSE from './modules/things/thingsSSE.js';
-import * as MessagesIncoming from './modules/things/messagesIncoming.js';
 import * as Connections from './modules/connections/connections.js';
 import * as ConnectionsCRUD from './modules/connections/connectionsCRUD.js';
 import * as ConnectionsMonitor from './modules/connections/connectionsMonitor.js';
+
+import * as Authorization from './modules/environments/authorization.js';
+import * as Environments from './modules/environments/environments.js';
 import * as Operations from './modules/operations/operations.js';
 import * as Piggyback from './modules/piggyback/piggyback.js';
 import * as Templates from './modules/piggyback/templates.js';
 import * as Policies from './modules/policies/policies.js';
+import * as Attributes from './modules/things/attributes.js';
+import * as FeatureMessages from './modules/things/featureMessages.js';
+import * as Features from './modules/things/features.js';
+import * as Fields from './modules/things/fields.js';
+import * as MessagesIncoming from './modules/things/messagesIncoming.js';
+import * as SearchFilter from './modules/things/searchFilter.js';
+import * as ThingMessages from './modules/things/thingMessages.js';
+import * as Things from './modules/things/things.js';
+import * as ThingsCRUD from './modules/things/thingsCRUD.js';
+import * as ThingsSearch from './modules/things/thingsSearch.js';
+import * as ThingsSSE from './modules/things/thingsSSE.js';
+import { WoTDescription } from './modules/things/wotDescription.js';
 import * as Utils from './modules/utils.js';
-import {WoTDescription} from './modules/things/wotDescription.js';
 import './modules/utils/crudToolbar.js';
+
 let resized = false;
 let mainNavbar;
 
@@ -45,6 +47,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   await Things.ready();
   ThingsSearch.ready();
   ThingsCRUD.ready();
+  await ThingMessages.ready();
   ThingsSSE.ready();
   MessagesIncoming.ready();
   Attributes.ready();

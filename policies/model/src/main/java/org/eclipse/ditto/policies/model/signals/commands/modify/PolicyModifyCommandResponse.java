@@ -21,5 +21,5 @@ import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
  * @param <T> the type of the implementing class.
  */
 public interface PolicyModifyCommandResponse<T extends PolicyModifyCommandResponse<T>> extends
-        PolicyCommandResponse<T>, WithOptionalEntity {
+        PolicyCommandResponse<T>, WithOptionalEntity<T> {
 }

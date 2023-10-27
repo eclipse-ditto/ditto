@@ -258,6 +258,12 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     }
 
     @Override
+    public ModifyAttributeResponse setEntity(final JsonValue entity) {
+        return newInstance(thingId, attributePointer, getHttpStatus() == HttpStatus.CREATED ? entity : null,
+                getHttpStatus(), getDittoHeaders());
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.of("/attributes" + attributePointer);
     }

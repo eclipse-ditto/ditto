@@ -1,0 +1,52 @@
+<!--
+  ~ Copyright (c) 2023 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<div class="tab-pane container fade no-margin">
+    <div class="resizable_flex_column">
+        <div class="input-group input-group-sm mb-1 mt-1 has-validation">
+            <label class="input-group-text">Subject and Timeout</label>
+            <input type="text" class="form-control" id="inputThingMessageSubject"></input>
+            <input type="number" class="form-control form-control-sm" id="inputThingMessageTimeout" value="10"></input>
+            <button class="btn btn-outline-secondary btn-sm" id="buttonThingMessageSend">
+                <i class="bi bi-send"></i>
+                Send
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            </button>
+            <div class="invalid-feedback"></div>
+        </div>
+        <div class="input-group input-group-sm mb-1 has-validation">
+            <label class="input-group-text">Template</label>
+            <div class="btn-group dropend">
+                <button id="buttonThingMessageFavorite" class="btn btn-outline-secondary btn-sm" data-bs-toggle="tooltip"
+                    title="Save favorite for message on this feature">
+                    <i id="favIconThingMessage" class="bi bi-star"></i>
+                </button>
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle dropdown-toggle-split"
+                    data-bs-toggle="dropdown"></button>
+                <ul id="ulThingMessageTemplates" class="dropdown-menu" style="position: fixed; top: auto;">
+                </ul>
+            </div>
+            <input type="text" class="form-control" id="inputThingMessageTemplate">
+            <div class="invalid-feedback"></div>
+        </div>
+        <div class="input-group input-group-sm" style="flex-grow: 1; display: flex;">
+            <label class="input-group-text">Payload<br>and<br>Response</label>
+            <div class="ace_container" style="flex-grow: 1;">
+                <div class="script_editor" id="acePayloadThingMessage"></div>
+            </div>
+            <div class="ace_container" style="flex-grow: 1;">
+                <div class="script_editor" id="aceResponseThingMessage"></div>
+            </div>
+        </div>
+
+    </div>
+</div>

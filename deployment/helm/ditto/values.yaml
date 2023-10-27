@@ -139,6 +139,8 @@ global:
   tracing:
     # enabled whether tracing (via OpenTelemetry) is enabled
     enabled: false
+    # otelTraceReporterEnabled whether reporting traces via the OLTP endpoint should be activated
+    otelTraceReporterEnabled: false
     # otelExporterOtlpEndpoint the OTLP endpoint to report traces to
     otelExporterOtlpEndpoint: "http://localhost:4317"
     # sampler the tracing sampler to use

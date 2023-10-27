@@ -34,6 +34,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -189,6 +190,11 @@ public final class DeleteSubjectResponse extends AbstractCommandResponse<DeleteS
     @Override
     public DeleteSubjectResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return newInstance(policyId, label, subjectId, getHttpStatus(), dittoHeaders);
+    }
+
+    @Override
+    public DeleteSubjectResponse setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

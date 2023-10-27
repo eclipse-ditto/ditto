@@ -139,6 +139,11 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
     }
 
     @Override
+    public CreateConnectionResponse setEntity(final JsonValue entity) {
+        return of(ConnectivityModelFactory.connectionFromJson(entity.asObject()), getDittoHeaders());
+    }
+
+    @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {

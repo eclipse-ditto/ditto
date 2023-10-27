@@ -21,7 +21,7 @@ import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingModifyCommand<T extends ThingModifyCommand<T>> extends ThingCommand<T>, WithOptionalEntity {
+public interface ThingModifyCommand<T extends ThingModifyCommand<T>> extends ThingCommand<T>, WithOptionalEntity<T> {
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);

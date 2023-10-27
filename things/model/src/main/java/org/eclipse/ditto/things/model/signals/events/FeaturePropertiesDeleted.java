@@ -33,6 +33,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 
 /**
@@ -146,6 +147,11 @@ public final class FeaturePropertiesDeleted extends AbstractThingEvent<FeaturePr
     public FeaturePropertiesDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(getEntityId(), featureId, getRevision(), getTimestamp().orElse(null), dittoHeaders,
                 getMetadata().orElse(null));
+    }
+
+    @Override
+    public FeaturePropertiesDeleted setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

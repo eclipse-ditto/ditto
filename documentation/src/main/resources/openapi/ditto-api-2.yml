@@ -8595,13 +8595,14 @@ components:
     IfEqualHeaderParam:
       name: if-equal
       in: header
-      description: 'The `if-equal` header can take the values ''update'' (which is the default if omitted) or ''skip''. If ''update'' is defined, the entity will always be updated, even if it is equal before the update. If ''skip'' is defined, the entity not be updated if it is equal before the update.  In this case a ''Not Modified'' 304 status is returned.'
+      description: 'The `if-equal` header can take the values ''update'' (which is the default if omitted), ''skip'' or ''skip-minimizing-merge''. If ''update'' is defined, the entity will always be updated, even if it is equal before the update. If ''skip'' is defined, the entity not be updated if it is equal before the update.  In this case a ''Precondition Failed'' 412 status is returned. If ''skip-minimizing-merge'' is defined, the entity will not be updated if it is equal before the update.   In this case a ''Precondition Failed'' 412 status is returned. Additionally, merge/patch commands will be minimized to only the fields which actually changed, compared to the current state of the entity.'
       required: false
       schema:
         type: string
         enum:
           - update
           - skip
+          - skip-minimizing-merge
     ImportedPolicyIdPathParam:
       name: importedPolicyId
       in: path

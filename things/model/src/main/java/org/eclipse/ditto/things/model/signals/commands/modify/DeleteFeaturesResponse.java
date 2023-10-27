@@ -32,6 +32,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
@@ -156,6 +157,11 @@ public final class DeleteFeaturesResponse extends AbstractCommandResponse<Delete
     @Override
     public DeleteFeaturesResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return newInstance(thingId, getHttpStatus(), dittoHeaders);
+    }
+
+    @Override
+    public DeleteFeaturesResponse setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

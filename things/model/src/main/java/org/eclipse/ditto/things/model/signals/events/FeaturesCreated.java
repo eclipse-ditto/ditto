@@ -131,9 +131,9 @@ public final class FeaturesCreated extends AbstractThingEvent<FeaturesCreated>
                     final ThingId thingId = ThingId.of(extractedThingId);
                     final JsonObject featuresJsonObject = jsonObject.getValueOrThrow(JSON_FEATURES);
 
-                    final Features extractedFeatures = (null != featuresJsonObject && !featuresJsonObject.isNull())
-                            ? ThingsModelFactory.newFeatures(featuresJsonObject)
-                            : ThingsModelFactory.nullFeatures();
+                    final Features extractedFeatures = featuresJsonObject.isNull()
+                            ? ThingsModelFactory.nullFeatures()
+                            : ThingsModelFactory.newFeatures(featuresJsonObject);
 
                     return of(thingId, extractedFeatures, revision, timestamp, dittoHeaders, metadata);
                 });
@@ -151,6 +151,13 @@ public final class FeaturesCreated extends AbstractThingEvent<FeaturesCreated>
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
         return Optional.of(features.toJson(schemaVersion, FieldType.notHidden()));
+    }
+
+    @Override
+    public FeaturesCreated setEntity(final JsonValue entity) {
+        return of(getEntityId(),
+                entity.isNull() ? ThingsModelFactory.nullFeatures() : ThingsModelFactory.newFeatures(entity.asObject()),
+                getRevision(), getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
     }
 
     @Override

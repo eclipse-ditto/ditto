@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints;
 
-import static org.apache.pekko.http.javadsl.model.ContentTypes.APPLICATION_JSON;
 import static java.util.Objects.requireNonNull;
+import static org.apache.pekko.http.javadsl.model.ContentTypes.APPLICATION_JSON;
 
 import java.util.Collections;
 import java.util.Optional;
@@ -23,6 +23,19 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.http.javadsl.model.HttpEntities;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.testkit.JUnitRouteTest;
+import org.apache.pekko.http.javadsl.testkit.TestRouteResult;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.testkit.TestProbe;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -78,20 +91,6 @@ import org.junit.Rule;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.AbstractActor;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.http.javadsl.model.HttpEntities;
-import org.apache.pekko.http.javadsl.model.HttpRequest;
-import org.apache.pekko.http.javadsl.model.HttpResponse;
-import org.apache.pekko.http.javadsl.model.StatusCodes;
-import org.apache.pekko.http.javadsl.server.Route;
-import org.apache.pekko.http.javadsl.testkit.JUnitRouteTest;
-import org.apache.pekko.http.javadsl.testkit.TestRouteResult;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.apache.pekko.testkit.TestProbe;
 
 /**
  * Abstract base class for Endpoint tests for the gateway.
@@ -266,7 +265,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
 
     protected static final class DummyThingModifyCommandResponse
             extends AbstractCommandResponse<DummyThingModifyCommandResponse>
-            implements ThingCommandResponse<DummyThingModifyCommandResponse>, WithOptionalEntity {
+            implements ThingCommandResponse<DummyThingModifyCommandResponse>, WithOptionalEntity<DummyThingModifyCommandResponse> {
 
         private JsonValue dummyEntity = DEFAULT_DUMMY_ENTITY_JSON;
 
@@ -320,6 +319,11 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         @Override
         public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
             return Optional.of(dummyEntity);
+        }
+
+        @Override
+        public DummyThingModifyCommandResponse setEntity(final JsonValue entity) {
+            return this;
         }
 
         @Override

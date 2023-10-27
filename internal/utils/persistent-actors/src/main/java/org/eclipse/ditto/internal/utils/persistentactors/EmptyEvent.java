@@ -110,6 +110,11 @@ public final class EmptyEvent implements Event<EmptyEvent> {
     }
 
     @Override
+    public EmptyEvent setEntity(final JsonValue entity) {
+        return this;
+    }
+
+    @Override
     public String getType() {
         return TYPE;
     }
@@ -156,4 +161,5 @@ public final class EmptyEvent implements Event<EmptyEvent> {
                 ", dittoHeaders=" + dittoHeaders +
                 "]";
     }
+
 }

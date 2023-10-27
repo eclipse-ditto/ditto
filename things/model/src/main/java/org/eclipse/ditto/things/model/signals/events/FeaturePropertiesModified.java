@@ -138,9 +138,9 @@ public final class FeaturePropertiesModified extends AbstractThingEvent<FeatureP
                     final String extractedFeatureId = jsonObject.getValueOrThrow(ThingEvent.JsonFields.FEATURE_ID);
                     final JsonObject propertiesJsonObject = jsonObject.getValueOrThrow(JSON_PROPERTIES);
 
-                    final FeatureProperties extractedProperties = (null != propertiesJsonObject)
-                            ? ThingsModelFactory.newFeatureProperties(propertiesJsonObject)
-                            : ThingsModelFactory.nullFeatureProperties();
+                    final FeatureProperties extractedProperties = propertiesJsonObject.isNull()
+                            ? ThingsModelFactory.nullFeatureProperties()
+                            : ThingsModelFactory.newFeatureProperties(propertiesJsonObject);
 
                     return of(thingId, extractedFeatureId, extractedProperties, revision, timestamp, dittoHeaders,
                             metadata);
@@ -164,6 +164,14 @@ public final class FeaturePropertiesModified extends AbstractThingEvent<FeatureP
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
         return Optional.of(properties.toJson(schemaVersion, FieldType.regularOrSpecial()));
+    }
+
+    @Override
+    public FeaturePropertiesModified setEntity(final JsonValue entity) {
+        return of(getEntityId(), featureId,
+                entity.isNull() ? ThingsModelFactory.nullFeatureProperties() :
+                        ThingsModelFactory.newFeatureProperties(entity.asObject()), getRevision(),
+                getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
     }
 
     @Override

@@ -140,6 +140,11 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
     }
 
     @Override
+    public ModifyConnectionResponse setEntity(final JsonValue entity) {
+        return this;
+    }
+
+    @Override
     public ModifyConnectionResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(connectionId, dittoHeaders);
     }

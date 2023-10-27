@@ -27,6 +27,28 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Cancellable;
+import org.apache.pekko.actor.CoordinatedShutdown;
+import org.apache.pekko.actor.ReceiveTimeout;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.http.javadsl.model.ContentTypes;
+import org.apache.pekko.http.javadsl.model.HttpEntities;
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.model.Uri;
+import org.apache.pekko.http.javadsl.model.headers.Location;
+import org.apache.pekko.http.javadsl.model.headers.RawHeader;
+import org.apache.pekko.http.scaladsl.model.ContentType$;
+import org.apache.pekko.http.scaladsl.model.EntityStreamSizeException;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.AskTimeoutException;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.util.ByteString;
 import org.eclipse.ditto.base.api.devops.signals.commands.DevOpsCommand;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
@@ -65,37 +87,15 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiResponse;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
+import org.eclipse.ditto.internal.utils.cluster.JsonValueSourceRef;
 import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithShutdownBehavior;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.cluster.JsonValueSourceRef;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 
-import org.apache.pekko.Done;
-import org.apache.pekko.actor.AbstractActor;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.Cancellable;
-import org.apache.pekko.actor.CoordinatedShutdown;
-import org.apache.pekko.actor.ReceiveTimeout;
-import org.apache.pekko.actor.Status;
-import org.apache.pekko.http.javadsl.model.ContentTypes;
-import org.apache.pekko.http.javadsl.model.HttpEntities;
-import org.apache.pekko.http.javadsl.model.HttpHeader;
-import org.apache.pekko.http.javadsl.model.HttpRequest;
-import org.apache.pekko.http.javadsl.model.HttpResponse;
-import org.apache.pekko.http.javadsl.model.StatusCodes;
-import org.apache.pekko.http.javadsl.model.Uri;
-import org.apache.pekko.http.javadsl.model.headers.Location;
-import org.apache.pekko.http.javadsl.model.headers.RawHeader;
-import org.apache.pekko.http.scaladsl.model.ContentType$;
-import org.apache.pekko.http.scaladsl.model.EntityStreamSizeException;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.apache.pekko.pattern.AskTimeoutException;
-import org.apache.pekko.pattern.Patterns;
-import org.apache.pekko.util.ByteString;
 import scala.Option;
 import scala.util.Either;
 
@@ -468,7 +468,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
         rememberResponseLocationUri(commandResponse);
         completeWithResult(createCommandResponse(commandResponse.getDittoHeaders(),
                 commandResponse.getHttpStatus(),
-                (WithOptionalEntity) commandResponse));
+                (WithOptionalEntity<?>) commandResponse));
     }
 
     private HttpResponse handleMessageResponseMessage(final MessageCommandResponse<?, ?> messageCommandResponse) {
@@ -664,7 +664,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
     }
 
     private static UnaryOperator<HttpResponse> createBodyAddingResponseMapper(final DittoHeaders dittoHeaders,
-            final WithOptionalEntity withOptionalEntity) {
+            final WithOptionalEntity<?> withOptionalEntity) {
 
         return response -> {
             if (StatusCodes.NO_CONTENT.equals(response.status())) {

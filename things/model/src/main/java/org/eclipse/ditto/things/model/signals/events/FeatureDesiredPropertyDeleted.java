@@ -35,6 +35,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 
 /**
@@ -171,6 +172,11 @@ public final class FeatureDesiredPropertyDeleted extends AbstractThingEvent<Feat
     public FeatureDesiredPropertyDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(getEntityId(), featureId, desiredPropertyPointer, getRevision(), getTimestamp().orElse(null),
                 dittoHeaders, getMetadata().orElse(null));
+    }
+
+    @Override
+    public FeatureDesiredPropertyDeleted setEntity(final JsonValue entity) {
+        return this;
     }
 
     @Override

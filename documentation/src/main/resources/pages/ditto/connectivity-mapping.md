@@ -129,6 +129,7 @@ would result in the following normalized JSON representation:
   "_context": {
     "topic": "thing/id/things/twin/events/modified",
     "path": "/features/sensors/properties/temperature/indoor/value",
+    "value": 42,
     "headers": {
       "content-type": "application/json"
     }

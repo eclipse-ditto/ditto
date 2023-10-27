@@ -170,6 +170,12 @@ public final class FeatureDesiredPropertiesModified extends AbstractThingEvent<F
     }
 
     @Override
+    public FeatureDesiredPropertiesModified setEntity(final JsonValue entity) {
+        return of(getEntityId(), featureId, ThingsModelFactory.newFeatureProperties(entity.asObject()), getRevision(),
+                getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return JsonFactory.newPointer("/features/" + featureId + "/desiredProperties");
     }

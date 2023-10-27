@@ -117,7 +117,7 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
                         .collect(Collectors.toSet());
 
                 jsonKeysForNullValue.forEach(jsonKey ->
-                        metadataBuilder.remove(event.getResourcePath() + "/" + jsonKey.toString()));
+                        metadataBuilder.remove(event.getResourcePath().addLeaf(jsonKey)));
 
                 return metadataBuilder.build();
             }

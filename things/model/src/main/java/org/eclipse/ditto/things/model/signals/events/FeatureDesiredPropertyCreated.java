@@ -181,6 +181,12 @@ public final class FeatureDesiredPropertyCreated extends AbstractThingEvent<Feat
     }
 
     @Override
+    public FeatureDesiredPropertyCreated setEntity(final JsonValue entity) {
+        return of(getEntityId(), featureId, desiredPropertyPointer, entity, getRevision(),
+                getTimestamp().orElse(null), getDittoHeaders(), getMetadata().orElse(null));
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         final String path = "/features/" + featureId + "/desiredProperties" + desiredPropertyPointer;
         return JsonPointer.of(path);
