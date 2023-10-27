@@ -39,7 +39,7 @@ export function ready() {
  * @param {array} columnValues texts for additional columns of the row
  * @return {Element} created row
  */
-export const addTableRow = function(table, key, selected, withClipBoardCopy = false, ...columnValues) {
+export const addTableRow = function (table, key, selected, withClipBoardCopy = false, ...columnValues) {
   const row = table.insertRow();
   row.id = key;
   addCellToRow(row, key, key, 0);
@@ -314,6 +314,16 @@ export function createAceEditor(domId, sessionMode, readOnly = false) {
   }
 
   return result;
+}
+
+/**
+ * Sets value of ace editor
+ * @param {Object} aceEditor editor instance
+ * @param {String} value value to set on the ace editor
+ */
+export function setEditorValue(aceEditor, value) {
+  aceEditor.setValue(value);
+  aceEditor.clearSelection();
 }
 
 /**
