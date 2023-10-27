@@ -73,6 +73,11 @@
                             Environments
                         </a>
                     </li>
+                    <li class="nav-item" id="tabPiggyback">
+                        <a class="nav-link" data-bs-target="#collapsePiggyback:not(.show)" data-bs-toggle="collapse">
+                            Piggyback
+                        </a>
+                    </li>
                 </ul>
             </div>
             <ul class="navbar-nav w-50">
@@ -102,6 +107,9 @@
         <div class="collapse" id="collapseSettings" data-bs-parent="#page-content">
             <div id="environmentsHTML"></div>
         </div>
+        <div class="collapse" id="collapsePiggyback" data-bs-parent="#page-content">
+            <div id="piggybackHTML"></div>
+        </div>
     </div>
     <!-- Notifications to user ----------------------------------------------------------------->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1205; right: 0; bottom: 0" id="toastContainer">      
@@ -114,6 +122,7 @@
     <!-- Modals ------------------------------------------------------------------------------->
     <div id="authorizationHTML"></div>
     <div id="fieldsHTML"></div>
+    <div id="templatesHTML"></div>
     <div class="modal fade" id="modalConfirm" tabindex="-1">
         <div class="modal-dialog dialog-sm">
             <div class="modal-content">

@@ -31,6 +31,8 @@ import * as Connections from './modules/connections/connections.js';
 import * as ConnectionsCRUD from './modules/connections/connectionsCRUD.js';
 import * as ConnectionsMonitor from './modules/connections/connectionsMonitor.js';
 import * as Operations from './modules/operations/operations.js';
+import * as Piggyback from './modules/piggyback/piggyback.js';
+import * as Templates from './modules/piggyback/templates.js';
 import * as Policies from './modules/policies/policies.js';
 import * as Utils from './modules/utils.js';
 import {WoTDescription} from './modules/things/wotDescription.js';
@@ -57,6 +59,8 @@ document.addEventListener('DOMContentLoaded', async function() {
   Operations.ready();
   Authorization.ready();
   await Environments.ready();
+  Piggyback.ready();
+  Templates.ready();
 
   const thingDescription = WoTDescription({
     itemsId: 'tabItemsThing',

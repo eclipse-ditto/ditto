@@ -1,0 +1,43 @@
+<!--
+  ~ Copyright (c) 2023 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<div id="templatesModal" class="modal fade" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                Templates
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group input-group-sm mb-1">
+                    <a class="nav-link active">Service: </a>
+                    <select class="form-select-sm" id="templateServiceSelector"
+                        style="margin-top: auto; margin-bottom: auto;"></select>
+                </div>
+
+                <div class="input-group input-group-sm mb-1">
+                    <a class="nav-link active">Template:</a>
+                    <select class="form-select-sm" id="templateSelector"
+                        style="margin-top: auto; margin-bottom: auto;"></select>
+                </div>
+
+                <pre class="ace_container" id="commandPreview"></pre>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                        data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="insertTemplate"
+                        data-bs-toggle="tooltip" data-bs-dismiss="modal">Ok</button>
+                </div>
+            </div>
+        </div>
+    </div>

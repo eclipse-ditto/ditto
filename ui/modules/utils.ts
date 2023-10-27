@@ -14,7 +14,7 @@
 /* eslint-disable quotes */
 import autoComplete from '@tarekraafat/autocomplete.js';
 import * as ace from 'ace-builds/src-noconflict/ace';
-import {Toast, Modal} from 'bootstrap';
+import { Toast, Modal } from 'bootstrap';
 
 
 const dom = {
@@ -39,7 +39,7 @@ export function ready() {
  * @param {array} columnValues texts for additional columns of the row
  * @return {Element} created row
  */
-export const addTableRow = function(table, key, selected, withClipBoardCopy = false, ...columnValues) {
+export const addTableRow = function (table, key, selected, withClipBoardCopy = false, ...columnValues) {
   const row = table.insertRow();
   row.id = key;
   addCellToRow(row, key, key, 0);
@@ -161,8 +161,8 @@ export function addDropDownEntries(target, items, isHeader = false) {
   items.forEach((value) => {
     const li = document.createElement('li');
     li.innerHTML = isHeader ?
-        `<h6 class="dropdown-header">${value}</h6>` :
-        `<a class="dropdown-item" href="#">${value}</a>`;
+      `<h6 class="dropdown-header">${value}</h6>` :
+      `<a class="dropdown-item" href="#">${value}</a>`;
     target.appendChild(li);
   });
 }
@@ -313,6 +313,16 @@ export function createAceEditor(domId, sessionMode, readOnly = false) {
   }
 
   return result;
+}
+
+/**
+ * Sets value of ace editor
+ * @param {Object} aceEditor editor instance
+ * @param {String} value value to set on the ace editor
+ */
+export function setEditorValue(aceEditor, value) {
+  aceEditor.setValue(value);
+  aceEditor.clearSelection();
 }
 
 /**
