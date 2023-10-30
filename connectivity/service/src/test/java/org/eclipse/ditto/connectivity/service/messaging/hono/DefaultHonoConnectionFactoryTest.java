@@ -30,7 +30,6 @@ import java.util.stream.Stream;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.HonoAddressAlias;
 import org.eclipse.ditto.connectivity.model.ReplyTarget;
@@ -58,7 +57,7 @@ public final class DefaultHonoConnectionFactoryTest {
 
     private HonoConfig honoConfig;
 
-    private static Connection generateConnectionObjectFromJsonFile( String fileName) throws IOException {
+    private static Connection generateConnectionObjectFromJsonFile(final String fileName) throws IOException {
         final var testClassLoader = DefaultHonoConnectionFactoryTest.class.getClassLoader();
         try (final var connectionJsonFileStreamReader = new InputStreamReader(
                 testClassLoader.getResourceAsStream(fileName)
@@ -85,13 +84,26 @@ public final class DefaultHonoConnectionFactoryTest {
     public void getHonoConnectionWithCustomMappingsReturnsExpected() throws IOException {
         final var userProvidedHonoConnection =
                 generateConnectionObjectFromJsonFile("hono-connection-custom-test.json");
-        final var expectedHonoConnection =
-                generateConnectionObjectFromJsonFile("hono-connection-custom-expected.json");
+        final var expectedAdaptedConnection =
+                generateConnectionObjectFromJsonFile("hono-connection-custom-expected-after-adaptation.json");
 
         final var underTest =
                 new DefaultHonoConnectionFactory(actorSystemResource.getActorSystem(), ConfigFactory.empty());
 
-        assertThat(underTest.getHonoConnection(userProvidedHonoConnection)).isEqualTo(expectedHonoConnection);
+        assertThat(underTest.getHonoConnection(userProvidedHonoConnection)).isEqualTo(expectedAdaptedConnection);
+    }
+
+    @Test
+    public void getHonoConnectionWithImplicitTenantIdAndCustomMappingsReturnsExpected() throws IOException {
+        final var userProvidedHonoConnection =
+                generateConnectionObjectFromJsonFile("hono-connection-implicit-tenant-custom-test.json");
+        final var expectedAdaptedConnection =
+                generateConnectionObjectFromJsonFile("hono-connection-implicit-tenant-custom-expected-after-adaptation.json");
+
+        final var underTest =
+                new DefaultHonoConnectionFactory(actorSystemResource.getActorSystem(), ConfigFactory.empty());
+
+        assertThat(underTest.getHonoConnection(userProvidedHonoConnection)).isEqualTo(expectedAdaptedConnection);
     }
 
     @Test
@@ -103,11 +115,11 @@ public final class DefaultHonoConnectionFactoryTest {
                 new DefaultHonoConnectionFactory(actorSystemResource.getActorSystem(), ConfigFactory.empty());
 
         assertThat(underTest.getHonoConnection(userProvidedHonoConnection))
-                .isEqualTo(getExpectedHonoConnection(userProvidedHonoConnection));
+                .isEqualTo(getExpectedAdaptedHonoConnection(userProvidedHonoConnection));
     }
 
     @SuppressWarnings("unchecked")
-    private Connection getExpectedHonoConnection(final Connection originalConnection) {
+    private Connection getExpectedAdaptedHonoConnection(final Connection originalConnection) {
         final var sourcesByAddress = getSourcesByAddress(originalConnection.getSources());
         final var commandReplyTargetHeaderMapping = ConnectivityModelFactory.newHeaderMapping(Map.of(
                 "correlation-id", "{{ header:correlation-id }}",
@@ -122,6 +134,9 @@ public final class DefaultHonoConnectionFactoryTest {
                 "subject", "{{ header:subject | fn:default(topic:action-subject) }}"
         );
         final var connectionId = originalConnection.getId();
+        final String honoTenantId =  originalConnection.getSpecificConfig()
+                .getOrDefault(DefaultHonoConnectionFactory.SPEC_CONFIG_HONO_TENANT_ID, connectionId.toString());
+        final String expectedResolvedCommandTargetAddress = getExpectedResolvedCommandTargetAddress(honoTenantId);
         return ConnectivityModelFactory.newConnectionBuilder(originalConnection)
                 .uri(honoConfig.getBaseUri().toString().replaceFirst("(\\S+://)(\\S+)",
                         "$1" + URLEncoder.encode(honoConfig.getUserPasswordCredentials().getUsername(), StandardCharsets.UTF_8)
@@ -135,22 +150,22 @@ public final class DefaultHonoConnectionFactoryTest {
                 )
                 .setSources(List.of(
                         ConnectivityModelFactory.newSourceBuilder(sourcesByAddress.get(TELEMETRY.getAliasValue()))
-                                .addresses(Set.of(getExpectedResolvedSourceAddress(TELEMETRY, connectionId)))
+                                .addresses(Set.of(getExpectedResolvedSourceAddress(TELEMETRY, honoTenantId)))
                                 .replyTarget(ReplyTarget.newBuilder()
-                                        .address(getExpectedResolvedCommandTargetAddress(connectionId))
+                                        .address(expectedResolvedCommandTargetAddress)
                                         .headerMapping(commandReplyTargetHeaderMapping)
                                         .build())
                                 .build(),
                         ConnectivityModelFactory.newSourceBuilder(sourcesByAddress.get(EVENT.getAliasValue()))
-                                .addresses(Set.of(getExpectedResolvedSourceAddress(EVENT, connectionId)))
+                                .addresses(Set.of(getExpectedResolvedSourceAddress(EVENT, honoTenantId)))
                                 .replyTarget(ReplyTarget.newBuilder()
-                                        .address(getExpectedResolvedCommandTargetAddress(connectionId))
+                                        .address(expectedResolvedCommandTargetAddress)
                                         .headerMapping(commandReplyTargetHeaderMapping)
                                         .build())
                                 .build(),
                         ConnectivityModelFactory.newSourceBuilder(
                                         sourcesByAddress.get(COMMAND_RESPONSE.getAliasValue()))
-                                .addresses(Set.of(getExpectedResolvedSourceAddress(COMMAND_RESPONSE, connectionId)))
+                                .addresses(Set.of(getExpectedResolvedSourceAddress(COMMAND_RESPONSE, honoTenantId)))
                                 .headerMapping(ConnectivityModelFactory.newHeaderMapping(Map.of(
                                         "correlation-id", "{{ header:correlation-id }}",
                                         "status", "{{ header:status }}"
@@ -159,8 +174,8 @@ public final class DefaultHonoConnectionFactoryTest {
                 ))
                 .setTargets(List.of(
                         ConnectivityModelFactory.newTargetBuilder(targets.get(0))
-                                .address(getExpectedResolvedCommandTargetAddress(connectionId))
-                                .originalAddress(getExpectedResolvedCommandTargetAddress(connectionId))
+                                .address(expectedResolvedCommandTargetAddress)
+                                .originalAddress(expectedResolvedCommandTargetAddress)
                                 .headerMapping(ConnectivityModelFactory.newHeaderMapping(
                                         Stream.concat(
                                                 basicAdditionalTargetHeaderMappingEntries.entrySet().stream(),
@@ -170,8 +185,8 @@ public final class DefaultHonoConnectionFactoryTest {
                                 ))
                                 .build(),
                         ConnectivityModelFactory.newTargetBuilder(targets.get(1))
-                                .address(getExpectedResolvedCommandTargetAddress(connectionId))
-                                .originalAddress(getExpectedResolvedCommandTargetAddress(connectionId))
+                                .address(expectedResolvedCommandTargetAddress)
+                                .originalAddress(expectedResolvedCommandTargetAddress)
                                 .headerMapping(ConnectivityModelFactory.newHeaderMapping(
                                         basicAdditionalTargetHeaderMappingEntries
                                 ))
@@ -186,12 +201,12 @@ public final class DefaultHonoConnectionFactoryTest {
         return result;
     }
 
-    private static String getExpectedResolvedSourceAddress(final HonoAddressAlias honoAddressAlias, final ConnectionId connectionId) {
-        return "hono." + honoAddressAlias.getAliasValue() + "." + connectionId;
+    private static String getExpectedResolvedSourceAddress(final HonoAddressAlias honoAddressAlias, final String honoTenantId) {
+        return "hono." + honoAddressAlias.getAliasValue() + "." + honoTenantId;
     }
 
-    private static String getExpectedResolvedCommandTargetAddress(final ConnectionId connectionId) {
-        return "hono." + HonoAddressAlias.COMMAND.getAliasValue() + "." + connectionId + "/{{thing:id}}";
+    private static String getExpectedResolvedCommandTargetAddress(final String honoTenantId) {
+        return "hono." + HonoAddressAlias.COMMAND.getAliasValue() + "." + honoTenantId + "/{{thing:id}}";
     }
 
 }

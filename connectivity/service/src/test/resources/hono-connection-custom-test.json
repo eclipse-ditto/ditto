@@ -148,6 +148,7 @@
   "validateCertificates": true,
   "processorPoolSize": 5,
   "specificConfig": {
+    "honoTenantId": "hono-tenant-id",
     "groupId": "custom_groupId"
   },
   "mappingDefinitions": {

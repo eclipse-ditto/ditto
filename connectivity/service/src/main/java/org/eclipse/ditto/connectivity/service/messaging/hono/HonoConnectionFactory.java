@@ -64,6 +64,13 @@ import org.apache.pekko.actor.ActorSystem;
 public abstract class HonoConnectionFactory implements DittoExtensionPoint {
 
     /**
+     * The name of the property in the {@code specificConfig} object containing the Hono tenant identifier.
+     */
+    protected static final String SPEC_CONFIG_HONO_TENANT_ID = "honoTenantId";
+
+    private String honoTenantId;
+
+    /**
      * Constructs a {@code HonoConnectionFactory}.
      */
     protected HonoConnectionFactory() {
@@ -112,6 +119,9 @@ public abstract class HonoConnectionFactory implements DittoExtensionPoint {
                         connection.getConnectionType())
         );
 
+        honoTenantId = connection.getSpecificConfig()
+                .getOrDefault(SPEC_CONFIG_HONO_TENANT_ID, connection.getId().toString());
+
         preConversion(connection);
 
         return ConnectivityModelFactory.newConnectionBuilder(connection)
@@ -132,6 +142,18 @@ public abstract class HonoConnectionFactory implements DittoExtensionPoint {
      */
     protected void preConversion(final Connection honoConnection) {
         // Do nothing by default.
+    }
+
+    /**
+     * Get the Hono tenant identifier associated with the connection.
+     *
+     * @return The Hono tenant identifier.
+     */
+    protected String getHonoTenantId() {
+        if (honoTenantId == null) {
+            throw new IllegalStateException("getHonoTenantId invoked before tenant id got determined");
+        }
+        return honoTenantId;
     }
 
     protected abstract URI getBaseUri();
