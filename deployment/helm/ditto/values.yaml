@@ -1691,7 +1691,7 @@ swaggerui:
     # repository for the swagger ui docker image
     repository: docker.io/swaggerapi/swagger-ui
     # tag for the swagger ui docker image
-    tag: v4.19.1
+    tag: v5.9.1
     # pullPolicy for the swagger ui docker image
     pullPolicy: IfNotPresent
   # extraEnv to add arbitrary environment variable to swagger ui container
