@@ -34,6 +34,7 @@ final class MosquittoContainerFactory extends ContainerFactory {
     private static final String MOSQUITTO_VERSION = "2.0.18";
     private static final int MOSQUITTO_INTERNAL_PORT = 1883;
     private static final String CONFIG_CONTAINER_PATH = "/mosquitto/config/mosquitto.conf";
+
     private final String CONFIG_RESOURCES_PATH;
 
     private MosquittoContainerFactory(final String configResourceName, final String mosquittoVersion) {

@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -76,14 +77,14 @@ import scala.jdk.CollectionConverters;
 @RunWith(Parameterized.class)
 public final class MqttClientActorIT {
 
-    @Parameterized.Parameters(name = "MQTT version: {0}, separate publisher client: {1}")
+    @Parameterized.Parameters(name = "MQTT version: {0}, separate publisher client: {1}, clean session: {2}")
     public static Collection<Object[]> parameters() {
-        return Arrays.asList(new Object[][] {
-                { MqttVersion.MQTT_3_1_1, true },
-                { MqttVersion.MQTT_3_1_1, false },
-                { MqttVersion.MQTT_5_0, true },
-                { MqttVersion.MQTT_5_0, false },
-        });
+        return Stream.of(MqttVersion.MQTT_3_1_1, MqttVersion.MQTT_5_0).flatMap(mqttVersion ->
+                Stream.of(true, false).flatMap(separatePublisherClient ->
+                        Stream.of(true, false).map(cleanSession ->
+                                new Object[] { mqttVersion, separatePublisherClient, cleanSession })))
+                .map(Object[].class::cast)
+                .toList();
     }
 
     @Parameterized.Parameter(0)
@@ -91,6 +92,9 @@ public final class MqttClientActorIT {
 
     @Parameterized.Parameter(1)
     public static Boolean separatePublisherClient;
+
+    @Parameterized.Parameter(2)
+    public static Boolean cleanSession;
 
     @ClassRule
     public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
@@ -182,14 +186,6 @@ public final class MqttClientActorIT {
             expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.DISCONNECTED));
 
             ensureAllMessagesAcknowledged();
-
-//            insertTestThings();
-
-//            underTest.tell(queryThings(200, null), getRef());
-
-//            final QueryThingsResponse response = expectMsgClass(QueryThingsResponse.class);
-
-//            assertThat(response.getSearchResult().getItems()).isEqualTo(expectedIds(4, 2, 0, 1, 3));
         }};
     }
 
@@ -251,12 +247,15 @@ public final class MqttClientActorIT {
     public void testPersistentSession() {
         new TestKit(actorSystem) {{
             final var underTest = getMqttClientActor(getConnection(new String[] { TOPIC_NAME }));
-            // create session for ditto client ID
-            final var dittoMqttClient = getMqttClient(CLIENT_ID_DITTO);
-            dittoMqttClient.connect(GenericMqttConnect.newInstance(false, KeepAliveInterval.defaultKeepAlive(), SESSION_EXPIRY_INTERVAL, ReceiveMaximum.defaultReceiveMaximum()));
-            dittoMqttClient.subscribe(GenericMqttSubscribe.of(Set.of(
-                    GenericMqttSubscription.newInstance(MqttTopicFilter.of(TOPIC_NAME), MqttQos.EXACTLY_ONCE))));
-            dittoMqttClient.disconnect();
+
+            // create session
+            System.out.println("Connecting to create session...");
+            underTest.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
+            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.CONNECTED));
+            System.out.println("Connected");
+            underTest.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
+            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.DISCONNECTED));
+            System.out.println("Disconnected");
 
             final var mqttClient = getMqttClient(name.getMethodName());
             mqttClient.connect();
@@ -266,8 +265,7 @@ public final class MqttClientActorIT {
             underTest.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.CONNECTED));
 
-            expectMergeThingMessage(commandForwarderProbe, "key", "test");
-            commandForwarderProbe.expectNoMessage(NO_MESSAGE_TIMEOUT);
+            expectMergeThingMessageIfNotCleanSession(commandForwarderProbe, "key", "test");
 
             underTest.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.DISCONNECTED));
@@ -277,7 +275,6 @@ public final class MqttClientActorIT {
     }
 
     @Test
-    @Ignore("https://github.com/eclipse-ditto/ditto/issues/1767")
     public void testPersistentSessionMessageFromTopicWhichIsNoLongerSubscribed() {
         new TestKit(actorSystem) {{
             final var underTest = getMqttClientActor(getConnection(new String[] { TOPIC_NAME }));
@@ -298,8 +295,7 @@ public final class MqttClientActorIT {
             underTest.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.CONNECTED));
 
-            expectMergeThingMessage(commandForwarderProbe, "key", "test");
-            commandForwarderProbe.expectNoMessage(NO_MESSAGE_TIMEOUT);
+            expectMergeThingMessageIfNotCleanSession(commandForwarderProbe, "key", "test");
 
             underTest.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.DISCONNECTED));
@@ -323,8 +319,8 @@ public final class MqttClientActorIT {
                         ConnectivityStatus.CLOSED,
                         "tcp://" + MOSQUITTO_RESOURCE.getBindIp() + ":" + MOSQUITTO_RESOURCE.getPort())
                 .specificConfig(Map.of(
-                        "clientId", CLIENT_ID_DITTO,
-                        "cleanSession", "false",
+                        "clientId", getDittoClientId(),
+                        "cleanSession", String.valueOf(cleanSession),
                         "separatePublisherClient", String.valueOf(separatePublisherClient)))
                 .setSources(Arrays.stream(sourcesTopics)
                         .map(topics -> ConnectivityModelFactory.newSourceBuilder()
@@ -369,6 +365,14 @@ public final class MqttClientActorIT {
         return GenericBlockingMqttClientBuilder.newInstance(mqttVersion, MOSQUITTO_RESOURCE.getBindIp(), MOSQUITTO_RESOURCE.getPort())
                 .clientIdentifier(clientId)
                 .build();
+    }
+
+    private void expectMergeThingMessageIfNotCleanSession(final TestProbe testProbe, final String key, final String value) {
+        if (!cleanSession) {
+            expectMergeThingMessage(testProbe, key, value);
+        }
+
+        testProbe.expectNoMsg(NO_MESSAGE_TIMEOUT);
     }
 
     private void expectMergeThingMessage(final TestProbe testProbe, final String key, final String value) {

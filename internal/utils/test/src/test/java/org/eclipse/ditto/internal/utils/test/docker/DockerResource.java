@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.test.docker;
 
-import java.io.Closeable;
 import java.io.IOException;
 
 import javax.annotation.Nullable;
