@@ -796,7 +796,12 @@ public final class ThingsModelFactory {
      */
     public static Stream<JsonPointer> expandFeatureIdWildcard(final Collection<JsonKey> featureIds,
             final JsonPointer jsonPointer) {
-        if (hasFeatureIdWildcard(jsonPointer)) {
+        if (hasMetadataFeatureIdWildcard(jsonPointer)) {
+            return featureIds.stream().map(fid -> Thing.JsonFields.METADATA.getPointer()
+                    .append(Thing.JsonFields.FEATURES.getPointer())
+                    .append(JsonPointer.of(fid))
+                    .append(jsonPointer.getSubPointer(3).orElse(JsonPointer.empty())));
+        } else if (hasFeatureIdWildcard(jsonPointer)) {
             return featureIds.stream().map(fid -> Thing.JsonFields.FEATURES.getPointer()
                     .append(JsonPointer.of(fid))
                     .append(jsonPointer.getSubPointer(2).orElse(JsonPointer.empty())));
@@ -806,11 +811,33 @@ public final class ThingsModelFactory {
     }
 
     private static boolean hasFeatureIdWildcard(final JsonPointer pointer) {
-        return pointer.getLevelCount() > 1
-                && pointer.getRoot()
+        return pointer.getLevelCount() > 1 &&
+                isFeaturePath(pointer) && pointer.get(1).filter(FEATURE_ID_WILDCARD::equals).isPresent();
+    }
+
+    private static boolean isFeaturePath(final JsonPointer pointer) {
+        return pointer.getRoot()
                 .filter(root -> Thing.JsonFields.FEATURES.getPointer().equals(JsonPointer.of(root)))
+                .isPresent();
+    }
+
+    private static boolean hasMetadataFeatureIdWildcard(final JsonPointer pointer) {
+        return pointer.getLevelCount() > 2 &&
+                isMetadataFeaturePath(pointer) &&
+                pointer.get(2).filter(FEATURE_ID_WILDCARD::equals).isPresent();
+    }
+
+    private static boolean isMetadataFeaturePath(final JsonPointer pointer) {
+        return pointer.getRoot()
+                .filter(root -> Thing.JsonFields.METADATA.getPointer().equals(JsonPointer.of(root)))
                 .isPresent()
-                && pointer.get(1).filter(FEATURE_ID_WILDCARD::equals).isPresent();
+                &&
+                pointer.getSubPointer(1)
+                        .map(metadataRoot -> metadataRoot.getRoot()
+                                .filter(subRoot -> Thing.JsonFields.FEATURES.getPointer()
+                                        .equals(JsonPointer.of(subRoot)))
+                                .isPresent()
+                        ).orElse(false);
     }
 
 }

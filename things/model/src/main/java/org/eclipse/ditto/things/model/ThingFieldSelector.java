@@ -38,8 +38,8 @@ public final class ThingFieldSelector implements JsonFieldSelector {
             .withoutUrlDecoding()
             .build();
     static final List<String> SELECTABLE_FIELDS = Arrays.asList("thingId", "policyId", "definition",
-            "_namespace", "_revision", "_created", "_modified", "_metadata", "_policy", "_context", "_context(/[^,]+)?",
-            "features(/[^,]+)?", "attributes(/[^,]+)?");
+            "_namespace", "_revision", "_created", "_modified", "_metadata(/[^,]+)?", "_policy", "_context",
+            "_context(/[^,]+)?", "features(/[^,]+)?", "attributes(/[^,]+)?");
     private static final String KNOWN_FIELDS_REGEX = "/?(" + String.join("|", SELECTABLE_FIELDS) + ")";
     private static final String FIELD_SELECTION_REGEX = "^" + KNOWN_FIELDS_REGEX + "(," + KNOWN_FIELDS_REGEX + ")*$";
     private static final Pattern FIELD_SELECTION_PATTERN = Pattern.compile(FIELD_SELECTION_REGEX);
