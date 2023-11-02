@@ -204,40 +204,42 @@ async function submitPiggybackCommand() {
     if (isCommandValid()) {
         dom.responseStatus.innerHTML = REQUEST_IN_PROGRESS_MESSAGE;
         Utils.setEditorValue(aceResponse, '');
-        try {
-            let path = buildPath(
-                dom.serviceSelector.value,
-                dom.instanceSelector.value,
-                dom.timeout.value
-            );
+        let path = buildPath(
+            dom.serviceSelector.value,
+            dom.instanceSelector.value,
+            dom.timeout.value
+        );
 
-            let piggybackCommandBody = Templates.buildPiggybackCommand(
-                dom.targetActorSelection.value,
-                JSON.parse(aceHeadersEditor.getValue()),
-                JSON.parse(aceCommandEditor.getValue())
-            );
+        let piggybackCommandBody = Templates.buildPiggybackCommand(
+            dom.targetActorSelection.value,
+            JSON.parse(aceHeadersEditor.getValue()),
+            JSON.parse(aceCommandEditor.getValue())
+        );
 
-            let promise = new Promise((resolve, reject) => {
-                onRequestInProgress(reject);
+        let promise = new Promise((resolve, reject) => {
+            onRequestInProgress(reject);
+            try {
                 API.callDittoREST('POST', path, piggybackCommandBody, null, true, true)
                     .then(result => resolve(result))
                     .catch(err => reject(err));
-            });
-            promise.then((result: any) => {
-                onRequestDone();
-                result.json().then(resultJson => {
-                    Utils.setEditorValue(aceResponse, stringifyPretty(resultJson));
-                    dom.responseStatus.innerHTML = result.status;
-                });
-            }).catch(err => {
+            } catch (err) {
                 onRequestDone();
                 Utils.setEditorValue(aceResponse, err.message);
                 dom.responseStatus.innerHTML = REQUEST_ERROR_MESSAGE;
+            }
+        });
+        promise.then((result: any) => {
+            onRequestDone();
+            result.json().then(resultJson => {
+                Utils.setEditorValue(aceResponse, stringifyPretty(resultJson));
+                dom.responseStatus.innerHTML = result.status;
             });
-        } catch (err) {
-            Utils.showError(`Error when executing piggyback command${err}`);
+        }).catch(err => {
+            onRequestDone();
+            Utils.setEditorValue(aceResponse, err.message);
             dom.responseStatus.innerHTML = REQUEST_ERROR_MESSAGE;
-        }
+        });
+
     }
 
     function isCommandValid() {
