@@ -314,6 +314,10 @@ ingress:
         add_header "X-Content-Type-Options" "nosniff" always;
         add_header "X-Frame-Options" "SAMEORIGIN" always;
         add_header "X-XSS-Protection" "1; mode=block" always;
+
+        # set ditto-specific forwarded headers
+        proxy_set_header X-Forwarded-User $remote_user;
+        proxy_set_header x-ditto-pre-authenticated "nginx:$remote_user";
   # ws the /ws (WebSocket) Ingress configuration
   ws:
     # paths configures ingress paths
