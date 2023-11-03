@@ -261,7 +261,8 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      * format.
      */
     public static RetrieveThingsResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        final JsonObject jsonObject = DittoJsonException.wrapJsonRuntimeException(() -> JsonObject.of(jsonString));
+        final JsonObject jsonObject = DittoJsonException.wrapJsonRuntimeException(jsonString, dittoHeaders,
+                (string, headers) -> JsonObject.of(string));
         return fromJson(jsonObject, dittoHeaders);
     }
 

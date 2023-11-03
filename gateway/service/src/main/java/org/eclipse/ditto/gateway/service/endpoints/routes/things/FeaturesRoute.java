@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes.things;
 
+import org.apache.pekko.http.javadsl.server.PathMatchers;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.UriEncoding;
@@ -43,10 +46,6 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureDesi
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureProperties;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureProperty;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatures;
-
-import org.apache.pekko.http.javadsl.server.PathMatchers;
-import org.apache.pekko.http.javadsl.server.RequestContext;
-import org.apache.pekko.http.javadsl.server.Route;
 
 /**
  * Builder for creating Pekko HTTP routes for {@code /features}.
@@ -295,10 +294,14 @@ final class FeaturesRoute extends AbstractRoute {
                                         put(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
                                                         dittoHeaders,
                                                         payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                                propertyJson -> ModifyFeatureProperty.of(thingId, featureId,
+                                                                propertyJson -> ModifyFeatureProperty.of(thingId,
+                                                                        featureId,
                                                                         JsonFactory.newPointer(jsonPointerString),
                                                                         DittoJsonException.wrapJsonRuntimeException(
-                                                                                () -> JsonFactory.readFrom(propertyJson)),
+                                                                                propertyJson,
+                                                                                dittoHeaders,
+                                                                                (json, headers) -> JsonFactory.readFrom(json)
+                                                                        ),
                                                                         dittoHeaders))
                                                 )
                                         ),
@@ -307,9 +310,13 @@ final class FeaturesRoute extends AbstractRoute {
                                                         dittoHeaders,
                                                         payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                                 propertyJson -> MergeThing.withFeatureProperty(thingId,
-                                                                        featureId, JsonFactory.newPointer(jsonPointerString),
+                                                                        featureId,
+                                                                        JsonFactory.newPointer(jsonPointerString),
                                                                         DittoJsonException.wrapJsonRuntimeException(
-                                                                                () -> JsonFactory.readFrom(propertyJson)),
+                                                                                propertyJson,
+                                                                                dittoHeaders,
+                                                                                (json, headers) -> JsonFactory.readFrom(json)
+                                                                        ),
                                                                         dittoHeaders))
                                                 )
                                         ),
@@ -402,7 +409,10 @@ final class FeaturesRoute extends AbstractRoute {
                                                                         featureId,
                                                                         JsonFactory.newPointer(jsonPointerString),
                                                                         DittoJsonException.wrapJsonRuntimeException(
-                                                                                () -> JsonFactory.readFrom(propertyJson)),
+                                                                                propertyJson,
+                                                                                dittoHeaders,
+                                                                                (json, headers) -> JsonFactory.readFrom(json)
+                                                                        ),
                                                                         dittoHeaders))
                                                 )
                                         ),
@@ -411,9 +421,13 @@ final class FeaturesRoute extends AbstractRoute {
                                                         dittoHeaders,
                                                         payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                                 propertyJson -> MergeThing.withFeatureDesiredProperty(thingId,
-                                                                        featureId, JsonFactory.newPointer(jsonPointerString),
+                                                                        featureId,
+                                                                        JsonFactory.newPointer(jsonPointerString),
                                                                         DittoJsonException.wrapJsonRuntimeException(
-                                                                                () -> JsonFactory.readFrom(propertyJson)),
+                                                                                propertyJson,
+                                                                                dittoHeaders,
+                                                                                (json, headers) -> JsonFactory.readFrom(json)
+                                                                        ),
                                                                         dittoHeaders))
                                                 )
                                         ),

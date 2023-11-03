@@ -20,12 +20,6 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonMissingFieldException;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -34,6 +28,12 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
 import org.eclipse.ditto.base.model.signals.commands.AbstractErrorResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonMissingFieldException;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Response to a {@link ConnectivityCommand} which wraps the exception thrown when processing the command.
@@ -94,7 +94,8 @@ public final class ConnectivityErrorResponse extends AbstractErrorResponse<Conne
      */
     public static ConnectivityErrorResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         final JsonObject jsonObject =
-                DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
+                DittoJsonException.wrapJsonRuntimeException(jsonString, dittoHeaders,
+                        (object, headers) -> JsonFactory.newObject(object));
         return fromJson(jsonObject, dittoHeaders);
     }
 

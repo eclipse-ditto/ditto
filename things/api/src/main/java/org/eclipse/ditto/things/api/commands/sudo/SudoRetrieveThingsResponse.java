@@ -199,7 +199,8 @@ public final class SudoRetrieveThingsResponse extends AbstractCommandResponse<Su
      * 'SudoRetrieveThingsResponse' format.
      */
     public static SudoRetrieveThingsResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        final var jsonObject = DittoJsonException.wrapJsonRuntimeException(() -> JsonObject.of(jsonString));
+        final var jsonObject = DittoJsonException.wrapJsonRuntimeException(jsonString, dittoHeaders,
+                (string, headers) -> JsonObject.of(string));
         return fromJson(jsonObject, dittoHeaders);
     }
 

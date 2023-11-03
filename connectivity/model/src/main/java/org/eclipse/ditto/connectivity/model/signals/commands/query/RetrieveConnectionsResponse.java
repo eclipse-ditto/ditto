@@ -172,7 +172,8 @@ public final class RetrieveConnectionsResponse extends AbstractCommandResponse<R
      * format.
      */
     public static RetrieveConnectionsResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        final JsonObject jsonObject = DittoJsonException.wrapJsonRuntimeException(() -> JsonObject.of(jsonString));
+        final JsonObject jsonObject = DittoJsonException.wrapJsonRuntimeException(jsonString, dittoHeaders,
+                (object, headers) -> JsonObject.of(object));
         return fromJson(jsonObject, dittoHeaders);
     }
 

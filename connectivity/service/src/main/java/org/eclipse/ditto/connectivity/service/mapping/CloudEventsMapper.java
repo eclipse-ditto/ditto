@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
@@ -36,8 +37,6 @@ import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * A message mapper implementation for the Mapping incoming CloudEvents to Ditto Protocol.
@@ -101,8 +100,9 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
         final String contentType = message.findContentType().orElse("");
         if (contentType.equals(DITTO_PROTOCOL_CONTENT_TYPE)) {
             if (isBinaryCloudEvent(message)) {
-                final JsonifiableAdaptable binaryAdaptable = DittoJsonException.wrapJsonRuntimeException(
-                        () -> ProtocolFactory.jsonifiableAdaptableFromJson(newObject(payload)));
+                final JsonifiableAdaptable binaryAdaptable = DittoJsonException.wrapJsonRuntimeException(payload,
+                        message.getInternalHeaders(), (thePayload, headers) ->
+                                ProtocolFactory.jsonifiableAdaptableFromJson(newObject(thePayload)));
                 final DittoHeaders headers = binaryAdaptable.getDittoHeaders()
                         .toBuilder()
                         .correlationId(message.getHeaders().get(CE_ID))

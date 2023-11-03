@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -56,8 +57,6 @@ import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * This mapper creates a {@link MergeThing} command when a {@link ThingQueryCommandResponse} was received via the
@@ -142,8 +141,9 @@ public final class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessa
         final JsonifiableAdaptable adaptable;
         try {
             final String payload = extractPayloadAsString(message);
-            adaptable = DittoJsonException.wrapJsonRuntimeException(() ->
-                    ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(payload))
+            adaptable = DittoJsonException.wrapJsonRuntimeException(payload,
+                    message.getInternalHeaders(), (thePayload, headers) ->
+                            ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(thePayload))
             );
         } catch (final DittoRuntimeException e) {
             LOGGER.withCorrelationId(message.getInternalHeaders())

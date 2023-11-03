@@ -72,7 +72,8 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
         final DittoHeaders filteredHeaders = filterHeadersAndAddExtraHeadersFromTopicPath(externalAdaptable);
         final JsonifiableMapper<T> mapper = getJsonifiableMapperOrThrow(type, externalAdaptable, filteredHeaders);
         final Adaptable adaptable = externalAdaptable.setDittoHeaders(filteredHeaders);
-        return DittoJsonException.wrapJsonRuntimeException(() -> mapper.map(adaptable));
+        return DittoJsonException.wrapJsonRuntimeException(adaptable, filteredHeaders,
+                (theAdaptable, headers) -> mapper.map(theAdaptable));
     }
 
     /**

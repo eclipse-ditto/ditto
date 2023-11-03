@@ -19,6 +19,11 @@ import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.http.javadsl.model.ContentTypes;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.server.PathMatchers;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
 import org.eclipse.ditto.base.api.common.RetrieveConfig;
 import org.eclipse.ditto.base.api.devops.ImmutableLoggerConfig;
 import org.eclipse.ditto.base.api.devops.signals.commands.ChangeLogLevel;
@@ -40,12 +45,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-
-import org.apache.pekko.http.javadsl.model.ContentTypes;
-import org.apache.pekko.http.javadsl.model.HttpResponse;
-import org.apache.pekko.http.javadsl.server.PathMatchers;
-import org.apache.pekko.http.javadsl.server.RequestContext;
-import org.apache.pekko.http.javadsl.server.Route;
 
 /**
  * Builder for creating Pekko HTTP routes for {@code /devops}.
@@ -222,8 +221,9 @@ public final class DevOpsRoute extends AbstractRoute {
                 extractDataBytes(payloadSource ->
                         handlePerRequest(ctx, dittoHeaders, payloadSource,
                                 piggybackCommandJson -> {
-                                    JsonObject parsedJson = DittoJsonException.wrapJsonRuntimeException(() ->
-                                            JsonFactory.readFrom(piggybackCommandJson).asObject());
+                                    JsonObject parsedJson = DittoJsonException.wrapJsonRuntimeException(
+                                            piggybackCommandJson, dittoHeaders, (json, headers) ->
+                                                    JsonFactory.readFrom(json).asObject());
                                     parsedJson = parsedJson.set(Command.JsonFields.TYPE, ExecutePiggybackCommand.TYPE);
 
                                     // serviceName and instance from URL are preferred
