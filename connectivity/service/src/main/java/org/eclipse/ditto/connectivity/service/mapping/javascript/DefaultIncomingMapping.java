@@ -17,12 +17,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
 
 /**
  * The default mapping for incoming messages that maps messages from Ditto protocol format.
@@ -40,10 +40,12 @@ public final class DefaultIncomingMapping implements MappingFunction<ExternalMes
 
     @Override
     public List<Adaptable> apply(final ExternalMessage message) {
-        return DittoJsonException.wrapJsonRuntimeException(() -> getPlainStringPayload(message)
-                .map(JsonFactory::readFrom)
-                .map(JsonValue::asObject)
-                .map(ProtocolFactory::jsonifiableAdaptableFromJson))
+        return DittoJsonException.wrapJsonRuntimeException(message, message.getInternalHeaders(), (msg, headers) ->
+                getPlainStringPayload(msg)
+                        .map(JsonFactory::readFrom)
+                        .map(JsonValue::asObject)
+                        .map(ProtocolFactory::jsonifiableAdaptableFromJson)
+                )
                 .map(Adaptable.class::cast)
                 .map(Collections::singletonList)
                 .orElse(Collections.emptyList());

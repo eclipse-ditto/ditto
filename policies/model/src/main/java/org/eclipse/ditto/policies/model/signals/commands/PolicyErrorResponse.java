@@ -125,7 +125,8 @@ public final class PolicyErrorResponse extends AbstractErrorResponse<PolicyError
 
     public static PolicyErrorResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         final JsonObject jsonObject =
-                DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
+                DittoJsonException.wrapJsonRuntimeException(jsonString, dittoHeaders,
+                        (object, headers) -> JsonFactory.newObject(object));
         return fromJson(jsonObject, dittoHeaders);
     }
 

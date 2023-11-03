@@ -16,6 +16,7 @@ import static java.util.Collections.singletonList;
 
 import java.util.List;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.common.DittoConstants;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -30,8 +31,6 @@ import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * A message mapper implementation for the Ditto Protocol.
@@ -93,8 +92,9 @@ public final class DittoMessageMapper extends AbstractMessageMapper {
     @Override
     public List<Adaptable> map(final ExternalMessage message) {
         final String payload = extractPayloadAsString(message);
-        final JsonifiableAdaptable jsonifiableAdaptable = DittoJsonException.wrapJsonRuntimeException(() ->
-                ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(payload))
+        final JsonifiableAdaptable jsonifiableAdaptable = DittoJsonException.wrapJsonRuntimeException(payload,
+                message.getInternalHeaders(), (thePayload, headers) ->
+                        ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(thePayload))
         );
 
         final DittoHeaders mergedHeaders = jsonifiableAdaptable.getDittoHeaders();

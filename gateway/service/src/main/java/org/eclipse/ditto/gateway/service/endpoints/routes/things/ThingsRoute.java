@@ -23,6 +23,17 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.http.javadsl.model.ContentTypes;
+import org.apache.pekko.http.javadsl.model.HttpCharsets;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.http.javadsl.model.MediaTypes;
+import org.apache.pekko.http.javadsl.model.headers.Accept;
+import org.apache.pekko.http.javadsl.model.headers.Link;
+import org.apache.pekko.http.javadsl.model.headers.LinkParams;
+import org.apache.pekko.http.javadsl.model.headers.LinkValue;
+import org.apache.pekko.http.javadsl.server.PathMatchers;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -68,18 +79,6 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingDefini
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.thingsearch.model.SearchResult;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
-
-import org.apache.pekko.http.javadsl.model.ContentTypes;
-import org.apache.pekko.http.javadsl.model.HttpCharsets;
-import org.apache.pekko.http.javadsl.model.HttpResponse;
-import org.apache.pekko.http.javadsl.model.MediaTypes;
-import org.apache.pekko.http.javadsl.model.headers.Accept;
-import org.apache.pekko.http.javadsl.model.headers.Link;
-import org.apache.pekko.http.javadsl.model.headers.LinkParams;
-import org.apache.pekko.http.javadsl.model.headers.LinkValue;
-import org.apache.pekko.http.javadsl.server.PathMatchers;
-import org.apache.pekko.http.javadsl.server.RequestContext;
-import org.apache.pekko.http.javadsl.server.Route;
 
 /**
  * Builder for creating Pekko HTTP routes for {@code /things}.
@@ -503,8 +502,11 @@ public final class ThingsRoute extends AbstractRoute {
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource, attributeValueJson ->
                                                         ModifyAttribute.of(thingId,
                                                                 JsonFactory.newPointer(jsonPointerString),
-                                                                DittoJsonException.wrapJsonRuntimeException(() ->
-                                                                        JsonFactory.readFrom(attributeValueJson)),
+                                                                DittoJsonException.wrapJsonRuntimeException(
+                                                                        attributeValueJson,
+                                                                        dittoHeaders,
+                                                                        (json, headers) -> JsonFactory.readFrom(json)
+                                                                ),
                                                                 dittoHeaders))
                                 )
                         ),
@@ -514,8 +516,11 @@ public final class ThingsRoute extends AbstractRoute {
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource, attributeValueJson ->
                                                         MergeThing.withAttribute(thingId,
                                                                 JsonFactory.newPointer(jsonPointerString),
-                                                                DittoJsonException.wrapJsonRuntimeException(() ->
-                                                                        JsonFactory.readFrom(attributeValueJson)),
+                                                                DittoJsonException.wrapJsonRuntimeException(
+                                                                        attributeValueJson,
+                                                                        dittoHeaders,
+                                                                        (json, headers) -> JsonFactory.readFrom(json)
+                                                                ),
                                                                 dittoHeaders)
                                                 )
                                 )
@@ -547,7 +552,8 @@ public final class ThingsRoute extends AbstractRoute {
                                                 payloadSource ->
                                                         pathEnd(() -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                                 definitionJson -> ModifyThingDefinition.of(thingId,
-                                                                        getDefinitionFromJson(definitionJson),
+                                                                        getDefinitionFromJson(definitionJson,
+                                                                                dittoHeaders),
                                                                         dittoHeaders))
                                                         )
                                         )
@@ -557,7 +563,8 @@ public final class ThingsRoute extends AbstractRoute {
                                                 payloadSource ->
                                                         pathEnd(() -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                                 definitionJson -> MergeThing.withThingDefinition(thingId,
-                                                                        getDefinitionFromJson(definitionJson), dittoHeaders))
+                                                                        getDefinitionFromJson(definitionJson, dittoHeaders),
+                                                                        dittoHeaders))
                                                         )
                                         )
                                 ),
@@ -568,10 +575,10 @@ public final class ThingsRoute extends AbstractRoute {
         );
     }
 
-    private ThingDefinition getDefinitionFromJson(final String definitionJson) {
-        return DittoJsonException.wrapJsonRuntimeException(() -> {
+    private ThingDefinition getDefinitionFromJson(final String definitionJson, final DittoHeaders dittoHeaders) {
+        return DittoJsonException.wrapJsonRuntimeException(definitionJson, dittoHeaders, (json, headers) -> {
             final ThingDefinition result;
-            final JsonValue jsonValue = JsonFactory.readFrom(definitionJson);
+            final JsonValue jsonValue = JsonFactory.readFrom(json);
             if (jsonValue.isNull()) {
                 result = ThingsModelFactory.nullDefinition();
             } else {

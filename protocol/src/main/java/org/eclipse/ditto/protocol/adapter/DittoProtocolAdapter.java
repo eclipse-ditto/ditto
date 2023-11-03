@@ -139,8 +139,8 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     @Override
     public Signal<?> fromAdaptable(final Adaptable adaptable) {
         final Adapter<? extends Signal<?>> adapter = adapterResolver.getAdapter(adaptable);
-        return DittoJsonException.wrapJsonRuntimeException(() ->
-                adapter.fromAdaptable(adapter.validateAndPreprocess(adaptable)));
+        return DittoJsonException.wrapJsonRuntimeException(adaptable, adaptable.getDittoHeaders(),
+                (theAdaptable, headers) -> adapter.fromAdaptable(adapter.validateAndPreprocess(theAdaptable)));
     }
 
     @Override
