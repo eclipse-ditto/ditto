@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.test.docker.mongo;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
 
@@ -48,7 +47,7 @@ final class MongoContainerFactory extends ContainerFactory {
     }
 
     @Override
-    protected CreateContainerCmd configureContainer(CreateContainerCmd createContainerCmd) {
+    protected CreateContainerCmd configureContainer(final CreateContainerCmd createContainerCmd) {
         return createContainerCmd.withCmd(MONGO_COMMANDS);
     }
 

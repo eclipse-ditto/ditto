@@ -17,7 +17,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -35,7 +39,11 @@ import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
-import org.eclipse.ditto.connectivity.model.*;
+import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.ConnectionType;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.mqtt.IllegalSessionExpiryIntervalSecondsException;
 import org.eclipse.ditto.connectivity.model.mqtt.ReceiveMaximum;
 import org.eclipse.ditto.connectivity.model.mqtt.SessionExpiryInterval;
@@ -51,7 +59,12 @@ import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -105,15 +118,13 @@ public final class MqttClientActorIT {
 
     private static final ConnectionId CONNECTION_ID = ConnectionId.of("connection");
     private static final String CLIENT_ID_DITTO = "ditto";
-    private static final String TOPIC_NAME = "data";
-    private static final String ANOTHER_TOPIC_NAME = "data2";
+    private static final String TOPIC_NAME = "topic";
+    private static final String ANOTHER_TOPIC_NAME = "topic2";
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION,
             AuthorizationModelFactory.newAuthSubject("nginx:ditto"));
     private static final FiniteDuration CONNECTION_TIMEOUT = FiniteDuration.apply(30, TimeUnit.SECONDS);
     private static final FiniteDuration COMMAND_TIMEOUT = FiniteDuration.apply(5, TimeUnit.SECONDS);
     private static final FiniteDuration NO_MESSAGE_TIMEOUT = FiniteDuration.apply(3, TimeUnit.SECONDS);
-    // https://github.com/eclipse-ditto/ditto/issues/1767
-    private static final int TIMEOUT_BEFORE_PUBLISH = 3;
     private static final int MESSAGES_FROM_PREVIOUS_SESSION_TIMEOUT = 3;
     private static final SessionExpiryInterval SESSION_EXPIRY_INTERVAL;
 
@@ -138,7 +149,6 @@ public final class MqttClientActorIT {
     @BeforeClass
     public static void beforeClass() {
         actorsTestConfig = ConfigFactory.load("test.conf");
-//        mongoClient = provideClientWrapper();
     }
 
     @Before
@@ -146,19 +156,15 @@ public final class MqttClientActorIT {
         actorSystem = ActorSystem.create(getClass().getSimpleName(), actorsTestConfig);
         commandForwarderProbe = TestProbe.apply("commandForwarder", actorSystem);
         cleanPreviousSession();
-//        thingsCollection = mongoClient.getDefaultDatabase().getCollection("PersistenceConstants.THINGS_COLLECTION_NAME");
     }
 
     private void cleanPreviousSession() {
-        final var mqttClient = getMqttClient(CLIENT_ID_DITTO);
+        final var mqttClient = getMqttClient(getDittoClientId());
         mqttClient.cleanSession();
     }
 
     @After
     public void after() {
-//        if (mongoClient != null) {
-//            thingsCollection.drop();
-//        }
         if (actorSystem != null) {
             TestKit.shutdownActorSystem(actorSystem);
             actorSystem = null;
@@ -169,21 +175,18 @@ public final class MqttClientActorIT {
     public void testSingleTopic() {
         new TestKit(actorSystem) {{
             final var underTest = getMqttClientActor(getConnection(new String[] { TOPIC_NAME }));
-            underTest.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.CONNECTED));
-
-            sleep(TIMEOUT_BEFORE_PUBLISH);
+            connect(underTest, this);
 
             final var mqttClient = getMqttClient(name.getMethodName());
             mqttClient.connect();
             publishMergeThingMessage(mqttClient, TOPIC_NAME, "key", "test");
+            publishMergeThingMessage(mqttClient, ANOTHER_TOPIC_NAME, "key2", "test2");
             mqttClient.disconnect();
 
             expectMergeThingMessage(commandForwarderProbe, "key", "test");
             commandForwarderProbe.expectNoMessage(NO_MESSAGE_TIMEOUT);
 
-            underTest.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.DISCONNECTED));
+            disconnect(underTest, this);
 
             ensureAllMessagesAcknowledged();
         }};
@@ -193,10 +196,7 @@ public final class MqttClientActorIT {
     public void testMultipleTopics() {
         new TestKit(actorSystem) {{
             final var underTest = getMqttClientActor(getConnection(new String[] { TOPIC_NAME, ANOTHER_TOPIC_NAME }));
-            underTest.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.CONNECTED));
-
-            sleep(TIMEOUT_BEFORE_PUBLISH);
+            connect(underTest, this);
 
             final var mqttClient = getMqttClient(name.getMethodName());
             mqttClient.connect();
@@ -208,8 +208,7 @@ public final class MqttClientActorIT {
             expectMergeThingMessage(commandForwarderProbe, "key2", "test2");
             expectNoMessage(NO_MESSAGE_TIMEOUT);
 
-            underTest.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.DISCONNECTED));
+            disconnect(underTest, this);
 
             ensureAllMessagesAcknowledged();
         }};
@@ -219,10 +218,7 @@ public final class MqttClientActorIT {
     public void testMultipleSources() {
         new TestKit(actorSystem) {{
             final var underTest = getMqttClientActor(getConnection(new String[] { TOPIC_NAME }, new String[] { ANOTHER_TOPIC_NAME }));
-            underTest.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.CONNECTED));
-
-            sleep(TIMEOUT_BEFORE_PUBLISH);
+            connect(underTest, this);
 
             final var mqttClient = getMqttClient(name.getMethodName());
             mqttClient.connect();
@@ -235,40 +231,29 @@ public final class MqttClientActorIT {
                     "key2", "test2"));
             commandForwarderProbe.expectNoMessage(NO_MESSAGE_TIMEOUT);
 
-            underTest.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.DISCONNECTED));
+            disconnect(underTest, this);
 
             // https://github.com/eclipse-ditto/ditto/issues/1768
 //            ensureAllMessagesAcknowledged();
         }};}
 
     @Test
-    @Ignore("https://github.com/eclipse-ditto/ditto/issues/1767")
     public void testPersistentSession() {
         new TestKit(actorSystem) {{
             final var underTest = getMqttClientActor(getConnection(new String[] { TOPIC_NAME }));
 
             // create session
-            System.out.println("Connecting to create session...");
-            underTest.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.CONNECTED));
-            System.out.println("Connected");
-            underTest.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.DISCONNECTED));
-            System.out.println("Disconnected");
+            connect(underTest, this);
+            disconnect(underTest, this);
 
             final var mqttClient = getMqttClient(name.getMethodName());
             mqttClient.connect();
             publishMergeThingMessage(mqttClient, TOPIC_NAME, "key", "test");
             mqttClient.disconnect();
 
-            underTest.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.CONNECTED));
-
+            connect(underTest, this);
             expectMergeThingMessageIfNotCleanSession(commandForwarderProbe, "key", "test");
-
-            underTest.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.DISCONNECTED));
+            disconnect(underTest, this);
 
             ensureAllMessagesAcknowledged();
         }};
@@ -278,8 +263,9 @@ public final class MqttClientActorIT {
     public void testPersistentSessionMessageFromTopicWhichIsNoLongerSubscribed() {
         new TestKit(actorSystem) {{
             final var underTest = getMqttClientActor(getConnection(new String[] { TOPIC_NAME }));
+
             // create session for ditto client ID with subscription to 2 topics
-            final var dittoMqttClient = getMqttClient(CLIENT_ID_DITTO);
+            final var dittoMqttClient = getMqttClient(getDittoClientId());
             dittoMqttClient.connect(GenericMqttConnect.newInstance(false, KeepAliveInterval.defaultKeepAlive(), SESSION_EXPIRY_INTERVAL, ReceiveMaximum.defaultReceiveMaximum()));
             dittoMqttClient.subscribe(GenericMqttSubscribe.of(Set.of(
                     GenericMqttSubscription.newInstance(MqttTopicFilter.of(TOPIC_NAME), MqttQos.EXACTLY_ONCE),
@@ -292,13 +278,9 @@ public final class MqttClientActorIT {
             publishMergeThingMessage(mqttClient, ANOTHER_TOPIC_NAME, "key2", "test2");
             mqttClient.disconnect();
 
-            underTest.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.CONNECTED));
-
+            connect(underTest, this);
             expectMergeThingMessageIfNotCleanSession(commandForwarderProbe, "key", "test");
-
-            underTest.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.DISCONNECTED));
+            disconnect(underTest, this);
 
             ensureAllMessagesAcknowledged();
         }};
@@ -313,7 +295,11 @@ public final class MqttClientActorIT {
                 ConfigFactory.empty()));
     }
 
-    private static Connection getConnection(final String[]... sourcesTopics) {
+    private String getDittoClientId() {
+        return CLIENT_ID_DITTO + "-" + name.getMethodName();
+    }
+
+    private Connection getConnection(final String[]... sourcesTopics) {
         return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID,
                         mqttVersion.equals(MqttVersion.MQTT_3_1_1) ? ConnectionType.MQTT : ConnectionType.MQTT_5,
                         ConnectivityStatus.CLOSED,
@@ -330,6 +316,16 @@ public final class MqttClientActorIT {
                                 .build())
                         .toList())
                 .build();
+    }
+
+    private static void connect(final ActorRef underTest, final TestKit testKit) {
+        underTest.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), testKit.getRef());
+        testKit.expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.CONNECTED));
+    }
+
+    private static void disconnect(final ActorRef underTest, final TestKit testKit) {
+        underTest.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), testKit.getRef());
+        testKit.expectMsg(CONNECTION_TIMEOUT, new Status.Success(BaseClientState.DISCONNECTED));
     }
 
     private static void publishMergeThingMessage(final GenericBlockingMqttClient mqttClient, final String topic, final String key, final String value) {
@@ -350,18 +346,14 @@ public final class MqttClientActorIT {
         );
     }
 
-    private static void sleep(int seconds) {
-        if (seconds == 0) {
-            return;
-        }
-
+    private static void sleep(final int seconds) {
         try {
             Thread.sleep(seconds * 1000L);
         } catch (InterruptedException ignored) {
         }
     }
 
-    private static GenericBlockingMqttClient getMqttClient(final String clientId) {
+    private GenericBlockingMqttClient getMqttClient(final String clientId) {
         return GenericBlockingMqttClientBuilder.newInstance(mqttVersion, MOSQUITTO_RESOURCE.getBindIp(), MOSQUITTO_RESOURCE.getPort())
                 .clientIdentifier(clientId)
                 .build();
@@ -389,8 +381,10 @@ public final class MqttClientActorIT {
     }
 
     private void expectMergeThingMessages(final TestProbe testProbe, final Map<String, String> updates) {
-        final var messages = CollectionConverters.SeqHasAsJava(testProbe.receiveN(2, COMMAND_TIMEOUT)).asJava();
-        assertThat(messages).hasSize(2);
+        final var messages = CollectionConverters.SeqHasAsJava(testProbe.receiveN(updates.size(), COMMAND_TIMEOUT)).asJava();
+        assertThat(messages).hasSize(updates.size());
+        // Can't create map here, because in case of error the key might duplicate, and we'll get ugly error instead of
+        // pretty assertion failure.
         final var actualUpdates = messages.stream()
                 .filter(MergeThing.class::isInstance)
                 .map(MergeThing.class::cast)
@@ -401,8 +395,8 @@ public final class MqttClientActorIT {
         assertThat(actualUpdates).containsExactlyInAnyOrderElementsOf(updates.entrySet());
     }
 
-    private static void ensureAllMessagesAcknowledged() {
-        final var mqttClient = getMqttClient(CLIENT_ID_DITTO);
+    private void ensureAllMessagesAcknowledged() {
+        final var mqttClient = getMqttClient(getDittoClientId());
 
         final var unacknowledgedPublishes = new ArrayList<GenericMqttPublish>();
         mqttClient.setPublishesCallback(MqttGlobalPublishFilter.ALL, unacknowledgedPublishes::add);
@@ -455,7 +449,7 @@ public final class MqttClientActorIT {
 
             private final Mqtt3BlockingClient client;
 
-            private Mqtt3BlockingMqttClient(GenericBlockingMqttClientBuilder builder) {
+            private Mqtt3BlockingMqttClient(final GenericBlockingMqttClientBuilder builder) {
                 var mqtt3ClientBuilder = MqttClient.builder()
                         .useMqttVersion3()
                         .serverHost(builder.host)
@@ -508,7 +502,7 @@ public final class MqttClientActorIT {
 
             private final Mqtt5BlockingClient client;
 
-            private Mqtt5BlockingMqttClient(GenericBlockingMqttClientBuilder builder) {
+            private Mqtt5BlockingMqttClient(final GenericBlockingMqttClientBuilder builder) {
                 var mqtt5ClientBuilder = MqttClient.builder()
                         .useMqttVersion5()
                         .serverHost(builder.host)
@@ -557,146 +551,5 @@ public final class MqttClientActorIT {
             }
         }
     }
-
-    /*@Test
-    public void testStream() {
-        new TestKit(actorSystem) {{
-            final ActorRef underTest = actorSystem.actorOf(MqttClientActor.props(queryParser, readPersistence,
-                    actorSystem.deadLetters()));
-
-            insertTestThings();
-
-            underTest.tell(queryThings(null, null), getRef());
-
-            final SourceRef<?> response = expectMsgClass(SourceRef.class);
-            final JsonArray searchResult = response.getSource()
-                    .runWith(Sink.seq(), actorSystem)
-                    .toCompletableFuture()
-                    .join()
-                    .stream()
-                    .map(thingId -> wrapAsSearchResult((String) thingId))
-                    .collect(JsonCollectors.valuesToArray());
-
-            assertThat(searchResult).isEqualTo(expectedIds(4, 2, 0, 1, 3));
-        }};
-    }
-
-    @Test
-    public void testCursorSearch() {
-        new TestKit(actorSystem) {{
-            final ActorRef underTest = actorSystem.actorOf(MqttClientActor.props(queryParser, readPersistence,
-                    actorSystem.deadLetters()));
-            final Supplier<AssertionError> noCursor =
-                    () -> new AssertionError("No cursor where a cursor is expected");
-
-            insertTestThings();
-
-            underTest.tell(queryThings(1, null), getRef());
-            final QueryThingsResponse response0 = expectMsgClass(QueryThingsResponse.class);
-            assertThat(response0.getSearchResult().getItems()).isEqualTo(expectedIds(4));
-
-            underTest.tell(queryThings(1, response0.getSearchResult().getCursor().orElseThrow(noCursor)), getRef());
-            final QueryThingsResponse response1 = expectMsgClass(QueryThingsResponse.class);
-            assertThat(response1.getSearchResult().getItems()).isEqualTo(expectedIds(2));
-
-            underTest.tell(queryThings(1, response1.getSearchResult().getCursor().orElseThrow(noCursor)), getRef());
-            final QueryThingsResponse response2 = expectMsgClass(QueryThingsResponse.class);
-            assertThat(response2.getSearchResult().getItems()).isEqualTo(expectedIds(0));
-
-            underTest.tell(queryThings(1, response2.getSearchResult().getCursor().orElseThrow(noCursor)), getRef());
-            final QueryThingsResponse response3 = expectMsgClass(QueryThingsResponse.class);
-            assertThat(response3.getSearchResult().getItems()).isEqualTo(expectedIds(1));
-
-            underTest.tell(queryThings(1, response3.getSearchResult().getCursor().orElseThrow(noCursor)), getRef());
-            final QueryThingsResponse response4 = expectMsgClass(QueryThingsResponse.class);
-            assertThat(response4.getSearchResult().getItems()).isEqualTo(expectedIds(3));
-
-            assertThat(response4.getSearchResult().getCursor()).isEmpty();
-        }};
-    }
-
-    private static Command<?> queryThings(@Nullable final Integer size, final @Nullable String cursor) {
-        final List<String> options = new ArrayList<>();
-        final String sort = "sort(-attributes/c,+attributes/b,-attributes/a,+attributes/null/1,-attributes/null/2)";
-        if (cursor == null) {
-            options.add(sort);
-        }
-        if (size != null) {
-            options.add("size(" + size + ")");
-        }
-        if (cursor != null) {
-            options.add("cursor(" + cursor + ")");
-        }
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .authorizationContext(AUTH_CONTEXT)
-                .build();
-        final String filter = "and(eq(attributes/x,5),eq(_metadata/attributes/x/type,\"x attribute\"))";
-        if (size != null) {
-            return QueryThings.of(filter, options, null, null, dittoHeaders);
-        } else {
-            return StreamThings.of(filter, null, sort, null, dittoHeaders);
-        }
-    }
-
-    private void insertTestThings() {
-        final Thing baseThing = ThingsModelFactory.newThingBuilder()
-                .setId(ThingId.of("thing", "00"))
-                .setRevision(1234L)
-                .setAttribute(JsonPointer.of("x"), JsonValue.of(5))
-                .setMetadata(MetadataModelFactory.newMetadataBuilder()
-                        .set("attributes", JsonObject.newBuilder()
-                                .set("x", JsonObject.newBuilder()
-                                        .set("type", "x attribute")
-                                        .build())
-                                .build())
-                        .build())
-                .build();
-
-        final Thing irrelevantThing = baseThing.toBuilder().removeAllAttributes().build();
-
-        writePersistence.write(template(baseThing, 0, "a"), policy, 0L)
-                .concat(writePersistence.write(template(baseThing, 1, "b"), policy, 0L))
-                .concat(writePersistence.write(template(baseThing, 2, "a"), policy, 0L))
-                .concat(writePersistence.write(template(baseThing, 3, "b"), policy, 0L))
-                .concat(writePersistence.write(template(baseThing, 4, "c"), policy, 0L))
-                .concat(writePersistence.write(template(irrelevantThing, 5, "c"), policy, 0L))
-                .runWith(Sink.ignore(), actorSystem)
-                .toCompletableFuture()
-                .join();
-    }
-
-    private static Policy createPolicy() {
-        final Collection<Subject> subjects =
-                AUTH_CONTEXT.getAuthorizationSubjectIds().stream()
-                        .map(subjectId -> Subject.newInstance(subjectId, SubjectType.GENERATED))
-                        .toList();
-        final Collection<Resource> resources = Collections.singletonList(Resource.newInstance(
-                ResourceKey.newInstance("thing:/"),
-                EffectedPermissions.newInstance(Collections.singletonList("READ"), Collections.emptyList())
-        ));
-        final PolicyEntry policyEntry = PolicyEntry.newInstance("viewer", subjects, resources);
-        return PoliciesModelFactory.newPolicyBuilder(POLICY_ID)
-                .set(policyEntry)
-                .setRevision(1L)
-                .build();
-    }
-
-    private static JsonArray expectedIds(final int... thingOrdinals) {
-        return Arrays.stream(thingOrdinals)
-                .mapToObj(i -> "thing:" + i)
-                .map(MqttClientActorIT::wrapAsSearchResult)
-                .collect(JsonCollectors.valuesToArray());
-    }
-
-    private static JsonValue wrapAsSearchResult(final CharSequence thingId) {
-        return JsonFactory.readFrom(String.format("{\"thingId\":\"%s\"}", thingId));
-    }
-
-    private static Thing template(final Thing thing, final int i, final CharSequence attribute) {
-        return thing.toBuilder()
-                .setId(ThingId.of("thing", String.valueOf(i)))
-                .setAttribute(JsonPointer.of(attribute), JsonValue.of(i))
-                .build();
-    }*/
 
 }

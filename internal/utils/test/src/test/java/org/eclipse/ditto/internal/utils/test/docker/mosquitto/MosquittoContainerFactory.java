@@ -16,14 +16,14 @@ import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.Objects;
 
-import com.github.dockerjava.api.model.AccessMode;
-import com.google.common.base.MoreObjects;
 import org.eclipse.ditto.internal.utils.test.docker.ContainerFactory;
 
 import com.github.dockerjava.api.command.CreateContainerCmd;
+import com.github.dockerjava.api.model.AccessMode;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.api.model.Volume;
+import com.google.common.base.MoreObjects;
 
 /**
  * Responsible for creating and configuring the mosquitto docker container that should be started for tests.
@@ -47,7 +47,7 @@ final class MosquittoContainerFactory extends ContainerFactory {
         }
     }
 
-    private String getResourceAbsolutePath(String resourceName) throws URISyntaxException {
+    private String getResourceAbsolutePath(final String resourceName) throws URISyntaxException {
         return Path.of(Objects.requireNonNull(getClass().getClassLoader().getResource(resourceName)).toURI()).toAbsolutePath().toString();
     }
 
@@ -59,7 +59,7 @@ final class MosquittoContainerFactory extends ContainerFactory {
     }
 
     @Override
-    protected CreateContainerCmd configureContainer(CreateContainerCmd createContainerCmd) {
+    protected CreateContainerCmd configureContainer(final CreateContainerCmd createContainerCmd) {
         final var hostConfig = MoreObjects.firstNonNull(createContainerCmd.getHostConfig(), HostConfig.newHostConfig())
                 .withBinds(new Bind(CONFIG_RESOURCES_PATH, new Volume(CONFIG_CONTAINER_PATH), AccessMode.ro));
         return createContainerCmd.withHostConfig(hostConfig);

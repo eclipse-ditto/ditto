@@ -65,7 +65,7 @@ public abstract class ContainerFactory implements Closeable {
         }
     }
 
-    protected CreateContainerCmd configureContainer(CreateContainerCmd createContainerCmd) {
+    protected CreateContainerCmd configureContainer(final CreateContainerCmd createContainerCmd) {
         return createContainerCmd;
     }
 
