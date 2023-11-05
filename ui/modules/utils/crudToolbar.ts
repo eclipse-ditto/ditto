@@ -14,7 +14,13 @@
 import * as Utils from '../utils.js';
 import crudToolbarHTML from './crudToolbar.html';
 
-class CrudToolbar extends HTMLElement {
+export enum CrudOperation {
+  CREATE,
+  UPDATE,
+  DELETE,
+}
+
+export class CrudToolbar extends HTMLElement {
   isEditing = false;
   isEditDisabled = false;
   isCreateDisabled = false;
@@ -60,9 +66,12 @@ class CrudToolbar extends HTMLElement {
   }
 
   set idValue(newValue) {
-    (this.shadowRoot.getElementById('inputIdValue') as HTMLInputElement).value = newValue;
+    const domInput: HTMLInputElement = this.shadowRoot.getElementById('inputIdValue') as HTMLInputElement; 
+    domInput.value = newValue;
+    domInput.classList.remove('is-invalid');
+
     const buttonDelete = this.shadowRoot.getElementById('buttonDelete');
-    if (!this.isDeleteDisabled && newValue && newValue !== '') {
+    if (!this.isEditing && !this.isDeleteDisabled && newValue && newValue !== '') {
       buttonDelete.removeAttribute('hidden');
     } else {
       buttonDelete.setAttribute('hidden', '');
@@ -73,17 +82,17 @@ class CrudToolbar extends HTMLElement {
     return this.isEditDisabled;
   }
 
-  set createDisabled(newValue) {
+  set createDisabled(newValue: boolean) {
     this.isCreateDisabled = newValue;
     this.setButtonState('buttonCreate', newValue);
   }
 
-  set deleteDisabled(newValue) {
+  set deleteDisabled(newValue: boolean) {
     this.isDeleteDisabled = newValue;
     this.setButtonState('buttonDelete', newValue);
   }
 
-  set editDisabled(newValue) {
+  set editDisabled(newValue: boolean) {
     this.isEditDisabled = newValue;
     if (!this.isEditing) {
       this.setButtonState('buttonEdit', newValue);
@@ -120,6 +129,10 @@ class CrudToolbar extends HTMLElement {
       this.dom.buttonCreate.onclick = this.eventDispatcher('onCreateClick');
       this.dom.buttonUpdate.onclick = this.eventDispatcher('onUpdateClick');
       this.dom.buttonDelete.onclick = this.eventDispatcher('onDeleteClick');
+      this.dom.inputIdValue.addEventListener('change', (event) => {
+        (event.target as HTMLElement).classList.remove('is-invalid');
+        this.dispatchEvent(new CustomEvent('onIdValueChange', { composed: true }));
+      });
     });
   };
 

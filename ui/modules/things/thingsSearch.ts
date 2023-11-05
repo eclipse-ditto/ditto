@@ -244,6 +244,7 @@ function fillThingsTable(thingsList) {
         row,
         item.thingId,
         Environments.current().pinnedThings.includes(item.thingId),
+        false,
         togglePinnedThing,
     );
     Utils.addCellToRow(row, beautifyId(item.thingId), item.thingId);

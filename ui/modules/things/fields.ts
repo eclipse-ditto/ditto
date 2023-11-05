@@ -170,7 +170,7 @@ function updateFieldList() {
   Environments.current().fieldList.forEach((field, i) => {
     const fieldSelected = dom.fieldPath.value === field.path;
     const row = dom.fieldList.insertRow();
-    Utils.addCheckboxToRow(row, i, field.active, toggleFieldActiveEventHandler);
+    Utils.addCheckboxToRow(row, i, field.active, false, toggleFieldActiveEventHandler);
     row.insertCell(-1).innerHTML = field.path;
     row.insertCell(-1).innerHTML = field['label'] ? field.label : null;
     if (fieldSelected) {

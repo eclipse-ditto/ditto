@@ -37,10 +37,10 @@ export function ready() {
  * @param {boolean} selected if true, the new row will be marked as selected
  * @param {boolean} withClipBoardCopy add a clipboard button at the last column of the row
  * @param {array} columnValues texts for additional columns of the row
- * @return {Element} created row
+ * @return {HTMLTableRowElement} created row
  */
-export const addTableRow = function (table, key, selected, withClipBoardCopy = false, ...columnValues) {
-  const row = table.insertRow();
+export const addTableRow = function(table, key, selected, withClipBoardCopy = false, ...columnValues) {
+  const row: HTMLTableRowElement = table.insertRow();
   row.id = key;
   addCellToRow(row, key, key, 0);
   columnValues.forEach((value) => {
@@ -60,18 +60,22 @@ export const addTableRow = function (table, key, selected, withClipBoardCopy = f
  * @param {HTMLTableRowElement} row target row
  * @param {String} id an id for the checkbox element
  * @param {boolean} checked check the checkbox
+ * @param {boolean} disabled callback for the onchange event of the checkbox
  * @param {function} onToggle callback for the onchange event of the checkbox
  */
-export function addCheckboxToRow(row, id, checked, onToggle) {
+export function addCheckboxToRow(row: HTMLTableRowElement, id: string, checked: boolean, disabled: boolean = false, onToggle = null): HTMLInputElement {
   const td = row.insertCell(0);
   td.style.verticalAlign = 'middle';
   td.style.width = '25px';
   const checkBox = document.createElement('input');
+  checkBox.classList.add('form-check-input');
   checkBox.type = 'checkbox';
   checkBox.id = id;
   checkBox.checked = checked;
-  checkBox.onchange = onToggle;
+  checkBox.disabled = disabled;
+  onToggle && (checkBox.onchange = onToggle);
   td.append(checkBox);
+  return checkBox;
 }
 
 /**
@@ -139,11 +143,11 @@ export function addRadioButton(target, groupName, value, checked) {
 }
 
 /**
- * Create a list of option elements
- * @param {HTMLElement} target target element (select)
+ * Create a list of option elements for select element
+ * @param {HTMLSelectElement} target target element (select)
  * @param {array} options Array of strings to be filled as options
  */
-export function setOptions(target, options) {
+export function setOptions(target: HTMLSelectElement, options: string[]) {
   target.innerHTML = '';
   options.forEach((key) => {
     const option = document.createElement('option');
@@ -153,7 +157,7 @@ export function setOptions(target, options) {
 }
 
 /**
- * Creates a drop down item or header
+ * Add a drop down items or header to Bootstrap dropdown
  * @param {HTMLElement} target target element
  * @param {array} items array of items for the drop down
  * @param {boolean} isHeader (optional) true to add a header line
