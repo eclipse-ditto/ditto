@@ -88,7 +88,7 @@ function onTemplateSelected() {
     if (selectedTemplate) {
         let templateBody = buildPiggybackCommand(selectedTemplate.targetActorSelection,
             selectedTemplate.headers, selectedTemplate.command);
-        dom.commandPreview.innerHTML = JSON.stringify(templateBody, null, 2);
+        dom.commandPreview.innerHTML = Utils.stringifyPretty(templateBody);
     } else {
         dom.commandPreview.innerHTML = "";
     }

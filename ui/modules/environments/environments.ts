@@ -234,7 +234,7 @@ function updateEnvEditors() {
     const selectedEnvironment = environments[selectedEnvName];
     dom.crudEnvironmentFields.idValue = selectedEnvName;
     dom.crudEnvironmentJson.idValue = selectedEnvName;
-    settingsEditor.setValue(JSON.stringify(selectedEnvironment, null, 2), -1);
+    settingsEditor.setValue(Utils.stringifyPretty(selectedEnvironment), -1);
     dom.inputApiUri.value = selectedEnvironment.api_uri;
     dom.inputSearchNamespaces.value = selectedEnvironment.searchNamespaces ?? '';
     dom.selectDittoVersion.value = selectedEnvironment.ditto_version ? selectedEnvironment.ditto_version : '3';

@@ -13,7 +13,7 @@
 <div>
     <div class="row-cols-md-auto" style="height: 87%;">
         <h5>Piggyback commands</h5>
-        <hr/>
+        <hr />
         <div class="col-md-auto resizable_flex_column">
             <div class="row mb-1" style="flex-grow: 0.9;">
                 <div class="col-md-6 resizable_flex_column">
@@ -21,20 +21,20 @@
                         <div class="row mb-1">
                             <div class="col-md-6 resizable_flex_column">
                                 <div class="col-md-auto">
-                                    <button id="showTemplates" class="btn btn-outline-primary btn-sm button_round_left"
-                                            data-bs-toggle="modal" data-bs-target="#templatesModal">
+                                    <button id="showTemplates" class="btn btn-outline-primary btn-sm button_round_right"
+                                        data-bs-toggle="modal" data-bs-target="#templatesModal">
                                         Insert Template
                                     </button>
                                 </div>
                             </div>
                             <div class="col-md-6 resizable_flex_column">
                                 <div class="col-md-auto">
-                                    <button class="btn btn-outline-blue btn-sm button_round_left" style="float: right;"
-                                            id="buttonSubmit">
+                                    <button class="btn btn-outline-primary btn-sm button_round_right"
+                                        style="float: right;" id="buttonSubmit">
                                         Submit
                                     </button>
-                                    <button hidden class="btn btn-outline-secondary btn-sm button_round_left"
-                                            style="float: right;" id="buttonCancel">
+                                    <button hidden class="btn btn-outline-secondary btn-sm button_round_right"
+                                        style="float: right;" id="buttonCancel">
                                         Cancel
                                     </button>
                                 </div>
@@ -42,19 +42,17 @@
                         </div>
                         <div class="input-group input-group-sm mb-1 has-validation">
                             <label class="input-group-text">Service</label>
-                            <select class="form-select-sm" id="serviceSelector"
-                                    style="margin-top: auto; margin-bottom: auto;"></select>
-                            <button class="btn btn-outline-primary btn-sm button_round_left"
-                                    id="buttonLoadServiceInstances">
+                            <select class="form-select-sm" id="serviceSelector"></select>
+                            <button class="btn btn-outline-primary btn-sm button_round_right"
+                                id="buttonLoadServiceInstances">
                                 <i class="bi bi-arrow-clockwise"></i>
                             </button>
                             <div class="invalid-feedback"></div>
                         </div>
 
                         <div class="input-group input-group-sm mb-1" hidden id="instanceContainer">
-                            <a class="nav-link active">Instance:</a>
-                            <select class="form-select-sm" id="instanceSelector"
-                                    style="margin-top: auto; margin-bottom: auto;"></select>
+                            <a class="input-group-text">Instance:</a>
+                            <select class="form-select-sm" id="instanceSelector"></select>
                         </div>
 
                         <div class="input-group input-group-sm mb-1 has-validation" style="width: 20%;">

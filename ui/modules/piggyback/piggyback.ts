@@ -94,8 +94,8 @@ export function onInsertTemplate(template) {
     onServiceSelected();
     dom.timeout.value = chosenTemplate.timeout;
     dom.targetActorSelection.value = chosenTemplate.targetActorSelection;
-    Utils.setEditorValue(aceHeadersEditor, stringifyPretty(chosenTemplate.headers));
-    Utils.setEditorValue(aceCommandEditor, stringifyPretty(chosenTemplate.command));
+    Utils.setEditorValue(aceHeadersEditor, Utils.stringifyPretty(chosenTemplate.headers));
+    Utils.setEditorValue(aceCommandEditor, Utils.stringifyPretty(chosenTemplate.command));
 }
 
 async function loadServicesAndInstances() {
@@ -185,8 +185,8 @@ function initAceEditors() {
     aceResponse.setOption('wrap', true);
 
 
-    aceHeadersEditor.setOption('placeholder', stringifyPretty(piggybackPlaceholders.headers));
-    aceCommandEditor.setOption('placeholder', stringifyPretty(piggybackPlaceholders.command));
+    aceHeadersEditor.setOption('placeholder', Utils.stringifyPretty(piggybackPlaceholders.headers));
+    aceCommandEditor.setOption('placeholder', Utils.stringifyPretty(piggybackPlaceholders.command));
 
     aceHeadersEditor.getSession().on('changeAnnotation', onEditorChangeAnnotation);
     aceCommandEditor.getSession().on('changeAnnotation', onEditorChangeAnnotation);
@@ -231,7 +231,7 @@ async function submitPiggybackCommand() {
         promise.then((result: any) => {
             onRequestDone();
             result.json().then(resultJson => {
-                Utils.setEditorValue(aceResponse, stringifyPretty(resultJson));
+                Utils.setEditorValue(aceResponse, Utils.stringifyPretty(resultJson));
                 dom.responseStatus.innerHTML = result.status;
             });
         }).catch(err => {
@@ -303,8 +303,4 @@ function validateAndReturn(condition, message, validatedElement) {
     }
 
     return true;
-}
-
-function stringifyPretty(jsonObject) {
-    return JSON.stringify(jsonObject, null, 4);
 }

@@ -176,12 +176,12 @@ function updateFeatureEditors(featureJson) {
   if (featureJson) {
     dom.inputFeatureDefinition.value = featureJson['definition'] ? featureJson.definition : null;
     if (featureJson['properties']) {
-      featurePropertiesEditor.setValue(JSON.stringify(featureJson.properties, null, 4), -1);
+      featurePropertiesEditor.setValue(Utils.stringifyPretty(featureJson.properties), -1);
     } else {
       featurePropertiesEditor.setValue('');
     }
     if (featureJson['desiredProperties']) {
-      featureDesiredPropertiesEditor.setValue(JSON.stringify(featureJson.desiredProperties, null, 4), -1);
+      featureDesiredPropertiesEditor.setValue(Utils.stringifyPretty(featureJson.desiredProperties), -1);
     } else {
       featureDesiredPropertiesEditor.setValue('');
     }
