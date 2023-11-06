@@ -221,7 +221,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 .toBuilder()
                 .id(connectionId)
                 .build();
-        final var expectedHonoConnection = generateConnectionObjectFromJsonFile("hono-connection-custom-expected.json", connectionId)
+        final var expectedHonoConnection = generateConnectionObjectFromJsonFile("hono-connection-custom-expected-after-adaptation.json", connectionId)
                 .toBuilder()
                 .id(connectionId)
                 .build();

@@ -3,11 +3,11 @@
   "name": "Things-Hono Test 1",
   "connectionType": "hono",
   "connectionStatus": "open",
-  "uri": "ssl://hono-endpoint:1",
+  "uri": "tcp://test_username:test_password_w%2Fspecial_char@localhost:9922",
   "sources": [
     {
       "addresses": [
-        "telemetry"
+        "hono.telemetry.hono-tenant-id"
       ],
       "consumerCount": 1,
       "qos": 0,
@@ -32,8 +32,12 @@
         "implicitStandaloneThingCreation"
       ],
       "replyTarget": {
-        "address": "command",
+        "address": "hono.command.hono-tenant-id/{{thing:id}}",
         "headerMapping": {
+          "device_id": "custom_value1",
+          "user_key1": "user_value1",
+          "subject": "{{ header:subject | fn:default(topic:action-subject) | fn:default(topic:criterion) }}-response",
+          "correlation-id": "{{ header:correlation-id }}"
         },
         "expectedResponseTypes": [
           "response",
@@ -44,7 +48,7 @@
     },
     {
       "addresses": [
-        "event"
+        "hono.event.hono-tenant-id"
       ],
       "consumerCount": 1,
       "qos": 1,
@@ -68,8 +72,12 @@
         "implicitStandaloneThingCreation"
       ],
       "replyTarget": {
-        "address": "command",
+        "address": "hono.command.hono-tenant-id/{{thing:id}}",
         "headerMapping": {
+          "device_id": "{{ thing:id }}",
+          "subject": "custom_value2",
+          "user_key2": "user_value2",
+          "correlation-id": "{{ header:correlation-id }}"
         },
         "expectedResponseTypes": [
           "response",
@@ -80,7 +88,7 @@
     },
     {
       "addresses": [
-        "command_response"
+        "hono.command_response.hono-tenant-id"
       ],
       "consumerCount": 1,
       "qos": 0,
@@ -98,6 +106,9 @@
         "filter": "fn:delete()"
       },
       "headerMapping": {
+        "status": "custom_value3",
+        "user_key3": "user_value3",
+        "correlation-id": "{{ header:correlation-id }}"
       },
       "payloadMapping": [
         "Ditto"
@@ -109,17 +120,24 @@
   ],
   "targets": [
     {
-      "address": "command",
+      "address": "hono.command.hono-tenant-id/{{thing:id}}",
       "topics": [
         "_/_/things/live/messages",
         "_/_/things/live/commands"
       ],
       "authorizationContext": [
         "nginx:ditto"
-      ]
+      ],
+      "headerMapping": {
+        "user_key4": "user_value4",
+        "device_id": "{{ thing:id }}",
+        "response-required": "custom_value4",
+        "subject": "{{ header:subject | fn:default(topic:action-subject) }}",
+        "correlation-id": "{{ header:correlation-id }}"
+      }
     },
     {
-      "address": "command",
+      "address": "hono.command.hono-tenant-id/{{thing:id}}",
       "topics": [
         "_/_/things/twin/events",
         "_/_/things/live/events"
@@ -128,15 +146,22 @@
         "nginx:ditto"
       ],
       "headerMapping": {
+        "user_key5": "user_value5",
+        "device_id": "{{ thing:id }}",
+        "subject": "{{ header:subject | fn:default(topic:action-subject) }}",
+        "correlation-id": "custom_value5"
       }
     }
   ],
   "clientCount": 1,
   "failoverEnabled": true,
-  "validateCertificates": true,
+  "validateCertificates": false,
   "processorPoolSize": 5,
   "specificConfig": {
-    "honoTenantId": "hono-tenant-id"
+    "honoTenantId": "hono-tenant-id",
+    "saslMechanism": "plain",
+    "bootstrapServers": "tcp://server1:port1,tcp://server2:port2,tcp://server3:port3",
+    "groupId": "custom_groupId"
   },
   "mappingDefinitions": {
     "implicitEdgeThingCreation": {
