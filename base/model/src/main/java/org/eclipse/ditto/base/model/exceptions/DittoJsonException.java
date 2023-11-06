@@ -106,7 +106,10 @@ public final class DittoJsonException extends DittoRuntimeException implements G
     public static <I, T> T wrapJsonRuntimeException(final Function<I, T> function, final I input) {
         try {
             return function.apply(input);
-        } catch (final JsonRuntimeException | IllegalArgumentException | NullPointerException e) {
+        } catch (final JsonRuntimeException
+                       | IllegalArgumentException
+                       | NullPointerException
+                       | UnsupportedOperationException e) {
             throw new DittoJsonException(e);
         }
         // "ditto-json" library also throws IllegalArgumentException when for example strings which may not be empty
@@ -128,9 +131,9 @@ public final class DittoJsonException extends DittoRuntimeException implements G
         try {
             return supplier.get();
         } catch (final JsonRuntimeException
-                | IllegalArgumentException
-                | NullPointerException
-                | UnsupportedOperationException e) {
+                       | IllegalArgumentException
+                       | NullPointerException
+                       | UnsupportedOperationException e) {
             throw new DittoJsonException(e);
         }
         // "ditto-json" library also throws IllegalArgumentException when for example strings which may not be empty
@@ -156,7 +159,10 @@ public final class DittoJsonException extends DittoRuntimeException implements G
             final BiFunction<T, DittoHeaders, R> function) {
         try {
             return function.apply(argument, dittoHeaders);
-        } catch (final JsonRuntimeException | IllegalArgumentException | NullPointerException e) {
+        } catch (final JsonRuntimeException
+                       | IllegalArgumentException
+                       | NullPointerException
+                       | UnsupportedOperationException e) {
             throw new DittoJsonException(e, dittoHeaders);
         }
         // "ditto-json" library also throws IllegalArgumentException when for example strings which may not be empty
