@@ -20,9 +20,9 @@ import * as ConnectionsMonitor from './modules/connections/connectionsMonitor.js
 
 import * as Authorization from './modules/environments/authorization.js';
 import * as Environments from './modules/environments/environments.js';
-import * as Operations from './modules/operations/operations.js';
-import * as Piggyback from './modules/piggyback/piggyback.js';
-import * as Templates from './modules/piggyback/templates.js';
+import * as Operations from './modules/operations/servicesLogging.js';
+import * as Piggyback from './modules/operations/piggyback.js';
+import * as Templates from './modules/operations/templates.js';
 import * as Policies from './modules/policies/policies.js';
 import * as Attributes from './modules/things/attributes.js';
 import * as FeatureMessages from './modules/things/featureMessages.js';
