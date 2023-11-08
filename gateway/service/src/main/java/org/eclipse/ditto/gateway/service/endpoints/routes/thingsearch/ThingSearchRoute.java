@@ -206,7 +206,8 @@ public final class ThingSearchRoute extends AbstractRoute {
         }
         return optionsString
                 .stream()
-                .flatMap(s -> Arrays.stream(s.split(",")))
+                .flatMap(s -> Arrays.stream(s.split("\\),")))
+                .map(s -> s.endsWith(")") ? s : s + ")")
                 .toList();
     }
 
