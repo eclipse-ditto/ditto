@@ -289,6 +289,7 @@ public final class ImmutableJsonObjectBuilderTest {
                 .set(robert)
                 .set(cersei)
                 .remove(JsonFactory.newPointer(fooKey, bazKey))
+                .remove(JsonFactory.newPointer(robert.getKey(), JsonKey.of("non-existing")))
                 .build();
 
         assertThat(actualJsonObject).isEqualTo(expectedJsonObject);
