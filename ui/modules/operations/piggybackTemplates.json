@@ -526,30 +526,6 @@
         }
     },
     "search": {
-        "index namespace": {
-            "service": "search",
-            "timeout": 5,
-            "targetActorSelection": "/user/namespaceIndexRoot",
-            "headers": {
-                "force-update": true,
-                "aggregate": false,
-                "is-group-topic": false
-            },
-            "command": {
-                "type": "thing-search.commands:indexNamespace",
-                "namespace": "<namespace>",
-                "fields": [
-                    "thingId",
-                    "_created",
-                    "_modified",
-                    "_revision",
-                    "policyId",
-                    "definition",
-                    "attributes",
-                    "features"
-                ]
-            }
-        },
         "retrieve sync progress": {
             "service": "search",
             "timeout": 5,

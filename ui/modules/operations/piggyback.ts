@@ -265,7 +265,7 @@ async function submitPiggybackCommand() {
                 path += `/${instance}`;
             }
         }
-        return `/devops/piggyback/${path}?timeout=${timeout}`;
+        return `/devops/piggyback${path}?timeout=${timeout}`;
     }
 
     function onRequestInProgress(rejectCallback) {
