@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.things.service.persistence.serializer;
 
+import org.apache.pekko.actor.ExtendedActorSystem;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
 import org.eclipse.ditto.base.service.config.DittoServiceConfig;
@@ -24,8 +25,6 @@ import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.eclipse.ditto.things.service.common.config.DefaultThingConfig;
-
-import org.apache.pekko.actor.ExtendedActorSystem;
 
 /**
  * EventAdapter for {@link Event}s persisted into pekko-persistence event-journal. Converts Event to MongoDB
@@ -48,7 +47,7 @@ public final class ThingMongoEventAdapter extends AbstractMongoEventAdapter<Thin
 
     @Override
     protected JsonObjectBuilder performToJournalMigration(final Event<?> event, final JsonObject jsonObject) {
-        if (event instanceof ThingMerged) {
+        if (event instanceof ThingMerged thingMerged && thingMerged.getResourcePath().isEmpty()) {
             return super.performToJournalMigration(event, jsonObject)
                     .remove(POLICY_IN_THING_MERGED_VALUE_PAYLOAD); // remove the policy entries from thing merged payload
         } else {

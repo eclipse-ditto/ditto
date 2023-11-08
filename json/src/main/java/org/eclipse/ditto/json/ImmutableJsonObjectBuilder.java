@@ -175,7 +175,7 @@ final class ImmutableJsonObjectBuilder implements JsonObjectBuilder {
                         rootObject = rootObject.remove(nextPointerLevel);
                         set(JsonFactory.newField(jsonField.getKey(), rootObject,
                                 jsonField.getDefinition().orElse(null)));
-                    } else {
+                    } else if (nextPointerLevel.isEmpty()) {
                         fields.remove(jsonField.getKeyName());
                     }
                 });
