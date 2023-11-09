@@ -3,7 +3,7 @@ title: Release notes 3.4.1
 tags: [release_notes]
 published: true
 keywords: release notes, announcements, changelog
-summary: "Version 3.4.1 of Eclipse Ditto, released on 09.10.2023"
+summary: "Version 3.4.1 of Eclipse Ditto, released on 09.11.2023"
 permalink: release_notes_341.html
 ---
 
