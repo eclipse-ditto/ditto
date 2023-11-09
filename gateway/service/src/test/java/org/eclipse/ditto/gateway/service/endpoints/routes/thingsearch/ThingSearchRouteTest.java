@@ -49,7 +49,7 @@ public final class ThingSearchRouteTest extends EndpointTestBase {
         final var formData = FormData.create(
                 List.of(
                     new Pair<>("filter", "and(like(definition,\"*test*\"))"),
-                    new Pair<>("option", "sort(+thingId)"),
+                    new Pair<>("option", "sort(+thingId,-attributes/type)"),
                     new Pair<>("option","limit(0,5)"),
                     new Pair<>("namespaces","org.eclipse.ditto,foo.bar")
                 ));
@@ -57,7 +57,20 @@ public final class ThingSearchRouteTest extends EndpointTestBase {
                 .withEntity(formData.toEntity()));
 
         result.assertStatusCode(StatusCodes.OK);
-        result.assertEntity("{\"type\":\"thing-search.commands:queryThings\",\"filter\":\"and(and(like(definition,\\\"*test*\\\")))\",\"options\":[\"limit(0\",\"5)\",\"sort(+thingId)\"],\"namespaces\":[\"foo.bar\",\"org.eclipse.ditto\"]}");
+        result.assertEntity("{\"type\":\"thing-search.commands:queryThings\",\"filter\":\"and(and(like(definition,\\\"*test*\\\")))\",\"options\":[\"limit(0,5)\",\"sort(+thingId,-attributes/type)\"],\"namespaces\":[\"foo.bar\",\"org.eclipse.ditto\"]}");
+    }
+    @Test
+    public void searchThingsShouldGetParametersFromUrl() {
+
+        final var result = underTest.run(HttpRequest.GET(
+                "/search/things?" +
+                        "namespaces=org.eclipse.ditto&" +
+                        "fields=thingId&" +
+                        "option=sort(%2Bfeature/property,-attributes/type,%2BthingId),size(2),cursor(nextCursor)")
+                );
+
+        result.assertStatusCode(StatusCodes.OK);
+        result.assertEntity("{\"type\":\"thing-search.commands:queryThings\",\"options\":[\"sort(+feature/property,-attributes/type,+thingId)\",\"size(2)\",\"cursor(nextCursor)\"],\"fields\":\"/thingId\",\"namespaces\":[\"org.eclipse.ditto\"]}");
     }
 
     @Test
