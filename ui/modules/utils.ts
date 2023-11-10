@@ -318,15 +318,6 @@ export function createAceEditor(domId, sessionMode, readOnly = false, wrap = fal
 }
 
 /**
- * Sets value of ace editor
- * @param {Object} aceEditor editor instance
- * @param {String} value value to set on the ace editor
- */
-export function setEditorValue(aceEditor, value) {
-  aceEditor.setValue(value, -1);
-}
-
-/**
  * Creates a autocomplete input field
  * @param {String} selector selector for the input field
  * @param {function} src src

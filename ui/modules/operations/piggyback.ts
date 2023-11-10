@@ -94,8 +94,8 @@ export function onInsertTemplate(template) {
     onServiceSelected();
     dom.timeout.value = chosenTemplate.timeout;
     dom.targetActorSelection.value = chosenTemplate.targetActorSelection;
-    Utils.setEditorValue(aceHeadersEditor, Utils.stringifyPretty(chosenTemplate.headers));
-    Utils.setEditorValue(aceCommandEditor, Utils.stringifyPretty(chosenTemplate.command));
+    aceHeadersEditor.setValue(Utils.stringifyPretty(chosenTemplate.headers), -1);
+    aceHeadersEditor.setValue(Utils.stringifyPretty(chosenTemplate.command), -1);
 }
 
 async function loadServicesAndInstances() {
@@ -203,7 +203,7 @@ function hasEditorError(editorSession) {
 async function submitPiggybackCommand() {
     if (isCommandValid()) {
         dom.responseStatus.innerHTML = REQUEST_IN_PROGRESS_MESSAGE;
-        Utils.setEditorValue(aceResponse, '');
+        aceResponse.setEditorValue('', -1);
         let path = buildPath(
             dom.serviceSelector.value,
             dom.instanceSelector.value,
@@ -224,19 +224,19 @@ async function submitPiggybackCommand() {
                     .catch(err => reject(err));
             } catch (err) {
                 onRequestDone();
-                Utils.setEditorValue(aceResponse, err.message);
+                aceResponse.setEditorValue(err.message, -1);
                 dom.responseStatus.innerHTML = REQUEST_ERROR_MESSAGE;
             }
         });
         promise.then((result: any) => {
             onRequestDone();
             result.json().then(resultJson => {
-                Utils.setEditorValue(aceResponse, Utils.stringifyPretty(resultJson));
+                aceResponse.setEditorValue(Utils.stringifyPretty(resultJson), -1);
                 dom.responseStatus.innerHTML = result.status;
             });
         }).catch(err => {
             onRequestDone();
-            Utils.setEditorValue(aceResponse, err.message);
+            aceResponse.setEditorValue(err.message, -1);
             dom.responseStatus.innerHTML = REQUEST_ERROR_MESSAGE;
         });
 
