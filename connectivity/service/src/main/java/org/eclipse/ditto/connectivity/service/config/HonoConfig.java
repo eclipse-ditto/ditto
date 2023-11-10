@@ -44,6 +44,13 @@ public interface HonoConfig {
     boolean isValidateCertificates();
 
     /**
+     * Return trusted certificates in PEM format if configured.
+     *
+     * @return the trusted certificates or an empty string.
+     */
+    String getTrustedCertificates();
+
+    /**
      * Gets the SASL mechanism of Hono-connection (Kafka specific property).
      *
      * @return the configured SaslMechanism.
@@ -76,6 +83,11 @@ public interface HonoConfig {
          * validateCertificates boolean property.
          */
         VALIDATE_CERTIFICATES("validate-certificates", false),
+
+        /**
+         * Trusted certificates String property ("ca").
+         */
+        TRUSTED_CERTIFICATES("ca", ""),
 
         /**
          * SASL mechanism for connections of type Hono.

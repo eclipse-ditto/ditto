@@ -127,6 +127,7 @@ public abstract class HonoConnectionFactory implements DittoExtensionPoint {
         return ConnectivityModelFactory.newConnectionBuilder(connection)
                 .uri(combineUriWithCredentials(String.valueOf(getBaseUri()), getCredentials()))
                 .validateCertificate(isValidateCertificates())
+                .trustedCertificates(getTrustedCertificates())
                 .specificConfig(makeupSpecificConfig(connection))
                 .setSources(makeupSources(connection.getSources()))
                 .setTargets(makeupTargets(connection.getTargets()))
@@ -159,6 +160,8 @@ public abstract class HonoConnectionFactory implements DittoExtensionPoint {
     protected abstract URI getBaseUri();
 
     protected abstract boolean isValidateCertificates();
+
+    protected abstract String getTrustedCertificates();
 
     protected abstract HonoConfig.SaslMechanism getSaslMechanism();
 

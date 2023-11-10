@@ -156,6 +156,7 @@
   "clientCount": 1,
   "failoverEnabled": true,
   "validateCertificates": false,
+  "ca": "-----BEGIN CERTIFICATE-----\n<trusted certificate>\n-----END CERTIFICATE-----",
   "processorPoolSize": 5,
   "specificConfig": {
     "saslMechanism": "plain",

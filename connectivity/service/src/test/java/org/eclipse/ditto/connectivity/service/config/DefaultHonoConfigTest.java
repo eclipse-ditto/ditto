@@ -136,6 +136,25 @@ public final class DefaultHonoConfigTest {
     }
 
     @Test
+    public void getTrustedCertificatesReturnsDefaultValueIfNotContainedInConfig() {
+        final var defaultHonoConfig = new DefaultHonoConfig(getActorSystem(ConfigFactory.empty()));
+
+        assertThat(defaultHonoConfig.getTrustedCertificates())
+                .isEqualTo(HonoConfig.HonoConfigValue.TRUSTED_CERTIFICATES.getDefaultValue());
+    }
+
+    @Test
+    public void getTrustedCertificatesReturnsExplicitlyConfiguredValue() {
+        final var trustedCertificates = "certs";
+        final var defaultHonoConfig = new DefaultHonoConfig(getActorSystem(ConfigFactory.parseMap(
+                Map.of(getFullQualifiedConfigKey(HonoConfig.HonoConfigValue.TRUSTED_CERTIFICATES),
+                        trustedCertificates)
+        )));
+
+        assertThat(defaultHonoConfig.getTrustedCertificates()).isEqualTo(trustedCertificates);
+    }
+    
+    @Test
     public void newInstanceThrowsDittoConfigErrorIfSaslMechanismIsUnknown() {
         assertThatExceptionOfType(DittoConfigError.class)
                 .isThrownBy(() -> new DefaultHonoConfig(getActorSystem(ConfigFactory.parseMap(
