@@ -115,7 +115,7 @@ function onEntryChanged(entryLabel: string) {
 
   if (Policies.thePolicy && entryLabel) {
     Object.keys(Policies.thePolicy.entries[entryLabel].subjects).forEach((key) => {
-      Utils.addTableRow(dom.tbodyPolicySubjects, key, key === selectedSubject, false,
+      Utils.addTableRow(dom.tbodyPolicySubjects, key, key === selectedSubject, null,
           JSON.stringify(Policies.thePolicy.entries[entryLabel].subjects[key])
       );
       if (key === selectedSubject) {

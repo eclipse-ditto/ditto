@@ -101,7 +101,7 @@ function refreshWhoAmI() {
   API.callDittoREST('GET', '/whoami')
       .then((whoamiResult) => {
         whoamiResult.subjects.forEach((subject) => {
-          Utils.addTableRow(dom.tbodyWhoami, subject, false, false,
+          Utils.addTableRow(dom.tbodyWhoami, subject, false, null,
             subject === whoamiResult.defaultSubject ? 'default' : '');
         });
       })
@@ -154,7 +154,7 @@ function onEnvironmentChanged(modifiedField: String) {
   Environments.current()['recentPolicyIds'] = Environments.current()['recentPolicyIds'] || [];
   dom.tbodyRecentPolicies.innerHTML = '';
   Environments.current().recentPolicyIds.forEach(entry => {
-    Utils.addTableRow(dom.tbodyRecentPolicies, entry, thePolicy && thePolicy.policyId === entry, true);
+    Utils.addTableRow(dom.tbodyRecentPolicies, entry, thePolicy && thePolicy.policyId === entry, entry);
   });
 }
 

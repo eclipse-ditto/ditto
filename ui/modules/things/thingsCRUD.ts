@@ -126,12 +126,12 @@ function onThingChanged(thingJson) {
   function updateThingDetailsTable() {
     dom.tbodyThingDetails.innerHTML = '';
     if (thingJson) {
-      Utils.addTableRow(dom.tbodyThingDetails, 'thingId', false, true, thingJson.thingId);
-      Utils.addTableRow(dom.tbodyThingDetails, 'policyId', false, true, thingJson.policyId);
-      Utils.addTableRow(dom.tbodyThingDetails, 'definition', false, true, thingJson.definition ?? '');
-      Utils.addTableRow(dom.tbodyThingDetails, 'revision', false, true, thingJson._revision);
-      Utils.addTableRow(dom.tbodyThingDetails, 'created', false, true, thingJson._created);
-      Utils.addTableRow(dom.tbodyThingDetails, 'modified', false, true, thingJson._modified);
+      Utils.addTableRow(dom.tbodyThingDetails, 'thingId', false, thingJson.thingId, thingJson.thingId);
+      Utils.addTableRow(dom.tbodyThingDetails, 'policyId', false, thingJson.policyId, thingJson.policyId);
+      Utils.addTableRow(dom.tbodyThingDetails, 'definition', false, thingJson.definition ?? ' ', thingJson.definition ?? '');
+      Utils.addTableRow(dom.tbodyThingDetails, 'revision', false, thingJson._revision, thingJson._revision);
+      Utils.addTableRow(dom.tbodyThingDetails, 'created', false, thingJson._created, thingJson._created);
+      Utils.addTableRow(dom.tbodyThingDetails, 'modified', false, thingJson._modified, thingJson._modified);
     }
   }
 

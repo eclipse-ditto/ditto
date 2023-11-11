@@ -105,7 +105,8 @@ function onPolicyChanged(policy: Policies.Policy) {
   if (policy) {
     let policyHasImport = false;
     Object.keys(policy.imports).forEach((key) => {
-      Utils.addTableRow(dom.tbodyPolicyImports, key, key === selectedImport);
+      const row = Utils.addTableRow(dom.tbodyPolicyImports, key, key === selectedImport);
+      Utils.addActionToRow(row, 'bi-arrow-up-right-square', getNavigatePolicyAction(key), 'Open policy');
       if (key === selectedImport) {
         setImport(key);
         policyHasImport = true;
@@ -117,6 +118,14 @@ function onPolicyChanged(policy: Policies.Policy) {
     }
   } else {
     setImport(null);
+  }
+
+  function getNavigatePolicyAction(policyId: String) {
+    return (evt: Event) => {
+      API.callDittoREST('GET', '/policies/' + policyId).then((targetPolicy: Policies.Policy) => {
+        Policies.setThePolicy(targetPolicy);
+      })
+    }
   }
 }
 

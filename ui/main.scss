@@ -28,6 +28,15 @@
     --bs-table-hover-color: white;
 }
 
+.table-active .bi {
+    color: white;
+}
+
+.table-action-column {
+    text-align: center;
+    width: 27.5px;
+}
+
 td {
     text-overflow: ellipsis;
     overflow: hidden;

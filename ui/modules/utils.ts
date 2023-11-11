@@ -35,22 +35,24 @@ export function ready() {
  * @param {HTMLTableElement} table tbody element the row is added to
  * @param {String} key first column text of the row. Acts as id of the row
  * @param {boolean} selected if true, the new row will be marked as selected
- * @param {boolean} withClipBoardCopy add a clipboard button at the last column of the row
+ * @param {boolean} clipBoardValue add a clipboard button at the last column of the row
  * @param {array} columnValues texts for additional columns of the row
  * @return {HTMLTableRowElement} created row
  */
-export const addTableRow = function(table, key, selected, withClipBoardCopy = false, ...columnValues) {
+export const addTableRow = function(table: HTMLTableElement, key: string, selected: boolean, clipBoardValue?: string, ...columnValues: string[]) {
   const row: HTMLTableRowElement = table.insertRow();
   row.id = key;
   addCellToRow(row, key, key, 0);
+  let lastAddedColumn = key;
   columnValues.forEach((value) => {
     addCellToRow(row, value);
+    lastAddedColumn = value;
   });
   if (selected) {
     row.classList.add('table-active');
   }
-  if (withClipBoardCopy) {
-    addClipboardCopyToRow(row);
+  if (clipBoardValue) {
+    addActionToRow(row, ICON_CLASS_CLIPBOARD, getRowClipboardAction(ICON_CLASS_CLIPBOARD, ICON_CLASS_CLIPFEEDBACK, clipBoardValue), 'Copy to clipboard');
   }
   return row;
 };
@@ -98,18 +100,27 @@ export function addCellToRow(row, cellContent, cellTooltip = null, position = -1
  * Adds a clipboard copy button to a row. The text of the previous table cell will be copied
  * @param {HTMLTableRowElement} row target row
  */
-export function addClipboardCopyToRow(row: HTMLTableRowElement) {
+export function addActionToRow(row: HTMLTableRowElement, iconClass: string, onClickAction: (evt: Event) => any, toolTip?: string) {
   const td = row.insertCell();
-  td.style.textAlign = 'right';
+  td.classList.add('table-action-column');
   const button = document.createElement('button');
-  button.classList.add('btn', 'btn-sm');
+  button.classList.add('btn');
   button.style.padding = '0';
-  button.innerHTML = `<i class="bi bi-clipboard"></i>`;
-  button.onclick = (evt) => {
-    const td = (evt.currentTarget as HTMLElement).parentNode.previousSibling as HTMLTableCellElement;
-    navigator.clipboard.writeText(td.innerText);
-  };
+  button.innerHTML = `<i class="bi ${iconClass}"></i>`;
+  toolTip && (button.title = toolTip);
+  button.onclick = onClickAction;
   td.appendChild(button);
+}
+
+export let ICON_CLASS_CLIPBOARD = 'bi-copy';
+export let ICON_CLASS_CLIPFEEDBACK = 'bi-check-lg';
+export function getRowClipboardAction(iconClassMain: string, iconClassFeedback: string, context: any) {
+  return (evt: Event) => {
+    navigator.clipboard.writeText(context);
+    const icon = (evt.currentTarget as HTMLElement).querySelector('.bi');
+    icon.classList.replace(iconClassMain, iconClassFeedback);
+    setTimeout(() => icon.classList.replace(iconClassFeedback, iconClassMain), 500);
+  };
 }
 
 /**
