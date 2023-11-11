@@ -5,7 +5,7 @@
         <div class="col-md-4">
             <h6>Load a policy</h6>
             <div class="input-group input-group-sm mb-1 mt-1 has-validation" role="group">
-                <label class="input-group-text">PolicyId</label>
+                <label class="input-group-text">Policy Id</label>
                 <input type="text" class="form-control form-control-sm" id="inputPolicyId"></input>
                 <button id="buttonLoadPolicy" class="btn btn-outline-primary btn-sm"
                     title="Load policy with the given ID">
@@ -30,37 +30,20 @@
             <div class="resizable_flex_column">
                 <ul class="nav nav-tabs nav-fill">
                     <li class="nav-item">
-                        <a class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabPolicyCRUD">CRUD Policy</a>
+                        <a class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabPolicyEntries">Entries</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="tab" data-bs-target="#tabPolicyJson">Policy JSON</a>
+                        <a class="nav-link" data-bs-toggle="tab" data-bs-target="#tabPolicyImports">Imports</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" data-bs-target="#tabPolicyJson">JSON</a>
                     </li>
                 </ul>
                 <div class="tab-content" style="flex-grow: 1; overflow: hidden;">
-                    <div class="tab-pane container active no-margin" id="tabPolicyCRUD">
-                        <h5>PolicyImports</h5>
-                        <hr />
-                        <div class="row resizable_pane" style="height: 15vh;">
-                            <div class="col-md-6 resizable_flex_column">
-                                <div class="table-wrap">
-                                    <table class="table table-striped table-hover table-sm">
-                                        <tbody id="tbodyPolicyImports"></tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            <div class="col-md-6 resizable_flex_column">
-                                <crud-toolbar label="ImportPolicyId" id="crudImport" style="flex-grow: 1;">
-                                    <div class="table-wrap">
-                                        <table class="table table-striped table-hover table-sm">
-                                            <tbody id="tbodyPolicyImportEntries"></tbody>
-                                        </table>
-                                    </div>
-                                </crud-toolbar>
-                            </div>
-                        </div>
+                    <div class="tab-pane container active no-margin" id="tabPolicyEntries">
                         <h5>Policy Entries</h5>
                         <hr />
-                        <div class="row resizable_pane" style="height: 15vh;">
+                        <div class="row resizable_pane" style="height: 22vh;">
                             <div class="col-md-6 resizable_flex_column">
                                 <div class="input-group has-validation">
                                     <input class="form-control" id="tableValidationEntries" hidden="true"></input>
@@ -86,7 +69,7 @@
                             </div>
                         </div>                
                         <h6>Subjects</h6>
-                        <div class="row resizable_pane" style="height: 20vh;">
+                        <div class="row resizable_pane" style="height: 22vh;">
                             <div class="col-md-6 resizable_flex_column">
                                 <div class="input-group has-validation">
                                     <input class="form-control" id="tableValidationSubjects" hidden="true"></input>
@@ -109,7 +92,7 @@
                             </div> -->
                         </div>
                         <h6>Resources</h6>
-                        <div class="row resizable_pane" style="height: 20vh;">
+                        <div class="row resizable_pane" style="height: 22vh;">
                             <div class="col-md-6 resizable_flex_column">
                                 <div class="input-group has-validation">
                                     <input class="form-control" id="tableValidationResources" hidden="true"></input>
@@ -130,6 +113,30 @@
                                     <div class="ace_container" style="flex-grow: 1;">
                                         <div class="script_editor" id="resourceEditor"></div>
                                     </div>        
+                                </crud-toolbar>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-content" style="flex-grow: 1; overflow: hidden;">
+                    <div class="tab-pane container no-margin" id="tabPolicyImports">
+                        <h5>Policy Imports</h5>
+                        <hr />
+                        <div class="row resizable_pane" style="height: 75vh;">
+                            <div class="col-md-6 resizable_flex_column">
+                                <div class="table-wrap">
+                                    <table class="table table-striped table-hover table-sm">
+                                        <tbody id="tbodyPolicyImports"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="col-md-6 resizable_flex_column">
+                                <crud-toolbar label="Imported Policy Id" id="crudImport" style="flex-grow: 1;">
+                                    <div class="table-wrap">
+                                        <table class="table table-striped table-hover table-sm">
+                                            <tbody id="tbodyPolicyImportEntries"></tbody>
+                                        </table>
+                                    </div>
                                 </crud-toolbar>
                             </div>
                         </div>

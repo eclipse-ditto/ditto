@@ -70,6 +70,13 @@ export class CrudToolbar extends HTMLElement {
     domInput.value = newValue;
     domInput.classList.remove('is-invalid');
 
+    const buttonEdit = this.shadowRoot.getElementById('buttonEdit');
+    if (newValue && newValue !== '') {
+      buttonEdit.innerText = 'Edit';
+    } else {
+      buttonEdit.innerText = 'Create'
+    }
+
     const buttonDelete = this.shadowRoot.getElementById('buttonDelete');
     if (!this.isEditing && !this.isDeleteDisabled && newValue && newValue !== '') {
       buttonDelete.removeAttribute('hidden');
