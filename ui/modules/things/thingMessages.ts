@@ -36,6 +36,7 @@ let aceResponse;
  */
 export async function ready() {
   Environments.addChangeListener(onEnvironmentChanged);
+  Things.addChangeListener(onThingChanged);
 
   Utils.addTab(
       document.getElementById('tabItemsThing'),
@@ -149,6 +150,7 @@ function clearAllFields() {
   acePayload.setValue('');
   aceResponse.setValue('');
   dom.ulThingMessageTemplates.innerHTML = '';
+  dom.buttonThingMessageSend.disabled = Things.theThing === null;
 }
 
 function refillTemplates() {
@@ -159,5 +161,11 @@ function refillTemplates() {
         dom.ulThingMessageTemplates,
         Object.keys(Environments.current().messageTemplates['/']),
     );
+  }
+}
+
+function onThingChanged(thing, isNewThing: boolean) {
+  if (!thing || isNewThing) {
+    clearAllFields();
   }
 }

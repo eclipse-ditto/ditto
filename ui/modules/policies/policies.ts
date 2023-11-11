@@ -101,7 +101,7 @@ function refreshWhoAmI() {
   API.callDittoREST('GET', '/whoami')
       .then((whoamiResult) => {
         whoamiResult.subjects.forEach((subject) => {
-          Utils.addTableRow(dom.tbodyWhoami, subject, false, null,
+          Utils.addTableRow(dom.tbodyWhoami, subject, false, subject,
             subject === whoamiResult.defaultSubject ? 'default' : '');
         });
       })

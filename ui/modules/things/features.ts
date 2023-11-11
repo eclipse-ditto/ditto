@@ -234,8 +234,7 @@ function onThingChanged(thing) {
   }
   dom.badgeFeatureCount.textContent = count > 0 ? count : '';
   if (!thingHasFeature) {
-    dom.crudFeature.idValue = null;
-    updateFeatureEditors(null);
+    refreshFeature(thing, null);
   }
 }
 
