@@ -132,7 +132,7 @@ class CrudToolbar extends HTMLElement {
     // toggle modal mode;
     document.getElementById('modalCrudEdit').classList.toggle(CLASS_BG);
     document.body.classList.toggle('modal-open');
-    document.body.style.overflow = this.isEditing ? 'hidden' : '';
+    document.body.style.overflow = this.isEditing && this.hasAttribute(ATTR_FULLSCREEN) ? 'hidden' : '';
     this.dom.divRoot.classList.toggle(this.hasAttribute(ATTR_FULLSCREEN) ? CLASS_FG_FULLSCREEN : CLASS_FG);
 
     // toggle button states;
@@ -171,6 +171,7 @@ class CrudToolbar extends HTMLElement {
     this.toggleAttribute(ATTR_FULLSCREEN);
     this.dom.buttonFullscreen.querySelector('.bi').classList.toggle(ICON_CLASS_FS);
     this.dom.buttonFullscreen.querySelector('.bi').classList.toggle(ICON_CLASS_FS_EXIT);
+    document.body.style.overflow = this.isEditing && this.hasAttribute(ATTR_FULLSCREEN) ? 'hidden' : '';
     if (this.dom.divRoot.classList.contains(CLASS_FG)) {
       this.dom.divRoot.classList.replace(CLASS_FG, CLASS_FG_FULLSCREEN);
     } else {
