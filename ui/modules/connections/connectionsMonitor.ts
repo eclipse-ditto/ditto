@@ -70,7 +70,7 @@ function onResetConnectionMetricsClick() {
 }
 
 function onConnectionLogTableClick(event) {
-  connectionLogDetail.setValue(JSON.stringify(connectionLogs[event.target.parentNode.rowIndex - 1], null, 2), -1);
+  connectionLogDetail.setValue(Utils.stringifyPretty(connectionLogs[event.target.parentNode.rowIndex - 1]), -1);
   connectionLogDetail.session.getUndoManager().reset();
 }
 
@@ -106,7 +106,7 @@ function retrieveConnectionMetrics() {
 function retrieveConnectionStatus() {
   Utils.assert(selectedConnectionId, 'Please select a connection', dom.tableValidationConnections);
   API.callConnectionsAPI('retrieveStatus', (connectionStatus) => {
-    connectionStatusDetail.setValue(JSON.stringify(connectionStatus, null, 2), -1);
+    connectionStatusDetail.setValue(Utils.stringifyPretty(connectionStatus), -1);
     connectionStatusDetail.session.getUndoManager().reset();
   },
   selectedConnectionId);
