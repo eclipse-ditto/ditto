@@ -80,7 +80,7 @@ export function WoTDescription(targetTab, forFeature) {
             'accept': 'application/td+json',
           },
       ).then((description) => {
-        aceWoTDescription.setValue(JSON.stringify(description, null, 2), -1);
+        aceWoTDescription.setValue(Utils.stringifyPretty(description), -1);
       }).catch(
           // nothing to clean-up
       );

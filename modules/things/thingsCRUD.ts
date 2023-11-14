@@ -108,7 +108,7 @@ function onThingDefinitionsClick(event) {
   Things.setTheThing(null);
   // isEditing = true;
   dom.inputThingDefinition.value = event.target.textContent;
-  thingJsonEditor.setValue(JSON.stringify(thingTemplates[event.target.textContent], null, 2), -1);
+  thingJsonEditor.setValue(Utils.stringifyPretty(thingTemplates[event.target.textContent]), -1);
 }
 
 /**
@@ -144,7 +144,7 @@ function onThingChanged(thingJson) {
       delete thingCopy['_created'];
       delete thingCopy['_modified'];
       delete thingCopy['_context'];
-      thingJsonEditor.setValue(JSON.stringify(thingCopy, null, 2), -1);
+      thingJsonEditor.setValue(Utils.stringifyPretty(thingCopy), -1);
       thingJsonEditor.session.getUndoManager().reset();
     } else {
       dom.crudThings.idValue = null;
@@ -181,7 +181,7 @@ function onEditToggle(event) {
 
   function initializeEditors(thingJson) {
     dom.inputThingDefinition.value = thingJson.definition ?? '';
-    thingJsonEditor.setValue(JSON.stringify(thingJson, null, 2), -1);
+    thingJsonEditor.setValue(Utils.stringifyPretty(thingJson), -1);
   }
 
   function resetEditors() {

@@ -46,7 +46,7 @@ export function ready() {
 }
 
 function onMessageTableClick(event) {
-  messageDetail.setValue(JSON.stringify(messages[event.target.parentNode.rowIndex - 1], null, 2), -1);
+  messageDetail.setValue(Utils.stringifyPretty(messages[event.target.parentNode.rowIndex - 1]), -1);
   messageDetail.session.getUndoManager().reset();
 }
 

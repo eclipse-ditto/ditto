@@ -86,7 +86,7 @@ export async function ready() {
       dom.inputThingMessageTemplate.value = event.target.textContent;
       dom.inputThingMessageSubject.value = template.subject;
       dom.inputThingMessageTimeout.value = template.timeout;
-      acePayload.setValue(JSON.stringify(template.payload, null, 2), -1);
+      acePayload.setValue(Utils.stringifyPretty(template.payload), -1);
       acePayload.session.getUndoManager().markClean();
     }
   });
@@ -123,7 +123,7 @@ function messageThing() {
     dom.buttonThingMessageSend.classList.remove('busy');
     dom.buttonThingMessageSend.disabled = false;
     if (dom.inputThingMessageTimeout.value > 0) {
-      aceResponse.setValue(JSON.stringify(data, null, 2), -1);
+      aceResponse.setValue(Utils.stringifyPretty(data), -1);
     }
   }).catch((err) => {
     dom.buttonThingMessageSend.classList.remove('busy');

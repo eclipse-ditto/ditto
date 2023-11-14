@@ -106,7 +106,7 @@ export function ready() {
       selectedSubject = event.target.parentNode.id;
       Utils.tableAdjustSelection(dom.tbodyWhoami, (row) => row.id === selectedSubject);
       subjectEditor.setValue(
-          JSON.stringify(thePolicy.entries[selectedEntry].subjects[selectedSubject], null, 2), -1);
+        Utils.stringifyPretty(thePolicy.entries[selectedEntry].subjects[selectedSubject]), -1);
     }
     dom.inputSubjectId.value = selectedSubject;
   };
@@ -150,7 +150,7 @@ export function ready() {
     } else {
       selectedResource = event.target.parentNode.id;
       resourceEditor.setValue(
-          JSON.stringify(thePolicy.entries[selectedEntry].resources[selectedResource], null, 2), -1);
+        Utils.stringifyPretty(thePolicy.entries[selectedEntry].resources[selectedResource]), -1);
     }
     dom.inputResourceId.value = selectedResource;
   };
@@ -187,7 +187,7 @@ export function ready() {
 
   dom.ulResourceTemplates.addEventListener('click', (event) => {
     dom.inputResourceId.value = event.target.textContent;
-    resourceEditor.setValue(JSON.stringify(policyTemplates.resources[dom.inputResourceId.value], null, 2), -1);
+    resourceEditor.setValue(Utils.stringifyPretty(policyTemplates.resources[dom.inputResourceId.value]), -1);
   });
 
   // WhoAmI -------------
@@ -286,7 +286,7 @@ function setEntry(policy, entryLabel = null) {
       );
       if (key === selectedSubject) {
         dom.inputSubjectId.value = key;
-        subjectEditor.setValue(JSON.stringify(policy.entries[entryLabel].subjects[key], null, 2), -1);
+        subjectEditor.setValue(Utils.stringifyPretty(policy.entries[entryLabel].subjects[key]), -1);
       }
     });
     Object.keys(policy.entries[entryLabel].resources).forEach((key) => {
@@ -295,7 +295,7 @@ function setEntry(policy, entryLabel = null) {
       );
       if (key === selectedResource) {
         dom.inputResourceId.value = key;
-        resourceEditor.setValue(JSON.stringify(policy.entries[entryLabel].resources[key], null, 2), -1);
+        resourceEditor.setValue(Utils.stringifyPretty(policy.entries[entryLabel].resources[key]), -1);
       }
     });
   }

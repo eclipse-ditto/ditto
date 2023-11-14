@@ -1,0 +1,103 @@
+<!--
+  ~ Copyright (c) 2023 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<h5 data-bs-toggle="collapse" data-bs-target="#piggyBackCommands">
+    Piggyback Commands
+</h5>
+<hr />
+<div class="collapse show" id="piggyBackCommands">
+    <div class="row-cols-md-auto" style="height: 80vh;">
+        <div class="col-md-auto resizable_flex_column">
+            <div class="row mb-1" style="flex-grow: 1;">
+                <div class="col-md-6 resizable_flex_column">
+                    <div class="col-md-auto resizable_flex_column">
+                        <div class="row mb-1">
+                            <div class="col-md-6 resizable_flex_column">
+                                <div class="col-md-auto">
+                                    <button id="showTemplates" class="btn btn-outline-primary btn-sm button_round_right"
+                                        data-bs-toggle="modal" data-bs-target="#templatesModal">
+                                        Insert Template
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-6 resizable_flex_column">
+                                <div class="col-md-auto">
+                                    <button class="btn btn-outline-primary btn-sm button_round_right"
+                                        style="float: right;" id="buttonSubmit">
+                                        Submit
+                                    </button>
+                                    <button hidden class="btn btn-outline-secondary btn-sm button_round_right"
+                                        style="float: right;" id="buttonCancel">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="input-group input-group-sm mb-1 has-validation">
+                            <label class="input-group-text">Service</label>
+                            <select class="form-select-sm" id="serviceSelector"></select>
+                            <button class="btn btn-outline-primary btn-sm button_round_right"
+                                id="buttonLoadServiceInstances">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="input-group input-group-sm mb-1" hidden id="instanceContainer">
+                            <a class="input-group-text">Instance:</a>
+                            <select class="form-select-sm" id="instanceSelector"></select>
+                        </div>
+
+                        <div class="input-group input-group-sm mb-1 has-validation" style="width: 20%;">
+                            <label class="input-group-text">Timeout in sec</label>
+                            <input type="text" class="form-control form-control-sm" id="timeout"></input>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="input-group input-group-sm mb-1 has-validation">
+                            <label class="input-group-text">Actor path</label>
+                            <input type="text" class="form-control form-control-sm" id="targetActorSelection"></input>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="has-validation">
+                            <h6 id="headerValidationElement">Header</h6>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="ace_container" style="flex-grow: 0.2;">
+                            <div class="script_editor" id="aceHeaders"></div>
+                        </div>
+                        <div class="has-validation">
+                            <h6 id="commandValidationElement">Command</h6>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="ace_container" style="flex-grow: 1;">
+                            <div class="script_editor" id="aceCommand"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 resizable_flex_column">
+                    <div class="row mb-1">
+                        <div class="col-md-auto resizable_flex_column">
+                            <h6>Request status:</h6>
+                        </div>
+                        <div class="col-md-auto resizable_flex_column">
+                            <div id="responseStatus">no request made</div>
+                        </div>
+                    </div>
+                    <h6>Result</h6>
+                    <div class="ace_container" style="flex-grow: 1;">
+                        <div class="script_editor" id="acePiggybackResponse"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

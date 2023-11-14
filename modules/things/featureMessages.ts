@@ -94,7 +94,7 @@ export async function ready() {
       dom.inputMessageTemplate.value = event.target.textContent;
       dom.inputMessageSubject.value = template.subject;
       dom.inputMessageTimeout.value = template.timeout;
-      acePayload.setValue(JSON.stringify(template.payload, null, 2), -1);
+      acePayload.setValue(Utils.stringifyPretty(template.payload), -1);
       acePayload.session.getUndoManager().markClean();
     }
   });
@@ -132,7 +132,7 @@ function messageFeature() {
     dom.buttonMessageSend.classList.remove('busy');
     dom.buttonMessageSend.disabled = false;
     if (dom.inputMessageTimeout.value > 0) {
-      aceResponse.setValue(JSON.stringify(data, null, 2), -1);
+      aceResponse.setValue(Utils.stringifyPretty(data), -1);
     }
   }).catch((err) => {
     dom.buttonMessageSend.classList.remove('busy');

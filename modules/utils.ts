@@ -39,7 +39,7 @@ export function ready() {
  * @param {array} columnValues texts for additional columns of the row
  * @return {Element} created row
  */
-export const addTableRow = function(table, key, selected, withClipBoardCopy = false, ...columnValues) {
+export const addTableRow = function (table, key, selected, withClipBoardCopy = false, ...columnValues) {
   const row = table.insertRow();
   row.id = key;
   addCellToRow(row, key, key, 0);
@@ -162,8 +162,8 @@ export function addDropDownEntries(target, items, isHeader = false) {
   items.forEach((value) => {
     const li = document.createElement('li');
     li.innerHTML = isHeader ?
-        `<h6 class="dropdown-header">${value}</h6>` :
-        `<a class="dropdown-item" href="#">${value}</a>`;
+      `<h6 class="dropdown-header">${value}</h6>` :
+      `<a class="dropdown-item" href="#">${value}</a>`;
     target.appendChild(li);
   });
 }
@@ -302,11 +302,12 @@ export function confirm(message, action, callback) {
  * @param {String} domId id of the dom element for the ace editor
  * @param {*} sessionMode session mode of the ace editor
  * @param {*} readOnly sets the editor to read only and removes the line numbers
+ * @param {*} wrap sets the editor wrap option.
  * @return {*} created ace editor
  */
-export function createAceEditor(domId, sessionMode, readOnly = false) {
+export function createAceEditor(domId, sessionMode, readOnly = false, wrap = false) {
   const result = ace.edit(domId);
-
+  result.setOption('wrap', wrap);
   result.session.setMode(sessionMode);
   if (readOnly) {
     result.setReadOnly(true);
@@ -387,4 +388,14 @@ export function tableAdjustSelection(tbody: HTMLTableElement, condition: (row: H
       row.classList.remove('table-active');
     }
   });
+}
+
+
+/**
+ * JSON.stringify object, using indentation of 2
+ * @param {Object} jsonObject to stringify
+ * @return {string} JSON formatted string
+ */
+export function stringifyPretty(jsonObject: Object): string {
+  return JSON.stringify(jsonObject, null, 2);
 }

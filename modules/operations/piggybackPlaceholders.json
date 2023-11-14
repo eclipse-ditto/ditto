@@ -1,0 +1,11 @@
+{
+    "targetActorSelection": "/user/gateway/proxy",
+    "headers": {
+        "aggregate": false,
+        "is-group-topic": false
+    },
+    "command": {
+        "type": "things.commands:retrieveThing",
+        "thingID": "com.acme:foobar1"
+    }
+}
