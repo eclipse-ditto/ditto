@@ -22,6 +22,7 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.KamonTagSetConverter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
@@ -61,7 +62,8 @@ final class PreparedKamonTimer implements PreparedTimer {
     }
 
     static PreparedTimer newTimer(final String name) {
-        return new PreparedKamonTimer(name);
+        final String metricPrefix = System.getProperty(DittoSystemProperties.DITTO_METRICS_METRIC_PREFIX, "");
+        return new PreparedKamonTimer(metricPrefix + name);
     }
 
     private static void defaultExpirationHandling(

@@ -39,6 +39,11 @@ public final class DittoSystemProperties {
      */
     public static final String DITTO_LIMITS_POLICY_IMPORTS_LIMIT = "ditto.limits.policy.imports-limit";
 
+    /**
+     * System property name of the property defining a common prefix for all metrics Ditto reports via Prometheus.
+     */
+    public static final String DITTO_METRICS_METRIC_PREFIX = "ditto.metrics.metric-prefix";
+
     private DittoSystemProperties() {
         throw new AssertionError();
     }

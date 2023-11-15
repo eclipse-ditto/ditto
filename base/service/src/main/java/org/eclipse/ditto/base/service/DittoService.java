@@ -24,6 +24,17 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.CoordinatedShutdown;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.cluster.pubsub.DistributedPubSub;
+import org.apache.pekko.http.javadsl.Http;
+import org.apache.pekko.http.javadsl.model.Uri;
+import org.apache.pekko.management.cluster.bootstrap.ClusterBootstrap;
+import org.apache.pekko.management.javadsl.PekkoManagement;
 import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
@@ -35,6 +46,7 @@ import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.internal.utils.health.status.StatusSupplierActor;
+import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig;
 import org.eclipse.ditto.internal.utils.metrics.prometheus.PrometheusReporterRoute;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.slf4j.Logger;
@@ -47,17 +59,6 @@ import com.typesafe.config.ConfigRenderOptions;
 import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueFactory;
 
-import org.apache.pekko.Done;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.CoordinatedShutdown;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.cluster.Cluster;
-import org.apache.pekko.cluster.pubsub.DistributedPubSub;
-import org.apache.pekko.http.javadsl.Http;
-import org.apache.pekko.http.javadsl.model.Uri;
-import org.apache.pekko.management.cluster.bootstrap.ClusterBootstrap;
-import org.apache.pekko.management.javadsl.PekkoManagement;
 import ch.qos.logback.classic.LoggerContext;
 import kamon.Kamon;
 import kamon.prometheus.PrometheusReporter;
@@ -121,10 +122,6 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         this.rootActorName = argumentNotEmpty(rootActorName, "root actor name");
         rawConfig = determineRawConfig();
         serviceSpecificConfig = getServiceSpecificConfig(tryToGetDittoConfigOrEmpty(rawConfig));
-        if (null == serviceSpecificConfig) {
-            throw new DittoConfigError("The service specific config must not be null!");
-        }
-
         logger.debug("Using service specific config: <{}>.", serviceSpecificConfig);
     }
 
@@ -208,6 +205,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
     private ActorSystem doStart() {
         logRuntimeParameters();
         final var actorSystemConfig = appendDittoInfo(appendPekkoPersistenceMongoUriToRawConfig());
+        injectSystemPropertiesLimits(serviceSpecificConfig);
         startKamon();
         final var actorSystem = createActorSystem(actorSystemConfig);
         initializeActorSystem(actorSystem);
@@ -390,8 +388,6 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
 
             final ActorRef pubSubMediator = getDistributedPubSubMediatorActor(actorSystem);
 
-            injectSystemPropertiesLimits(serviceSpecificConfig);
-
             startMainRootActor(actorSystem, getMainRootActorProps(serviceSpecificConfig, pubSubMediator));
             RootActorStarter.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config())).execute();
         });
@@ -418,6 +414,8 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
                 Boolean.toString(rawConfig.getBoolean(FeatureToggle.MERGE_THINGS_ENABLED)));
         System.setProperty(DittoSystemProperties.DITTO_LIMITS_POLICY_IMPORTS_LIMIT,
                 Integer.toString(limitsConfig.getPolicyImportsLimit()));
+        final MetricsConfig metricsConfig = serviceSpecificConfig.getMetricsConfig();
+        System.setProperty(DittoSystemProperties.DITTO_METRICS_METRIC_PREFIX, metricsConfig.getMetricPrefix());
     }
 
     private static ActorRef getDistributedPubSubMediatorActor(final ActorSystem actorSystem) {
