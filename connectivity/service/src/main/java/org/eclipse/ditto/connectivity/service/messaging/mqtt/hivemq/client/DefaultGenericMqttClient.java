@@ -30,16 +30,18 @@ import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 
 import io.reactivex.Flowable;
 import io.reactivex.Single;
+import io.reactivex.disposables.Disposable;
 
 /**
  * Default implementation of {@link GenericMqttClient}.
  */
-final class DefaultGenericMqttClient implements GenericMqttClient {
+final class DefaultGenericMqttClient implements GenericMqttClient, Disposable {
 
     private final BaseGenericMqttSubscribingClient<?> subscribingClient;
     private final BaseGenericMqttPublishingClient<?> publishingClient;
     private final HiveMqttClientProperties hiveMqttClientProperties;
     private final DittoLogger logger;
+    private boolean isDisposed = false;
 
     private DefaultGenericMqttClient(final BaseGenericMqttSubscribingClient<?> subscribingClient,
             final BaseGenericMqttPublishingClient<?> publishingClient,
@@ -163,6 +165,11 @@ final class DefaultGenericMqttClient implements GenericMqttClient {
     }
 
     @Override
+    public void stopBufferingPublishes() {
+        subscribingClient.stopBufferingPublishes();
+    }
+
+    @Override
     public CompletionStage<Void> unsubscribe(final MqttTopicFilter... mqttTopicFilters) {
         return subscribingClient.unsubscribe(mqttTopicFilters);
     }
@@ -170,6 +177,17 @@ final class DefaultGenericMqttClient implements GenericMqttClient {
     @Override
     public CompletionStage<GenericMqttPublishResult> publish(final GenericMqttPublish genericMqttPublish) {
         return publishingClient.publish(genericMqttPublish);
+    }
+
+    @Override
+    public void dispose() {
+        subscribingClient.dispose();
+        isDisposed = true;
+    }
+
+    @Override
+    public boolean isDisposed() {
+        return isDisposed;
     }
 
 }
