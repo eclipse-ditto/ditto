@@ -53,9 +53,16 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
      * Returns how simple fields are mapped during query parsing.
      *
      * @return the simple field mapping.
-     * @since 3.0.0
      */
     Map<String, String> getSimpleFieldMappings();
+
+    /**
+     * Returns the operator metrics configuration containing metrics to be exposed via Prometheus based on configured
+     * search "count" queries.
+     *
+     * @return the operator metrics configuration.
+     */
+    OperatorMetricsConfig getOperatorMetricsConfig();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for SearchConfig.
