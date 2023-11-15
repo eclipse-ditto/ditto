@@ -249,10 +249,43 @@ public final class MqttClientActorIT {
             final var mqttClient = getMqttClient(name.getMethodName());
             mqttClient.connect();
             publishMergeThingMessage(mqttClient, TOPIC_NAME, "key", "test");
+            publishMergeThingMessage(mqttClient, TOPIC_NAME, "key2", "test2");
             mqttClient.disconnect();
 
             connect(underTest, this);
             expectMergeThingMessageIfNotCleanSession(commandForwarderProbe, "key", "test");
+            expectMergeThingMessageIfNotCleanSession(commandForwarderProbe, "key2", "test2");
+            commandForwarderProbe.expectNoMsg(NO_MESSAGE_TIMEOUT);
+            disconnect(underTest, this);
+
+            ensureAllMessagesAcknowledged();
+        }};
+    }
+
+    @Test
+    public void testPersistentSessionWithMultipleSources() {
+        new TestKit(actorSystem) {{
+            final var underTest = getMqttClientActor(getConnection(new String[] { TOPIC_NAME }, new String[] { ANOTHER_TOPIC_NAME }));
+
+            // create session
+            connect(underTest, this);
+            disconnect(underTest, this);
+
+            final var mqttClient = getMqttClient(name.getMethodName());
+            mqttClient.connect();
+            publishMergeThingMessage(mqttClient, TOPIC_NAME, "key", "test");
+            publishMergeThingMessage(mqttClient, ANOTHER_TOPIC_NAME, "key3", "test3");
+            publishMergeThingMessage(mqttClient, TOPIC_NAME, "key2", "test2");
+            publishMergeThingMessage(mqttClient, ANOTHER_TOPIC_NAME, "key4", "test4");
+            mqttClient.disconnect();
+
+            connect(underTest, this);
+            expectMergeThingMessagesIfNotCleanSession(commandForwarderProbe,
+                    Map.of("key", "test",
+                            "key2", "test2",
+                            "key3", "test3",
+                            "key4", "test4"));
+            commandForwarderProbe.expectNoMsg(NO_MESSAGE_TIMEOUT);
             disconnect(underTest, this);
 
             ensureAllMessagesAcknowledged();
@@ -280,7 +313,33 @@ public final class MqttClientActorIT {
 
             connect(underTest, this);
             expectMergeThingMessageIfNotCleanSession(commandForwarderProbe, "key", "test");
+            commandForwarderProbe.expectNoMsg(NO_MESSAGE_TIMEOUT);
             disconnect(underTest, this);
+
+            ensureAllMessagesAcknowledged();
+        }};
+    }
+
+    @Test
+    public void testSingleTopicAfterReconnect() {
+        new TestKit(actorSystem) {{
+            final var underTest = getMqttClientActor(getConnection(new String[] { TOPIC_NAME }));
+            connect(underTest, this);
+
+            final var mqttClient = getMqttClient(name.getMethodName());
+            mqttClient.connect();
+            publishMergeThingMessage(mqttClient, TOPIC_NAME, "key", "test");
+
+            expectMergeThingMessage(commandForwarderProbe, "key", "test");
+            commandForwarderProbe.expectNoMessage(NO_MESSAGE_TIMEOUT);
+
+            disconnect(underTest, this);
+            connect(underTest, this);
+            publishMergeThingMessage(mqttClient, TOPIC_NAME, "key", "test");
+            expectMergeThingMessage(commandForwarderProbe, "key", "test");
+            commandForwarderProbe.expectNoMessage(NO_MESSAGE_TIMEOUT);
+            disconnect(underTest, this);
+            mqttClient.disconnect();
 
             ensureAllMessagesAcknowledged();
         }};
@@ -363,8 +422,12 @@ public final class MqttClientActorIT {
         if (!cleanSession) {
             expectMergeThingMessage(testProbe, key, value);
         }
+    }
 
-        testProbe.expectNoMsg(NO_MESSAGE_TIMEOUT);
+    private void expectMergeThingMessagesIfNotCleanSession(final TestProbe testProbe, final Map<String, String> updates) {
+        if (!cleanSession) {
+            expectMergeThingMessages(testProbe, updates);
+        }
     }
 
     private void expectMergeThingMessage(final TestProbe testProbe, final String key, final String value) {

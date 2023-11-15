@@ -25,7 +25,6 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subs
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscription;
 
 import com.hivemq.client.mqtt.MqttClient;
-import com.hivemq.client.mqtt.MqttGlobalPublishFilter;
 import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3RxClient;
 import com.hivemq.client.mqtt.mqtt3.exceptions.Mqtt3SubAckException;
@@ -38,24 +37,29 @@ import io.reactivex.Completable;
 import io.reactivex.Flowable;
 import io.reactivex.Single;
 import io.reactivex.SingleTransformer;
+import io.reactivex.disposables.Disposable;
 import io.reactivex.subjects.SingleSubject;
 
 /**
  * Generic client for subscribing to topics at the MQTT broker.
  */
 abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
-        implements GenericMqttConnectableClient, GenericMqttSubscribingClient {
+        implements GenericMqttConnectableClient, GenericMqttSubscribingClient, Disposable {
 
     private final C mqttClient;
     private final GenericMqttConnectableClient connectingClient;
+    private final GenericMqttConsumingClient consumingClient;
     private final ClientRole clientRole;
+    private boolean isDisposed = false;
 
     private BaseGenericMqttSubscribingClient(final C mqttClient,
             final GenericMqttConnectableClient connectingClient,
+            final GenericMqttConsumingClient consumingClient,
             final ClientRole clientRole) {
 
         this.mqttClient = mqttClient;
         this.connectingClient = connectingClient;
+        this.consumingClient = consumingClient;
         this.clientRole = checkNotNull(clientRole, "clientRole");
     }
 
@@ -73,6 +77,7 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
         checkNotNull(mqtt3RxClient, "mqtt3RxClient");
         return new Mqtt3RxSubscribingClient(mqtt3RxClient,
                 BaseGenericMqttConnectableClient.ofMqtt3AsyncClient(mqtt3RxClient.toAsync()),
+                BaseGenericMqttConsumingClient.ofMqtt3RxClient(mqtt3RxClient),
                 clientRole);
     }
 
@@ -90,6 +95,7 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
         checkNotNull(mqtt5RxClient, "mqtt5RxClient");
         return new Mqtt5RxSubscribingClient(mqtt5RxClient,
                 BaseGenericMqttConnectableClient.ofMqtt5AsyncClient(mqtt5RxClient.toAsync()),
+                BaseGenericMqttConsumingClient.ofMqtt5RxClient(mqtt5RxClient),
                 clientRole);
     }
 
@@ -167,12 +173,13 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
 
     @Override
     public Flowable<GenericMqttPublish> consumeSubscribedPublishesWithManualAcknowledgement() {
-        return consumeIncomingPublishes(mqttClient, MqttGlobalPublishFilter.SUBSCRIBED, true);
+        return consumingClient.consumePublishes();
     }
 
-    protected abstract Flowable<GenericMqttPublish> consumeIncomingPublishes(C mqttClient,
-            MqttGlobalPublishFilter filter,
-            boolean manualAcknowledgement);
+    @Override
+    public void stopBufferingPublishes() {
+        consumingClient.stopBufferingPublishes();
+    }
 
     @Override
     public CompletionStage<Void> connect(final GenericMqttConnect genericMqttConnect) {
@@ -182,6 +189,17 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
     @Override
     public CompletionStage<Void> disconnect() {
         return connectingClient.disconnect();
+    }
+
+    @Override
+    public void dispose() {
+        consumingClient.dispose();
+        isDisposed = true;
+    }
+
+    @Override
+    public boolean isDisposed() {
+        return isDisposed;
     }
 
     @Override
@@ -195,9 +213,10 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
 
         private Mqtt3RxSubscribingClient(final Mqtt3RxClient mqtt3RxClient,
                 final GenericMqttConnectableClient genericMqttConnectingClient,
+                final GenericMqttConsumingClient consumingClient,
                 final ClientRole clientRole) {
 
-            super(mqtt3RxClient, genericMqttConnectingClient, clientRole);
+            super(mqtt3RxClient, genericMqttConnectingClient, consumingClient, clientRole);
         }
 
         @Override
@@ -235,23 +254,16 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
             }
         }
 
-        @Override
-        protected Flowable<GenericMqttPublish> consumeIncomingPublishes(final Mqtt3RxClient mqtt3RxClient,
-                final MqttGlobalPublishFilter filter,
-                final boolean manualAcknowledgement) {
-
-            return mqtt3RxClient.publishes(filter, manualAcknowledgement).map(GenericMqttPublish::ofMqtt3Publish);
-        }
-
     }
 
     private static final class Mqtt5RxSubscribingClient extends BaseGenericMqttSubscribingClient<Mqtt5RxClient> {
 
         private Mqtt5RxSubscribingClient(final Mqtt5RxClient mqtt5RxClient,
                 final GenericMqttConnectableClient genericMqttConnectingClient,
+                final GenericMqttConsumingClient consumingClient,
                 final ClientRole clientRole) {
 
-            super(mqtt5RxClient, genericMqttConnectingClient, clientRole);
+            super(mqtt5RxClient, genericMqttConnectingClient, consumingClient, clientRole);
         }
 
         @Override
@@ -282,14 +294,6 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
             final var unsubscribe =
                     Mqtt5Unsubscribe.builder().addTopicFilters(mqttTopicFilters).build();
             return mqtt5RxClient.unsubscribe(unsubscribe).ignoreElement();
-        }
-
-        @Override
-        protected Flowable<GenericMqttPublish> consumeIncomingPublishes(final Mqtt5RxClient mqtt5RxClient,
-                final MqttGlobalPublishFilter filter,
-                final boolean manualAcknowledgement) {
-
-            return mqtt5RxClient.publishes(filter, manualAcknowledgement).map(GenericMqttPublish::ofMqtt5Publish);
         }
 
     }
