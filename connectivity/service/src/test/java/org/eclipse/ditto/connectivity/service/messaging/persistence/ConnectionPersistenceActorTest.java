@@ -138,6 +138,9 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                             "org.eclipse.ditto.connectivity.service.messaging.hono.DefaultHonoConnectionFactory"),
                     "ditto.connectivity.hono.base-uri", ConfigValueFactory.fromAnyRef("tcp://localhost:9922"),
                     "ditto.connectivity.hono.validate-certificates", ConfigValueFactory.fromAnyRef("false"),
+                    "ditto.connectivity.hono.ca",
+                    ConfigValueFactory.fromAnyRef(
+                            "-----BEGIN CERTIFICATE-----\n<trusted certificate>\n-----END CERTIFICATE-----"),
                     "ditto.connectivity.hono.sasl-mechanism", ConfigValueFactory.fromAnyRef("PLAIN"),
                     "ditto.connectivity.hono.bootstrap-servers",
                     ConfigValueFactory.fromAnyRef("tcp://server1:port1,tcp://server2:port2,tcp://server3:port3")
