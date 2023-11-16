@@ -59,7 +59,10 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.HiveM
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.NoMqttConnectionException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.consuming.MqttConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.consuming.ReconnectConsumerClient;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.AcknowledgementUnsupportedException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.ManualAcknowledgementDisabledException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.MessageAlreadyAcknowledgedException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publishing.MqttPublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.MqttSubscriber;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.SubscribeResult;
@@ -486,13 +489,34 @@ public final class MqttClientActor extends BaseClientActor {
 
         unsolicitedPublishesAutoAckSubscription = genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement()
                 .filter(p -> messageHasNoMatchingSubscription(p, subscribedTopics))
-                .subscribe(GenericMqttPublish::acknowledge,
+                .subscribe(this::tryToAcknowledgePublish,
                     p -> logger.info("Failed to read unsolicited publish: <{}>", p));
     }
 
     private boolean messageHasNoMatchingSubscription(final GenericMqttPublish genericMqttPublish,
             final List<MqttTopicFilter> topicFilters) {
         return topicFilters.stream().noneMatch(filter -> filter.matches(genericMqttPublish.getTopic()));
+    }
+
+    private void tryToAcknowledgePublish(final GenericMqttPublish mqttPublish) {
+        try {
+            mqttPublish.acknowledge();
+        } catch (final ManualAcknowledgementDisabledException e) {
+            logger.warning("""
+                    Manual acknowledgement of unsolicited incoming message at topic <{0}> failed because manual acknowledgement \
+                    is disabled.\
+                    """, mqttPublish.getTopic());
+        } catch (final MessageAlreadyAcknowledgedException e) {
+            logger.warning("""
+                    Acknowledgement of unsolicited incoming message at topic <{0}> failed because it was acknowledged already by \
+                    another source.\
+                    """, mqttPublish.getTopic());
+        } catch (final AcknowledgementUnsupportedException e) {
+            logger.warning(
+                    "Manual acknowledgement of unsolicited incoming message at topic <{0}> failed: {1}",
+                    mqttPublish.getTopic(),
+                    e.getMessage());
+        }
     }
 
     private CompletionStage<List<ActorRef>> handleSourceSubscribeResults(
