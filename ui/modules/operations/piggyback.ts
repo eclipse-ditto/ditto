@@ -95,7 +95,7 @@ export function onInsertTemplate(template) {
     dom.timeout.value = chosenTemplate.timeout;
     dom.targetActorSelection.value = chosenTemplate.targetActorSelection;
     aceHeadersEditor.setValue(Utils.stringifyPretty(chosenTemplate.headers), -1);
-    aceHeadersEditor.setValue(Utils.stringifyPretty(chosenTemplate.command), -1);
+    aceCommandEditor.setValue(Utils.stringifyPretty(chosenTemplate.command), -1);
 }
 
 async function loadServicesAndInstances() {
@@ -203,7 +203,7 @@ function hasEditorError(editorSession) {
 async function submitPiggybackCommand() {
     if (isCommandValid()) {
         dom.responseStatus.innerHTML = REQUEST_IN_PROGRESS_MESSAGE;
-        aceResponse.setEditorValue('', -1);
+        aceResponse.setValue('', -1);
         let path = buildPath(
             dom.serviceSelector.value,
             dom.instanceSelector.value,
@@ -224,19 +224,19 @@ async function submitPiggybackCommand() {
                     .catch(err => reject(err));
             } catch (err) {
                 onRequestDone();
-                aceResponse.setEditorValue(err.message, -1);
+                aceResponse.setValue(err.message, -1);
                 dom.responseStatus.innerHTML = REQUEST_ERROR_MESSAGE;
             }
         });
         promise.then((result: any) => {
             onRequestDone();
             result.json().then(resultJson => {
-                aceResponse.setEditorValue(Utils.stringifyPretty(resultJson), -1);
+                aceResponse.setValue(Utils.stringifyPretty(resultJson), -1);
                 dom.responseStatus.innerHTML = result.status;
             });
         }).catch(err => {
             onRequestDone();
-            aceResponse.setEditorValue(err.message, -1);
+            aceResponse.setValue(err.message, -1);
             dom.responseStatus.innerHTML = REQUEST_ERROR_MESSAGE;
         });
 
