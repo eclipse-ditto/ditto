@@ -135,6 +135,14 @@ global:
       enabled: true
       # fileName passed as Java system property "-Dlogback.configurationFile"
       fileName: logback.xml
+  # metrics configuration for Ditto
+  metrics:
+    # metricsPrefix defines a prefix to use for all Ditto created metrics (counters, gauges, histograms)
+    metricsPrefix: ""
+    # systemMetrics contains the configuration for obtaining system metrics (via Kamon)
+    systemMetrics:
+      # enabled if enabled, system metrics are gathered
+      enabled: true
   # tracing configuration for Ditto
   tracing:
     # enabled whether tracing (via OpenTelemetry) is enabled
@@ -1069,6 +1077,22 @@ thingsSearch:
           throughput: 100
           # period the throttle period
           period: 30s
+    # operatorMetrics contains configuration for operator defined custom metrics, using a search "count" with namespaces and filter
+    operatorMetrics:
+      # enabled configures whether operator metrics should be enabled or not
+      enabled: true
+      # scrapeInterval defines the default scrape interval if a "customMetric" did not specify a custom scrape interval
+      scrapeInterval: 15m
+      # customMetrics holds a map of metric-names as key (e.g. "ditto_my_awesome_things") and custom metric config as value
+      customMetrics:
+      # ditto_my_awesome_things:
+      #   enabled: true
+      #   scrapeInterval: 5m
+      #   namespaces:
+      #     - "org.eclipse.ditto"
+      #   filter: "eq(attributes/awesome,true)"
+      #   tags:
+      #     foo: bar
 
 
 ## ----------------------------------------------------------------------------
