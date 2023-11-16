@@ -95,7 +95,7 @@ export function onInsertTemplate(template) {
     dom.timeout.value = chosenTemplate.timeout;
     dom.targetActorSelection.value = chosenTemplate.targetActorSelection;
     aceHeadersEditor.setValue(Utils.stringifyPretty(chosenTemplate.headers), -1);
-    aceHeadersEditor.setValue(Utils.stringifyPretty(chosenTemplate.command), -1);
+    aceCommandEditor.setValue(Utils.stringifyPretty(chosenTemplate.command), -1);
 }
 
 async function loadServicesAndInstances() {
