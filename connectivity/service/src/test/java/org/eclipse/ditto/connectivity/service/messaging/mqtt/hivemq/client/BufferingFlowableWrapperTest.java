@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 import io.reactivex.BackpressureStrategy;
@@ -30,6 +31,14 @@ public class BufferingFlowableWrapperTest {
     private final PublishSubject<Integer> emitter = PublishSubject.create();
     private final Flowable<Integer> flowable = emitter.toFlowable(BackpressureStrategy.DROP);
     private final BufferingFlowableWrapper<Integer> bufferingFlowableWrapper = BufferingFlowableWrapper.of(flowable);
+
+    @Test
+    public void newInstanceWithNullGenericMqttSubscribingClientThrowsException() {
+        Assertions.assertThatNullPointerException()
+                .isThrownBy(() -> BufferingFlowableWrapper.of(null))
+                .withMessage("The flowable must not be null!")
+                .withNoCause();
+    }
 
     @Test
     public void toFlowableEmitsErrors() {
@@ -118,6 +127,24 @@ public class BufferingFlowableWrapperTest {
         assertThat(received1).containsExactly(1, 2, 3);
         assertThat(received2).containsExactly(1, 2, 3);
         assertThat(received3).containsExactly(1, 2, 3);
+    }
+
+    @Test
+    public void toFlowableOnDisposedWrapperThrowsException() {
+        bufferingFlowableWrapper.dispose();
+        Assertions.assertThatIllegalStateException()
+                .isThrownBy(bufferingFlowableWrapper::toFlowable)
+                .withMessage("The wrapper is disposed.")
+                .withNoCause();
+    }
+
+    @Test
+    public void stopBufferingOnDisposedWrapperThrowsException() {
+        bufferingFlowableWrapper.dispose();
+        Assertions.assertThatIllegalStateException()
+                .isThrownBy(bufferingFlowableWrapper::stopBuffering)
+                .withMessage("The wrapper is disposed.")
+                .withNoCause();
     }
 
     @Test

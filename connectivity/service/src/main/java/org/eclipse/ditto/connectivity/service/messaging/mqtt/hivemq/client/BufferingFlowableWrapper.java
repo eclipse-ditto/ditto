@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client;
 
+import org.eclipse.ditto.base.model.common.ConditionChecker;
+
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
 import io.reactivex.disposables.Disposable;
@@ -25,6 +27,8 @@ import io.reactivex.subjects.PublishSubject;
  * @param <T> type of items
  */
 public class BufferingFlowableWrapper<T> implements Disposable {
+    private static final String DISPOSED_ERROR_MESSAGE = "The wrapper is disposed.";
+
     private final Flowable<T> originalFlowable;
     private final PublishSubject<T> buffered;
     private final PublishSubject<T> unbuffered;
@@ -45,9 +49,22 @@ public class BufferingFlowableWrapper<T> implements Disposable {
                 .toFlowable(BackpressureStrategy.BUFFER);
 
         this.originalSubscription = flowable.subscribe(
-                x -> (isBuffering ? buffered : unbuffered).onNext(x),
-                e -> (isBuffering ? buffered : unbuffered).onError(e),
+                x -> {
+                    if (isDisposed) {
+                        return;
+                    }
+                    (isBuffering ? buffered : unbuffered).onNext(x);
+                },
+                e -> {
+                    if (isDisposed) {
+                        return;
+                    }
+                    (isBuffering ? buffered : unbuffered).onError(e);
+                },
                 () -> {
+                    if (isDisposed) {
+                        return;
+                    }
                     buffered.onComplete();
                     unbuffered.onComplete();
                     isBuffering = false;
@@ -65,6 +82,7 @@ public class BufferingFlowableWrapper<T> implements Disposable {
      * @param <T> type of items of the flowable.
      */
     public static <T> BufferingFlowableWrapper<T> of(final Flowable<T> flowable) {
+        ConditionChecker.checkNotNull(flowable, "flowable");
         return new BufferingFlowableWrapper<>(flowable);
     }
 
@@ -72,6 +90,10 @@ public class BufferingFlowableWrapper<T> implements Disposable {
      * @return the {@code Flowable} which can be used to consume messages from original flowable.
      */
     public Flowable<T> toFlowable() {
+        if (isDisposed) {
+            throw new IllegalStateException(DISPOSED_ERROR_MESSAGE);
+        }
+
         return isBuffering ? this.flowable : this.originalFlowable;
     }
 
@@ -80,6 +102,10 @@ public class BufferingFlowableWrapper<T> implements Disposable {
      * only new items.
      */
     public void stopBuffering() {
+        if (isDisposed) {
+            throw new IllegalStateException(DISPOSED_ERROR_MESSAGE);
+        }
+
         isBuffering = false;
         buffered.onComplete();
     }
@@ -88,9 +114,9 @@ public class BufferingFlowableWrapper<T> implements Disposable {
 
     @Override
     public void dispose() {
+        isDisposed = true;
         this.originalSubscription.dispose();
         this.subscription.dispose();
-        isDisposed = true;
     }
 
     @Override
