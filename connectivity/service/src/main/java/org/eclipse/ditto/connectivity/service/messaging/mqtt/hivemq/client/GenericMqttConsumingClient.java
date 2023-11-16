@@ -22,7 +22,7 @@ import io.reactivex.disposables.Disposable;
  * buffers messages until {@code stopBufferingPublishes} is called.
  * This interface abstracts MQTT protocol version 3 and 5.
  */
-public interface GenericMqttConsumingClient extends Disposable {
+interface GenericMqttConsumingClient extends Disposable {
 
     /**
      * Consumes all publishes.
