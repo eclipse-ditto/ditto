@@ -15,7 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.subjects.BehaviorSubject;
+import io.reactivex.subjects.PublishSubject;
 
 /**
  * Wrapper around flowable that buffers the items until it is told to stop.
@@ -26,8 +26,8 @@ import io.reactivex.subjects.BehaviorSubject;
  */
 public class BufferingFlowableWrapper<T> implements Disposable {
     private final Flowable<T> originalFlowable;
-    private final BehaviorSubject<T> buffered;
-    private final BehaviorSubject<T> unbuffered;
+    private final PublishSubject<T> buffered;
+    private final PublishSubject<T> unbuffered;
     private final Disposable originalSubscription;
     private final Flowable<T> flowable;
     private final Disposable subscription;
@@ -35,8 +35,8 @@ public class BufferingFlowableWrapper<T> implements Disposable {
 
     private BufferingFlowableWrapper(final Flowable<T> flowable) {
         this.originalFlowable = flowable;
-        this.buffered = BehaviorSubject.<T>create();
-        this.unbuffered = BehaviorSubject.<T>create();
+        this.buffered = PublishSubject.<T>create();
+        this.unbuffered = PublishSubject.<T>create();
 
         this.flowable = buffered
                 .replay()

@@ -53,7 +53,7 @@ abstract class BaseGenericMqttConsumingClient<C extends MqttClient> implements G
     public String toString() {
         final var mqttClientConfig = mqttClient.getConfig();
         final var clientIdentifier = mqttClientConfig.getClientIdentifier();
-        return clientIdentifier.toString();
+        return clientIdentifier.map(String::valueOf).orElse("");
     }
 
     private static final class Mqtt3ConsumingClient extends BaseGenericMqttConsumingClient<Mqtt3RxClient> {
