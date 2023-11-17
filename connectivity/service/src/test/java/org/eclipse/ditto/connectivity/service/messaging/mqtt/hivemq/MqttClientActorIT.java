@@ -233,8 +233,7 @@ public final class MqttClientActorIT {
 
             disconnect(underTest, this);
 
-            // https://github.com/eclipse-ditto/ditto/issues/1768
-//            ensureAllMessagesAcknowledged();
+            ensureAllMessagesAcknowledged();
         }};}
 
     @Test
