@@ -184,10 +184,14 @@ hr {
 }
 
 .editForgroundBig {
-    position: absolute;
-    right: 24px;
-    width: 90%;
-    height: 80%;
+    z-index: 1200;
+    position: fixed;
+    background-color: white;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    height: auto;
 }
 
 .dropdown-menu {
