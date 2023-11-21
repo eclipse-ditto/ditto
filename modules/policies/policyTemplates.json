@@ -1,25 +1,134 @@
 {
-  "resources": {
-    "thing:/": {
-      "grant": [
-          "READ",
-          "WRITE"
-        ],
-        "revoke": []
+  "Standard Example": {
+    "entries": {
+      "DEFAULT": {
+        "subjects": {
+          "{{ request:subjectId }}": {
+            "type": "the creator"
+          }
+        },
+        "resources": {
+          "policy:/": {
+            "grant": [
+              "READ",
+              "WRITE"
+            ],
+            "revoke": []
+          },
+          "thing:/": {
+            "grant": [
+              "READ",
+              "WRITE"
+            ],
+            "revoke": []
+          },
+          "message:/": {
+            "grant": [
+              "READ",
+              "WRITE"
+            ],
+            "revoke": []
+          }
+        }
+      }
+    }
+  },
+  "Imports Importing Example": {
+    "entries": {
+      "DEFAULT": {
+        "subjects": {
+          "{{ request:subjectId }}": {
+            "type": "the creator"
+          }
+        },
+        "resources": {
+          "policy:/": {
+            "grant": [
+              "READ",
+              "WRITE"
+            ],
+            "revoke": []
+          }
+        }
+      }
     },
-    "message:/": {
-      "grant": [
-          "READ",
-          "WRITE"
-        ],
-        "revoke": []
-    },
-    "policy:/": {
-      "grant": [
-          "READ",
-          "WRITE"
-        ],
-        "revoke": []
+    "imports": {
+      "ditto:imported-policy" : {
+        "entries": [ "EXPLICIT" ] 
+      },
+      "ditto:another-imported-policy" : { }
+    }
+  },
+  "Imports Exporting Example": {
+    "entries": {
+      "DEFAULT": {
+        "subjects": {
+          "{{ request:subjectId }}": {
+            "type": "the creator"
+          }
+        },
+        "resources": {
+          "policy:/": {
+            "grant": [
+              "READ",
+              "WRITE"
+            ],
+            "revoke": []
+          }
+        },
+        "importable": "never"
+      },
+      "IMPLICIT": {
+        "subjects": {
+          "nginx:ditto": {
+            "type": "the creator"
+          }
+        },
+        "resources": {
+          "things:/": {
+            "grant": [
+              "READ",
+              "WRITE"
+            ],
+            "revoke": []
+          }
+        },
+        "importable": "implicit"
+      },
+      "EXPLICIT": {
+        "subjects": {
+          "nginx:ditto": {
+            "type": "the creator"
+          }
+        },
+        "resources": {
+          "things:/": {
+            "grant": [
+              "READ",
+              "WRITE"
+            ],
+            "revoke": []
+          }
+        },
+        "importable": "explicit"
+      },
+      "NEVER": {
+        "subjects": {
+          "nginx:ditto": {
+            "type": "the creator"
+          }
+        },
+        "resources": {
+          "things:/": {
+            "grant": [
+              "READ",
+              "WRITE"
+            ],
+            "revoke": []
+          }
+        },
+        "importable": "never"
+      }
     }
   }
 }

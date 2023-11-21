@@ -22,9 +22,9 @@
                         </button>
                     </div>
                     <input autocomplete="false" name="hidden" type="text" style="display:none;">
-                    <input type="text" class="form-control form-control-sm" id="searchFilterEdit" name="search"
+                    <input type="search" class="form-control form-control-sm" id="searchFilterEdit" name="search"
                            spellcheck=false autocomplete="off" />
-                    <button type="button" id="searchThings" class="btn btn-outline-secondary btn-sm" data-bs-toggle="tooltip"
+                    <button type="button" id="searchThings" class="btn btn-outline-primary btn-sm" data-bs-toggle="tooltip"
                         title="Search things by thingId or valid ditto search filter">
                         search
                     </button>
@@ -55,7 +55,7 @@
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" data-bs-toggle="tab" data-bs-target="#tabModifyThing">
-                                CRUD<span class="badge badge-warn" id="thingsCrudWaring">!</span></a>
+                                Manage<span class="badge badge-warn" id="thingsCrudWaring">!</span></a>
                         </li>
                     </ul>
                     <div id="tabContentThing" class="tab-content" style="flex-grow:1; overflow:hidden;">
@@ -100,7 +100,7 @@
         <div class="col-md-8">
             <ul class="nav nav-tabs nav-fill">
                 <li class="nav-item">
-                    <a class="nav-link active">CRUD</a>
+                    <a class="nav-link active">Manage</a>
                 </li>
             </ul>
             <div class="tab-content">
