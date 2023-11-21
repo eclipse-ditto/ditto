@@ -315,10 +315,16 @@ export function setAuthHeader(forDevOps) {
  * @param {Object} additionalHeaders object with additional header fields
  * @param {boolean} returnHeaders request full response instead of json content
  * @param {boolean} devOps default: false. Set true to avoid /api/2 path
+ * @param {boolean} returnErrorJson default: false. Set true to return the response of a failed HTTP call as JSON
  * @return {Object} result as json object
  */
-export async function callDittoREST(method, path, body = null,
-    additionalHeaders = null, returnHeaders = false, devOps = false): Promise<any> {
+export async function callDittoREST(method,
+                                    path,
+                                    body = null,
+                                    additionalHeaders = null,
+                                    returnHeaders = false,
+                                    devOps = false,
+                                    returnErrorJson = false): Promise<any> {
   let response;
   const contentType = method === 'PATCH' ? 'application/merge-patch+json' : 'application/json';
   try {
@@ -336,14 +342,22 @@ export async function callDittoREST(method, path, body = null,
     throw err;
   }
   if (!response.ok) {
-    response.json()
+    if (returnErrorJson) {
+      if (returnHeaders) {
+        return response;
+      } else {
+        return response.json();
+      }
+    } else {
+      response.json()
         .then((dittoErr) => {
           Utils.showError(dittoErr.description + `\n(${dittoErr.error})`, dittoErr.message, dittoErr.status);
         })
         .catch((err) => {
           Utils.showError('No error details from Ditto', response.statusText, response.status);
         });
-    throw new Error('An error occurred: ' + response.status);
+      throw new Error('An error occurred: ' + response.status);
+    }
   }
   if (response.status !== 204) {
     if (returnHeaders) {

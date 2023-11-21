@@ -117,9 +117,13 @@ function messageThing() {
   }
   aceResponse.setValue('');
   API.callDittoREST('POST', '/things/' + Things.theThing.thingId +
-      '/inbox/messages/' + dom.inputThingMessageSubject.value +
-      '?timeout=' + dom.inputThingMessageTimeout.value,
-  payload,
+    '/inbox/messages/' + dom.inputThingMessageSubject.value +
+    '?timeout=' + dom.inputThingMessageTimeout.value,
+    payload,
+    null,
+    false,
+    false,
+    true
   ).then((data) => {
     dom.buttonThingMessageSend.classList.remove('busy');
     dom.buttonThingMessageSend.disabled = false;
@@ -129,7 +133,7 @@ function messageThing() {
   }).catch((err) => {
     dom.buttonThingMessageSend.classList.remove('busy');
     dom.buttonThingMessageSend.disabled = false;
-    aceResponse.setValue('');
+    aceResponse.setValue(`Error: ${err}`);
   });
 }
 
