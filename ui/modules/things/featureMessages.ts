@@ -124,10 +124,14 @@ function messageFeature() {
   }
   aceResponse.setValue('');
   API.callDittoREST('POST', '/things/' + Things.theThing.thingId +
-      '/features/' + theFeatureId +
-      '/inbox/messages/' + dom.inputMessageSubject.value +
-      '?timeout=' + dom.inputMessageTimeout.value,
-  payload,
+    '/features/' + theFeatureId +
+    '/inbox/messages/' + dom.inputMessageSubject.value +
+    '?timeout=' + dom.inputMessageTimeout.value,
+    payload,
+    null,
+    false,
+    false,
+    true
   ).then((data) => {
     dom.buttonMessageSend.classList.remove('busy');
     dom.buttonMessageSend.disabled = false;
@@ -137,7 +141,7 @@ function messageFeature() {
   }).catch((err) => {
     dom.buttonMessageSend.classList.remove('busy');
     dom.buttonMessageSend.disabled = false;
-    aceResponse.setValue('');
+    aceResponse.setValue(`Error: ${err}`);
   });
 }
 
