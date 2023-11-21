@@ -318,7 +318,7 @@ export function setAuthHeader(forDevOps) {
  * @return {Object} result as json object
  */
 export async function callDittoREST(method, path, body = null,
-    additionalHeaders = null, returnHeaders = false, devOps = false) {
+    additionalHeaders = null, returnHeaders = false, devOps = false): Promise<any> {
   let response;
   const contentType = method === 'PATCH' ? 'application/merge-patch+json' : 'application/json';
   try {

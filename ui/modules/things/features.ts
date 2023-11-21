@@ -201,7 +201,7 @@ function updateFeatureEditors(featureJson) {
  */
 function refreshFeature(thing, featureId = null) {
   if (!dom.crudFeature.isEditing) {
-    if (thing) {
+    if (thing && thing['features'] && featureId) {
       dom.crudFeature.idValue = featureId;
       updateFeatureEditors(thing.features[featureId]);
     } else {
@@ -234,8 +234,7 @@ function onThingChanged(thing) {
   }
   dom.badgeFeatureCount.textContent = count > 0 ? count : '';
   if (!thingHasFeature) {
-    dom.crudFeature.idValue = null;
-    updateFeatureEditors(null);
+    refreshFeature(thing, null);
   }
 }
 

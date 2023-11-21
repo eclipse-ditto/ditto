@@ -160,6 +160,7 @@ function clearAllFields() {
   acePayload.setValue('');
   aceResponse.setValue('');
   dom.ulMessageTemplates.innerHTML = '';
+  dom.buttonMessageSend.disabled = !theFeatureId || theFeatureId === '';
 }
 
 function refillTemplates() {
