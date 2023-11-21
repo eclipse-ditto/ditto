@@ -124,7 +124,7 @@ function onThingChanged(thing) {
         refreshAttribute(Things.theThing, path);
         thingHasAttribute = true;
       }
-      Utils.addTableRow(dom.tbodyAttributes, path, path === dom.crudAttribute.idValue, false,
+      Utils.addTableRow(dom.tbodyAttributes, path, path === dom.crudAttribute.idValue, null,
           attributeToString(Things.theThing.attributes[path]));
       count++;
     });

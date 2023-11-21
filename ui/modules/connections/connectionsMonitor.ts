@@ -70,7 +70,7 @@ function onResetConnectionMetricsClick() {
 }
 
 function onConnectionLogTableClick(event) {
-  connectionLogDetail.setValue(JSON.stringify(connectionLogs[event.target.parentNode.rowIndex - 1], null, 2), -1);
+  connectionLogDetail.setValue(Utils.stringifyPretty(connectionLogs[event.target.parentNode.rowIndex - 1]), -1);
   connectionLogDetail.session.getUndoManager().reset();
 }
 
@@ -93,8 +93,8 @@ function retrieveConnectionMetrics() {
         if (response.connectionMetrics[direction]) {
           Object.keys(response.connectionMetrics[direction]).forEach((type) => {
             let entry = response.connectionMetrics[direction][type];
-            Utils.addTableRow(dom.tbodyConnectionMetrics, direction, false, false, type, 'success', entry.success.PT1M, entry.success.PT1H, entry.success.PT24H);
-            Utils.addTableRow(dom.tbodyConnectionMetrics, direction, false, false, type, 'failure', entry.failure.PT1M, entry.failure.PT1H, entry.failure.PT24H);
+            Utils.addTableRow(dom.tbodyConnectionMetrics, direction, false, null, type, 'success', entry.success.PT1M, entry.success.PT1H, entry.success.PT24H);
+            Utils.addTableRow(dom.tbodyConnectionMetrics, direction, false, null, type, 'failure', entry.failure.PT1M, entry.failure.PT1H, entry.failure.PT24H);
           });
         };
       });
@@ -106,7 +106,7 @@ function retrieveConnectionMetrics() {
 function retrieveConnectionStatus() {
   Utils.assert(selectedConnectionId, 'Please select a connection', dom.tableValidationConnections);
   API.callConnectionsAPI('retrieveStatus', (connectionStatus) => {
-    connectionStatusDetail.setValue(JSON.stringify(connectionStatus, null, 2), -1);
+    connectionStatusDetail.setValue(Utils.stringifyPretty(connectionStatus), -1);
     connectionStatusDetail.session.getUndoManager().reset();
   },
   selectedConnectionId);
@@ -130,7 +130,7 @@ function fillConnectionLogsTable(entries) {
 
   let filter = connectionLogsFilter ? connectionLogsFilter.match : (a => true);
   entries.filter(filter).forEach((entry) => {
-    Utils.addTableRow(dom.tbodyConnectionLogs, Utils.formatDate(entry.timestamp, true), false, false, entry.type, entry.level);
+    Utils.addTableRow(dom.tbodyConnectionLogs, Utils.formatDate(entry.timestamp, true), false, null, entry.type, entry.level);
   });
   dom.tbodyConnectionLogs.scrollTop = dom.tbodyConnectionLogs.scrollHeight - dom.tbodyConnectionLogs.clientHeight;
 }

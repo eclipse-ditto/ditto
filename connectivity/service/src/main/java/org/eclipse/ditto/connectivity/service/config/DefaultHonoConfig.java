@@ -42,6 +42,7 @@ public final class DefaultHonoConfig implements HonoConfig {
 
     private final URI baseUri;
     private final boolean validateCertificates;
+    private final String trustedCertificates;
     private final SaslMechanism saslMechanism;
     private final Set<URI> bootstrapServerUris;
     private final UserPasswordCredentials credentials;
@@ -62,6 +63,7 @@ public final class DefaultHonoConfig implements HonoConfig {
     private DefaultHonoConfig(final ScopedConfig scopedConfig) {
         baseUri = getBaseUriOrThrow(scopedConfig);
         validateCertificates = scopedConfig.getBoolean(HonoConfigValue.VALIDATE_CERTIFICATES.getConfigPath());
+        trustedCertificates = scopedConfig.getString(HonoConfigValue.TRUSTED_CERTIFICATES.getConfigPath());
         saslMechanism = scopedConfig.getEnum(SaslMechanism.class, HonoConfigValue.SASL_MECHANISM.getConfigPath());
         bootstrapServerUris = Collections.unmodifiableSet(getBootstrapServerUrisOrThrow(scopedConfig));
         credentials = UserPasswordCredentials.newInstance(
@@ -121,6 +123,11 @@ public final class DefaultHonoConfig implements HonoConfig {
     }
 
     @Override
+    public String getTrustedCertificates() {
+        return trustedCertificates;
+    }
+
+    @Override
     public SaslMechanism getSaslMechanism() {
         return saslMechanism;
     }
@@ -146,6 +153,7 @@ public final class DefaultHonoConfig implements HonoConfig {
         final var that = (DefaultHonoConfig) o;
         return Objects.equals(baseUri, that.baseUri)
                 && Objects.equals(validateCertificates, that.validateCertificates)
+                && Objects.equals(trustedCertificates, that.trustedCertificates)
                 && Objects.equals(saslMechanism, that.saslMechanism)
                 && Objects.equals(bootstrapServerUris, that.bootstrapServerUris)
                 && Objects.equals(credentials, that.credentials);
@@ -154,7 +162,8 @@ public final class DefaultHonoConfig implements HonoConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(baseUri, validateCertificates, saslMechanism, bootstrapServerUris, credentials);
+        return Objects.hash(baseUri, validateCertificates, trustedCertificates, saslMechanism, bootstrapServerUris,
+                credentials);
     }
 
     @Override
@@ -162,6 +171,7 @@ public final class DefaultHonoConfig implements HonoConfig {
         return getClass().getSimpleName() + " [" +
                 "baseUri=" + baseUri +
                 ", validateCertificates=" + validateCertificates +
+                ", trustedCertificates=hash:" + Objects.hash(trustedCertificates) +
                 ", saslMechanism=" + saslMechanism +
                 ", bootstrapServers=" + bootstrapServerUris +
                 "]";

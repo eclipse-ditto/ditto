@@ -143,6 +143,7 @@ public final class DefaultHonoConnectionFactoryTest {
                                 + ":" + URLEncoder.encode(honoConfig.getUserPasswordCredentials().getPassword(), StandardCharsets.UTF_8)
                                 + "@$2"))
                 .validateCertificate(honoConfig.isValidateCertificates())
+                .trustedCertificates(honoConfig.getTrustedCertificates())
                 .specificConfig(Map.of(
                         "saslMechanism", honoConfig.getSaslMechanism().toString(),
                         "bootstrapServers", TEST_CONFIG.getString(HonoConfig.PREFIX + ".bootstrap-servers"),

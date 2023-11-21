@@ -46,7 +46,7 @@ export function ready() {
 }
 
 function onMessageTableClick(event) {
-  messageDetail.setValue(JSON.stringify(messages[event.target.parentNode.rowIndex - 1], null, 2), -1);
+  messageDetail.setValue(Utils.stringifyPretty(messages[event.target.parentNode.rowIndex - 1]), -1);
   messageDetail.session.getUndoManager().reset();
 }
 
@@ -61,25 +61,25 @@ function onMessage(messageData) {
   messages.push(messageData);
   dom.badgeMessageIncomingCount.textContent = messages.length;
 
-  function getColumnValues() {
-    if (messageData['_context'] && messageData['_context'].value) {
+  function getColumnValues(): string[] {
+    if (messageData['features']) {
       return [
-        ...messageData['_context'].value.features ? Object.keys(messageData['_context'].value.features) : [],
-        ...messageData['_context'].value.attributes ? Object.keys(messageData['_context'].value.attributes) : []
+        ...messageData['features'] ? Object.keys(messageData.features) : [],
+        ...messageData['attributes'] ? Object.keys(messageData.attributes) : [],
       ];
     } else {
       return [
-        ...messageData['features'] ? Object.keys(messageData.features) : [],
-        ...messageData['attributes'] ? Object.keys(messageData.attributes) : []
+        ...messageData['_context'].value.features ? Object.keys(messageData['_context'].value.features) : [],
+        ...messageData['_context'].value.attributes ? Object.keys(messageData['_context'].value.attributes) : [],
       ]
     }
   }
 
   Utils.addTableRow(
       dom.tbodyMessagesIncoming,
-      messageData._revision, false, false,
-      getColumnValues(),
-      Utils.formatDate(messageData._modified, true),
+      messageData._revision, false, null,
+      getColumnValues().join('\n'),
+      Utils.formatDate(messageData._modified, true)
   );
 }
 

@@ -176,12 +176,12 @@ function updateFeatureEditors(featureJson) {
   if (featureJson) {
     dom.inputFeatureDefinition.value = featureJson['definition'] ? featureJson.definition : null;
     if (featureJson['properties']) {
-      featurePropertiesEditor.setValue(JSON.stringify(featureJson.properties, null, 4), -1);
+      featurePropertiesEditor.setValue(Utils.stringifyPretty(featureJson.properties), -1);
     } else {
       featurePropertiesEditor.setValue('');
     }
     if (featureJson['desiredProperties']) {
-      featureDesiredPropertiesEditor.setValue(JSON.stringify(featureJson.desiredProperties, null, 4), -1);
+      featureDesiredPropertiesEditor.setValue(Utils.stringifyPretty(featureJson.desiredProperties), -1);
     } else {
       featureDesiredPropertiesEditor.setValue('');
     }
@@ -201,7 +201,7 @@ function updateFeatureEditors(featureJson) {
  */
 function refreshFeature(thing, featureId = null) {
   if (!dom.crudFeature.isEditing) {
-    if (thing) {
+    if (thing && thing['features'] && featureId) {
       dom.crudFeature.idValue = featureId;
       updateFeatureEditors(thing.features[featureId]);
     } else {
@@ -234,8 +234,7 @@ function onThingChanged(thing) {
   }
   dom.badgeFeatureCount.textContent = count > 0 ? count : '';
   if (!thingHasFeature) {
-    dom.crudFeature.idValue = null;
-    updateFeatureEditors(null);
+    refreshFeature(thing, null);
   }
 }
 

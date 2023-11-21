@@ -55,6 +55,11 @@ public final class DefaultHonoConnectionFactory extends HonoConnectionFactory {
     }
 
     @Override
+    protected String getTrustedCertificates() {
+        return honoConfig.getTrustedCertificates();
+    }
+
+    @Override
     public HonoConfig.SaslMechanism getSaslMechanism() {
         return honoConfig.getSaslMechanism();
     }

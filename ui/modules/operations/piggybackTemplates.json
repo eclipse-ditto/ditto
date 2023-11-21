@@ -1,0 +1,634 @@
+{
+    "Overall": {
+        "Modify SBR enabled": {
+            "service": "Overall",
+            "timeout": 5,
+            "targetActorSelection": "/system/cluster/core/daemon/downingProvider",
+            "headers": {
+                "aggregate": true,
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "ditto.sbr:modify",
+                "enabled": true
+            }
+        }
+    },
+    "connectivity": {
+        "sudo: retrieve connection": {
+            "service": "connectivity",
+            "timeout": 5,
+            "targetActorSelection": "/system/sharding/connection",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "connectivity.commands:retrieveConnection",
+                "connectionId": "{{connection.id}}"
+            }
+        },
+        "sudo: retrieve all connection IDs": {
+            "service": "connectivity",
+            "timeout": 5,
+            "targetActorSelection": "/user/connectivityRoot/connectionIdsRetrieval",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "connectivity.commands:retrieveAllConnectionIds"
+            }
+        },
+        "sudo: retrieve all connection IDs by tag": {
+            "service": "connectivity",
+            "timeout": 5,
+            "targetActorSelection": "/user/connectivityRoot/connectionIdsRetrieval",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false
+            },
+            "command": {
+                "type": "connectivity.sudo.commands:sudoRetrieveConnectionIdsByTag",
+                "tag": "{{tag}}"
+            }
+        },
+        "sudo: retrieve connection tags": {
+            "service": "connectivity",
+            "timeout": 5,
+            "targetActorSelection": "/system/sharding/connection",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false
+            },
+            "command": {
+                "type": "connectivity.sudo.commands:sudoRetrieveConnectionTags",
+                "connectionId": "{{connection.id}}"
+            }
+        },
+        "sudo: retrieve connection metrics": {
+            "service": "connectivity",
+            "timeout": 5,
+            "targetActorSelection": "/system/sharding/connection",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "connectivity.commands:retrieveConnectionMetrics",
+                "connectionId": "{{connection.id}}"
+            }
+        },
+        "sudo: retrieve connection logs": {
+            "service": "connectivity",
+            "timeout": 5,
+            "targetActorSelection": "/system/sharding/connection",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "connectivity.commands:retrieveConnectionLogs",
+                "connectionId": "{{connection.id}}"
+            }
+        },
+        "sudo: enable connection logs": {
+            "service": "connectivity",
+            "timeout": 5,
+            "targetActorSelection": "/system/sharding/connection",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "connectivity.commands:enableConnectionLogs",
+                "connectionId": "{{connection.id}}"
+            }
+        },
+        "sudo: close connection": {
+            "service": "connectivity",
+            "timeout": 5,
+            "targetActorSelection": "/system/sharding/connection",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "connectivity.commands:closeConnection",
+                "connectionId": "{{connection.id}}"
+            }
+        },
+        "sudo: open connection": {
+            "service": "connectivity",
+            "timeout": 5,
+            "targetActorSelection": "/system/sharding/connection",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "connectivity.commands:openConnection",
+                "connectionId": "{{connection.id}}"
+            }
+        },
+        "create connection": {
+            "service": "connectivity",
+            "timeout": 5,
+            "targetActorSelection": "/system/sharding/connection",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-auth-context": {
+                    "type": "{{auth.type}}",
+                    "subjects": [
+                        "{{subject}}"
+                    ]
+                }
+            },
+            "command": {
+                "type": "connectivity.commands:modifyConnection",
+                "connection": "{{full.connection.json}}"
+            }
+        },
+        "sudo: modify connection": {
+            "service": "connectivity",
+            "timeout": 5,
+            "targetActorSelection": "/system/sharding/connection",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "connectivity.commands:modifyConnection",
+                "connection": "{{full.connection.json}}"
+            }
+        },
+        "connectivity: retrieve cleanup progress": {
+            "service": "connectivity",
+            "timeout": 5,
+            "targetActorSelection": "/user/connectivityRoot/persistenceCleanup",
+            "headers": {
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "status.commands:retrieveHealth"
+            }
+        },
+        "connectivity: retrieve cleanup config": {
+            "service": "connectivity",
+            "timeout": 5,
+            "targetActorSelection": "/user/connectivityRoot/persistenceCleanup",
+            "headers": {
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "common.commands:retrieveConfig"
+            }
+        },
+        "connectivity: modify cleanup config": {
+            "service": "connectivity",
+            "timeout": 5,
+            "targetActorSelection": "/user/connectivityRoot/persistenceCleanup",
+            "headers": {
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "common.commands:modifyConfig",
+                "config": {
+                    "enabled": false,
+                    "last-pid": ""
+                }
+            }
+        }
+    },
+    "gateway": {},
+    "policies": {
+        "retrieve policy": {
+            "service": "policies",
+            "timeout": 5,
+            "targetActorSelection": "/system/sharding/policy",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-auth-context": {
+                    "type": "{{auth.type}}",
+                    "subjects": [
+                        "{{subject}}"
+                    ]
+                }
+            },
+            "command": {
+                "type": "policies.commands:retrievePolicy",
+                "policyId": "{{policy.id}}"
+            }
+        },
+        "modify policy": {
+            "service": "policies",
+            "timeout": 5,
+            "targetActorSelection": "/system/sharding/policy",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-auth-context": {
+                    "type": "{{auth.type}}",
+                    "subjects": [
+                        "{{subject}}"
+                    ]
+                }
+            },
+            "command": {
+                "type": "policies.commands:modifyPolicy",
+                "policyId": "{{policy.id}}",
+                "policy": {
+                    "entries": {}
+                }
+            }
+        },
+        "sudo: retrieve policy": {
+            "service": "policies",
+            "timeout": 5,
+            "targetActorSelection": "/system/sharding/policy",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "policies.commands:retrievePolicy",
+                "policyId": "{{policy.id}}"
+            }
+        },
+        "sudo: modify policy": {
+            "service": "policies",
+            "timeout": 5,
+            "targetActorSelection": "/system/sharding/policy",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "policies.commands:modifyPolicy",
+                "policyId": "{{policy.id}}",
+                "policy": {
+                    "entries": {}
+                }
+            }
+        },
+        "sudo: delete policy": {
+            "service": "policies",
+            "timeout": 5,
+            "targetActorSelection": "/system/sharding/policy",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "policies.commands:deletePolicy",
+                "policyId": "{{policy.id}}"
+            }
+        },
+        "unblock namespace": {
+            "service": "policies",
+            "timeout": 5,
+            "targetActorSelection": "/user/blockedNamespacesUpdater/singleton",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "namespaces.commands:unblockNamespace",
+                "namespace": "{{namespace}}"
+            }
+        },
+        "policies: retrieve cleanup progress": {
+            "service": "policies",
+            "timeout": 5,
+            "targetActorSelection": "/user/policiesRoot/persistenceCleanup",
+            "headers": {
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "status.commands:retrieveHealth"
+            }
+        },
+        "policies: retrieve cleanup config": {
+            "service": "policies",
+            "timeout": 5,
+            "targetActorSelection": "/user/policiesRoot/persistenceCleanup",
+            "headers": {
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "common.commands:retrieveConfig"
+            }
+        },
+        "policies: modify cleanup config": {
+            "service": "policies",
+            "timeout": 5,
+            "targetActorSelection": "/user/policiesRoot/persistenceCleanup",
+            "headers": {
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "common.commands:modifyConfig",
+                "config": {
+                    "enabled": false,
+                    "last-pid": ""
+                }
+            }
+        }
+    },
+    "things": {
+        "retrieve thing": {
+            "service": "things",
+            "timeout": 5,
+            "targetActorSelection": "/system/sharding/thing",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-auth-context": {
+                    "type": "{{auth.type}}",
+                    "subjects": [
+                        "{{subject}}"
+                    ]
+                }
+            },
+            "command": {
+                "type": "things.commands:retrieveThing",
+                "thingId": "{{thing.id}}"
+            }
+        },
+        "create thing": {
+            "service": "things",
+            "timeout": 5,
+            "targetActorSelection": "/system/sharding/thing",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-auth-context": {
+                    "type": "{{auth.type}}",
+                    "subjects": [
+                        "{{subject}}"
+                    ]
+                }
+            },
+            "command": {
+                "type": "things.commands:createThing",
+                "thing": {
+                    "thingId": "{{thing.id}}",
+                    "policyId": "{{policy.id}}",
+                    "attributes": {
+                        "foo": "bar"
+                    }
+                }
+            }
+        },
+        "modify thing": {
+            "service": "things",
+            "timeout": 5,
+            "targetActorSelection": "/system/sharding/thing",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-auth-context": {
+                    "type": "{{auth.type}}",
+                    "subjects": [
+                        "{{subject}}"
+                    ]
+                }
+            },
+            "command": {
+                "type": "things.commands:modifyThing",
+                "thing": {
+                    "thingId": "{{thing.id}}",
+                    "policyId": "{{policy.id}}",
+                    "attributes": {
+                        "foo": "bar"
+                    }
+                }
+            }
+        },
+        "sudo: retrieve thing": {
+            "service": "things",
+            "timeout": 5,
+            "targetActorSelection": "/system/sharding/thing",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "things.commands:retrieveThing",
+                "thingId": "{{thing.id}}"
+            }
+        },
+        "sudo: create thing": {
+            "service": "things",
+            "timeout": 5,
+            "targetActorSelection": "/system/sharding/thing",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "things.commands:createThing",
+                "thing": {
+                    "thingId": "{{thing.id}}",
+                    "policyId": "{{thing.id}}",
+                    "attributes": {
+                        "foo": "bar"
+                    }
+                }
+            }
+        },
+        "sudo: modify thing": {
+            "service": "things",
+            "timeout": 5,
+            "targetActorSelection": "/system/sharding/thing",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "things.commands:modifyThing",
+                "thing": {
+                    "thingId": "{{thing.id}}",
+                    "policyId": "{{thing.id}}",
+                    "attributes": {
+                        "foo": "bar"
+                    }
+                }
+            }
+        },
+        "sudo: delete thing": {
+            "service": "things",
+            "timeout": 5,
+            "targetActorSelection": "/system/sharding/thing",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "things.commands:deleteThing",
+                "thingId": "{{thing.id}}"
+            }
+        },
+        "thing: retrieve cleanup progress": {
+            "service": "things",
+            "timeout": 5,
+            "targetActorSelection": "/user/thingsRoot/persistenceCleanup",
+            "headers": {
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "status.commands:retrieveHealth"
+            }
+        },
+        "thing: retrieve cleanup config": {
+            "service": "things",
+            "timeout": 5,
+            "targetActorSelection": "/user/thingsRoot/persistenceCleanup",
+            "headers": {
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "common.commands:retrieveConfig"
+            }
+        },
+        "thing: modify cleanup config": {
+            "service": "things",
+            "timeout": 5,
+            "targetActorSelection": "/user/thingsRoot/persistenceCleanup",
+            "headers": {
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "common.commands:modifyConfig",
+                "config": {
+                    "enabled": false,
+                    "last-pid": ""
+                }
+            }
+        }
+    },
+    "search": {
+        "retrieve sync progress": {
+            "service": "search",
+            "timeout": 5,
+            "targetActorSelection": "/user/thingsWildcardSearchRoot/searchUpdaterRoot/backgroundSync/singleton",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "status.commands:retrieveHealth"
+            }
+        },
+        "reset sync events": {
+            "service": "search",
+            "timeout": 5,
+            "targetActorSelection": "/user/thingsWildcardSearchRoot/searchUpdaterRoot/backgroundSync/singleton",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "status.commands:resetHealthEvents"
+            }
+        },
+        "retrieve sync config": {
+            "service": "search",
+            "timeout": 5,
+            "targetActorSelection": "/user/thingsWildcardSearchRoot/searchUpdaterRoot/backgroundSync/singleton",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "common.commands:retrieveConfig"
+            }
+        },
+        "modify sync config": {
+            "service": "search",
+            "timeout": 5,
+            "targetActorSelection": "/user/thingsWildcardSearchRoot/searchUpdaterRoot/backgroundSync/singleton",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "ditto-sudo": true
+            },
+            "command": {
+                "type": "common.commands:modifyConfig",
+                "config": {
+                    "enabled": true,
+                    "idle-timeout": "5m",
+                    "keep": {
+                        "events": "2"
+                    },
+                    "max-backoff": "2m",
+                    "max-restarts": 180,
+                    "min-backoff": "1s",
+                    "policy-ask-timeout": "10s",
+                    "quiet-period": "8m",
+                    "recovery": "5m",
+                    "throttle": {
+                        "period": "10s",
+                        "throughput": 100
+                    },
+                    "tolerance-window": "20m"
+                }
+            }
+        },
+        "force update thing in index": {
+            "service": "search",
+            "timeout": 5,
+            "targetActorSelection": "/user/thingsWildcardSearchRoot/searchUpdaterRoot/thingsUpdater",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "force-update": true
+            },
+            "command": {
+                "type": "thing-search.sudo.commands:sudoUpdateThing",
+                "thingId": "<THING-ID>",
+                "invalidateThing": false,
+                "invalidatePolicy": false,
+                "updateReason": "UNKNOWN"
+            }
+        },
+        "force update for complete namespaces": {
+            "service": "search",
+            "timeout": 5,
+            "targetActorSelection": "/user/thingsWildcardSearchRoot/searchUpdaterRoot/backgroundSyncProxy",
+            "headers": {
+                "aggregate": false,
+                "is-group-topic": false,
+                "force-update": true,
+                "namespaces": [
+                    "namespace1",
+                    "namespace2"
+                ]
+            },
+            "command": {
+                "type": "common.commands:shutdown"
+            }
+        }
+    }
+}

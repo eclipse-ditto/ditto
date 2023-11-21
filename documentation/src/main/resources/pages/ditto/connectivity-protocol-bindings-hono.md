@@ -16,12 +16,14 @@ The Hono connection is based on the Kafka connection and uses it behind the scen
 [Kafka connection documentation](connectivity-protocol-bindings-kafka2.html) is valid for the Hono connection too, 
 but with some exceptions, as described below.
 
-#### Important note
-A Hono connection is associated with _one_ Hono tenant. That means for each Hono tenant a separate Hono connection needs to be created.
-The tenant ID is used in the source and target connection addresses, representing the Kafka topics used by Hono for
-sending and receiving messages for this tenant.
-See below sections [Source addresses](#source-addresses), [Source reply target](#source-reply-target) and [Target Address](#target-address).
-The Hono tenant ID for the connection is defined in the [specific config](#specific-configuration-properties) `"honoTenantId"` property.
+
+{% include note.html
+   content="A Hono connection is associated with _one_ Hono tenant. That means for each Hono tenant a separate Hono connection
+            needs to be created. The tenant ID is used in the source and target connection addresses, representing the Kafka
+            topics used by Hono for sending and receiving messages for this tenant. See below sections [Source addresses](#source-addresses),
+            [Source reply target](#source-reply-target) and [Target Address](#target-address). The Hono tenant ID for the connection is defined in the
+            [specific config](#specific-configuration-properties) `honoTenantId` property."
+%}
 
 ## Specific Hono connection configuration
 
@@ -215,7 +217,8 @@ ditto {
       password = "honoPassword"
       sasl-mechanism = "PLAIN"
       bootstrap-servers = "localhost:9092"
-      validate-certificates = false
+      validateCertificates = true,
+      ca = "-----BEGIN CERTIFICATE-----\n<trusted certificate>\n-----END CERTIFICATE-----"
     }
   }
 }

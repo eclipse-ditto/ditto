@@ -23,7 +23,13 @@ let ICON_CLASS_FS_EXIT = 'bi-fullscreen-exit';
 
 const ATTR_FULLSCREEN = 'fullscreen';
 
-class CrudToolbar extends HTMLElement {
+export enum CrudOperation {
+  CREATE,
+  UPDATE,
+  DELETE,
+}
+
+export class CrudToolbar extends HTMLElement {
   isEditing = false;
   isEditDisabled = false;
   isCreateDisabled = false;
@@ -45,9 +51,19 @@ class CrudToolbar extends HTMLElement {
   }
 
   set idValue(newValue) {
-    (this.shadowRoot.getElementById('inputIdValue') as HTMLInputElement).value = newValue;
+    const domInput: HTMLInputElement = this.shadowRoot.getElementById('inputIdValue') as HTMLInputElement; 
+    domInput.value = newValue;
+    domInput.classList.remove('is-invalid');
+
+    const buttonEdit = this.shadowRoot.getElementById('buttonEdit');
+    if (newValue && newValue !== '') {
+      buttonEdit.innerText = 'Edit';
+    } else {
+      buttonEdit.innerText = 'Create'
+    }
+
     const buttonDelete = this.shadowRoot.getElementById('buttonDelete');
-    if (!this.isDeleteDisabled && newValue && newValue !== '') {
+    if (!this.isEditing && !this.isDeleteDisabled && newValue && newValue !== '') {
       buttonDelete.removeAttribute('hidden');
     } else {
       buttonDelete.setAttribute('hidden', '');
@@ -58,19 +74,19 @@ class CrudToolbar extends HTMLElement {
     return this.isEditDisabled;
   }
 
-  set createDisabled(newValue) {
+  set createDisabled(newValue: boolean) {
     this.isCreateDisabled = newValue;
     this.lazyInit(this.dom.buttonCreate);
     this.setButtonState(this.dom.buttonCreate, newValue);
   }
 
-  set deleteDisabled(newValue) {
+  set deleteDisabled(newValue: boolean) {
     this.isDeleteDisabled = newValue;
     this.lazyInit(this.dom.buttonDelete);
     this.setButtonState(this.dom.buttonDelete, newValue);
   }
 
-  set editDisabled(newValue) {
+  set editDisabled(newValue: boolean) {
     this.isEditDisabled = newValue;
     if (!this.isEditing) {
       this.lazyInit(this.dom.buttonEdit);
@@ -115,6 +131,10 @@ class CrudToolbar extends HTMLElement {
       this.dom.buttonUpdate.onclick = this.eventDispatcher('onUpdateClick');
       this.dom.buttonDelete.onclick = this.eventDispatcher('onDeleteClick');
       this.dom.buttonFullscreen.onclick = () => this.toggleFullscreen();
+      this.dom.inputIdValue.addEventListener('change', (event) => {
+        (event.target as HTMLElement).classList.remove('is-invalid');
+        this.dispatchEvent(new CustomEvent('onIdValueChange', { composed: true }));
+      });
     });
   };
 
