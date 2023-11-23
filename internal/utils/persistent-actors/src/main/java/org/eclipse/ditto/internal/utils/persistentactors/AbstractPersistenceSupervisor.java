@@ -283,6 +283,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                                                 event.getTimestamp().map(eventTs -> eventTs.isAfter(instant))
                                         ).orElse(true)
                                 )
+                                .filter(event -> applyPersistedEventFilter(event, subscribeForPersistedEvents))
                                 .takeWhile(event ->
                                         toHistoricalTimestamp.flatMap(instant ->
                                                 event.getTimestamp().map(eventTs -> eventTs.isBefore(instant))
@@ -297,6 +298,15 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                     }
                 });
     }
+
+    /**
+     * Applies filtering on the passed {@code event} subscribed to via the passed {@code subscribe} message.
+     *
+     * @param event the event which should be checked for being filtered out
+     * @param subscribe the subscribe message containing an RQL "filter" for applying filtering
+     * @return whether the event passes the filter
+     */
+    protected abstract boolean applyPersistedEventFilter(Event<?> event, SubscribeForPersistedEvents subscribe);
 
     private Event<?> mapJournalEntryToEvent(final SubscribeForPersistedEvents enforcedSubscribeForPersistedEvents,
             final EventEnvelope eventEnvelope) {

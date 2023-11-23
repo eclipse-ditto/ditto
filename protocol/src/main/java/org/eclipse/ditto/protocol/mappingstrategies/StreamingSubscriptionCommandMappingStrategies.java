@@ -54,6 +54,7 @@ final class StreamingSubscriptionCommandMappingStrategies
                         toHistoricalRevision(adaptable),
                         fromHistoricalTimestamp(adaptable),
                         toHistoricalTimestamp(adaptable),
+                        filterFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
         mappingStrategies.put(CancelStreamingSubscription.TYPE,
                 adaptable -> CancelStreamingSubscription.of(entityIdFrom(adaptable),
@@ -98,6 +99,11 @@ final class StreamingSubscriptionCommandMappingStrategies
 
     private static long demandFrom(final Adaptable adaptable) {
         return getFromValue(adaptable, RequestFromStreamingSubscription.JsonFields.DEMAND).orElse(0L);
+    }
+
+    @Nullable
+    private static String filterFrom(final Adaptable adaptable) {
+        return getFromValue(adaptable, SubscribeForPersistedEvents.JsonFields.FILTER).orElse(null);
     }
 
 }

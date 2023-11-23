@@ -43,6 +43,7 @@ public final class SubscribeForPersistedEventsTest {
     private static final long KNOWN_TO_REV = 42L;
     private static final String KNOWN_FROM_TS = "2022-10-25T14:00:00Z";
     private static final String KNOWN_TO_TS = "2022-10-25T15:00:00Z";
+    private static final String KNOWN_FILTER = "exists(thingId)";
 
     private static final String JSON_ALL_FIELDS = JsonFactory.newObjectBuilder()
             .set(Command.JsonFields.TYPE, SubscribeForPersistedEvents.TYPE)
@@ -53,6 +54,7 @@ public final class SubscribeForPersistedEventsTest {
             .set(SubscribeForPersistedEvents.JsonFields.JSON_TO_HISTORICAL_REVISION, KNOWN_TO_REV)
             .set(SubscribeForPersistedEvents.JsonFields.JSON_FROM_HISTORICAL_TIMESTAMP, KNOWN_FROM_TS)
             .set(SubscribeForPersistedEvents.JsonFields.JSON_TO_HISTORICAL_TIMESTAMP, KNOWN_TO_TS)
+            .set(SubscribeForPersistedEvents.JsonFields.FILTER, KNOWN_FILTER)
             .build()
             .toString();
 
@@ -63,6 +65,7 @@ public final class SubscribeForPersistedEventsTest {
             .set(StreamingSubscriptionCommand.JsonFields.JSON_RESOURCE_PATH, KNOWN_RESOURCE_PATH)
             .set(SubscribeForPersistedEvents.JsonFields.JSON_FROM_HISTORICAL_REVISION, KNOWN_FROM_REV)
             .set(SubscribeForPersistedEvents.JsonFields.JSON_TO_HISTORICAL_REVISION, KNOWN_TO_REV)
+            .set(SubscribeForPersistedEvents.JsonFields.FILTER, KNOWN_FILTER)
             .build().toString();
 
     @Test
@@ -88,6 +91,7 @@ public final class SubscribeForPersistedEventsTest {
                 KNOWN_TO_REV,
                 Instant.parse(KNOWN_FROM_TS),
                 Instant.parse(KNOWN_TO_TS),
+                KNOWN_FILTER,
                 DittoHeaders.empty()
         );
 
@@ -102,6 +106,7 @@ public final class SubscribeForPersistedEventsTest {
                 JsonPointer.of(KNOWN_RESOURCE_PATH),
                 KNOWN_FROM_REV,
                 KNOWN_TO_REV,
+                KNOWN_FILTER,
                 DittoHeaders.empty());
         final String json = command.toJsonString();
         assertThat(json).isEqualTo(JSON_MINIMAL);
@@ -116,6 +121,7 @@ public final class SubscribeForPersistedEventsTest {
                 KNOWN_TO_REV,
                 Instant.parse(KNOWN_FROM_TS),
                 Instant.parse(KNOWN_TO_TS),
+                KNOWN_FILTER,
                 DittoHeaders.empty()
         );
         assertThat(SubscribeForPersistedEvents.fromJson(JsonObject.of(JSON_ALL_FIELDS), DittoHeaders.empty()))
@@ -130,6 +136,7 @@ public final class SubscribeForPersistedEventsTest {
                         JsonPointer.of(KNOWN_RESOURCE_PATH),
                         KNOWN_FROM_REV,
                         KNOWN_TO_REV,
+                        KNOWN_FILTER,
                         DittoHeaders.empty()));
     }
 

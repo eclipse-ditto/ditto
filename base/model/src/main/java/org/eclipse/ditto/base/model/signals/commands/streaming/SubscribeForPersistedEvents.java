@@ -61,6 +61,7 @@ public final class SubscribeForPersistedEvents extends AbstractStreamingSubscrip
     @Nullable private final Instant fromHistoricalTimestamp;
     @Nullable private final Instant toHistoricalTimestamp;
     @Nullable private final String prefix;
+    @Nullable private final String filter;
 
     private SubscribeForPersistedEvents(final EntityId entityId,
             final JsonPointer resourcePath,
@@ -69,6 +70,7 @@ public final class SubscribeForPersistedEvents extends AbstractStreamingSubscrip
             @Nullable final Instant fromHistoricalTimestamp,
             @Nullable final Instant toHistoricalTimestamp,
             @Nullable final String prefix,
+            @Nullable final CharSequence filter,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, entityId, resourcePath, dittoHeaders);
@@ -77,6 +79,7 @@ public final class SubscribeForPersistedEvents extends AbstractStreamingSubscrip
         this.fromHistoricalTimestamp = fromHistoricalTimestamp;
         this.toHistoricalTimestamp = toHistoricalTimestamp;
         this.prefix = prefix;
+        this.filter = filter != null ? filter.toString() : null;
     }
 
     /**
@@ -89,7 +92,9 @@ public final class SubscribeForPersistedEvents extends AbstractStreamingSubscrip
      * @param dittoHeaders the command headers of the request.
      * @return the command.
      * @throws NullPointerException if any non-nullable argument is {@code null}.
+     * @deprecated since 3.5.0, use {@link #of(EntityId, JsonPointer, long, long, CharSequence, DittoHeaders)}
      */
+    @Deprecated
     public static SubscribeForPersistedEvents of(final EntityId entityId,
             final JsonPointer resourcePath,
             final long fromHistoricalRevision,
@@ -103,6 +108,38 @@ public final class SubscribeForPersistedEvents extends AbstractStreamingSubscrip
                 null,
                 null,
                 null,
+                null,
+                dittoHeaders);
+    }
+
+    /**
+     * Creates a new {@code SudoStreamSnapshots} command based on "from" and "to" {@code long} revisions.
+     *
+     * @param entityId the entityId that should be streamed.
+     * @param resourcePath the resource path for which to stream events.
+     * @param fromHistoricalRevision the revision to start the streaming from.
+     * @param toHistoricalRevision the revision to stop the streaming at.
+     * @param dittoHeaders the command headers of the request.
+     * @param filter the optional RQL filter to apply for persisted events before publishing to the stream
+     * @return the command.
+     * @throws NullPointerException if any non-nullable argument is {@code null}.
+     * @since 3.5.0
+     */
+    public static SubscribeForPersistedEvents of(final EntityId entityId,
+            final JsonPointer resourcePath,
+            final long fromHistoricalRevision,
+            final long toHistoricalRevision,
+            @Nullable final CharSequence filter,
+            final DittoHeaders dittoHeaders) {
+
+        return new SubscribeForPersistedEvents(entityId,
+                resourcePath,
+                fromHistoricalRevision,
+                toHistoricalRevision,
+                null,
+                null,
+                null,
+                filter,
                 dittoHeaders);
     }
 
@@ -116,7 +153,9 @@ public final class SubscribeForPersistedEvents extends AbstractStreamingSubscrip
      * @param dittoHeaders the command headers of the request.
      * @return the command.
      * @throws NullPointerException if any non-nullable argument is {@code null}.
+     * @deprecated since 3.5.0, use {@link #of(EntityId, JsonPointer, Instant, Instant, CharSequence, DittoHeaders)}
      */
+    @Deprecated
     public static SubscribeForPersistedEvents of(final EntityId entityId,
             final JsonPointer resourcePath,
             @Nullable final Instant fromHistoricalTimestamp,
@@ -130,6 +169,38 @@ public final class SubscribeForPersistedEvents extends AbstractStreamingSubscrip
                 fromHistoricalTimestamp,
                 toHistoricalTimestamp,
                 null,
+                null,
+                dittoHeaders);
+    }
+
+    /**
+     * Creates a new {@code SudoStreamSnapshots} command based on "from" and "to" {@code Instant} timestamps.
+     *
+     * @param entityId the entityId that should be streamed.
+     * @param resourcePath the resource path for which to stream events.
+     * @param fromHistoricalTimestamp the timestamp to start the streaming from.
+     * @param toHistoricalTimestamp the timestamp to stop the streaming at.
+     * @param dittoHeaders the command headers of the request.
+     * @param filter the optional RQL filter to apply for persisted events before publishing to the stream
+     * @return the command.
+     * @throws NullPointerException if any non-nullable argument is {@code null}.
+     * @since 3.5.0
+     */
+    public static SubscribeForPersistedEvents of(final EntityId entityId,
+            final JsonPointer resourcePath,
+            @Nullable final Instant fromHistoricalTimestamp,
+            @Nullable final Instant toHistoricalTimestamp,
+            @Nullable final CharSequence filter,
+            final DittoHeaders dittoHeaders) {
+
+        return new SubscribeForPersistedEvents(entityId,
+                resourcePath,
+                0L,
+                Long.MAX_VALUE,
+                fromHistoricalTimestamp,
+                toHistoricalTimestamp,
+                null,
+                filter,
                 dittoHeaders);
     }
 
@@ -145,7 +216,9 @@ public final class SubscribeForPersistedEvents extends AbstractStreamingSubscrip
      * @param dittoHeaders the command headers of the request.
      * @return the command.
      * @throws NullPointerException if any non-nullable argument is {@code null}.
+     * @deprecated since 3.5.0, use {@link #of(EntityId, JsonPointer, Long, Long, Instant, Instant, CharSequence, DittoHeaders)}
      */
+    @Deprecated
     public static SubscribeForPersistedEvents of(final EntityId entityId,
             final JsonPointer resourcePath,
             @Nullable final Long fromHistoricalRevision,
@@ -161,6 +234,42 @@ public final class SubscribeForPersistedEvents extends AbstractStreamingSubscrip
                 fromHistoricalTimestamp,
                 toHistoricalTimestamp,
                 null,
+                null,
+                dittoHeaders);
+    }
+
+    /**
+     * Creates a new {@code SudoStreamSnapshots} command based on "from" and "to" {@code Instant} timestamps.
+     *
+     * @param entityId the entityId that should be streamed.
+     * @param resourcePath the resource path for which to stream events.
+     * @param fromHistoricalRevision the revision to start the streaming from.
+     * @param toHistoricalRevision the revision to stop the streaming at.
+     * @param fromHistoricalTimestamp the timestamp to start the streaming from.
+     * @param toHistoricalTimestamp the timestamp to stop the streaming at.
+     * @param filter the optional RQL filter to apply for persisted events before publishing to the stream
+     * @param dittoHeaders the command headers of the request.
+     * @return the command.
+     * @throws NullPointerException if any non-nullable argument is {@code null}.
+     * @since 3.5.0
+     */
+    public static SubscribeForPersistedEvents of(final EntityId entityId,
+            final JsonPointer resourcePath,
+            @Nullable final Long fromHistoricalRevision,
+            @Nullable final Long toHistoricalRevision,
+            @Nullable final Instant fromHistoricalTimestamp,
+            @Nullable final Instant toHistoricalTimestamp,
+            @Nullable final CharSequence filter,
+            final DittoHeaders dittoHeaders) {
+
+        return new SubscribeForPersistedEvents(entityId,
+                resourcePath,
+                null != fromHistoricalRevision ? fromHistoricalRevision : 0L,
+                null != toHistoricalRevision ? toHistoricalRevision : Long.MAX_VALUE,
+                fromHistoricalTimestamp,
+                toHistoricalTimestamp,
+                null,
+                filter,
                 dittoHeaders);
     }
 
@@ -182,6 +291,7 @@ public final class SubscribeForPersistedEvents extends AbstractStreamingSubscrip
                 jsonObject.getValue(JsonFields.JSON_FROM_HISTORICAL_TIMESTAMP).map(Instant::parse).orElse(null),
                 jsonObject.getValue(JsonFields.JSON_TO_HISTORICAL_TIMESTAMP).map(Instant::parse).orElse(null),
                 jsonObject.getValue(JsonFields.PREFIX).orElse(null),
+                jsonObject.getValue(JsonFields.FILTER).orElse(null),
                 dittoHeaders
         );
     }
@@ -195,7 +305,7 @@ public final class SubscribeForPersistedEvents extends AbstractStreamingSubscrip
      */
     public SubscribeForPersistedEvents setPrefix(@Nullable final String prefix) {
         return new SubscribeForPersistedEvents(entityId, resourcePath, fromHistoricalRevision, toHistoricalRevision,
-                fromHistoricalTimestamp, toHistoricalTimestamp, prefix, getDittoHeaders());
+                fromHistoricalTimestamp, toHistoricalTimestamp, prefix, filter, getDittoHeaders());
     }
 
     /**
@@ -244,6 +354,14 @@ public final class SubscribeForPersistedEvents extends AbstractStreamingSubscrip
         return Optional.ofNullable(prefix);
     }
 
+    /**
+     * @return the optional RQL filter to apply for persisted events before publishing to the stream
+     * @since 3.5.0
+     */
+    public Optional<String> getFilter() {
+        return Optional.ofNullable(filter);
+    }
+
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion,
@@ -263,6 +381,7 @@ public final class SubscribeForPersistedEvents extends AbstractStreamingSubscrip
             jsonObjectBuilder.set(JsonFields.JSON_TO_HISTORICAL_TIMESTAMP, toHistoricalTimestamp.toString(), predicate);
         }
         getPrefix().ifPresent(thePrefix -> jsonObjectBuilder.set(JsonFields.PREFIX, thePrefix));
+        getFilter().ifPresent(theFilter -> jsonObjectBuilder.set(JsonFields.FILTER, theFilter));
     }
 
     @Override
@@ -273,13 +392,13 @@ public final class SubscribeForPersistedEvents extends AbstractStreamingSubscrip
     @Override
     public SubscribeForPersistedEvents setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new SubscribeForPersistedEvents(entityId, resourcePath, fromHistoricalRevision, toHistoricalRevision,
-                fromHistoricalTimestamp, toHistoricalTimestamp, prefix, dittoHeaders);
+                fromHistoricalTimestamp, toHistoricalTimestamp, prefix, filter, dittoHeaders);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), entityId, resourcePath, fromHistoricalRevision, toHistoricalRevision,
-                fromHistoricalTimestamp, toHistoricalTimestamp, prefix);
+                fromHistoricalTimestamp, toHistoricalTimestamp, prefix, filter);
     }
 
     @Override
@@ -297,7 +416,8 @@ public final class SubscribeForPersistedEvents extends AbstractStreamingSubscrip
                 toHistoricalRevision == that.toHistoricalRevision &&
                 Objects.equals(fromHistoricalTimestamp, that.fromHistoricalTimestamp) &&
                 Objects.equals(toHistoricalTimestamp, that.toHistoricalTimestamp) &&
-                Objects.equals(prefix, that.prefix);
+                Objects.equals(prefix, that.prefix) &&
+                Objects.equals(filter, that.filter);
     }
 
     @Override
@@ -313,6 +433,7 @@ public final class SubscribeForPersistedEvents extends AbstractStreamingSubscrip
                 + ", fromHistoricalTimestamp=" + fromHistoricalTimestamp
                 + ", toHistoricalTimestamp=" + toHistoricalTimestamp
                 + ", prefix=" + prefix
+                + ", filter=" + filter
                 + "]";
     }
 
@@ -339,6 +460,9 @@ public final class SubscribeForPersistedEvents extends AbstractStreamingSubscrip
 
         static final JsonFieldDefinition<String> PREFIX =
                 JsonFactory.newStringFieldDefinition("prefix", REGULAR, V_2);
+
+        public static final JsonFieldDefinition<String> FILTER =
+                JsonFactory.newStringFieldDefinition("filter", REGULAR, V_2);
     }
 
 }
