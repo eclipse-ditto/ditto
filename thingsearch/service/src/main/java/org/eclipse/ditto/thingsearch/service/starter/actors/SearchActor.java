@@ -22,7 +22,28 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.CoordinatedShutdown;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.japi.pf.PFBuilder;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.Graph;
+import org.apache.pekko.stream.KillSwitches;
+import org.apache.pekko.stream.SharedKillSwitch;
+import org.apache.pekko.stream.SourceRef;
+import org.apache.pekko.stream.SourceShape;
+import org.apache.pekko.stream.SystemMaterializer;
+import org.apache.pekko.stream.javadsl.Flow;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.javadsl.StreamRefs;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -31,15 +52,15 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformers;
-import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithShutdownBehaviorAndRequestCounting;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
-import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithShutdownBehaviorAndRequestCounting;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -69,27 +90,6 @@ import org.eclipse.ditto.thingsearch.service.persistence.query.QueryParser;
 import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.Done;
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.CoordinatedShutdown;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
-import org.apache.pekko.japi.pf.PFBuilder;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.apache.pekko.pattern.Patterns;
-import org.apache.pekko.stream.Graph;
-import org.apache.pekko.stream.KillSwitches;
-import org.apache.pekko.stream.SharedKillSwitch;
-import org.apache.pekko.stream.SourceRef;
-import org.apache.pekko.stream.SourceShape;
-import org.apache.pekko.stream.SystemMaterializer;
-import org.apache.pekko.stream.javadsl.Flow;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
-import org.apache.pekko.stream.javadsl.StreamRefs;
 
 /**
  * Actor handling all supported {@link ThingSearchCommand}s. Currently, those are {@link CountThings} and {@link
@@ -308,12 +308,14 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
                             final StartedTimer databaseAccessTimer =
                                     countTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
 
-                            final Source<Long, NotUsed> countResultSource = isSudo
-                                    ? searchPersistence.sudoCount(query)
-                                    : searchPersistence.count(query,
-                                    countCommand.getDittoHeaders()
-                                            .getAuthorizationContext()
-                                            .getAuthorizationSubjectIds());
+                            final Source<Long, NotUsed> countResultSource =
+                                    DittoJsonException.wrapJsonRuntimeException(query, countCommand.getDittoHeaders(),
+                                            (theQuery, headers) -> isSudo
+                                                    ? searchPersistence.sudoCount(theQuery)
+                                                    : searchPersistence.count(theQuery,
+                                                    headers.getAuthorizationContext()
+                                                            .getAuthorizationSubjectIds())
+                                    );
 
                             return processSearchPersistenceResult(countResultSource, dittoHeaders)
                                     .via(Flow.fromFunction(result -> {
@@ -356,7 +358,13 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
                                         .getAuthorizationContext()
                                         .getAuthorizationSubjectIds();
 
-                        return searchPersistence.findAllUnlimited(query, subjectIds, namespaces)
+                        final Source<ThingId, NotUsed> findAllUnlimitedResult =
+                                DittoJsonException.wrapJsonRuntimeException(query, streamThings.getDittoHeaders(),
+                                        (theQuery, headers) ->
+                                                searchPersistence.findAllUnlimited(theQuery, subjectIds, namespaces)
+                                );
+
+                        return findAllUnlimitedResult
                                 .via(streamKillSwitch.flow())
                                 .map(ThingId::toString) // for serialization???
                                 .runWith(StreamRefs.sourceRef(), SystemMaterializer.get(getSystem()).materializer());
@@ -473,7 +481,9 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
                                                 .getAuthorizationContext()
                                                 .getAuthorizationSubjectIds();
                                 final Source<ResultList<TimestampedThingId>, NotUsed> findAllResult =
-                                        searchPersistence.findAll(query, subjectIds, namespaces);
+                                        DittoJsonException.wrapJsonRuntimeException(query, dittoHeaders, (theQuery, headers) ->
+                                            searchPersistence.findAll(theQuery, subjectIds, namespaces)
+                                );
 
                                 return processSearchPersistenceResult(findAllResult, dittoHeaders)
                                         .via(Flow.fromFunction(result -> {
