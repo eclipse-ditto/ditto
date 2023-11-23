@@ -17,7 +17,12 @@ import java.nio.charset.StandardCharsets;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorKilledException;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
@@ -36,10 +41,6 @@ import org.eclipse.ditto.policies.service.common.config.PolicyAnnouncementConfig
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 import org.eclipse.ditto.policies.service.enforcement.PolicyCommandEnforcement;
 import org.eclipse.ditto.policies.service.persistence.actors.announcements.PolicyAnnouncementManager;
-
-import org.apache.pekko.actor.ActorKilledException;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.Props;
 
 /**
  * Supervisor for {@link org.eclipse.ditto.policies.service.persistence.actors.PolicyPersistenceActor} which means
@@ -140,6 +141,11 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
     @Override
     protected ShutdownBehaviour getShutdownBehaviour(final PolicyId entityId) {
         return ShutdownBehaviour.fromId(entityId, pubSubMediator, getSelf());
+    }
+
+    @Override
+    protected boolean applyPersistedEventFilter(final Event<?> event, final SubscribeForPersistedEvents subscribe) {
+        return true;
     }
 
     @Override
