@@ -307,6 +307,14 @@ export function setAuthHeader(forDevOps) {
   }
 }
 
+function showDittoError(dittoErr, response) {
+  if (dittoErr.status && dittoErr.message) {
+    Utils.showError(dittoErr.description + `\n(${dittoErr.error})`, dittoErr.message, dittoErr.status);
+  } else {
+    Utils.showError(JSON.stringify(dittoErr), 'Error', response.status);
+  }
+}
+
 /**
  * Calls the Ditto api
  * @param {String} method 'POST', 'GET', 'DELETE', etc.
@@ -346,12 +354,15 @@ export async function callDittoREST(method,
       if (returnHeaders) {
         return response;
       } else {
-        return response.json();
+        return response.json().then((dittoErr) => {
+          showDittoError(dittoErr, response);
+          return dittoErr;
+        });
       }
     } else {
       response.json()
         .then((dittoErr) => {
-          Utils.showError(dittoErr.description + `\n(${dittoErr.error})`, dittoErr.message, dittoErr.status);
+          showDittoError(dittoErr, response);
         })
         .catch((err) => {
           Utils.showError('No error details from Ditto', response.statusText, response.status);
@@ -423,7 +434,7 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
   if (!response.ok) {
     response.json()
         .then((dittoErr) => {
-          Utils.showError(dittoErr.description, dittoErr.message, dittoErr.status);
+          showDittoError(dittoErr, response);
         })
         .catch((err) => {
           Utils.showError('No error details from Ditto', response.statusText, response.status);
@@ -436,7 +447,7 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
         .then((data) => {
           if (data && data['?'] && data['?']['?'].status >= 400) {
             const dittoErr = data['?']['?'].payload;
-            Utils.showError(dittoErr.description, dittoErr.message, dittoErr.status);
+            showDittoError(dittoErr, response);
           } else {
             if (params.unwrapJsonPath) {
               params.unwrapJsonPath.split('.').forEach(function(node) {
