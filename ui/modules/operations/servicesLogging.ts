@@ -97,11 +97,19 @@ function createLoggerView(allLogLevels) {
     let inputLoggerElement = newLoggerRow.shadowRoot.getElementById('inputLogger') as HTMLInputElement;
     inputLoggerElement.disabled = false;
     inputLoggerElement.placeholder = 'Add new logger name and choose log level';
+    inputLoggerElement.addEventListener('change', (event) => {
+      (event.target as HTMLElement).classList.remove('is-invalid');
+    });
     Array.from(newLoggerRow.shadowRoot.querySelectorAll('.btn-check')).forEach((btn) => {
-      btn.addEventListener('click', (event) => onUpdateLoggingClick(service, {
-        logger: inputLoggerElement.value,
-        level: (event.target as Element).id,
-      }));
+      btn.addEventListener('click', (event) => {
+        Utils.assert((inputLoggerElement.value && inputLoggerElement.value.trim() !== '') ,
+            'Logger name must not be empty',
+            inputLoggerElement);
+        onUpdateLoggingClick(service, {
+          logger: inputLoggerElement.value,
+          level: (event.target as Element).id,
+        });
+      });
     });
     dom.divLoggers.append(newLoggerRow);
   }
