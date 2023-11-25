@@ -20,11 +20,11 @@ import * as Things from './things.js';
 const dom = {
   tbodyAttributes: null,
   crudAttribute: null,
-  inputAttributeValue: null,
   badgeAttributeCount: null,
 };
 
 let eTag;
+let attributeEditor;
 
 /**
  * Initializes components. Should be called after DOMContentLoaded event
@@ -40,6 +40,12 @@ export function ready() {
   dom.crudAttribute.addEventListener('onUpdateClick', onUpdateAttributeClick);
   dom.crudAttribute.addEventListener('onDeleteClick', onDeleteAttributeClick);
   dom.crudAttribute.addEventListener('onEditToggle', onEditToggle);
+
+  attributeEditor = Utils.createAceEditor('attributeEditor', 'ace/mode/json', true);
+
+  document.querySelector('a[data-bs-target="#tabCrudAttribute"]').addEventListener('shown.bs.tab', (event) => {
+    attributeEditor.renderer.updateFull();
+  });
 }
 
 function onCreateAttributeClick() {
@@ -47,12 +53,10 @@ function onCreateAttributeClick() {
   Utils.assert(!Things.theThing['attributes'] || !Object.keys(Things.theThing.attributes).includes(dom.crudAttribute.idValue),
       `Attribute path ${dom.crudAttribute.idValue} already exists in Thing`,
       dom.crudAttribute.validationElement);
-  Utils.assert(dom.inputAttributeValue.value, 'Attribute value must not be empty', dom.inputAttributeValue);
 
   updateAttribute('PUT', true);
 }
 function onUpdateAttributeClick() {
-  Utils.assert(dom.inputAttributeValue.value, 'Attribute value must not be empty');
   updateAttribute('PUT');
 }
 
@@ -79,10 +83,11 @@ function onAttributeTableClick(event) {
  * @param {boolean} isNewAttribute if a new attribute is created. default = false
  */
 function updateAttribute(method, isNewAttribute = false) {
+  const attributeValue = JSON.parse(attributeEditor.getValue());
   API.callDittoREST(
       method,
       `/things/${Things.theThing.thingId}/attributes/${dom.crudAttribute.idValue}`,
-      method === 'PUT' ? attributeFromString(dom.inputAttributeValue.value) : null,
+      method === 'PUT' ? attributeValue : null,
       isNewAttribute ?
       {
         'If-None-Match': '*'
@@ -105,10 +110,10 @@ function refreshAttribute(thing, attributePath = null) {
 
   if (thing) {
     dom.crudAttribute.idValue = attributePath;
-    dom.inputAttributeValue.value = attributeToString(thing.attributes[attributePath]);
+    attributeEditor.setValue(Utils.stringifyPretty(thing.attributes[attributePath]), -1);
   } else {
     dom.crudAttribute.idValue = null;
-    dom.inputAttributeValue.value = null;
+    attributeEditor.setValue('');
   }
 }
 
@@ -161,7 +166,6 @@ function attributeFromString(attribute) {
 
 function onEditToggle(event) {
   const isEditing = event.detail.isEditing;
-  dom.inputAttributeValue.disabled = !isEditing;
   if (isEditing && dom.crudAttribute.idValue && dom.crudAttribute.idValue !== '') {
     API.callDittoREST('GET', `/things/${Things.theThing.thingId}/attributes/${dom.crudAttribute.idValue}`,
         null, null, true)
@@ -170,11 +174,18 @@ function onEditToggle(event) {
           return response.json();
         })
         .then((attributeValue) => {
-          dom.inputAttributeValue.value = attributeToString(attributeValue);
+          enableDisableEditor();
+          attributeEditor.setValue(Utils.stringifyPretty(attributeValue), -1);
         });
   } else {
-    dom.inputAttributeValue.value = dom.crudAttribute.idValue ?
-      attributeToString(Things.theThing.attributes[dom.crudAttribute.idValue]) :
-      null;
+    enableDisableEditor();
+    refreshAttribute(Things.theThing, dom.crudAttribute.idValue)
+    attributeEditor.setValue(
+      Utils.stringifyPretty(Things.theThing.attributes[dom.crudAttribute.idValue]), -1);
+  }
+
+  function enableDisableEditor() {
+    attributeEditor.setReadOnly(!isEditing);
+    attributeEditor.renderer.setShowGutter(isEditing);
   }
 }
