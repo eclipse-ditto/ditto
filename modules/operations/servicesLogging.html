@@ -34,18 +34,19 @@
                     crossorigin="anonymous" referrerpolicy="no-referrer" />
                 <link href="./dist/main.css" rel="stylesheet" />
 
-                <div class="input-group input-group-sm mb-1">
-                    <input class="form-control" type="text" disabled id="inputLogger" spellcheck="false"></input>
+                <div class="input-group input-group-sm mb-1 has-validation">
+                    <input class="form-control me-1" type="text" disabled id="inputLogger" spellcheck="false"></input>
                     <div class="btn-group" role="group">
-                        <input type="radio" class="btn-check" id="debug" autocomplete="off">
+                        <input type="radio" class="btn-check" name="btnLevel" id="debug" autocomplete="off">
                         <label class="btn btn-sm btn-outline-secondary" for="debug">DEBUG</label>
-                        <input type="radio" class="btn-check" id="info" autocomplete="off">
+                        <input type="radio" class="btn-check" name="btnLevel" id="info" autocomplete="off">
                         <label class="btn btn-sm btn-outline-success" for="info">INFO</label>
-                        <input type="radio" class="btn-check" id="warn" autocomplete="off">
+                        <input type="radio" class="btn-check" name="btnLevel" id="warn" autocomplete="off">
                         <label class="btn btn-sm btn-outline-warning" for="warn">WARN</label>
-                        <input type="radio" class="btn-check" id="error" autocomplete="off">
+                        <input type="radio" class="btn-check" name="btnLevel" id="error" autocomplete="off">
                         <label class="btn btn-sm btn-outline-danger" for="error">ERROR</label>
                     </div>
+                    <div class="invalid-feedback"></div>
                 </div>
             </template>
         </div>
