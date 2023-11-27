@@ -19,7 +19,20 @@ import * as Connections from './connections.js';
 /* eslint-disable no-invalid-this */
 /* eslint-disable require-jsdoc */
 
-let dom = {
+type DomElements = {
+    tbodyConnectionLogs: HTMLTableElement,
+    tbodyConnectionMetrics: HTMLTableElement,
+    buttonRetrieveConnectionStatus: HTMLButtonElement,
+    buttonRetrieveConnectionLogs: HTMLButtonElement,
+    buttonEnableConnectionLogs: HTMLButtonElement,
+    buttonResetConnectionLogs: HTMLButtonElement,
+    buttonRetrieveConnectionMetrics: HTMLButtonElement,
+    buttonResetConnectionMetrics: HTMLButtonElement,
+    tableValidationConnections: HTMLInputElement,
+    inputConnectionLogFilter: HTMLInputElement,
+}
+
+let dom: DomElements = {
   tbodyConnectionLogs: null,
   tbodyConnectionMetrics: null,
   buttonRetrieveConnectionStatus: null,
@@ -29,7 +42,7 @@ let dom = {
   buttonRetrieveConnectionMetrics: null,
   buttonResetConnectionMetrics: null,
   tableValidationConnections: null,
-  // inputConnectionLogFilter: null,
+  inputConnectionLogFilter: null,
 };
 
 let connectionLogs;
@@ -61,7 +74,7 @@ export function ready() {
   dom.buttonRetrieveConnectionMetrics.onclick = retrieveConnectionMetrics;
   (document.querySelector('a[data-bs-target="#tabConnectionMetrics"]') as HTMLElement).onclick = retrieveConnectionMetrics;
   dom.buttonResetConnectionMetrics.onclick = onResetConnectionMetricsClick;
-  // dom.inputConnectionLogFilter.onchange = onConnectionLogFilterChange;
+  dom.inputConnectionLogFilter.onchange = onConnectionLogFilterChange;
 }
 
 function onResetConnectionMetricsClick() {
@@ -117,19 +130,22 @@ function retrieveConnectionLogs() {
   API.callConnectionsAPI('retrieveConnectionLogs', (response) => {
     connectionLogs = response.connectionLogs;
     adjustEnableButton(response);
-    fillConnectionLogsTable(response.connectionLogs);
+    fillConnectionLogsTable();
   },
   selectedConnectionId);
 }
 
 let connectionLogsFilter;
 
-function fillConnectionLogsTable(entries) {
+function fillConnectionLogsTable() {
   dom.tbodyConnectionLogs.innerHTML = '';
   connectionLogDetail.setValue('');
 
-  let filter = connectionLogsFilter ? connectionLogsFilter.match : (a => true);
-  entries.filter(filter).forEach((entry) => {
+  let entries = connectionLogs;
+  if (connectionLogsFilter) {
+    entries = connectionLogs.filter(connectionLogsFilter.match);
+  }
+  entries.forEach((entry) => {
     Utils.addTableRow(dom.tbodyConnectionLogs, Utils.formatDate(entry.timestamp, true), false, null, entry.type, entry.level);
   });
   dom.tbodyConnectionLogs.scrollTop = dom.tbodyConnectionLogs.scrollHeight - dom.tbodyConnectionLogs.clientHeight;
@@ -177,17 +193,10 @@ function JsonFilter() {
 
 const knownFields = ['category', 'type', 'level'];
 
-function onConnectionLogFilterChange(event) {
-  if (event.target.value && event.target.value !== '') {
-    connectionLogsFilter = JsonFilter();
-    event.target.value.split(/(\s+)/).forEach((elem) => {
-      const keyValue = elem.split(':');
-      if (keyValue.length === 2 && knownFields.includes(keyValue[0].trim())) {
-        connectionLogsFilter.add(keyValue[0].trim(), keyValue[1].trim());
-      }
-    });
-  } else {
-    connectionLogsFilter = null;
+function onConnectionLogFilterChange(event: Event) {
+  if (dom.inputConnectionLogFilter.value && dom.inputConnectionLogFilter.value !== '') {
+    connectionLogsFilter = Utils.JSONFilter(dom.inputConnectionLogFilter.value);
   }
-  fillConnectionLogsTable(connectionLogs);
+
+  fillConnectionLogsTable();
 }

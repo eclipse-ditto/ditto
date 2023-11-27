@@ -405,7 +405,6 @@ export function tableAdjustSelection(tbody: HTMLTableElement, condition: (row: H
   });
 }
 
-
 /**
  * JSON.stringify object, using indentation of 2
  * @param {Object} jsonObject to stringify
@@ -413,4 +412,39 @@ export function tableAdjustSelection(tbody: HTMLTableElement, condition: (row: H
  */
 export function stringifyPretty(jsonObject: Object): string {
   return JSON.stringify(jsonObject, null, 2);
+}
+
+/**
+ * Creates a filter function for JSON objects
+ * @param {String} expression Sting containing github like filters
+ * @return {function} filter function
+ */
+export function JSONFilter(expression) {
+  this.handlers = [];
+
+  expression.split(/\s+/).forEach((filter) => {
+    this.handlers.push(createHandler(filter));
+  });
+
+  this.match = function(data) {
+    result = true;
+    this.handlers.forEach((handler) => {
+      result = result && handler.call(null, data);
+    });
+    return result;
+  };
+
+  // direction:inbound type:consumed level:success timestamp<1.1.2900
+  result = data.direction === inbound && data.type === consumed && data.level === success;
+  return result;
+
+  // eslint-disable-next-line require-jsdoc
+  function createHandler(filter) {
+    const result = filter.match(/^(.*?):(.*)/gm);
+    if (result) {
+      return (data) => {
+        return data[result[0]] === result[1];
+      };
+    }
+  }
 }
