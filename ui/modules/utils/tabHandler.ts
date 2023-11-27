@@ -16,10 +16,12 @@ import * as Authorization from '../environments/authorization.js';
 
 /**
  * Common behaviour of all main tabs. Handles refresh of a tab after the environmant was changed
- * @param {Element} domTabItem 
- * @param {Element} domTabContent 
- * @param {function} onRefreshTab 
- * @param {string} envDisabledKey 
+ * It tracks a flag if the environment was changed and does a lazy call to refresh the tab
+ * if needed.
+ * @param {Element} domTabItem Reference to tab item in dom  
+ * @param {Element} domTabContent Reference to the tab content in dom
+ * @param {function} onRefreshTab Callback that is called if the tab is activated and environment has changed
+ * @param {string} envDisabledKey Key that is used in environment json to toggle the tab
  * @returns 
  */
 
