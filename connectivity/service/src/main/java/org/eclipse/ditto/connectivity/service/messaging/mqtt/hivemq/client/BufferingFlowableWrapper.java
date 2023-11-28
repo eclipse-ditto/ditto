@@ -26,7 +26,7 @@ import io.reactivex.subjects.PublishSubject;
  *
  * @param <T> type of items
  */
-public class BufferingFlowableWrapper<T> implements Disposable {
+public final class BufferingFlowableWrapper<T> implements Disposable {
     private static final String DISPOSED_ERROR_MESSAGE = "The wrapper is disposed.";
 
     private final Flowable<T> originalFlowable;
