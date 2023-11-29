@@ -10,17 +10,19 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.test.mongo;
+package org.eclipse.ditto.internal.utils.test.docker;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.command.CreateContainerCmd;
 import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.HostConfig;
@@ -33,25 +35,20 @@ import com.github.dockerjava.zerodep.ZerodepDockerHttpClient;
 /**
  * Responsible for creating and configuring the mongo db docker container that should be started for tests.
  */
-final class MongoContainerFactory implements Closeable {
+public abstract class ContainerFactory implements Closeable {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MongoContainerFactory.class);
-    private static final String MONGO_IMAGE_NAME = "mongo";
-    private static final String DEFAULT_MONGO_VERSION = "4.2";
-    private static final int MONGO_INTERNAL_PORT = 27017;
-    private static final PortBinding MONGO_PORT_BINDING_TO_RANDOM_PORT =
-            new PortBinding(Ports.Binding.empty(), ExposedPort.tcp(MONGO_INTERNAL_PORT));
-    private static final List<String> MONGO_COMMANDS = List.of("mongod", "--storageEngine", "wiredTiger");
+    private static final Logger LOGGER = LoggerFactory.getLogger(ContainerFactory.class);
 
-    private static final MongoContainerFactory INSTANCE = new MongoContainerFactory(DEFAULT_MONGO_VERSION);
     private static final String UNIX_DOCKER_HOST = "unix:///var/run/docker.sock";
     private static final String WINDOWS_DOCKER_HOST = "npipe:////./pipe/docker_engine";
 
-    private final String mongoImageIdentifier;
+    private final String imageIdentifier;
+    private final int[] ports;
     private final DockerClient dockerClient;
 
-    private MongoContainerFactory(final String mongoVersion) {
-        mongoImageIdentifier = MONGO_IMAGE_NAME + ":" + mongoVersion;
+    protected ContainerFactory(final String imageIdentifier, final int... ports) {
+        this.imageIdentifier = imageIdentifier;
+        this.ports = ports;
         final String dockerHost = OsDetector.isWindows() ? WINDOWS_DOCKER_HOST : UNIX_DOCKER_HOST;
         LOGGER.info("Connecting to docker daemon on <{}>.", dockerHost);
         final DefaultDockerClientConfig config =
@@ -62,37 +59,32 @@ final class MongoContainerFactory implements Closeable {
                 .build();
         dockerClient = DockerClientImpl.getInstance(config, httpClient);
 
-        LOGGER.info("Checking if Mongo image <{}> needs to be pulled.", mongoImageIdentifier);
-        if (isMongoImageAbsent()) {
-            pullMongoImage();
+        LOGGER.info("Checking if image <{}> needs to be pulled.", imageIdentifier);
+        if (isImageAbsent()) {
+            pullImage();
         }
     }
 
-    /**
-     * @return returns the singleton instance of this factory.
-     */
-    static MongoContainerFactory getInstance() {
-        return INSTANCE;
-    }
-
-    static MongoContainerFactory of(final String mongoVersion) {
-        return new MongoContainerFactory(mongoVersion);
+    protected CreateContainerCmd configureContainer(final CreateContainerCmd createContainerCmd) {
+        return createContainerCmd;
     }
 
     /**
-     * Creates the mongo docker container with all required configuration and returns it.
+     * Creates the docker container with all required configuration and returns it.
      * It's not started after it has been returned.
      *
      * @return the created {@link DockerContainer}.
      */
-    DockerContainer createMongoContainer() {
-        return getMongoImageId()
+    DockerContainer createContainer() {
+        return getImageId()
                 .map(imageId -> {
                     LOGGER.info("Creating container based on image with ID <{}>.", imageId);
-                    return dockerClient.createContainerCmd(imageId)
-                            .withCmd(MONGO_COMMANDS)
+                    final var createContainerCmd = dockerClient.createContainerCmd(imageId)
                             .withHostConfig(
-                                    HostConfig.newHostConfig().withPortBindings(MONGO_PORT_BINDING_TO_RANDOM_PORT))
+                                    HostConfig.newHostConfig().withPortBindings(Arrays.stream(ports)
+                                            .mapToObj(p -> new PortBinding(Ports.Binding.empty(), ExposedPort.tcp(p)))
+                                            .collect(Collectors.toList())));
+                    return configureContainer(createContainerCmd)
                             .exec()
                             .getId();
                 })
@@ -102,36 +94,33 @@ final class MongoContainerFactory implements Closeable {
                 );
     }
 
-    private boolean isMongoImageAbsent() {
-        final Optional<String> mongoImageId = getMongoImageId();
-        mongoImageId.ifPresentOrElse(imageId -> {
-            LOGGER.info("Mongo image <{}> is already present with ID <{}>", mongoImageIdentifier, imageId);
+    private boolean isImageAbsent() {
+        final Optional<String> imageId = getImageId();
+        imageId.ifPresentOrElse(id -> {
+            LOGGER.info("Image <{}> is already present with ID <{}>", imageIdentifier, id);
         }, () -> {
-            LOGGER.info("Mongo image <{}> is not present, yet.", mongoImageIdentifier);
+            LOGGER.info("Image <{}> is not present, yet.", imageIdentifier);
         });
-        return mongoImageId.isEmpty();
+        return imageId.isEmpty();
     }
 
-    private Optional<String> getMongoImageId() {
+    private Optional<String> getImageId() {
         try {
-            return Optional.ofNullable(dockerClient.inspectImageCmd(mongoImageIdentifier).exec().getId());
+            return Optional.ofNullable(dockerClient.inspectImageCmd(imageIdentifier).exec().getId());
         } catch (final NotFoundException e) {
             return Optional.empty();
         }
     }
 
-    private void pullMongoImage() {
-        LOGGER.info("Pulling <{}>.", mongoImageIdentifier);
+    private void pullImage() {
+        LOGGER.info("Pulling <{}>.", imageIdentifier);
         final DockerImagePullHandler dockerImagePullHandler = DockerImagePullHandler.newInstance();
-        dockerClient.pullImageCmd(mongoImageIdentifier).exec(dockerImagePullHandler);
+        dockerClient.pullImageCmd(imageIdentifier).exec(dockerImagePullHandler);
         dockerImagePullHandler.getImagePullFuture().join();
     }
 
     @Override
     public void close() throws IOException {
-        // never close the default instance
-        if (this != INSTANCE) {
-            dockerClient.close();
-        }
+        dockerClient.close();
     }
 }

@@ -30,7 +30,7 @@ import org.bson.BsonString;
 import org.bson.Document;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
-import org.eclipse.ditto.internal.utils.test.mongo.MongoDbResource;
+import org.eclipse.ditto.internal.utils.test.docker.mongo.MongoDbResource;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;

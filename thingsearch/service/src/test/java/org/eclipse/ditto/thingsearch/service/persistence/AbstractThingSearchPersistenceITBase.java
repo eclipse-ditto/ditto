@@ -27,7 +27,7 @@ import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
-import org.eclipse.ditto.internal.utils.test.mongo.MongoDbResource;
+import org.eclipse.ditto.internal.utils.test.docker.mongo.MongoDbResource;
 import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.rql.query.QueryBuilderFactory;
 import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;

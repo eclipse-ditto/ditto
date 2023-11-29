@@ -59,6 +59,10 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.HiveM
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.NoMqttConnectionException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.consuming.MqttConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.consuming.ReconnectConsumerClient;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.AcknowledgementUnsupportedException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.ManualAcknowledgementDisabledException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.MessageAlreadyAcknowledgedException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publishing.MqttPublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.MqttSubscriber;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.SubscribeResult;
@@ -71,6 +75,8 @@ import com.hivemq.client.mqtt.lifecycle.MqttDisconnectSource;
 import com.typesafe.config.Config;
 
 import scala.concurrent.ExecutionContextExecutor;
+
+import io.reactivex.disposables.Disposable;
 
 /**
  * Actor for handling connection to an MQTT broker for protocol versions 3 or 5.
@@ -85,6 +91,7 @@ public final class MqttClientActor extends BaseClientActor {
     private final AtomicBoolean automaticReconnect;
     @Nullable private ActorRef publishingActorRef;
     private final List<ActorRef> mqttConsumerActorRefs;
+    @Nullable private Disposable unsolicitedPublishesAutoAckSubscription;
 
     @SuppressWarnings("java:S1144") // called by reflection
     private MqttClientActor(final Connection connection,
@@ -230,11 +237,18 @@ public final class MqttClientActor extends BaseClientActor {
     protected void cleanupResourcesForConnection() {
         mqttConsumerActorRefs.forEach(this::stopChildActor);
         stopChildActor(publishingActorRef);
+        if (unsolicitedPublishesAutoAckSubscription != null) {
+            unsolicitedPublishesAutoAckSubscription.dispose();
+        }
         if (null != genericMqttClient) {
             disableAutomaticReconnect();
             genericMqttClient.disconnect();
+            if (genericMqttClient instanceof Disposable) {
+                ((Disposable)genericMqttClient).dispose();
+            }
         }
 
+        unsolicitedPublishesAutoAckSubscription = null;
         genericMqttClient = null;
         publishingActorRef = null;
         mqttConsumerActorRefs.clear();
@@ -439,6 +453,13 @@ public final class MqttClientActor extends BaseClientActor {
     protected CompletionStage<Status.Status> startConsumerActors(@Nullable final ClientConnected clientConnected) {
         return subscribe()
                 .thenCompose(this::handleSourceSubscribeResults)
+                .thenApply(actors -> {
+                    if (null != genericMqttClient) {
+                        subscribeToAcknowledgeUnsolicitedPublishes();
+                        genericMqttClient.stopBufferingPublishes();
+                    }
+                    return actors;
+                })
                 .thenApply(actorRefs -> {
                     mqttConsumerActorRefs.addAll(actorRefs);
                     return DONE;
@@ -458,6 +479,44 @@ public final class MqttClientActor extends BaseClientActor {
             ));
         }
         return result;
+    }
+
+    private void subscribeToAcknowledgeUnsolicitedPublishes() {
+
+        final var subscribedTopics = connection().getSources()
+                .stream().flatMap(s -> s.getAddresses().stream().map(MqttTopicFilter::of))
+                .toList();
+
+        unsolicitedPublishesAutoAckSubscription = genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement()
+                .filter(p -> messageHasNoMatchingSubscription(p, subscribedTopics))
+                .subscribe(this::tryToAcknowledgePublish,
+                    p -> logger.info("Failed to read unsolicited publish: <{}>", p));
+    }
+
+    private boolean messageHasNoMatchingSubscription(final GenericMqttPublish genericMqttPublish,
+            final List<MqttTopicFilter> topicFilters) {
+        return topicFilters.stream().noneMatch(filter -> filter.matches(genericMqttPublish.getTopic()));
+    }
+
+    private void tryToAcknowledgePublish(final GenericMqttPublish mqttPublish) {
+        try {
+            mqttPublish.acknowledge();
+        } catch (final ManualAcknowledgementDisabledException e) {
+            logger.warning("""
+                    Manual acknowledgement of unsolicited incoming message at topic <{0}> failed because manual acknowledgement \
+                    is disabled.\
+                    """, mqttPublish.getTopic());
+        } catch (final MessageAlreadyAcknowledgedException e) {
+            logger.warning("""
+                    Acknowledgement of unsolicited incoming message at topic <{0}> failed because it was acknowledged already by \
+                    another source.\
+                    """, mqttPublish.getTopic());
+        } catch (final AcknowledgementUnsupportedException e) {
+            logger.warning(
+                    "Manual acknowledgement of unsolicited incoming message at topic <{0}> failed: {1}",
+                    mqttPublish.getTopic(),
+                    e.getMessage());
+        }
     }
 
     private CompletionStage<List<ActorRef>> handleSourceSubscribeResults(

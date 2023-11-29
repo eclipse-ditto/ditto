@@ -10,22 +10,22 @@
   *
   * SPDX-License-Identifier: EPL-2.0
   */
- package org.eclipse.ditto.internal.utils.test.mongo;
+package org.eclipse.ditto.internal.utils.test.docker;
 
- final class OsDetector {
+public final class OsDetector {
 
-     private OsDetector() {
-         // No-Op because this is a utility class.
-     }
+    private OsDetector() {
+        // No-Op because this is a utility class.
+    }
 
-     private static final String OS = System.getProperty("os.name").toLowerCase();
+    private static final String OS = System.getProperty("os.name").toLowerCase();
 
-     static boolean isWindows() {
-         return OS.contains("win");
-     }
+    public static boolean isWindows() {
+        return OS.contains("win");
+    }
 
-     static boolean isMac() {
-         return OS.contains("mac");
-     }
+    public static boolean isMac() {
+        return OS.contains("mac");
+    }
 
- }
+}
