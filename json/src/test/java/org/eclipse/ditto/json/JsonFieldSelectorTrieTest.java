@@ -48,6 +48,36 @@ public final class JsonFieldSelectorTrieTest {
         assertThat(getDescendantKeys(underTest, "c")).isEmpty();
     }
 
+    @Test
+    public void trieWithJsonObjectAndCertainFieldInSameJsonObject() {
+        // given
+        // a field selector containing both, a "field" inside an "object" and the "object" itself
+        final JsonFieldSelector fieldSelector = JsonFieldSelector.newInstance("object/field", "object");
+
+        // when
+        final JsonFieldSelectorTrie underTest = JsonFieldSelectorTrie.of(fieldSelector);
+
+        // then
+        assertThat(getDescendantKeys(underTest)).isEqualTo(keySetOf("object"));
+        // ensure that not only the "field" is contained, but the complete "object" instead:
+        assertThat(getDescendantKeys(underTest, "object")).isEmpty();
+    }
+
+    @Test
+    public void trieWithJsonObjectAndCertainFieldInSameJsonObjectOrderSwapped() {
+        // given
+        // a field selector containing both, a "field" inside an "object" and the "object" itself
+        final JsonFieldSelector fieldSelectorReverse = JsonFieldSelector.newInstance("object", "object/field");
+
+        // when
+        final JsonFieldSelectorTrie underTestReverse = JsonFieldSelectorTrie.of(fieldSelectorReverse);
+
+        // then
+        assertThat(getDescendantKeys(underTestReverse)).isEqualTo(keySetOf("object"));
+        // ensure that not only the "field" is contained, but the complete "object" instead:
+        assertThat(getDescendantKeys(underTestReverse, "object")).isEmpty();
+    }
+
     private static Set<JsonKey> keySetOf(final String... keyNames) {
         return Arrays.stream(keyNames).map(JsonKey::of).collect(Collectors.toSet());
     }

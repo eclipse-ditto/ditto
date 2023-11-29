@@ -100,7 +100,21 @@ final class JsonFieldSelectorTrie {
         if (iterator.hasNext()) {
             final JsonKey key = iterator.next();
             children.compute(key, (theKey, theChild) -> {
-                final JsonFieldSelectorTrie child = theChild != null ? theChild : new JsonFieldSelectorTrie();
+                final JsonFieldSelectorTrie child;
+                if (theChild != null) {
+                    if (iterator.hasNext()) {
+                        if (theChild.children.isEmpty()) {
+                            return theChild;
+                        } else {
+                            child = theChild;
+                        }
+                    } else {
+                        child = new JsonFieldSelectorTrie();
+                    }
+                } else {
+                    child = new JsonFieldSelectorTrie();
+                }
+
                 return child.addJsonKeyIterator(iterator);
             });
         }
