@@ -46,6 +46,11 @@ final class CapturingMdcAdapterObserver extends ObservableMdcAdapter.AbstractMdc
     }
 
     @Override
+    public void onPushByKey(final String key, final String value) {
+        super.onPushByKey(key, value);
+    }
+
+    @Override
     public void onRemove(final String key) {
         allRemovedKeys.add(key);
     }

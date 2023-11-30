@@ -27,6 +27,7 @@ import org.assertj.core.api.JUnitSoftAssertions;
 import org.assertj.core.data.MapEntry;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,6 +38,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.slf4j.Logger;
 import org.slf4j.impl.ObservableMdcAdapter;
+import org.slf4j.impl.StaticMDCServiceProvider;
 
 /**
  * Unit test for {@link ImmutableDittoLogger}.
@@ -57,6 +59,11 @@ public final class ImmutableDittoLoggerTest {
     private Logger plainSlf4jLogger;
 
     private CapturingMdcAdapterObserver mdcObserver;
+
+    @BeforeClass
+    public static void configureProvider() {
+        System.setProperty("slf4j.provider", StaticMDCServiceProvider.class.getName());
+    }
 
     @Before
     public void setUp() {

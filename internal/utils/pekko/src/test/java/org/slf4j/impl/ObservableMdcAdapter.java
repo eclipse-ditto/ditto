@@ -104,21 +104,25 @@ public final class ObservableMdcAdapter implements MDCAdapter {
 
     @Override
     public void pushByKey(final String key, final String value) {
+        notifyAllObservers(observer -> observer.onPushByKey(key, value));
         basicMdcAdapter.pushByKey(key, value);
     }
 
     @Override
     public String popByKey(final String key) {
+        notifyAllObservers(observer -> observer.onPopByKey(key));
         return basicMdcAdapter.popByKey(key);
     }
 
     @Override
     public Deque<String> getCopyOfDequeByKey(final String key) {
+        notifyAllObservers(observer -> observer.onGetCopyOfDequeByKey(key));
         return basicMdcAdapter.getCopyOfDequeByKey(key);
     }
 
     @Override
     public void clearDequeByKey(final String key) {
+        notifyAllObservers(observer -> observer.onClearDequeByKey(key));
         basicMdcAdapter.clearDequeByKey(key);
     }
 
@@ -142,6 +146,13 @@ public final class ObservableMdcAdapter implements MDCAdapter {
 
         void onSetContextMap(Map<String, String> contextMap);
 
+        void onPushByKey(String key, String value);
+
+        void onPopByKey(String key);
+
+        void onGetCopyOfDequeByKey(String key);
+
+        void onClearDequeByKey(String key);
     }
 
     /**
@@ -187,6 +198,25 @@ public final class ObservableMdcAdapter implements MDCAdapter {
             // Does nothing by default.
         }
 
+        @Override
+        public void onPushByKey(final String key, final String value) {
+            // Does nothing by default.
+        }
+
+        @Override
+        public void onPopByKey(final String key) {
+            // Does nothing by default.
+        }
+
+        @Override
+        public void onGetCopyOfDequeByKey(final String key) {
+            // Does nothing by default.
+        }
+
+        @Override
+        public void onClearDequeByKey(final String key) {
+            // Does nothing by default.
+        }
     }
 
 }
