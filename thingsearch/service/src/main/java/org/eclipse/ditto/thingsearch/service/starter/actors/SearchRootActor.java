@@ -14,11 +14,17 @@ package org.eclipse.ditto.thingsearch.service.starter.actors;
 
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.BACKGROUND_SYNC_COLLECTION_NAME;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.event.Logging;
+import org.apache.pekko.event.LoggingAdapter;
+import org.apache.pekko.stream.SystemMaterializer;
 import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
-import org.eclipse.ditto.internal.utils.pekko.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.pekko.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoTimestampPersistence;
 import org.eclipse.ditto.rql.query.QueryBuilderFactory;
@@ -31,13 +37,6 @@ import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchP
 import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQueryBuilderFactory;
 import org.eclipse.ditto.thingsearch.service.updater.actors.SearchUpdaterRootActor;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.event.Logging;
-import org.apache.pekko.event.LoggingAdapter;
-import org.apache.pekko.stream.SystemMaterializer;
 
 /**
  * Our "Parent" Actor which takes care of supervision of all other Actors in our system.
@@ -74,7 +73,7 @@ public final class SearchRootActor extends DittoRootActor {
                         SystemMaterializer.get(actorSystem).materializer());
 
         final ActorRef searchUpdaterRootActor = startChildActor(SearchUpdaterRootActor.ACTOR_NAME,
-                SearchUpdaterRootActor.props(searchConfig, pubSubMediator, thingsSearchPersistence,
+                SearchUpdaterRootActor.props(searchConfig, searchActor, pubSubMediator, thingsSearchPersistence,
                         backgroundSyncPersistence));
         final ActorRef healthCheckingActor = initializeHealthCheckActor(searchConfig, searchUpdaterRootActor);
 

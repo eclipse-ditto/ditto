@@ -13,24 +13,32 @@
 package org.eclipse.ditto.thingsearch.api.commands.sudo;
 
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
 import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 
@@ -57,12 +65,25 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
             JsonFactory.newStringFieldDefinition("filter", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
+    static final JsonFieldDefinition<JsonArray> JSON_NAMESPACES =
+            JsonFactory.newJsonArrayFieldDefinition("namespaces", FieldType.REGULAR,
+                    JsonSchemaVersion.V_2);
+
     @Nullable
     private final String filter;
 
-    private SudoCountThings(final DittoHeaders dittoHeaders, @Nullable final String filter) {
+    @Nullable
+    private final Set<String> namespaces;
+
+    private SudoCountThings(final DittoHeaders dittoHeaders, @Nullable final String filter,
+            @Nullable final Collection<String> namespaces) {
         super(TYPE, dittoHeaders);
         this.filter = filter;
+        if (namespaces != null) {
+            this.namespaces = Collections.unmodifiableSet(new HashSet<>(namespaces));
+        } else {
+            this.namespaces = null;
+        }
     }
 
     /**
@@ -74,7 +95,21 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static SudoCountThings of(@Nullable final String filter, final DittoHeaders dittoHeaders) {
-        return new SudoCountThings(dittoHeaders, filter);
+        return new SudoCountThings(dittoHeaders, filter, null);
+    }
+
+    /**
+     * Returns a new instance of {@code SudoCountThings}.
+     *
+     * @param filter the optional filter string.
+     * @param namespaces the namespaces to perform the count in.
+     * @param dittoHeaders the headers of the command.
+     * @return a new command for counting Things.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     */
+    public static SudoCountThings of(@Nullable final String filter, @Nullable final Collection<String> namespaces,
+            final DittoHeaders dittoHeaders) {
+        return new SudoCountThings(dittoHeaders, filter, namespaces);
     }
 
     /**
@@ -85,7 +120,7 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static SudoCountThings of(final DittoHeaders dittoHeaders) {
-        return new SudoCountThings(dittoHeaders, null);
+        return new SudoCountThings(dittoHeaders, null, null);
     }
 
     /**
@@ -119,7 +154,14 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
         return new CommandJsonDeserializer<SudoCountThings>(TYPE, jsonObject).deserialize(() -> {
             final String extractedFilter = jsonObject.getValue(JSON_FILTER).orElse(null);
 
-            return new SudoCountThings(dittoHeaders, extractedFilter);
+            final Set<String> extractedNamespaces = jsonObject.getValue(JSON_NAMESPACES)
+                    .map(jsonValues -> jsonValues.stream()
+                            .filter(JsonValue::isString)
+                            .map(JsonValue::asString)
+                            .collect(Collectors.toSet()))
+                    .orElse(null);
+
+            return new SudoCountThings(dittoHeaders, extractedFilter, extractedNamespaces);
         });
     }
 
@@ -132,12 +174,24 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
         return Optional.ofNullable(filter);
     }
 
+    /**
+     * Get the optional set of namespaces.
+     *
+     * @return the optional set of namespaces.
+     */
+    public Optional<Set<String>> getNamespaces() {
+        return Optional.ofNullable(namespaces);
+    }
+
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         getFilter().ifPresent(theFilter -> jsonObjectBuilder.set(JSON_FILTER, theFilter, predicate));
+        getNamespaces().ifPresent(presentOptions -> jsonObjectBuilder.set(JSON_NAMESPACES, presentOptions.stream()
+                .map(JsonValue::of)
+                .collect(JsonCollectors.valuesToArray()), predicate));
     }
 
     @Override
@@ -147,7 +201,7 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
 
     @Override
     public SudoCountThings setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(filter, dittoHeaders);
+        return of(filter, namespaces, dittoHeaders);
     }
 
     @Override
@@ -159,17 +213,21 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
         if (!super.equals(o))
             return false;
         final SudoCountThings that = (SudoCountThings) o;
-        return Objects.equals(filter, that.filter);
+        return Objects.equals(filter, that.filter) &&
+                Objects.equals(namespaces, that.namespaces);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), filter);
+        return Objects.hash(super.hashCode(), filter, namespaces);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" + "filter='" + filter + "']";
+        return getClass().getSimpleName() + "[" +
+                "filter='" + filter + "'" +
+                ", namespaces=" + namespaces +
+                "]";
     }
 
 }

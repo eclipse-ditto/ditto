@@ -82,10 +82,14 @@ spec:
           env:
             {{- if not .Values.global.logging.customConfigFile.enabled }}
             - name: DITTO_LOGGING_DISABLE_SYSOUT_LOG
-              value: "{{ if .Values.global.logging.sysout.enabled }}false{{ else }}true{{ end }}"
+              value: "{{ printf "%t" .Values.global.logging.sysout.enabled }}"
             - name: DITTO_LOGGING_FILE_APPENDER
-              value: "{{ if .Values.global.logging.logFiles.enabled }}true{{ else }}false{{ end }}"
+              value: "{{ printf "%t" .Values.global.logging.logFiles.enabled }}"
             {{- end }}
+            - name: DITTO_METRICS_METRIC_PREFIX
+              value: "{{ .Values.global.metrics.metricsPrefix }}"
+            - name: SYSTEM_METRICS_ENABLED
+              value: "{{ .Values.global.metrics.systemMetrics.enabled }}"
             - name: DITTO_TRACING_ENABLED
               value: "{{ .Values.global.tracing.enabled }}"
             - name: DITTO_TRACING_OTEL_TRACE_REPORTER_ENABLED
@@ -155,7 +159,7 @@ spec:
                 {{- end }}
                 {{ join " " .Values.policies.systemProps }}
             - name: MONGO_DB_SSL_ENABLED
-              value: "{{ if .Values.dbconfig.policies.ssl }}true{{ else }}false{{ end }}"
+              value: "{{ printf "%t" .Values.dbconfig.policies.ssl }}"
             - name: MONGO_DB_URI
               valueFrom:
                 secretKeyRef:

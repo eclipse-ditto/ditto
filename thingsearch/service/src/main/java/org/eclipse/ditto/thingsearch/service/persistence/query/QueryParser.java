@@ -122,7 +122,13 @@ public final class QueryParser {
     public CompletionStage<Query> parseSudoCountThings(final SudoCountThings sudoCountThings) {
         final DittoHeaders headers = sudoCountThings.getDittoHeaders();
         final String filters = sudoCountThings.getFilter().orElse(null);
-        final Criteria criteria = queryFilterCriteriaFactory.filterCriteria(filters, headers);
+        final Set<String> namespaces = sudoCountThings.getNamespaces().orElse(null);
+        final Criteria criteria;
+        if (null != namespaces) {
+            criteria = queryFilterCriteriaFactory.filterCriteriaRestrictedByNamespaces(filters, headers, namespaces);
+        } else {
+            criteria = queryFilterCriteriaFactory.filterCriteria(filters, headers);
+        }
         return CompletableFuture.completedFuture(queryBuilderFactory.newUnlimitedBuilder(criteria).build());
     }
 

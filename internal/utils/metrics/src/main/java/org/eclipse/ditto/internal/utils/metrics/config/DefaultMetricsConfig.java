@@ -30,12 +30,14 @@ public final class DefaultMetricsConfig implements MetricsConfig {
     private static final String CONFIG_PATH = "metrics";
 
     private final boolean systemMetricEnabled;
+    private final String metricPrefix;
     private final boolean prometheusEnabled;
     private final String prometheusHostname;
     private final int prometheusPort;
 
     private DefaultMetricsConfig(final ConfigWithFallback metricsScopedConfig) {
         systemMetricEnabled = metricsScopedConfig.getBoolean(MetricsConfigValue.SYSTEM_METRICS_ENABLED.getConfigPath());
+        metricPrefix = metricsScopedConfig.getString(MetricsConfigValue.METRIC_PREFIX.getConfigPath());
         prometheusEnabled = metricsScopedConfig.getBoolean(MetricsConfigValue.PROMETHEUS_ENABLED.getConfigPath());
         prometheusHostname = metricsScopedConfig.getString(MetricsConfigValue.PROMETHEUS_HOSTNAME.getConfigPath());
         prometheusPort = metricsScopedConfig.getNonNegativeIntOrThrow(MetricsConfigValue.PROMETHEUS_PORT);
@@ -56,6 +58,11 @@ public final class DefaultMetricsConfig implements MetricsConfig {
     @Override
     public boolean isSystemMetricsEnabled() {
         return systemMetricEnabled;
+    }
+
+    @Override
+    public String getMetricPrefix() {
+        return metricPrefix;
     }
 
     @Override
@@ -83,6 +90,7 @@ public final class DefaultMetricsConfig implements MetricsConfig {
         }
         final DefaultMetricsConfig that = (DefaultMetricsConfig) o;
         return systemMetricEnabled == that.systemMetricEnabled &&
+                Objects.equals(metricPrefix, that.metricPrefix) &&
                 prometheusEnabled == that.prometheusEnabled &&
                 prometheusPort == that.prometheusPort &&
                 Objects.equals(prometheusHostname, that.prometheusHostname);
@@ -90,13 +98,14 @@ public final class DefaultMetricsConfig implements MetricsConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(systemMetricEnabled, prometheusEnabled, prometheusHostname, prometheusPort);
+        return Objects.hash(systemMetricEnabled, metricPrefix, prometheusEnabled, prometheusHostname, prometheusPort);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "systemMetricEnabled=" + systemMetricEnabled +
+                ", metricPrefix=" + metricPrefix +
                 ", prometheusEnabled=" + prometheusEnabled +
                 ", prometheusHostname=" + prometheusHostname +
                 ", prometheusPort=" + prometheusPort +
