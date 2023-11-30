@@ -23,6 +23,9 @@ entries:
       - title: Release Notes
         output: web
         folderitems:
+          - title: 3.4.2
+            url: /release_notes_342.html
+            output: web
           - title: 3.4.1
             url: /release_notes_341.html
             output: web
