@@ -12,6 +12,7 @@
  */
 package org.slf4j.impl;
 
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -99,6 +100,26 @@ public final class ObservableMdcAdapter implements MDCAdapter {
     public void setContextMap(final Map<String, String> contextMap) {
         notifyAllObservers(observer -> observer.onSetContextMap(contextMap));
         basicMdcAdapter.setContextMap(contextMap);
+    }
+
+    @Override
+    public void pushByKey(final String key, final String value) {
+        basicMdcAdapter.pushByKey(key, value);
+    }
+
+    @Override
+    public String popByKey(final String key) {
+        return basicMdcAdapter.popByKey(key);
+    }
+
+    @Override
+    public Deque<String> getCopyOfDequeByKey(final String key) {
+        return basicMdcAdapter.getCopyOfDequeByKey(key);
+    }
+
+    @Override
+    public void clearDequeByKey(final String key) {
+        basicMdcAdapter.clearDequeByKey(key);
     }
 
     /**
