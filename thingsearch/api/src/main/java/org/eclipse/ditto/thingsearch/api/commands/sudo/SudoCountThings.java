@@ -101,7 +101,8 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
     /**
      * Returns a new instance of {@code SudoCountThings}.
      *
-     * @param filter the optional filter string
+     * @param filter the optional filter string.
+     * @param namespaces the namespaces to perform the count in.
      * @param dittoHeaders the headers of the command.
      * @return a new command for counting Things.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
