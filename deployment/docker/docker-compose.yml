@@ -25,6 +25,9 @@ services:
       - 27017:27017
     environment:
        TZ: Europe/Berlin
+    logging:
+      options:
+        max-size: 50m
 
   policies:
     image: docker.io/eclipse/ditto-policies:${DITTO_VERSION:-latest}
@@ -52,7 +55,10 @@ services:
       timeout: 15s
       retries: 4
       start_period: 120s
-
+    logging:
+      options:
+        max-size: 50m
+        
   things:
     image: docker.io/eclipse/ditto-things:${DITTO_VERSION:-latest}
     mem_limit: 512m
@@ -81,7 +87,10 @@ services:
       timeout: 15s
       retries: 4
       start_period: 120s
-
+    logging:
+      options:
+        max-size: 50m
+        
   things-search:
     image: docker.io/eclipse/ditto-things-search:${DITTO_VERSION:-latest}
     mem_limit: 512m
@@ -110,7 +119,10 @@ services:
       timeout: 15s
       retries: 4
       start_period: 120s
-
+    logging:
+      options:
+        max-size: 50m
+        
   connectivity:
     image: docker.io/eclipse/ditto-connectivity:${DITTO_VERSION:-latest}
     mem_limit: 768m
@@ -140,7 +152,10 @@ services:
       timeout: 15s
       retries: 4
       start_period: 120s
-
+    logging:
+      options:
+        max-size: 50m
+        
   gateway:
     image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
     mem_limit: 512m
@@ -173,12 +188,18 @@ services:
       timeout: 15s
       retries: 4
       start_period: 120s
-
+   logging:
+      options:
+        max-size: 50m
+        
   ditto-ui:
     image: docker.io/eclipse/ditto-ui:${DITTO_VERSION:-latest}
     mem_limit: 32m
     restart: always
-
+    logging:
+      options:
+        max-size: 50m
+        
   swagger-ui:
     image: docker.io/swaggerapi/swagger-ui:v5.9.1
     mem_limit: 32m
@@ -189,8 +210,11 @@ services:
        - ../../documentation/src/main/resources/openapi:/usr/share/nginx/html/openapi:ro
        - ../../documentation/src/main/resources/images:/usr/share/nginx/html/images:ro
        - ./swagger3-index.html:/usr/share/nginx/html/index.html:ro
-    command: nginx -g 'daemon off;'
-
+    command: nginx -g 'daemon off;'  
+    logging:
+      options:
+        max-size: 50m
+        
   nginx:
     image: docker.io/nginx:1.21-alpine
     mem_limit: 32m
@@ -208,7 +232,10 @@ services:
     depends_on:
       - gateway
       - swagger-ui
-
+    logging:
+      options:
+        max-size: 50m
+        
 volumes:
   ditto_log_files:
     driver: local
