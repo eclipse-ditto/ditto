@@ -17,6 +17,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.KamonTagSetConverter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
@@ -55,7 +56,8 @@ public final class KamonCounter implements Counter {
      * @throws IllegalArgumentException if {@code name} is empty.
      */
     public static KamonCounter newCounter(final String name, final TagSet tags) {
-        return new KamonCounter(name, tags);
+        final String metricPrefix = System.getProperty(DittoSystemProperties.DITTO_METRICS_METRIC_PREFIX, "");
+        return new KamonCounter(metricPrefix + name, tags);
     }
 
     @Override

@@ -19,6 +19,7 @@ import * as Utils from '../utils.js';
 import piggybackHTML from './piggyback.html';
 import piggybackPlaceholders from './piggybackPlaceholders.json';
 import * as Templates from './templates.js';
+import {TabHandler} from '../utils/tabHandler.js';
 
 const EDITOR_INVALID_JSON_MNSSAGE = 'Invalid json!'
 const HEADER_IS_REQUIRED_MESSAGE = 'Headers field is required!';
@@ -57,6 +58,8 @@ let dom = {
     responseStatus: null,
     commandValidationElement: null,
     headerValidationElement: null,
+    tabOperations: null,
+    collapseOperations: null,
 }
 
 document.getElementById('piggybackHTML').innerHTML = piggybackHTML;
@@ -72,7 +75,7 @@ export async function ready() {
         Templates.setSelectedService(service);
     }
 
-    await loadServicesAndInstances();
+    TabHandler(dom.tabOperations, dom.collapseOperations, loadServicesAndInstances, 'disableOperations');
 
     initAceEditors();
 

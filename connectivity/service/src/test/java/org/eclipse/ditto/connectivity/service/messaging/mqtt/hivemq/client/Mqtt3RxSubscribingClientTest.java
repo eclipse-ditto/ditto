@@ -24,6 +24,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
@@ -57,10 +61,6 @@ import com.hivemq.client.mqtt.mqtt3.message.subscribe.Mqtt3Subscription;
 import com.hivemq.client.mqtt.mqtt3.message.subscribe.suback.Mqtt3SubAck;
 import com.hivemq.client.mqtt.mqtt3.message.subscribe.suback.Mqtt3SubAckReturnCode;
 
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Status;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
 import io.reactivex.Flowable;
 import io.reactivex.Single;
 
@@ -88,6 +88,7 @@ public final class Mqtt3RxSubscribingClientTest {
     @Before
     public void before() {
         Mockito.when(mqtt3RxClient.toAsync()).thenReturn(mqtt3AsyncClient);
+        Mockito.when(mqtt3RxClient.publishes(Mockito.eq(MqttGlobalPublishFilter.ALL), Mockito.eq(true))).thenReturn(Flowable.never());
     }
 
     @Test
@@ -263,7 +264,7 @@ public final class Mqtt3RxSubscribingClientTest {
                 .qos(mqttQos)
                 .payload(ByteBufferUtils.fromUtf8String("online"))
                 .build();
-        Mockito.when(mqtt3RxClient.publishes(Mockito.eq(MqttGlobalPublishFilter.SUBSCRIBED), Mockito.eq(true)))
+        Mockito.when(mqtt3RxClient.publishes(Mockito.eq(MqttGlobalPublishFilter.ALL), Mockito.eq(true)))
                 .thenReturn(Flowable.just(mqtt3Publish));
         final var onCompleteMessage = "done";
         final var underTest = BaseGenericMqttSubscribingClient.ofMqtt3RxClient(mqtt3RxClient, ClientRole.CONSUMER);
@@ -284,7 +285,7 @@ public final class Mqtt3RxSubscribingClientTest {
     @Test
     public void consumeSubscribedPublishesWithManualAcknowledgementErrorsIfSessionExpired() {
         final var mqttSessionExpiredException = new MqttSessionExpiredException("Your session expired.", null);
-        Mockito.when(mqtt3RxClient.publishes(Mockito.eq(MqttGlobalPublishFilter.SUBSCRIBED), Mockito.eq(true)))
+        Mockito.when(mqtt3RxClient.publishes(Mockito.eq(MqttGlobalPublishFilter.ALL), Mockito.eq(true)))
                 .thenReturn(Flowable.error(mqttSessionExpiredException));
         final var underTest = BaseGenericMqttSubscribingClient.ofMqtt3RxClient(mqtt3RxClient, ClientRole.CONSUMER);
 

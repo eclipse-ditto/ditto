@@ -93,4 +93,10 @@ public interface GenericMqttSubscribingClient {
      * @return the {@code Completable} that completes or fails according to the unsubscription result.
      */
     CompletionStage<Void> unsubscribe(MqttTopicFilter... mqttTopicFilters);
+
+    /**
+     * Stops buffering publishes. All new subscribers that use {@code consumeSubscribedPublishesWithManualAcknowledgement}
+     * methods will get only new publishes.
+     */
+    void stopBufferingPublishes();
 }

@@ -123,7 +123,7 @@ public final class DefaultLimitsConfig implements LimitsConfig, WithConfigPath {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", thingsMaxSize=" + thingsMaxSize +
+                "thingsMaxSize=" + thingsMaxSize +
                 ", policiesMaxSize=" + policiesMaxSize +
                 ", messagesMaxSize=" + messagesMaxSize +
                 ", thingsSearchDefaultPageSize=" + thingsSearchDefaultPageSize +

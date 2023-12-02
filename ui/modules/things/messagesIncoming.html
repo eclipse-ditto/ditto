@@ -15,7 +15,7 @@
 <hr />
 <div class="collapse" id="collapseMessages">
     <div class="row resizable_pane" style="height: 45vh;">
-        <div class="col-md-6 resizable_flex_column">
+        <div class="col-md-7 resizable_flex_column">
             <div class="input-group input-group-sm mb-1">
                 <button class="btn btn-outline-secondary btn-sm button_round_right" id="buttonResetMessagesIncoming"
                     data-bs-toggle="tooltip" title="Reset connection logs for the selected connection">
@@ -28,6 +28,8 @@
                     <thead>
                         <tr>
                             <th>Revision</th>
+                            <th>Action</th>
+                            <th>Path</th>
                             <th>Field(s)</th>
                             <th>Modified</th>
                         </tr>
@@ -36,8 +38,17 @@
                 </table>
             </div>
         </div>
-        <div class="col-md-6 resizable_flex_column">
+        <div class="col-md-5 resizable_flex_column">
             <h6>Thing Update Detail</h6>
+            <div class="input-group input-group-sm mb-1 mt-1">
+                <label class="input-group-text" for="selectThingUpdateMessageContent">Show</label>
+                <select class="form-select form-select-sm" id="selectThingUpdateMessageContent">
+                    <option value="FULL_THING_WITH_CONTEXT" selected>Full Thing JSON with context and metadata</option>
+                    <option value="FULL_THING">Only full Thing JSON</option>
+                    <option value="ONLY_CONTEXT_WITH_METADATA">Only context with metadata</option>
+                    <option value="ONLY_CONTEXT">Only context</option>
+                </select>
+            </div>
             <div class="ace_container" style="flex-grow: 1;">
                 <div class="script_editor" id="messageIncomingDetail"></div>
             </div>

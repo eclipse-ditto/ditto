@@ -60,6 +60,7 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
     private final MongoDbConfig mongoDbConfig;
     private final SearchPersistenceConfig queryPersistenceConfig;
     private final Map<String, String> simpleFieldMappings;
+    private final DefaultOperatorMetricsConfig operatorMetricsConfig;
 
     private DittoSearchConfig(final ScopedConfig dittoScopedConfig) {
         dittoServiceConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
@@ -79,6 +80,7 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
         queryPersistenceConfig = DefaultSearchPersistenceConfig.of(queryConfig);
         simpleFieldMappings =
                 convertToMap(configWithFallback.getConfig(SearchConfigValue.SIMPLE_FIELD_MAPPINGS.getConfigPath()));
+        operatorMetricsConfig = DefaultOperatorMetricsConfig.of(configWithFallback);
     }
 
     /**
@@ -110,6 +112,11 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
 
     public Map<String, String> getSimpleFieldMappings() {
         return simpleFieldMappings;
+    }
+
+    @Override
+    public DefaultOperatorMetricsConfig getOperatorMetricsConfig() {
+        return operatorMetricsConfig;
     }
 
     @Override
@@ -175,13 +182,15 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
                 Objects.equals(persistenceOperationsConfig, that.persistenceOperationsConfig) &&
                 Objects.equals(mongoDbConfig, that.mongoDbConfig) &&
                 Objects.equals(queryPersistenceConfig, that.queryPersistenceConfig) &&
-                Objects.equals(simpleFieldMappings, that.simpleFieldMappings);
+                Objects.equals(simpleFieldMappings, that.simpleFieldMappings) &&
+                Objects.equals(operatorMetricsConfig, that.operatorMetricsConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(mongoHintsByNamespace, updaterConfig, dittoServiceConfig, healthCheckConfig,
-                indexInitializationConfig, persistenceOperationsConfig, mongoDbConfig, queryPersistenceConfig, simpleFieldMappings);
+                indexInitializationConfig, persistenceOperationsConfig, mongoDbConfig, queryPersistenceConfig,
+                simpleFieldMappings, operatorMetricsConfig);
     }
 
     @Override
@@ -196,6 +205,7 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
                 ", mongoDbConfig=" + mongoDbConfig +
                 ", queryPersistenceConfig=" + queryPersistenceConfig +
                 ", simpleFieldMappings=" + simpleFieldMappings +
+                ", operatorMetricsConfig=" + operatorMetricsConfig +
                 "]";
     }
 

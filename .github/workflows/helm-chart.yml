@@ -65,7 +65,7 @@ jobs:
         k8s:
           - v1.26.6
           - v1.27.3
-          - v1.28.3
+          - v1.28.0
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -94,7 +94,7 @@ jobs:
         k8s:
           - v1.26.6
           - v1.27.3
-          - v1.28.3
+          - v1.28.0
     steps:
       - name: Checkout
         uses: actions/checkout@v4

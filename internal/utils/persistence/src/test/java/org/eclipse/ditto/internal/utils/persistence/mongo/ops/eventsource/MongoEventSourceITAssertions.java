@@ -35,7 +35,7 @@ import org.eclipse.ditto.internal.utils.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
-import org.eclipse.ditto.internal.utils.test.mongo.MongoDbResource;
+import org.eclipse.ditto.internal.utils.test.docker.mongo.MongoDbResource;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;

@@ -131,7 +131,6 @@ data:
 
     # ignore X-Original-URI in the request
     proxy_hide_header X-Original-URI;
-    proxy_set_header X-Original-URI $request_uri;
 
   proxy-connect-timeout: "10" # seconds, default: 60
   # timeouts are configured slightly higher than gateway read-timeout of 60 seconds
