@@ -10,6 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
+import {JSONPath} from 'jsonpath-plus';
 
 import * as API from '../api.js';
 import * as Utils from '../utils.js';
@@ -69,12 +70,20 @@ export function ready() {
   dom.buttonResetConnectionLogs.onclick = onResetConnectionLogsClick;
   dom.buttonRetrieveConnectionLogs.onclick = retrieveConnectionLogs;
   dom.tbodyConnectionLogs.addEventListener('click', onConnectionLogTableClick);
+  dom.inputConnectionLogFilter.onchange = onConnectionLogFilterChange;
+  let filterAutoComplete = Utils.createAutoComplete('#inputConnectionLogFilter', createAutocompleteFilters(), 'JSONPath to filter logs...');
+  filterAutoComplete.input.addEventListener('selection', (event) => {
+    const selection = event.detail.selection.value;
+    dom.inputConnectionLogFilter.value = selection.filter;
+  });
+
+
 
   // Metrics ---------------
   dom.buttonRetrieveConnectionMetrics.onclick = retrieveConnectionMetrics;
   (document.querySelector('a[data-bs-target="#tabConnectionMetrics"]') as HTMLElement).onclick = retrieveConnectionMetrics;
   dom.buttonResetConnectionMetrics.onclick = onResetConnectionMetricsClick;
-  dom.inputConnectionLogFilter.onchange = onConnectionLogFilterChange;
+  dom.tbodyConnectionMetrics.addEventListener('click', onConnectionMetricsTableClick)
 }
 
 function onResetConnectionMetricsClick() {
@@ -85,6 +94,9 @@ function onResetConnectionMetricsClick() {
 function onConnectionLogTableClick(event) {
   connectionLogDetail.setValue(Utils.stringifyPretty(connectionLogs[event.target.parentNode.rowIndex - 1]), -1);
   connectionLogDetail.session.getUndoManager().reset();
+}
+
+function onConnectionMetricsTableClick(event) {
 }
 
 function onResetConnectionLogsClick() {
@@ -142,8 +154,17 @@ function fillConnectionLogsTable() {
   connectionLogDetail.setValue('');
 
   let entries = connectionLogs;
-  if (connectionLogsFilter) {
-    entries = connectionLogs.filter(connectionLogsFilter.match);
+  if (dom.inputConnectionLogFilter.value && dom.inputConnectionLogFilter.value !== '') {
+    try {
+      entries = JSONPath({
+        path: dom.inputConnectionLogFilter.value,
+        json: entries,
+      });
+    }
+    catch (error) {
+      console.log(error.message);
+      Utils.assert(false, error.message, dom.inputConnectionLogFilter);
+    }
   }
   entries.forEach((entry) => {
     Utils.addTableRow(dom.tbodyConnectionLogs, Utils.formatDate(entry.timestamp, true), false, null, entry.type, entry.level);
@@ -172,31 +193,45 @@ function onConnectionChange(connection, isNewConnection = true) {
   }
 }
 
-function JsonFilter() {
-  let _filters = [];
-
-  const match = (object) => {
-    let result = true;
-    _filters.forEach((f) => result = result && object[f.key] === f.value);
-    return result;
-  };
-
-  const add = (key, value) => {
-    _filters.push({key: key, value: value});
-  };
-
-  return {
-    match,
-    add,
-  };
+function onConnectionLogFilterChange(event: Event) {
+  dom.inputConnectionLogFilter.classList.remove('is-invalid');
+  event.stopImmediatePropagation();
+  fillConnectionLogsTable();
 }
 
-const knownFields = ['category', 'type', 'level'];
+function createAutocompleteFilters() {
+  let result = {
+    keys: ['label'],
+    src: [{
+      label: 'message',
+      group: 'Search in message',
+      filter: `$[?(@.message.includes('...'))]`,
+    }],
+  };
 
-function onConnectionLogFilterChange(event: Event) {
-  if (dom.inputConnectionLogFilter.value && dom.inputConnectionLogFilter.value !== '') {
-    connectionLogsFilter = Utils.JSONFilter(dom.inputConnectionLogFilter.value);
+  ['consumed', 'mapped', 'dropped', 'enforced', 'acknowledged',
+  'throttled', 'dispatched', 'filtered', 'published'].forEach(addEnumFilter('type'));
+  ['source', 'target', 'response'].forEach(addEnumFilter('category'));
+  ['success', 'failure'].forEach(addEnumFilter('level'));
+  ['thing'].forEach(addEnumFilter('entityType'));
+
+  ['correlationId', 'entityId'].forEach((value) => {
+    result.src.push({
+      label: value,
+      group: `Search for ${value}`,
+      filter: `$[?(@.${value}=='...')]`
+    });
+  })
+
+  return result;
+
+  function addEnumFilter(group) {
+    return (value) => {
+      result.src.push({
+        label: `${group}:${value}`,
+        group: group,
+        filter: `$[?(@.${group}=='${value}')]`
+      })
+    }
   }
-
-  fillConnectionLogsTable();
 }

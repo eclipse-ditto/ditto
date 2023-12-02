@@ -166,8 +166,10 @@
                     Refresh
                 </button>
             </div>
-            <div class="input-group input-group-sm mb-1">
-                <input id="inputConnectionLogFilter" type="search" class="form-control form-control-sm" placeholder="Filter logs..."></input>
+            <div class="input-group input-group-sm has-validation mb-1">
+                <input id="inputConnectionLogFilter" type="search" class="form-control form-control-sm"
+                placeholder="JSONPath to filter logs..." autocomplete="off"></input>
+                <div class="invalid-feedback"></div>
             </div>
             <!-- <div data-bs-theme="dark">
                 <span class="badge rounded-pill bg-info mb-1">level:success<button type="button" class="btn-close" aria-label="Close"></button></span>

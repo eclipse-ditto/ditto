@@ -119,7 +119,9 @@ async function createFilterList(query) {
   date1h.setHours(date1h.getHours() - 1);
   date1m.setMinutes(date1m.getMinutes() -1);
 
-  return [
+  return {
+    keys: ['label', 'group'],
+    src: [
     {
       label: 'Created since 1m',
       rql: `gt(_created,"${date1m.toISOString()}")`,
@@ -173,7 +175,7 @@ async function createFilterList(query) {
     })),
     ...filterHistory.map((f) => ({label: f, rql: f, group: 'Recent'})),
     ...filterExamples.map((f) => ({label: f, rql: f, group: 'Example'})),
-  ];
+  ]};
 }
 
 /**
