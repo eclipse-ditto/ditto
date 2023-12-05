@@ -69,7 +69,7 @@
         <cloudevents.version>2.3.0</cloudevents.version>
 
         <slf4j.version>1.7.36</slf4j.version>
-        <logback.version>1.2.12</logback.version>
+        <logback.version>1.2.13</logback.version>
         <logstash-logback-encoder.version>7.2</logstash-logback-encoder.version>
         <fluency.version>2.6.5</fluency.version>
         <janino.version>3.1.10</janino.version>
