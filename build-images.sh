@@ -39,7 +39,10 @@ SERVICES=(
 : "${IMAGE_VERSION:="${SERVICE_VERSION}"}"
 
 print_usage() {
-  printf "%s [-p HTTP(S) PROXY HOST:PORT]\n" "$1"
+  printf "%s [-uPh] [-p HTTP(S) PROXY HOST:PORT]\n" "$1"
+  printf "  -u  build the ditto-ui as docker image\n" "$1"
+  printf "  -P  push the built docker images\n" "$1"
+  printf "  -h  display help\n" "$1"
 }
 
 print_used_proxies() {
@@ -98,7 +101,9 @@ build_all_docker_images() {
   for i in "${SERVICES[@]}"; do
     build_docker_image "$i"
   done
-  build_ditto_ui_docker_image
+  if [[ "$BUILD_UI" == "true" ]]; then
+    build_ditto_ui_docker_image
+  fi
 }
 
 set_proxies() {
@@ -109,10 +114,13 @@ set_proxies() {
 }
 
 evaluate_script_arguments() {
-  while getopts "p:hP" opt; do
+  while getopts "p:uhP" opt; do
     case ${opt} in
     p)
       set_proxies "$OPTARG"
+      ;;
+    u)
+      BUILD_UI="true"
       ;;
     P)
       PUSH_CONTAINERS="true"
@@ -130,6 +138,6 @@ evaluate_script_arguments() {
 if [ 0 -eq $# ]; then
   print_used_proxies
   build_all_docker_images
-elif evaluate_script_arguments "$@"; then
+elif evaluate_script_arguments $@; then
   build_all_docker_images
 fi
