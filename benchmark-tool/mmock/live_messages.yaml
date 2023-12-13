@@ -11,7 +11,7 @@
 #
 request:
   method: POST
-  path: "/live_message"
+  path: "/live_messages"
 response:
   statusCode: 200
   headers:

@@ -1,0 +1,10 @@
+gateway:
+  config:
+    authentication:
+      enablePreAuthentication: true
+      devops:
+        secured: false
+swaggerui:
+  enabled: false
+dittoui:
+  enabled: false

@@ -10,10 +10,9 @@
 # SPDX-License-Identifier: EPL-2.0
 #
 apiVersion: k6.io/v1alpha1
-kind: K6
+kind: TestRun
 metadata:
   name: k6-ditto-benchmark-test
-  namespace: ditto-benchmark
 spec:
   parallelism: 1
   script:
@@ -21,6 +20,7 @@ spec:
       name: k6-test
       file: k6-test.js
   arguments: --include-system-env-vars
+  quiet: "false"
   runner:
     image: mostafamoradian/xk6-kafka:latest
     resources:
@@ -38,6 +38,11 @@ spec:
           configMapKeyRef:
             name: k6-ditto-benchmark
             key: DELETE_DITTO_CONNECTIONS
+      - name: CONNECTION_OPEN_MAX_RETRIES
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: CONNECTION_OPEN_MAX_RETRIES
       - name: HTTP_PUSH_CONNECTION_CLIENT_COUNT
         valueFrom:
           configMapKeyRef:
@@ -53,31 +58,26 @@ spec:
           configMapKeyRef:
             name: k6-ditto-benchmark
             key: SCENARIOS_TO_RUN
-      - name: AUTHORIZATION_HEADER_VALUE
-        valueFrom:
-          secretKeyRef:
-            name: k6-test-secret
-            key: AUTHORIZATION_HEADER_VALUE
-      - name: PRODUCE_THINGS_BATCH_SIZE
+      - name: CREATE_THINGS_BATCH_SIZE
         valueFrom:
           configMapKeyRef:
             name: k6-ditto-benchmark
-            key: PRODUCE_THINGS_BATCH_SIZE
-      - name: BATCH_SIZE
+            key: CREATE_THINGS_BATCH_SIZE
+      - name: THINGS_WARMUP_BATCH_SIZE
         valueFrom:
           configMapKeyRef:
             name: k6-ditto-benchmark
-            key: BATCH_SIZE
+            key: THINGS_WARMUP_BATCH_SIZE
       - name: DELETE_THINGS
         valueFrom:
           configMapKeyRef:
             name: k6-ditto-benchmark
             key: DELETE_THINGS
-      - name: LOG_REMAINING
+      - name: CREATE_THINGS_LOG_REMAINING
         valueFrom:
           configMapKeyRef:
             name: k6-ditto-benchmark
-            key: LOG_REMAINING
+            key: CREATE_THINGS_LOG_REMAINING
       - name: CREATE_THINGS
         valueFrom:
           configMapKeyRef:
@@ -233,16 +233,11 @@ spec:
           configMapKeyRef:
             name: k6-ditto-benchmark
             key: CREATE_UPDATE_THING_CONSUMER_GROUP_ID
-      - name: CREATE_UPDATE_THING_CONSUMER_MAX_WAIT_TIME_S
+      - name: CREATE_UPDATE_THING_CONSUMER_MAX_WAIT_DURATION
         valueFrom:
           configMapKeyRef:
             name: k6-ditto-benchmark
-            key: CREATE_UPDATE_THING_CONSUMER_MAX_WAIT_TIME_S
-      - name: CREATE_UPDATE_THING_CONSUMER_SESSION_TIMEOUT_TIME_S
-        valueFrom:
-          configMapKeyRef:
-            name: k6-ditto-benchmark
-            key: CREATE_UPDATE_THING_CONSUMER_SESSION_TIMEOUT_TIME_S
+            key: CREATE_UPDATE_THING_CONSUMER_MAX_WAIT_DURATION
       - name: KAFKA_PRODUCER_LOGGER_ENABLED
         valueFrom:
           configMapKeyRef:
@@ -298,11 +293,21 @@ spec:
           configMapKeyRef:
             name: k6-ditto-benchmark
             key: DITTO_BASE_URI
-      - name: DITTO_AUTH_CONTEXT
+      - name: DITTO_DEVOPS_AUTH_HEADER
         valueFrom:
           configMapKeyRef:
             name: k6-ditto-benchmark
-            key: DITTO_AUTH_CONTEXT
+            key: DITTO_DEVOPS_AUTH_HEADER
+      - name: DITTO_DEVOPS_AUTH_HEADER_VALUE
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: DITTO_DEVOPS_AUTH_HEADER_VALUE
+      - name: DITTO_PRE_AUTHENTICATED_HEADER_VALUE
+        valueFrom:
+          configMapKeyRef:
+            name: k6-ditto-benchmark
+            key: DITTO_PRE_AUTHENTICATED_HEADER_VALUE
       - name: PUSH_ENDPOINT_URI
         valueFrom:
           configMapKeyRef:

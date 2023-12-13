@@ -16,7 +16,7 @@ import { searchThingByFeature, searchThingById } from './http-util.js';
 import * as common from './common.js'
 
 export function searchThing() {
-    let thingId = common.GET_THING_ID(randomIntBetween(common.THINGS_START_INDEX, common.THINGS_COUNT - 1));
+    let thingId = common.GET_THING_ID(randomIntBetween(0, common.THINGS_COUNT - 1));
     let response = searchThingById(thingId);
     if (response.status != 200) {
         fail(`Failed to search things with feature value of ${value}. Response: ${JSON.stringify(response)}`);

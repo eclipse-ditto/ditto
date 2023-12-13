@@ -42,18 +42,18 @@ export function sendCreateThingsAndPolicies(thingIds, producer, consumer) {
             value: null
         });
 
-        if (messages.length === common.PRODUCE_THINGS_BATCH_SIZE) {
+        if (messages.length === common.CREATE_THINGS_BATCH_SIZE) {
             console.log('produce batch of messages..');
             producer.produce({ messages: messages });
-            let from = batchNum * common.PRODUCE_THINGS_BATCH_SIZE;
-            consumeAndValidateThingsCreated(new Set(thingIds.slice(from, from + common.PRODUCE_THINGS_BATCH_SIZE - 1)), consumer);
+            let from = batchNum * common.CREATE_THINGS_BATCH_SIZE;
+            consumeAndValidateThingsCreated(new Set(thingIds.slice(from, from + common.CREATE_THINGS_BATCH_SIZE - 1)), consumer);
             messages = [];
             batchNum++;
         }
     });
     if (messages.length > 0) {
         producer.produce({ messages: messages });
-        consumeAndValidateThingsCreated(new Set(thingIds.slice(batchNum * common.PRODUCE_THINGS_BATCH_SIZE)), consumer);
+        consumeAndValidateThingsCreated(new Set(thingIds.slice(batchNum * common.CREATE_THINGS_BATCH_SIZE)), consumer);
     }
 }
 
@@ -68,7 +68,7 @@ export function consumeAndValidateThingsCreated(thingIdsSet, consumer) {
                 });
                 let thingId = consumedEvent.value.thingId;
                 thingIdsSet.delete(thingId);
-                if (__ENV.LOG_REMAINING == 1) {
+                if (__ENV.CREATE_THINGS_LOG_REMAINING == 1) {
                     console.log('things remaining:');
                     console.log([...thingIdsSet]);
                 }
