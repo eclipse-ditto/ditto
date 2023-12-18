@@ -105,7 +105,7 @@ function fillSearchFilterEdit(fillString) {
   dom.searchFilterEdit.value = fillString;
 
   checkIfFavorite();
-  const filterEditNeeded = checkAndMarkParameter();
+  const filterEditNeeded = Utils.checkAndMarkInInput(dom.searchFilterEdit, FILTER_PLACEHOLDER);
   if (!filterEditNeeded) {
     ThingsSearch.searchTriggered(dom.searchFilterEdit.value);
   }
@@ -119,9 +119,7 @@ async function createFilterList(query) {
   date1h.setHours(date1h.getHours() - 1);
   date1m.setMinutes(date1m.getMinutes() -1);
 
-  return {
-    keys: ['label', 'group'],
-    src: [
+  return [
     {
       label: 'Created since 1m',
       rql: `gt(_created,"${date1m.toISOString()}")`,
@@ -175,7 +173,7 @@ async function createFilterList(query) {
     })),
     ...filterHistory.map((f) => ({label: f, rql: f, group: 'Recent'})),
     ...filterExamples.map((f) => ({label: f, rql: f, group: 'Example'})),
-  ]};
+  ];
 }
 
 /**
@@ -205,19 +203,6 @@ function checkIfFavorite() {
     dom.favIcon.classList.replace('bi-star', 'bi-star-fill');
   } else {
     dom.favIcon.classList.replace('bi-star-fill', 'bi-star');
-  }
-}
-
-function checkAndMarkParameter() {
-  const index = dom.searchFilterEdit.value.indexOf(FILTER_PLACEHOLDER);
-  if (index >= 0) {
-    // filterString.replace(FILTER_PLACEHOLDER, '');
-    // dom.searchFilterEdit.value = filterString;
-    dom.searchFilterEdit.focus();
-    dom.searchFilterEdit.setSelectionRange(index, index + FILTER_PLACEHOLDER.length);
-    return true;
-  } else {
-    return false;
   }
 }
 

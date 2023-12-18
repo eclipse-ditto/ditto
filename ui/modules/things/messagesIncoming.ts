@@ -11,7 +11,9 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
+import { JSONPath } from 'jsonpath-plus';
 import * as Utils from '../utils.js';
+import { TableFilter } from '../utils/tableFilter.js';
 import messagesIncomingHTML from './messagesIncoming.html';
 import * as Things from './things.js';
 import * as ThingsSSE from './thingsSSE.js';
@@ -27,14 +29,24 @@ enum ThingUpdateMessageContent {
   ONLY_CONTEXT="ONLY_CONTEXT"
 }
 
-let dom = {
+type DomElements = {
+  badgeMessageIncomingCount: HTMLSpanElement,
+  buttonResetMessagesIncoming: HTMLButtonElement,
+  selectThingUpdateMessageContent: HTMLSelectElement,
+  tbodyMessagesIncoming: HTMLTableElement,
+  tableFilterMessagesIncoming: TableFilter,
+};
+
+let dom: DomElements = {
   badgeMessageIncomingCount: null,
   buttonResetMessagesIncoming: null,
   selectThingUpdateMessageContent: null,
   tbodyMessagesIncoming: null,
+  tableFilterMessagesIncoming: null,
 };
 
 let messages = [];
+let filteredMessages = [];
 let selectedRow;
 let messageDetail;
 let currentThingId;
@@ -53,6 +65,8 @@ export function ready() {
   dom.buttonResetMessagesIncoming.onclick = onResetMessagesClick;
   dom.selectThingUpdateMessageContent.onchange = onSelectThingUpdateMessageContentSelect;
   dom.tbodyMessagesIncoming.addEventListener('click', onMessageTableClick);
+  dom.tableFilterMessagesIncoming.addEventListener('filterChange', onMessageFilterChange);
+  dom.tableFilterMessagesIncoming.filterOptions = createFilterOptions();
 }
 
 function onMessageTableClick(event) {
@@ -64,25 +78,25 @@ function onMessageTableClick(event) {
 function updateThingUpdateDetail() {
   switch (thingUpdateMessageContent) {
     case ThingUpdateMessageContent.FULL_THING_WITH_CONTEXT: {
-      messageDetail.setValue(Utils.stringifyPretty(messages[selectedRow]), -1);
+      messageDetail.setValue(Utils.stringifyPretty(filteredMessages[selectedRow]), -1);
       break;
     }
     case ThingUpdateMessageContent.FULL_THING: {
-      let messageParts = Object.entries(messages[selectedRow]);
+      let messageParts = Object.entries(filteredMessages[selectedRow]);
       let filtered = messageParts.filter(([key, value]) => !key.startsWith("_"));
       const justRegularFields = Object.fromEntries(filtered);
       messageDetail.setValue(Utils.stringifyPretty(justRegularFields), -1);
       break;
     }
     case ThingUpdateMessageContent.ONLY_CONTEXT_WITH_METADATA: {
-      let messageParts = Object.entries(messages[selectedRow]);
+      let messageParts = Object.entries(filteredMessages[selectedRow]);
       let filtered = messageParts.filter(([key, value]) => key.startsWith("_"));
       const justSpecialFields = Object.fromEntries(filtered);
       messageDetail.setValue(Utils.stringifyPretty(justSpecialFields), -1);
       break;
     }
     case ThingUpdateMessageContent.ONLY_CONTEXT: {
-      let messageParts = Object.entries(messages[selectedRow]);
+      let messageParts = Object.entries(filteredMessages[selectedRow]);
       let filtered = messageParts
         .filter(([key, value]) => key.startsWith("_"))
         .filter(([key, value]) => key !== "_metadata");
@@ -91,12 +105,13 @@ function updateThingUpdateDetail() {
       break;
     }
     default:
-      messageDetail.setValue(Utils.stringifyPretty(messages[selectedRow]), -1);
+      messageDetail.setValue(Utils.stringifyPretty(filteredMessages[selectedRow]), -1);
   }
 }
 
 function onResetMessagesClick() {
   messages = [];
+  filteredMessages = [];
   dom.badgeMessageIncomingCount.textContent = '';
   dom.tbodyMessagesIncoming.innerHTML = '';
   messageDetail.setValue('');
@@ -108,31 +123,51 @@ function onSelectThingUpdateMessageContentSelect() {
 }
 
 function onMessage(messageData) {
+  messageData.action = messageData['_context'].topic.substring(messageData['_context'].topic.lastIndexOf('/') + 1);
   messages.push(messageData);
-  dom.badgeMessageIncomingCount.textContent = messages.length;
-
-  function getColumnValues(): string[] {
-    if (messageData['_context'] && messageData['_context'].value) {
-      return [
-        ...messageData['_context'].value.features ? Object.keys(messageData['_context'].value.features) : [],
-        ...messageData['_context'].value.attributes ? Object.keys(messageData['_context'].value.attributes) : [],
-      ]
-    } else {
-      return [
-        ...messageData['features'] ? Object.keys(messageData.features) : [],
-        ...messageData['attributes'] ? Object.keys(messageData.attributes) : [],
-      ];
-    }
+  
+  const filteredMessage = dom.tableFilterMessagesIncoming.filterItems([messageData]);
+  
+  if (filteredMessage.length > 0) {
+    filteredMessages.push(filteredMessage[0]);
+    addTableRow(filteredMessage[0]);
   }
+  
+  updateMessageCounter();
+}
 
+function updateMessageCounter() {
+  if (filteredMessages.length === messages.length) {
+    dom.badgeMessageIncomingCount.textContent = messages.length.toString();
+  } else {
+    dom.badgeMessageIncomingCount.textContent = `${filteredMessages.length}/${messages.length}`;
+  }
+}
+
+function addTableRow(messageData: any) {
+  
   Utils.addTableRow(
-      dom.tbodyMessagesIncoming,
-      messageData._revision, false, null,
-      messageData['_context'].topic.substring(messageData['_context'].topic.lastIndexOf('/') + 1),
-      messageData['_context'].path,
-      getColumnValues().join('\n'),
-      Utils.formatDate(messageData._modified, true)
-  );
+    dom.tbodyMessagesIncoming,
+    messageData._revision, false, null,
+    messageData.action,
+    messageData['_context'].path,
+    getColumnValues().join('\n'),
+    Utils.formatDate(messageData._modified, true)
+    );
+    
+    function getColumnValues(): string[] {
+      if (messageData['_context'] && messageData['_context'].value) {
+        return [
+          ...messageData['_context'].value.features ? Object.keys(messageData['_context'].value.features) : [],
+          ...messageData['_context'].value.attributes ? Object.keys(messageData['_context'].value.attributes) : [],
+        ]
+      } else {
+        return [
+          ...messageData['features'] ? Object.keys(messageData.features) : [],
+          ...messageData['attributes'] ? Object.keys(messageData.attributes) : [],
+        ];
+      }
+    }
 }
 
 function onThingChanged(thing) {
@@ -141,3 +176,18 @@ function onThingChanged(thing) {
     onResetMessagesClick();
   }
 }
+function createFilterOptions(): [string?] {
+  let result: [string?] = [];
+  ['created', 'modified', 'merged', 'deleted'].forEach((e) => result.push(`action:${e}`));
+  ['_context/path'].forEach((e) => result.push(e));
+  return result;
+}
+
+function onMessageFilterChange(event: CustomEvent) {
+  dom.tbodyMessagesIncoming.innerHTML = '';
+  filteredMessages = dom.tableFilterMessagesIncoming.filterItems(messages);
+  filteredMessages.forEach((entry) => addTableRow(entry));
+  updateMessageCounter();
+}
+
+

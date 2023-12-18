@@ -15,6 +15,7 @@ import {JSONPath} from 'jsonpath-plus';
 import * as API from '../api.js';
 import * as Utils from '../utils.js';
 import * as Connections from './connections.js';
+import { TableFilter } from '../utils/tableFilter.js';
 /* eslint-disable prefer-const */
 /* eslint-disable max-len */
 /* eslint-disable no-invalid-this */
@@ -30,7 +31,7 @@ type DomElements = {
     buttonRetrieveConnectionMetrics: HTMLButtonElement,
     buttonResetConnectionMetrics: HTMLButtonElement,
     tableValidationConnections: HTMLInputElement,
-    inputConnectionLogFilter: HTMLInputElement,
+    tableFilterConnectionLogs: TableFilter,
 }
 
 let dom: DomElements = {
@@ -43,17 +44,19 @@ let dom: DomElements = {
   buttonRetrieveConnectionMetrics: null,
   buttonResetConnectionMetrics: null,
   tableValidationConnections: null,
-  inputConnectionLogFilter: null,
+  tableFilterConnectionLogs: null,
 };
 
-let connectionLogs;
+let connectionLogs = [];
+let filteredLogs: Array<any>;
+
 let connectionLogDetail;
 
 let connectionStatusDetail;
 
 let selectedConnectionId;
 
-export function ready() {
+export async function ready() {
   Connections.addChangeListener(onConnectionChange);
 
   Utils.getAllElementsById(dom);
@@ -70,14 +73,8 @@ export function ready() {
   dom.buttonResetConnectionLogs.onclick = onResetConnectionLogsClick;
   dom.buttonRetrieveConnectionLogs.onclick = retrieveConnectionLogs;
   dom.tbodyConnectionLogs.addEventListener('click', onConnectionLogTableClick);
-  dom.inputConnectionLogFilter.onchange = onConnectionLogFilterChange;
-  let filterAutoComplete = Utils.createAutoComplete('#inputConnectionLogFilter', createAutocompleteFilters(), 'JSONPath to filter logs...');
-  filterAutoComplete.input.addEventListener('selection', (event) => {
-    const selection = event.detail.selection.value;
-    dom.inputConnectionLogFilter.value = selection.filter;
-  });
-
-
+  dom.tableFilterConnectionLogs.addEventListener('filterChange', onConnectionLogFilterChange);
+  dom.tableFilterConnectionLogs.filterOptions = createFilterOptions();
 
   // Metrics ---------------
   dom.buttonRetrieveConnectionMetrics.onclick = retrieveConnectionMetrics;
@@ -92,7 +89,7 @@ function onResetConnectionMetricsClick() {
 }
 
 function onConnectionLogTableClick(event) {
-  connectionLogDetail.setValue(Utils.stringifyPretty(connectionLogs[event.target.parentNode.rowIndex - 1]), -1);
+  connectionLogDetail.setValue(Utils.stringifyPretty(filteredLogs[event.target.parentNode.rowIndex - 1]), -1);
   connectionLogDetail.session.getUndoManager().reset();
 }
 
@@ -147,27 +144,19 @@ function retrieveConnectionLogs() {
   selectedConnectionId);
 }
 
-let connectionLogsFilter;
-
 function fillConnectionLogsTable() {
   dom.tbodyConnectionLogs.innerHTML = '';
   connectionLogDetail.setValue('');
 
-  let entries = connectionLogs;
-  if (dom.inputConnectionLogFilter.value && dom.inputConnectionLogFilter.value !== '') {
-    try {
-      entries = JSONPath({
-        path: dom.inputConnectionLogFilter.value,
-        json: entries,
-      });
-    }
-    catch (error) {
-      console.log(error.message);
-      Utils.assert(false, error.message, dom.inputConnectionLogFilter);
-    }
-  }
-  entries.forEach((entry) => {
-    Utils.addTableRow(dom.tbodyConnectionLogs, Utils.formatDate(entry.timestamp, true), false, null, entry.type, entry.level);
+  filteredLogs = dom.tableFilterConnectionLogs.filterItems(connectionLogs);
+
+  filteredLogs.forEach((entry) => {
+    Utils.addTableRow(
+        dom.tbodyConnectionLogs,
+        Utils.formatDate(entry.timestamp, true), false, null,
+        entry.type,
+        entry.level
+    );
   });
   dom.tbodyConnectionLogs.scrollTop = dom.tbodyConnectionLogs.scrollHeight - dom.tbodyConnectionLogs.clientHeight;
 }
@@ -194,44 +183,19 @@ function onConnectionChange(connection, isNewConnection = true) {
 }
 
 function onConnectionLogFilterChange(event: Event) {
-  dom.inputConnectionLogFilter.classList.remove('is-invalid');
-  event.stopImmediatePropagation();
   fillConnectionLogsTable();
 }
 
-function createAutocompleteFilters() {
-  let result = {
-    keys: ['label'],
-    src: [{
-      label: 'message',
-      group: 'Search in message',
-      filter: `$[?(@.message.includes('...'))]`,
-    }],
-  };
+function createFilterOptions(): [string?] {
+  let result: [string?] = [];
 
   ['consumed', 'mapped', 'dropped', 'enforced', 'acknowledged',
-  'throttled', 'dispatched', 'filtered', 'published'].forEach(addEnumFilter('type'));
-  ['source', 'target', 'response'].forEach(addEnumFilter('category'));
-  ['success', 'failure'].forEach(addEnumFilter('level'));
-  ['thing'].forEach(addEnumFilter('entityType'));
+  'throttled', 'dispatched', 'filtered', 'published'].forEach((e) => result.push(`type:${e}`));
+  ['source', 'target', 'response'].forEach((e) => result.push(`category:${e}`));
+  ['success', 'failure'].forEach((e) => result.push(`level:${e}`));
+  ['thing'].forEach((e) => result.push(`entityType:${e}`));
 
-  ['correlationId', 'entityId'].forEach((value) => {
-    result.src.push({
-      label: value,
-      group: `Search for ${value}`,
-      filter: `$[?(@.${value}=='...')]`
-    });
-  })
+  ['correlationId', 'entityId'].forEach((value: string) => result.push(value));
 
   return result;
-
-  function addEnumFilter(group) {
-    return (value) => {
-      result.src.push({
-        label: `${group}:${value}`,
-        group: group,
-        filter: `$[?(@.${group}=='${value}')]`
-      })
-    }
-  }
 }
