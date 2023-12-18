@@ -56,7 +56,7 @@ public final class PolicyHistoryNotAccessibleException extends DittoRuntimeExcep
 
     private static final String DEFAULT_DESCRIPTION =
             "Check if the ID of your requested Policy was correct, you have sufficient permissions and ensure that the " +
-                    "asked for revision/timestamp does not exceed the history-retention-duration.";
+                    "asked for revision/timestamp does not exceed the history-retention-duration or is from the future.";
 
     private static final long serialVersionUID = 4242422323239998882L;
 
