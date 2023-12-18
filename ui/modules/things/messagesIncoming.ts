@@ -144,23 +144,25 @@ function addTableRow(messageData: any) {
     messageData._revision, false, null,
     action,
     messageData['_context'].path,
-    getColumnValues().join('\n'),
+    getColumnValues(action).join('\n'),
     Utils.formatDate(messageData._modified, true)
-    );
+  );
     
-    function getColumnValues(): string[] {
-      if (messageData['_context'] && messageData['_context'].value) {
-        return [
-          ...messageData['_context'].value.features ? Object.keys(messageData['_context'].value.features) : [],
-          ...messageData['_context'].value.attributes ? Object.keys(messageData['_context'].value.attributes) : [],
-        ]
-      } else {
-        return [
-          ...messageData['features'] ? Object.keys(messageData.features) : [],
-          ...messageData['attributes'] ? Object.keys(messageData.attributes) : [],
-        ];
-      }
+  function getColumnValues(action: string): string[] {
+    if (action === 'deleted') {
+      return []
+    } else if (messageData['_context']?.value) {
+      return [
+        ...messageData['_context'].value.features ? Object.keys(messageData['_context'].value.features) : [],
+        ...messageData['_context'].value.attributes ? Object.keys(messageData['_context'].value.attributes) : [],
+      ]
+    } else {
+      return [
+        ...messageData['features'] ? Object.keys(messageData.features) : [],
+        ...messageData['attributes'] ? Object.keys(messageData.attributes) : [],
+      ];
     }
+  }
 }
 
 function onThingChanged(thing) {
