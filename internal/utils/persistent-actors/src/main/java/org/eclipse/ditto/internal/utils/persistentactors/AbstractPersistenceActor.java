@@ -484,7 +484,7 @@ public abstract class AbstractPersistenceActor<
                         }
                     })
                     .reduce((ewe1, ewe2) -> new EntityWithEvent(
-                            eventStrategy.handle(ewe2.event, ewe2.entity, ewe2.revision),
+                            eventStrategy.handle(ewe2.event, ewe1.entity, ewe2.revision),
                             ewe2.event
                     ))
                     .runWith(Sink.foreach(entityWithEvent ->
