@@ -124,6 +124,7 @@ function onSelectThingUpdateMessageContentSelect() {
 }
 
 function onMessage(messageData) {
+  // messageData.action = messageData['_context'].topic.substring(messageData['_context'].topic.lastIndexOf('/') + 1);
   messages.push(messageData);
   
   const filteredMessage = dom.tableFilterMessagesIncoming.filterItems([messageData]);
