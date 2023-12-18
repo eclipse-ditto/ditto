@@ -56,7 +56,7 @@ public final class ThingHistoryNotAccessibleException extends DittoRuntimeExcept
 
     private static final String DEFAULT_DESCRIPTION =
             "Check if the ID of your requested Thing was correct, you have sufficient permissions and ensure that the " +
-                    "asked for revision/timestamp does not exceed the history-retention-duration.";
+                    "asked for revision/timestamp does not exceed the history-retention-duration or is from the future.";
 
     private static final long serialVersionUID = 8883736111094383234L;
 
