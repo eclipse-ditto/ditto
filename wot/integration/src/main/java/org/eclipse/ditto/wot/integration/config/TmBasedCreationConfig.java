@@ -26,22 +26,14 @@ import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 public interface TmBasedCreationConfig {
 
     /**
-     * Returns whether the creation of a Thing skeleton based on an on creation contained WoT ThingModel in the
-     * Thing's {@code ThingDefinition} for {@code CreateThing} commands should be enabled or not.
-     *
-     * @return whether the TM based Thing skeleton creation should be enabled or not.
+     * @return the TM based creation configuration for creating things.
      */
-    boolean isThingSkeletonCreationEnabled();
+    TmScopedCreationConfig getThingCreationConfig();
 
     /**
-     * Returns whether the creation of a Feature skeleton based on an on creation contained WoT ThingModel in the
-     * Features' {@code FeatureDefinition} for {@code ModifyFeature} commands (which create a new feature)
-     * should be enabled or not.
-     *
-     * @return whether the TM based Feature skeleton creation should be enabled or not.
+     * @return the TM based creation configuration for creating features.
      */
-    boolean isFeatureSkeletonCreationEnabled();
-
+    TmScopedCreationConfig getFeatureCreationConfig();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for

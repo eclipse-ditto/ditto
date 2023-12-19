@@ -24,6 +24,19 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorKilledException;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.japi.pf.FI;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.AskTimeoutException;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -66,19 +79,6 @@ import org.eclipse.ditto.things.service.enforcement.ThingEnforcement;
 import org.eclipse.ditto.things.service.enforcement.ThingEnforcerActor;
 import org.eclipse.ditto.things.service.enforcement.ThingPolicyCreated;
 import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
-
-import org.apache.pekko.actor.ActorKilledException;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSelection;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.japi.pf.FI;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.apache.pekko.pattern.AskTimeoutException;
-import org.apache.pekko.stream.Materializer;
-import org.apache.pekko.stream.javadsl.Keep;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Supervisor for {@link ThingPersistenceActor} which means it will create, start and watch it as child actor.
@@ -244,7 +244,10 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     @Override
     protected CompletionStage<Object> askEnforcerChild(final Signal<?> signal) {
 
-        if (signal instanceof ThingCommandResponse<?> thingCommandResponse &&
+        if (signal instanceof CreateThing createThing && createThing.getThing().getDefinition().isPresent()) {
+            // for thing creations containing a "definition", retrieving WoT model from URL is involved, give more time:
+            return Patterns.ask(enforcerChild, signal, localAskTimeout.multipliedBy(3));
+        } else if (signal instanceof ThingCommandResponse<?> thingCommandResponse &&
                 CommandResponse.isLiveCommandResponse(thingCommandResponse)) {
 
             return signal.getDittoHeaders().getCorrelationId()
@@ -337,10 +340,11 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     @Override
     protected CompletableFuture<Object> handleTargetActorAndEnforcerException(final Signal<?> signal, final Throwable throwable) {
         if (RollbackCreatedPolicy.shouldRollbackBasedOnException(signal, throwable)) {
+            final Throwable cause = throwable.getCause();
             log.withCorrelationId(signal)
-                    .info("Target actor exception received: <{}>. " +
+                    .info("Target actor exception received: <{}>, cause: <{}>. " +
                             "Sending RollbackCreatedPolicy msg to self, potentially rolling back a created policy.",
-                            throwable.getClass().getSimpleName());
+                            throwable.getClass().getSimpleName(), cause != null ? cause.getClass().getSimpleName() : "-");
             final CompletableFuture<Object> responseFuture = new CompletableFuture<>();
             getSelf().tell(RollbackCreatedPolicy.of(signal, throwable, responseFuture), getSelf());
             return responseFuture;
