@@ -17,9 +17,11 @@ import static java.util.Objects.requireNonNull;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -163,6 +165,20 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
         requireNonNull(key);
 
         return asyncCache.get(key, asyncLoad).thenApply(Optional::ofNullable);
+    }
+
+    @Override
+    public CompletableFuture<Optional<V>> get(final K key, final Function<Throwable, Optional<V>> errorHandler) {
+        requireNonNull(key);
+
+        return asyncCache.get(key, asyncLoad).thenApply(Optional::ofNullable)
+                .exceptionally(throwable -> {
+                    if (throwable instanceof CompletionException completionException) {
+                        return errorHandler.apply(completionException.getCause());
+                    } else {
+                        return errorHandler.apply(throwable);
+                    }
+                });
     }
 
     /**
