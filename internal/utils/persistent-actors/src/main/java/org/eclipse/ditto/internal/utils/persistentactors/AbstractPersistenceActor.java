@@ -23,6 +23,19 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Cancellable;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.persistence.RecoveryCompleted;
+import org.apache.pekko.persistence.RecoveryTimedOut;
+import org.apache.pekko.persistence.SaveSnapshotFailure;
+import org.apache.pekko.persistence.SaveSnapshotSuccess;
+import org.apache.pekko.persistence.SnapshotOffer;
+import org.apache.pekko.persistence.SnapshotProtocol;
+import org.apache.pekko.persistence.SnapshotSelectionCriteria;
+import org.apache.pekko.persistence.query.EventEnvelope;
+import org.apache.pekko.stream.javadsl.Sink;
 import org.bson.BsonDocument;
 import org.eclipse.ditto.base.api.commands.sudo.SudoCommand;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
@@ -40,11 +53,11 @@ import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.pekko.PingCommand;
 import org.eclipse.ditto.internal.utils.pekko.PingCommandResponse;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.config.ScopedConfig;
-import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoEventAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
@@ -64,19 +77,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.Cancellable;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.apache.pekko.pattern.Patterns;
-import org.apache.pekko.persistence.RecoveryCompleted;
-import org.apache.pekko.persistence.RecoveryTimedOut;
-import org.apache.pekko.persistence.SaveSnapshotFailure;
-import org.apache.pekko.persistence.SaveSnapshotSuccess;
-import org.apache.pekko.persistence.SnapshotOffer;
-import org.apache.pekko.persistence.SnapshotProtocol;
-import org.apache.pekko.persistence.SnapshotSelectionCriteria;
-import org.apache.pekko.persistence.query.EventEnvelope;
-import org.apache.pekko.stream.javadsl.Sink;
 import scala.Option;
 
 /**
@@ -377,10 +377,28 @@ public abstract class AbstractPersistenceActor<
                 .ofNullable(command.getDittoHeaders().get(DittoHeaderDefinition.AT_HISTORICAL_REVISION.getKey()))
                 .map(Long::parseLong)
                 .orElseGet(this::lastSequenceNr);
+        if (atHistoricalRevision > lastSequenceNr()) {
+            getSender().tell(
+                    newHistoryNotAccessibleExceptionBuilder(atHistoricalRevision)
+                            .dittoHeaders(command.getDittoHeaders())
+                            .build(),
+                    getSelf()
+            );
+            return;
+        }
         final Instant atHistoricalTimestamp = Optional
                 .ofNullable(command.getDittoHeaders().get(DittoHeaderDefinition.AT_HISTORICAL_TIMESTAMP.getKey()))
                 .map(Instant::parse)
                 .orElse(Instant.EPOCH);
+        if (atHistoricalTimestamp.isAfter(Instant.now())) {
+            getSender().tell(
+                    newHistoryNotAccessibleExceptionBuilder(atHistoricalTimestamp)
+                            .dittoHeaders(command.getDittoHeaders())
+                            .build(),
+                    getSelf()
+            );
+            return;
+        }
 
         loadSnapshot(persistenceId(), SnapshotSelectionCriteria.create(
                 atHistoricalRevision,
@@ -466,7 +484,7 @@ public abstract class AbstractPersistenceActor<
                         }
                     })
                     .reduce((ewe1, ewe2) -> new EntityWithEvent(
-                            eventStrategy.handle(ewe2.event, ewe2.entity, ewe2.revision),
+                            eventStrategy.handle(ewe2.event, ewe1.entity, ewe2.revision),
                             ewe2.event
                     ))
                     .runWith(Sink.foreach(entityWithEvent ->
