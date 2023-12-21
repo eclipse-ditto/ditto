@@ -22,16 +22,16 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.http.javadsl.server.Directives;
+import org.apache.pekko.http.javadsl.server.PathMatchers;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
-
-import org.apache.pekko.http.javadsl.server.Directives;
-import org.apache.pekko.http.javadsl.server.PathMatchers;
-import org.apache.pekko.http.javadsl.server.RequestContext;
-import org.apache.pekko.http.javadsl.server.Route;
 
 /**
  * Builder for creating Pekko HTTP routes for {@code /search/things}.
@@ -146,7 +146,9 @@ public final class ThingSearchRoute extends AbstractRoute {
                                         calculateNamespaces(
                                                 formFields.getOrDefault(ThingSearchParameter.NAMESPACES.toString(),
                                                         List.of())),
-                                        dittoHeaders
+                                        calculateSearchPostDittoHeaders(dittoHeaders,
+                                                formFields.getOrDefault(DittoHeaderDefinition.CONDITION.getKey(),
+                                                        List.of()))
                                 )
                         )
                 ))
@@ -209,6 +211,22 @@ public final class ThingSearchRoute extends AbstractRoute {
                 .flatMap(s -> Arrays.stream(s.split("\\),")))
                 .map(s -> s.endsWith(")") ? s : s + ")")
                 .toList();
+    }
+
+    private static DittoHeaders calculateSearchPostDittoHeaders(final DittoHeaders dittoHeaders,
+            final List<String> conditionsString) {
+
+        if (conditionsString.isEmpty()) {
+            return dittoHeaders;
+        } else {
+            return dittoHeaders.toBuilder()
+                    .condition(
+                            conditionsString
+                                    .stream()
+                                    .collect(Collectors.joining(",", "and(", ")"))
+                    )
+                    .build();
+        }
     }
 
 }
