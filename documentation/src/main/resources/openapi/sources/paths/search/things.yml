@@ -173,6 +173,8 @@ post:
               $ref: '../../schemas/properties/thingFieldsProperty.yml'
             option:
               $ref: '../../schemas/properties/optionProperty.yml'
+            condition:
+              $ref: '../../schemas/properties/searchConditionProperty.yml'
         encoding:
           filter:
             style: form
