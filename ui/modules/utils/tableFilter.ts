@@ -14,26 +14,22 @@
 import { JSONPath } from 'jsonpath-plus';
 import * as Utils from '../utils.js';
 import tableFilterHTML from './tableFilter.html';
-
-interface Filters {
-  searchLike: Array<string>,
-  searchPropertiesEq: Object
-};
+import { BasicFilters, FilterListener } from './basicFilters.js';
 
 enum Mode {
   BASIC=0,
   ADVANCED=1,
 }
 
-export class TableFilter extends HTMLElement {
+export class TableFilter extends HTMLElement implements FilterListener {
 
-
-  basicFilters = {};
+  basicFilters = new BasicFilters;
   mode = Mode.BASIC;
   mainInput: HTMLInputElement;
   validatedFilter: string;
   constructor() {
     super();
+    this.basicFilters.onFilterChange = this;
   }
   connectedCallback() {
     this.innerHTML = tableFilterHTML;
@@ -41,6 +37,7 @@ export class TableFilter extends HTMLElement {
     this.mainInput = this.querySelector('input[name="main"]');
     this.mainInput.addEventListener('keyup', this.mainInputChangedCallback(this));
 
+    this.querySelector('button').addEventListener('click', () => (this.querySelector('input[name="dropdown"]') as HTMLInputElement).focus());
     this.querySelector('ul').addEventListener('click', this.filterSelectedCallback(this));
 
     this.querySelector('input[role="switch"').addEventListener('click', this.toggleModeCallback(this));
@@ -76,58 +73,13 @@ export class TableFilter extends HTMLElement {
     }
     return result;
   }
-  
-      
-  private addFilter(key: string, value: string) {
-    if (!this.basicFilters[key]) {
-      this.basicFilters[key] = [];
-    }  
-    this.basicFilters[key] = [...new Set([
-      ...value.split(','),
-      ...this.basicFilters[key]
-    ])];  
-  }  
-
-  private createJsonPath(filter) {
-    if (!Object.keys(filter).length) {
-      return null;
-    }
     
-    // $[?(@.x==2&&(@.type=="home"||@.type=="work"))]
-    let ors = [];
-    Object.keys(filter).forEach((key) => {
-      ors.push(filter[key].map((value) => `@.${key}=="${value}"`).join('||'));
-    })
-    const ands = ors.map((part) => `(${part})`).join('&&');
-    return `$[?(${ands})]`;
-  }
-
   private fillUIChips() {
     const div = this.querySelector('[data-bs-theme="dark"]') as HTMLElement;
     div.innerHTML = '';
-    Object.keys(this.basicFilters).forEach((key) => {
-      const chip = document.createElement('span');
-      chip.classList.add('badge', 'rounded-pill', 'bg-info', 'mb-1', 'me-1');
-      chip.innerText = `${key}:${this.basicFilters[key]}`;
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.classList.add('btn-close');
-      button.style.fontSize = '0.75em';
-      button.setAttribute('data-key', key);
-      button.onclick = this.deleteFilterCallback(this);
-      chip.appendChild(button);
-      div.appendChild(chip);
-    })
+    this.basicFilters.getAllUIs().forEach((chip) => div.appendChild(chip));
   }
   
-  private deleteFilterCallback(tableFilter: TableFilter) {
-    return (event: PointerEvent) => {
-      const key = (event.target as HTMLButtonElement).getAttribute('data-key');
-      delete tableFilter.basicFilters[key];
-      this.filterChanged()
-    }
-  }
-
   private toggleModeCallback(tableFilter: TableFilter) {
     return (event) => {
       switch(tableFilter.mode) {
@@ -142,48 +94,50 @@ export class TableFilter extends HTMLElement {
           tableFilter.mainInput.placeholder = 'Add basic filter...';
           (tableFilter.querySelector('[data-bs-theme="dark"]') as HTMLElement).hidden = false;
           tableFilter.mode = Mode.BASIC;
-          this.basicFilters = {};
+          this.basicFilters.clear();
           this.filterChanged();
       }
     }
   }
 
   private filterSelectedCallback(tableFilter: TableFilter) {
-    return (event) => {
+    return (event: Event) => {
       const target = event.target as HTMLElement;
       if (target && target.classList.contains('dropdown-item')) {
 
-        const tokens = target.innerText.split(':');
-        if (tokens.length === 2) {
-          handleEqualsEnum(tokens[0], tokens[1]);
+        if (tableFilter.mode === Mode.BASIC) {
+          tableFilter.basicFilters.addFromString(target.innerText);
+          tableFilter.filterChanged();
         } else {
-          handleEqualsInput(tokens[0]);
+          tableFilter.mainInput.value = new BasicFilters()
+            .addFromString(target.innerText)
+            .createJsonPath();
+          }
         }
       }
-    }
+      
+    // function handleEqualsInput(property: string) {
+      //   if (tableFilter.mode == Mode.ADVANCED) {
+        //     tableFilter.mainInput.value = new BasicFilters()
+        //         .addPropEq(property, '...')
+        //         .createJsonPath();
+        //     Utils.checkAndMarkInInput(tableFilter.mainInput, '...');
+        //   } else {
+          //     tableFilter.mainInput.value = `${property}:`;
+          // tableFilter.mainInput.focus();
+    //   }
+    // }
 
-    function handleEqualsInput(property: string) {
-      if (tableFilter.mode == Mode.ADVANCED) {
-        tableFilter.mainInput.value = tableFilter.createJsonPath({
-          [property]: ['...']
-        });
-        Utils.checkAndMarkInInput(tableFilter.mainInput, '...');
-      } else {
-        tableFilter.mainInput.value = `${property}:`;
-        tableFilter.mainInput.focus();
-      }
-    }
-
-    function handleEqualsEnum(property: string, value: string) {
-      if (tableFilter.mode === Mode.ADVANCED) {
-        tableFilter.mainInput.value = tableFilter.createJsonPath({
-          [property]: [value]
-        });
-      } else {
-        tableFilter.addFilter(property, value);
-      }
-      tableFilter.filterChanged();
-    }
+    // function handleEqualsEnum(property: string, value: string) {
+    //   if (tableFilter.mode === Mode.ADVANCED) {
+    //     tableFilter.mainInput.value = new BasicFilters()
+    //         .addPropEq(property, value)
+    //         .createJsonPath();
+    //   } else {
+    //     tableFilter.basicFilters.addPropEq(property, value);
+    //   }
+    //   tableFilter.filterChanged();
+    // }
   }
 
   private mainInputChangedCallback(tableFilter: TableFilter) {
@@ -191,9 +145,7 @@ export class TableFilter extends HTMLElement {
       if (event.key === 'Enter' || event.code === 'Enter') {
         switch (tableFilter.mode) {
           case Mode.BASIC:
-              const result = /^(.*?):(.*)/gm.exec(tableFilter.mainInput.value.replace(/\s/g, ''));
-              Utils.assert(result, 'Use "Key:Value1,Value2,..." to add a filter', tableFilter.mainInput);
-              tableFilter.addFilter(result[1], result[2]);
+              tableFilter.basicFilters.addFromString(tableFilter.mainInput.value)
               tableFilter.filterChanged();
               tableFilter.mainInput.value = '';
             break;
@@ -222,10 +174,10 @@ export class TableFilter extends HTMLElement {
     }
   }
 
-  private filterChanged() {
+  filterChanged() {
     switch(this.mode) {
       case Mode.BASIC:
-        this.validatedFilter = this.createJsonPath(this.basicFilters);
+        this.validatedFilter = this.basicFilters.createJsonPath();
         this.fillUIChips();
         break;
       case Mode.ADVANCED:

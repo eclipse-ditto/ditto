@@ -138,7 +138,7 @@ function onMessage(messageData) {
 
 function updateMessageCounter() {
   if (filteredMessages.length === messages.length) {
-    dom.badgeMessageIncomingCount.textContent = messages.length.toString();
+    dom.badgeMessageIncomingCount.textContent = messages.length > 0 ? messages.length.toString() : '';
   } else {
     dom.badgeMessageIncomingCount.textContent = `${filteredMessages.length}/${messages.length}`;
   }
