@@ -18,7 +18,7 @@ Also, there is a special scenario called **WARMUP**, which is used to warmup the
 
 # Getting started:
 
-## K6 is configurable via environment variables and the following must be set, in order to run the test(sample variables in [test-local.env](https://github.boschdevcloud.com/bosch-iot-things/ditto/blob/master/benchmark-tool/test-local.env) file):
+## K6 is configurable via environment variables and the following must be set, in order to run the test(sample variables in [test-local.env](https://github.com/eclipse-ditto/ditto/blob/master/benchmark-tool/test-local.env) file):
 
 ## K6 test related
 
@@ -36,17 +36,19 @@ Also, there is a special scenario called **WARMUP**, which is used to warmup the
 | KAFKA_CONSUMER_LOGGER_ENABLED | K6 kafka consumer logger enabled (0/1)                                                                                                                      |
 | CREATE_DITTO_CONNECTIONS      | If the test should create the needed for scenarios ditto connections, before executing the scenarios                                                        |
 | DELETE_DITTO_CONNECTIONS      | If the test should delete the needed for scenarios ditto connections, after executing the scenarios                                                         |
+| CONNECTION_OPEN_MAX_RETRIES   | Maximum times connection status is fetched to check if its opened. If connection is still not opened after, the test gets aborted.|
 | SCENARIOS_TO_RUN              | Array of scenarios names that should run, available options is: WARMUP, DEVICE_LIVE_MESSAGES, SERACH_THINGS, READ_THINGS, MODIFY_THINGS                     |
-| LOG_REMAINING                 | Log the remaining things that need to be created. Useful for debugging purposes                                                                             |
-| BATCH_SIZE                    | Max number of simultaneous connections of a k6 http.batch() call, which is used for warming up things                                                       |
+| CREATE_THINGS_LOG_REMAINING                 | Log the remaining things that need to be created. Useful for debugging purposes                                                                             |
+| THINGS_WARMUP_BATCH_SIZE                    | Max number of simultaneous connections of a k6 http.batch() call, which is used for warming up things                                                       |
 
 ## Ditto related
 
 | Name                            | Description                        |
 | ------------------------------- | ---------------------------------- |
 | DITO_API_URI                    | Ditto api url                      |
-| DITTO_AUTH_CONTEXT_HEADER       | Authorization context header name  |
-| DITTO_AUTH_CONTEXT_HEADER_VALUE | Authorization context header value |
+| DITTO_DEVOPS_AUTH_HEADER       | Devops user authorization header name  |
+| DITTO_DEVOPS_AUTH_HEADER_VALUE | Devops user authorization header value |
+| DITTO_PRE_AUTHENTICATED_HEADER_VALUE | Ditto x-ditto-pre-authenticated header value. https://eclipse.dev/ditto/installation-operating.html#pre-authentication |
 
 ## Kafka related
 
@@ -62,7 +64,6 @@ Also, there is a special scenario called **WARMUP**, which is used to warmup the
 | ------------------- | -------------------------------------------------------------------------------------------- |
 | WARMUP_MAX_DURATION | The maximum duration of warmup scenario. After, the scenario will be forcefully stopped      |
 | WARMUP_START_TIME   | Time offset since the start of the test, at which point this scenario should begin execution |
-| WARMUP_VUS          | An integer value specifying the number of VUs to run concurrently                            |
 
 ###### Every other scenario has the same config variables, created by suffixing the variable name with the name of the scenario, f.e. SEARCH_THINGS_DURATION
 
@@ -291,7 +292,7 @@ The kafka 'target' connection looks like the following:
 
 ## Running the test
 
-###### Running the test locally
+### Running the test locally
 
 Prerequisites:
 
@@ -303,7 +304,8 @@ Prerequisites:
 
 - xk6 kafka extension binary
 
-First export all the environment variables, needed for the test:
+Change test.env values to match local setup
+Export all the environment variables, needed for the test:
 
 ```bash
 set -a
@@ -318,15 +320,16 @@ ${xk6-kakfa-bin} run test/k6-test.js
 
 Logs and results are on the terminal standart output.
 
-###### Running the test inside kubernetes cluster
+### Running the test inside kubernetes cluster
 
 Prerequisites:
 
 - Running kubernetes cluster
 
-- Running kafka cluster with topic deletion disabled
+- Running kafka cluster with topic deletion enabled
 
-- Running ditto inside the cluster, using the ditto helm chart https://github.com/eclipse-ditto/ditto/tree/master/deployment/helm/ditto
+- Running ditto inside the cluster, using the ditto helm chart https://github.com/eclipse-ditto/ditto/tree/master/deployment/helm/ditto (ditto-values.yaml sample values)
+    - devops security must be disabled for now.
 
 - Deploy the k6 operator [GitHub - grafana/k6-operator: An operator for running distributed k6 tests.](https://github.com/grafana/k6-operator)[GitHub - grafana/k6-operator: An operator for running distributed k6 tests.](https://github.com/grafana/k6-operator)
 
@@ -342,9 +345,7 @@ Needed kubernetes resources lie inside the kubernetes directory.
 
 - **k6-test-configmap-cr.yaml** - custom k6 resource, includes all env variables needed for the test, that are inside test.env file
 
-- **mmock-pvc.yaml** - Persistent volme claim for monster mock, use to copy the mmock configuration to the created PV, in order to mount it inside the mmock instance.
-
-- **mmock.yaml** - Pod definition for monster mock
+- **mmock.yaml** - Pod and Service definition for monster mock
 
 K6 custom resource gets the source code for the test from a config map, that must be created:
 
@@ -355,7 +356,7 @@ K6 custom resource gets the source code for the test from a config map, that mus
 K6 custom resource reads env variables from config map that must be created:
 
 ```bash
-kubectl create configmap k6-ditto-benchmark --from-env-file test-cluster.env
+kubectl create configmap k6-ditto-benchmark --from-env-file test.env
 ```
 
 After all is set, create the k6 custom resource for the test:
@@ -365,3 +366,8 @@ kubectl create -f k6-ditto-benchmark-test.yaml
 ```
 
 Logs of the k6 test can be inspected from the pod **k6-ditto-benchmark-test-1-xxxx**
+
+After completing a test run, you need to clean up the test jobs created. This is done by running the following command:
+**kubectl delete -f k6-ditto-benchmark-test.yaml**
+or
+**kubectl delete TestRun k6-ditto-benchmark-test**

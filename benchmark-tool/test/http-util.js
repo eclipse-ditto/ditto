@@ -28,19 +28,26 @@ const PUSH_ENDPOINT_URI = __ENV.PUSH_ENDPOINT_URI;
 const PUSH_ENDPOINT_EVENTS_PATH = __ENV.PUSH_ENDPOINT_EVENTS_PATH
 const PUSH_ENDPOINT_LIVE_MESSAGE_PATH = __ENV.PUSH_ENDPOINT_LIVE_MESSAGE_PATH;
 
-const AUTH_CONTEXT = __ENV.DITTO_AUTH_CONTEXT;
+const DEVOPS_AUTH_HEADER = __ENV.DITTO_DEVOPS_AUTH_HEADER
+const DEVOPS_AUTH_HEADER_VALUE = __ENV.DITTO_DEVOPS_AUTH_HEADER_VALUE;
+const PRE_AUTHENTICATED_VALUE = __ENV.DITTO_PRE_AUTHENTICATED_HEADER_VALUE
+const AUTH_CONTEXT = PRE_AUTHENTICATED_VALUE;
 
-const REQUEST_HEADERS = {
+
+let REQUEST_HEADERS = {
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'x-ditto-pre-authenticated': AUTH_CONTEXT,
-        'Authorization': __ENV.AUTHORIZATION_HEADER_VALUE
+        'x-ditto-pre-authenticated': PRE_AUTHENTICATED_VALUE
     },
     tags: { name: 'grouped' }
 };
 
-const DEVICE_FEATURE = {
+if (DEVOPS_AUTH_HEADER != "") {
+    REQUEST_HEADERS.headers[DEVOPS_AUTH_HEADER] = DEVOPS_AUTH_HEADER_VALUE
+}
+
+let DEVICE_FEATURE = {
     [common.DEVICE_FEATURE_NAME]: {
         'properties': {
             [common.DEVICE_FEATURE_PROPERTY]: 0
@@ -73,9 +80,10 @@ export function createKafkaTargetConnection() {
 }
 
 export function waitForConnectionToOpen(connectionId) {
-    let connectionOpen;
-    while (true) {
-        let connectionStatus = http.get(`${DITTO_CONNECTIONS_URI}/${connectionId}/status`, REQUEST_HEADERS).json();
+    let connectionOpen, connectionStatus;
+    let maxRetries = parseInt(__ENV.CONNECTION_OPEN_MAX_RETRIES)
+    for (let i = 0; i < maxRetries; i++) {
+        connectionStatus = http.get(`${DITTO_CONNECTIONS_URI}/${connectionId}/status`, REQUEST_HEADERS).json();
 
         connectionOpen = 1;
         connectionStatus.clientStatus.forEach((client) => {
@@ -97,11 +105,12 @@ export function waitForConnectionToOpen(connectionId) {
         }
 
         if (connectionOpen === 1) {
-            break;
+            return;
         }
 
         sleep(1);
     }
+    return connectionStatus;
 }
 
 export function getThing(id) {

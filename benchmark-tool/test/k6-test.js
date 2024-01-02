@@ -17,6 +17,7 @@ export { warmup } from './warmup.js'
 export { sendDeviceLiveMessage } from './device-live-message.js'
 import * as common from './common.js'
 import { sendCreateThingsAndPolicies } from './kafka-util.js';
+import exec from 'k6/execution';
 
 import {
     Reader
@@ -39,8 +40,8 @@ export const options = {
     // will set later
     scenarios: {},
 
-    batch: common.BATCH_SIZE,
-    batchPerHost: common.BATCH_SIZE,
+    batch: common.THINGS_WARMUP_BATCH_SIZE,
+    batchPerHost: common.THINGS_WARMUP_BATCH_SIZE,
 };
 
 let WARMUP = 'WARMUP';
@@ -115,30 +116,49 @@ export function setup() {
     let httpPushConnection, kafkaTargetConnection, kafkaSourceConnection, consumer;
 
     if (__ENV.CREATE_DITTO_CONNECTIONS == 1) {
+        let connectionStatus = undefined
         let httpPushConnectionId = undefined;
         if (shouldCreateHttpPushConnection()) {
             httpPushConnection = createHttpPushConnection();
-            waitForConnectionToOpen(httpPushConnection.id);
+            connectionStatus = waitForConnectionToOpen(httpPushConnection.id)
+            if (connectionStatus) {
+                exec.test.abort('HTTP Push connection failed to open. Connection status: ' + JSON.stringify(connectionStatus))
+            }
         }
 
-        if (shouldCreateKafkaSourceConnection()) {
+        if (scenariosToRun.indexOf(MODIFY_THINGS) !== -1) {
             common.createThingsTopicsIfNotAvailable();
             kafkaSourceConnection = createKafkaSourceConnection(httpPushConnectionId);
-            waitForConnectionToOpen(kafkaSourceConnection.id);
+            connectionStatus = waitForConnectionToOpen(kafkaSourceConnection.id);
+            if (connectionStatus) {
+                exec.test.abort('Kafka source connection failed to open. Connection status: ' + JSON.stringify(connectionStatus))
+            }
         }
     }
 
-    if (shouldCreateKafkaTargetConnection()) {
+    if (__ENV.CREATE_THINGS == 1) {
+        if (kafkaSourceConnection === undefined) {
+            common.createThingsTopicsIfNotAvailable();
+            kafkaSourceConnection = createKafkaSourceConnection();
+            connectionStatusError = waitForConnectionToOpen(kafkaSourceConnection.id);
+            if (connectionStatusError) {
+                exec.test.abort('Kafka Source Connection failed to open. Connection status: ' + JSON.stringify(connectionStatusError))
+            }
+        }
+
         consumer = new Reader({
             brokers: common.BOOTSTRAP_SERVERS,
             groupID: common.CREATE_UPDATE_THING_CONSUMER_GROUP_ID,
             groupTopics: [common.CREATE_UPDATE_THING_REPLY_TOPIC],
             connectLogger: __ENV.KAFKA_CONSUMER_LOGGER_ENABLED == 1,
-            maxWait: parseInt(__ENV.CREATE_UPDATE_THING_CONSUMER_MAX_WAIT_TIME_S) * 1000000000
+            maxWait: __ENV.CREATE_UPDATE_THING_CONSUMER_MAX_WAIT_DURATION
         });
 
         kafkaTargetConnection = createKafkaTargetConnection();
-        waitForConnectionToOpen(kafkaTargetConnection.id);
+        connectionStatusError = waitForConnectionToOpen(kafkaTargetConnection.id);
+        if (connectionStatusError) {
+            exec.test.abort('Kafka Target connection failed to open. Connection status: ' + JSON.stringify(connectionStatusError))
+        }
 
         let thingIds = []
         for (let i = 0; i < common.THINGS_COUNT; i++) {
@@ -173,29 +193,28 @@ export function teardown(config) {
             deleteConnection(config.httpPushConnection.id);
         }
 
-        if (config.kafkaTargetConnection != undefined) {
-            deleteConnection(config.kafkaTargetConnection.id);
+        if (config.kafkaSourceConnection != undefined) {
+            deleteConnection(config.kafkaSourceConnection.id);
+            config.kafkaSourceConnection = undefined;
         }
+    }
 
+    if (__ENV.CREATE_THINGS == 1) {
         if (config.kafkaSourceConnection != undefined) {
             deleteConnection(config.kafkaSourceConnection.id);
         }
 
-        if (__ENV.CREATE_THINGS == 1 || options.scenarios[MODIFY_THINGS] !== undefined) {
-            common.deleteTopics();
+        if (config.kafkaTargetConnection != undefined) {
+            deleteConnection(config.kafkaTargetConnection.id)
         }
+    }
+
+    if (__ENV.CREATE_THINGS == 1 || options.scenarios[MODIFY_THINGS] !== undefined) {
+        common.deleteTopics();
     }
 }
 
 
 function shouldCreateHttpPushConnection() {
     return scenariosToRun.indexOf(DEVICE_LIVE_MESSAGES) !== -1 || scenariosToRun.indexOf(MODIFY_THINGS) !== -1
-}
-
-function shouldCreateKafkaSourceConnection() {
-    return __ENV.CREATE_THINGS == 1 || scenariosToRun.indexOf(MODIFY_THINGS) !== -1
-}
-
-function shouldCreateKafkaTargetConnection() {
-    return __ENV.CREATE_THINGS == 1;
 }

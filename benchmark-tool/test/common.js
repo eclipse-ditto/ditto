@@ -34,10 +34,6 @@ producer = new Writer({
     topic: CREATE_UPDATE_THING_SOURCE_TOPIC,
     connectLogger: __ENV.KAFKA_PRODUCER_LOGGER_ENABLED == 1,
 });
-// if (__VU === 1) {
-//     // execute only once
-//     createThingsTopicsIfNotAvailable();
-// }
 
 export const KAFKA_CREATE_UPDATE_PRODUCER = producer;
 
@@ -47,7 +43,6 @@ export const KAFKA_CONNECTION_CONSUMER_CONSUMER_COUNT = parseInt(__ENV.KAFKA_CON
 export const KAFKA_SOURCE_CONNECTION_CLIENT_COUNT = parseInt(__ENV.KAFKA_SOURCE_CONNECTION_CLIENT_COUNT);
 export const KAFKA_TARGET_CONNECTION_CLIENT_COUNT = parseInt(__ENV.KAFKA_TARGET_CONNECTION_CLIENT_COUNT);
 export const KAFKA_CONNECTION_PROCESSOR_POOL_SIZE = parseInt(__ENV.KAFKA_CONNECTION_PROCESSOR_POOL_SIZE);
-
 // KAFKA RELATED
 
 // HTTP PUSH CONNECTION
@@ -59,8 +54,8 @@ export const HTTP_PUSH_CONNECTION_PARALLELISM = parseInt(__ENV.HTTP_PUSH_CONNECT
 export const DEVICE_NAMESPACE = __ENV.DEVICE_NAMESPACE;
 export const DEVICE_ID_TEMPLATE = `${DEVICE_NAMESPACE}:${__ENV.DEVICE_ID_TEMPLATE}`;
 export const THINGS_COUNT = parseInt(__ENV.THINGS_COUNT);
-export const BATCH_SIZE = parseInt(__ENV.BATCH_SIZE);
-export const PRODUCE_THINGS_BATCH_SIZE = parseInt(__ENV.PRODUCE_THINGS_BATCH_SIZE);
+export const THINGS_WARMUP_BATCH_SIZE = parseInt(__ENV.THINGS_WARMUP_BATCH_SIZE);
+export const CREATE_THINGS_BATCH_SIZE = parseInt(__ENV.CREATE_THINGS_BATCH_SIZE);
 
 export const THINGS_START_INDEX = parseInt(__ENV.THINGS_START_INDEX);
 export function GET_THING_ID(index) {
@@ -77,10 +72,6 @@ export const DITTO_MESSAGE_HEADER = 'ditto_message';
 // K6 RELATED
 export const schemaRegistry = new SchemaRegistry();
 // K6 RELATED
-
-// SCENARIOS RELATED
-export const THINGS_WARMUP_VUS = parseInt(__ENV.THINGS_WARMUP_VUS);
-// SCENARIOS RELATED
 
 export function createThingsTopicsIfNotAvailable() {
     let connection;
