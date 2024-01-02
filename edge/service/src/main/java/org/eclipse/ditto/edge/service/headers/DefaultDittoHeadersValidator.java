@@ -44,7 +44,7 @@ public final class DefaultDittoHeadersValidator implements DittoHeadersValidator
     }
 
     @Override
-    public CompletionStage<DittoHeaders> validate(DittoHeaders dittoHeaders) {
+    public CompletionStage<DittoHeaders> validate(final DittoHeaders dittoHeaders) {
         checkNotNull(dittoHeaders, "dittoHeaders");
         return validateSize(dittoHeaders).thenCompose(this::validateAuthorizationContext);
     }

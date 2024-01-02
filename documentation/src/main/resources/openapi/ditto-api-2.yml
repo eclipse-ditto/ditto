@@ -6907,6 +6907,15 @@ paths:
 
                     The deprecated paging option `limit` may not be combined with the other paging options `size` and `cursor`.
                   type: string
+                condition:
+                  description: |-
+                    Similar to the `filter`, a `condition` may be passed to ensure strong consistency when querying things.
+
+                    This `condition` has the same syntax and semantics than the `filter` - it is however applied on the matched things
+                    selected by the `filter` - on their current state.
+
+                    So combining this together with `filter` can provide strong consistency when performing a search.
+                  type: string
             encoding:
               filter:
                 style: form
