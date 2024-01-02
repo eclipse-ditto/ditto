@@ -7,11 +7,11 @@ summary: "Version 3.4.3 of Eclipse Ditto, released on 05.12.2023"
 permalink: release_notes_343.html
 ---
 
-This is a bugfix release, no new features since [3.4.2](release_notes_341.html) were added.
+This is a bugfix release, no new features since [3.4.2](release_notes_342.html) were added.
 
 ## Changelog
 
-Compared to the latest release [3.4.2](release_notes_341.html), the following changes and bugfixes were added.
+Compared to the latest release [3.4.2](release_notes_342.html), the following changes and bugfixes were added.
 
 ### Changes
 
