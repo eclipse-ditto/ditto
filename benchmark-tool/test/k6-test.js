@@ -137,6 +137,7 @@ export function setup() {
     }
 
     if (__ENV.CREATE_THINGS == 1) {
+        let connectionStatusError = undefined;
         if (kafkaSourceConnection === undefined) {
             common.createThingsTopicsIfNotAvailable();
             kafkaSourceConnection = createKafkaSourceConnection();
