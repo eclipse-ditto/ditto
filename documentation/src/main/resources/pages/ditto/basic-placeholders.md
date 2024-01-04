@@ -94,10 +94,30 @@ Which placeholder values are available depends on the context where the placehol
 
 ### Time Placeholder
 
-| Placeholder                                    | Description                                                             |
-|------------------------------------------------|-------------------------------------------------------------------------|
-| `{%raw%}{{ time:now }}{%endraw%}`              | the current timestamp in ISO-8601 format as string in UTC timezone      | 
-| `{%raw%}{{ time:now_epoch_millis }}{%endraw%}` | the current timestamp in "milliseconds since epoch" formatted as string |
+| Placeholder                                                                 | Description                                                                                                                                                                                                                                 |
+|-----------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `{%raw%}{{ time:now }}{%endraw%}`                                           | the current timestamp in ISO-8601 format as string in UTC timezone                                                                                                                                                                          | 
+| `{%raw%}{{ time:now_epoch_millis }}{%endraw%}`                              | the current timestamp in "milliseconds since epoch" formatted as string                                                                                                                                                                     |
+| `{%raw%}{{ time:now<+-offset> }}{%endraw%}`                                 | the current timestamp in ISO-8601 format as string in UTC timezone plus or minus the offset in format `<integer><unit>` where unit is one of `ms s m h d`                                                                                   | 
+| `{%raw%}{{ time:now_epoch_millis<+-offset> }}{%endraw%}`                    | the current timestamp in "milliseconds since epoch" formatted as string plus or minus the offset in format `<integer><unit>` where unit is one of `ms s m h d`                                                                              |
+| `{%raw%}{{ time:now[<truncation-unit>] }}{%endraw%}`                        | the current timestamp in ISO-8601 format as string in UTC timezone, truncated to the unit defined in square brackets, being one of `ms s m h d`                                                                                             | 
+| `{%raw%}{{ time:now_epoch_millis[<truncation-unit>] }}{%endraw%}`           | the current timestamp in "milliseconds since epoch" formatted as string, truncated to the unit defined in square brackets, being one of `ms s m h d`                                                                                        |
+| `{%raw%}{{ time:now<+-offset>[<truncation-unit>] }}{%endraw%}`              | the current timestamp in ISO-8601 format as string in UTC timezone plus or minus the offset in format `<integer><unit>` where unit is one of `ms s m h d`, truncated to the unit defined in square brackets, being one of `ms s m h d`      | 
+| `{%raw%}{{ time:now_epoch_millis<+-offset>[<truncation-unit>] }}{%endraw%}` | the current timestamp in "milliseconds since epoch" formatted as string plus or minus the offset in format `<integer><unit>` where unit is one of `ms s m h d`, truncated to the unit defined in square brackets, being one of `ms s m h d` |
+
+Examples - assuming that the `now` timestamp is: `2024-01-06T14:23:42.123Z`
+```
+{%raw%}{{ time:now }}{%endraw%}        # current ts:                                       2024-01-06T14:23:42.123Z
+{%raw%}{{ time:now+1h }}{%endraw%}     # current ts, +1 hour:                              2024-01-06T15:23:42.123Z
+{%raw%}{{ time:now-7d }}{%endraw%}     # current ts, -7 days:                              2023-12-31T14:23:42.123Z
+{%raw%}{{ time:now[h] }}{%endraw%}     # current ts, truncated to the hour:                2024-01-06T14:00:00.000Z
+{%raw%}{{ time:now[d] }}{%endraw%}     # current ts, truncated to the day:                 2024-01-06T00:00:00.000Z
+{%raw%}{{ time:now-25m[m] }}{%endraw%} # current ts, -25 minutes, truncated to the minute: 2024-01-06T13:58:00.000Z
+{%raw%}{{ time:now+3d[s] }}{%endraw%}  # current ts, +3 days, truncated to the second:     2024-01-09T14:23:42.000Z
+```
+
+The same offset and truncation can be done with the `now_epoch_millis`.
+
 
 ### JWT Placeholder
 
