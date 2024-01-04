@@ -111,7 +111,7 @@ public final class TimeoutValueValidatorTest {
 
     @Test
     public void acceptDittoDurationStringWithInvalidTimeUnit() {
-        final String invalidDittoDurationString = "1d";
+        final String invalidDittoDurationString = "1y";
 
         assertThatExceptionOfType(TimeoutInvalidException.class)
                 .isThrownBy(() -> underTest.accept(DittoHeaderDefinition.TIMEOUT, invalidDittoDurationString))
