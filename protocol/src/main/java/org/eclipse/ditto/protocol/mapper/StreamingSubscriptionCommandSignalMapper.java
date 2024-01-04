@@ -72,6 +72,9 @@ final class StreamingSubscriptionCommandSignalMapper<T extends StreamingSubscrip
             subscribeCommand.getToHistoricalTimestamp().ifPresent(toTs ->
                     payloadContentBuilder.set(SubscribeForPersistedEvents.JsonFields.JSON_TO_HISTORICAL_TIMESTAMP,
                             toTs.toString()));
+            subscribeCommand.getFilter().ifPresent(filter ->
+                    payloadContentBuilder.set(SubscribeForPersistedEvents.JsonFields.FILTER, filter)
+            );
         } else if (command instanceof CancelStreamingSubscription) {
             final CancelStreamingSubscription cancelCommand = (CancelStreamingSubscription) command;
             payloadContentBuilder
