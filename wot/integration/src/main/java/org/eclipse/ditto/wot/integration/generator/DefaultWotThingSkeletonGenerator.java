@@ -101,6 +101,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
     public CompletionStage<Optional<Thing>> generateThingSkeleton(final ThingId thingId,
             final ThingModel thingModel,
             final URL thingModelUrl,
+            final boolean generateDefaultsForOptionalProperties,
             final DittoHeaders dittoHeaders) {
 
         return thingModelExtensionResolver
@@ -124,6 +125,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
 
                                 fillPropertiesInOptionalCategories(
                                         properties,
+                                        generateDefaultsForOptionalProperties,
                                         thingModelWithExtensionsAndImports.getTmOptional().orElse(null),
                                         jsonObjectBuilder,
                                         attributesCategories,
@@ -137,7 +139,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                                 );
 
                                 final AttributesBuilder attributesBuilder = Attributes.newBuilder();
-                                if (attributesCategories.size() > 0) {
+                                if (!attributesCategories.isEmpty()) {
                                     attributesCategories.forEach((attributeCategory, categoryObjBuilder) ->
                                             attributesBuilder.set(attributeCategory, categoryObjBuilder.build())
                                     );
@@ -149,26 +151,27 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                     return Pair.apply(thingModelWithExtensionsAndImports, builder);
                 })
                 .thenCompose(pair ->
-                    createFeaturesFromSubmodels(pair.first(), dittoHeaders)
-                            .thenApply(features ->
-                                    features.map(f -> pair.second().setFeatures(f)).orElse(pair.second())
-                            )
+                        createFeaturesFromSubmodels(pair.first(), generateDefaultsForOptionalProperties, dittoHeaders)
+                                .thenApply(features ->
+                                        features.map(f -> pair.second().setFeatures(f)).orElse(pair.second())
+                                )
                 )
                 .thenApply(builder -> Optional.of(builder.build()));
     }
 
     private static void fillPropertiesInOptionalCategories(final Properties properties,
+            final boolean generateDefaultsForOptionalProperties,
             @Nullable final TmOptional tmOptionalElements,
             final JsonObjectBuilder jsonObjectBuilder,
             final Map<String, JsonObjectBuilder> propertiesCategories,
             final Function<Property, Optional<String>> propertyCategoryExtractor) {
 
         properties.values().stream()
-                // filter out optional elements - don't create skeleton values for those:
-                .filter(property -> Optional.ofNullable(tmOptionalElements)
+                .filter(property -> generateDefaultsForOptionalProperties || Optional.ofNullable(tmOptionalElements)
                         .stream()
                         .noneMatch(optionals -> optionals.stream()
                                 .anyMatch(optionalEl ->
+                                        // filter out optional elements - don't create skeleton values for those:
                                         optionalEl.toString().equals("/properties/" + property.getPropertyName())
                                 )
                         )
@@ -190,7 +193,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
     }
 
     private CompletionStage<Optional<Features>> createFeaturesFromSubmodels(final ThingModel thingModel,
-            final DittoHeaders dittoHeaders) {
+            final boolean generateDefaultsForOptionalProperties, final DittoHeaders dittoHeaders) {
 
         final FeaturesBuilder featuresBuilder = Features.newBuilder();
         final List<CompletableFuture<Optional<Feature>>> futureList = thingModel.getLinks()
@@ -219,6 +222,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                                 generateFeatureSkeleton(submodel.instanceName,
                                         subThingModel,
                                         submodel.href,
+                                        generateDefaultsForOptionalProperties,
                                         dittoHeaders
                                 ), executor)
                         .toCompletableFuture()
@@ -245,9 +249,11 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
     private CompletionStage<Optional<Feature>> generateFeatureSkeleton(final String featureId,
             final ThingModel thingModel,
             final IRI thingModelIri,
+            final boolean generateDefaultsForOptionalProperties,
             final DittoHeaders dittoHeaders) {
         try {
-            return generateFeatureSkeleton(featureId, thingModel, new URL(thingModelIri.toString()), dittoHeaders);
+            return generateFeatureSkeleton(featureId, thingModel, new URL(thingModelIri.toString()),
+                    generateDefaultsForOptionalProperties, dittoHeaders);
         } catch (final MalformedURLException e) {
             throw ThingDefinitionInvalidException.newBuilder(thingModelIri)
                     .dittoHeaders(dittoHeaders)
@@ -259,6 +265,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
     public CompletionStage<Optional<Feature>> generateFeatureSkeleton(final String featureId,
             final ThingModel thingModel,
             final URL thingModelUrl,
+            final boolean generateDefaultsForOptionalProperties,
             final DittoHeaders dittoHeaders) {
 
         return thingModelExtensionResolver
@@ -284,6 +291,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
 
                                         fillPropertiesInOptionalCategories(
                                                 properties,
+                                                generateDefaultsForOptionalProperties,
                                                 thingModelWithExtensionsAndImports.getTmOptional().orElse(null),
                                                 jsonObjectBuilder,
                                                 propertiesCategories,
@@ -298,7 +306,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
 
                                         final FeaturePropertiesBuilder propertiesBuilder =
                                                 FeatureProperties.newBuilder();
-                                        if (propertiesCategories.size() > 0) {
+                                        if (!propertiesCategories.isEmpty()) {
                                             propertiesCategories.forEach((propertyCategory, categoryObjBuilder) ->
                                                     propertiesBuilder.set(propertyCategory, categoryObjBuilder.build())
                                             );
@@ -465,7 +473,8 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
         return "";
     }
 
-    private CompletionStage<FeatureDefinition> resolveFeatureDefinition(final ThingModel thingModel, final URL thingModelUrl,
+    private CompletionStage<FeatureDefinition> resolveFeatureDefinition(final ThingModel thingModel,
+            final URL thingModelUrl,
             final DittoHeaders dittoHeaders) {
         return determineFurtherFeatureDefinitionIdentifiers(thingModel, dittoHeaders)
                 .thenApply(definitionIdentifiers -> FeatureDefinition.fromIdentifier(

@@ -121,7 +121,7 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
 
         final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(dittoHeaders);
         if (FeatureToggle.isWotIntegrationFeatureEnabled() &&
-                wotConfig.getCreationConfig().isThingSkeletonCreationEnabled() &&
+                wotConfig.getCreationConfig().getThingCreationConfig().isSkeletonCreationEnabled() &&
                 null != thingDefinition) {
             final Optional<URL> urlOpt = thingDefinition.getUrl();
             if (urlOpt.isPresent()) {
@@ -129,22 +129,40 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
                 logger.debug("Fetching ThingModel from <{}> in order to create Thing skeleton for new Thing " +
                         "with id <{}>", url, thingId);
                 return thingModelFetcher.fetchThingModel(url, dittoHeaders)
-                        .thenComposeAsync(thingModel -> thingSkeletonGenerator
-                                        .generateThingSkeleton(thingId, thingModel, url, dittoHeaders),
+                        .thenComposeAsync(thingModel -> thingSkeletonGenerator.generateThingSkeleton(
+                                        thingId,
+                                        thingModel,
+                                        url,
+                                        wotConfig.getCreationConfig()
+                                                .getThingCreationConfig()
+                                                .shouldGenerateDefaultsForOptionalProperties(),
+                                        dittoHeaders
+                                ),
                                 executor
                         )
-                        .thenApply(thingSkeleton -> {
-                            logger.debug("Created Thing skeleton for new Thing with id <{}>: <{}>", thingId,
-                                    thingSkeleton);
-                            return thingSkeleton;
-                        })
-                        .exceptionally(throwable -> {
-                            logger.info("Could not fetch ThingModel or generate Thing skeleton based on it due " +
-                                            "to: <{}: {}>",
-                                    throwable.getClass().getSimpleName(),throwable.getMessage(), throwable);
-                            return Optional.empty();
+                        .handle((thingSkeleton, throwable) -> {
+                            if (throwable != null) {
+                                logger.info("Could not fetch ThingModel or generate Thing skeleton based on it due " +
+                                                "to: <{}: {}>",
+                                        throwable.getClass().getSimpleName(), throwable.getMessage(), throwable);
+                                if (wotConfig.getCreationConfig()
+                                        .getThingCreationConfig()
+                                        .shouldThrowExceptionOnWotErrors()) {
+                                    throw DittoRuntimeException.asDittoRuntimeException(
+                                            throwable, t -> WotInternalErrorException.newBuilder()
+                                                    .dittoHeaders(dittoHeaders)
+                                                    .cause(t)
+                                                    .build()
+                                    );
+                                } else {
+                                    return Optional.empty();
+                                }
+                            } else {
+                                logger.debug("Created Thing skeleton for new Thing with id <{}>: <{}>", thingId,
+                                        thingSkeleton);
+                                return thingSkeleton;
+                            }
                         });
-
             } else {
                 return CompletableFuture.completedFuture(Optional.empty());
             }
@@ -159,7 +177,7 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
 
         final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(dittoHeaders);
         if (FeatureToggle.isWotIntegrationFeatureEnabled() &&
-                wotConfig.getCreationConfig().isFeatureSkeletonCreationEnabled() &&
+                wotConfig.getCreationConfig().getFeatureCreationConfig().isSkeletonCreationEnabled() &&
                 null != featureDefinition) {
             final Optional<URL> urlOpt = featureDefinition.getFirstIdentifier().getUrl();
             if (urlOpt.isPresent()) {
@@ -167,20 +185,39 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
                 logger.debug("Fetching ThingModel from <{}> in order to create Feature skeleton for new Feature " +
                         "with id <{}>", url, featureId);
                 return thingModelFetcher.fetchThingModel(url, dittoHeaders)
-                        .thenComposeAsync(thingModel -> thingSkeletonGenerator
-                                        .generateFeatureSkeleton(featureId, thingModel, url, dittoHeaders),
+                        .thenComposeAsync(thingModel -> thingSkeletonGenerator.generateFeatureSkeleton(
+                                        featureId,
+                                        thingModel,
+                                        url,
+                                        wotConfig.getCreationConfig()
+                                                .getFeatureCreationConfig()
+                                                .shouldGenerateDefaultsForOptionalProperties(),
+                                        dittoHeaders
+                                ),
                                 executor
                         )
-                        .thenApply(featureSkeleton -> {
-                            logger.debug("Created Feature skeleton for new Feature with id <{}>: <{}>", featureId,
-                                    featureSkeleton);
-                            return featureSkeleton;
-                        })
-                        .exceptionally(throwable -> {
-                            logger.info("Could not fetch ThingModel or generate Feature skeleton based on it " +
-                                            "due to: <{}: {}>",
-                                    throwable.getClass().getSimpleName(), throwable.getMessage(), throwable);
-                            return Optional.empty();
+                        .handle((featureSkeleton, throwable) -> {
+                            if (throwable != null) {
+                                logger.info("Could not fetch ThingModel or generate Feature skeleton based on it due " +
+                                                "to: <{}: {}>",
+                                        throwable.getClass().getSimpleName(), throwable.getMessage(), throwable);
+                                if (wotConfig.getCreationConfig()
+                                        .getFeatureCreationConfig()
+                                        .shouldThrowExceptionOnWotErrors()) {
+                                    throw DittoRuntimeException.asDittoRuntimeException(
+                                            throwable, t -> WotInternalErrorException.newBuilder()
+                                                    .dittoHeaders(dittoHeaders)
+                                                    .cause(t)
+                                                    .build()
+                                    );
+                                } else {
+                                    return Optional.empty();
+                                }
+                            } else {
+                                logger.debug("Created Feature skeleton for new Feature with id <{}>: <{}>", featureId,
+                                        featureSkeleton);
+                                return featureSkeleton;
+                            }
                         });
             } else {
                 return CompletableFuture.completedFuture(Optional.empty());
@@ -203,19 +240,19 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
             final URL url = urlOpt.get();
             return thingModelFetcher.fetchThingModel(url, dittoHeaders)
                     .thenComposeAsync(thingModel -> thingDescriptionGenerator
-                            .generateThingDescription(thingId,
-                                    thing,
-                                    Optional.ofNullable(thing)
-                                            .flatMap(Thing::getAttributes)
-                                            .flatMap(a -> a.getValue(MODEL_PLACEHOLDERS_KEY))
-                                            .filter(JsonValue::isObject)
-                                            .map(JsonValue::asObject)
-                                            .orElse(null),
-                                    null,
-                                    thingModel,
-                                    url,
-                                    dittoHeaders
-                            ),
+                                    .generateThingDescription(thingId,
+                                            thing,
+                                            Optional.ofNullable(thing)
+                                                    .flatMap(Thing::getAttributes)
+                                                    .flatMap(a -> a.getValue(MODEL_PLACEHOLDERS_KEY))
+                                                    .filter(JsonValue::isObject)
+                                                    .map(JsonValue::asObject)
+                                                    .orElse(null),
+                                            null,
+                                            thingModel,
+                                            url,
+                                            dittoHeaders
+                                    ),
                             executor
                     )
                     .exceptionally(throwable -> {
@@ -247,18 +284,18 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
             final URL url = urlOpt.get();
             return thingModelFetcher.fetchThingModel(url, dittoHeaders)
                     .thenComposeAsync(thingModel -> thingDescriptionGenerator
-                            .generateThingDescription(thingId,
-                                    thing,
-                                    feature.getProperties()
-                                            .flatMap(p -> p.getValue(MODEL_PLACEHOLDERS_KEY))
-                                            .filter(JsonValue::isObject)
-                                            .map(JsonValue::asObject)
-                                            .orElse(null),
-                                    feature.getId(),
-                                    thingModel,
-                                    url,
-                                    dittoHeaders
-                            ),
+                                    .generateThingDescription(thingId,
+                                            thing,
+                                            feature.getProperties()
+                                                    .flatMap(p -> p.getValue(MODEL_PLACEHOLDERS_KEY))
+                                                    .filter(JsonValue::isObject)
+                                                    .map(JsonValue::asObject)
+                                                    .orElse(null),
+                                            feature.getId(),
+                                            thingModel,
+                                            url,
+                                            dittoHeaders
+                                    ),
                             executor
                     )
                     .exceptionally(throwable -> {

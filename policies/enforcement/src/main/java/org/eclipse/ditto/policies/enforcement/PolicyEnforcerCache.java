@@ -20,7 +20,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Stream;
+import java.util.function.Function;
 
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
@@ -68,6 +68,12 @@ final class PolicyEnforcerCache implements Cache<PolicyId, Entry<PolicyEnforcer>
     @Override
     public CompletableFuture<Optional<Entry<PolicyEnforcer>>> get(final PolicyId key) {
         return delegate.get(key);
+    }
+
+    @Override
+    public CompletableFuture<Optional<Entry<PolicyEnforcer>>> get(final PolicyId key,
+            final Function<Throwable, Optional<Entry<PolicyEnforcer>>> errorHandler) {
+        return delegate.get(key, errorHandler);
     }
 
     @Override

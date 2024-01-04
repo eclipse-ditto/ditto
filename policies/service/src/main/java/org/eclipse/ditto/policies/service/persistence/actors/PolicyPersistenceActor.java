@@ -19,6 +19,12 @@ import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.persistence.RecoveryCompleted;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -46,11 +52,6 @@ import org.eclipse.ditto.policies.service.common.config.DittoPoliciesConfig;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 import org.eclipse.ditto.policies.service.persistence.actors.strategies.commands.PolicyCommandStrategies;
 import org.eclipse.ditto.policies.service.persistence.actors.strategies.events.PolicyEventStrategies;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.persistence.RecoveryCompleted;
 
 /**
  * PersistentActor which "knows" the state of a single {@link Policy}.
@@ -278,6 +279,16 @@ public final class PolicyPersistenceActor
             }
             if (becomeCreated) {
                 becomeCreatedHandler();
+            }
+        }, throwable -> {
+            final DittoRuntimeException dittoRuntimeException =
+                    DittoRuntimeException.asDittoRuntimeException(throwable, t ->
+                            DittoInternalErrorException.newBuilder()
+                                    .cause(t)
+                                    .dittoHeaders(command.getDittoHeaders())
+                                    .build());
+            if (shouldSendResponse(command.getDittoHeaders())) {
+                notifySender(sender, dittoRuntimeException);
             }
         });
     }
