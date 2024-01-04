@@ -105,6 +105,14 @@ public final class DittoDurationTest {
     }
 
     @Test
+    public void createDittoDurationFromStringDays() {
+        final short durationValue = 7;
+        final DittoDuration dittoDuration = DittoDuration.parseDuration(durationValue + "d");
+
+        assertThat(dittoDuration.getDuration()).isEqualTo(Duration.ofDays(durationValue));
+    }
+
+    @Test
     public void createDittoDurationFromStringWithAndWithoutSecondsIsEqual() {
         final byte durationValue = 23;
         final DittoDuration dittoDuration1 = DittoDuration.parseDuration(String.valueOf(durationValue));
