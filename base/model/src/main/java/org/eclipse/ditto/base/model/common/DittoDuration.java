@@ -18,7 +18,9 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.LongFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -201,7 +203,12 @@ public final class DittoDuration implements CharSequence {
         return Objects.hash(amount, dittoTimeUnit);
     }
 
-    private enum DittoTimeUnit {
+    /**
+     * Enumeration providing the supported time units of {@link DittoDuration}, together with their {@link ChronoUnit}.
+     *
+     * @since 3.5.0
+     */
+    public enum DittoTimeUnit {
 
         // The order matters as we expect seconds to be the main unit.
         // By making it the first constant, parsing a duration from string will be accelerated.
@@ -209,7 +216,8 @@ public final class DittoDuration implements CharSequence {
         SECONDS_IMPLICIT("", Duration::ofSeconds, ChronoUnit.SECONDS),
         MILLISECONDS("ms", Duration::ofMillis, ChronoUnit.MILLIS),
         MINUTES("m", Duration::ofMinutes, ChronoUnit.MINUTES),
-        HOURS("h", Duration::ofHours, ChronoUnit.HOURS);
+        HOURS("h", Duration::ofHours, ChronoUnit.HOURS),
+        DAYS("d", Duration::ofDays, ChronoUnit.DAYS);
 
         private final String suffix;
         private final LongFunction<Duration> toJavaDuration;
@@ -223,19 +231,31 @@ public final class DittoDuration implements CharSequence {
             regexPattern = Pattern.compile("(?<amount>[+-]?\\d++)(?<unit>" + suffix + ")");
         }
 
-        private Matcher getRegexMatcher(final CharSequence duration) {
+        /**
+         * Find a DittoTimeUnit option by a provided suffix string.
+         *
+         * @param suffix the suffix.
+         * @return the DittoTimeUnit with the given suffix string if any exists.
+         */
+        public static Optional<DittoTimeUnit> forSuffix(final String suffix) {
+            return Arrays.stream(values())
+                    .filter(unit -> unit.getSuffix().equals(suffix))
+                    .findAny();
+        }
+
+        public Matcher getRegexMatcher(final CharSequence duration) {
             return regexPattern.matcher(duration);
         }
 
-        private String getSuffix() {
+        public String getSuffix() {
             return suffix;
         }
 
-        private Duration getJavaDuration(final long amount) {
+        public Duration getJavaDuration(final long amount) {
             return toJavaDuration.apply(amount);
         }
 
-        private ChronoUnit getChronoUnit() {
+        public ChronoUnit getChronoUnit() {
             return chronoUnit;
         }
 
