@@ -25,6 +25,26 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.persistence.query.EventEnvelope;
+import org.apache.pekko.persistence.query.Offset;
+import org.apache.pekko.persistence.query.PersistenceQuery;
+import org.apache.pekko.persistence.query.javadsl.CurrentEventsByPersistenceIdQuery;
+import org.apache.pekko.persistence.query.javadsl.CurrentEventsByTagQuery;
+import org.apache.pekko.persistence.query.javadsl.CurrentPersistenceIdsQuery;
+import org.apache.pekko.persistence.query.javadsl.EventsByPersistenceIdQuery;
+import org.apache.pekko.persistence.query.javadsl.EventsByTagQuery;
+import org.apache.pekko.persistence.query.javadsl.PersistenceIdsQuery;
+import org.apache.pekko.stream.Attributes;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.RestartSettings;
+import org.apache.pekko.stream.SystemMaterializer;
+import org.apache.pekko.stream.javadsl.RestartSource;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 import org.bson.BsonArray;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
@@ -53,27 +73,6 @@ import com.mongodb.client.result.DeleteResult;
 import com.mongodb.reactivestreams.client.AggregatePublisher;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.typesafe.config.Config;
-
-import org.apache.pekko.Done;
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.japi.Pair;
-import org.apache.pekko.persistence.query.EventEnvelope;
-import org.apache.pekko.persistence.query.Offset;
-import org.apache.pekko.persistence.query.PersistenceQuery;
-import org.apache.pekko.persistence.query.javadsl.CurrentEventsByPersistenceIdQuery;
-import org.apache.pekko.persistence.query.javadsl.CurrentEventsByTagQuery;
-import org.apache.pekko.persistence.query.javadsl.CurrentPersistenceIdsQuery;
-import org.apache.pekko.persistence.query.javadsl.EventsByPersistenceIdQuery;
-import org.apache.pekko.persistence.query.javadsl.EventsByTagQuery;
-import org.apache.pekko.persistence.query.javadsl.PersistenceIdsQuery;
-import org.apache.pekko.stream.Attributes;
-import org.apache.pekko.stream.Materializer;
-import org.apache.pekko.stream.RestartSettings;
-import org.apache.pekko.stream.SystemMaterializer;
-import org.apache.pekko.stream.javadsl.RestartSource;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
 
 import pekko.contrib.persistence.mongodb.JavaDslMongoReadJournal;
 import pekko.contrib.persistence.mongodb.JournallingFieldNames$;
@@ -548,6 +547,23 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
     }
 
     /**
+     * Find the latest/newest event sequence number of a PID.
+     *
+     * @param pid the PID to search for.
+     * @return source of the latest event sequence number, or an empty optional.
+     */
+    public Source<Optional<Long>, NotUsed> getLatestEventSeqNo(final String pid) {
+        return getJournal()
+                .flatMapConcat(journal -> Source.fromPublisher(
+                        journal.find(Filters.eq(J_PROCESSOR_ID, pid))
+                                .sort(Sorts.descending(J_TO))
+                                .limit(1)
+                ))
+                .map(document -> Optional.of(document.getLong(J_TO)))
+                .orElse(Source.single(Optional.empty()));
+    }
+
+    /**
      * Find the smallest snapshot sequence number of a PID.
      *
      * @param pid the PID to search for.
@@ -603,7 +619,16 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
     public Source<EventEnvelope, NotUsed> currentEventsByPersistenceId(final String persistenceId,
             final long fromSequenceNr,
             final long toSequenceNr) {
-        return pekkoReadJournal.currentEventsByPersistenceId(persistenceId, fromSequenceNr, toSequenceNr);
+        if (fromSequenceNr <= 0 || toSequenceNr <= 0) {
+            return getLatestEventSeqNo(persistenceId).flatMapConcat(latestSnOpt -> {
+                final long effectiveTo = toSequenceNr <= 0 ?
+                        latestSnOpt.map(latest -> latest + toSequenceNr).orElse(toSequenceNr) : toSequenceNr;
+                final long effectiveFrom = fromSequenceNr <= 0 ? effectiveTo + 1 + fromSequenceNr : fromSequenceNr;
+                return pekkoReadJournal.currentEventsByPersistenceId(persistenceId, effectiveFrom, effectiveTo);
+            });
+        } else {
+            return pekkoReadJournal.currentEventsByPersistenceId(persistenceId, fromSequenceNr, toSequenceNr);
+        }
     }
 
     @Override
