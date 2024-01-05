@@ -16,7 +16,7 @@ import { getThing } from './http-util.js';
 import * as common from './common.js'
 
 export function readThing() {
-    let thingId = common.GET_THING_ID(randomIntBetween(common.THINGS_START_INDEX, common.THINGS_COUNT - 1));
+    let thingId = common.GET_THING_ID(randomIntBetween(0, common.THINGS_COUNT - 1));
     let response = getThing(thingId);
     if (response.status != 200) {
         fail(`Failed to read thing ${thingId}; Response: ${JSON.stringify(response)}`);

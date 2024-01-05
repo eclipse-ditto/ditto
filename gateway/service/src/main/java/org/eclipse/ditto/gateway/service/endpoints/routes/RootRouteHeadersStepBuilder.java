@@ -25,15 +25,14 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.HttpMessage;
+import org.apache.pekko.http.javadsl.server.RequestContext;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.gateway.api.GatewayDuplicateHeaderException;
-
-import org.apache.pekko.http.javadsl.model.HttpHeader;
-import org.apache.pekko.http.javadsl.model.HttpMessage;
-import org.apache.pekko.http.javadsl.server.RequestContext;
 
 /**
  * This class provides a fluent API for building a CompletionStage that eventually supplies the {@link DittoHeaders} for
@@ -233,7 +232,7 @@ final class RootRouteHeadersStepBuilder {
             // At this point it is ensured that a correlation ID was set
             final String correlationId = dittoDefaultHeaders.getCorrelationId().orElseThrow();
 
-            CompletionStage<DittoHeaders> result = customHeadersHandler.handleCustomHeaders(correlationId,
+            final CompletionStage<DittoHeaders> result = customHeadersHandler.handleCustomHeaders(correlationId,
                     requestContext,
                     requestType,
                     dittoDefaultHeaders);

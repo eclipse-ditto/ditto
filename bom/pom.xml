@@ -70,7 +70,6 @@
 
         <slf4j.version>2.0.9</slf4j.version>
         <logback.version>1.4.13</logback.version>
-        <logstash-logback-encoder.version>7.4</logstash-logback-encoder.version>
         <fluency.version>2.6.5</fluency.version>
         <janino.version>3.1.11</janino.version>
 

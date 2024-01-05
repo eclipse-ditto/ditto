@@ -128,7 +128,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     @Nullable protected ActorRef persistenceActorChild;
     @Nullable protected ActorRef enforcerChild;
 
-    private final Duration localAskTimeout;
+    protected final Duration localAskTimeout;
 
     private final ExponentialBackOffConfig exponentialBackOffConfig;
     private final SignalTransformer signalTransformer;

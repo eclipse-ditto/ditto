@@ -12,14 +12,22 @@
  */
 package org.eclipse.ditto.thingsearch.service.updater.actors;
 
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.Status;
+import org.apache.pekko.actor.SupervisorStrategy;
+import org.apache.pekko.event.Logging;
+import org.apache.pekko.event.LoggingAdapter;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 import org.eclipse.ditto.base.service.actors.StartChildActor;
-import org.eclipse.ditto.internal.utils.pekko.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
+import org.eclipse.ditto.internal.utils.pekko.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
@@ -29,18 +37,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.impl.MongoThingsS
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdateMapper;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdaterStream;
 import org.eclipse.ditto.thingsearch.service.starter.actors.MongoClientExtension;
-import org.eclipse.ditto.thingsearch.service.starter.actors.SearchRootActor;
-
-import org.apache.pekko.actor.AbstractActor;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorRefFactory;
-import org.apache.pekko.actor.ActorSelection;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.actor.Status;
-import org.apache.pekko.actor.SupervisorStrategy;
-import org.apache.pekko.event.Logging;
-import org.apache.pekko.event.LoggingAdapter;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.eclipse.ditto.thingsearch.service.starter.actors.OperatorMetricsProviderActor;
 
 /**
  * Our "Parent" Actor which takes care of supervision of all other Actors in our system.
@@ -68,6 +65,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
     @SuppressWarnings("unused")
     private SearchUpdaterRootActor(final SearchConfig searchConfig,
+            final ActorRef searchActor,
             final ActorRef pubSubMediator,
             final MongoThingsSearchPersistence thingsSearchPersistence,
             final TimestampPersistence backgroundSyncPersistence) {
@@ -130,6 +128,11 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 ClusterUtil.startSingletonProxy(getContext(), CLUSTER_ROLE,
                         startClusterSingletonActor(BackgroundSyncActor.ACTOR_NAME, backgroundSyncActorProps)
                 );
+        if (searchConfig.getOperatorMetricsConfig().isEnabled()) {
+            startClusterSingletonActor(OperatorMetricsProviderActor.ACTOR_NAME,
+                    OperatorMetricsProviderActor.props(searchConfig.getOperatorMetricsConfig(), searchActor)
+            );
+        }
 
         startChildActor(ThingsSearchPersistenceOperationsActor.ACTOR_NAME,
                 ThingsSearchPersistenceOperationsActor.props(pubSubMediator, searchUpdaterPersistence,
@@ -140,28 +143,19 @@ public final class SearchUpdaterRootActor extends AbstractActor {
      * Creates Pekko configuration object Props for this SearchUpdaterRootActor.
      *
      * @param searchConfig the configuration settings of the Things-Search service.
+     * @param searchActor the SearchActor Actor reference.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param thingsSearchPersistence persistence to access the search index in read-only mode.
      * @param backgroundSyncPersistence persistence for background synchronization.
      * @return a Props object to create this actor.
      */
     public static Props props(final SearchConfig searchConfig,
+            final ActorRef searchActor,
             final ActorRef pubSubMediator,
             final MongoThingsSearchPersistence thingsSearchPersistence,
             final TimestampPersistence backgroundSyncPersistence) {
-        return Props.create(SearchUpdaterRootActor.class, searchConfig, pubSubMediator, thingsSearchPersistence,
-                backgroundSyncPersistence);
-    }
-
-    /**
-     * Select the ThingsUpdater in the actor system.
-     *
-     * @param system the actor system.
-     * @return actor selection for the ThingsUpdater in the system.
-     */
-    public static ActorSelection getThingsUpdater(final ActorRefFactory system) {
-        return system.actorSelection(
-                String.format("user/%s/%s/%s", SearchRootActor.ACTOR_NAME, ACTOR_NAME, ThingsUpdater.ACTOR_NAME));
+        return Props.create(SearchUpdaterRootActor.class, searchConfig, searchActor, pubSubMediator,
+                thingsSearchPersistence, backgroundSyncPersistence);
     }
 
     @Override

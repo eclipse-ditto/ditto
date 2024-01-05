@@ -16,14 +16,13 @@ import java.net.URL;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.wot.integration.provider.WotThingModelFetcher;
 import org.eclipse.ditto.wot.model.ThingModel;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Generator for WoT (Web of Things) based Ditto {@link Thing}s and {@link Feature} skeletons based on
@@ -51,9 +50,38 @@ public interface WotThingSkeletonGenerator {
      * @throws org.eclipse.ditto.wot.model.WotThingModelInvalidException if the WoT ThingModel did not contain the
      * mandatory {@code "@type"} being {@code "tm:ThingModel"}
      */
+    default CompletionStage<Optional<Thing>> generateThingSkeleton(ThingId thingId,
+            ThingModel thingModel,
+            URL thingModelUrl,
+            DittoHeaders dittoHeaders) {
+        return generateThingSkeleton(thingId, thingModel, thingModelUrl, false, dittoHeaders);
+    }
+
+    /**
+     * Generates a skeleton {@link Thing} for the given {@code thingId}.
+     * Uses the passed in {@code thingModel} and generates
+     * <ul>
+     * <li>{@code attributes} on Thing level for all required properties in that TM</li>
+     * <li>Features for all included TM submodels (links with {@code tm:submodel} type)</li>
+     * <li>Feature properties on Feature levels for all required properties in linked submodel TMs</li>
+     * </ul>
+     *
+     * @param thingId the ThingId to generate the Thing skeleton for.
+     * @param thingModel the ThingModel to use as template for generating the Thing skeleton.
+     * @param thingModelUrl the URL from which the ThingModel was fetched.
+     * @param generateDefaultsForOptionalProperties whether for optional marked properties in the WoT ThingModel
+     * properties should be generated based on their defaults.
+     * @param dittoHeaders the DittoHeaders for possibly thrown DittoRuntimeException which might occur during the
+     * generation.
+     * @return the generated Thing skeleton for the given {@code thingId} based on the passed in {@code thingModel}.
+     * @throws org.eclipse.ditto.wot.model.WotThingModelInvalidException if the WoT ThingModel did not contain the
+     * mandatory {@code "@type"} being {@code "tm:ThingModel"}
+     * @since 3.5.0
+     */
     CompletionStage<Optional<Thing>> generateThingSkeleton(ThingId thingId,
             ThingModel thingModel,
             URL thingModelUrl,
+            boolean generateDefaultsForOptionalProperties,
             DittoHeaders dittoHeaders);
 
     /**
@@ -72,9 +100,36 @@ public interface WotThingSkeletonGenerator {
      * @throws org.eclipse.ditto.wot.model.WotThingModelInvalidException if the WoT ThingModel did not contain the
      * mandatory {@code "@type"} being {@code "tm:ThingModel"}
      */
+    default CompletionStage<Optional<Feature>> generateFeatureSkeleton(String featureId,
+            ThingModel thingModel,
+            URL thingModelUrl,
+            DittoHeaders dittoHeaders) {
+        return generateFeatureSkeleton(featureId, thingModel, thingModelUrl, false, dittoHeaders);
+    }
+
+    /**
+     * Generates a skeleton {@link Feature} for the given {@code featureId}.
+     * Uses the passed in {@code thingModel} and generates
+     * <ul>
+     * <li>{@code properties} for all required properties in that TM</li>
+     * </ul>
+     *
+     * @param featureId the FeatureId to generate
+     * @param thingModel the ThingModel to use as template for generating the Feature skeleton.
+     * @param thingModelUrl the URL from which the ThingModel was fetched.
+     * @param generateDefaultsForOptionalProperties whether for optional marked properties in the WoT ThingModel
+     * properties should be generated based on their defaults.
+     * @param dittoHeaders the DittoHeaders for possibly thrown DittoRuntimeException which might occur during the
+     * generation.
+     * @return the generated Feature skeleton for the given {@code featureId} based on the passed in {@code thingModel}.
+     * @throws org.eclipse.ditto.wot.model.WotThingModelInvalidException if the WoT ThingModel did not contain the
+     * mandatory {@code "@type"} being {@code "tm:ThingModel"}
+     * @since 3.5.0
+     */
     CompletionStage<Optional<Feature>> generateFeatureSkeleton(String featureId,
             ThingModel thingModel,
             URL thingModelUrl,
+            boolean generateDefaultsForOptionalProperties,
             DittoHeaders dittoHeaders);
 
     /**

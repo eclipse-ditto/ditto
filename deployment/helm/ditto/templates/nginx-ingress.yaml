@@ -132,6 +132,11 @@ data:
     # ignore X-Original-URI in the request
     proxy_hide_header X-Original-URI;
 
+
+    # set ditto-specific forwarded headers - needed in the location for registry.k8s.io/ingress-nginx/controller
+    proxy_set_header        X-Forwarded-User              $remote_user;
+    proxy_set_header        x-ditto-pre-authenticated     "nginx:$remote_user";
+
   proxy-connect-timeout: "10" # seconds, default: 60
   # timeouts are configured slightly higher than gateway read-timeout of 60 seconds
   proxy-send-timeout: "70" # seconds, default: 60

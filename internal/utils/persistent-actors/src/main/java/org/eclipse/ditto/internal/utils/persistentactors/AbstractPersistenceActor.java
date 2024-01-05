@@ -23,6 +23,19 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.Cancellable;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.persistence.RecoveryCompleted;
+import org.apache.pekko.persistence.RecoveryTimedOut;
+import org.apache.pekko.persistence.SaveSnapshotFailure;
+import org.apache.pekko.persistence.SaveSnapshotSuccess;
+import org.apache.pekko.persistence.SnapshotOffer;
+import org.apache.pekko.persistence.SnapshotProtocol;
+import org.apache.pekko.persistence.SnapshotSelectionCriteria;
+import org.apache.pekko.persistence.query.EventEnvelope;
+import org.apache.pekko.stream.javadsl.Sink;
 import org.bson.BsonDocument;
 import org.eclipse.ditto.base.api.commands.sudo.SudoCommand;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
@@ -40,11 +53,11 @@ import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.pekko.PingCommand;
 import org.eclipse.ditto.internal.utils.pekko.PingCommandResponse;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.config.ScopedConfig;
-import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoEventAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
@@ -64,19 +77,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.Cancellable;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.apache.pekko.pattern.Patterns;
-import org.apache.pekko.persistence.RecoveryCompleted;
-import org.apache.pekko.persistence.RecoveryTimedOut;
-import org.apache.pekko.persistence.SaveSnapshotFailure;
-import org.apache.pekko.persistence.SaveSnapshotSuccess;
-import org.apache.pekko.persistence.SnapshotOffer;
-import org.apache.pekko.persistence.SnapshotProtocol;
-import org.apache.pekko.persistence.SnapshotSelectionCriteria;
-import org.apache.pekko.persistence.query.EventEnvelope;
-import org.apache.pekko.stream.javadsl.Sink;
 import scala.Option;
 
 /**
@@ -377,10 +377,28 @@ public abstract class AbstractPersistenceActor<
                 .ofNullable(command.getDittoHeaders().get(DittoHeaderDefinition.AT_HISTORICAL_REVISION.getKey()))
                 .map(Long::parseLong)
                 .orElseGet(this::lastSequenceNr);
+        if (atHistoricalRevision > lastSequenceNr()) {
+            getSender().tell(
+                    newHistoryNotAccessibleExceptionBuilder(atHistoricalRevision)
+                            .dittoHeaders(command.getDittoHeaders())
+                            .build(),
+                    getSelf()
+            );
+            return;
+        }
         final Instant atHistoricalTimestamp = Optional
                 .ofNullable(command.getDittoHeaders().get(DittoHeaderDefinition.AT_HISTORICAL_TIMESTAMP.getKey()))
                 .map(Instant::parse)
                 .orElse(Instant.EPOCH);
+        if (atHistoricalTimestamp.isAfter(Instant.now())) {
+            getSender().tell(
+                    newHistoryNotAccessibleExceptionBuilder(atHistoricalTimestamp)
+                            .dittoHeaders(command.getDittoHeaders())
+                            .build(),
+                    getSelf()
+            );
+            return;
+        }
 
         loadSnapshot(persistenceId(), SnapshotSelectionCriteria.create(
                 atHistoricalRevision,
@@ -466,7 +484,7 @@ public abstract class AbstractPersistenceActor<
                         }
                     })
                     .reduce((ewe1, ewe2) -> new EntityWithEvent(
-                            eventStrategy.handle(ewe2.event, ewe2.entity, ewe2.revision),
+                            eventStrategy.handle(ewe2.event, ewe1.entity, ewe2.revision),
                             ewe2.event
                     ))
                     .runWith(Sink.foreach(entityWithEvent ->
@@ -547,12 +565,20 @@ public abstract class AbstractPersistenceActor<
     /**
      * Persist an event, modify actor state by the event strategy, then invoke the handler.
      *
-     * @param event   the event to persist and apply.
+     * @param eventStage the event stage to persist and apply.
      * @param handler what happens afterwards.
+     * @param errorHandler the errorHandler to invoke for encountered throwables from the CompletionStage
      */
-    protected void persistAndApplyEventAsync(final CompletionStage<E> event, final BiConsumer<E, S> handler) {
-        Patterns.pipe(event.thenApply(e -> new PersistEventAsync<>(e, handler)), getContext().getDispatcher())
-                .to(getSelf());
+    protected void persistAndApplyEventAsync(final CompletionStage<E> eventStage, final BiConsumer<E, S> handler,
+            final Consumer<Throwable> errorHandler) {
+        Patterns.pipe(eventStage.handle((e, throwable) -> {
+            if (throwable != null) {
+                errorHandler.accept(throwable);
+                return null;
+            } else {
+                return new PersistEventAsync<>(e, handler);
+            }
+        }), getContext().getDispatcher()).to(getSelf());
     }
 
     /**
@@ -718,9 +744,11 @@ public abstract class AbstractPersistenceActor<
     }
 
     @Override
-    public void onStagedMutation(final Command<?> command, final CompletionStage<E> event,
+    public void onStagedMutation(final Command<?> command,
+            final CompletionStage<E> event,
             final CompletionStage<WithDittoHeaders> response,
-            final boolean becomeCreated, final boolean becomeDeleted) {
+            final boolean becomeCreated,
+            final boolean becomeDeleted) {
 
         final ActorRef sender = getSender();
         persistAndApplyEventAsync(event, (persistedEvent, resultingEntity) -> {
@@ -732,6 +760,16 @@ public abstract class AbstractPersistenceActor<
             }
             if (becomeCreated) {
                 becomeCreatedHandler();
+            }
+        }, throwable -> {
+            final DittoRuntimeException dittoRuntimeException =
+                    DittoRuntimeException.asDittoRuntimeException(throwable, t ->
+                            DittoInternalErrorException.newBuilder()
+                                    .cause(t)
+                                    .dittoHeaders(command.getDittoHeaders())
+                                    .build());
+            if (shouldSendResponse(command.getDittoHeaders())) {
+                notifySender(sender, dittoRuntimeException);
             }
         });
     }
@@ -748,7 +786,13 @@ public abstract class AbstractPersistenceActor<
     public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
         if (command.getDittoHeaders().isResponseRequired()) {
             final ActorRef sender = getSender();
-            response.thenAccept(r -> notifySender(sender, r));
+            response.whenComplete((r, throwable) -> {
+                if (throwable instanceof DittoRuntimeException dittoRuntimeException) {
+                    notifySender(sender, dittoRuntimeException);
+                } else {
+                    notifySender(sender, r);
+                }
+            });
         }
     }
 
@@ -865,7 +909,13 @@ public abstract class AbstractPersistenceActor<
     }
 
     private void notifySender(final ActorRef sender, final CompletionStage<WithDittoHeaders> message) {
-        message.thenAccept(msg -> notifySender(sender, msg));
+        message.whenComplete((msg, throwable) -> {
+            if (throwable instanceof DittoRuntimeException dittoRuntimeException) {
+                notifySender(sender, dittoRuntimeException);
+            } else {
+                notifySender(sender, msg);
+            }
+        });
     }
 
     private void takeSnapshotByInterval(final Control takeSnapshot) {
@@ -1079,19 +1129,23 @@ public abstract class AbstractPersistenceActor<
         @Override
         public void onStagedQuery(final Command<?> command, final CompletionStage<WithDittoHeaders> response) {
             if (command.getDittoHeaders().isResponseRequired()) {
-                response.thenAccept(r -> {
-                    final WithDittoHeaders theResponseToSend;
-                    if (response instanceof DittoHeadersSettable<?> dittoHeadersSettable) {
-                        final DittoHeaders queryCommandHeaders = r.getDittoHeaders();
-                        final DittoHeaders adjustedHeaders = queryCommandHeaders.toBuilder()
-                                .putHeader(DittoHeaderDefinition.HISTORICAL_HEADERS.getKey(),
-                                        historicalDittoHeaders.toJson().toString())
-                                .build();
-                        theResponseToSend = dittoHeadersSettable.setDittoHeaders(adjustedHeaders);
+                response.whenComplete((r, throwable) -> {
+                    if (throwable instanceof DittoRuntimeException dittoRuntimeException) {
+                        notifySender(sender, dittoRuntimeException);
                     } else {
-                        theResponseToSend = r;
+                        final WithDittoHeaders theResponseToSend;
+                        if (response instanceof DittoHeadersSettable<?> dittoHeadersSettable) {
+                            final DittoHeaders queryCommandHeaders = r.getDittoHeaders();
+                            final DittoHeaders adjustedHeaders = queryCommandHeaders.toBuilder()
+                                    .putHeader(DittoHeaderDefinition.HISTORICAL_HEADERS.getKey(),
+                                            historicalDittoHeaders.toJson().toString())
+                                    .build();
+                            theResponseToSend = dittoHeadersSettable.setDittoHeaders(adjustedHeaders);
+                        } else {
+                            theResponseToSend = r;
+                        }
+                        notifySender(sender, theResponseToSend);
                     }
-                    notifySender(sender, theResponseToSend);
                 });
             }
         }

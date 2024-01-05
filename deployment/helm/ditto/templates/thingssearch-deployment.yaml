@@ -82,10 +82,14 @@ spec:
           env:
             {{- if not .Values.global.logging.customConfigFile.enabled }}
             - name: DITTO_LOGGING_DISABLE_SYSOUT_LOG
-              value: "{{ if .Values.global.logging.sysout.enabled }}false{{ else }}true{{ end }}"
+              value: "{{ printf "%t" .Values.global.logging.sysout.enabled }}"
             - name: DITTO_LOGGING_FILE_APPENDER
-              value: "{{ if .Values.global.logging.logFiles.enabled }}true{{ else }}false{{ end }}"
+              value: "{{ printf "%t" .Values.global.logging.logFiles.enabled }}"
             {{- end }}
+            - name: DITTO_METRICS_METRIC_PREFIX
+              value: "{{ .Values.global.metrics.metricsPrefix }}"
+            - name: SYSTEM_METRICS_ENABLED
+              value: "{{ .Values.global.metrics.systemMetrics.enabled }}"
             - name: DITTO_TRACING_ENABLED
               value: "{{ .Values.global.tracing.enabled }}"
             - name: DITTO_TRACING_OTEL_TRACE_REPORTER_ENABLED
@@ -132,9 +136,20 @@ spec:
                 {{- if .Values.global.logging.customConfigFile.enabled }}
                 -Dlogback.configurationFile=/opt/ditto/{{ .Values.global.logging.customConfigFile.fileName }}
                 {{- end }}
+                {{- range $key, $value := .Values.thingsSearch.config.operatorMetrics.customMetrics }}
+                "{{ printf "%s%s%s=%t" "-Dditto.search.operator-metrics.custom-metrics." $key ".enabled" $value.enabled }}"
+                "{{ printf "%s%s%s=%s" "-Dditto.search.operator-metrics.custom-metrics." $key ".scrape-interval" $value.scrapeInterval }}"
+                {{- range $index, $namespace := $value.namespaces }}
+                "{{ printf "%s%s%s%d=%s" "-Dditto.search.operator-metrics.custom-metrics." $key ".namespaces." $index $namespace }}"
+                {{- end }}
+                "{{ printf "%s%s%s=%s" "-Dditto.search.operator-metrics.custom-metrics." $key ".filter" $value.filter }}"
+                {{- range $tagKey, $tagValue := $value.tags }}
+                "{{ printf "%s%s%s%s=%s" "-Dditto.search.operator-metrics.custom-metrics." $key ".tags." $tagKey $tagValue }}"
+                {{- end }}
+                {{- end }}
                 {{ join " " .Values.thingsSearch.systemProps }}
             - name: MONGO_DB_SSL_ENABLED
-              value: "{{ if .Values.dbconfig.thingsSearch.ssl }}true{{ else }}false{{ end }}"
+              value: "{{ printf "%t" .Values.dbconfig.thingsSearch.ssl }}"
             - name: MONGO_DB_URI
               valueFrom:
                 secretKeyRef:
@@ -204,6 +219,10 @@ spec:
               value: "{{ .Values.thingsSearch.config.updater.stream.retrievalParallelism }}"
             - name: THINGS_SEARCH_UPDATER_STREAM_PERSISTENCE_PARALLELISM
               value: "{{ .Values.thingsSearch.config.updater.stream.persistence.parallelism }}"
+            - name: THINGS_SEARCH_OPERATOR_METRICS_ENABLED
+              value: "{{ .Values.thingsSearch.config.operatorMetrics.enabled }}"
+            - name: THINGS_SEARCH_OPERATOR_METRICS_SCRAPE_INTERVAL
+              value: "{{ .Values.thingsSearch.config.operatorMetrics.scrapeInterval }}"
             - name: ACTIVITY_CHECK_INTERVAL
               value: "{{ .Values.thingsSearch.config.updater.activityCheckInterval }}"
             - name: BACKGROUND_SYNC_ENABLED

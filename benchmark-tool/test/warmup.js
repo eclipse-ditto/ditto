@@ -14,13 +14,13 @@ import { getThingsBatch } from './http-util.js';
 import * as common from './common.js'
 
 export function warmup() {
-    console.log(`WARMING UP ${common.THINGS_COUNT} THINGS IN BATCH BY ${common.BATCH_SIZE}`);
+    console.log(`WARMING UP ${common.THINGS_COUNT} THINGS IN BATCH BY ${common.THINGS_WARMUP_BATCH_SIZE}`);
 
     let thingIds = [];
     for (let i = 0; i < common.THINGS_COUNT; i++) {
         thingIds.push(common.GET_THING_ID(i + common.THINGS_START_INDEX));
 
-        if (thingIds.length === common.BATCH_SIZE) {
+        if (thingIds.length === common.THINGS_WARMUP_BATCH_SIZE) {
             let responses = getThingsBatch(thingIds)
             responses.forEach(response => {
                 if (response.status != 200) {

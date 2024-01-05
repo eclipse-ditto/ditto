@@ -270,7 +270,8 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
     private void sudoCount(final SudoCountThings sudoCountThings) {
         final var sender = getSender();
         final ThreadSafeDittoLoggingAdapter l = log.withCorrelationId(sudoCountThings);
-        l.info("Processing SudoCountThings command with filter: <{}>", sudoCountThings.getFilter());
+        l.info("Processing SudoCountThings command with filter: <{}> and namespaces: <{}>",
+                sudoCountThings.getFilter(), sudoCountThings.getNamespaces());
         l.debug("Processing SudoCountThings command: <{}>", sudoCountThings);
 
         withRequestCounting(

@@ -1,7 +1,7 @@
 ---
 title: Operating Ditto
 tags: [installation]
-keywords: operating, docker, docker-compose, devops, logging, logstash, elk, monitoring, prometheus, grafana
+keywords: operating, docker, docker-compose, devops, logging, logstash, elk, monitoring, prometheus, grafana, tracing, metrics
 permalink: installation-operating.html
 ---
 
@@ -422,6 +422,61 @@ To put it in a nutshell, Ditto reports:
 Have a look at the 
 [example Grafana dashboards](https://github.com/eclipse-ditto/ditto/tree/master/deployment/operations/grafana-dashboards)
 and build and share new ones back to the Ditto community.
+
+### Operator defined custom metrics
+
+Starting with Ditto 3.5.0, it is possible to configure "custom metrics" which are gathered by counting things matching
+a defined namespace/filter combination.  
+This is configured via the [search](architecture-services-things-search.html) service configuration and builds on the
+[count things](basic-search.html#search-count-queries) functionality.
+
+The idea behind this is that you want to show some statistic (e.g. in Grafana) about the amount of "Things" managed in
+Ditto fulfilling a certain condition.
+
+This would be an example search service configuration snippet for e.g. providing a metric named 
+`all_produced_and_not_installed_devices` defining a query on existence of a `production-date` and absence of 
+an `installation-date` attribute:
+```hocon
+ditto {
+  search {
+    operator-metrics {
+      enabled = true
+      scrape-interval = 15m
+      custom-metrics {
+        all_produced_and_not_installed_devices {
+          scrape-interval = 5m # overwrite scrape interval, run each 5 minutes
+          namespaces = [
+            "org.eclipse.ditto.smokedetectors"
+            "org.eclipse.ditto.cameras"
+          ]
+          filter = "and(exists(attributes/production-date),not(exists(attributes/installation-date)))"
+          tags {
+            company = "acme-corp"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+In order to add custom metrics via System properties, the following example shows how the above metric can be configured:
+```
+-Dditto.search.operator-metrics.custom-metrics.all_produced_and_not_installed_devices.enabled=true
+-Dditto.search.operator-metrics.custom-metrics.all_produced_and_not_installed_devices.scrape-interval=5m
+-Dditto.search.operator-metrics.custom-metrics.all_produced_and_not_installed_devices.namespaces.0=org.eclipse.ditto.smokedetectors
+-Dditto.search.operator-metrics.custom-metrics.all_produced_and_not_installed_devices.namespaces.1=org.eclipse.ditto.cameras
+-Dditto.search.operator-metrics.custom-metrics.all_produced_and_not_installed_devices.filter=and(exists(attributes/production-date),not(exists(attributes/installation-date)))
+-Dditto.search.operator-metrics.custom-metrics.all_produced_and_not_installed_devices.tags.company=acme-corp
+```
+
+Ditto will perform a [count things operation](basic-search.html#search-count-queries) each `5m` (5 minutes), providing
+a gauge named `all_produced_and_not_installed_devices` with the count of the query, adding the tag `company="acme-corp"`.
+
+In Prometheus format this would look like:
+```
+all_produced_and_not_installed_devices{company="acme-corp"} 42.0
+```
 
 ## Tracing
 

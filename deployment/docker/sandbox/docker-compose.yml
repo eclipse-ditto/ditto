@@ -8,13 +8,16 @@
 # http://www.eclipse.org/legal/epl-2.0
 #
 # SPDX-License-Identifier: EPL-2.0
-version: '2.4'
+version: '3.4'
 
 services:
   mongodb:
     image: docker.io/mongo:5.0
-    mem_limit: 256m
-    cpu_shares: 100
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 256m
     restart: always
     networks:
       default:
@@ -24,12 +27,18 @@ services:
     volumes:
       - "/opt/docker-volumes/mongo-data:/data/db"
     environment:
-       TZ: Europe/Berlin
+      TZ: Europe/Berlin
+    logging:
+      options:
+        max-size: 50m
 
   policies:
     image: docker.io/eclipse/ditto-policies:${DITTO_VERSION:-latest}
-    mem_limit: 512m
-    cpu_shares: 200
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 512m
     restart: always
     networks:
       default:
@@ -46,11 +55,17 @@ services:
       timeout: 15s
       retries: 4
       start_period: 300s
+    logging:
+      options:
+        max-size: 50m
 
   things:
     image: docker.io/eclipse/ditto-things:${DITTO_VERSION:-latest}
-    mem_limit: 512m
-    cpu_shares: 200
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 512m
     restart: always
     networks:
       default:
@@ -71,11 +86,17 @@ services:
       timeout: 15s
       retries: 4
       start_period: 300s
+    logging:
+      options:
+        max-size: 50m
 
   things-search:
     image: docker.io/eclipse/ditto-things-search:${DITTO_VERSION:-latest}
-    mem_limit: 512m
-    cpu_shares: 200
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 512m
     restart: always
     networks:
       default:
@@ -94,11 +115,17 @@ services:
       timeout: 15s
       retries: 4
       start_period: 300s
+    logging:
+      options:
+        max-size: 50m
 
 #  connectivity:
 #    image: docker.io/eclipse/ditto-connectivity:${DITTO_VERSION:-latest}
-#    mem_limit: 768m
-#    cpu_shares: 300
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '0.3'
+#          memory: 768m
 #    restart: always
 #    networks:
 #      default:
@@ -119,11 +146,17 @@ services:
 #      timeout: 15s
 #      retries: 4
 #      start_period: 300s
+#    logging:
+#      options:
+#        max-size: 50m
 
   gateway:
     image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
-    mem_limit: 512m
-    cpu_shares: 200
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 512m
     restart: always
     networks:
       default:
@@ -151,23 +184,38 @@ services:
       timeout: 15s
       retries: 4
       start_period: 300s
+    logging:
+      options:
+        max-size: 50m
 
   ditto-ui:
     image: docker.io/eclipse/ditto-ui:${DITTO_VERSION:-latest}
-    mem_limit: 32m
-    cpu_shares: 50
+    deploy:
+      resources:
+        limits:
+          cpus: '0.05'
+          memory: 32m
     restart: always
+    logging:
+      options:
+        max-size: 10m
 
   swagger-ui:
     image: docker.io/swaggerapi/swagger-ui:v5.9.1
-    mem_limit: 32m
-    cpu_shares: 50
+    deploy:
+      resources:
+        limits:
+          cpus: '0.05'
+          memory: 32m
     restart: always
     volumes:
        - ../../../documentation/src/main/resources/openapi:/usr/share/nginx/html/openapi:ro
        - ../../../documentation/src/main/resources/images:/usr/share/nginx/html/images:ro
        - ../swagger3-index.html:/usr/share/nginx/html/index.html:ro
     command: nginx -g 'daemon off;'
+    logging:
+      options:
+        max-size: 10m
 
 #  node-red:
 #    image: docker.io/nodered/node-red-docker:latest
@@ -179,8 +227,11 @@ services:
 
   nginx:
     image: docker.io/nginx:1.21-alpine
-    mem_limit: 32m
-    cpu_shares: 100
+    deploy:
+      resources:
+        limits:
+          cpus: '0.05'
+          memory: 32m
     restart: always
     volumes:
        - ./nginx.conf:/etc/nginx/nginx.conf:ro
@@ -207,10 +258,16 @@ services:
       timeout: 15s
       retries: 60
       start_period: 120s
+    logging:
+      options:
+        max-size: 10m
 
   autoheal:
     image: willfarrell/autoheal
-    mem_limit: 32m
+    deploy:
+      resources:
+        limits:
+          memory: 32m
     restart: always
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'
@@ -218,3 +275,6 @@ services:
       - AUTOHEAL_CONTAINER_LABEL=all
       - AUTOHEAL_INTERVAL=10
       - CURL_TIMEOUT=30
+    logging:
+      options:
+        max-size: 10m

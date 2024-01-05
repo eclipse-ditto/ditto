@@ -37,6 +37,18 @@ public interface Cache<K, V> {
     CompletableFuture<Optional<V>> get(K key);
 
     /**
+     * Returns a {@link CompletableFuture} returning the value which is associated with the specified key, specifying
+     * an {@code errorHandler}.
+     *
+     * @param key the key to get the associated value for.
+     * @param errorHandler function to invoke when a {@code Throwable} is encountered by the cache loader.
+     * @return a {@link CompletableFuture} returning the value which is associated with the specified key or an empty
+     * {@link Optional}.
+     * @throws NullPointerException if {@code key} is {@code null}.
+     */
+    CompletableFuture<Optional<V>> get(K key, Function<Throwable, Optional<V>> errorHandler);
+
+    /**
      * Retrieve the value associated with a key in a future if it exists in the cache, or a future empty optional if
      * it does not. The cache loader will never be called.
      *

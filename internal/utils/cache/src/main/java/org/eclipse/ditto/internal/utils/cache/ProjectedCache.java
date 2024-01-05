@@ -49,6 +49,11 @@ final class ProjectedCache<K, U, V> implements Cache<K, U> {
     }
 
     @Override
+    public CompletableFuture<Optional<U>> get(final K key, final Function<Throwable, Optional<U>> errorHandler) {
+        return cache.get(key, throwable -> errorHandler.apply(throwable).map(embed)).thenApply(projectOptional);
+    }
+
+    @Override
     public CompletableFuture<Optional<U>> getIfPresent(final K key) {
         return cache.getIfPresent(key).thenApply(projectOptional);
     }

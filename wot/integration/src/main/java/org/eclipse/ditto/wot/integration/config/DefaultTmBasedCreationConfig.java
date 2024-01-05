@@ -29,15 +29,12 @@ final class DefaultTmBasedCreationConfig implements TmBasedCreationConfig {
 
     private static final String CONFIG_PATH = "tm-based-creation";
 
-    private final boolean thingSkeletonCreationEnabled;
-    private final boolean featureSkeletonCreationEnabled;
-
+    private final TmScopedCreationConfig thingCreationConfig;
+    private final TmScopedCreationConfig featureCreationConfig;
 
     private DefaultTmBasedCreationConfig(final ScopedConfig scopedConfig) {
-        thingSkeletonCreationEnabled =
-                scopedConfig.getBoolean(ConfigValue.THING_SKELETON_CREATION_ENABLED.getConfigPath());
-        featureSkeletonCreationEnabled =
-                scopedConfig.getBoolean(ConfigValue.FEATURE_SKELETON_CREATION_ENABLED.getConfigPath());
+        thingCreationConfig = DefaultTmScopedCreationConfig.of(scopedConfig, "thing");
+        featureCreationConfig = DefaultTmScopedCreationConfig.of(scopedConfig, "feature");
     }
 
     /**
@@ -52,15 +49,14 @@ final class DefaultTmBasedCreationConfig implements TmBasedCreationConfig {
                 ConfigValue.values()));
     }
 
-
     @Override
-    public boolean isThingSkeletonCreationEnabled() {
-        return thingSkeletonCreationEnabled;
+    public TmScopedCreationConfig getThingCreationConfig() {
+        return thingCreationConfig;
     }
 
     @Override
-    public boolean isFeatureSkeletonCreationEnabled() {
-        return featureSkeletonCreationEnabled;
+    public TmScopedCreationConfig getFeatureCreationConfig() {
+        return featureCreationConfig;
     }
 
     @Override
@@ -72,20 +68,20 @@ final class DefaultTmBasedCreationConfig implements TmBasedCreationConfig {
             return false;
         }
         final DefaultTmBasedCreationConfig that = (DefaultTmBasedCreationConfig) o;
-        return thingSkeletonCreationEnabled == that.thingSkeletonCreationEnabled &&
-                featureSkeletonCreationEnabled == that.featureSkeletonCreationEnabled;
+        return Objects.equals(thingCreationConfig, that.thingCreationConfig) &&
+                Objects.equals(featureCreationConfig, that.featureCreationConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(thingSkeletonCreationEnabled, featureSkeletonCreationEnabled);
+        return Objects.hash(thingCreationConfig, featureCreationConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "thingSkeletonCreationEnabled=" + thingSkeletonCreationEnabled +
-                ", featureSkeletonCreationEnabled=" + featureSkeletonCreationEnabled +
+                "thingCreationConfig=" + thingCreationConfig +
+                ", featureCreationConfig=" + featureCreationConfig +
                 "]";
     }
 }

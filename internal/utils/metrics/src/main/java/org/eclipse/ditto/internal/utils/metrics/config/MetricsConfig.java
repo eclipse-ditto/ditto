@@ -30,6 +30,13 @@ public interface MetricsConfig {
     boolean isSystemMetricsEnabled();
 
     /**
+     * Returns the metric prefix to apply for all gathered metrics in Ditto provided to Prometheus.
+     *
+     * @return the metric prefix to apply or empty string for no prefix.
+     */
+    String getMetricPrefix();
+
+    /**
      * Indicates whether Prometheus is enabled.
      *
      * @return {@code true} if Prometheus is enabled, {@code false} if not.
@@ -62,6 +69,11 @@ public interface MetricsConfig {
         SYSTEM_METRICS_ENABLED("systemMetrics.enabled", false),
 
         /**
+         * The metric prefix to apply for all gathered Metrics in Ditto.
+         */
+        METRIC_PREFIX("metric-prefix", ""),
+
+        /**
          * Determines whether Prometheus is enabled.
          */
         PROMETHEUS_ENABLED("prometheus.enabled", false),
@@ -79,7 +91,7 @@ public interface MetricsConfig {
         private final String path;
         private final Object defaultValue;
 
-        private MetricsConfigValue(final String thePath, final Object theDefaultValue) {
+        MetricsConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }
