@@ -16,6 +16,7 @@ import * as API from '../api.js';
 import * as Utils from '../utils.js';
 import * as Connections from './connections.js';
 import { TableFilter } from '../utils/tableFilter.js';
+import { FilterType, Term } from '../utils/basicFilters.js';
 /* eslint-disable prefer-const */
 /* eslint-disable max-len */
 /* eslint-disable no-invalid-this */
@@ -32,6 +33,7 @@ type DomElements = {
     buttonResetConnectionMetrics: HTMLButtonElement,
     tableValidationConnections: HTMLInputElement,
     tableFilterConnectionLogs: TableFilter,
+    badgeConnectionLogsCount: HTMLSpanElement,
 }
 
 let dom: DomElements = {
@@ -45,6 +47,7 @@ let dom: DomElements = {
   buttonResetConnectionMetrics: null,
   tableValidationConnections: null,
   tableFilterConnectionLogs: null,
+  badgeConnectionLogsCount: null,
 };
 
 let connectionLogs = [];
@@ -116,7 +119,12 @@ function retrieveConnectionMetrics() {
           Object.keys(response.connectionMetrics[direction]).forEach((type) => {
             let entry = response.connectionMetrics[direction][type];
             Utils.addTableRow(dom.tbodyConnectionMetrics, direction, false, null, type, 'success', entry.success.PT1M, entry.success.PT1H, entry.success.PT24H);
-            Utils.addTableRow(dom.tbodyConnectionMetrics, direction, false, null, type, 'failure', entry.failure.PT1M, entry.failure.PT1H, entry.failure.PT24H);
+            let failureRow = Utils.addTableRow(dom.tbodyConnectionMetrics, direction, false, null, type, 'failure', entry.failure.PT1M, entry.failure.PT1H, entry.failure.PT24H);
+            let numberColumn = failureRow.lastElementChild;
+            for (let i = 0; i < 3; i++) {
+              if (numberColumn.innerHTML !== '0') numberColumn.classList.add('text-danger');
+              numberColumn = numberColumn.previousElementSibling;
+            }
           });
         };
       });
@@ -158,6 +166,9 @@ function fillConnectionLogsTable() {
         entry.level
     );
   });
+
+  Utils.updateCounterBadge(dom.badgeConnectionLogsCount, connectionLogs, filteredLogs);
+
   dom.tbodyConnectionLogs.scrollTop = dom.tbodyConnectionLogs.scrollHeight - dom.tbodyConnectionLogs.clientHeight;
 }
 
@@ -186,16 +197,20 @@ function onConnectionLogFilterChange(event: Event) {
   fillConnectionLogsTable();
 }
 
-function createFilterOptions(): [string?] {
-  let result: [string?] = [];
+function createFilterOptions(): [Term?] {
+  let result: [Term?] = [];
 
-  ['consumed', 'mapped', 'dropped', 'enforced', 'acknowledged',
-  'throttled', 'dispatched', 'filtered', 'published'].forEach((e) => result.push(`type:${e}`));
-  ['source', 'target', 'response'].forEach((e) => result.push(`category:${e}`));
-  ['success', 'failure'].forEach((e) => result.push(`level:${e}`));
-  ['thing'].forEach((e) => result.push(`entityType:${e}`));
+  ['consumed', 'mapped', 'dropped', 'enforced', 'acknowledged', 'throttled', 'dispatched', 'filtered', 'published']
+    .forEach((e) => result.push(new Term(FilterType.PROP_EQ, e, 'type')));
+  ['source', 'target', 'response']
+    .forEach((e) => result.push(new Term(FilterType.PROP_EQ, e, 'category')));
+  ['success', 'failure']
+    .forEach((e) => result.push(new Term(FilterType.PROP_EQ, e, 'level')));
+  ['thing']
+    .forEach((e) => result.push(new Term(FilterType.PROP_EQ, e, 'entityType')));
 
-  ['correlationId', 'entityId'].forEach((value: string) => result.push(value));
+  // ['correlationId', 'entityId']
+  //   .forEach((value: string) => result.push(value));
 
   return result;
 }

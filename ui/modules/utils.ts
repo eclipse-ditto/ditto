@@ -419,6 +419,12 @@ export function stringifyPretty(jsonObject: Object): string {
   return JSON.stringify(jsonObject, null, 2);
 }
 
+/**
+ * searches the placeholder in the input field and marks it to be replaced by the user
+ * @param input dom input element
+ * @param placeholder text to search and mark
+ * @returns 
+ */
 export function checkAndMarkInInput(input: HTMLInputElement, placeholder: string) {
   const index = input.value.indexOf(placeholder);
   if (index >= 0) {
@@ -429,5 +435,22 @@ export function checkAndMarkInInput(input: HTMLInputElement, placeholder: string
     return false;
   }
 }
+
+/**
+ * Create the counter text for two lists.
+ * if the list is empty, no counter is shown
+ * if there are two lists given of different lenght, "x/y" is shown
+ * @param badgeElement dom element for the badge
+ * @param list list to count elements
+ * @param partialList optional partial list to display x of y as "x/y"
+ */
+export function updateCounterBadge(badgeElement: HTMLSpanElement, list: Array<any>, partialList?: Array<any>) {
+  if (!partialList || partialList.length === list.length) {
+    badgeElement.textContent = list.length > 0 ? list.length.toString() : '';
+  } else {
+    badgeElement.textContent = `${partialList.length}/${list.length}`;
+  }
+}
+
 
 

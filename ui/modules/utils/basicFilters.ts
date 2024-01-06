@@ -21,21 +21,23 @@ export interface FilterListener {
 
 const SEP = '_';
 
-enum FilterType {
+export enum FilterType {
   PROP_LIKE,
   PROP_EQ,
 }
 
-class Term {
+export class Term {
   key: string;
   values: Array<string>;
   type: FilterType
-
-  constructor(type: FilterType, value: string, key = '@') {
-    console.assert(key !== '@' || type !== FilterType.PROP_LIKE)
+  keyDisplay: string;
+  
+  constructor(type: FilterType, value: string, key = '@', keyDisplay?: string) {
+    console.assert(!(key === '@' && type !== FilterType.PROP_LIKE))
     this.type = type;
     this.key = key;
     this.values = [value];
+    this.keyDisplay = keyDisplay
   }
 
   add(values: string[]) {
@@ -51,15 +53,15 @@ class Term {
         return this.values.map((x) => `@.${this.key}=="${x}"`).join('||');
       case FilterType.PROP_LIKE:
         if (this.key === '@') {
-          return `/${this.values[0]}/.test(JSON.stringify(@))`;
+          return `/${this.values[0].toString().replace(/\//g, '\\/')}/.test(JSON.stringify(@))`;
         } else {
-          return this.values.map((x) => `/${x}/.test(@.${this.key})`).join('||');
+          return this.values.map((x) => `/${x.replace(/\//g, '\\/')}/.test(@.${this.key})`).join('||');
         }
     }
   }
 
   public static fromString(input: string): Term {
-    const result = /^(.*?)([:|~]?)(.*)/gm.exec(input.replace(/\s/g, ''));
+    const result = /^([^:~]+)(:|~)?(.*)/gm.exec(input.replace(/\s/g, ''));
 
     if (result[2] === ':') {
       return new Term(FilterType.PROP_EQ, result[3], result[1]);
@@ -70,14 +72,19 @@ class Term {
     }
   }
 
+  public static fromJSON(input: {type: FilterType, values: string[], key: string, keyDisplay: string}) {
+    console.assert(input.values.length === 1);
+    return new Term(input.type, input.values[0], input.key, input.keyDisplay);
+  }
+
   toString(): string {
     switch (this.type) {
       case FilterType.PROP_EQ:
-        return `${this.key}:${this.values}`;
+        return `${this.keyDisplay ?? this.key}:${this.values.toString().replace(/\\/g, '')}`;
       case FilterType.PROP_LIKE:
         return this.key === '@' ?
-          this.values[0] :
-         `${this.key}~${this.values}`;
+          (this.values[0]) :
+          (`${this.keyDisplay ?? this.key}~${this.values.toString().replace(/\\/g, '')}`);
     }
   }
 }
@@ -108,13 +115,14 @@ export class BasicFilters {
     return this;
   }
   
-  private addOrUpdate = (term: Term) => {
+  addOrUpdate = (term: Term) => {
     let existing = this.terms.find((t) => (t.type === term.type && t.key === term.key));
     if (existing) {
       existing.add(term.values);
     } else {
       this.terms.push(term);
     }
+    return this;
   }
 
   clear() {

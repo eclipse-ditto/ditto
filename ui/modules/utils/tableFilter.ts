@@ -14,7 +14,7 @@
 import { JSONPath } from 'jsonpath-plus';
 import * as Utils from '../utils.js';
 import tableFilterHTML from './tableFilter.html';
-import { BasicFilters, FilterListener } from './basicFilters.js';
+import { BasicFilters, FilterListener, Term } from './basicFilters.js';
 
 enum Mode {
   BASIC=0,
@@ -36,6 +36,7 @@ export class TableFilter extends HTMLElement implements FilterListener {
   
     this.mainInput = this.querySelector('input[name="main"]');
     this.mainInput.addEventListener('keyup', this.mainInputChangedCallback(this));
+    this.mainInput.addEventListener('search', this.mainInputChangedCallback(this));
 
     this.querySelector('button').addEventListener('click', () => (this.querySelector('input[name="dropdown"]') as HTMLInputElement).focus());
     this.querySelector('ul').addEventListener('click', this.filterSelectedCallback(this));
@@ -46,10 +47,12 @@ export class TableFilter extends HTMLElement implements FilterListener {
     this.querySelector('input[name="dropdown"]').addEventListener('search', this.filterDropdown(this));
   }
 
-  set filterOptions(value: [string?]) {
+  set filterOptions(value: [Term?]) {
     const el = this.querySelector('ul') as HTMLUListElement;
+    const preservedInput = el.firstElementChild;
+    el.replaceChildren(preservedInput);
     value.forEach((entry) => {
-      Utils.addDropDownEntry(el, entry, false);
+      Utils.addDropDownEntry(el, entry.toString(), false, JSON.stringify(entry));
     })
   }
 
@@ -105,44 +108,25 @@ export class TableFilter extends HTMLElement implements FilterListener {
       const target = event.target as HTMLElement;
       if (target && target.classList.contains('dropdown-item')) {
 
+        let newTerm = Term.fromJSON(JSON.parse(target.dataset.value));
+
         if (tableFilter.mode === Mode.BASIC) {
-          tableFilter.basicFilters.addFromString(target.innerText);
-          tableFilter.filterChanged();
+          tableFilter.basicFilters.addOrUpdate(newTerm);
         } else {
           tableFilter.mainInput.value = new BasicFilters()
-            .addFromString(target.innerText)
+            .addOrUpdate(newTerm)
             .createJsonPath();
           }
         }
+        tableFilter.filterChanged();
       }
-      
-    // function handleEqualsInput(property: string) {
-      //   if (tableFilter.mode == Mode.ADVANCED) {
-        //     tableFilter.mainInput.value = new BasicFilters()
-        //         .addPropEq(property, '...')
-        //         .createJsonPath();
-        //     Utils.checkAndMarkInInput(tableFilter.mainInput, '...');
-        //   } else {
-          //     tableFilter.mainInput.value = `${property}:`;
-          // tableFilter.mainInput.focus();
-    //   }
-    // }
-
-    // function handleEqualsEnum(property: string, value: string) {
-    //   if (tableFilter.mode === Mode.ADVANCED) {
-    //     tableFilter.mainInput.value = new BasicFilters()
-    //         .addPropEq(property, value)
-    //         .createJsonPath();
-    //   } else {
-    //     tableFilter.basicFilters.addPropEq(property, value);
-    //   }
-    //   tableFilter.filterChanged();
-    // }
   }
 
   private mainInputChangedCallback(tableFilter: TableFilter) {
-    return (event: KeyboardEvent) => {
-      if (event.key === 'Enter' || event.code === 'Enter') {
+    return (event: Event) => {
+      if (event.type === 'search' ||
+          (event as KeyboardEvent).key === 'Enter' ||
+          (event as KeyboardEvent).code === 'Enter') {
         switch (tableFilter.mode) {
           case Mode.BASIC:
               tableFilter.basicFilters.addFromString(tableFilter.mainInput.value)
@@ -153,7 +137,12 @@ export class TableFilter extends HTMLElement implements FilterListener {
             try {
               let test = JSONPath({
                 path: tableFilter.mainInput.value,
-                json: [{test:'test'}],
+                json: [{
+                  _context: {
+                    topic: 'test',
+                    path: 'test',
+                  }
+                }],
               });
               tableFilter.filterChanged();
             }

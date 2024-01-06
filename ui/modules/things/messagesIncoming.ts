@@ -17,6 +17,7 @@ import { TableFilter } from '../utils/tableFilter.js';
 import messagesIncomingHTML from './messagesIncoming.html';
 import * as Things from './things.js';
 import * as ThingsSSE from './thingsSSE.js';
+import { FilterType, Term } from '../utils/basicFilters.js';
 /* eslint-disable prefer-const */
 /* eslint-disable max-len */
 /* eslint-disable no-invalid-this */
@@ -123,7 +124,6 @@ function onSelectThingUpdateMessageContentSelect() {
 }
 
 function onMessage(messageData) {
-  messageData.action = messageData['_context'].topic.substring(messageData['_context'].topic.lastIndexOf('/') + 1);
   messages.push(messageData);
   
   const filteredMessage = dom.tableFilterMessagesIncoming.filterItems([messageData]);
@@ -133,23 +133,16 @@ function onMessage(messageData) {
     addTableRow(filteredMessage[0]);
   }
   
-  updateMessageCounter();
-}
-
-function updateMessageCounter() {
-  if (filteredMessages.length === messages.length) {
-    dom.badgeMessageIncomingCount.textContent = messages.length > 0 ? messages.length.toString() : '';
-  } else {
-    dom.badgeMessageIncomingCount.textContent = `${filteredMessages.length}/${messages.length}`;
-  }
+  Utils.updateCounterBadge(dom.badgeMessageIncomingCount, messages, filteredMessage);
 }
 
 function addTableRow(messageData: any) {
+  let action = messageData['_context'].topic.substring(messageData['_context'].topic.lastIndexOf('/') + 1);
   
   Utils.addTableRow(
     dom.tbodyMessagesIncoming,
     messageData._revision, false, null,
-    messageData.action,
+    action,
     messageData['_context'].path,
     getColumnValues().join('\n'),
     Utils.formatDate(messageData._modified, true)
@@ -174,12 +167,22 @@ function onThingChanged(thing) {
   if (!thing || thing.thingId !== currentThingId) {
     currentThingId = thing ? thing.thingId : null;
     onResetMessagesClick();
+    dom.tableFilterMessagesIncoming.filterOptions = createFilterOptions(thing);
   }
 }
-function createFilterOptions(): [string?] {
-  let result: [string?] = [];
-  ['created', 'modified', 'merged', 'deleted'].forEach((e) => result.push(`action:${e}`));
-  ['_context/path'].forEach((e) => result.push(e));
+function createFilterOptions(thing?: any): [Term?] {
+  let result: [Term?] = [];
+  ['created', 'modified', 'merged', 'deleted'].forEach((e) => result.push(
+    new Term(FilterType.PROP_LIKE, `/${e}`, '_context.topic', 'Action')));
+  if (thing) {
+    ['features', 'attributes'].forEach((part) => {
+      if (thing[part]) {
+        Object.keys(thing[part]).forEach((name) => {
+          result.push(new Term(FilterType.PROP_LIKE, `/${part}/${name}`, '_context.path', 'Path'));
+        });
+      }
+    });
+  }
   return result;
 }
 
@@ -187,7 +190,7 @@ function onMessageFilterChange(event: CustomEvent) {
   dom.tbodyMessagesIncoming.innerHTML = '';
   filteredMessages = dom.tableFilterMessagesIncoming.filterItems(messages);
   filteredMessages.forEach((entry) => addTableRow(entry));
-  updateMessageCounter();
+  Utils.updateCounterBadge(dom.badgeMessageIncomingCount, messages, filteredMessages);
 }
 
 

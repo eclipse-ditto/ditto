@@ -1,4 +1,4 @@
-import { BasicFilters } from "../../modules/utils/basicFilters";
+import { BasicFilters, Term, FilterType } from "../../modules/utils/basicFilters";
 
 
 describe("create JSONpath", () => {
@@ -78,5 +78,30 @@ describe("create JSONpath", () => {
         .addPropLike('jumps', 'fox')
         .createJsonPath())
       .toBe('$[?((/dog/.test(JSON.stringify(@)))&&(@.quick=="brown")&&(/fox/.test(@.jumps)))]');
+  });
+
+  test("One property like one keyword escaped", () => {
+    expect(new BasicFilters()
+        .addPropLike('quick', '/features/brown')
+        .createJsonPath())
+        .toBe('$[?(/\\/features\\/brown/.test(@.quick))]');
+  });
+
+});
+
+describe("Term from string", () => {
+  test("Property equals", () => {
+    expect(Term.fromString('quick:brown'))
+        .toEqual(new Term(FilterType.PROP_EQ, 'brown', 'quick'))
+  });
+
+  test("Property like", () => {
+    expect(Term.fromString('quick~brown'))
+        .toEqual(new Term(FilterType.PROP_LIKE, 'brown', 'quick'))
+  });
+
+  test("Find in root", () => {
+    expect(Term.fromString('quick'))
+        .toEqual(new Term(FilterType.PROP_LIKE, 'quick'))
   });
 });
