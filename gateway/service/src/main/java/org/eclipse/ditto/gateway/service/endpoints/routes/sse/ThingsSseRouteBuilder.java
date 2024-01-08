@@ -393,6 +393,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                 fieldPointer,
                                 fromHistoricalRevision,
                                 null != toHistoricalRevision ? toHistoricalRevision : Long.MAX_VALUE,
+                                filterString,
                                 dittoHeaders);
                     } else if (null != fromHistoricalTimestamp) {
                         FeatureToggle
@@ -401,6 +402,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                 fieldPointer,
                                 fromHistoricalTimestamp,
                                 toHistoricalTimestamp,
+                                filterString,
                                 dittoHeaders);
                     } else {
                         startStreaming =

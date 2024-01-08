@@ -47,6 +47,7 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
@@ -65,7 +66,12 @@ import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
+import org.eclipse.ditto.rql.parser.RqlPredicateParser;
+import org.eclipse.ditto.rql.query.criteria.Criteria;
+import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
+import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingUnavailableException;
@@ -74,6 +80,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
 import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.enforcement.ThingEnforcement;
 import org.eclipse.ditto.things.service.enforcement.ThingEnforcerActor;
@@ -325,7 +332,8 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                             pair.response() instanceof RetrieveThingResponse retrieveThingResponse) {
                         return inlinePolicyEnrichment.enrichPolicy(retrieveThing, retrieveThingResponse)
                                 .map(Object.class::cast);
-                    } else if (RollbackCreatedPolicy.shouldRollbackBasedOnTargetActorResponse(pair.command(), pair.response())) {
+                    } else if (RollbackCreatedPolicy.shouldRollbackBasedOnTargetActorResponse(pair.command(),
+                            pair.response())) {
                         final CompletableFuture<Object> responseF = new CompletableFuture<>();
                         getSelf().tell(RollbackCreatedPolicy.of(pair.command(), pair.response(), responseF), getSelf());
                         return Source.completionStage(responseF);
@@ -338,12 +346,13 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     }
 
     @Override
-    protected CompletableFuture<Object> handleTargetActorAndEnforcerException(final Signal<?> signal, final Throwable throwable) {
+    protected CompletableFuture<Object> handleTargetActorAndEnforcerException(final Signal<?> signal,
+            final Throwable throwable) {
         if (RollbackCreatedPolicy.shouldRollbackBasedOnException(signal, throwable)) {
             final Throwable cause = throwable.getCause();
             log.withCorrelationId(signal)
                     .info("Target actor exception received: <{}>, cause: <{}>. " +
-                            "Sending RollbackCreatedPolicy msg to self, potentially rolling back a created policy.",
+                                    "Sending RollbackCreatedPolicy msg to self, potentially rolling back a created policy.",
                             throwable.getClass().getSimpleName(), cause != null ? cause.getClass().getSimpleName() : "-");
             final CompletableFuture<Object> responseFuture = new CompletableFuture<>();
             getSelf().tell(RollbackCreatedPolicy.of(signal, throwable, responseFuture), getSelf());
@@ -461,11 +470,41 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         return ReceiveBuilder.create()
                 .matchEquals(Control.SHUTDOWN_TIMEOUT, this::shutdownActor)
                 .match(ThingPolicyCreated.class, msg -> {
-                    log.withCorrelationId(msg.dittoHeaders()).info("ThingPolicyCreated msg received: <{}>", msg.policyId());
+                    log.withCorrelationId(msg.dittoHeaders())
+                            .info("ThingPolicyCreated msg received: <{}>", msg.policyId());
                     this.policyCreatedEvent = msg;
                 }).match(RollbackCreatedPolicy.class, this::handleRollbackCreatedPolicy)
                 .build()
                 .orElse(super.activeBehaviour(matchProcessNextTwinMessageBehavior, matchAnyBehavior));
+    }
+
+    @Override
+    protected boolean applyPersistedEventFilter(final Event<?> event, final SubscribeForPersistedEvents subscribe) {
+
+        if (subscribe.getFilter().isEmpty()) {
+            return true;
+        } else if (event instanceof ThingEvent<?> thingEvent) {
+            try {
+                final Criteria criteria = subscribe.getFilter()
+                        .map(f -> parseCriteria(f, subscribe.getDittoHeaders()))
+                        .orElse(null);
+                final Thing thing = ThingEventToThingConverter.thingEventToThing(thingEvent)
+                        .orElseGet(() -> Thing.newBuilder().build());
+                return ThingPredicateVisitor.apply(criteria).test(thing);
+            } catch (final DittoRuntimeException e) {
+                log.info("Got 'DittoRuntimeException' when parsing 'filter' during " +
+                                "'SubscribeForPersistedEvents' processing: {}: <{}>", e.getClass().getSimpleName(),
+                        e.getMessage());
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    private static Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {
+        final var queryFilterCriteriaFactory = QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance());
+        return queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders);
     }
 
     private void shutdownActor(final Control shutdown) {
@@ -483,15 +522,18 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     /**
      * Used from the {@link org.eclipse.ditto.things.service.persistence.actors.ThingSupervisorActor} to signal itself
      * to delete an already created policy because of a failure in creating a thing
+     *
      * @param initialCommand the initial command that triggered the creation of a thing and policy
      * @param response the response from the thing persistence actor
      * @param responseFuture a future that when completed with the response from the thing persistence actor the response
      * will be sent to the initial sender.
      */
-    private record RollbackCreatedPolicy(Signal<?> initialCommand, Object response, CompletableFuture<Object> responseFuture) {
+    private record RollbackCreatedPolicy(Signal<?> initialCommand, Object response,
+                                         CompletableFuture<Object> responseFuture) {
 
         /**
          * Initialises an instance of {@link org.eclipse.ditto.things.service.persistence.actors.ThingSupervisorActor.RollbackCreatedPolicy}
+         *
          * @param initialCommand the initial initialCommand that triggered the creation of a thing and policy
          * @param response the response from the thing persistence actor
          * @param responseFuture a future that when completed with the response from the thing persistence actor the response
@@ -506,25 +548,30 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         /**
          * Evaluates if a failure in the creation of a thing should lead to deleting of that thing's policy.
          * Should be used only to evaluate exceptions from the target actor not the enforcement actor.
+         *
          * @param command the initial command.
          * @param response the response from the {@link org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceActor}.
          * @return if the thing's policy is to be deleted.
          */
-        private static boolean shouldRollbackBasedOnTargetActorResponse(final Signal<?> command, @Nullable final Object response) {
+        private static boolean shouldRollbackBasedOnTargetActorResponse(final Signal<?> command,
+                @Nullable final Object response) {
             return command instanceof CreateThing && response instanceof DittoRuntimeException;
         }
 
         /**
          * Evaluates if a failure in the creation of a thing should lead to deleting of that thing's policy.
+         *
          * @param signal the initial signal.
          * @param throwable the throwable received from the Persistence Actor
          * @return if the thing's policy is to be deleted.
          */
-        private static boolean shouldRollbackBasedOnException(final Signal<?> signal, @Nullable final Throwable throwable) {
-                return signal instanceof CreateThing && ((throwable instanceof CompletionException ce1 &&  ce1.getCause() instanceof ThingUnavailableException)
-                        || throwable instanceof AskTimeoutException
-                        || (throwable instanceof CompletionException ce && ce.getCause() instanceof AskTimeoutException)
-                );
+        private static boolean shouldRollbackBasedOnException(final Signal<?> signal,
+                @Nullable final Throwable throwable) {
+            return signal instanceof CreateThing && ((throwable instanceof CompletionException ce1 &&
+                    ce1.getCause() instanceof ThingUnavailableException)
+                    || throwable instanceof AskTimeoutException
+                    || (throwable instanceof CompletionException ce && ce.getCause() instanceof AskTimeoutException)
+            );
         }
 
         /**

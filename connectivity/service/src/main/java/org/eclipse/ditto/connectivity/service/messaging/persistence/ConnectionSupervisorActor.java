@@ -25,10 +25,22 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import javax.jms.JMSRuntimeException;
 
+import org.apache.pekko.actor.ActorKilledException;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.OneForOneStrategy;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.actor.ReceiveTimeout;
+import org.apache.pekko.actor.SupervisorStrategy;
+import org.apache.pekko.japi.pf.DeciderBuilder;
+import org.apache.pekko.japi.pf.FI;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
@@ -47,17 +59,6 @@ import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupe
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorKilledException;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.OneForOneStrategy;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.actor.ReceiveTimeout;
-import org.apache.pekko.actor.SupervisorStrategy;
-import org.apache.pekko.japi.pf.DeciderBuilder;
-import org.apache.pekko.japi.pf.FI;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.apache.pekko.pattern.Patterns;
 
 /**
  * Supervisor for {@link ConnectionPersistenceActor} which means it will create, start and watch it as child actor.
@@ -156,6 +157,11 @@ public final class ConnectionSupervisorActor
                 .build()
                 .orElse(connectivityConfigModifiedBehavior(getSelf(), () -> persistenceActorChild))
                 .orElse(super.activeBehaviour(matchProcessNextTwinMessageBehavior, matchAnyBehavior));
+    }
+
+    @Override
+    protected boolean applyPersistedEventFilter(final Event<?> event, final SubscribeForPersistedEvents subscribe) {
+        return true;
     }
 
     @Override

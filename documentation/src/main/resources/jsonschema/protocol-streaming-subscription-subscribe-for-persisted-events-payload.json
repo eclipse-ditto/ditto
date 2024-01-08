@@ -21,6 +21,10 @@
       "type": "string",
       "format": "date-time",
       "description": "The timestamp to stop the streaming at."
+    },
+    "filter": {
+      "type": "string",
+      "description": "An RQL expression defining which events to filter for in the stream. Only supported for thing events."
     }
   }
 }

@@ -44,6 +44,8 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.base.service.config.supervision.LocalAskTimeoutConfig;
@@ -824,6 +826,11 @@ public final class PolicyCommandEnforcementTest {
         @Override
         protected ShutdownBehaviour getShutdownBehaviour(final PolicyId entityId) {
             return ShutdownBehaviour.fromId(entityId, pubSubMediator, getSelf());
+        }
+
+        @Override
+        protected boolean applyPersistedEventFilter(final Event<?> event, final SubscribeForPersistedEvents subscribe) {
+            return true;
         }
 
         @Override
