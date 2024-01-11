@@ -104,6 +104,11 @@ interface TypedJsonObject<T extends JsonObject> extends JsonObject {
     }
 
     @Override
+    default boolean containsFlatteningArrays(final CharSequence key) {
+        return getWrappedObject().containsFlatteningArrays(key);
+    }
+
+    @Override
     default JsonObject get(final JsonPointer pointer) {
         return getWrappedObject().get(pointer);
     }
@@ -121,6 +126,11 @@ interface TypedJsonObject<T extends JsonObject> extends JsonObject {
     @Override
     default Optional<JsonValue> getValue(final CharSequence key) {
         return getWrappedObject().getValue(key);
+    }
+
+    @Override
+    default Optional<JsonValue> getValueFlatteningArrays(final CharSequence key) {
+        return getWrappedObject().getValueFlatteningArrays(key);
     }
 
     @Override

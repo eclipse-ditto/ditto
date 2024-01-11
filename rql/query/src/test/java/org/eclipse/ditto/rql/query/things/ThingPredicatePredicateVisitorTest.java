@@ -330,6 +330,45 @@ public final class ThingPredicatePredicateVisitorTest {
                 .isFalse();
     }
 
+    @Test
+    public void matchingIntegerArrayEq() {
+        doTest(sut.visitEq(7),
+                JsonArray.of(JsonValue.of(1), JsonValue.of(3), JsonValue.of(7))
+        ).isTrue();
+    }
+
+    @Test
+    public void matchingStringArrayIn() {
+        doTest(sut.visitIn(Collections.singletonList("this-is-some-content")),
+                JsonArray.of(
+                        JsonValue.of("hello"),
+                        JsonValue.of("world"),
+                        JsonValue.of("this-is-some-content")
+                )
+        ).isTrue();
+    }
+
+    @Test
+    public void matchingStringArrayNe() {
+        doTest(sut.visitNe("orl"),
+                JsonArray.of(
+                        JsonValue.of("hello"),
+                        JsonValue.of("world")
+                )
+        ).isTrue();
+    }
+
+    @Test
+    public void matchingStringArrayILike() {
+        // the sut already works on regex Pattern - the translation from "*" to ".*" followed by case insensitivity is done in LikePredicateImpl
+        doTest(sut.visitILike(".*or.?d"),
+                JsonArray.of(
+                        JsonValue.of("hello"),
+                        JsonValue.of("world")
+                )
+        ).isTrue();
+    }
+
     private static AbstractBooleanAssert<?> doTest(final Function<String, Predicate<Thing>> functionToTest,
             final JsonValue actualValue) {
         return doTest(functionToTest, "attributes/some-attr", actualValue);

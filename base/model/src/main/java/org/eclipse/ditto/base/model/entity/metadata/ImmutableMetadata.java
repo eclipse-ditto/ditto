@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.base.model.entity.metadata;
 
-import static org.eclipse.ditto.json.JsonFactory.newValue;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.json.JsonFactory.newValue;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -27,6 +27,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
@@ -38,7 +39,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.SerializationContext;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * Immutable implementation of {@link org.eclipse.ditto.base.model.entity.metadata.Metadata}.
@@ -212,6 +212,11 @@ final class ImmutableMetadata implements Metadata {
     }
 
     @Override
+    public boolean containsFlatteningArrays(final CharSequence key) {
+        return wrapped.containsFlatteningArrays(key);
+    }
+
+    @Override
     public JsonObject get(final JsonPointer pointer) {
         return wrapped.get(pointer);
     }
@@ -239,6 +244,11 @@ final class ImmutableMetadata implements Metadata {
     @Override
     public Optional<JsonValue> getValue(final CharSequence key) {
         return wrapped.getValue(key);
+    }
+
+    @Override
+    public Optional<JsonValue> getValueFlatteningArrays(final CharSequence key) {
+        return wrapped.getValueFlatteningArrays(key);
     }
 
     @Override

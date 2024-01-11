@@ -26,6 +26,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
@@ -38,7 +39,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.SerializationContext;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * An immutable implementation of {@link FeatureProperties}.
@@ -213,8 +213,18 @@ final class ImmutableFeatureProperties implements FeatureProperties {
     }
 
     @Override
+    public boolean containsFlatteningArrays(final CharSequence key) {
+        return wrapped.contains(key);
+    }
+
+    @Override
     public Optional<JsonValue> getValue(final CharSequence key) {
         return wrapped.getValue(key);
+    }
+
+    @Override
+    public Optional<JsonValue> getValueFlatteningArrays(final CharSequence key) {
+        return wrapped.getValueFlatteningArrays(key);
     }
 
     @Override

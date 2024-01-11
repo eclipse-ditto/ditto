@@ -221,6 +221,37 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
     boolean contains(CharSequence key);
 
     /**
+     * Indicates whether this JSON object contains a field at the key defined location. When encountering a
+     * {@link JsonArray}, its contents, if those are {@link JsonObject}s themselves, are "flattened", effectively
+     * treating JsonArrays as invisible wrapper for JsonObjects.
+     * If, for example, on the following JSON object
+     * <pre>
+     *    {
+     *       "thingId": "myThing",
+     *       "attributes": {
+     *          "someArr": [
+     *             {
+     *                "subsel": 42
+     *             },
+     *             {
+     *                "subsel": 90
+     *             }
+     *          ],
+     *          "anotherAttr": "baz"
+     *       }
+     *    }
+     * </pre>
+     * <p>
+     * this method with the pointer {@code "attributes/someArr/subsel"} is called, the response would be {@code true}.
+     * </p>
+     * @return {@code true} if this JSON object contains a field at {@code key}
+     * (flattening JsonArrays in the hierarchy), {@code false} else.
+     * @throws NullPointerException if {@code key} is {@code null}.
+     * @since 3.5.0
+     */
+    boolean containsFlatteningArrays(CharSequence key);
+
+    /**
      * Returns a new JSON object containing the whole object hierarchy of the value which is defined by the given
      * pointer. If, for example, on the following JSON object
      * <pre>
@@ -321,8 +352,9 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      *       }
      *    }
      * </pre>
-     * this method is called with key {@code "attributes/someAttr/subsel"} an empty Optional is returned. Is the key
-     * {@code "thingId"} used instead the returned Optional would contain {@code "myThing"}.
+     * this method is called with key {@code "attributes/someAttr/subsel"}, the JsonValue {@code 42} will be contained
+     * in the returned Optional. If the key {@code "thingId"} used instead the returned Optional would
+     * contain {@code "myThing"}.
      * If the specified key is empty or {@code "/"} this object reference is returned within the result.
      *
      * @param key defines which value to get.
@@ -330,6 +362,35 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * @throws NullPointerException if {@code key} is {@code null}.
      */
     Optional<JsonValue> getValue(CharSequence key);
+
+    /**
+     * Returns the value which is associated with the specified key. This method is similar to {@link #get(JsonPointer)}
+     * however it does not maintain any hierarchy but returns simply the value. If, for example, on the following JSON
+     * object
+     * <pre>
+     *    {
+     *       "thingId": "myThing",
+     *       "attributes": {
+     *          "someArr": [
+     *             {
+     *                "subsel": 42
+     *             },
+     *             {
+     *                "subsel": 90
+     *             }
+     *          ],
+     *          "anotherAttr": "baz"
+     *       }
+     *    }
+     * </pre>
+     * this method is called with key {@code "attributes/someArr/subsel"}, the JsonArray with 2 JsonValues {@code 42}
+     * and  {@code 90} will be contained in the returned Optional.
+     *
+     * @param key defines which value to get.
+     * @return the JSON value at the key-defined location within this object, flattening encountered JsonArrays.
+     * @since 3.5.0
+     */
+    Optional<JsonValue> getValueFlatteningArrays(CharSequence key);
 
     /**
      * Returns the plain Java typed value of the field whose location is defined by the JsonPointer of the specified
