@@ -167,20 +167,25 @@ export function setOptions(target: HTMLSelectElement, options: string[]) {
   });
 }
 
+export function addDropDownEntries(target: HTMLUListElement, labels: Array<String>) {
+  labels.forEach((label) => {
+    addDropDownEntry(target, label);
+  })
+}
+
 /**
  * Add a drop down items or header to Bootstrap dropdown
  * @param {HTMLElement} target target element
- * @param {array} items array of items for the drop down
+ * @param {String} label label of items for the drop down
+ * @param {String} value (optional) additional data tag for the drop down item
  * @param {boolean} isHeader (optional) true to add a header line
  */
-export function addDropDownEntries(target, items, isHeader = false) {
-  items.forEach((value) => {
-    const li = document.createElement('li');
-    li.innerHTML = isHeader ?
-      `<h6 class="dropdown-header">${value}</h6>` :
-      `<a class="dropdown-item" href="#">${value}</a>`;
-    target.appendChild(li);
-  });
+export function addDropDownEntry(target: HTMLUListElement, label: String, isHeader: boolean = false, value?: String) {
+  const li = document.createElement('li');
+  li.innerHTML = isHeader ?
+    `<h6 class="dropdown-header" data-value='${value}'>${label}</h6>` :
+    `<a class="dropdown-item" data-value='${value}'>${label}</a>`;
+  target.appendChild(li);
 }
 
 /**
@@ -405,7 +410,6 @@ export function tableAdjustSelection(tbody: HTMLTableElement, condition: (row: H
   });
 }
 
-
 /**
  * JSON.stringify object, using indentation of 2
  * @param {Object} jsonObject to stringify
@@ -414,3 +418,39 @@ export function tableAdjustSelection(tbody: HTMLTableElement, condition: (row: H
 export function stringifyPretty(jsonObject: Object): string {
   return JSON.stringify(jsonObject, null, 2);
 }
+
+/**
+ * searches the placeholder in the input field and marks it to be replaced by the user
+ * @param input dom input element
+ * @param placeholder text to search and mark
+ * @returns 
+ */
+export function checkAndMarkInInput(input: HTMLInputElement, placeholder: string) {
+  const index = input.value.indexOf(placeholder);
+  if (index >= 0) {
+    input.focus();
+    input.setSelectionRange(index, index + placeholder.length);
+    return true;
+  } else {
+    return false;
+  }
+}
+
+/**
+ * Create the counter text for two lists.
+ * if the list is empty, no counter is shown
+ * if there are two lists given of different lenght, "x/y" is shown
+ * @param badgeElement dom element for the badge
+ * @param list list to count elements
+ * @param partialList optional partial list to display x of y as "x/y"
+ */
+export function updateCounterBadge(badgeElement: HTMLSpanElement, list: Array<any>, partialList?: Array<any>) {
+  if (!partialList || partialList.length === list.length) {
+    badgeElement.textContent = list.length > 0 ? list.length.toString() : '';
+  } else {
+    badgeElement.textContent = `${partialList.length}/${list.length}`;
+  }
+}
+
+
+

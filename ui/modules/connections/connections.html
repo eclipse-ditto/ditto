@@ -147,7 +147,7 @@
             </div>
         </div>
         <div class="col-md-4 resizable_flex_column">
-            <h6>Connection Logs</h6>
+            <h6>Connection Logs <span class="badge rounded-pill bg-info" id="badgeConnectionLogsCount"></span></h6>
             <div class="input-group input-group-sm mb-1">
                 <button class="btn btn-outline-secondary btn-sm button_round_left" id="buttonEnableConnectionLogs"
                     data-bs-toggle="tooltip" title="Click to enable connection logs for the selected connection">
@@ -166,9 +166,7 @@
                     Refresh
                 </button>
             </div>
-            <!-- <div class="input-group input-group-sm mb-1">
-                <input id="inputConnectionLogFilter" type="search" class="form-control form-control-sm" placeholder="Filter logs..."></input>
-            </div> -->
+            <table-filter id="tableFilterConnectionLogs"></table-filter>
             <div class="table-wrap">
                 <table class="table table-striped table-hover table-sm">
                     <thead>

@@ -105,7 +105,7 @@ function fillSearchFilterEdit(fillString) {
   dom.searchFilterEdit.value = fillString;
 
   checkIfFavorite();
-  const filterEditNeeded = checkAndMarkParameter();
+  const filterEditNeeded = Utils.checkAndMarkInInput(dom.searchFilterEdit, FILTER_PLACEHOLDER);
   if (!filterEditNeeded) {
     ThingsSearch.searchTriggered(dom.searchFilterEdit.value);
   }
@@ -203,19 +203,6 @@ function checkIfFavorite() {
     dom.favIcon.classList.replace('bi-star', 'bi-star-fill');
   } else {
     dom.favIcon.classList.replace('bi-star-fill', 'bi-star');
-  }
-}
-
-function checkAndMarkParameter() {
-  const index = dom.searchFilterEdit.value.indexOf(FILTER_PLACEHOLDER);
-  if (index >= 0) {
-    // filterString.replace(FILTER_PLACEHOLDER, '');
-    // dom.searchFilterEdit.value = filterString;
-    dom.searchFilterEdit.focus();
-    dom.searchFilterEdit.setSelectionRange(index, index + FILTER_PLACEHOLDER.length);
-    return true;
-  } else {
-    return false;
   }
 }
 
