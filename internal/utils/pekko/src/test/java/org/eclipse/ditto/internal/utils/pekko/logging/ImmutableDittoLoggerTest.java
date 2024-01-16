@@ -37,8 +37,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.slf4j.Logger;
-import org.slf4j.impl.ObservableMdcAdapter;
-import org.slf4j.impl.StaticMDCServiceProvider;
 
 /**
  * Unit test for {@link ImmutableDittoLogger}.

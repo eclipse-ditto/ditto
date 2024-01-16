@@ -21,10 +21,8 @@ import java.util.Map;
 
 import javax.annotation.concurrent.ThreadSafe;
 
-import org.slf4j.impl.ObservableMdcAdapter;
-
 /**
- * This {@link org.slf4j.impl.ObservableMdcAdapter.MdcAdapterObserver} captures put entries and removed keys for later
+ * This {@link ObservableMdcAdapter.MdcAdapterObserver} captures put entries and removed keys for later
  * test assertions.
  * <p>
  * since 1.3.0
