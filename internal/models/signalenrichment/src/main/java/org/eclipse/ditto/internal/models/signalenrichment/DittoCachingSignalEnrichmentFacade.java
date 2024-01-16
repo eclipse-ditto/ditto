@@ -219,8 +219,9 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
                 final var nextExpectedThingEventsParameters =
                         new CachingParameters(fieldSelector, thingEvents, invalidateCacheOnPolicyChange,
                                 cachingParameters.minAcceptableSeqNr);
-                result = handleNextExpectedThingEvents(cacheKey, JsonObject.empty(), nextExpectedThingEventsParameters)
-                        .toCompletableFuture();
+                result = doCacheLookup(cacheKey, dittoHeaders).thenCompose(
+                        cachedJsonObject -> handleNextExpectedThingEvents(cacheKey, cachedJsonObject,
+                                nextExpectedThingEventsParameters));
             } else {
                 // there are twin events; perform smart update
                 result = doCacheLookup(cacheKey, dittoHeaders).thenCompose(

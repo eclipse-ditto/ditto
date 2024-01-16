@@ -253,6 +253,8 @@ public final class EnforcementFlowTest {
             sourceProbe.sendNext(inputMap);
             sourceProbe.sendComplete();
 
+            thingsProbe.expectMsgClass(Duration.apply(30, TimeUnit.SECONDS), SudoRetrieveThing.class);
+            thingsProbe.reply(SudoRetrieveThingResponse.of(JsonObject.empty(), DittoHeaders.empty()));
             // WHEN: policy is retrieved with up-to-date revisions
             policiesProbe.expectMsgClass(Duration.apply(30, TimeUnit.SECONDS), SudoRetrievePolicy.class);
             final var policy = Policy.newBuilder(policyId).setRevision(1).build();
@@ -318,6 +320,10 @@ public final class EnforcementFlowTest {
             assertThat(sourceProbe.expectRequest()).isEqualTo(16);
             sourceProbe.sendNext(inputMap);
             sourceProbe.sendComplete();
+
+            // WHEN
+            thingsProbe.expectMsgClass(Duration.apply(30, TimeUnit.SECONDS), SudoRetrieveThing.class);
+            thingsProbe.reply(SudoRetrieveThingResponse.of(JsonObject.empty(), DittoHeaders.empty()));
 
             // THEN: the write model contains up-to-date revisions
             final AbstractWriteModel deleteModel = sinkProbe.expectNext().get(0);
