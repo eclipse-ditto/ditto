@@ -221,7 +221,7 @@ final class ImmutableAttributes implements Attributes {
 
     @Override
     public boolean containsFlatteningArrays(final CharSequence key) {
-        return wrapped.contains(key);
+        return wrapped.containsFlatteningArrays(key);
     }
 
     @Override

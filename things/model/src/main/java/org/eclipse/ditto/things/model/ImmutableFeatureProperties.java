@@ -214,7 +214,7 @@ final class ImmutableFeatureProperties implements FeatureProperties {
 
     @Override
     public boolean containsFlatteningArrays(final CharSequence key) {
-        return wrapped.contains(key);
+        return wrapped.containsFlatteningArrays(key);
     }
 
     @Override
