@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -35,7 +36,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.SerializationContext;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * JSON NULL value version of {@link org.eclipse.ditto.base.model.entity.metadata.Metadata}.
@@ -191,7 +191,17 @@ final class NullMetadata implements Metadata {
     }
 
     @Override
+    public boolean containsFlatteningArrays(final CharSequence key) {
+        return false;
+    }
+
+    @Override
     public Optional<JsonValue> getValue(final CharSequence name) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<JsonValue> getValueFlatteningArrays(final CharSequence key) {
         return Optional.empty();
     }
 

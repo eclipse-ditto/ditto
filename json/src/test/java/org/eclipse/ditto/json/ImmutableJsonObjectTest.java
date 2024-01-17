@@ -48,9 +48,16 @@ public final class ImmutableJsonObjectTest {
     private static final JsonKey KNOWN_KEY_FOO = JsonKey.of("foo");
     private static final JsonKey KNOWN_KEY_BAR = JsonKey.of("bar");
     private static final JsonKey KNOWN_KEY_BAZ = JsonKey.of("baz");
+    private static final JsonKey KNOWN_KEY_ARRAY = JsonKey.of("array");
+    private static final JsonKey KNOWN_KEY_ARRAY_OBJS = JsonKey.of("array_objs");
     private static final JsonValue KNOWN_VALUE_FOO = JsonValue.of("bar");
     private static final JsonValue KNOWN_VALUE_BAR = JsonValue.of("baz");
     private static final JsonValue KNOWN_VALUE_BAZ = JsonValue.of(KNOWN_INT_42);
+    private static final JsonValue KNOWN_VALUE_ARRAY = JsonArray.of(KNOWN_INT_23, KNOWN_INT_42);
+    private static final JsonValue KNOWN_VALUE_ARRAY_OBJS = JsonArray.of(
+            JsonObject.newBuilder().set("num", KNOWN_INT_23).build(),
+            JsonObject.newBuilder().set("num", KNOWN_INT_42).set("bool", false).build()
+    );
     private static final Map<String, JsonField> KNOWN_FIELDS = new LinkedHashMap<>();
     private static final String KNOWN_JSON_STRING;
 
@@ -58,11 +65,15 @@ public final class ImmutableJsonObjectTest {
         KNOWN_FIELDS.put(KNOWN_KEY_FOO.toString(), toField(KNOWN_KEY_FOO, KNOWN_VALUE_FOO));
         KNOWN_FIELDS.put(KNOWN_KEY_BAR.toString(), toField(KNOWN_KEY_BAR, KNOWN_VALUE_BAR));
         KNOWN_FIELDS.put(KNOWN_KEY_BAZ.toString(), toField(KNOWN_KEY_BAZ, KNOWN_VALUE_BAZ));
+        KNOWN_FIELDS.put(KNOWN_KEY_ARRAY.toString(), toField(KNOWN_KEY_ARRAY, KNOWN_VALUE_ARRAY));
+        KNOWN_FIELDS.put(KNOWN_KEY_ARRAY_OBJS.toString(), toField(KNOWN_KEY_ARRAY_OBJS, KNOWN_VALUE_ARRAY_OBJS));
 
         KNOWN_JSON_STRING = "{"
                 + "\"" + KNOWN_KEY_FOO + "\":\"" + KNOWN_VALUE_FOO.asString() + "\","
                 + "\"" + KNOWN_KEY_BAR + "\":\"" + KNOWN_VALUE_BAR.asString() + "\","
-                + "\"" + KNOWN_KEY_BAZ + "\":" + KNOWN_VALUE_BAZ.asInt()
+                + "\"" + KNOWN_KEY_BAZ + "\":" + KNOWN_VALUE_BAZ.asInt() + ","
+                + "\"" + KNOWN_KEY_ARRAY + "\":" + KNOWN_VALUE_ARRAY + ","
+                + "\"" + KNOWN_KEY_ARRAY_OBJS + "\":" + KNOWN_VALUE_ARRAY_OBJS
                 + "}";
     }
 
@@ -181,7 +192,7 @@ public final class ImmutableJsonObjectTest {
 
         assertThat(underTest).isObject()
                 .isNotEmpty()
-                .hasSize(3);
+                .hasSize(5);
         assertThat(underTest.asObject()).isSameAs(underTest);
         assertThat(underTest.toString()).hasToString(KNOWN_JSON_STRING);
     }
@@ -528,6 +539,13 @@ public final class ImmutableJsonObjectTest {
     }
 
     @Test
+    public void getExistingArrayValueByName() {
+        final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
+
+        assertThat(underTest.getValue(KNOWN_KEY_ARRAY)).contains(KNOWN_VALUE_ARRAY);
+    }
+
+    @Test
     public void getNonExistingValueByNameReturnsEmptyOptional() {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
 
@@ -683,7 +701,8 @@ public final class ImmutableJsonObjectTest {
     @Test
     public void getKeysReturnsExpected() {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
-        final JsonKey[] expectedKeys = new JsonKey[]{KNOWN_KEY_FOO, KNOWN_KEY_BAR, KNOWN_KEY_BAZ};
+        final JsonKey[] expectedKeys =
+                new JsonKey[]{KNOWN_KEY_FOO, KNOWN_KEY_BAR, KNOWN_KEY_BAZ, KNOWN_KEY_ARRAY, KNOWN_KEY_ARRAY_OBJS};
         final List<JsonKey> actualKeys = underTest.getKeys();
 
         assertThat(actualKeys).containsOnly(expectedKeys);
@@ -908,6 +927,8 @@ public final class ImmutableJsonObjectTest {
         expectedJsonFields.add(toField(KNOWN_KEY_FOO, KNOWN_VALUE_FOO));
         expectedJsonFields.add(toField(KNOWN_KEY_BAR, KNOWN_VALUE_BAR));
         expectedJsonFields.add(toField(KNOWN_KEY_BAZ, KNOWN_VALUE_BAZ));
+        expectedJsonFields.add(toField(KNOWN_KEY_ARRAY, KNOWN_VALUE_ARRAY));
+        expectedJsonFields.add(toField(KNOWN_KEY_ARRAY_OBJS, KNOWN_VALUE_ARRAY_OBJS));
 
         final Iterator<JsonField> underTest = jsonObject.iterator();
         int index = 0;
@@ -999,6 +1020,24 @@ public final class ImmutableJsonObjectTest {
         assertThat(underTest.contains(deeperThanObject)).isFalse();
     }
 
+    @Test
+    public void containsNotFlatteningArrayNotRespectsObjectsInArrays() {
+        final ImmutableJsonObject underTest =
+                ImmutableJsonObject.of(toMap(KNOWN_KEY_ARRAY_OBJS, KNOWN_VALUE_ARRAY_OBJS));
+        final JsonPointer deeperThanObject = KNOWN_KEY_ARRAY_OBJS.asPointer().append(JsonPointer.of("/num"));
+
+        assertThat(underTest.contains(deeperThanObject)).isFalse();
+    }
+
+    @Test
+    public void containsFlatteningArrayRespectsObjectsInArrays() {
+        final ImmutableJsonObject underTest =
+                ImmutableJsonObject.of(toMap(KNOWN_KEY_ARRAY_OBJS, KNOWN_VALUE_ARRAY_OBJS));
+        final JsonPointer deeperThanObject = KNOWN_KEY_ARRAY_OBJS.asPointer().append(JsonPointer.of("/num"));
+
+        assertThat(underTest.containsFlatteningArrays(deeperThanObject)).isTrue();
+    }
+
     @Test(expected = NullPointerException.class)
     public void tryToGetJsonObjectWithNullJsonPointer() {
         final JsonObject underTest = ImmutableJsonObject.empty();
@@ -1087,6 +1126,37 @@ public final class ImmutableJsonObjectTest {
 
         final JsonValue expected = JsonValue.of(KNOWN_INT_42);
         final Optional<JsonValue> actual = underTest.getValue(jsonPointer);
+
+        assertThat(actual).contains(expected);
+    }
+
+    @Test
+    public void getExistingValueFlatteningArraysForPointerReturnsExpectedInArray() {
+        /*
+         * JSON object:
+         *
+         * {
+         *    "someObjectAttribute": {
+         *       "someKey": {
+         *          "someNestedKey": [
+         *              {
+         *                 "num": 23
+         *              },
+         *              {
+         *                 "num": 42
+         *              }
+         *          ]
+         *       }
+         *    }
+         * }
+         */
+        final JsonObject nestedJsonObject = ImmutableJsonObject.of(toMap("someNestedKey", KNOWN_VALUE_ARRAY_OBJS));
+        final JsonObject attributeJsonObject = ImmutableJsonObject.of(toMap("someKey", nestedJsonObject));
+        final JsonObject underTest = ImmutableJsonObject.of(toMap("someObjectAttribute", attributeJsonObject));
+        final JsonPointer jsonPointer = JsonPointer.of("someObjectAttribute/someKey/someNestedKey/num");
+
+        final JsonValue expected = JsonArray.of(JsonValue.of(KNOWN_INT_23), JsonValue.of(KNOWN_INT_42));
+        final Optional<JsonValue> actual = underTest.getValueFlatteningArrays(jsonPointer);
 
         assertThat(actual).contains(expected);
     }

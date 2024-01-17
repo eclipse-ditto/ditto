@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.ServiceLoader;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -223,7 +224,16 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
     @Override
     public boolean contains(final CharSequence key) {
         requireNonNull(key, "The key or pointer to check the existence of a value for must not be null!");
+        return internalContains(key, false);
+    }
 
+    @Override
+    public boolean containsFlatteningArrays(final CharSequence key) {
+        requireNonNull(key, "The key or pointer to check the existence of a value for must not be null!");
+        return internalContains(key, true);
+    }
+
+    boolean internalContains(final CharSequence key, final boolean flatteningArrays) {
         final boolean result;
 
         final JsonPointer pointer = JsonPointer.of(key);
@@ -231,15 +241,24 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         if (1 >= pointer.getLevelCount()) {
             result = pointer.getRoot().map(this::containsKey).orElse(false);
         } else {
-            result = pointer.getRoot()
-                    .flatMap(this::getValueForKey)
-                    .filter(JsonValue::isObject)
-                    .map(JsonValue::asObject)
-                    .map(jsonObject -> jsonObject.contains(pointer.nextLevel()))
-                    .orElse(false);
+            result = containsPointer(pointer, flatteningArrays);
         }
 
         return result;
+    }
+
+    private Boolean containsPointer(final JsonPointer pointer, final boolean flatteningArrays) {
+        return pointer.getRoot()
+                .flatMap(this::getValueForKey)
+                .filter(val -> val.isObject() || (flatteningArrays && val.isArray()))
+                .map(val -> val.isObject() ? Stream.of(val.asObject()) :
+                        val.asArray().stream().filter(JsonValue::isObject).map(JsonValue::asObject)
+                )
+                .map(stream -> stream.anyMatch(jsonObject -> flatteningArrays ?
+                        jsonObject.containsFlatteningArrays(pointer.nextLevel()) :
+                        jsonObject.contains(pointer.nextLevel()))
+                )
+                .orElse(false);
     }
 
     private boolean containsKey(final CharSequence key) {
@@ -249,10 +268,16 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
     @Override
     public Optional<JsonValue> getValue(final CharSequence key) {
         requireNonNull(key, "The key or pointer of the value to be retrieved must not be null!");
-        return getValueForPointer(JsonPointer.of(key));
+        return getValueForPointer(JsonPointer.of(key), false);
     }
 
-    private Optional<JsonValue> getValueForPointer(final JsonPointer pointer) {
+    @Override
+    public Optional<JsonValue> getValueFlatteningArrays(final CharSequence key) {
+        requireNonNull(key, "The key or pointer of the value to be retrieved must not be null!");
+        return getValueForPointer(JsonPointer.of(key), true);
+    }
+
+    private Optional<JsonValue> getValueForPointer(final JsonPointer pointer, final boolean flatteningArrays) {
         final Optional<JsonValue> result;
 
         final JsonKey rootKey = pointer.getRoot().orElse(ROOT_KEY);
@@ -263,10 +288,31 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
             // same as getting a value for a key
             result = getValueForKey(rootKey);
         } else {
-            result = getValueForKey(rootKey)
-                    .filter(JsonValue::isObject)
-                    .map(JsonValue::asObject)
-                    .flatMap(jsonObject -> jsonObject.getValue(pointer.nextLevel()));
+            final AtomicReference<Boolean> valueIsArray = new AtomicReference<>(false);
+            final List<JsonValue> collected = getValueForKey(rootKey).map(Stream::of).orElse(Stream.empty())
+                    .filter(val -> val.isObject() || (flatteningArrays && val.isArray()))
+                    .flatMap(val -> {
+                        if (val.isObject()) {
+                            return Stream.of(val.asObject());
+                        } else {
+                            valueIsArray.set(true);
+                            return val.asArray().stream().filter(JsonValue::isObject).map(JsonValue::asObject);
+                        }
+                    })
+                    .flatMap(jsonObject -> flatteningArrays ?
+                            jsonObject.getValueFlatteningArrays(pointer.nextLevel())
+                                    .map(Stream::of).orElseGet(Stream::empty) :
+                            jsonObject.getValue(pointer.nextLevel())
+                                    .map(Stream::of).orElseGet(Stream::empty)
+                    ).collect(Collectors.toList());
+
+            if (collected.isEmpty()) {
+                result = Optional.empty();
+            } else if (Boolean.TRUE.equals(valueIsArray.get())) {
+                result = Optional.of(collected.stream().collect(JsonCollectors.valuesToArray()));
+            } else {
+                result = Optional.of(collected.get(0));
+            }
         }
 
         return result;
@@ -281,7 +327,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
     public <T> Optional<T> getValue(final JsonFieldDefinition<T> fieldDefinition) {
         checkFieldDefinition(fieldDefinition);
 
-        return getValueForPointer(fieldDefinition.getPointer()).map(fieldDefinition::mapValue);
+        return getValueForPointer(fieldDefinition.getPointer(), false).map(fieldDefinition::mapValue);
     }
 
     private static void checkFieldDefinition(final JsonFieldDefinition<?> fieldDefinition) {
@@ -308,7 +354,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         final Optional<JsonFieldDefinition> rootKeyDefinition = getDefinitionForKey(rootKey);
         if (1 >= pointer.getLevelCount()) {
             result = rootKeyValue.map(
-                    jsonValue -> JsonField.newInstance(rootKey, jsonValue, rootKeyDefinition.orElse(null)))
+                            jsonValue -> JsonField.newInstance(rootKey, jsonValue, rootKeyDefinition.orElse(null)))
                     .map(jsonField -> Collections.singletonMap(jsonField.getKeyName(), jsonField))
                     .map(ImmutableJsonObject::of)
                     .orElseGet(ImmutableJsonObject::empty);
@@ -321,16 +367,16 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
                     .isPresent();
 
             result = rootKeyValue.map(jsonValue -> {
-                if (jsonValue.isObject()) {
-                    if (containsNextLevelRootKey.test(jsonValue.asObject())) {
-                        return jsonValue.asObject().get(nextPointerLevel); // Recursion
-                    } else {
-                        return null;
-                    }
-                } else {
-                    return jsonValue;
-                }
-            })
+                        if (jsonValue.isObject()) {
+                            if (containsNextLevelRootKey.test(jsonValue.asObject())) {
+                                return jsonValue.asObject().get(nextPointerLevel); // Recursion
+                            } else {
+                                return null;
+                            }
+                        } else {
+                            return jsonValue;
+                        }
+                    })
                     .map(jsonValue -> JsonField.newInstance(rootKey, jsonValue, rootKeyDefinition.orElse(null)))
                     .map(jsonField -> Collections.singletonMap(jsonField.getKeyName(), jsonField))
                     .map(ImmutableJsonObject::of)
@@ -360,7 +406,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
 
         final List<JsonPointer> pointersContainedInThis = fieldSelector.getPointers()
                 .stream()
-                .filter(this::contains)
+                .filter(this::containsFlatteningArrays)
                 .collect(Collectors.toList());
 
         if (pointersContainedInThis.isEmpty()) {
@@ -381,9 +427,17 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         for (final JsonKey key : trie.getKeys()) {
             self.getField(key).ifPresent(child -> {
                 final JsonValue childValue = child.getValue();
-                final JsonValue filteredChildValue = childValue.isObject()
-                        ? filterByTrie(childValue.asObject(), trie.descend(key))
-                        : childValue;
+                final JsonValue filteredChildValue;
+                if (childValue.isObject()) {
+                    filteredChildValue = filterByTrie(childValue.asObject(), trie.descend(key)); // recurse!
+                } else if (childValue.isArray()) {
+                    filteredChildValue = childValue.asArray().stream()
+                            .filter(JsonValue::isObject)
+                            .map(value -> filterByTrie(value.asObject(), trie.descend(key))) // recurse!
+                            .collect(JsonCollectors.valuesToArray());
+                } else {
+                    filteredChildValue = childValue;
+                }
                 final Optional<JsonFieldDefinition> childFieldDefinition = child.getDefinition();
                 if (childFieldDefinition.isPresent()) {
                     builder.set(childFieldDefinition.get(), filteredChildValue);
@@ -422,7 +476,8 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
                     .map(JsonValue::asObject)
                     .filter(containsNextLevelRootKey)
                     .map(jsonObject -> jsonObject.remove(nextPointerLevel)) // Recursion
-                    .map(withoutValue -> JsonField.newInstance(rootKey, withoutValue, getDefinitionForKey(rootKey).orElse(null)))
+                    .map(withoutValue -> JsonField.newInstance(rootKey, withoutValue,
+                            getDefinitionForKey(rootKey).orElse(null)))
                     .map(this::set)
                     .orElse(this);
         }
@@ -568,7 +623,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
                 if (CBOR_FACTORY.isCborAvailable()) {
                     try {
                         this.cborObjectRepresentation = CBOR_FACTORY.createCborRepresentation(jsonFieldMap,
-                                        guessSerializedSize());
+                                guessSerializedSize());
                     } catch (final IOException e) {
                         assert false; // this should not happen, so assertions will throw during testing
                         jsonObjectStringRepresentation = createStringRepresentation(jsonFieldMap);
