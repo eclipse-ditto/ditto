@@ -109,8 +109,10 @@ This API is however **only available for things** (not for policies).
 Use the following query parameters in order to specify the start/stop revision/timestamp.
 
 Either use the revision based parameters:
-* `from-historical-revision`: specifies the revision number to start streaming historical modification events from
-* `to-historical-revision`: optionally specifies the revision number to stop streaming at (if omitted, it streams events until the current state of the entity)
+* `from-historical-revision`: Specifies the revision number to start streaming historical modification events from.
+  May also be negative in order to specify to get the last `n` revisions relative to the `to-historical-revision`.
+* `to-historical-revision`: Optionally specifies the revision number to stop streaming at (if omitted, it streams events until the current state of the entity). 
+  May also be 0 or negative in order to specify to get either the latest (`0`) or the `n`th most recent revision.
 
 Alternatively, use the timestamp based parameters:
 * `from-historical-timestamp`: specifies the timestamp to start streaming historical modification events from

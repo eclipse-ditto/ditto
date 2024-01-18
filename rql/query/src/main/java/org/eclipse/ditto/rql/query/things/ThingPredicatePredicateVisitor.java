@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -105,8 +106,8 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
         @Nullable final Object resolvedValue = resolveValue(value);
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
-                        .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
-                        .filter(obj -> {
+                        .map(ThingPredicatePredicateVisitor::mapJsonValueToJava)
+                        .filter(stream -> stream.anyMatch(obj -> {
                             // special NULL handling
                             if (NULL_LITERAL == obj && null == resolvedValue) {
                                 return true;
@@ -114,7 +115,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
                                 return compare((Comparable<?>) resolvedValue, (Comparable<?>) obj) == 0;
                             }
                             return false;
-                        })
+                        }))
                         .isPresent();
     }
 
@@ -123,8 +124,8 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
         @Nullable final Object resolvedValue = resolveValue(value);
         return fieldName ->
                 thing -> !getThingField(fieldName, thing)
-                        .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
-                        .filter(obj -> {
+                        .map(ThingPredicatePredicateVisitor::mapJsonValueToJava)
+                        .filter(stream -> stream.anyMatch(obj -> {
                             // special NULL handling
                             if (NULL_LITERAL == obj && null == resolvedValue) {
                                 return true;
@@ -132,7 +133,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
                                 return compare((Comparable<?>) resolvedValue, (Comparable<?>) obj) == 0;
                             }
                             return false;
-                        })
+                        }))
                         .isPresent();
     }
 
@@ -141,10 +142,11 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
         @Nullable final Object resolvedValue = resolveValue(value);
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
-                        .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
-                        .filter(obj -> obj instanceof Comparable && resolvedValue instanceof Comparable)
-                        .map(Comparable.class::cast)
-                        .filter(obj -> compare((Comparable<?>) resolvedValue, obj) >= 0)
+                        .map(ThingPredicatePredicateVisitor::mapJsonValueToJava)
+                        .filter(stream -> stream.anyMatch(obj ->
+                                obj instanceof Comparable && resolvedValue instanceof Comparable &&
+                                        compare((Comparable<?>) resolvedValue, (Comparable<?>) obj) >= 0)
+                        )
                         .isPresent();
     }
 
@@ -153,10 +155,11 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
         @Nullable final Object resolvedValue = resolveValue(value);
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
-                        .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
-                        .filter(obj -> obj instanceof Comparable && resolvedValue instanceof Comparable)
-                        .map(Comparable.class::cast)
-                        .filter(obj -> compare((Comparable<?>) resolvedValue, obj) > 0)
+                        .map(ThingPredicatePredicateVisitor::mapJsonValueToJava)
+                        .filter(stream -> stream.anyMatch(obj ->
+                                obj instanceof Comparable && resolvedValue instanceof Comparable &&
+                                        compare((Comparable<?>) resolvedValue, (Comparable<?>) obj) > 0)
+                        )
                         .isPresent();
     }
 
@@ -165,10 +168,11 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
         @Nullable final Object resolvedValue = resolveValue(value);
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
-                        .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
-                        .filter(obj -> obj instanceof Comparable && resolvedValue instanceof Comparable)
-                        .map(Comparable.class::cast)
-                        .filter(obj -> compare((Comparable<?>) resolvedValue, obj) <= 0)
+                        .map(ThingPredicatePredicateVisitor::mapJsonValueToJava)
+                        .filter(stream -> stream.anyMatch(obj ->
+                                obj instanceof Comparable && resolvedValue instanceof Comparable &&
+                                        compare((Comparable<?>) resolvedValue, (Comparable<?>) obj) <= 0)
+                        )
                         .isPresent();
     }
 
@@ -177,10 +181,11 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
         @Nullable final Object resolvedValue = resolveValue(value);
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
-                        .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
-                        .filter(obj -> obj instanceof Comparable && resolvedValue instanceof Comparable)
-                        .map(Comparable.class::cast)
-                        .filter(obj -> compare((Comparable<?>) resolvedValue, obj) < 0)
+                        .map(ThingPredicatePredicateVisitor::mapJsonValueToJava)
+                        .filter(stream -> stream.anyMatch(obj ->
+                                obj instanceof Comparable && resolvedValue instanceof Comparable &&
+                                        compare((Comparable<?>) resolvedValue, (Comparable<?>) obj) < 0)
+                        )
                         .isPresent();
     }
 
@@ -223,11 +228,11 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
     public Function<String, Predicate<Thing>> visitIn(final List<?> values) {
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
-                        .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
-                        .filter(Comparable.class::isInstance)
-                        .map(Comparable.class::cast)
-                        .filter(obj -> values.stream().map(this::resolveValue)
-                                .anyMatch(v -> compare((Comparable<?>) v, obj) == 0))
+                        .map(ThingPredicatePredicateVisitor::mapJsonValueToJava)
+                        .filter(stream -> stream.anyMatch(obj ->
+                                obj instanceof Comparable && values.stream().map(this::resolveValue)
+                                        .anyMatch(v -> compare((Comparable<?>) v, (Comparable<?>) obj) == 0))
+                        )
                         .isPresent();
     }
 
@@ -235,9 +240,10 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
     public Function<String, Predicate<Thing>> visitLike(@Nullable final String value) {
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
-                        .filter(JsonValue::isString)
-                        .map(JsonValue::asString)
-                        .filter(str -> null != value && Pattern.compile(value).matcher(str).matches())
+                        .map(ThingPredicatePredicateVisitor::mapJsonValueToJava)
+                        .filter(stream -> stream.anyMatch(obj -> null != value &&
+                                Pattern.compile(value).matcher(String.valueOf(obj)).matches()
+                        ))
                         .isPresent();
     }
 
@@ -245,12 +251,13 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
     public Function<String, Predicate<Thing>> visitILike(@Nullable final String value) {
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
-                        .filter(JsonValue::isString)
-                        .map(JsonValue::asString)
-                        .filter(str -> null != value && Pattern.compile(value, Pattern.CASE_INSENSITIVE).matcher(str).matches())
+                        .map(ThingPredicatePredicateVisitor::mapJsonValueToJava)
+                        .filter(stream -> stream.anyMatch(obj -> null != value &&
+                                Pattern.compile(value, Pattern.CASE_INSENSITIVE).matcher(String.valueOf(obj)).matches()
+                        ))
                         .isPresent();
     }
-    
+
     @Nullable
     private Object resolveValue(@Nullable final Object value) {
         if (value instanceof ParsedPlaceholder) {
@@ -269,7 +276,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
     private Optional<JsonValue> getThingField(final CharSequence fieldName, final Thing thing) {
         return Optional.ofNullable(
                 thing.toJson(p -> true)
-                        .getValue(fieldName) // first, try resolving via the thing
+                        .getValueFlatteningArrays(fieldName) // first, try resolving via the thing
                         .orElseGet(() -> {// if that returns nothing, try resolving using the placeholder resolvers:
                             final String[] fieldNameSplit = fieldName.toString().split(Expression.SEPARATOR, 2);
                             if (fieldNameSplit.length > 1) {
@@ -289,29 +296,31 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
         );
     }
 
-    private static Optional<Object> mapJsonValueToJava(final JsonValue jsonValue) {
-        final Optional<Object> result;
+    private static Stream<Object> mapJsonValueToJava(final JsonValue jsonValue) {
+        final Stream<Object> result;
 
         if (jsonValue.isString()) {
-            result = Optional.of(jsonValue.asString());
+            result = Stream.of(jsonValue.asString());
         } else if (jsonValue.isBoolean()) {
-            result = Optional.of(jsonValue.asBoolean());
+            result = Stream.of(jsonValue.asBoolean());
         } else if (jsonValue.isNull()) {
-            result = Optional.of(NULL_LITERAL);
+            result = Stream.of(NULL_LITERAL);
         } else if (jsonValue.isNumber()) {
             if (jsonValue.isInt()) {
-                result = Optional.of(jsonValue.asInt());
+                result = Stream.of(jsonValue.asInt());
             } else if (jsonValue.isLong()) {
-                result = Optional.of(jsonValue.asLong());
+                result = Stream.of(jsonValue.asLong());
             } else {
-                result = Optional.of(jsonValue.asDouble());
+                result = Stream.of(jsonValue.asDouble());
             }
         } else if (jsonValue.isArray()) {
-            result = Optional.empty(); // filtering arrays is not supported
+            result = jsonValue.asArray()
+                    .stream()
+                    .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava); // recurse!
         } else if (jsonValue.isObject()) {
-            result = Optional.empty(); // filtering objects is not supported
+            result = Stream.empty(); // filtering objects is not supported
         } else {
-            result = Optional.empty();
+            result = Stream.empty();
         }
 
         return result;

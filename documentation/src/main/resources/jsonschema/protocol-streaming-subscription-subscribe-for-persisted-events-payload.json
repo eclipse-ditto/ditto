@@ -6,11 +6,11 @@
   "properties": {
     "fromHistoricalRevision": {
       "type": "integer",
-      "description": "The revision to start the streaming from."
+      "description": "The revision to start the streaming from. May also be negative in order to specify to get the last n revisions relative to the 'toHistoricalRevision'."
     },
     "toHistoricalRevision": {
       "type": "integer",
-      "description": "The revision to stop the streaming at."
+      "description": "The revision to stop the streaming at. May also be 0 or negative in order to specify to get either the latest (0) or the nth most recent revision."
     },
     "fromHistoricalTimestamp": {
       "type": "string",

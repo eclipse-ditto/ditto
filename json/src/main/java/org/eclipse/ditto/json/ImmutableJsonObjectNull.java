@@ -113,6 +113,11 @@ final class ImmutableJsonObjectNull extends AbstractJsonValue implements JsonObj
     }
 
     @Override
+    public boolean containsFlatteningArrays(final CharSequence key) {
+        return false;
+    }
+
+    @Override
     public ImmutableJsonObjectNull get(final JsonPointer pointer) {
         return this;
     }
@@ -124,6 +129,11 @@ final class ImmutableJsonObjectNull extends AbstractJsonValue implements JsonObj
 
     @Override
     public Optional<JsonValue> getValue(final CharSequence key) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<JsonValue> getValueFlatteningArrays(final CharSequence key) {
         return Optional.empty();
     }
 
