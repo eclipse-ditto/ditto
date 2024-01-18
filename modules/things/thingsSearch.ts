@@ -30,6 +30,7 @@ let lastSearch = '';
 let theSearchCursor;
 
 const dom = {
+  searchFilterCount: null,
   thingsTableHead: null,
   thingsTableBody: null,
   searchFilterEdit: null,
@@ -76,7 +77,7 @@ function onThingsTableClicked(event) {
  * Tests if the search filter is an RQL. If yes, things search is called otherwise just things get
  * @param {String} filter search filter string containing an RQL or a thingId
  */
-export function searchTriggered(filter) {
+export function searchTriggered(filter: string) {
   lastSearch = filter;
   const regex = /^(eq\(|ne\(|gt\(|ge\(|lt\(|le\(|in\(|like\(|ilike\(|exists\(|and\(|or\(|not\().*/;
   if (filter === '' || regex.test(filter)) {
@@ -113,6 +114,7 @@ export function performLastSearch() {
  * @param {Array} thingIds Array of thingIds
  */
 export function getThings(thingIds) {
+  dom.searchFilterCount.innerHTML = '';
   dom.thingsTableBody.innerHTML = '';
   const fieldsQueryParameter = Fields.getQueryParameter();
   if (thingIds.length > 0) {
@@ -120,6 +122,7 @@ export function getThings(thingIds) {
         `/things?${fieldsQueryParameter}&ids=${thingIds}&option=sort(%2BthingId)`)
         .then((thingJsonArray) => {
           fillThingsTable(thingJsonArray);
+          dom.searchFilterCount.innerHTML = '#: ' + thingJsonArray.length;
           notifyAll(thingIds, fieldsQueryParameter);
         })
         .catch((error) => {
@@ -134,6 +137,7 @@ export function getThings(thingIds) {
 
 function resetAndClearViews(retainThing = false) {
   theSearchCursor = null;
+  dom.searchFilterCount.innerHTML = '';
   dom.thingsTableHead.innerHTML = '';
   dom.thingsTableBody.innerHTML = '';
   if (!retainThing) {
@@ -142,11 +146,29 @@ function resetAndClearViews(retainThing = false) {
 }
 
 /**
+ * Calls Ditto search API to perform a count and adds the count to the UI.
+ * @param {String} filter Ditto search filter (rql)
+ */
+function countThings(filter: string) {
+  dom.searchFilterCount.innerHTML = '';
+  const namespaces = Environments.current().searchNamespaces
+  API.callDittoREST('GET',
+    '/search/things/count' +
+    ((filter && filter !== '') ? '?filter=' + encodeURIComponent(filter) : '') +
+    ((namespaces && namespaces !== '') ? '&namespaces=' + namespaces : ''), null, null
+  ).then((countResult) => {
+    dom.searchFilterCount.innerHTML = '#: ' + countResult;
+  }).catch((error) => {
+    notifyAll();
+  });
+}
+
+/**
  * Calls Ditto search api and fills UI with the result
  * @param {String} filter Ditto search filter (rql)
  * @param {boolean} isMore (optional) use cursor from previous search for additional pages
  */
-function searchThings(filter, isMore = false) {
+function searchThings(filter: string, isMore = false) {
   document.body.style.cursor = 'progress';
 
   const namespaces = Environments.current().searchNamespaces;
@@ -162,6 +184,7 @@ function searchThings(filter, isMore = false) {
     if (isMore) {
       removeMoreFromThingList();
     } else {
+      countThings(filter);
       resetAndClearViews(true);
     }
     fillThingsTable(searchResult.items);
@@ -212,7 +235,7 @@ export function removeMoreFromThingList() {
  * Fills the things table UI with the given things
  * @param {Array} thingsList Array of thing json objects
  */
-function fillThingsTable(thingsList) {
+function fillThingsTable(thingsList: any[]) {
   const activeFields = Environments.current().fieldList.filter((f) => f.active);
   fillHeaderRow();
   let thingSelected = false;
