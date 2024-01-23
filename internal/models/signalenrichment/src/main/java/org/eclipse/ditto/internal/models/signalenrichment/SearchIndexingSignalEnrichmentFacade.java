@@ -12,8 +12,11 @@
  */
 package org.eclipse.ditto.internal.models.signalenrichment;
 
+import org.apache.pekko.japi.Pair;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.Thing;
@@ -25,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.regex.Pattern;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
@@ -34,10 +38,10 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
  */
 public final class SearchIndexingSignalEnrichmentFacade extends DittoCachingSignalEnrichmentFacade {
 
-    private final Map<String, JsonFieldSelector> selectedIndexes;
+    private final List<Pair<Pattern, JsonFieldSelector>> selectedIndexes;
 
     private SearchIndexingSignalEnrichmentFacade(
-            final Map<String, JsonFieldSelector> selectedIndexes,
+            final List<Pair<Pattern, JsonFieldSelector>> selectedIndexes,
             final SignalEnrichmentFacade cacheLoaderFacade,
             final CacheConfig cacheConfig,
             final Executor cacheLoaderExecutor,
@@ -45,7 +49,7 @@ public final class SearchIndexingSignalEnrichmentFacade extends DittoCachingSign
 
         super(cacheLoaderFacade, cacheConfig, cacheLoaderExecutor, cacheNamePrefix);
 
-        this.selectedIndexes = Collections.unmodifiableMap(selectedIndexes);
+        this.selectedIndexes = Collections.unmodifiableList(selectedIndexes);
     }
 
     /**
@@ -59,7 +63,7 @@ public final class SearchIndexingSignalEnrichmentFacade extends DittoCachingSign
      * @throws NullPointerException if any argument is null.
      */
     public static SearchIndexingSignalEnrichmentFacade newInstance(
-            final Map<String, JsonFieldSelector> selectedIndexes,
+            final List<Pair<Pattern, JsonFieldSelector>> selectedIndexes,
             final SignalEnrichmentFacade cacheLoaderFacade,
             final CacheConfig cacheConfig,
             final Executor cacheLoaderExecutor,
@@ -75,6 +79,15 @@ public final class SearchIndexingSignalEnrichmentFacade extends DittoCachingSign
 
     @Override
     protected JsonFieldSelector determineSelector(String namespace) {
-        return selectedIndexes.get(namespace);
+
+        // We iterate through the list and return the first JsonFieldSelector that matches the namespace pattern.
+        for (final Pair<Pattern, JsonFieldSelector> pair : selectedIndexes) {
+
+            if (pair.first().matcher(namespace).matches()) {
+                return pair.second();
+            }
+        }
+
+        return super.determineSelector(namespace);
     }
 }

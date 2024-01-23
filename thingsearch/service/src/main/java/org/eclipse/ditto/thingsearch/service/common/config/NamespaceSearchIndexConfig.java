@@ -15,9 +15,8 @@ package org.eclipse.ditto.thingsearch.service.common.config;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 import javax.annotation.concurrent.Immutable;
-import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
+import java.util.regex.Pattern;
 
 /**
  * Provides configuration settings of the namespace-scoped search indexes.

@@ -15,7 +15,10 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.util.*;
 import java.util.concurrent.Executor;
+import java.util.regex.Pattern;
 
+import org.apache.pekko.japi.Pair;
+import org.eclipse.ditto.base.model.common.LikeHelper;
 import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacade;
 import org.eclipse.ditto.internal.models.signalenrichment.SearchIndexingSignalEnrichmentFacade;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
@@ -65,13 +68,13 @@ public final class SearchIndexingSignalEnrichmentFacadeProvider implements Cachi
                 DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
 
         // Build a map of field selectors for the enrichment facade to use to quickly look up by Thing namespace.
-        final Map<String, JsonFieldSelector> namespaceToFieldSelector = new HashMap<>();
+        final List<Pair<Pattern, JsonFieldSelector>> namespaceAndFieldSelector = new ArrayList<>();
 
         for (final NamespaceSearchIndexConfig namespaceConfig : searchConfig.getNamespaceSearchIncludeFields()) {
 
             if (!namespaceConfig.getSearchIncludeFields().isEmpty()) {
 
-                // Ensure the list has the required fields needed for the search to work.
+                // Ensure the constructed JsonFieldSelector has the required fields needed for the search to work.
                 final Set<String> set = new HashSet<>(namespaceConfig.getSearchIncludeFields());
                 set.addAll(REQUIRED_INDEXED_FIELDS.stream().map(JsonFieldDefinition::getPointer).map(JsonPointer::toString).toList());
 
@@ -79,12 +82,16 @@ public final class SearchIndexingSignalEnrichmentFacadeProvider implements Cachi
 
                 JsonFieldSelector indexedFields = JsonFactory.newFieldSelector(searchIncludeFields, JsonParseOptions.newBuilder().build());
 
-                namespaceToFieldSelector.put(namespaceConfig.getNamespace(), indexedFields);
+                // Build a Pattern from the namespace value.
+                final Pattern namespacePattern = Pattern.compile(
+                        Objects.requireNonNull(LikeHelper.convertToRegexSyntax(namespaceConfig.getNamespace())));
+
+                namespaceAndFieldSelector.add(Pair.create(namespacePattern, indexedFields));
             }
         }
 
         return SearchIndexingSignalEnrichmentFacade.newInstance(
-                namespaceToFieldSelector,
+                namespaceAndFieldSelector,
                 cacheLoaderFacade,
                 cacheConfig,
                 cacheLoaderExecutor,

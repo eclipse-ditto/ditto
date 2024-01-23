@@ -17,7 +17,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
+import org.eclipse.ditto.base.model.common.LikeHelper;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 

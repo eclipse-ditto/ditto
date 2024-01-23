@@ -14,6 +14,7 @@ package org.eclipse.ditto.internal.models.signalenrichment;
 
 import com.typesafe.config.ConfigFactory;
 import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.japi.Pair;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -40,8 +41,10 @@ import org.junit.Test;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
+import java.util.regex.Pattern;
 
 /**
  * Unit tests for {@link SearchIndexingSignalEnrichmentFacade}.
@@ -100,7 +103,7 @@ public final class SearchIndexingSignalEnrichmentFacadeTest extends AbstractSign
         final ByRoundTripSignalEnrichmentFacade cacheLoaderFacade =
                 ByRoundTripSignalEnrichmentFacade.of(commandHandler, Duration.ofSeconds(10L));
         return SearchIndexingSignalEnrichmentFacade.newInstance(
-                Map.of("org.eclipse.test", SELECTED_INDEXES),
+                List.of(Pair.create(Pattern.compile("org.eclipse.test"), SELECTED_INDEXES)),
                 cacheLoaderFacade,
                 cacheConfig,
                 kit.getSystem().getDispatcher(),
