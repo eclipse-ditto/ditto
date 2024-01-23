@@ -1,0 +1,56 @@
+# Copyright (c) 2024 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+{{- if and .Values.global.podDeletionCostPatching.enabled -}}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "ditto.fullname" . }}-pre-update
+  labels:
+{{ include "ditto.labels" . | indent 4 }}
+  annotations:
+    # This is what defines this resource as a hook. Without this line, the
+    # job is considered part of the release.
+    helm.sh/hook: pre-upgrade
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      name: {{ include "ditto.fullname" . }}-pre-upgrade
+      labels:
+        app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+        app.kubernetes.io/instance: {{ .Release.Name | quote }}
+        helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    spec:
+      {{- if .Values.rbac.enabled }}
+      serviceAccountName: {{ template "ditto.serviceAccountName" . }}
+      {{- end }}
+      restartPolicy: Never
+      containers:
+        - name: {{ .Chart.Name }}-pod-deletion-cost-pre-upgrade-hook
+          image: "public.ecr.aws/h0h9t7p1/alpine-bash-curl-jq:latest"
+          command:
+            - /bin/sh
+            - -c
+            - |
+              cd /opt/ditto-scripts
+              ./patch-pods-deletion-cost.sh
+          volumeMounts:
+            - name: hook-scripts
+              mountPath: "/opt/ditto-scripts"
+      volumes:
+        - name: hook-scripts
+          configMap:
+            name: {{ include "ditto.fullname" . }}-hook-scripts
+            defaultMode: 0555
+{{- end }}

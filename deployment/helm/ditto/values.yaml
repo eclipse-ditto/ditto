@@ -166,6 +166,11 @@ global:
     adaptiveSampler:
       # throughput the throughput goal trying to achieve with the adaptive sampler
       throughput: 600
+  # podDeletionCostPatching hold configuration for whether to patch "oldest" members of the Ditto cluster with higher
+  #  k8s pod-deletion-cost annotations so that they are downed last when e.g. doing an upgrade
+  podDeletionCostPatching:
+    # enabled whether the pod-deletion-cost annotation patching should be enabled
+    enabled: true
 
 ## ----------------------------------------------------------------------------
 ## dbconfig for mongodb connections

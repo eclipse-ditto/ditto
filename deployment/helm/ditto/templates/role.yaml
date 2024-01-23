@@ -18,7 +18,13 @@ metadata:
     app.kubernetes.io/name: {{ include "ditto.name" . }}
 {{ include "ditto.labels" . | indent 4 }}
 rules:
-- apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["get", "watch", "list"]
+- apiGroups:
+    - "" # "" indicates the core API group
+  resources:
+    - "pods"
+  verbs:
+    - "get"
+    - "watch"
+    - "list"
+    - "patch" # we require "patch" to annotate the pods with pod-deletion-cost
 {{- end -}}
