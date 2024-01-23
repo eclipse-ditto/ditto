@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.junit.Test;
@@ -110,6 +111,30 @@ public final class DittoDurationTest {
         final DittoDuration dittoDuration = DittoDuration.parseDuration(durationValue + "d");
 
         assertThat(dittoDuration.getDuration()).isEqualTo(Duration.ofDays(durationValue));
+    }
+
+    @Test
+    public void createDittoDurationFromStringWeeks() {
+        final short durationValue = 5;
+        final DittoDuration dittoDuration = DittoDuration.parseDuration(durationValue + "w");
+
+        assertThat(dittoDuration.getDuration()).isEqualTo(ChronoUnit.WEEKS.getDuration().multipliedBy(durationValue));
+    }
+
+    @Test
+    public void createDittoDurationFromStringMonths() {
+        final short durationValue = 2;
+        final DittoDuration dittoDuration = DittoDuration.parseDuration(durationValue + "mo");
+
+        assertThat(dittoDuration.getDuration()).isEqualTo(ChronoUnit.MONTHS.getDuration().multipliedBy(durationValue));
+    }
+
+    @Test
+    public void createDittoDurationFromStringYears() {
+        final short durationValue = 3;
+        final DittoDuration dittoDuration = DittoDuration.parseDuration(durationValue + "y");
+
+        assertThat(dittoDuration.getDuration()).isEqualTo(ChronoUnit.YEARS.getDuration().multipliedBy(durationValue));
     }
 
     @Test

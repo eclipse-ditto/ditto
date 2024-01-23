@@ -124,7 +124,7 @@ ge(attributes/tags/floor,2)
 ```
 
 
-## Search count queries 
+## Search count queries
 
 The same syntax applies for search count queries - only the [sorting](basic-rql.html#rql-sorting) and 
 [paging](#rql-paging-deprecated) makes no sense here, so there are not necessary to specify. 
