@@ -25,40 +25,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.bson.BsonDocument;
-import org.eclipse.ditto.base.api.common.ShutdownReasonType;
-import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
-import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
-import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
-import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
-import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.policies.api.PolicyTag;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
-import org.eclipse.ditto.things.model.signals.events.ThingEvent;
-import org.eclipse.ditto.thingsearch.api.PolicyReferenceTag;
-import org.eclipse.ditto.thingsearch.api.UpdateReason;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoUpdateThing;
-import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
-import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.BulkWriteResultAckFlow;
-import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.ConsistencyLag;
-
-import com.mongodb.client.model.DeleteOneModel;
-
 import org.apache.pekko.Done;
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.actor.AbstractFSMWithStash;
@@ -77,6 +43,39 @@ import org.apache.pekko.stream.javadsl.Flow;
 import org.apache.pekko.stream.javadsl.Keep;
 import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
+import org.bson.BsonDocument;
+import org.eclipse.ditto.base.api.common.ShutdownReasonType;
+import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
+import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
+import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
+import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
+import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.thingsearch.api.PolicyReferenceTag;
+import org.eclipse.ditto.thingsearch.api.UpdateReason;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoUpdateThing;
+import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
+import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.BulkWriteResultAckFlow;
+import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.ConsistencyLag;
+
+import com.mongodb.client.model.DeleteOneModel;
 
 /**
  * This Actor initiates persistence updates related to 1 thing.
@@ -445,6 +444,8 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                     affectedOldPolicyTag);
         }
 
+        // TODO TJ invalidate cache entry??
+
         final var policyTag = policyReferenceTag.getPolicyTag();
         if (affectedOldPolicyTag == null || affectedOldPolicyTag.getRevision() < policyTag.getRevision()) {
             final PolicyTag thingPolicyTag = Optional.ofNullable(affectedOldPolicyTag)
@@ -462,7 +463,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             final Set<PolicyTag> allReferencedPolicyTags = buildNewAllReferencedPolicyTags(data.metadata()
                     .getAllReferencedPolicyTags(), policyTag);
 
-            final var newMetadata = Metadata.of(thingId, thingRevision, thingPolicyTag, allReferencedPolicyTags, null)
+            final var newMetadata = Metadata.of(thingId, thingRevision, thingPolicyTag, policyTag, allReferencedPolicyTags, null)
                     .withUpdateReason(UpdateReason.POLICY_UPDATE)
                     .invalidateCaches(false, true);
 
@@ -610,6 +611,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         final long thingRevision = event.getRevision();
         if (shouldAcknowledge) {
             return Metadata.of(thingId, thingRevision, data.metadata().getThingPolicyTag().orElse(null),
+                    data.metadata.getCausingPolicyTag().orElse(null),
                     data.metadata().getAllReferencedPolicyTags(), List.of(event), consistencyLagTimer,
                     ackRecipient);
         } else {
@@ -620,6 +622,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     private Metadata exportMetadata(@Nullable final ThingEvent<?> event, final long thingRevision,
             @Nullable final StartedTimer timer, final Data data) {
         return Metadata.of(thingId, thingRevision, data.metadata().getThingPolicyTag().orElse(null),
+                data.metadata().getCausingPolicyTag().orElse(null),
                 data.metadata().getAllReferencedPolicyTags(), event == null ? List.of() : List.of(event), timer, null);
     }
 

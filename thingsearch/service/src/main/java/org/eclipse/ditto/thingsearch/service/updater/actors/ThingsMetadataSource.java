@@ -18,6 +18,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.pattern.Patterns;
+import org.apache.pekko.stream.SourceRef;
+import org.apache.pekko.stream.javadsl.Source;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.models.streaming.LowerBound;
 import org.eclipse.ditto.internal.models.streaming.StreamedSnapshot;
@@ -31,12 +36,6 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
-
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.pattern.Patterns;
-import org.apache.pekko.stream.SourceRef;
-import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Source of metadata streamed from things-service.
@@ -124,7 +123,8 @@ final class ThingsMetadataSource {
             final Instant modified = snapshot.getValue(Thing.JsonFields.MODIFIED).map(Instant::parse).orElse(null);
             // policy revision is not known from thing snapshot
             final Optional<PolicyTag> policyTag = optionalPolicyId.map(policyId -> PolicyTag.of(policyId, 0L));
-            return Optional.of(Metadata.of(thingId, thingRevision, policyTag.orElse(null), Set.of(), modified, null));
+            return Optional.of(
+                    Metadata.of(thingId, thingRevision, policyTag.orElse(null), null, Set.of(), modified, null));
         } catch (PolicyIdInvalidException e) {
             return Optional.empty();
         }

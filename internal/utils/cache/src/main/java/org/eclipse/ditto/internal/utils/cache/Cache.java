@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * A general purpose cache for items which are associated with a key.
@@ -74,6 +75,15 @@ public interface Cache<K, V> {
      * @return {@code true} if the entry was cached and is now invalidated, {@code false} otherwise.
      */
     boolean invalidate(K key);
+
+    /**
+     * Invalidates the passed key from the cache if present. TODO TJ adjust docs
+     *
+     * @param key the key to invalidate.
+     * @param valueCondition
+     * @return {@code true} if the entry was cached and is now invalidated, {@code false} otherwise.
+     */
+    boolean invalidateConditionally(K key, Predicate<V> valueCondition);
 
     /**
      * Associates the {@code value} with the {@code key} in this cache.

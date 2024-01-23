@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
@@ -228,6 +229,25 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
             }
         }
         return currentlyExisting;
+    }
+
+    @Override
+    public boolean invalidateConditionally(final K key, final Predicate<V> valueCondition) {
+        requireNonNull(key);
+
+        V value = synchronousCacheView.getIfPresent(key);
+        if (value != null) {
+            synchronized (value) {
+                value = synchronousCacheView.getIfPresent(key);
+                if (value != null && valueCondition.test(value)) {
+                    return invalidate(key);
+                } else {
+                    return false;
+                }
+            }
+        } else {
+            return false;
+        }
     }
 
     // optimized batch invalidation method for caffeine
