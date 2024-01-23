@@ -96,14 +96,17 @@ public class DittoCachingSignalEnrichmentFacade implements CachingSignalEnrichme
             final long minAcceptableSeqNr) {
 
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
+
+        JsonFieldSelector fieldSelector = determineSelector(thingId.getNamespace());
+
         if (minAcceptableSeqNr < 0) {
             final var cacheKey =
-                    SignalEnrichmentCacheKey.of(thingId, SignalEnrichmentContext.of(dittoHeaders, null));
+                    SignalEnrichmentCacheKey.of(thingId, SignalEnrichmentContext.of(dittoHeaders, fieldSelector));
             extraFieldsCache.invalidate(cacheKey);
             return doCacheLookup(cacheKey, dittoHeaders);
         } else {
             final var cachingParameters =
-                    new CachingParameters(null, events, false, minAcceptableSeqNr);
+                    new CachingParameters(fieldSelector, events, false, minAcceptableSeqNr);
 
             return doRetrievePartialThing(thingId, dittoHeaders, cachingParameters);
         }
@@ -444,6 +447,12 @@ public class DittoCachingSignalEnrichmentFacade implements CachingSignalEnrichme
                 jsonObjectBuilder.set(Thing.JsonFields.MODIFIED, timestamp.toString()));
 
         return applyJsonFieldSelector(jsonObjectBuilder.build(), enhancedFieldSelector);
+    }
+
+    @Nullable
+    protected JsonFieldSelector determineSelector(String namespace) {
+        // By default, we do not return a field selector.
+        return null;
     }
 
     protected static final class CachingParameters {

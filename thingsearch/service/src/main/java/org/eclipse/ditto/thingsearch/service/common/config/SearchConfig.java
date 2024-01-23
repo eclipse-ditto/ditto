@@ -70,7 +70,7 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
      * Returns a map of fields scoped by namespaces that will be explicitly included in the search index.
      *
      * @return the search projection fields.
-     * @since 3.4
+     * @since 3.5.0
      */
     List<NamespaceSearchIndexConfig> getNamespaceSearchIncludeFields();
 

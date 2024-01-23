@@ -63,8 +63,6 @@ public final class DittoSearchConfigTest {
         final var config = ConfigFactory.load("search-test.conf");
         final var underTest = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(config));
 
-        //assertThat(underTest.getSearchIncludeFields().isEmpty()).isTrue();
-
         final var queryPersistenceConfig = underTest.getQueryPersistenceConfig();
         assertThat(queryPersistenceConfig.readConcern()).isEqualTo(ReadConcern.LINEARIZABLE);
         assertThat(queryPersistenceConfig.readPreference()).isEqualTo(ReadPreference.NEAREST);

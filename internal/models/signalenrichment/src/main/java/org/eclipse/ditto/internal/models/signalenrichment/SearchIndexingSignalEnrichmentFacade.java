@@ -20,6 +20,7 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -27,11 +28,15 @@ import java.util.concurrent.Executor;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-public class SearchIndexingSignalEnrichmentFacade extends DittoCachingSignalEnrichmentFacade {
+/**
+ * Extension of {@code DittoCachingSignalEnrichmentFacade} that allows a selected map of selected indexes grouped by
+ * namespace to be added to the signal enrichment cache.
+ */
+public final class SearchIndexingSignalEnrichmentFacade extends DittoCachingSignalEnrichmentFacade {
 
     private final Map<String, JsonFieldSelector> selectedIndexes;
 
-    protected SearchIndexingSignalEnrichmentFacade(
+    private SearchIndexingSignalEnrichmentFacade(
             final Map<String, JsonFieldSelector> selectedIndexes,
             final SignalEnrichmentFacade cacheLoaderFacade,
             final CacheConfig cacheConfig,
@@ -40,7 +45,7 @@ public class SearchIndexingSignalEnrichmentFacade extends DittoCachingSignalEnri
 
         super(cacheLoaderFacade, cacheConfig, cacheLoaderExecutor, cacheNamePrefix);
 
-        this.selectedIndexes = selectedIndexes;
+        this.selectedIndexes = Collections.unmodifiableMap(selectedIndexes);
     }
 
     /**
@@ -69,24 +74,7 @@ public class SearchIndexingSignalEnrichmentFacade extends DittoCachingSignalEnri
     }
 
     @Override
-    public CompletionStage<JsonObject> retrieveThing(final ThingId thingId, final List<ThingEvent<?>> events, final long minAcceptableSeqNr) {
-
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
-
-        // Retrieve any namespace definition from the configuration.  Note that this might return null.
-        JsonFieldSelector selector = selectedIndexes.get(thingId.getNamespace());
-
-        if (minAcceptableSeqNr < 0) {
-
-            final var cacheKey =
-                    SignalEnrichmentCacheKey.of(thingId, SignalEnrichmentContext.of(dittoHeaders, selector));
-            extraFieldsCache.invalidate(cacheKey);
-            return doCacheLookup(cacheKey, dittoHeaders);
-        } else {
-            final var cachingParameters =
-                    new CachingParameters(selector, events, false, minAcceptableSeqNr);
-
-            return doRetrievePartialThing(thingId, dittoHeaders, cachingParameters);
-        }
+    protected JsonFieldSelector determineSelector(String namespace) {
+        return selectedIndexes.get(namespace);
     }
 }

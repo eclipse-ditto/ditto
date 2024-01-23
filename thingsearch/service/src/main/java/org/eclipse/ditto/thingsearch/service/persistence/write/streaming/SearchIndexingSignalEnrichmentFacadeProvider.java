@@ -25,10 +25,7 @@ import com.typesafe.config.Config;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.*;
 import org.eclipse.ditto.things.model.Thing;
 
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
@@ -68,30 +65,19 @@ public final class SearchIndexingSignalEnrichmentFacadeProvider implements Cachi
                 DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
 
         // Build a map of field selectors for the enrichment facade to use to quickly look up by Thing namespace.
-        Map<String, JsonFieldSelector> namespaceToFieldSelector = new HashMap<>();
+        final Map<String, JsonFieldSelector> namespaceToFieldSelector = new HashMap<>();
 
-        for (NamespaceSearchIndexConfig namespaceConfig : searchConfig.getNamespaceSearchIncludeFields()) {
+        for (final NamespaceSearchIndexConfig namespaceConfig : searchConfig.getNamespaceSearchIncludeFields()) {
 
             if (!namespaceConfig.getSearchIncludeFields().isEmpty()) {
 
-                List<String> searchIncludeFields = namespaceConfig.getSearchIncludeFields();
-
                 // Ensure the list has the required fields needed for the search to work.
-                Set<String> set = new HashSet<>(searchIncludeFields);
+                final Set<String> set = new HashSet<>(namespaceConfig.getSearchIncludeFields());
                 set.addAll(REQUIRED_INDEXED_FIELDS.stream().map(JsonFieldDefinition::getPointer).map(JsonPointer::toString).toList());
 
-                searchIncludeFields = new ArrayList<>(set);
+                final List<String> searchIncludeFields = new ArrayList<>(set);
 
-                // Extract the first element
-                CharSequence pointerString = searchIncludeFields.get(0);
-
-                // Prepare the rest of the elements for varargs
-                CharSequence[] furtherPointerStrings = new CharSequence[searchIncludeFields.size() - 1];
-                for (int i = 1; i < searchIncludeFields.size(); i++) {
-                    furtherPointerStrings[i - 1] = searchIncludeFields.get(i);
-                }
-
-                JsonFieldSelector indexedFields = JsonFieldSelector.newInstance(pointerString, furtherPointerStrings);
+                JsonFieldSelector indexedFields = JsonFactory.newFieldSelector(searchIncludeFields, JsonParseOptions.newBuilder().build());
 
                 namespaceToFieldSelector.put(namespaceConfig.getNamespace(), indexedFields);
             }

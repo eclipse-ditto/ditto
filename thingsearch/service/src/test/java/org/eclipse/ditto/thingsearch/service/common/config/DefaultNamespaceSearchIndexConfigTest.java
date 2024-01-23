@@ -82,11 +82,7 @@ public final class DefaultNamespaceSearchIndexConfigTest {
         softly.assertThat(first.getSearchIncludeFields())
                 .as(NamespaceSearchIndexConfig.NamespaceSearchIndexConfigValue.SEARCH_INCLUDE_FIELDS.getConfigPath())
                 .isEqualTo(
-                        List.of(
-                                "attributes",
-                                "features/info"
-                        )
-                );
+                        List.of("attributes", "features/info"));
 
         // Second config
         softly.assertThat(second.getNamespace()).isEqualTo("org.eclipse.test");
@@ -94,10 +90,6 @@ public final class DefaultNamespaceSearchIndexConfigTest {
         softly.assertThat(second.getSearchIncludeFields())
                 .as(NamespaceSearchIndexConfig.NamespaceSearchIndexConfigValue.SEARCH_INCLUDE_FIELDS.getConfigPath())
                 .isEqualTo(
-                        List.of(
-                                "attributes",
-                                "features/info/properties/",
-                                "features/info/other"                        )
-                );
+                        List.of("attributes", "features/info/properties/", "features/info/other"));
     }
 }

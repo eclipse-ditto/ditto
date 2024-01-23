@@ -21,6 +21,7 @@ import java.util.Optional;
 
 /**
  * Provides configuration settings of the namespace-scoped search indexes.
+ * @since 3.5.0
  */
 @Immutable
 public interface NamespaceSearchIndexConfig {
@@ -29,7 +30,6 @@ public interface NamespaceSearchIndexConfig {
      * Returns the namespace definition.
      *
      * @return the namespace definition
-     * @since 3.4
      */
     String getNamespace();
 
@@ -37,7 +37,6 @@ public interface NamespaceSearchIndexConfig {
      * Returns a list of fields that will be explicitly included in the search index.
      *
      * @return the search projection fields.
-     * @since 3.4
      */
     List<String> getSearchIncludeFields();
 

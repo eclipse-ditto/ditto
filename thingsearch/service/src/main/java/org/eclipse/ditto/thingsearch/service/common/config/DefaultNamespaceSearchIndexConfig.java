@@ -31,8 +31,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.*;
  */
 public final class DefaultNamespaceSearchIndexConfig implements NamespaceSearchIndexConfig {
 
-    private static final String CONFIG_PATH = "namespace-search-include-fields";
-
     private final String namespace;
 
     private final List<String> searchIncludeFields;
@@ -57,32 +55,12 @@ public final class DefaultNamespaceSearchIndexConfig implements NamespaceSearchI
     /**
      * Returns an instance of {@code DefaultNamespaceSearchIndexConfig} based on the settings of the specified Config.
      *
-     * @param namespace the namespace config passed in the {@code config}.
      * @param config is supposed to provide the config for the issuer at its current level.
      * @return the instance.
      */
     public static DefaultNamespaceSearchIndexConfig of(final Config config) {
         return new DefaultNamespaceSearchIndexConfig(
                 ConfigWithFallback.newInstance(config, NamespaceSearchIndexConfigValue.values()));
-    }
-
-    /**
-     * Returns a new SubjectIssuerConfig based on the provided strings.
-     *
-     * @param namespace the list of the namespace {@code namespace}.
-     * @param fields list of search index strings.
-     * @return a new DefaultNamespaceSearchIndexConfig.
-     * @throws NullPointerException if {@code namespace} or {@code fields} is {@code null}.
-     * @throws IllegalArgumentException if {@code namespace} or {@code fields} is empty.
-     */
-    public static DefaultNamespaceSearchIndexConfig of(
-            final String namespace,
-            final Collection<String> fields) {
-        checkNotNull(namespace, "namespace");
-        checkNotEmpty(namespace, "namespace");
-        argumentNotEmpty(fields, "fields");
-
-        return new DefaultNamespaceSearchIndexConfig(namespace, fields);
     }
 
     @Override

@@ -29,7 +29,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
  * signal enrichment caching.
  */
 @Immutable
-public final class SignalEnrichmentContext implements CacheLookupContext {
+final class SignalEnrichmentContext implements CacheLookupContext {
 
     private final DittoHeaders dittoHeaders;
     @Nullable private final JsonFieldSelector jsonFieldSelector;
@@ -48,8 +48,8 @@ public final class SignalEnrichmentContext implements CacheLookupContext {
      * @param jsonFieldSelector the JsonFieldSelector to use in the cache lookup context.
      * @return the created context.
      */
-    public static SignalEnrichmentContext of(final DittoHeaders dittoHeaders,
-                                             @Nullable final JsonFieldSelector jsonFieldSelector) {
+    static SignalEnrichmentContext of(final DittoHeaders dittoHeaders,
+            @Nullable final JsonFieldSelector jsonFieldSelector) {
 
         return new SignalEnrichmentContext(dittoHeaders, jsonFieldSelector);
     }

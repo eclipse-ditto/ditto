@@ -324,6 +324,41 @@ entities (things/policies) and no-one other:
 
 These system properties would have to be configured for the "things" and "policies" services.
 
+## Limiting Indexed Fields
+
+The default behavior of Ditto is to index the complete JSON of a thing, which includes all its attributes and features.  This may not be desired behavior for certain use cases:
+* Increased load on the search database, leading to performance degradation and increased database cost.
+* Only a few fields are ever used for searching.
+
+In Ditto *3.5.0*, there is now configuration to specify, by namespace, which fields will be included in the search database.
+
+To enable this functionality, there are two new options in the `thing-search.conf` configuration:
+
+```
+ditto {
+  ...
+  caching-signal-enrichment-facade-provider = org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchIndexingSignalEnrichmentFacadeProvider
+  ...
+  search {
+    namespace-search-include-fields = [
+      {
+        namespace = "org.eclipse",
+        search-include-fields = [ "attributes", "features/info" ]
+      },
+      {
+        namespace = "org.eclipse.test",
+        search-include-fields = [ "attributes", "features/info/properties/", "features/info/other" ]
+      }
+    ]
+  }
+```
+
+There is a new implementation of the caching signal enrichment facade provider that must be configured to enable this functionality.
+
+For each namespace, only the selected fields are included in the search database.  In the example above, for things in the "org.eclipse" namespace, only the "attributes" and "features/info" paths will be the only fields indexed in the search database.  For things in the "org.eclipse.test" namespace, the fields indexed in the search database will only be "attributes", "features/info/properties", and "features/info/other".  
+
+NOTE: Ditto will automatically add the system-level fields it needs to operate, so no manual configuration of these is necessary.
+
 ## Logging
 
 Gathering logs for a running Ditto installation can be achieved by:
