@@ -17,15 +17,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.regex.Pattern;
 
-import org.eclipse.ditto.base.model.common.LikeHelper;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 
 import com.typesafe.config.Config;
-
-import static org.eclipse.ditto.base.model.common.ConditionChecker.*;
 
 /**
  * This class is the default implementation of the NamespaceSearchIndex config.
@@ -33,13 +28,13 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.*;
  */
 public final class DefaultNamespaceSearchIndexConfig implements NamespaceSearchIndexConfig {
 
-    private final String namespace;
+    private final String namespacePattern;
 
     private final List<String> searchIncludeFields;
 
     private DefaultNamespaceSearchIndexConfig(final ConfigWithFallback configWithFallback) {
 
-        this.namespace = configWithFallback.getString(NamespaceSearchIndexConfigValue.NAMESPACE.getConfigPath());
+        this.namespacePattern = configWithFallback.getString(NamespaceSearchIndexConfigValue.NAMESPACE_PATTERN.getConfigPath());
 
         final List<String> fields = configWithFallback.getStringList(NamespaceSearchIndexConfigValue.SEARCH_INCLUDE_FIELDS.getConfigPath());
         if (!fields.isEmpty()) {
@@ -49,8 +44,8 @@ public final class DefaultNamespaceSearchIndexConfig implements NamespaceSearchI
         }
     }
 
-    private DefaultNamespaceSearchIndexConfig(final String namespace, final Collection<String> fields) {
-        this.namespace = namespace;
+    private DefaultNamespaceSearchIndexConfig(final String namespacePattern, final Collection<String> fields) {
+        this.namespacePattern = namespacePattern;
         this.searchIncludeFields = Collections.unmodifiableList(new ArrayList<>(fields));
     }
 
@@ -66,8 +61,8 @@ public final class DefaultNamespaceSearchIndexConfig implements NamespaceSearchI
     }
 
     @Override
-    public String getNamespace() {
-        return namespace;
+    public String getNamespacePattern() {
+        return namespacePattern;
     }
 
     @Override
@@ -84,18 +79,18 @@ public final class DefaultNamespaceSearchIndexConfig implements NamespaceSearchI
             return false;
         }
         final DefaultNamespaceSearchIndexConfig that = (DefaultNamespaceSearchIndexConfig) o;
-        return Objects.equals(namespace, that.namespace) && searchIncludeFields.equals(that.searchIncludeFields);
+        return Objects.equals(namespacePattern, that.namespacePattern) && searchIncludeFields.equals(that.searchIncludeFields);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(namespace, searchIncludeFields);
+        return Objects.hash(namespacePattern, searchIncludeFields);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "namespace=" + namespace +
+                "namespace=" + namespacePattern +
                 ", searchIncludeFields=" + searchIncludeFields +
                 "]";
     }

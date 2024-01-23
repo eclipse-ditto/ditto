@@ -16,7 +16,6 @@ import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 import javax.annotation.concurrent.Immutable;
 import java.util.List;
-import java.util.regex.Pattern;
 
 /**
  * Provides configuration settings of the namespace-scoped search indexes.
@@ -26,11 +25,11 @@ import java.util.regex.Pattern;
 public interface NamespaceSearchIndexConfig {
 
     /**
-     * Returns the namespace definition.
+     * Returns the namespace pattern definition.
      *
-     * @return the namespace definition
+     * @return the namespace pattern definition
      */
-    String getNamespace();
+    String getNamespacePattern();
 
     /**
      * Returns a list of fields that will be explicitly included in the search index.
@@ -44,7 +43,7 @@ public interface NamespaceSearchIndexConfig {
         /**
          * The namespace value to apply the search indexed fields.
          */
-        NAMESPACE("namespace", ""),
+        NAMESPACE_PATTERN("namespace-pattern", ""),
 
         /**
          * The list of fields that will be included in the search DB.

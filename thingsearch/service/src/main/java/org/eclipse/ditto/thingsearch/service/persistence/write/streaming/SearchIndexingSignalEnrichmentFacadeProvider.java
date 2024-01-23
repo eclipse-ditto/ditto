@@ -84,7 +84,7 @@ public final class SearchIndexingSignalEnrichmentFacadeProvider implements Cachi
 
                 // Build a Pattern from the namespace value.
                 final Pattern namespacePattern = Pattern.compile(
-                        Objects.requireNonNull(LikeHelper.convertToRegexSyntax(namespaceConfig.getNamespace())));
+                        Objects.requireNonNull(LikeHelper.convertToRegexSyntax(namespaceConfig.getNamespacePattern())));
 
                 namespaceAndFieldSelector.add(Pair.create(namespacePattern, indexedFields));
             }
