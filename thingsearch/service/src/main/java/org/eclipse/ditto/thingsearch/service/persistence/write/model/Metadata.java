@@ -95,7 +95,8 @@ public final class Metadata {
      * @param thingId the Thing ID.
      * @param thingRevision the Thing revision.
      * @param thingPolicy the policy directly referenced by the thing.
-     * @param causingPolicyTag TODO TJ doc
+     * @param causingPolicyTag defines the policy which "caused" the update - this might e.g. be an "imported" policy
+     * when it differs to the provided {@code thingPolicy}.
      * @param allReferencedPolicies the policy directly and indirectly (via policy import) referenced by the thing.
      * @param timer an optional timer measuring the search updater's consistency lag.
      * @return the new Metadata object.
@@ -118,7 +119,8 @@ public final class Metadata {
      * @param thingId the Thing ID.
      * @param thingRevision the Thing revision.
      * @param thingPolicy the policy directly referenced by the thing.
-     * @param causingPolicyTag TODO TJ doc
+     * @param causingPolicyTag defines the policy which "caused" the update - this might e.g. be an "imported" policy
+     * when it differs to the provided {@code thingPolicy}.
      * @param allReferencedPolicies the policy directly and indirectly (via policy import) referenced by the thing.
      * @param timer an optional timer measuring the search updater's consistency lag.
      * @param ackRecipient the ackRecipient.
@@ -144,6 +146,8 @@ public final class Metadata {
      * @param thingId the Thing ID.
      * @param thingRevision the Thing revision.
      * @param thingPolicy the policy directly referenced by the thing.
+     * @param causingPolicyTag defines the policy which "caused" the update - this might e.g. be an "imported" policy
+     * when it differs to the provided {@code thingPolicy}.
      * @param allReferencedPolicies the policy directly and indirectly (via policy import) referenced by the thing.
      * @param modified the timestamp of the last change incorporated into the search index, or null if not known.
      * @param events the events included in the metadata causing the search update.
@@ -155,6 +159,7 @@ public final class Metadata {
     public static Metadata of(final ThingId thingId,
             final long thingRevision,
             @Nullable final PolicyTag thingPolicy,
+            @Nullable final PolicyTag causingPolicyTag,
             final Collection<PolicyTag> allReferencedPolicies,
             @Nullable final Instant modified,
             final List<ThingEvent<?>> events,
@@ -162,7 +167,7 @@ public final class Metadata {
             final Collection<ActorSelection> ackRecipient,
             final Collection<UpdateReason> updateReasons) {
 
-        return new Metadata(thingId, thingRevision, thingPolicy, null/*TODO TJ */, allReferencedPolicies, modified, events, timers,
+        return new Metadata(thingId, thingRevision, thingPolicy, causingPolicyTag, allReferencedPolicies, modified, events, timers,
                 ackRecipient, false, false, updateReasons);
     }
 
@@ -172,7 +177,8 @@ public final class Metadata {
      * @param thingId the Thing ID.
      * @param thingRevision the Thing revision.
      * @param thingPolicy the policy directly referenced by the thing.
-     * @param causingPolicyTag TODO TJ
+     * @param causingPolicyTag defines the policy which "caused" the update - this might e.g. be an "imported" policy
+     * when it differs to the provided {@code thingPolicy}.
      * @param allReferencedPolicies the policy directly and indirectly (via policy import) referenced by the thing.
      * @param modified the timestamp of the last change incorporated into the search index, or null if not known.
      * @param timer an optional timer measuring the search updater's consistency lag.
@@ -285,8 +291,8 @@ public final class Metadata {
     }
 
     /**
-     * TODO TJ doc
-     * @return
+     * @return the policy which "caused" the update - this might e.g. be an "imported" policy
+     * when it differs to the provided {@code getThingPolicyTag()}.
      */
     public Optional<PolicyTag> getCausingPolicyTag() {
         return Optional.ofNullable(causingPolicyTag);

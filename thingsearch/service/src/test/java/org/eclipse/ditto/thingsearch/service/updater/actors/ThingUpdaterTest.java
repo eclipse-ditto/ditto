@@ -461,7 +461,7 @@ public final class ThingUpdaterTest {
             inletProbe.request(16);
             final var data = inletProbe.expectNext();
             assertThat(data.metadata().export()).isEqualTo(
-                    Metadata.of(THING_ID, REVISION, null, null, Set.of(PolicyTag.of(policyId, 1L)), null));
+                    Metadata.of(THING_ID, REVISION, null, policyTag.getPolicyTag(), Set.of(PolicyTag.of(policyId, 1L)), null));
             assertThat(data.metadata().getUpdateReasons()).contains(UpdateReason.POLICY_UPDATE);
             assertThat(data.metadata().getTimers()).isEmpty();
         }};

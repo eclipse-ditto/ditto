@@ -77,10 +77,11 @@ public interface Cache<K, V> {
     boolean invalidate(K key);
 
     /**
-     * Invalidates the passed key from the cache if present. TODO TJ adjust docs
+     * Invalidates the passed key from the cache if present and the passed {@code valueCondition} evaluates to
+     * {@code true}.
      *
      * @param key the key to invalidate.
-     * @param valueCondition
+     * @param valueCondition the condition which has to pass in order to invalidate the key from the cache.
      * @return {@code true} if the entry was cached and is now invalidated, {@code false} otherwise.
      */
     boolean invalidateConditionally(K key, Predicate<V> valueCondition);

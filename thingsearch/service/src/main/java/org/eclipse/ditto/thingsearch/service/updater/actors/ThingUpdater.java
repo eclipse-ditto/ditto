@@ -444,8 +444,6 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                     affectedOldPolicyTag);
         }
 
-        // TODO TJ invalidate cache entry??
-
         final var policyTag = policyReferenceTag.getPolicyTag();
         if (affectedOldPolicyTag == null || affectedOldPolicyTag.getRevision() < policyTag.getRevision()) {
             final PolicyTag thingPolicyTag = Optional.ofNullable(affectedOldPolicyTag)

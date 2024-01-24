@@ -22,6 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
@@ -339,13 +340,15 @@ final class EnforcementFlow {
 
                                     // only invalidate causing policy tag once, e.g. when a massively imported policy is changed:
                                     metadata.getCausingPolicyTag()
+                                            .filter(Predicate.not(tag -> policyId.equals(tag.getEntityId())))
                                             .ifPresent(causingPolicyTag -> {
                                                 final boolean invalidated = policyEnforcerCache.invalidateConditionally(
                                                         causingPolicyTag.getEntityId(),
                                                         entry -> entry.exists() &&
                                                                 entry.getRevision() < causingPolicyTag.getRevision()
                                                 );
-                                                log.debug("Causing policy tag was invalidated conditionally: <{}>", invalidated);
+                                                log.debug("Causing policy tag was invalidated conditionally: <{}>",
+                                                        invalidated);
                                             });
 
                                     return readCachedEnforcer(metadata, policyId, iteration + 1)

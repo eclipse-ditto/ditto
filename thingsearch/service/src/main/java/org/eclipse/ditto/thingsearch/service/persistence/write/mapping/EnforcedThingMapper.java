@@ -99,7 +99,7 @@ public final class EnforcedThingMapper {
                 .orElse(null);
 
         final var metadata =
-                Metadata.of(thingId, thingRevision, thingPolicyTag, allReferencedPolicies,
+                Metadata.of(thingId, thingRevision, thingPolicyTag, null, allReferencedPolicies,
                         Optional.ofNullable(oldMetadata).flatMap(Metadata::getModified).orElse(null),
                         Optional.ofNullable(oldMetadata).map(Metadata::getEvents).orElse(List.of()),
                         Optional.ofNullable(oldMetadata).map(Metadata::getTimers).orElse(List.of()),
