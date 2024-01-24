@@ -19,6 +19,8 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
+import org.apache.pekko.pattern.AskTimeoutException;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.entity.metadata.MetadataModelFactory;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.DittoTestSystem;
@@ -33,9 +35,6 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingRespon
 import org.eclipse.ditto.things.model.signals.events.AttributeModified;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.junit.Test;
-
-import org.apache.pekko.pattern.AskTimeoutException;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Abstract base test for different {@link SignalEnrichmentFacade} implementations.
@@ -197,4 +196,5 @@ abstract class AbstractSignalEnrichmentFacadeTest {
     }
 
     protected abstract SignalEnrichmentFacade createSignalEnrichmentFacadeUnderTest(TestKit kit, Duration duration);
+
 }

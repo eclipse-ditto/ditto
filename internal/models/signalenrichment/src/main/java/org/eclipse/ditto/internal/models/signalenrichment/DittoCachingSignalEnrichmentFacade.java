@@ -28,11 +28,11 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithResource;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -97,7 +97,7 @@ public class DittoCachingSignalEnrichmentFacade implements CachingSignalEnrichme
 
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
 
-        JsonFieldSelector fieldSelector = determineSelector(thingId.getNamespace());
+        final JsonFieldSelector fieldSelector = determineSelector(thingId.getNamespace());
 
         if (minAcceptableSeqNr < 0) {
             final var cacheKey =
@@ -450,7 +450,7 @@ public class DittoCachingSignalEnrichmentFacade implements CachingSignalEnrichme
     }
 
     @Nullable
-    protected JsonFieldSelector determineSelector(String namespace) {
+    protected JsonFieldSelector determineSelector(final String namespace) {
         // By default, we do not return a field selector.
         return null;
     }

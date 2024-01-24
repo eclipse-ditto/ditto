@@ -12,25 +12,17 @@
  */
 package org.eclipse.ditto.internal.models.signalenrichment;
 
-import org.apache.pekko.japi.Pair;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.regex.Pattern;
 
-import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+import org.apache.pekko.japi.Pair;
+import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.json.JsonFieldSelector;
 
 /**
  * Extension of {@code DittoCachingSignalEnrichmentFacade} that allows a selected map of selected indexes grouped by
@@ -39,6 +31,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 public final class SearchIndexingSignalEnrichmentFacade extends DittoCachingSignalEnrichmentFacade {
 
     private final List<Pair<Pattern, JsonFieldSelector>> selectedIndexes;
+    private final Map<String, JsonFieldSelector> selectedIndexesCache;
 
     private SearchIndexingSignalEnrichmentFacade(
             final List<Pair<Pattern, JsonFieldSelector>> selectedIndexes,
@@ -49,7 +42,8 @@ public final class SearchIndexingSignalEnrichmentFacade extends DittoCachingSign
 
         super(cacheLoaderFacade, cacheConfig, cacheLoaderExecutor, cacheNamePrefix);
 
-        this.selectedIndexes = Collections.unmodifiableList(selectedIndexes);
+        this.selectedIndexes = List.copyOf(selectedIndexes);
+        selectedIndexesCache = new HashMap<>();
     }
 
     /**
@@ -78,16 +72,15 @@ public final class SearchIndexingSignalEnrichmentFacade extends DittoCachingSign
     }
 
     @Override
-    protected JsonFieldSelector determineSelector(String namespace) {
+    protected JsonFieldSelector determineSelector(final String namespace) {
 
-        // We iterate through the list and return the first JsonFieldSelector that matches the namespace pattern.
-        for (final Pair<Pattern, JsonFieldSelector> pair : selectedIndexes) {
-
-            if (pair.first().matcher(namespace).matches()) {
-                return pair.second();
-            }
+        if (!selectedIndexesCache.containsKey(namespace)) {
+            // We iterate through the list and return the first JsonFieldSelector that matches the namespace pattern.
+            selectedIndexes.stream()
+                    .filter(pair -> pair.first().matcher(namespace).matches())
+                    .findFirst()
+                    .ifPresent(pair -> selectedIndexesCache.put(namespace, pair.second()));
         }
-
-        return super.determineSelector(namespace);
+        return selectedIndexesCache.get(namespace);
     }
 }

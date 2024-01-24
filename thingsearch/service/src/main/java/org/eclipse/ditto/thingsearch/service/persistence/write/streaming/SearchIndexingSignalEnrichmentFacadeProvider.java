@@ -10,37 +10,42 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.regex.Pattern;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.japi.Pair;
 import org.eclipse.ditto.base.model.common.LikeHelper;
 import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacade;
 import org.eclipse.ditto.internal.models.signalenrichment.SearchIndexingSignalEnrichmentFacade;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
-
-import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.json.*;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonParseOptions;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.Thing;
-
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.NamespaceSearchIndexConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
+
+import com.typesafe.config.Config;
 
 /**
  * Default {@link SearchIndexingSignalEnrichmentFacadeProvider} who provides a {@link org.eclipse.ditto.internal.models.signalenrichment.SearchIndexingSignalEnrichmentFacade}.
  */
 public final class SearchIndexingSignalEnrichmentFacadeProvider implements CachingSignalEnrichmentFacadeProvider {
 
-    private static final Set<JsonFieldDefinition> REQUIRED_INDEXED_FIELDS = Set.of(
+    private static final Set<JsonFieldDefinition<?>> REQUIRED_INDEXED_FIELDS = Set.of(
             Thing.JsonFields.ID,
             Thing.JsonFields.POLICY_ID,
             Thing.JsonFields.NAMESPACE,
@@ -48,6 +53,7 @@ public final class SearchIndexingSignalEnrichmentFacadeProvider implements Cachi
 
     /**
      * Instantiate this provider. Called by reflection.
+     *
      * @param actorSystem the actor system in which to load the extension.
      * @param config the configuration for this extension.
      */
@@ -75,12 +81,17 @@ public final class SearchIndexingSignalEnrichmentFacadeProvider implements Cachi
             if (!namespaceConfig.getSearchIncludeFields().isEmpty()) {
 
                 // Ensure the constructed JsonFieldSelector has the required fields needed for the search to work.
-                final Set<String> set = new HashSet<>(namespaceConfig.getSearchIncludeFields());
-                set.addAll(REQUIRED_INDEXED_FIELDS.stream().map(JsonFieldDefinition::getPointer).map(JsonPointer::toString).toList());
+                final Set<String> set = new LinkedHashSet<>();
+                set.addAll(REQUIRED_INDEXED_FIELDS.stream()
+                        .map(JsonFieldDefinition::getPointer)
+                        .map(JsonPointer::toString)
+                        .toList());
+                set.addAll(namespaceConfig.getSearchIncludeFields());
 
                 final List<String> searchIncludeFields = new ArrayList<>(set);
 
-                JsonFieldSelector indexedFields = JsonFactory.newFieldSelector(searchIncludeFields, JsonParseOptions.newBuilder().build());
+                final JsonFieldSelector indexedFields =
+                        JsonFactory.newFieldSelector(searchIncludeFields, JsonParseOptions.newBuilder().build());
 
                 // Build a Pattern from the namespace value.
                 final Pattern namespacePattern = Pattern.compile(

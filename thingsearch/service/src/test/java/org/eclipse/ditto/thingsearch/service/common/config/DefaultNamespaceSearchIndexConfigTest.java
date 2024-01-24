@@ -13,20 +13,22 @@
 
 package org.eclipse.ditto.thingsearch.service.common.config;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import nl.jqno.equalsverifier.EqualsVerifier;
+import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
+import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
+import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
+
+import java.util.List;
+
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.junit.Rule;
 import org.junit.Test;
 
-import java.util.List;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
+import nl.jqno.equalsverifier.EqualsVerifier;
 
 public final class DefaultNamespaceSearchIndexConfigTest {
 
@@ -77,19 +79,19 @@ public final class DefaultNamespaceSearchIndexConfigTest {
         NamespaceSearchIndexConfig second = underTest.getNamespaceSearchIncludeFields().get(1);
 
         // First config
-        softly.assertThat(first.getNamespacePattern()).isEqualTo("org.eclipse");
+        softly.assertThat(first.getNamespacePattern()).isEqualTo("org.eclipse.test");
 
         softly.assertThat(first.getSearchIncludeFields())
                 .as(NamespaceSearchIndexConfig.NamespaceSearchIndexConfigValue.SEARCH_INCLUDE_FIELDS.getConfigPath())
                 .isEqualTo(
-                        List.of("attributes", "features/info"));
+                        List.of("attributes", "features/info/properties", "features/info/other"));
 
         // Second config
-        softly.assertThat(second.getNamespacePattern()).isEqualTo("org.eclipse.test");
+        softly.assertThat(second.getNamespacePattern()).isEqualTo("org.eclipse*");
 
         softly.assertThat(second.getSearchIncludeFields())
                 .as(NamespaceSearchIndexConfig.NamespaceSearchIndexConfigValue.SEARCH_INCLUDE_FIELDS.getConfigPath())
                 .isEqualTo(
-                        List.of("attributes", "features/info/properties/", "features/info/other"));
+                        List.of("attributes", "features/info"));
     }
 }
