@@ -324,6 +324,69 @@ entities (things/policies) and no-one other:
 
 These system properties would have to be configured for the "things" and "policies" services.
 
+## Limiting Indexed Fields
+
+The default behavior of Ditto is to index the complete JSON of a thing, which includes all its attributes and features.  This may not be desired behavior for certain use cases:
+* Increased load on the search database, leading to performance degradation and increased database cost.
+* Only a few fields are ever used for searching.
+
+Since Ditto *3.5.0*, there is a configuration to specify, by a namespace pattern, which fields will be included in the search database.
+
+To enable this functionality, there are two new options in the `thing-search.conf` configuration:
+
+```hocon
+ditto {
+  //...
+  caching-signal-enrichment-facade-provider = org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchIndexingSignalEnrichmentFacadeProvider
+  //...
+  search {
+    namespace-indexed-fields = [
+      {
+        namespace-pattern = "org.eclipse.test"
+        indexed-fields = [
+           "attributes",
+           "features/info/properties",
+           "features/info/other"
+        ]
+      },
+      {
+        namespace-pattern = "org.eclipse*"
+        indexed-fields = [
+           "attributes",
+           "features/info"
+        ]
+      }
+    ]
+  }
+```
+
+There is a new implementation of the caching signal enrichment facade provider that must be configured to enable this
+functionality.
+
+For each namespace pattern, only the selected fields are included in the search database. In the example above, for 
+things in the "org.eclipse.test" namespace, the fields indexed in the search database will
+only be "attributes", "features/info/properties", and "features/info/other".  
+Things matching the "org.eclipse*" namespace, only the "attributes" and "features/info" paths will be the only fields 
+indexed in the search database.
+
+Important notes: 
+* Ditto will use the namespace of the thing and match the FIRST namespace-pattern it encounters. So make sure any
+  configured namespace-patterns are unique enough to match.
+* Ditto will automatically add the system-level fields it needs to operate, so no manual configuration of these is
+  necessary.
+
+Example for configuring the same configuration via system properties for the `things-search` service:
+
+```shell
+-Dditto.search.namespace-indexed-fields.0.namespace-pattern=org.eclipse.test
+-Dditto.search.namespace-indexed-fields.0.indexed-fields.0=attributes
+-Dditto.search.namespace-indexed-fields.0.indexed-fields.1=features/info/properties
+-Dditto.search.namespace-indexed-fields.0.indexed-fields.2=features/info/other
+-Dditto.search.namespace-indexed-fields.1.namespace-pattern=org.eclipse*
+-Dditto.search.namespace-indexed-fields.1.indexed-fields.0=attributes
+-Dditto.search.namespace-indexed-fields.1.indexed-fields.1=features/info
+```
+
 ## Logging
 
 Gathering logs for a running Ditto installation can be achieved by:

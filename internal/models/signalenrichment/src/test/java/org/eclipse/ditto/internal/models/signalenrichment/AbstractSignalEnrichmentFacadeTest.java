@@ -19,6 +19,8 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
+import org.apache.pekko.pattern.AskTimeoutException;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.entity.metadata.MetadataModelFactory;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.DittoTestSystem;
@@ -34,9 +36,6 @@ import org.eclipse.ditto.things.model.signals.events.AttributeModified;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.junit.Test;
 
-import org.apache.pekko.pattern.AskTimeoutException;
-import org.apache.pekko.testkit.javadsl.TestKit;
-
 /**
  * Abstract base test for different {@link SignalEnrichmentFacade} implementations.
  */
@@ -46,7 +45,7 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             JsonFieldSelector.newInstance("policyId", "attributes/x", "features/y/properties/z", "_metadata");
 
     protected static final String RESULT_POLICY_ID = "policy:id";
-    protected static final AttributeModified THING_EVENT = AttributeModified.of(ThingId.generateRandom(),
+    private static final AttributeModified THING_EVENT = AttributeModified.of(ThingId.generateRandom(),
             JsonPointer.of("x"),
             JsonValue.of(5),
             3L,
@@ -65,11 +64,11 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             final ThingId thingId = ThingId.of("test:thing-id");
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
             final CompletionStage<JsonObject> askResult =
-                    underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
+                    underTest.retrievePartialThing(thingId, getJsonFieldSelector(), headers, THING_EVENT);
 
             // WHEN: Command handler receives expected RetrieveThing and responds with RetrieveThingResponse
             final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
-            assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
+            assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(getJsonFieldSelector()));
             kit.reply(RetrieveThingResponse.of(thingId, getThingResponseThingJson(), headers));
 
             // THEN: The result future completes with the entity of the RetrieveThingResponse
@@ -94,6 +93,14 @@ abstract class AbstractSignalEnrichmentFacadeTest {
         return getThingResponseThingJson();
     }
 
+    protected JsonFieldSelector getJsonFieldSelector() {
+        return SELECTOR;
+    }
+
+    protected AttributeModified getThingEvent() {
+        return THING_EVENT;
+    }
+
     @Test
     public void thingNotAccessible() {
         DittoTestSystem.run(this, kit -> {
@@ -103,11 +110,11 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             final ThingId thingId = ThingId.generateRandom();
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
             final CompletionStage<JsonObject> askResult =
-                    underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
+                    underTest.retrievePartialThing(thingId, getJsonFieldSelector(), headers, THING_EVENT);
 
             // WHEN: Command handler receives expected RetrieveThing and responds with ThingNotAccessibleException
             final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
-            assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
+            assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(getJsonFieldSelector()));
             final ThingNotAccessibleException thingNotAccessibleException =
                     ThingNotAccessibleException.newBuilder(thingId).dittoHeaders(headers).build();
             kit.reply(thingNotAccessibleException);
@@ -127,11 +134,11 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             final ThingId thingId = ThingId.generateRandom();
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
             final CompletionStage<JsonObject> askResult =
-                    underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
+                    underTest.retrievePartialThing(thingId, getJsonFieldSelector(), headers, THING_EVENT);
 
             // WHEN: Command handler receives expected RetrieveThing and responds with a random object
             final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
-            assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
+            assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(getJsonFieldSelector()));
             final Object randomObject = new Object();
             kit.reply(randomObject);
 
@@ -152,11 +159,11 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             final ThingId thingId = ThingId.generateRandom();
             final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
             final CompletionStage<JsonObject> askResult =
-                    underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
+                    underTest.retrievePartialThing(thingId, getJsonFieldSelector(), headers, THING_EVENT);
 
             // WHEN: Command handler does not respond
             final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
-            assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
+            assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(getJsonFieldSelector()));
 
             // THEN: The result future fails with an AskTimeoutException.
             askResult.toCompletableFuture().exceptionally(e -> null).join();
@@ -177,9 +184,9 @@ abstract class AbstractSignalEnrichmentFacadeTest {
 
             // WHEN: ThingDeleted event is about to be enriched by facade
             final CompletionStage<JsonObject> askResult =
-                    underTest.retrievePartialThing(thingId, SELECTOR, headers, thingDeleted);
+                    underTest.retrievePartialThing(thingId, getJsonFieldSelector(), headers, thingDeleted);
             final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
-            assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
+            assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(getJsonFieldSelector()));
             kit.reply(RetrieveThingResponse.of(thingId, getThingResponseThingJson(), headers));
 
             // THEN: The result future completes with the entity of the RetrieveThingResponse
@@ -189,4 +196,5 @@ abstract class AbstractSignalEnrichmentFacadeTest {
     }
 
     protected abstract SignalEnrichmentFacade createSignalEnrichmentFacadeUnderTest(TestKit kit, Duration duration);
+
 }
