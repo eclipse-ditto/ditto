@@ -1,0 +1,175 @@
+<?xml version="1.0"?>
+<svg width="570" height="266" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" preserveAspectRatio="none" version="1.1">
+
+ <g class="layer">
+  <title>Layer 1</title>
+  <g id="svg_2">
+   <rect fill="#FFFFFF" height="51.22" id="_legend" rx="7.5" ry="7.5" stroke="#FFFFFF" stroke-width="1" width="116" x="39" y="202"/>
+   <rect fill="#FFFFFF" height="17.61" id="svg_3" stroke-width="1" width="104" x="45" y="210"/>
+   <text fill="#000000" font-family="sans-serif" font-size="14" id="svg_4" lengthAdjust="spacing" textLength="12" x="45" y="224.53">...</text>
+   <text fill="#000000" font-family="sans-serif" font-size="14" id="svg_5" lengthAdjust="spacing" textLength="32" x="84" y="224.53">Push</text>
+   <text fill="#000000" font-family="sans-serif" font-size="14" id="svg_6" lengthAdjust="spacing" textLength="15" x="45" y="242.14">---</text>
+   <text fill="#000000" font-family="sans-serif" font-size="14" id="svg_7" lengthAdjust="spacing" textLength="65" x="84" y="242.14">Delegated</text>
+   <line id="svg_8" stroke="#FFFFFF" stroke-width="1" x1="45" x2="149" y1="210" y2="210"/>
+   <line id="svg_9" stroke="#FFFFFF" stroke-width="1" x1="45" x2="149" y1="227.61" y2="227.61"/>
+   <line id="svg_10" stroke="#FFFFFF" stroke-width="1" x1="14" x2="118" y1="51.22" y2="51.22"/>
+   <line id="svg_11" stroke="#FFFFFF" stroke-width="1" x1="14" x2="14" y1="16" y2="51.22"/>
+   <line id="svg_12" stroke="#FFFFFF" stroke-width="1" x1="80" x2="80" y1="210" y2="245.22"/>
+   <line id="svg_13" stroke="#FFFFFF" stroke-width="1" x1="149" x2="149" y1="210" y2="245.22"/>
+   <!--MD5=[a6e63e5080b6098cbc36e97e7cf20a2e]
+entity consumer-->
+   <g id="elem_consumer">
+    <rect fill="#F1F1F1" height="62.7" id="svg_14" rx="2.5" ry="2.5" stroke="#181818" stroke-width="0.5" width="134" x="7" y="75.22"/>
+    <rect fill="#F1F1F1" height="10" id="svg_15" stroke="#181818" stroke-width="0.5" width="15" x="121" y="80.22"/>
+    <rect fill="#F1F1F1" height="2" id="svg_16" stroke="#181818" stroke-width="0.5" width="4" x="119" y="82.22"/>
+    <rect fill="#F1F1F1" height="2" id="svg_17" stroke="#181818" stroke-width="0.5" width="4" x="119" y="86.22"/>
+    <text fill="#000000" font-family="sans-serif" font-size="13" id="svg_18" lengthAdjust="spacing" textLength="90" x="22" y="108.71">AAS Consumer</text>
+    <text fill="#000000" font-family="sans-serif" font-size="13" id="svg_19" lengthAdjust="spacing" textLength="64" x="26" y="125.07">Application</text>
+   </g>
+   <!--MD5=[dd82451e1dd92fe3da01853750f49ff6]
+entity server-->
+   <g id="elem_server">
+    <rect fill="#F1F1F1" height="62.7" id="svg_20" rx="2.5" ry="2.5" stroke="#181818" stroke-width="0.5" width="130" x="246" y="75.22"/>
+    <rect fill="#F1F1F1" height="10" id="svg_21" stroke="#181818" stroke-width="0.5" width="15" x="356" y="80.22"/>
+    <rect fill="#F1F1F1" height="2" id="svg_22" stroke="#181818" stroke-width="0.5" width="4" x="354" y="82.22"/>
+    <rect fill="#F1F1F1" height="2" id="svg_23" stroke="#181818" stroke-width="0.5" width="4" x="354" y="86.22"/>
+    <text fill="#000000" font-family="sans-serif" font-size="13" id="svg_24" lengthAdjust="spacing" textLength="86" x="261" y="108.71">Eclipse BaSyx</text>
+    <text fill="#000000" font-family="sans-serif" font-size="13" id="svg_25" lengthAdjust="spacing" textLength="67" x="265" y="125.07">AAS Server</text>
+   </g>
+   <!--MD5=[e12580cca3f3ffad4de5a83399caedcc]
+entity ditto-->
+   <g id="elem_ditto">
+    <rect fill="#F1F1F1" height="62.7" id="svg_26" rx="2.5" ry="2.5" stroke="#181818" stroke-width="0.5" width="83" x="481.5" y="198.22"/>
+    <rect fill="#F1F1F1" height="10" id="svg_27" stroke="#181818" stroke-width="0.5" width="15" x="544.5" y="203.22"/>
+    <rect fill="#F1F1F1" height="2" id="svg_28" stroke="#181818" stroke-width="0.5" width="4" x="542.5" y="205.22"/>
+    <rect fill="#F1F1F1" height="2" id="svg_29" stroke="#181818" stroke-width="0.5" width="4" x="542.5" y="209.22"/>
+    <text fill="#000000" font-family="sans-serif" font-size="13" id="svg_30" lengthAdjust="spacing" textLength="43" x="496.5" y="231.71">Eclipse</text>
+    <text fill="#000000" font-family="sans-serif" font-size="13" id="svg_31" lengthAdjust="spacing" textLength="27" x="500.5" y="248.07">Ditto</text>
+   </g>
+   <!--MD5=[a7320cd3549932729193ed1741cd59db]
+entity bridge-->
+   <g id="elem_bridge">
+    <rect fill="#F1F1F1" height="62.7" id="svg_32" rx="2.5" ry="2.5" stroke="#181818" stroke-width="0.5" width="130" x="246" y="198.22"/>
+    <rect fill="#F1F1F1" height="10" id="svg_33" stroke="#181818" stroke-width="0.5" width="15" x="356" y="203.22"/>
+    <rect fill="#F1F1F1" height="2" id="svg_34" stroke="#181818" stroke-width="0.5" width="4" x="354" y="205.22"/>
+    <rect fill="#F1F1F1" height="2" id="svg_35" stroke="#181818" stroke-width="0.5" width="4" x="354" y="209.22"/>
+    <text fill="#000000" font-family="sans-serif" font-size="13" id="svg_36" lengthAdjust="spacing" textLength="86" x="261" y="231.71">Eclipse BaSyx</text>
+    <text fill="#000000" font-family="sans-serif" font-size="13" id="svg_37" lengthAdjust="spacing" textLength="62" x="265" y="248.07">Databridge</text>
+   </g>
+   <!--MD5=[457f16c019f5b7bca50c2c2d76300035]
+reverse link consumer to server-->
+   <g id="link_consumer_server">
+    <path d="m146.28,117.22c0,0 99.32,0 99.32,0" fill="none" id="consumer-backto-server" stroke="#181818" stroke-width="1"/>
+    <polygon fill="#181818" id="svg_38" points="141.28,117.2188,150.28,121.2188,146.28,117.2188,150.28,113.2188,141.28,117.2188" stroke="#181818" stroke-width="1"/>
+    <text fill="#000000" font-family="sans-serif" font-size="13" id="svg_39" lengthAdjust="spacing" textLength="67" x="149.15" y="114.93">Return data</text>
+   </g>
+   <!--MD5=[d0e107a56f15861779e8bcaa523779f1]
+link consumer to server-->
+   <g id="svg_1">
+    <path d="m141.28,96.22c0,0 99.32,0 99.32,0" fill="none" id="consumer-to-server" stroke="#181818" stroke-width="1"/>
+    <polygon fill="#181818" id="svg_40" points="245.6,96.2188,236.6,92.2188,240.6,96.2188,236.6,100.2188,245.6,96.2188" stroke="#181818" stroke-width="1"/>
+    <text fill="#000000" font-family="sans-serif" font-size="13" id="svg_41" lengthAdjust="spacing" textLength="77" x="160.97" y="92.38">Request data</text>
+   </g>
+   <!--MD5=[bd4273df4cb81904a6b6300f2fadc88b]
+link server to bridge-->
+   <g id="link_server_bridge">
+    <path d="m289.33,138.4c0,0 0,54.75 0,54.75" fill="none" id="server-to-bridge" stroke="#181818" stroke-dasharray="7.0,7.0" stroke-width="1"/>
+    <polygon fill="#181818" id="svg_42" points="289.33,198.1488,293.33,189.1488,289.33,193.1488,285.33,189.1488,289.33,198.1488" stroke="#181818" stroke-width="1"/>
+    <text fill="#000000" font-family="sans-serif" font-size="13" id="svg_43" lengthAdjust="spacing" textLength="159" x="129.33" y="162.26">Request delegated property</text>
+   </g>
+   <!--MD5=[1250119394a0bb3aa846eb421e9837fa]
+link bridge to server-->
+   <g id="link_bridge_server">
+    <path d="m332.67,198.04c0,0 0,-54.75 0,-54.75" fill="none" id="bridge-to-server" stroke="#181818" stroke-dasharray="7.0,7.0" stroke-width="1"/>
+    <polygon fill="#181818" id="svg_44" points="332.67,138.2888,328.67,147.2888,332.67,143.2888,336.67,147.2888,332.67,138.2888" stroke="#181818" stroke-width="1"/>
+    <text fill="#000000" font-family="sans-serif" font-size="13" id="svg_45" lengthAdjust="spacing" textLength="77" x="344.14" y="159.39">Fulfill request</text>
+   </g>
+   <!--MD5=[6d70305448250d09e11ce7afac7c71d6]
+link ditto to server-->
+   <g id="link_ditto_server">
+    <path d="m523,198.17c0,-36.29 0,-90.95 0,-90.95c0,0 -141.95,0 -141.95,0" fill="none" id="ditto-to-server" stroke="#181818" stroke-dasharray="1.0,3.0" stroke-width="1"/>
+    <polygon fill="#181818" id="svg_46" points="376.05,107.2188,385.05,111.2188,381.05,107.2188,385.05,103.2188,376.05,107.2188" stroke="#181818" stroke-width="1"/>
+    <text fill="#000000" font-family="sans-serif" font-size="13" id="svg_47" lengthAdjust="spacing" textLength="59" x="437.5" y="103.71">Push data</text>
+   </g>
+   <!--MD5=[c628a27a3d89ec289f0ce522599df818]
+link bridge to ditto-->
+   <g id="link_bridge_ditto">
+    <path d="m376.05,230.22c0,0 100.41,0 100.41,0" fill="none" id="bridge-to-ditto" stroke="#181818" stroke-dasharray="7.0,7.0" stroke-width="1"/>
+    <polygon fill="#181818" id="svg_48" points="481.46,230.2188,472.46,226.2188,476.46,230.2188,472.46,234.2188,481.46,230.2188" stroke="#181818" stroke-width="1"/>
+    <text fill="#000000" font-family="sans-serif" font-size="13" id="svg_49" lengthAdjust="spacing" textLength="77" x="387.75" y="244.71">Request data</text>
+   </g>
+   <!--MD5=[0679fe060eca49958aa483a800468665]
+@startuml push-pull-overview
+
+' set legend to have a white background
+skinparam legendBackgroundColor #FFFFFF
+' remove box around legend
+skinparam legendBorderColor #FFFFFF
+' remove the lines between the legend items
+skinparam legendEntrySeparator #FFFFFF
+skinparam linetype ortho
+skinparam nodesep 105
+skinparam SequenceMessageAlign center
+skinparam componentFontSize 13
+
+legend top left
+'   the <#FFFFFF,#FFFFFF> sets the background color of the legend to white
+    <#FFFFFF,#FFFFFF>|...| Push|
+    ' the space between the | and <#blue> is important to make the color column wider
+    |- - -     | Delegated|
+endlegend
+
+[AAS Consumer \n Application] as consumer
+[Eclipse BaSyx \n AAS Server] as server
+[Eclipse\n Ditto] as ditto
+[Eclipse BaSyx \n Databridge] as bridge
+
+server -L-> "Return data " consumer
+consumer -R- ->  "Request data" server
+server -[dashed]-> bridge: "Request delegated property"
+ditto-[dotted]> server: "Push data"
+bridge -[dashed]> ditto: "Request data"
+bridge -[dashed]-> "Fulfill request" server
+
+@enduml
+
+@startuml push-pull-overview
+
+skinparam legendBackgroundColor #FFFFFF
+skinparam legendBorderColor #FFFFFF
+skinparam legendEntrySeparator #FFFFFF
+skinparam linetype ortho
+skinparam nodesep 105
+skinparam SequenceMessageAlign center
+skinparam componentFontSize 13
+
+legend top left
+    <#FFFFFF,#FFFFFF>|...| Push|
+    |- - -     | Delegated|
+endlegend
+
+[AAS Consumer \n Application] as consumer
+[Eclipse BaSyx \n AAS Server] as server
+[Eclipse\n Ditto] as ditto
+[Eclipse BaSyx \n Databridge] as bridge
+
+server -L-> "Return data " consumer
+consumer -R- ->  "Request data" server
+server -[dashed]-> bridge: "Request delegated property"
+ditto-[dotted]> server: "Push data"
+bridge -[dashed]> ditto: "Request data"
+bridge -[dashed]-> "Fulfill request" server
+
+@enduml
+
+PlantUML version 1.2022.7(Mon Aug 22 19:01:30 CEST 2022)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: Cp1252
+Language: en
+Country: US
+-->
+  </g>
+ </g>
+</svg>
