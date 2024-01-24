@@ -16,7 +16,7 @@ import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -483,12 +483,12 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                         return referencedPolicyTag;
                     }
                 })
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
 
         // Append policy tag in case it wasn't already present in the referenced policy tags.
         final Set<PolicyTag> allReferencedPolicyTags;
         if (!referencedPolicyTags.contains(policyTag)) {
-            allReferencedPolicyTags = new HashSet<>(referencedPolicyTags);
+            allReferencedPolicyTags = new LinkedHashSet<>(referencedPolicyTags);
             allReferencedPolicyTags.add(policyTag);
         } else {
             allReferencedPolicyTags = referencedPolicyTags;

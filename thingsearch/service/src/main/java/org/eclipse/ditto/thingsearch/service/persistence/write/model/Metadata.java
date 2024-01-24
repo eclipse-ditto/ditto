@@ -15,7 +15,7 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.model;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -75,11 +75,11 @@ public final class Metadata {
         this.thingRevision = thingRevision;
         this.thingPolicy = thingPolicy;
         this.causingPolicyTag = causingPolicyTag;
-        final HashSet<PolicyTag> policyTags = new HashSet<>(allReferencedPolicies);
+        final Set<PolicyTag> policyTags = new LinkedHashSet<>(allReferencedPolicies);
         if (thingPolicy != null) {
             policyTags.add(thingPolicy);
         }
-        this.allReferencedPolicies = Set.copyOf(policyTags);
+        this.allReferencedPolicies = Collections.unmodifiableSet(policyTags);
         this.modified = modified;
         this.events = events;
         this.timers = List.copyOf(timers);
@@ -226,6 +226,16 @@ public final class Metadata {
     public Metadata invalidateCaches(final boolean invalidateThing, final boolean invalidatePolicy) {
         return new Metadata(thingId, thingRevision, thingPolicy, causingPolicyTag, allReferencedPolicies, modified, events, timers,
                 ackRecipients, invalidateThing, invalidatePolicy, updateReasons);
+    }
+
+    /**
+     * Create a copy of this metadata with {@code causingPolicyTag} replaced by the argument.
+     *
+     * @return the copy.
+     */
+    public Metadata withCausingPolicyTag(final PolicyTag causingPolicyTag) {
+        return new Metadata(thingId, thingRevision, thingPolicy, causingPolicyTag, allReferencedPolicies, modified,
+                events, timers, ackRecipients, invalidateThing, invalidatePolicy, updateReasons);
     }
 
     /**

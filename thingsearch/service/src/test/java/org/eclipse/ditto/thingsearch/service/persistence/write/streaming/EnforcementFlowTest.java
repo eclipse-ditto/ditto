@@ -35,6 +35,7 @@ import org.apache.pekko.testkit.TestProbe;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -43,6 +44,7 @@ import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.Thing;
@@ -56,6 +58,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.eclipse.ditto.thingsearch.service.common.config.DefaultStreamConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamConfig;
+import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
@@ -209,6 +212,175 @@ public final class EnforcementFlowTest {
         final var document2 = JsonObject.of(((ThingWriteModel) writeModel2).getThingDocument().toJson());
         assertThat(document2.getValue("_revision")).contains(JsonValue.of(thingRev2));
         assertThat(document2.getValue("__policyRev")).contains(JsonValue.of(policyRev2));
+    }
+
+    @Test
+    public void importedPolicyIsOnlyLoadedOnceWhenTwoDifferentPoliciesImportFromItAndInvalidatesImportedOnlyOnce() {
+        final long thing1Rev1 = 1L;
+        final long thing1Rev2 = 1L;
+        final long thing2Rev1 = 2L;
+        final long thing2Rev2 = 2L;
+        final long importedPolicyRev1 = 3L;
+        final long importedPolicyRev2 = 4L;
+        final long policy1Rev1 = 2L;
+        final long policy2Rev1 = 3L;
+        final ThingId thingId1 = ThingId.of("thing:id-1");
+        final ThingId thingId2 = ThingId.of("thing:id-2");
+        final PolicyId importedPolicyId = PolicyId.of("policy:imported");
+        final PolicyId importingPolicy1Id = PolicyId.of("policy:importing-1");
+        final PolicyId importingPolicy2Id = PolicyId.of("policy:importing-2");
+        final Metadata metadata1 = Metadata.of(thingId1, thing1Rev1, PolicyTag.of(importingPolicy1Id, policy1Rev1),
+                PolicyTag.of(importedPolicyId, importedPolicyRev2), Set.of(), null);
+        final Metadata metadata2 = Metadata.of(thingId2, thing2Rev1, PolicyTag.of(importingPolicy2Id, policy2Rev1),
+                PolicyTag.of(importedPolicyId, importedPolicyRev2), Set.of(), null);
+
+        final TestProbe thingsProbe = TestProbe.apply(system);
+        final TestProbe policiesProbe = TestProbe.apply(system);
+
+        final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.empty());
+        final EnforcementFlow underTest =
+                EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
+                        system.getScheduler());
+
+        materializeTestProbes(underTest);
+
+        sinkProbe.ensureSubscription();
+        sourceProbe.ensureSubscription();
+        sinkProbe.request(2);
+        sourceProbe.sendNext(List.of(metadata1));
+
+        thingsProbe.expectMsgClass(SudoRetrieveThing.class);
+        final var thing = Thing.newBuilder().setId(thingId1).setPolicyId(importingPolicy1Id).setRevision(thing1Rev2).build();
+        final var thingJson = thing.toJson(FieldType.regularOrSpecial());
+        thingsProbe.reply(SudoRetrieveThingResponse.of(thingJson, DittoHeaders.empty()));
+
+        final SudoRetrievePolicy sudoRetrievePolicy1 = policiesProbe.expectMsgClass(SudoRetrievePolicy.class);
+        assertThat(sudoRetrievePolicy1.getEntityId().toString()).isEqualTo(importingPolicy1Id.toString());
+        final var policy1 = Policy.newBuilder(importingPolicy1Id)
+                .setPolicyImport(PolicyImport.newInstance(importedPolicyId, null))
+                .setRevision(policy1Rev1)
+                .build();
+        policiesProbe.reply(SudoRetrievePolicyResponse.of(importingPolicy1Id, policy1, DittoHeaders.empty()));
+
+        final SudoRetrievePolicy sudoRetrieveImportedPolicy = policiesProbe.expectMsgClass(SudoRetrievePolicy.class);
+        assertThat(sudoRetrieveImportedPolicy.getEntityId().toString()).isEqualTo(importedPolicyId.toString());
+        final var importedPolicy = Policy.newBuilder(importedPolicyId).setRevision(importedPolicyRev1).build();
+        policiesProbe.reply(SudoRetrievePolicyResponse.of(importedPolicyId, importedPolicy, DittoHeaders.empty()));
+
+        final AbstractWriteModel writeModel1 = sinkProbe.expectNext().get(0);
+        assertThat(writeModel1).isInstanceOf(ThingWriteModel.class);
+        final var document1 = JsonObject.of(((ThingWriteModel) writeModel1).getThingDocument().toJson());
+        assertThat(document1.getValue(PersistenceConstants.FIELD_REVISION)).contains(JsonValue.of(thing1Rev2));
+        assertThat(document1.getValue(PersistenceConstants.FIELD_POLICY_REVISION)).contains(JsonValue.of(policy1Rev1));
+        assertThat(document1.getValue(PersistenceConstants.FIELD_REFERENCED_POLICIES))
+                .contains(JsonArray.of(
+                        PolicyTag.of(importedPolicyId, importedPolicyRev1).toJson(),
+                        PolicyTag.of(importingPolicy1Id, policy1Rev1).toJson()
+                ));
+
+        sinkProbe.ensureSubscription();
+        sourceProbe.ensureSubscription();
+        sinkProbe.request(2);
+        sourceProbe.sendNext(List.of(metadata2));
+
+        thingsProbe.expectMsgClass(SudoRetrieveThing.class);
+        final var thing2 = Thing.newBuilder().setId(thingId2).setPolicyId(importingPolicy2Id).setRevision(thing2Rev2).build();
+        final var thing2Json = thing2.toJson(FieldType.regularOrSpecial());
+        thingsProbe.reply(SudoRetrieveThingResponse.of(thing2Json, DittoHeaders.empty()));
+
+        // GIVEN: enforcer cache is loaded with out-of-date policy
+        final SudoRetrievePolicy sudoRetrievePolicy2 = policiesProbe.expectMsgClass(SudoRetrievePolicy.class);
+        assertThat(sudoRetrievePolicy2.getEntityId().toString()).isEqualTo(importingPolicy2Id.toString());
+        final var policy2 = Policy.newBuilder(importingPolicy2Id)
+                .setPolicyImport(PolicyImport.newInstance(importedPolicyId, null))
+                .setRevision(policy2Rev1)
+                .build();
+        policiesProbe.reply(SudoRetrievePolicyResponse.of(importingPolicy2Id, policy2, DittoHeaders.empty()));
+
+        policiesProbe.expectNoMessage();
+
+        final AbstractWriteModel writeModel2 = sinkProbe.expectNext().get(0);
+        assertThat(writeModel2).isInstanceOf(ThingWriteModel.class);
+        final var document2 = JsonObject.of(((ThingWriteModel) writeModel2).getThingDocument().toJson());
+        assertThat(document2.getValue(PersistenceConstants.FIELD_REVISION)).contains(JsonValue.of(thing2Rev2));
+        assertThat(document2.getValue(PersistenceConstants.FIELD_POLICY_REVISION)).contains(JsonValue.of(policy2Rev1));
+        assertThat(document2.getValue(PersistenceConstants.FIELD_REFERENCED_POLICIES))
+                .contains(JsonArray.of(
+                        PolicyTag.of(importedPolicyId, importedPolicyRev1).toJson(),
+                        PolicyTag.of(importingPolicy2Id, policy2Rev1).toJson()
+                ));
+
+
+
+        // WHEN: a metadata with 'invalidateCache' flag is enqueued
+        final Metadata metadata1_2 = metadata1
+                .withCausingPolicyTag(PolicyTag.of(importedPolicyId, importedPolicyRev2))
+                .invalidateCaches(false, true);
+        sinkProbe.request(2);
+        sourceProbe.sendNext(List.of(metadata1_2));
+
+        thingsProbe.expectMsgClass(SudoRetrieveThing.class);
+        thingsProbe.reply(SudoRetrieveThingResponse.of(thingJson, DittoHeaders.empty()));
+
+        // THEN: policy cache is reloaded
+        final SudoRetrievePolicy sudoRetrievePolicy1_2 = policiesProbe.expectMsgClass(SudoRetrievePolicy.class);
+        assertThat(sudoRetrievePolicy1_2.getEntityId().toString()).isEqualTo(importingPolicy1Id.toString());
+        final var policy1_2 = Policy.newBuilder(importingPolicy1Id)
+                .setPolicyImport(PolicyImport.newInstance(importedPolicyId, null))
+                .setRevision(policy1Rev1)
+                .build();
+        policiesProbe.reply(SudoRetrievePolicyResponse.of(importingPolicy1Id, policy1_2, DittoHeaders.empty()));
+
+        final SudoRetrievePolicy sudoRetrieveImportedPolicy_2 = policiesProbe.expectMsgClass(SudoRetrievePolicy.class);
+        assertThat(sudoRetrieveImportedPolicy_2.getEntityId().toString()).isEqualTo(importedPolicyId.toString());
+        final var importedPolicy_2 = Policy.newBuilder(importedPolicyId).setRevision(importedPolicyRev2).build();
+        policiesProbe.reply(SudoRetrievePolicyResponse.of(importedPolicyId, importedPolicy_2, DittoHeaders.empty()));
+
+        // THEN: write model contains up-to-date policy revisions.
+        final AbstractWriteModel writeModel1_2 = sinkProbe.expectNext().get(0);
+        assertThat(writeModel1_2).isInstanceOf(ThingWriteModel.class);
+        final var document1_2 = JsonObject.of(((ThingWriteModel) writeModel1_2).getThingDocument().toJson());
+        assertThat(document1_2.getValue(PersistenceConstants.FIELD_REVISION)).contains(JsonValue.of(thing1Rev2));
+        assertThat(document1_2.getValue(PersistenceConstants.FIELD_POLICY_REVISION)).contains(JsonValue.of(policy1Rev1));
+        assertThat(document1_2.getValue(PersistenceConstants.FIELD_REFERENCED_POLICIES))
+                .contains(JsonArray.of(
+                        PolicyTag.of(importedPolicyId, importedPolicyRev2).toJson(),
+                        PolicyTag.of(importingPolicy1Id, policy1Rev1).toJson()
+                ));
+
+        final Metadata metadata2_2 = metadata2
+                .withCausingPolicyTag(PolicyTag.of(importedPolicyId, importedPolicyRev2))
+                .invalidateCaches(false, true);
+        sinkProbe.request(2);
+        sourceProbe.sendNext(List.of(metadata2_2));
+        sourceProbe.sendComplete();
+
+        thingsProbe.expectMsgClass(SudoRetrieveThing.class);
+        thingsProbe.reply(SudoRetrieveThingResponse.of(thing2Json, DittoHeaders.empty()));
+
+        // THEN: policy cache is reloaded
+        final SudoRetrievePolicy sudoRetrievePolicy2_2 = policiesProbe.expectMsgClass(SudoRetrievePolicy.class);
+        assertThat(sudoRetrievePolicy2_2.getEntityId().toString()).isEqualTo(importingPolicy2Id.toString());
+        final var policy2_2 = Policy.newBuilder(importingPolicy2Id)
+                .setPolicyImport(PolicyImport.newInstance(importedPolicyId, null))
+                .setRevision(policy2Rev1)
+                .build();
+        policiesProbe.reply(SudoRetrievePolicyResponse.of(importingPolicy2Id, policy2_2, DittoHeaders.empty()));
+
+        policiesProbe.expectNoMessage();
+
+        // THEN: write model contains up-to-date policy revisions.
+        final AbstractWriteModel writeModel2_2 = sinkProbe.expectNext().get(0);
+        sinkProbe.expectComplete();
+        assertThat(writeModel2_2).isInstanceOf(ThingWriteModel.class);
+        final var document2_2 = JsonObject.of(((ThingWriteModel) writeModel2_2).getThingDocument().toJson());
+        assertThat(document2_2.getValue(PersistenceConstants.FIELD_REVISION)).contains(JsonValue.of(thing2Rev2));
+        assertThat(document2_2.getValue(PersistenceConstants.FIELD_POLICY_REVISION)).contains(JsonValue.of(policy2Rev1));
+        assertThat(document2_2.getValue(PersistenceConstants.FIELD_REFERENCED_POLICIES))
+                .contains(JsonArray.of(
+                        PolicyTag.of(importedPolicyId, importedPolicyRev2).toJson(),
+                        PolicyTag.of(importingPolicy2Id, policy2Rev1).toJson()
+                ));
     }
 
     @Test

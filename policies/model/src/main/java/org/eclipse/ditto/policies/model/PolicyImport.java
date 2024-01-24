@@ -14,6 +14,8 @@ package org.eclipse.ditto.policies.model;
 
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
@@ -35,9 +37,9 @@ public interface PolicyImport extends Jsonifiable.WithFieldSelectorAndPredicate<
      * @param importedPolicyId the {@link PolicyId} of the imported policy.
      * @param effectedImports the EffectedImports of the new PolicyImport to create.
      * @return the new {@code PolicyImport}.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if {@code importedPolicyId} is {@code null}.
      */
-    static PolicyImport newInstance(final PolicyId importedPolicyId, final EffectedImports effectedImports) {
+    static PolicyImport newInstance(final PolicyId importedPolicyId, @Nullable final EffectedImports effectedImports) {
         return PoliciesModelFactory.newPolicyImport(importedPolicyId, effectedImports);
     }
 
