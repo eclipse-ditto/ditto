@@ -1077,6 +1077,20 @@ thingsSearch:
           throughput: 100
           # period the throttle period
           period: 30s
+    # indexedFieldsLimiting by default, Ditto indexed all fields of things in its search.
+    #  However, this behavior can be customized, providing configuration to only index certain fields for specified namespaces.
+    indexedFieldsLimiting:
+      # enabled whether field index limiting should be enabled or not
+      enabled: false
+      # items contains the list of per-namespace configuration of which fields to include into to the search index
+      items:
+      #  - # namespacePattern holds the namespace for which the single limiting configuration entry should apply.
+      #    #  Wildcards `*` (Matching any number of any character) and `?` (Matches any single character) are supported.
+      #    namespacePattern: "org.eclipse.*"
+      #    # indexedFields holds a list of fields that will be explicitly included in the search index
+      #    indexedFields:
+      #      - "attributes"
+      #      - "features/included"
     # operatorMetrics contains configuration for operator defined custom metrics, using a search "count" with namespaces and filter
     operatorMetrics:
       # enabled configures whether operator metrics should be enabled or not

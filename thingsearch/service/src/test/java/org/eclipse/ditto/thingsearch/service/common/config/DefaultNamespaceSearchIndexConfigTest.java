@@ -40,7 +40,7 @@ public final class DefaultNamespaceSearchIndexConfigTest {
         assertInstancesOf(DefaultNamespaceSearchIndexConfig.class, areImmutable(),
                           provided(String.class).isAlsoImmutable(),
                           assumingFields(
-                                  "search-include-fields").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements()
+                                  "includedFields").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements()
         );
     }
 
@@ -58,9 +58,9 @@ public final class DefaultNamespaceSearchIndexConfigTest {
         final DittoSearchConfig underTest = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(searchConfig));
 
 
-        softly.assertThat(underTest.getNamespaceSearchIncludeFields()).isNotNull();
+        softly.assertThat(underTest.getNamespaceIndexedFields()).isNotNull();
 
-        softly.assertThat(underTest.getNamespaceSearchIncludeFields()).isEmpty();
+        softly.assertThat(underTest.getNamespaceIndexedFields()).isEmpty();
     }
 
     @Test
@@ -69,28 +69,28 @@ public final class DefaultNamespaceSearchIndexConfigTest {
         final Config searchConfig = ConfigFactory.load("namespace-search-index-test");
         final DittoSearchConfig underTest = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(searchConfig));
 
-        softly.assertThat(underTest.getNamespaceSearchIncludeFields()).isNotNull();
+        softly.assertThat(underTest.getNamespaceIndexedFields()).isNotNull();
 
-        softly.assertThat(underTest.getNamespaceSearchIncludeFields()).isNotEmpty();
+        softly.assertThat(underTest.getNamespaceIndexedFields()).isNotEmpty();
 
-        softly.assertThat(underTest.getNamespaceSearchIncludeFields().size()).isEqualTo(2);
+        softly.assertThat(underTest.getNamespaceIndexedFields().size()).isEqualTo(2);
 
-        NamespaceSearchIndexConfig first = underTest.getNamespaceSearchIncludeFields().get(0);
-        NamespaceSearchIndexConfig second = underTest.getNamespaceSearchIncludeFields().get(1);
+        NamespaceSearchIndexConfig first = underTest.getNamespaceIndexedFields().get(0);
+        NamespaceSearchIndexConfig second = underTest.getNamespaceIndexedFields().get(1);
 
         // First config
         softly.assertThat(first.getNamespacePattern()).isEqualTo("org.eclipse.test");
 
-        softly.assertThat(first.getSearchIncludeFields())
-                .as(NamespaceSearchIndexConfig.NamespaceSearchIndexConfigValue.SEARCH_INCLUDE_FIELDS.getConfigPath())
+        softly.assertThat(first.getIndexedFields())
+                .as(NamespaceSearchIndexConfig.NamespaceSearchIndexConfigValue.INDEXED_FIELDS.getConfigPath())
                 .isEqualTo(
                         List.of("attributes", "features/info/properties", "features/info/other"));
 
         // Second config
         softly.assertThat(second.getNamespacePattern()).isEqualTo("org.eclipse*");
 
-        softly.assertThat(second.getSearchIncludeFields())
-                .as(NamespaceSearchIndexConfig.NamespaceSearchIndexConfigValue.SEARCH_INCLUDE_FIELDS.getConfigPath())
+        softly.assertThat(second.getIndexedFields())
+                .as(NamespaceSearchIndexConfig.NamespaceSearchIndexConfigValue.INDEXED_FIELDS.getConfigPath())
                 .isEqualTo(
                         List.of("attributes", "features/info"));
     }

@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.thingsearch.service.common.config;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -30,23 +27,20 @@ public final class DefaultNamespaceSearchIndexConfig implements NamespaceSearchI
 
     private final String namespacePattern;
 
-    private final List<String> searchIncludeFields;
+    private final List<String> includedFields;
 
     private DefaultNamespaceSearchIndexConfig(final ConfigWithFallback configWithFallback) {
 
-        this.namespacePattern = configWithFallback.getString(NamespaceSearchIndexConfigValue.NAMESPACE_PATTERN.getConfigPath());
+        this.namespacePattern =
+                configWithFallback.getString(NamespaceSearchIndexConfigValue.NAMESPACE_PATTERN.getConfigPath());
 
-        final List<String> fields = configWithFallback.getStringList(NamespaceSearchIndexConfigValue.SEARCH_INCLUDE_FIELDS.getConfigPath());
+        final List<String> fields =
+                configWithFallback.getStringList(NamespaceSearchIndexConfigValue.INDEXED_FIELDS.getConfigPath());
         if (!fields.isEmpty()) {
-            this.searchIncludeFields = Collections.unmodifiableList(new ArrayList<>(fields));
+            this.includedFields = List.copyOf(fields);
         } else {
-            this.searchIncludeFields = List.of();
+            this.includedFields = List.of();
         }
-    }
-
-    private DefaultNamespaceSearchIndexConfig(final String namespacePattern, final Collection<String> fields) {
-        this.namespacePattern = namespacePattern;
-        this.searchIncludeFields = Collections.unmodifiableList(new ArrayList<>(fields));
     }
 
     /**
@@ -66,8 +60,8 @@ public final class DefaultNamespaceSearchIndexConfig implements NamespaceSearchI
     }
 
     @Override
-    public List<String> getSearchIncludeFields() {
-        return searchIncludeFields;
+    public List<String> getIndexedFields() {
+        return includedFields;
     }
 
     @Override
@@ -79,19 +73,20 @@ public final class DefaultNamespaceSearchIndexConfig implements NamespaceSearchI
             return false;
         }
         final DefaultNamespaceSearchIndexConfig that = (DefaultNamespaceSearchIndexConfig) o;
-        return Objects.equals(namespacePattern, that.namespacePattern) && searchIncludeFields.equals(that.searchIncludeFields);
+        return Objects.equals(namespacePattern, that.namespacePattern) &&
+                includedFields.equals(that.includedFields);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(namespacePattern, searchIncludeFields);
+        return Objects.hash(namespacePattern, includedFields);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "namespace=" + namespacePattern +
-                ", searchIncludeFields=" + searchIncludeFields +
+                "namespacePattern=" + namespacePattern +
+                ", searchIncludeFields=" + includedFields +
                 "]";
     }
 }

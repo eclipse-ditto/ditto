@@ -12,8 +12,13 @@
  */
 package org.eclipse.ditto.thingsearch.service.common.config;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -25,13 +30,11 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import com.typesafe.config.*;
 import org.eclipse.ditto.base.service.config.DittoServiceConfig;
 import org.eclipse.ditto.base.service.config.http.HttpConfig;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.config.WithConfigPath;
 import org.eclipse.ditto.internal.utils.health.config.DefaultHealthCheckConfig;
@@ -44,6 +47,11 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.operations.DefaultPersistenceOperationsConfig;
 import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
 import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigList;
+import com.typesafe.config.ConfigValue;
 
 
 /**
@@ -65,8 +73,8 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
     private final MongoDbConfig mongoDbConfig;
     private final SearchPersistenceConfig queryPersistenceConfig;
     private final Map<String, String> simpleFieldMappings;
+    private final List<NamespaceSearchIndexConfig> namespaceIndexedFields;
     private final DefaultOperatorMetricsConfig operatorMetricsConfig;
-    private final List<NamespaceSearchIndexConfig> namespaceSearchIncludeFields;
 
     private DittoSearchConfig(final ScopedConfig dittoScopedConfig) {
         dittoServiceConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
@@ -86,8 +94,8 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
         queryPersistenceConfig = DefaultSearchPersistenceConfig.of(queryConfig);
         simpleFieldMappings =
                 convertToMap(configWithFallback.getConfig(SearchConfigValue.SIMPLE_FIELD_MAPPINGS.getConfigPath()));
+        namespaceIndexedFields = loadNamespaceSearchIndexList(configWithFallback);
         operatorMetricsConfig = DefaultOperatorMetricsConfig.of(configWithFallback);
-        namespaceSearchIncludeFields = loadNamespaceSearchIndexList(configWithFallback);
     }
 
     /**
@@ -108,8 +116,8 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
     }
 
     @Override
-    public List<NamespaceSearchIndexConfig> getNamespaceSearchIncludeFields() {
-        return namespaceSearchIncludeFields;
+    public List<NamespaceSearchIndexConfig> getNamespaceIndexedFields() {
+        return namespaceIndexedFields;
     }
 
     @Override
@@ -196,14 +204,14 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
                 Objects.equals(queryPersistenceConfig, that.queryPersistenceConfig) &&
                 Objects.equals(simpleFieldMappings, that.simpleFieldMappings) &&
                 Objects.equals(operatorMetricsConfig, that.operatorMetricsConfig) &&
-                Objects.equals(namespaceSearchIncludeFields, that.namespaceSearchIncludeFields);
+                Objects.equals(namespaceIndexedFields, that.namespaceIndexedFields);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(mongoHintsByNamespace, updaterConfig, dittoServiceConfig, healthCheckConfig,
                 indexInitializationConfig, persistenceOperationsConfig, mongoDbConfig, queryPersistenceConfig,
-                simpleFieldMappings, operatorMetricsConfig, namespaceSearchIncludeFields);
+                simpleFieldMappings, operatorMetricsConfig, namespaceIndexedFields);
     }
 
     @Override
@@ -218,8 +226,8 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
                 ", mongoDbConfig=" + mongoDbConfig +
                 ", queryPersistenceConfig=" + queryPersistenceConfig +
                 ", simpleFieldMappings=" + simpleFieldMappings +
+                ", namespaceIndexedFields=" + namespaceIndexedFields +
                 ", operatorMetricsConfig=" + operatorMetricsConfig +
-                ", namespaceSearchIncludeFields=" + namespaceSearchIncludeFields +
                 "]";
     }
 
@@ -239,10 +247,10 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
 
     private static List<NamespaceSearchIndexConfig> loadNamespaceSearchIndexList(final ConfigWithFallback config) {
 
-        final ConfigList namespaceSearchIndexConfig = config.getList(
-                SearchConfigValue.NAMESPACE_SEARCH_INCLUDE_FIELDS.getConfigPath());
+        final ConfigList namespaceIndexedFieldsConfig = config.getList(
+                SearchConfigValue.NAMESPACE_INDEXED_FIELDS.getConfigPath());
 
-        return namespaceSearchIndexConfig.stream().collect(NamespaceSearchIndexCollector.toNamespaceSearchIndexList());
+        return namespaceIndexedFieldsConfig.stream().collect(NamespaceSearchIndexCollector.toNamespaceSearchIndexList());
     }
 
     private static class NamespaceSearchIndexCollector implements
@@ -266,12 +274,12 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
         @Override
         public BinaryOperator<List<NamespaceSearchIndexConfig>> combiner() {
             return (left, right) -> Stream.concat(left.stream(), right.stream())
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         @Override
         public Function<List<NamespaceSearchIndexConfig>, List<NamespaceSearchIndexConfig>> finisher() {
-            return list -> Collections.unmodifiableList(new ArrayList<>(list));
+            return List::copyOf;
         }
 
         @Override

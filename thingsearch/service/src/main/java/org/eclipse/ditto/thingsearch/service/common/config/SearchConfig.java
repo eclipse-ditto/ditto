@@ -72,7 +72,7 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
      * @return the search projection fields.
      * @since 3.5.0
      */
-    List<NamespaceSearchIndexConfig> getNamespaceSearchIncludeFields();
+    List<NamespaceSearchIndexConfig> getNamespaceIndexedFields();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for SearchConfig.
@@ -104,8 +104,10 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
 
         /**
          * Any fields to include in the search index, scoped by namespace.
+         *
+         * @since 3.5.0
          */
-        NAMESPACE_SEARCH_INCLUDE_FIELDS("namespace-search-include-fields", Collections.emptyList());
+        NAMESPACE_INDEXED_FIELDS("namespace-indexed-fields", Collections.emptyList());
 
         private final String path;
         private final Object defaultValue;

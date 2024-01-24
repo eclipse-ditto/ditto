@@ -12,10 +12,11 @@
  */
 package org.eclipse.ditto.thingsearch.service.common.config;
 
-import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import java.util.List;
 
 import javax.annotation.concurrent.Immutable;
-import java.util.List;
+
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings of the namespace-scoped search indexes.
@@ -34,21 +35,21 @@ public interface NamespaceSearchIndexConfig {
     /**
      * Returns a list of fields that will be explicitly included in the search index.
      *
-     * @return the search projection fields.
+     * @return the indexed fields.
      */
-    List<String> getSearchIncludeFields();
+    List<String> getIndexedFields();
 
     enum NamespaceSearchIndexConfigValue implements KnownConfigValue {
 
         /**
-         * The namespace value to apply the search indexed fields.
+         * The namespace pattern to apply the search indexed fields.
          */
         NAMESPACE_PATTERN("namespace-pattern", ""),
 
         /**
          * The list of fields that will be included in the search DB.
          */
-        SEARCH_INCLUDE_FIELDS("search-include-fields", List.of());
+        INDEXED_FIELDS("indexed-fields", List.of());
 
         private final String configPath;
         private final Object defaultValue;

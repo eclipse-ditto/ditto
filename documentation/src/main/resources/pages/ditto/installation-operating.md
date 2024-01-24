@@ -340,10 +340,10 @@ ditto {
   caching-signal-enrichment-facade-provider = org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchIndexingSignalEnrichmentFacadeProvider
   //...
   search {
-    namespace-search-include-fields = [
+    namespace-indexed-fields = [
       {
         namespace-pattern = "org.eclipse.test"
-        search-include-fields = [
+        indexed-fields = [
            "attributes",
            "features/info/properties",
            "features/info/other"
@@ -351,7 +351,7 @@ ditto {
       },
       {
         namespace-pattern = "org.eclipse*"
-        search-include-fields = [
+        indexed-fields = [
            "attributes",
            "features/info"
         ]
@@ -378,13 +378,13 @@ Important notes:
 Example for configuring the same configuration via system properties for the `things-search` service:
 
 ```shell
--Dditto.search.namespace-search-include-fields.0.namespace-pattern=org.eclipse.test
--Dditto.search.namespace-search-include-fields.0.search-include-fields.0=attributes
--Dditto.search.namespace-search-include-fields.0.search-include-fields.1=features/info/properties
--Dditto.search.namespace-search-include-fields.0.search-include-fields.2=features/info/other
--Dditto.search.namespace-search-include-fields.1.namespace-pattern=org.eclipse*
--Dditto.search.namespace-search-include-fields.1.search-include-fields.0=attributes
--Dditto.search.namespace-search-include-fields.1.search-include-fields.1=features/info
+-Dditto.search.namespace-indexed-fields.0.namespace-pattern=org.eclipse.test
+-Dditto.search.namespace-indexed-fields.0.indexed-fields.0=attributes
+-Dditto.search.namespace-indexed-fields.0.indexed-fields.1=features/info/properties
+-Dditto.search.namespace-indexed-fields.0.indexed-fields.2=features/info/other
+-Dditto.search.namespace-indexed-fields.1.namespace-pattern=org.eclipse*
+-Dditto.search.namespace-indexed-fields.1.indexed-fields.0=attributes
+-Dditto.search.namespace-indexed-fields.1.indexed-fields.1=features/info
 ```
 
 ## Logging

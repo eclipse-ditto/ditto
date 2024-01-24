@@ -45,7 +45,7 @@ import com.typesafe.config.Config;
  */
 public final class SearchIndexingSignalEnrichmentFacadeProvider implements CachingSignalEnrichmentFacadeProvider {
 
-    private static final Set<JsonFieldDefinition<?>> REQUIRED_INDEXED_FIELDS = Set.of(
+    private static final List<JsonFieldDefinition<?>> REQUIRED_INDEXED_FIELDS = List.of(
             Thing.JsonFields.ID,
             Thing.JsonFields.POLICY_ID,
             Thing.JsonFields.NAMESPACE,
@@ -76,9 +76,9 @@ public final class SearchIndexingSignalEnrichmentFacadeProvider implements Cachi
         // Build a map of field selectors for the enrichment facade to use to quickly look up by Thing namespace.
         final List<Pair<Pattern, JsonFieldSelector>> namespaceAndFieldSelector = new ArrayList<>();
 
-        for (final NamespaceSearchIndexConfig namespaceConfig : searchConfig.getNamespaceSearchIncludeFields()) {
+        for (final NamespaceSearchIndexConfig namespaceConfig : searchConfig.getNamespaceIndexedFields()) {
 
-            if (!namespaceConfig.getSearchIncludeFields().isEmpty()) {
+            if (!namespaceConfig.getIndexedFields().isEmpty()) {
 
                 // Ensure the constructed JsonFieldSelector has the required fields needed for the search to work.
                 final Set<String> set = new LinkedHashSet<>();
@@ -86,7 +86,7 @@ public final class SearchIndexingSignalEnrichmentFacadeProvider implements Cachi
                         .map(JsonFieldDefinition::getPointer)
                         .map(JsonPointer::toString)
                         .toList());
-                set.addAll(namespaceConfig.getSearchIncludeFields());
+                set.addAll(namespaceConfig.getIndexedFields());
 
                 final List<String> searchIncludeFields = new ArrayList<>(set);
 

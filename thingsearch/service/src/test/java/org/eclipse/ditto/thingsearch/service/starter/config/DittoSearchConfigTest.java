@@ -47,7 +47,7 @@ public final class DittoSearchConfigTest {
                         DefaultMongoDbConfig.class, DefaultSearchPersistenceConfig.class,
                         DefaultOperatorMetricsConfig.class)
                         .areAlsoImmutable(),
-                assumingFields("simpleFieldMappings", "namespaceSearchIncludeFields")
+                assumingFields("simpleFieldMappings", "namespaceIndexedFields")
                                   .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
