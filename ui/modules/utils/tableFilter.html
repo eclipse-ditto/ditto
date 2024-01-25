@@ -10,23 +10,24 @@
   ~
   ~ SPDX-License-Identifier: EPL-2.0
   -->
-<div class="input-group input-group-sm has-validation mb-1">
+<form class="input-group input-group-sm has-validation mb-1" autocomplete="off">
   <label class="input-group-text" hidden>Filter</label>
   <div class="btn-group dropend">
       <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle"
           data-bs-toggle="dropdown" aria-expanded="false"></button>
       <ul id="ulFilterOptions" class="dropdown-menu">
-          <input type="search" name="dropdown" class="form-control form-control-sm" placeholder="Filter entries..." spellcheck="false" autocomplete="off">
+          <input type="text" name="dropdown" class="form-control form-control-sm" placeholder="Filter entries..." spellcheck="false" autocomplete="off">
       </ul>                                    
   </div>
+  <input autocomplete="false" name="hidden" type="text" style="display:none;">
   <input type="search" name="main" class="form-control form-control-sm me-1"
-  placeholder="Add basic filter..." autocomplete="off" spellcheck="false"></input>
+    placeholder="Add basic filter..." autocomplete="off" spellcheck="false"></input>
   <div class="form-check form-switch">
     <input class="form-check-input mt-2" type="checkbox" role="switch"
         data-bs-toggle="tooltip" title="Toggle advanced search">
   </div>
   <div class="invalid-feedback"></div>
-</div>
+</form>
 <div data-bs-theme="dark">
 </div>
 
