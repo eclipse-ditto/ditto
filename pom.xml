@@ -790,6 +790,8 @@
             </activation>
             <properties>
                 <docker.image.additional.tag>latest</docker.image.additional.tag>
+                <sonar.organization>unimibesami</sonar.organization>
+                <sonar.host.url>https://sonarcloud.io</sonar.host.url>
             </properties>
             <build>
                 <plugins>
