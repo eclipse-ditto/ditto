@@ -2,9 +2,10 @@
   "compilerOptions": {
     "outDir": "./dist",
     "target": "ES2019",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["main.ts", "./custom.d.ts", "./modules/**/*"]
+  "include": ["main.ts", "./custom.d.ts", "./modules/**/*", "__tests__/utils"]
 }

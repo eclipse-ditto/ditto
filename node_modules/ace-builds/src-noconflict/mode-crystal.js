@@ -288,22 +288,22 @@ var CrystalHighlightRules = function () {
                             defaultToken: "string"
                         }]
                 }], {
-                token: "text",
+                token: "text", // namespaces aren't symbols
                 regex: "::"
             }, {
-                token: "variable.instance",
+                token: "variable.instance", // instance variable
                 regex: "@{1,2}[a-zA-Z_\\d]+"
             }, {
-                token: "variable.fresh",
+                token: "variable.fresh", // fresh variable
                 regex: "%[a-zA-Z_\\d]+"
             }, {
-                token: "support.class",
+                token: "support.class", // class name
                 regex: "[A-Z][a-zA-Z_\\d]+"
             }, {
-                token: "constant.other.symbol",
+                token: "constant.other.symbol", // symbol
                 regex: "[:](?:(?:===|<=>|\\[]\\?|\\[]=|\\[]|>>|\\*\\*|<<|==|!=|>=|<=|!~|=~|<|\\+|-|\\*|\\/|%|&|\\||\\^|>|!|~)|(?:(?:[A-Za-z_]|[@$](?=[a-zA-Z0-9_]))[a-zA-Z0-9_]*[!=?]?))"
             }, {
-                token: "constant.numeric",
+                token: "constant.numeric", // float
                 regex: "[+-]?\\d(?:\\d|_(?=\\d))*(?:(?:\\.\\d(?:\\d|_(?=\\d))*)?(?:[eE][+-]?\\d+)?)?(?:_?[fF](?:32|64))?\\b"
             }, {
                 token: "constant.numeric",
@@ -452,10 +452,7 @@ var Range = require("../../range").Range;
 var FoldMode = exports.FoldMode = function () { };
 oop.inherits(FoldMode, BaseFoldMode);
 (function () {
-    this.getFoldWidgetRange = function (session, foldStyle, row) {
-        var range = this.indentationBlock(session, row);
-        if (range)
-            return range;
+    this.commentBlock = function (session, row) {
         var re = /\S/;
         var line = session.getLine(row);
         var startLevel = line.search(re);
@@ -478,6 +475,14 @@ oop.inherits(FoldMode, BaseFoldMode);
             var endColumn = session.getLine(endRow).length;
             return new Range(startRow, startColumn, endRow, endColumn);
         }
+    };
+    this.getFoldWidgetRange = function (session, foldStyle, row) {
+        var range = this.indentationBlock(session, row);
+        if (range)
+            return range;
+        range = this.commentBlock(session, row);
+        if (range)
+            return range;
     };
     this.getFoldWidget = function (session, foldStyle, row) {
         var line = session.getLine(row);

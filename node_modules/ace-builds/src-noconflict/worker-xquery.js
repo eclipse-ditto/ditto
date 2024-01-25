@@ -413,9 +413,6 @@ exports.EventEmitter = EventEmitter;
 });
 
 ace.define("ace/range",[], function(require, exports, module){"use strict";
-var comparePoints = function (p1, p2) {
-    return p1.row - p2.row || p1.column - p2.column;
-};
 var Range = /** @class */ (function () {
     function Range(startRow, startColumn, endRow, endColumn) {
         this.start = {
@@ -635,7 +632,6 @@ var Range = /** @class */ (function () {
 Range.fromPoints = function (start, end) {
     return new Range(start.row, start.column, end.row, end.column);
 };
-Range.comparePoints = comparePoints;
 Range.comparePoints = function (p1, p2) {
     return p1.row - p2.row || p1.column - p2.column;
 };
@@ -650,7 +646,7 @@ var Anchor = /** @class */ (function () {
     function Anchor(doc, row, column) {
         this.$onChange = this.onChange.bind(this);
         this.attach(doc);
-        if (typeof column == "undefined")
+        if (typeof row != "number")
             this.setPosition(row.row, row.column);
         else
             this.setPosition(row, column);
@@ -1090,6 +1086,27 @@ exports.Document = Document;
 
 });
 
+ace.define("ace/lib/deep_copy",[], function(require, exports, module){exports.deepCopy = function deepCopy(obj) {
+    if (typeof obj !== "object" || !obj)
+        return obj;
+    var copy;
+    if (Array.isArray(obj)) {
+        copy = [];
+        for (var key = 0; key < obj.length; key++) {
+            copy[key] = deepCopy(obj[key]);
+        }
+        return copy;
+    }
+    if (Object.prototype.toString.call(obj) !== "[object Object]")
+        return obj;
+    copy = {};
+    for (var key in obj)
+        copy[key] = deepCopy(obj[key]);
+    return copy;
+};
+
+});
+
 ace.define("ace/lib/lang",[], function(require, exports, module){"use strict";
 exports.last = function (a) {
     return a[a.length - 1];
@@ -1132,24 +1149,7 @@ exports.copyArray = function (array) {
     }
     return copy;
 };
-exports.deepCopy = function deepCopy(obj) {
-    if (typeof obj !== "object" || !obj)
-        return obj;
-    var copy;
-    if (Array.isArray(obj)) {
-        copy = [];
-        for (var key = 0; key < obj.length; key++) {
-            copy[key] = deepCopy(obj[key]);
-        }
-        return copy;
-    }
-    if (Object.prototype.toString.call(obj) !== "[object Object]")
-        return obj;
-    copy = {};
-    for (var key in obj)
-        copy[key] = deepCopy(obj[key]);
-    return copy;
-};
+exports.deepCopy = require("./deep_copy").deepCopy;
 exports.arrayToMap = function (arr) {
     var map = {};
     for (var i = 0; i < arr.length; i++) {
@@ -1241,6 +1241,18 @@ exports.delayedCall = function (fcn, defaultTimeout) {
         return timer;
     };
     return _self;
+};
+exports.supportsLookbehind = function () {
+    try {
+        new RegExp('(?<=.)');
+    }
+    catch (e) {
+        return false;
+    }
+    return true;
+};
+exports.skipEmptyMatch = function (line, last, supportsUnicodeFlag) {
+    return supportsUnicodeFlag && line.codePointAt(last) > 0xffff ? 2 : 1;
 };
 
 });

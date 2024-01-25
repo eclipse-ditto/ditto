@@ -74,7 +74,7 @@ var CssHighlightRules = function () {
                     + "|swash|ornaments|annotation|stylistic|styleset|character-variant)"
             }],
         "comments": [{
-                token: "comment",
+                token: "comment", // multi line comment
                 regex: "\\/\\*",
                 push: [{
                         token: "comment",
@@ -103,10 +103,10 @@ var CssHighlightRules = function () {
                 token: "constant.numeric",
                 regex: numRe
             }, {
-                token: "constant.numeric",
+                token: "constant.numeric", // hex6 color
                 regex: "#[a-f0-9]{6}"
             }, {
-                token: "constant.numeric",
+                token: "constant.numeric", // hex3 color
                 regex: "#[a-f0-9]{3}"
             }, {
                 token: ["punctuation", "entity.other.attribute-name.pseudo-element.css"],
@@ -285,14 +285,14 @@ JsDocCommentHighlightRules.getTagRule = function (start) {
 };
 JsDocCommentHighlightRules.getStartRule = function (start) {
     return {
-        token: "comment.doc",
+        token: "comment.doc", // doc comment
         regex: "\\/\\*(?=\\*)",
         next: start
     };
 };
 JsDocCommentHighlightRules.getEndRule = function (start) {
     return {
-        token: "comment.doc",
+        token: "comment.doc", // closing comment
         regex: "\\*\\/",
         next: start
     };
@@ -317,7 +317,7 @@ var JavaScriptHighlightRules = function (options) {
             "decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|eval|isFinite|" + // Non-constructor functions
             "isNaN|parseFloat|parseInt|" +
             "JSON|Math|" + // Other
-            "this|arguments|prototype|window|document",
+            "this|arguments|prototype|window|document", // Pseudo
         "keyword": "const|yield|import|get|set|async|await|" +
             "break|case|catch|continue|default|delete|do|else|finally|for|function|" +
             "if|in|of|instanceof|new|return|switch|throw|try|typeof|let|var|while|with|debugger|" +
@@ -349,10 +349,10 @@ var JavaScriptHighlightRules = function (options) {
                 regex: '"(?=.)',
                 next: "qqstring"
             }, {
-                token: "constant.numeric",
+                token: "constant.numeric", // hexadecimal, octal and binary
                 regex: /0(?:[xX][0-9a-fA-F]+|[oO][0-7]+|[bB][01]+)\b/
             }, {
-                token: "constant.numeric",
+                token: "constant.numeric", // decimal integers and floats
                 regex: /(?:\d\d*(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+\b)?/
             }, {
                 token: [
@@ -414,7 +414,7 @@ var JavaScriptHighlightRules = function (options) {
                 regex: /that\b/
             }, {
                 token: ["storage.type", "punctuation.operator", "support.function.firebug"],
-                regex: /(console)(\.)(warn|info|log|error|time|trace|timeEnd|assert)\b/
+                regex: /(console)(\.)(warn|info|log|error|debug|time|trace|timeEnd|assert)\b/
             }, {
                 token: keywordMapper,
                 regex: identifierRe
@@ -572,10 +572,10 @@ var JavaScriptHighlightRules = function (options) {
                 token: "constant.language",
                 regex: "null|Infinity|NaN|undefined"
             }, {
-                token: "constant.numeric",
+                token: "constant.numeric", // hexadecimal, octal and binary
                 regex: /0(?:[xX][0-9a-fA-F]+|[oO][0-7]+|[bB][01]+)\b/
             }, {
-                token: "constant.numeric",
+                token: "constant.numeric", // decimal integers and floats
                 regex: /(?:\d\d*(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+\b)?/
             }, {
                 token: "punctuation.operator",
@@ -816,7 +816,7 @@ function JSX() {
 function comments(next) {
     return [
         {
-            token: "comment",
+            token: "comment", // multi line comment
             regex: /\/\*/,
             next: [
                 DocCommentHighlightRules.getTagRule(),
@@ -1117,14 +1117,14 @@ DocCommentHighlightRules.getTagRule = function (start) {
 };
 DocCommentHighlightRules.getStartRule = function (start) {
     return {
-        token: "comment.doc",
+        token: "comment.doc", // doc comment
         regex: "\\/\\*(?=\\*)",
         next: start
     };
 };
 DocCommentHighlightRules.getEndRule = function (start) {
     return {
-        token: "comment.doc",
+        token: "comment.doc", // closing comment
         regex: "\\*\\/",
         next: start
     };
@@ -1138,6 +1138,7 @@ var oop = require("../lib/oop");
 var DocCommentHighlightRules = require("./doc_comment_highlight_rules").DocCommentHighlightRules;
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var JavaHighlightRules = function () {
+    var identifierRe = "[a-zA-Z_$][a-zA-Z0-9_$]*";
     var keywords = ("abstract|continue|for|new|switch|" +
         "assert|default|goto|package|synchronized|" +
         "boolean|do|if|private|this|" +
@@ -1148,7 +1149,10 @@ var JavaHighlightRules = function () {
         "char|final|interface|static|void|" +
         "class|finally|long|strictfp|volatile|" +
         "const|float|native|super|while|" +
-        "var");
+        "var|exports|opens|requires|uses|yield|" +
+        "module|permits|(?:non\\-)?sealed|var|" +
+        "provides|to|when|" +
+        "open|record|transitive|with");
     var buildinConstants = ("null|Infinity|NaN|undefined");
     var langClasses = ("AbstractMethodError|AssertionError|ClassCircularityError|" +
         "ClassFormatError|Deprecated|EnumConstantNotPresentException|" +
@@ -1176,7 +1180,6 @@ var JavaHighlightRules = function () {
         "Cloneable|Class|CharSequence|Comparable|String|Object");
     var keywordMapper = this.createKeywordMapper({
         "variable.language": "this",
-        "keyword": keywords,
         "constant.language": buildinConstants,
         "support.function": langClasses
     }, "identifier");
@@ -1188,25 +1191,14 @@ var JavaHighlightRules = function () {
             },
             DocCommentHighlightRules.getStartRule("doc-start"),
             {
-                token: "comment",
+                token: "comment", // multi line comment
                 regex: "\\/\\*",
                 next: "comment"
-            }, {
-                token: "string",
-                regex: '["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]'
-            }, {
-                token: "string",
-                regex: "['](?:(?:\\\\.)|(?:[^'\\\\]))*?[']"
-            }, {
-                token: "constant.numeric",
-                regex: /0(?:[xX][0-9a-fA-F][0-9a-fA-F_]*|[bB][01][01_]*)[LlSsDdFfYy]?\b/
-            }, {
-                token: "constant.numeric",
-                regex: /[+-]?\d[\d_]*(?:(?:\.[\d_]*)?(?:[eE][+-]?[\d_]+)?)?[LlSsDdFfYy]?\b/
-            }, {
-                token: "constant.language.boolean",
-                regex: "(?:true|false)\\b"
-            }, {
+            },
+            { include: "multiline-strings" },
+            { include: "strings" },
+            { include: "constants" },
+            {
                 regex: "(open(?:\\s+))?module(?=\\s*\\w)",
                 token: "keyword",
                 next: [{
@@ -1233,12 +1225,147 @@ var JavaHighlightRules = function () {
                         token: "text",
                         regex: "\\s+"
                     }, {
-                        regex: "",
+                        regex: "", // exit if there is anything else
                         next: "start"
                     }]
+            },
+            { include: "statements" }
+        ],
+        "comment": [
+            {
+                token: "comment", // closing comment
+                regex: "\\*\\/",
+                next: "start"
             }, {
-                token: keywordMapper,
-                regex: "[a-zA-Z_$][a-zA-Z0-9_$]*\\b"
+                defaultToken: "comment"
+            }
+        ],
+        "strings": [
+            {
+                token: ["punctuation", "string"],
+                regex: /(\.)(")/,
+                push: [
+                    {
+                        token: "lparen",
+                        regex: /\\\{/,
+                        push: [
+                            {
+                                token: "text",
+                                regex: /$/,
+                                next: "start"
+                            }, {
+                                token: "rparen",
+                                regex: /}/,
+                                next: "pop"
+                            }, {
+                                include: "strings"
+                            }, {
+                                include: "constants"
+                            }, {
+                                include: "statements"
+                            }
+                        ]
+                    }, {
+                        token: "string",
+                        regex: /"/,
+                        next: "pop"
+                    }, {
+                        defaultToken: "string"
+                    }
+                ]
+            }, {
+                token: "string", // single line
+                regex: '["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]'
+            }, {
+                token: "string", // single line
+                regex: "['](?:(?:\\\\.)|(?:[^'\\\\]))*?[']"
+            }
+        ],
+        "multiline-strings": [
+            {
+                token: ["punctuation", "string"],
+                regex: /(\.)(""")/,
+                push: [
+                    {
+                        token: "string",
+                        regex: '"""',
+                        next: "pop"
+                    }, {
+                        token: "lparen",
+                        regex: /\\\{/,
+                        push: [
+                            {
+                                token: "text",
+                                regex: /$/,
+                                next: "start"
+                            }, {
+                                token: "rparen",
+                                regex: /}/,
+                                next: "pop"
+                            }, {
+                                include: "multiline-strings"
+                            }, {
+                                include: "strings"
+                            }, {
+                                include: "constants"
+                            }, {
+                                include: "statements"
+                            }
+                        ]
+                    }, {
+                        token: "constant.language.escape",
+                        regex: /\\./
+                    }, {
+                        defaultToken: "string"
+                    }
+                ]
+            },
+            {
+                token: "string",
+                regex: '"""',
+                push: [
+                    {
+                        token: "string",
+                        regex: '"""',
+                        next: "pop"
+                    }, {
+                        token: "constant.language.escape",
+                        regex: /\\./
+                    }, {
+                        defaultToken: "string"
+                    }
+                ]
+            }
+        ],
+        "constants": [
+            {
+                token: "constant.numeric", // hex
+                regex: /0(?:[xX][0-9a-fA-F][0-9a-fA-F_]*|[bB][01][01_]*)[LlSsDdFfYy]?\b/
+            }, {
+                token: "constant.numeric", // float
+                regex: /[+-]?\d[\d_]*(?:(?:\.[\d_]*)?(?:[eE][+-]?[\d_]+)?)?[LlSsDdFfYy]?\b/
+            }, {
+                token: "constant.language.boolean",
+                regex: "(?:true|false)\\b"
+            }
+        ],
+        "statements": [
+            {
+                token: ["keyword", "text", "identifier"],
+                regex: "(record)(\\s+)(" + identifierRe + ")\\b"
+            },
+            {
+                token: "keyword",
+                regex: "(?:" + keywords + ")\\b"
+            }, {
+                token: "storage.type.annotation",
+                regex: "@" + identifierRe + "\\b"
+            }, {
+                token: "entity.name.function",
+                regex: identifierRe + "(?=\\()"
+            }, {
+                token: keywordMapper, // TODO: Unicode escape sequences
+                regex: identifierRe + "\\b"
             }, {
                 token: "keyword.operator",
                 regex: "!|\\$|%|&|\\||\\^|\\*|\\/|\\-\\-|\\-|\\+\\+|\\+|~|===|==|=|!=|!==|<=|>=|<<=|>>=|>>>=|<>|<|>|!|&&|\\|\\||\\?|\\:|\\*=|\\/=|%=|\\+=|\\-=|&=|\\|=|\\^=|\\b(?:in|instanceof|new|delete|typeof|void)"
@@ -1251,15 +1378,6 @@ var JavaHighlightRules = function () {
             }, {
                 token: "text",
                 regex: "\\s+"
-            }
-        ],
-        "comment": [
-            {
-                token: "comment",
-                regex: "\\*\\/",
-                next: "start"
-            }, {
-                defaultToken: "comment"
             }
         ]
     };
@@ -1286,14 +1404,14 @@ var JspHighlightRules = function () {
             regex: "<%--",
             push: "jsp-dcomment"
         }, {
-            token: "meta.tag",
+            token: "meta.tag", // jsp open tag
             regex: "<%@?|<%=?|<%!?|<jsp:[^>]+>",
             push: "jsp-start"
         }
     ];
     var endRules = [
         {
-            token: "meta.tag",
+            token: "meta.tag", // jsp close tag
             regex: "%>|<\\/jsp:[^>]+>",
             next: "pop"
         }, {

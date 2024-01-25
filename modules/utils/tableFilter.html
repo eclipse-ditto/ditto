@@ -1,0 +1,33 @@
+<!--
+  ~ Copyright (c) 2024 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<form class="input-group input-group-sm has-validation mb-1" autocomplete="off">
+  <label class="input-group-text" hidden>Filter</label>
+  <div class="btn-group dropend">
+      <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle"
+          data-bs-toggle="dropdown" aria-expanded="false"></button>
+      <ul id="ulFilterOptions" class="dropdown-menu">
+          <input type="text" name="dropdown" class="form-control form-control-sm" placeholder="Filter entries..." spellcheck="false" autocomplete="off">
+      </ul>                                    
+  </div>
+  <input autocomplete="false" name="hidden" type="text" style="display:none;">
+  <input type="search" name="main" class="form-control form-control-sm me-1"
+    placeholder="Add basic filter..." autocomplete="off" spellcheck="false"></input>
+  <div class="form-check form-switch">
+    <input class="form-check-input mt-2" type="checkbox" role="switch"
+        data-bs-toggle="tooltip" title="Toggle advanced search">
+  </div>
+  <div class="invalid-feedback"></div>
+</form>
+<div data-bs-theme="dark">
+</div>
+

@@ -43,6 +43,7 @@ import * as ThingsSSE from './modules/things/thingsSSE.js';
 import { WoTDescription } from './modules/things/wotDescription.js';
 import * as Utils from './modules/utils.js';
 import './modules/utils/crudToolbar.js';
+import './modules/utils/tableFilter.js';
 
 let resized = false;
 let mainNavbar;
@@ -68,7 +69,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   PoliciesResources.ready();
   Connections.ready();
   ConnectionsCRUD.ready();
-  ConnectionsMonitor.ready();
+  await ConnectionsMonitor.ready();
   Operations.ready();
   Authorization.ready();
   await Environments.ready();

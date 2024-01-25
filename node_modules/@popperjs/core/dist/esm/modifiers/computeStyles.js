@@ -127,17 +127,6 @@ function computeStyles(_ref5) {
       adaptive = _options$adaptive === void 0 ? true : _options$adaptive,
       _options$roundOffsets = options.roundOffsets,
       roundOffsets = _options$roundOffsets === void 0 ? true : _options$roundOffsets;
-
-  if (false) {
-    var transitionProperty = getComputedStyle(state.elements.popper).transitionProperty || '';
-
-    if (adaptive && ['transform', 'top', 'right', 'bottom', 'left'].some(function (property) {
-      return transitionProperty.indexOf(property) >= 0;
-    })) {
-      console.warn(['Popper: Detected CSS transitions on at least one of the following', 'CSS properties: "transform", "top", "right", "bottom", "left".', '\n\n', 'Disable the "computeStyles" modifier\'s `adaptive` option to allow', 'for smooth transitions, or remove these properties from the CSS', 'transition declaration on the popper element if only transitioning', 'opacity or background-color for example.', '\n\n', 'We recommend using the popper element as a wrapper around an inner', 'element that can have any CSS property transitioned for animations.'].join(' '));
-    }
-  }
-
   var commonStyles = {
     placement: getBasePlacement(state.placement),
     variation: getVariation(state.placement),

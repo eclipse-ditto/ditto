@@ -421,13 +421,19 @@ position: fixed;
 z-index: 999999;
 box-sizing: border-box;
 cursor: default;
-white-space: pre;
+white-space: pre-wrap;
 word-wrap: break-word;
 line-height: normal;
 font-style: normal;
 font-weight: normal;
 letter-spacing: normal;
 pointer-events: none;
+overflow: auto;
+max-width: min(60em, 66vw);
+overscroll-behavior: contain;
+}
+.ace_tooltip pre {
+white-space: pre-wrap;
 }
 .ace_tooltip.ace_dark {
 background-color: #636363;
@@ -594,6 +600,14 @@ margin: 0 10px;
 opacity: 0.5;
 font-style: italic;
 white-space: pre;
+}
+.ace_screenreader-only {
+position:absolute;
+left:-10000px;
+top:auto;
+width:1px;
+height:1px;
+overflow:hidden;
 }
 /*ace-tm*/
 .ace-tm .ace_gutter {
@@ -897,6 +911,7 @@ opacity: 0.5;
 margin-left: 0.9em;
 }
 .ace_completion-message {
+margin-left: 0.9em;
 color: blue;
 }
 .ace_editor.ace_autocomplete .ace_completion-highlight{
@@ -941,6 +956,29 @@ text-overflow: ellipsis;
 }
 .ace_autocomplete .ace_completion-spacer {
 flex: 1;
+}
+.ace_autocomplete.ace_loading:after  {
+content: "";
+position: absolute;
+top: 0px;
+height: 2px;
+width: 8%;
+background: blue;
+z-index: 100;
+animation: ace_progress 3s infinite linear;
+animation-delay: 300ms;
+transform: translateX(-100%) scaleX(1);
+}
+@keyframes ace_progress {
+0% { transform: translateX(-100%) scaleX(1) }
+50% { transform: translateX(625%) scaleX(2) } 
+100% { transform: translateX(1500%) scaleX(3) } 
+}
+@media (prefers-reduced-motion) {
+.ace_autocomplete.ace_loading:after {
+transform: translateX(625%) scaleX(2);
+animation: none;
+}
 }
 /*inlineautocomplete.css*/
 .ace_icon_svg.ace_arrow,

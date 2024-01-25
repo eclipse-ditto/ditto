@@ -10,16 +10,33 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
+import {JSONPath} from 'jsonpath-plus';
 
 import * as API from '../api.js';
 import * as Utils from '../utils.js';
 import * as Connections from './connections.js';
+import { TableFilter } from '../utils/tableFilter.js';
+import { FilterType, Term } from '../utils/basicFilters.js';
 /* eslint-disable prefer-const */
 /* eslint-disable max-len */
 /* eslint-disable no-invalid-this */
 /* eslint-disable require-jsdoc */
 
-let dom = {
+type DomElements = {
+    tbodyConnectionLogs: HTMLTableElement,
+    tbodyConnectionMetrics: HTMLTableElement,
+    buttonRetrieveConnectionStatus: HTMLButtonElement,
+    buttonRetrieveConnectionLogs: HTMLButtonElement,
+    buttonEnableConnectionLogs: HTMLButtonElement,
+    buttonResetConnectionLogs: HTMLButtonElement,
+    buttonRetrieveConnectionMetrics: HTMLButtonElement,
+    buttonResetConnectionMetrics: HTMLButtonElement,
+    tableValidationConnections: HTMLInputElement,
+    tableFilterConnectionLogs: TableFilter,
+    badgeConnectionLogsCount: HTMLSpanElement,
+}
+
+let dom: DomElements = {
   tbodyConnectionLogs: null,
   tbodyConnectionMetrics: null,
   buttonRetrieveConnectionStatus: null,
@@ -29,17 +46,20 @@ let dom = {
   buttonRetrieveConnectionMetrics: null,
   buttonResetConnectionMetrics: null,
   tableValidationConnections: null,
-  // inputConnectionLogFilter: null,
+  tableFilterConnectionLogs: null,
+  badgeConnectionLogsCount: null,
 };
 
-let connectionLogs;
+let connectionLogs = [];
+let filteredLogs: Array<any>;
+
 let connectionLogDetail;
 
 let connectionStatusDetail;
 
 let selectedConnectionId;
 
-export function ready() {
+export async function ready() {
   Connections.addChangeListener(onConnectionChange);
 
   Utils.getAllElementsById(dom);
@@ -56,12 +76,14 @@ export function ready() {
   dom.buttonResetConnectionLogs.onclick = onResetConnectionLogsClick;
   dom.buttonRetrieveConnectionLogs.onclick = retrieveConnectionLogs;
   dom.tbodyConnectionLogs.addEventListener('click', onConnectionLogTableClick);
+  dom.tableFilterConnectionLogs.addEventListener('filterChange', onConnectionLogFilterChange);
+  dom.tableFilterConnectionLogs.filterOptions = createFilterOptions();
 
   // Metrics ---------------
   dom.buttonRetrieveConnectionMetrics.onclick = retrieveConnectionMetrics;
   (document.querySelector('a[data-bs-target="#tabConnectionMetrics"]') as HTMLElement).onclick = retrieveConnectionMetrics;
   dom.buttonResetConnectionMetrics.onclick = onResetConnectionMetricsClick;
-  // dom.inputConnectionLogFilter.onchange = onConnectionLogFilterChange;
+  dom.tbodyConnectionMetrics.addEventListener('click', onConnectionMetricsTableClick)
 }
 
 function onResetConnectionMetricsClick() {
@@ -70,8 +92,11 @@ function onResetConnectionMetricsClick() {
 }
 
 function onConnectionLogTableClick(event) {
-  connectionLogDetail.setValue(Utils.stringifyPretty(connectionLogs[event.target.parentNode.rowIndex - 1]), -1);
+  connectionLogDetail.setValue(Utils.stringifyPretty(filteredLogs[event.target.parentNode.rowIndex - 1]), -1);
   connectionLogDetail.session.getUndoManager().reset();
+}
+
+function onConnectionMetricsTableClick(event) {
 }
 
 function onResetConnectionLogsClick() {
@@ -94,7 +119,12 @@ function retrieveConnectionMetrics() {
           Object.keys(response.connectionMetrics[direction]).forEach((type) => {
             let entry = response.connectionMetrics[direction][type];
             Utils.addTableRow(dom.tbodyConnectionMetrics, direction, false, null, type, 'success', entry.success.PT1M, entry.success.PT1H, entry.success.PT24H);
-            Utils.addTableRow(dom.tbodyConnectionMetrics, direction, false, null, type, 'failure', entry.failure.PT1M, entry.failure.PT1H, entry.failure.PT24H);
+            let failureRow = Utils.addTableRow(dom.tbodyConnectionMetrics, direction, false, null, type, 'failure', entry.failure.PT1M, entry.failure.PT1H, entry.failure.PT24H);
+            let numberColumn = failureRow.lastElementChild;
+            for (let i = 0; i < 3; i++) {
+              if (numberColumn.innerHTML !== '0') numberColumn.classList.add('text-danger');
+              numberColumn = numberColumn.previousElementSibling;
+            }
           });
         };
       });
@@ -117,21 +147,28 @@ function retrieveConnectionLogs() {
   API.callConnectionsAPI('retrieveConnectionLogs', (response) => {
     connectionLogs = response.connectionLogs;
     adjustEnableButton(response);
-    fillConnectionLogsTable(response.connectionLogs);
+    fillConnectionLogsTable();
   },
   selectedConnectionId);
 }
 
-let connectionLogsFilter;
-
-function fillConnectionLogsTable(entries) {
+function fillConnectionLogsTable() {
   dom.tbodyConnectionLogs.innerHTML = '';
   connectionLogDetail.setValue('');
 
-  let filter = connectionLogsFilter ? connectionLogsFilter.match : (a => true);
-  entries.filter(filter).forEach((entry) => {
-    Utils.addTableRow(dom.tbodyConnectionLogs, Utils.formatDate(entry.timestamp, true), false, null, entry.type, entry.level);
+  filteredLogs = dom.tableFilterConnectionLogs.filterItems(connectionLogs);
+
+  filteredLogs.forEach((entry) => {
+    Utils.addTableRow(
+        dom.tbodyConnectionLogs,
+        Utils.formatDate(entry.timestamp, true), false, null,
+        entry.type,
+        entry.level
+    );
   });
+
+  Utils.updateCounterBadge(dom.badgeConnectionLogsCount, connectionLogs, filteredLogs);
+
   dom.tbodyConnectionLogs.scrollTop = dom.tbodyConnectionLogs.scrollHeight - dom.tbodyConnectionLogs.clientHeight;
 }
 
@@ -156,38 +193,24 @@ function onConnectionChange(connection, isNewConnection = true) {
   }
 }
 
-function JsonFilter() {
-  let _filters = [];
-
-  const match = (object) => {
-    let result = true;
-    _filters.forEach((f) => result = result && object[f.key] === f.value);
-    return result;
-  };
-
-  const add = (key, value) => {
-    _filters.push({key: key, value: value});
-  };
-
-  return {
-    match,
-    add,
-  };
+function onConnectionLogFilterChange(event: Event) {
+  fillConnectionLogsTable();
 }
 
-const knownFields = ['category', 'type', 'level'];
+function createFilterOptions(): [Term?] {
+  let result: [Term?] = [];
 
-function onConnectionLogFilterChange(event) {
-  if (event.target.value && event.target.value !== '') {
-    connectionLogsFilter = JsonFilter();
-    event.target.value.split(/(\s+)/).forEach((elem) => {
-      const keyValue = elem.split(':');
-      if (keyValue.length === 2 && knownFields.includes(keyValue[0].trim())) {
-        connectionLogsFilter.add(keyValue[0].trim(), keyValue[1].trim());
-      }
-    });
-  } else {
-    connectionLogsFilter = null;
-  }
-  fillConnectionLogsTable(connectionLogs);
+  ['consumed', 'mapped', 'dropped', 'enforced', 'acknowledged', 'throttled', 'dispatched', 'filtered', 'published']
+    .forEach((e) => result.push(new Term(FilterType.PROP_EQ, e, 'type')));
+  ['source', 'target', 'response']
+    .forEach((e) => result.push(new Term(FilterType.PROP_EQ, e, 'category')));
+  ['success', 'failure']
+    .forEach((e) => result.push(new Term(FilterType.PROP_EQ, e, 'level')));
+  ['thing']
+    .forEach((e) => result.push(new Term(FilterType.PROP_EQ, e, 'entityType')));
+
+  // ['correlationId', 'entityId']
+  //   .forEach((value: string) => result.push(value));
+
+  return result;
 }

@@ -413,9 +413,6 @@ exports.EventEmitter = EventEmitter;
 });
 
 ace.define("ace/range",[], function(require, exports, module){"use strict";
-var comparePoints = function (p1, p2) {
-    return p1.row - p2.row || p1.column - p2.column;
-};
 var Range = /** @class */ (function () {
     function Range(startRow, startColumn, endRow, endColumn) {
         this.start = {
@@ -635,7 +632,6 @@ var Range = /** @class */ (function () {
 Range.fromPoints = function (start, end) {
     return new Range(start.row, start.column, end.row, end.column);
 };
-Range.comparePoints = comparePoints;
 Range.comparePoints = function (p1, p2) {
     return p1.row - p2.row || p1.column - p2.column;
 };
@@ -650,7 +646,7 @@ var Anchor = /** @class */ (function () {
     function Anchor(doc, row, column) {
         this.$onChange = this.onChange.bind(this);
         this.attach(doc);
-        if (typeof column == "undefined")
+        if (typeof row != "number")
             this.setPosition(row.row, row.column);
         else
             this.setPosition(row, column);
@@ -1090,6 +1086,27 @@ exports.Document = Document;
 
 });
 
+ace.define("ace/lib/deep_copy",[], function(require, exports, module){exports.deepCopy = function deepCopy(obj) {
+    if (typeof obj !== "object" || !obj)
+        return obj;
+    var copy;
+    if (Array.isArray(obj)) {
+        copy = [];
+        for (var key = 0; key < obj.length; key++) {
+            copy[key] = deepCopy(obj[key]);
+        }
+        return copy;
+    }
+    if (Object.prototype.toString.call(obj) !== "[object Object]")
+        return obj;
+    copy = {};
+    for (var key in obj)
+        copy[key] = deepCopy(obj[key]);
+    return copy;
+};
+
+});
+
 ace.define("ace/lib/lang",[], function(require, exports, module){"use strict";
 exports.last = function (a) {
     return a[a.length - 1];
@@ -1132,24 +1149,7 @@ exports.copyArray = function (array) {
     }
     return copy;
 };
-exports.deepCopy = function deepCopy(obj) {
-    if (typeof obj !== "object" || !obj)
-        return obj;
-    var copy;
-    if (Array.isArray(obj)) {
-        copy = [];
-        for (var key = 0; key < obj.length; key++) {
-            copy[key] = deepCopy(obj[key]);
-        }
-        return copy;
-    }
-    if (Object.prototype.toString.call(obj) !== "[object Object]")
-        return obj;
-    copy = {};
-    for (var key in obj)
-        copy[key] = deepCopy(obj[key]);
-    return copy;
-};
+exports.deepCopy = require("./deep_copy").deepCopy;
 exports.arrayToMap = function (arr) {
     var map = {};
     for (var i = 0; i < arr.length; i++) {
@@ -1241,6 +1241,18 @@ exports.delayedCall = function (fcn, defaultTimeout) {
         return timer;
     };
     return _self;
+};
+exports.supportsLookbehind = function () {
+    try {
+        new RegExp('(?<=.)');
+    }
+    catch (e) {
+        return false;
+    }
+    return true;
+};
+exports.skipEmptyMatch = function (line, last, supportsUnicodeFlag) {
+    return supportsUnicodeFlag && line.codePointAt(last) > 0xffff ? 2 : 1;
 };
 
 });
@@ -2315,7 +2327,7 @@ module.exports = slice;
     exports.noConflict = function () { global._ = current; return exports; };
   }()));
 }(this, (function () {
-  var VERSION = '1.13.4';
+  var VERSION = '1.13.6';
   var root = (typeof self == 'object' && self.self === self && self) ||
             (typeof global == 'object' && global.global === global && global) ||
             Function('return this')() ||
@@ -3805,7 +3817,7 @@ module.exports = slice;
 },{}],"/../../../jshint/src/jshint.js":[function(_dereq_,module,exports){
 
 var _            = _dereq_("underscore");
-_.clone          = _dereq_("lodash.clone");
+_.clone = _dereq_("lodash.clone");
 var events       = _dereq_("events");
 var vars         = _dereq_("./vars.js");
 var messages     = _dereq_("./messages.js");
@@ -7376,7 +7388,7 @@ var JSHINT = (function() {
         var id = state.tokens.prev;
         value = expression(context, 10);
         if (value) {
-          if (value.identifier && value.value === "undefined") {
+          if (!isConst && value.identifier && value.value === "undefined") {
             warning("W080", id, id.value);
           }
           if (!lone) {
@@ -11314,7 +11326,7 @@ var errors = {
   E009: "Option 'validthis' can't be used in a global scope.",
   E010: "'with' is not allowed in strict mode.",
   E011: "'{a}' has already been declared.",
-  E012: "const '{a}' is initialized to 'undefined'.",
+  E012: "Missing initializer for constant '{a}'.",
   E013: "Attempting to override '{a}' which is a constant.",
   E014: "A regular expression literal can be confused with '/='.",
   E015: "Unclosed regular expression.",
@@ -11803,7 +11815,7 @@ exports.regexpDot = /(^|[^\\])(\\\\)*\./;
 "use strict";
 
 var _      = _dereq_("underscore");
-_.slice    = _dereq_("lodash.slice");
+_.slice = _dereq_("lodash.slice");
 var events = _dereq_("events");
 var marker = {};
 var scopeManager = function(state, predefined, exported, declared) {
@@ -15304,7 +15316,7 @@ oop.inherits(JavaScriptWorker, Mirror);
 (function() {
     this.setOptions = function(options) {
         this.options = options || {
-            esnext: true,
+            esversion: 11,
             moz: true,
             devel: true,
             browser: true,
