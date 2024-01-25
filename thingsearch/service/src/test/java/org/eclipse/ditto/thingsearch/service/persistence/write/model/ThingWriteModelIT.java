@@ -18,6 +18,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Arrays;
 import java.util.Set;
 
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
 import org.bson.BsonDocument;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
@@ -31,9 +33,6 @@ import org.mongodb.scala.bson.BsonNumber;
 
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.reactivestreams.client.MongoCollection;
-
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Tests MongoDB interaction of {@link ThingWriteModel}.
@@ -111,7 +110,7 @@ public final class ThingWriteModelIT extends AbstractThingSearchPersistenceITBas
     }
 
     private static ThingWriteModel getWriteModel(final long sn, final int counterValue) {
-        final Metadata metadata = Metadata.of(ThingId.of("thing:id"), sn, null, Set.of(), null);
+        final Metadata metadata = Metadata.of(ThingId.of("thing:id"), sn, null, null, Set.of(), null);
         final BsonDocument thingDocument = new BsonDocument()
                 .append("_revision", BsonNumber.apply(sn))
                 .append("counter", BsonNumber.apply(counterValue));

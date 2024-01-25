@@ -17,14 +17,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.TestProbe;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
 
-import org.apache.pekko.actor.ActorSelection;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.testkit.TestProbe;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
@@ -51,19 +51,19 @@ public final class MetadataTest extends AbstractWithActorSystemTest {
 
         final Set<PolicyTag> expectedReferencedPolicyTags = Set.of(policyTag, referencedPolicyTag);
 
-        assertThat(Metadata.of(ThingId.generateRandom(), 1337L, policyTag, Set.of(referencedPolicyTag), null)
+        assertThat(Metadata.of(ThingId.generateRandom(), 1337L, policyTag, null, Set.of(referencedPolicyTag), null)
                 .getAllReferencedPolicyTags())
                 .containsExactlyInAnyOrderElementsOf(expectedReferencedPolicyTags);
 
-        assertThat(Metadata.of(ThingId.generateRandom(), 1337L, policyTag, Set.of(referencedPolicyTag), List.of(), null,
+        assertThat(Metadata.of(ThingId.generateRandom(), 1337L, policyTag, null, Set.of(referencedPolicyTag), List.of(), null,
                 null).getAllReferencedPolicyTags())
                 .containsExactlyInAnyOrderElementsOf(expectedReferencedPolicyTags);
 
-        assertThat(Metadata.of(ThingId.generateRandom(), 1337L, policyTag, Set.of(referencedPolicyTag), null, null)
+        assertThat(Metadata.of(ThingId.generateRandom(), 1337L, policyTag, null, Set.of(referencedPolicyTag), null, null)
                 .getAllReferencedPolicyTags())
                 .containsExactlyInAnyOrderElementsOf(expectedReferencedPolicyTags);
 
-        assertThat(Metadata.of(ThingId.generateRandom(), 1337L, policyTag, Set.of(referencedPolicyTag), null, List.of(),
+        assertThat(Metadata.of(ThingId.generateRandom(), 1337L, policyTag, null, Set.of(referencedPolicyTag), null, List.of(),
                         List.of(), List.of(), List.of())
                 .getAllReferencedPolicyTags())
                 .containsExactlyInAnyOrderElementsOf(expectedReferencedPolicyTags);

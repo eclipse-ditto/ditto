@@ -18,12 +18,24 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Scheduler;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.japi.pf.PFBuilder;
+import org.apache.pekko.pattern.AskTimeoutException;
+import org.apache.pekko.stream.javadsl.Flow;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.Source;
 import org.eclipse.ditto.base.model.exceptions.AskException;
 import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacade;
 import org.eclipse.ditto.internal.models.streaming.AbstractEntityIdWithRevision;
@@ -59,17 +71,6 @@ import org.eclipse.ditto.thingsearch.service.updater.actors.SearchUpdateObserver
 import org.eclipse.ditto.thingsearch.service.updater.actors.ThingUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Scheduler;
-import org.apache.pekko.japi.Pair;
-import org.apache.pekko.japi.pf.PFBuilder;
-import org.apache.pekko.pattern.AskTimeoutException;
-import org.apache.pekko.stream.javadsl.Flow;
-import org.apache.pekko.stream.javadsl.Keep;
-import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Converts Thing changes into write models by retrieving data and applying enforcement via an enforcer cache.
@@ -126,10 +127,14 @@ final class EnforcementFlow {
 
         final PolicyCacheLoader policyCacheLoader =
                 PolicyCacheLoader.getNewInstance(askWithRetryConfig, scheduler, policiesShardRegion);
-        final ResolvedPolicyCacheLoader resolvedPolicyCacheLoader = new ResolvedPolicyCacheLoader(policyCacheLoader);
+        final CompletableFuture<Cache<PolicyId, Entry<Pair<Policy, Set<PolicyTag>>>>> cacheFuture =
+                new CompletableFuture<>();
+        final ResolvedPolicyCacheLoader resolvedPolicyCacheLoader =
+                new ResolvedPolicyCacheLoader(policyCacheLoader, cacheFuture);
         final Cache<PolicyId, Entry<Pair<Policy, Set<PolicyTag>>>> policyEnforcerCache =
                 CacheFactory.createCache(resolvedPolicyCacheLoader, policyCacheConfig,
                         "things-search_enforcementflow_enforcer_cache_policy", policyCacheDispatcher);
+        cacheFuture.complete(policyEnforcerCache);
 
         final var thingCacheConfig = updaterStreamConfig.getThingCacheConfig();
         final var thingCacheDispatcher = actorSystem.dispatchers()
@@ -206,7 +211,7 @@ final class EnforcementFlow {
                             return computeWriteModel(data.metadata(), thing);
                         })
                         .flatMapConcat(writeModel -> mapper.processWriteModel(writeModel, data.lastWriteModel())
-                                .orElse(Source.lazily(() -> {
+                                .orElse(Source.lazySource(() -> {
                                     data.metadata().sendWeakAck(null);
                                     return Source.empty();
                                 })))
@@ -230,7 +235,7 @@ final class EnforcementFlow {
                                     return retrieveThingFromCachingFacade(thingId, metadata, leftRetryAttempts - 1);
                                 } else {
                                     log.warn("No retries left, try to SudoRetrieveThing via cache, therefore giving " +
-                                                    "up for thingId <{}>", thingId);
+                                            "up for thingId <{}>", thingId);
                                     return Source.empty();
                                 }
                             }
@@ -285,7 +290,8 @@ final class EnforcementFlow {
                                 final Throwable fetchErrorCause = entry.getFetchErrorCause().orElse(
                                         new IllegalStateException("No fetch error cause present when it should be")
                                 );
-                                log.warn("Computed - due to fetch error <{}: {}> on policy cache - 'no op' ThingWriteModel " +
+                                log.warn(
+                                        "Computed - due to fetch error <{}: {}> on policy cache - 'no op' ThingWriteModel " +
                                                 "for metadata <{}> and thing <{}>",
                                         fetchErrorCause.getClass().getSimpleName(), fetchErrorCause.getMessage(),
                                         metadata, thing, fetchErrorCause
@@ -294,7 +300,7 @@ final class EnforcementFlow {
                             } else {
                                 // no enforcer; "empty out" thing in search index
                                 log.warn("Computed - due to missing enforcer - 'emptied out' ThingWriteModel for " +
-                                                "metadata <{}> and thing <{}>", metadata, thing);
+                                        "metadata <{}> and thing <{}>", metadata, thing);
                                 return ThingWriteModel.ofEmptiedOut(metadata);
                             }
                         }
@@ -309,7 +315,8 @@ final class EnforcementFlow {
      * @param thing the thing
      * @return source of an enforcer or an empty source.
      */
-    private Source<Entry<Pair<Policy, Set<PolicyTag>>>, NotUsed> getPolicy(final Metadata metadata, final JsonObject thing) {
+    private Source<Entry<Pair<Policy, Set<PolicyTag>>>, NotUsed> getPolicy(final Metadata metadata,
+            final JsonObject thing) {
         try {
             return thing.getValue(Thing.JsonFields.POLICY_ID)
                     .map(PolicyId::of)
@@ -330,6 +337,20 @@ final class EnforcementFlow {
                                 if (shouldReloadCache(optionalEnforcerEntry.orElse(null), metadata, iteration)) {
                                     // invalid entry; invalidate and retry after delay
                                     policyEnforcerCache.invalidate(policyId);
+
+                                    // only invalidate causing policy tag once, e.g. when a massively imported policy is changed:
+                                    metadata.getCausingPolicyTag()
+                                            .filter(Predicate.not(tag -> policyId.equals(tag.getEntityId())))
+                                            .ifPresent(causingPolicyTag -> {
+                                                final boolean invalidated = policyEnforcerCache.invalidateConditionally(
+                                                        causingPolicyTag.getEntityId(),
+                                                        entry -> entry.exists() &&
+                                                                entry.getRevision() < causingPolicyTag.getRevision()
+                                                );
+                                                log.debug("Causing policy tag was invalidated conditionally: <{}>",
+                                                        invalidated);
+                                            });
+
                                     return readCachedEnforcer(metadata, policyId, iteration + 1)
                                             .initialDelay(cacheRetryDelay);
                                 } else {
