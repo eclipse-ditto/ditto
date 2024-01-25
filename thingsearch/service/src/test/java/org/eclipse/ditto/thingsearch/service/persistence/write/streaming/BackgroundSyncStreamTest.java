@@ -20,6 +20,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
@@ -34,12 +39,6 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link BackgroundSyncStream}.
@@ -65,28 +64,28 @@ public final class BackgroundSyncStreamTest {
         final Duration toleranceWindow = Duration.ofHours(1L);
 
         final Source<Metadata, NotUsed> persisted = Source.from(List.of(
-                Metadata.of(ThingId.of("x:0-only-persisted"), 1L, PolicyTag.of(PolicyId.of("x:0"), 0L), Set.of(), null),
-                Metadata.of(ThingId.of("x:2-within-tolerance"), 3L, null, Set.of(), null),
-                Metadata.of(ThingId.of("x:3-revision-mismatch"), 3L, PolicyTag.of(PolicyId.of("x:3"), 0L), Set.of(),
+                Metadata.of(ThingId.of("x:0-only-persisted"), 1L, PolicyTag.of(PolicyId.of("x:0"), 0L), null, Set.of(), null),
+                Metadata.of(ThingId.of("x:2-within-tolerance"), 3L, null, null, Set.of(), null),
+                Metadata.of(ThingId.of("x:3-revision-mismatch"), 3L, PolicyTag.of(PolicyId.of("x:3"), 0L), null, Set.of(),
                         null),
-                Metadata.of(ThingId.of("x:4-policy-id-mismatch"), 3L, PolicyTag.of(PolicyId.of("x:4"), 0L), Set.of(),
+                Metadata.of(ThingId.of("x:4-policy-id-mismatch"), 3L, PolicyTag.of(PolicyId.of("x:4"), 0L), null, Set.of(),
                         null),
-                Metadata.of(ThingId.of("x:5-policy-revision-mismatch"), 3L, PolicyTag.of(PolicyId.of("x:5"), 0L),
+                Metadata.of(ThingId.of("x:5-policy-revision-mismatch"), 3L, PolicyTag.of(PolicyId.of("x:5"), 0L), null,
                         Set.of(), null),
-                Metadata.of(ThingId.of("x:6-all-up-to-date"), 3L, PolicyTag.of(PolicyId.of("x:6"), 0L), Set.of(), null),
-                Metadata.of(ThingId.of("x:7-policy-deleted"), 7L, PolicyTag.of(PolicyId.of("x:7"), 0L), Set.of(), null)
+                Metadata.of(ThingId.of("x:6-all-up-to-date"), 3L, PolicyTag.of(PolicyId.of("x:6"), 0L), null, Set.of(), null),
+                Metadata.of(ThingId.of("x:7-policy-deleted"), 7L, PolicyTag.of(PolicyId.of("x:7"), 0L), null, Set.of(), null)
         ));
 
         final Source<Metadata, NotUsed> indexed = Source.from(List.of(
-                Metadata.of(ThingId.of("x:1-only-indexed"), 1L, null, Set.of(), null),
-                Metadata.of(ThingId.of("x:2-within-tolerance"), 1L, null, Set.of(), Instant.now(), null),
-                Metadata.of(ThingId.of("x:3-revision-mismatch"), 2L, PolicyTag.of(PolicyId.of("x:3"), 1L), Set.of(),
+                Metadata.of(ThingId.of("x:1-only-indexed"), 1L, null, null, Set.of(), null),
+                Metadata.of(ThingId.of("x:2-within-tolerance"), 1L, null, null, Set.of(), Instant.now(), null),
+                Metadata.of(ThingId.of("x:3-revision-mismatch"), 2L, PolicyTag.of(PolicyId.of("x:3"), 1L), null, Set.of(),
                         null),
                 Metadata.of(ThingId.of("x:4-policy-id-mismatch"), 3L, PolicyTag.of(PolicyId.of("x:mismatched"), 0L),
-                        Set.of(), null),
+                        null, Set.of(), null),
                 Metadata.of(ThingId.of("x:5-policy-revision-mismatch"), 3L, PolicyTag.of(PolicyId.of("x:5"), 3L),
-                        Set.of(), null),
-                Metadata.of(ThingId.of("x:6-all-up-to-date"), 5L, PolicyTag.of(PolicyId.of("x:6"), 6L), Set.of(), null)
+                        null, Set.of(), null),
+                Metadata.of(ThingId.of("x:6-all-up-to-date"), 5L, PolicyTag.of(PolicyId.of("x:6"), 6L), null, Set.of(), null)
         ));
 
         new TestKit(actorSystem) {{

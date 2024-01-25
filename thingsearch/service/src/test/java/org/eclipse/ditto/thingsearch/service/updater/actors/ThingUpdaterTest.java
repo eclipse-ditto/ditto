@@ -20,6 +20,24 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.stream.javadsl.Flow;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.MergeHub;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.scaladsl.BroadcastHub;
+import org.apache.pekko.stream.testkit.TestPublisher;
+import org.apache.pekko.stream.testkit.TestSubscriber;
+import org.apache.pekko.stream.testkit.javadsl.TestSink;
+import org.apache.pekko.stream.testkit.javadsl.TestSource;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.bson.BsonArray;
 import org.bson.BsonDocument;
 import org.bson.BsonInt64;
@@ -29,8 +47,8 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.utils.pekko.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.pekko.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -58,24 +76,6 @@ import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.model.UpdateOneModel;
 import com.typesafe.config.ConfigFactory;
 
-import org.apache.pekko.Done;
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
-import org.apache.pekko.stream.javadsl.Flow;
-import org.apache.pekko.stream.javadsl.Keep;
-import org.apache.pekko.stream.javadsl.MergeHub;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
-import org.apache.pekko.stream.scaladsl.BroadcastHub;
-import org.apache.pekko.stream.testkit.TestPublisher;
-import org.apache.pekko.stream.testkit.TestSubscriber;
-import org.apache.pekko.stream.testkit.javadsl.TestSink;
-import org.apache.pekko.stream.testkit.javadsl.TestSource;
-import org.apache.pekko.testkit.TestProbe;
-import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -169,7 +169,7 @@ public final class ThingUpdaterTest {
             inletProbe.ensureSubscription();
             inletProbe.request(16);
             final var data = inletProbe.expectNext();
-            assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, Set.of(), null));
+            assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, null, Set.of(), null));
             assertThat(data.metadata().getTimers()).hasSize(1);
             assertThat(data.metadata().getAckRecipients()).isEmpty();
             assertThat(data.lastWriteModel()).isEqualTo(getThingWriteModel());
@@ -193,7 +193,7 @@ public final class ThingUpdaterTest {
             inletProbe.ensureSubscription();
             inletProbe.request(16);
             final var data = inletProbe.expectNext();
-            assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, Set.of(), null));
+            assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, null, Set.of(), null));
             assertThat(data.metadata().getTimers()).hasSize(1);
             assertThat(data.metadata().getAckRecipients()).containsOnly(getSystem().actorSelection(getRef().path()));
             assertThat(data.lastWriteModel()).isEqualTo(getThingWriteModel());
@@ -266,7 +266,7 @@ public final class ThingUpdaterTest {
             inletProbe.ensureSubscription();
             inletProbe.request(16);
             final var data = inletProbe.expectNext();
-            assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, Set.of(), null));
+            assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, null, Set.of(), null));
             assertThat(data.metadata().getTimers()).hasSize(1);
             assertThat(data.metadata().getAckRecipients()).isEmpty();
             assertThat(data.lastWriteModel()).isEqualTo(getThingWriteModel());
@@ -281,7 +281,7 @@ public final class ThingUpdaterTest {
 
             // THEN: next update is processed regularly
             final var data2 = inletProbe.expectNext();
-            assertThat(data2.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 2, null, Set.of(), null));
+            assertThat(data2.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 2, null, null, Set.of(), null));
             assertThat(data2.metadata().getTimers()).hasSize(1);
             assertThat(data2.metadata().getAckRecipients()).isEmpty();
             assertThat(data2.lastWriteModel()).isEqualTo(
@@ -397,7 +397,7 @@ public final class ThingUpdaterTest {
             inletProbe.ensureSubscription();
             inletProbe.request(16);
             final var data = inletProbe.expectNext();
-            assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 2, null, Set.of(), null));
+            assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 2, null, null, Set.of(), null));
             assertThat(data.metadata().getTimers()).hasSize(2);
             assertThat(data.metadata().getEvents()).hasSize(2);
             assertThat(data.lastWriteModel()).isEqualTo(getThingWriteModel());
@@ -429,7 +429,7 @@ public final class ThingUpdaterTest {
             inletProbe.ensureSubscription();
             inletProbe.request(16);
             final var data1 = inletProbe.expectNext();
-            assertThat(data1.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, Set.of(), null));
+            assertThat(data1.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, null, Set.of(), null));
             underTest.tell(event2, ActorRef.noSender());
 
             // THEN: no second update is sent until the first event is persisted
@@ -439,7 +439,7 @@ public final class ThingUpdaterTest {
             outletProbe.expectRequest();
             outletProbe.sendNext(getOKResult(REVISION + 1));
             final var data2 = inletProbe.expectNext(TEN_SECONDS);
-            assertThat(data2.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 2, null, Set.of(), null));
+            assertThat(data2.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 2, null, null, Set.of(), null));
         }};
     }
 
@@ -461,7 +461,7 @@ public final class ThingUpdaterTest {
             inletProbe.request(16);
             final var data = inletProbe.expectNext();
             assertThat(data.metadata().export()).isEqualTo(
-                    Metadata.of(THING_ID, REVISION, null, Set.of(PolicyTag.of(policyId, 1L)), null));
+                    Metadata.of(THING_ID, REVISION, null, policyTag.getPolicyTag(), Set.of(PolicyTag.of(policyId, 1L)), null));
             assertThat(data.metadata().getUpdateReasons()).contains(UpdateReason.POLICY_UPDATE);
             assertThat(data.metadata().getTimers()).isEmpty();
         }};
@@ -480,7 +480,7 @@ public final class ThingUpdaterTest {
             inletProbe.ensureSubscription();
             inletProbe.request(16);
             final var data = inletProbe.expectNext();
-            assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION, null, Set.of(), null));
+            assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION, null, null, Set.of(), null));
             assertThat(data.metadata().getTimers()).isEmpty();
             assertThat(data.lastWriteModel()).isEqualTo(getThingWriteModel());
         }};
@@ -491,7 +491,7 @@ public final class ThingUpdaterTest {
         new TestKit(system) {{
             final Props props =
                     ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG, getTestActor());
-            final var expectedMetadata = Metadata.of(THING_ID, REVISION, null, Set.of(), null);
+            final var expectedMetadata = Metadata.of(THING_ID, REVISION, null, null, Set.of(), null);
             final ActorRef underTest = watch(childActorOf(props, ACTOR_NAME));
 
             final var command = SudoUpdateThing.of(THING_ID, UpdateReason.MANUAL_REINDEXING, DittoHeaders.newBuilder()
@@ -527,7 +527,7 @@ public final class ThingUpdaterTest {
             inletProbe.ensureSubscription();
             inletProbe.request(16);
             final var data = inletProbe.expectNext();
-            assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, Set.of(), null));
+            assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, null, Set.of(), null));
             assertThat(data.metadata().getUpdateReasons()).contains(UpdateReason.THING_UPDATE);
             assertThat(data.metadata().getEvents()).hasOnlyElementsOfType(ThingDeleted.class);
             assertThat(data.metadata().getTimers()).hasSize(1);
@@ -622,7 +622,7 @@ public final class ThingUpdaterTest {
             );
 
             final Props props =
-                    ThingUpdater.props(flow, id -> Source.single(ThingDeleteModel.of(Metadata.of(THING_ID, -1, null,
+                    ThingUpdater.props(flow, id -> Source.single(ThingDeleteModel.of(Metadata.of(THING_ID, -1, null, null,
                                     Set.of(), null))), SEARCH_CONFIG,
                             TestProbe.apply(system).ref());
             final ActorRef underTest = watch(childActorOf(props, ACTOR_NAME));
@@ -657,7 +657,7 @@ public final class ThingUpdaterTest {
                 .append("f", new BsonArray())
                 .append("t", new BsonDocument().append("attributes",
                         new BsonDocument().append("x", BsonInt32.apply(5))));
-        return ThingWriteModel.of(Metadata.of(THING_ID, revision, null, Set.of(), null), document);
+        return ThingWriteModel.of(Metadata.of(THING_ID, revision, null, null, Set.of(), null), document);
     }
 
     private static String getActorName(final String name) {

@@ -30,6 +30,17 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.SourceRef;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.javadsl.StreamRefs;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.base.api.common.Shutdown;
 import org.eclipse.ditto.base.api.common.ShutdownReasonFactory;
@@ -41,13 +52,13 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.internal.models.streaming.StreamedSnapshot;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamSnapshots;
-import org.eclipse.ditto.internal.utils.pekko.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.health.ResetHealthEvents;
 import org.eclipse.ditto.internal.utils.health.ResetHealthEventsResponse;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.internal.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
+import org.eclipse.ditto.internal.utils.pekko.streaming.TimestampPersistence;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
@@ -72,18 +83,6 @@ import org.junit.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import org.apache.pekko.Done;
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
-import org.apache.pekko.japi.Pair;
-import org.apache.pekko.stream.Materializer;
-import org.apache.pekko.stream.SourceRef;
-import org.apache.pekko.stream.javadsl.Source;
-import org.apache.pekko.stream.javadsl.StreamRefs;
-import org.apache.pekko.testkit.javadsl.TestKit;
-
 /**
  * Unit test for {@link BackgroundSyncActor}.
  */
@@ -105,7 +104,7 @@ public final class BackgroundSyncActorTest {
     private static final List<Metadata> THINGS_INDEXED =
             KNOWN_IDs.stream()
                     .map(id -> Metadata.of(ThingId.of(id), REVISION_INDEXED,
-                            PolicyTag.of(PolicyId.of(id), REVISION_INDEXED), Set.of(), null))
+                            PolicyTag.of(PolicyId.of(id), REVISION_INDEXED), null, Set.of(), null))
                     .toList();
     private static final List<StreamedSnapshot> THINGS_PERSISTED = KNOWN_IDs.stream()
             .map(id -> createStreamedSnapshot(id, REVISION_PERSISTED))
@@ -219,7 +218,7 @@ public final class BackgroundSyncActorTest {
 
     @Test
     public void resettingHealthEventsAfterSyncStreamFailureClearsErrors() {
-        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, Set.of(), null);
+        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, null, Set.of(), null);
         final long persistedRevision = indexedThingMetadata.getThingRevision() + 1;
 
         new TestKit(actorSystem) {{
@@ -246,9 +245,9 @@ public final class BackgroundSyncActorTest {
 
     @Test
     public void noHealthWarningAfterSuccessfulStream() {
-        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, Set.of(), null);
+        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, null, Set.of(), null);
         final long persistedRevision = indexedThingMetadata.getThingRevision() + 1;
-        final Metadata persistedThingMetadata = Metadata.of(THING_ID, persistedRevision, null, Set.of(), null);
+        final Metadata persistedThingMetadata = Metadata.of(THING_ID, persistedRevision, null, null, Set.of(), null);
         final var streamedSnapshots = List.of(createStreamedSnapshot(THING_ID, persistedRevision));
         final var streamedSnapshotsWithoutPolicyId =
                 List.of(createStreamedSnapshotWithoutPolicyId(THING_ID, persistedRevision));
@@ -291,9 +290,9 @@ public final class BackgroundSyncActorTest {
 
     @Test
     public void staysHealthyWhenSameThingIsSynchronizedWithOtherRevision() {
-        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, Set.of(), null);
+        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, null, Set.of(), null);
         final long persistedRevision = indexedThingMetadata.getThingRevision() + 1;
-        final Metadata nextThingMetadata = Metadata.of(THING_ID, persistedRevision, null, Set.of(), null);
+        final Metadata nextThingMetadata = Metadata.of(THING_ID, persistedRevision, null, null, Set.of(), null);
         final long nextRevision = nextThingMetadata.getThingRevision() + 1;
 
         new TestKit(actorSystem) {{

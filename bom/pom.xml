@@ -68,14 +68,14 @@
         <netty-bom.version>4.1.99.Final</netty-bom.version>
         <cloudevents.version>2.3.0</cloudevents.version>
 
-        <slf4j.version>1.7.36</slf4j.version>
-        <logback.version>1.2.13</logback.version>
-        <logstash-logback-encoder.version>7.2</logstash-logback-encoder.version>
+        <slf4j.version>2.0.11</slf4j.version>
+        <logback.version>1.4.14</logback.version>
+        <logstash-logback-encoder.version>7.4</logstash-logback-encoder.version>
         <fluency.version>2.6.5</fluency.version>
-        <janino.version>3.1.10</janino.version>
+        <janino.version>3.1.11</janino.version>
 
         <!-- ### Metrics and Tracing -->
-        <kamon.version>2.6.5</kamon.version>
+        <kamon.version>2.6.6</kamon.version>
 
         <jsr305.version>3.0.2</jsr305.version>
 

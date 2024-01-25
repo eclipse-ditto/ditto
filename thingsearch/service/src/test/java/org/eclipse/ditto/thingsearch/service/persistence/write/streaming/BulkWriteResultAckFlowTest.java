@@ -20,6 +20,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.eclipse.ditto.base.model.common.HttpStatus;
@@ -42,13 +48,6 @@ import com.mongodb.ServerAddress;
 import com.mongodb.bulk.BulkWriteError;
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.bulk.BulkWriteUpsert;
-
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.japi.Pair;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
-import org.apache.pekko.testkit.TestProbe;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link BulkWriteResultAckFlow}.
@@ -202,7 +201,7 @@ public final class BulkWriteResultAckFlowTest {
             final long policyRevision = i * 100L;
             final PolicyTag policyTag = policyId == null ? null : PolicyTag.of(policyId, policyRevision);
             final Metadata metadata =
-                    Metadata.of(thingId, thingRevision, policyTag, Set.of(), List.of(), null,
+                    Metadata.of(thingId, thingRevision, policyTag, null, Set.of(), List.of(), null,
                             actorSystem.actorSelection(probes.get(i).ref().path()));
             final AbstractWriteModel abstractModel;
             if (i % 2 == 0) {

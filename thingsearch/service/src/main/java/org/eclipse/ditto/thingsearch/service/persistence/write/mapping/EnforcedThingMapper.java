@@ -24,7 +24,7 @@ import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConst
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_REVISION;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_THING;
 
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -82,7 +82,7 @@ public final class EnforcedThingMapper {
         final long thingRevision = thing.getValueOrThrow(Thing.JsonFields.REVISION);
         final var optionalPolicyId = thing.getValue(Thing.JsonFields.POLICY_ID).map(PolicyId::of);
 
-        final HashSet<PolicyTag> allReferencedPolicies = new HashSet<>(referencedPolicies);
+        final Set<PolicyTag> allReferencedPolicies = new LinkedHashSet<>(referencedPolicies);
         final List<PolicyTag> policyTagsOfDeletedButStillImportedPolicies =
                 Optional.ofNullable(oldMetadata).map(Metadata::getAllReferencedPolicyTags).orElseGet(Set::of).stream()
                         .filter(oldReferencedPolicyTag -> policy.getPolicyImports()
@@ -99,7 +99,7 @@ public final class EnforcedThingMapper {
                 .orElse(null);
 
         final var metadata =
-                Metadata.of(thingId, thingRevision, thingPolicyTag, allReferencedPolicies,
+                Metadata.of(thingId, thingRevision, thingPolicyTag, null, allReferencedPolicies,
                         Optional.ofNullable(oldMetadata).flatMap(Metadata::getModified).orElse(null),
                         Optional.ofNullable(oldMetadata).map(Metadata::getEvents).orElse(List.of()),
                         Optional.ofNullable(oldMetadata).map(Metadata::getTimers).orElse(List.of()),

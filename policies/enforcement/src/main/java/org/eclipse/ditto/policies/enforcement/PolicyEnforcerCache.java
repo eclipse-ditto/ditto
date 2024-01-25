@@ -21,6 +21,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
@@ -96,6 +97,23 @@ final class PolicyEnforcerCache implements Cache<PolicyId, Entry<PolicyEnforcer>
                 .stream()
                 .flatMap(Collection::stream)
                 .map(delegate::invalidate)
+                .reduce((previous, next) -> previous || next)
+                .orElse(false);
+
+        return directlyCached || indirectlyCachedViaImport;
+    }
+
+    @Override
+    public boolean invalidateConditionally(final PolicyId policyId,
+            final Predicate<Entry<PolicyEnforcer>> valueCondition) {
+        // Invalidate the changed policy
+        final boolean directlyCached = delegate.invalidateConditionally(policyId, valueCondition);
+
+        // Invalidate all policies that import the changed policy
+        final boolean indirectlyCachedViaImport = Optional.ofNullable(policyIdToImportingMap.remove(policyId))
+                .stream()
+                .flatMap(Collection::stream)
+                .map(p -> delegate.invalidateConditionally(p, valueCondition))
                 .reduce((previous, next) -> previous || next)
                 .orElse(false);
 

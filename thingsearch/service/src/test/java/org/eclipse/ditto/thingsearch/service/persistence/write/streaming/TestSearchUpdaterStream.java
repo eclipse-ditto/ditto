@@ -16,6 +16,8 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.stream.javadsl.Source;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.api.PolicyTag;
@@ -33,9 +35,6 @@ import org.eclipse.ditto.thingsearch.service.updater.actors.ThingUpdater;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Run parts of the updater stream for unit tests.
@@ -99,7 +98,7 @@ public final class TestSearchUpdaterStream {
     public Source<WriteResultAndErrors, NotUsed> delete(final ThingId thingId, final long revision,
             @Nullable final PolicyId policyId, final long policyRevision) {
         return delete(Metadata.of(thingId, revision, policyId == null ? null : PolicyTag.of(policyId, policyRevision),
-                Set.of(), null));
+                null, Set.of(), null));
     }
 
     /**

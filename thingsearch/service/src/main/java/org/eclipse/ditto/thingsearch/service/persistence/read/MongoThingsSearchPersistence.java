@@ -27,6 +27,13 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.event.Logging;
+import org.apache.pekko.event.LoggingAdapter;
+import org.apache.pekko.japi.pf.PFBuilder;
+import org.apache.pekko.stream.SystemMaterializer;
+import org.apache.pekko.stream.javadsl.Source;
 import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -71,13 +78,6 @@ import com.mongodb.reactivestreams.client.FindPublisher;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.event.Logging;
-import org.apache.pekko.event.LoggingAdapter;
-import org.apache.pekko.japi.pf.PFBuilder;
-import org.apache.pekko.stream.SystemMaterializer;
-import org.apache.pekko.stream.javadsl.Source;
 import scala.PartialFunction;
 
 /**
@@ -402,7 +402,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
                         .map(dittoBsonJson::serialize)
                         .map(PolicyTag::fromJson)
                         .collect(Collectors.toSet());
-        return Metadata.of(thingId, thingRevision, thingPolicyTag, referencedPolicies, modified, null);
+        return Metadata.of(thingId, thingRevision, thingPolicyTag, null, referencedPolicies, modified, null);
     }
 
     private static AbstractWriteModel documentToWriteModel(final Document document) {

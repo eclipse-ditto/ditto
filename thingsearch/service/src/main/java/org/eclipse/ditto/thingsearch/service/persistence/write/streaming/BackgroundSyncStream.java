@@ -121,7 +121,7 @@ public final class BackgroundSyncStream {
     }
 
     private static Metadata emptyMetadata() {
-        return Metadata.of(EMPTY_THING_ID, 0L, PolicyTag.of(EMPTY_POLICY_ID, 0L), Set.of(), null);
+        return Metadata.of(EMPTY_THING_ID, 0L, PolicyTag.of(EMPTY_POLICY_ID, 0L), null, Set.of(), null);
     }
 
     private Source<Metadata, NotUsed> filterForInconsistency(final Pair<Metadata, Metadata> pair) {

@@ -18,6 +18,8 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import org.apache.pekko.japi.Pair;
+import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.enforcement.PolicyCacheLoader;
@@ -27,14 +29,15 @@ import org.eclipse.ditto.policies.model.PolicyRevision;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
-import org.apache.pekko.japi.Pair;
-
 final class ResolvedPolicyCacheLoader implements AsyncCacheLoader<PolicyId, Entry<Pair<Policy, Set<PolicyTag>>>> {
 
     private final PolicyCacheLoader policyCacheLoader;
+    private final CompletableFuture<Cache<PolicyId, Entry<Pair<Policy, Set<PolicyTag>>>>> cacheFuture;
 
-    ResolvedPolicyCacheLoader(final PolicyCacheLoader policyCacheLoader) {
+    ResolvedPolicyCacheLoader(final PolicyCacheLoader policyCacheLoader,
+            final CompletableFuture<Cache<PolicyId, Entry<Pair<Policy, Set<PolicyTag>>>>> cacheFuture) {
         this.policyCacheLoader = policyCacheLoader;
+        this.cacheFuture = cacheFuture;
     }
 
     @Override
@@ -47,12 +50,13 @@ final class ResolvedPolicyCacheLoader implements AsyncCacheLoader<PolicyId, Entr
                         final Policy policy = policyEntry.getValueOrThrow();
                         final Set<PolicyTag> referencedPolicies = new HashSet<>();
                         return policy.withResolvedImports(
-                                        importedPolicyId -> policyCacheLoader.asyncLoad(importedPolicyId, executor)
-                                                .thenApply(Entry::get)
+                                        importedPolicyId -> cacheFuture
+                                                .thenCompose(cache -> cache.get(importedPolicyId))
+                                                .thenApply(entry -> entry.flatMap(Entry::get))
                                                 .thenApply(optionalReferencedPolicy -> {
                                                     if (optionalReferencedPolicy.isPresent()) {
                                                         final Policy referencedPolicy =
-                                                                optionalReferencedPolicy.get();
+                                                                optionalReferencedPolicy.get().first();
                                                         final Optional<PolicyRevision> revision =
                                                                 referencedPolicy.getRevision();
                                                         final Optional<PolicyId> entityId =
@@ -64,7 +68,7 @@ final class ResolvedPolicyCacheLoader implements AsyncCacheLoader<PolicyId, Entr
                                                             );
                                                         }
                                                     }
-                                                    return optionalReferencedPolicy;
+                                                    return optionalReferencedPolicy.map(Pair::first);
                                                 }))
                                 .thenApply(resolvedPolicy -> {
                                     final long revision = policy.getRevision().map(PolicyRevision::toLong)

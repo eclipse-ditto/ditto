@@ -14,12 +14,6 @@
 <configuration>
     <statusListener class="ch.qos.logback.core.status.OnConsoleStatusListener"/>
 
-    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%date{ISO8601} %-5level [%X{correlation-id}][%X{traceparent-trace-id}] %logger{20} %X{pekkoSource} - %msg%n</pattern>
-        </encoder>
-    </appender>
-
     <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
         <target>System.err</target>
         <encoder>
@@ -30,18 +24,45 @@
         </filter>
     </appender>
 
+    <if condition='isDefined("DITTO_LOGGING_DISABLE_SYSOUT_LOG")'>
+        <then>
+            <if condition='property("DITTO_LOGGING_DISABLE_SYSOUT_LOG").equals("true")'>
+                <then>
+                    <appender name="STDOUT" class="ch.qos.logback.core.helpers.NOPAppender"/>
+                </then>
+                <else>
+                    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+                        <encoder>
+                            <pattern>%date{ISO8601} %-5level [%X{correlation-id}][%X{traceparent-trace-id}] %logger{20} %X{pekkoSource} - %msg%n</pattern>
+                        </encoder>
+                    </appender>
+                </else>
+            </if>
+        </then>
+        <else>
+            <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+                <encoder>
+                    <pattern>%date{ISO8601} %-5level [%X{correlation-id}][%X{traceparent-trace-id}] %logger{20} %X{pekkoSource} - %msg%n</pattern>
+                </encoder>
+            </appender>
+        </else>
+    </if>
+
     <if condition='isDefined("DITTO_LOGGING_LOGSTASH_SERVER")'>
         <then>
             <appender name="stash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
                 <destination>${DITTO_LOGGING_LOGSTASH_SERVER}</destination>
                 <reconnectionDelay>1 second</reconnectionDelay>
 
-                <!-- encoder is required -->
+                <!-- Encoder is required -->
                 <encoder class="net.logstash.logback.encoder.LogstashEncoder">
                     <customFields>{"appname":"things","instance_index":"${INSTANCE_INDEX}"}</customFields>
                 </encoder>
             </appender>
         </then>
+        <else>
+            <appender name="stash" class="ch.qos.logback.core.helpers.NOPAppender"/>
+        </else>
     </if>
 
     <if condition='property("DITTO_LOGGING_FILE_APPENDER").equals("true")'>
@@ -65,6 +86,9 @@
                 </encoder>
             </appender>
         </then>
+        <else>
+            <appender name="file" class="ch.qos.logback.core.helpers.NOPAppender"/>
+        </else>
     </if>
 
     <!-- Do not print INFO cluster messages of mongo driver: -->
@@ -77,39 +101,12 @@
     <!-- Log level for the application -->
     <logger name="org.eclipse.ditto" level="${LOG_LEVEL_APPLICATION:-INFO}"/>
 
+    <!-- Logging INFO messages can be disabled by setting environment variable -->
     <root level="${LOG_LEVEL:-INFO}">
-        <!-- Logging INFO messages can be disabled by setting environment variable -->
-        <if condition='isDefined("DITTO_LOGGING_DISABLE_SYSOUT_LOG")'>
-            <then>
-                <if condition='property("DITTO_LOGGING_DISABLE_SYSOUT_LOG").equals("true")'>
-                    <then>
-                        <!-- don't use the "STDOUT" appender -->
-                    </then>
-                    <else>
-                        <appender-ref ref="STDOUT"/>
-                    </else>
-                </if>
-            </then>
-            <else>
-                <!-- if not defined, assume logging to STDOUT is desired -->
-                <appender-ref ref="STDOUT"/>
-            </else>
-        </if>
-
-        <!-- Always log ERRORs to syserr -->
+        <appender-ref ref="STDOUT"/>
         <appender-ref ref="STDERR"/>
-
-        <if condition='isDefined("DITTO_LOGGING_LOGSTASH_SERVER")'>
-            <then>
-                <appender-ref ref="stash"/>
-            </then>
-        </if>
-
-        <if condition='property("DITTO_LOGGING_FILE_APPENDER").equals("true")'>
-            <then>
-                <appender-ref ref="file"/>
-            </then>
-        </if>
+        <appender-ref ref="stash"/>
+        <appender-ref ref="file"/>
     </root>
 
 </configuration>
