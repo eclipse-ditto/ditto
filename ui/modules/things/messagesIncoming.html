@@ -23,6 +23,7 @@
                     Reset
                 </button>
             </div>
+            <table-filter id="tableFilterMessagesIncoming"></table-filter>
             <div class="table-wrap">
                 <table class="table table-striped table-hover table-sm">
                     <thead>
@@ -43,10 +44,10 @@
             <div class="input-group input-group-sm mb-1 mt-1">
                 <label class="input-group-text" for="selectThingUpdateMessageContent">Show</label>
                 <select class="form-select form-select-sm" id="selectThingUpdateMessageContent">
-                    <option value="FULL_THING_WITH_CONTEXT" selected>Full Thing JSON with context and metadata</option>
-                    <option value="FULL_THING">Only full Thing JSON</option>
+                    <option value="ONLY_CONTEXT" selected>Only context</option>
                     <option value="ONLY_CONTEXT_WITH_METADATA">Only context with metadata</option>
-                    <option value="ONLY_CONTEXT">Only context</option>
+                    <option value="FULL_THING">Only full Thing JSON</option>
+                    <option value="FULL_THING_WITH_CONTEXT">Full Thing JSON with context and metadata</option>
                 </select>
             </div>
             <div class="ace_container" style="flex-grow: 1;">

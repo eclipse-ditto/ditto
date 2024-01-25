@@ -159,7 +159,7 @@ function clearAllFields() {
 
 function refillTemplates() {
   dom.ulThingMessageTemplates.innerHTML = '';
-  Utils.addDropDownEntries(dom.ulThingMessageTemplates, ['Saved message templates'], true);
+  Utils.addDropDownEntry(dom.ulThingMessageTemplates, 'Saved message templates', true);
   if (Environments.current().messageTemplates['/']) {
     Utils.addDropDownEntries(
         dom.ulThingMessageTemplates,
