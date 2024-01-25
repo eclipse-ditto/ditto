@@ -35,10 +35,10 @@ import org.bson.BsonInvalidOperationException;
 import org.bson.BsonString;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.internal.models.streaming.AbstractEntityIdWithRevision;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.BsonDiff;
 import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
@@ -222,39 +222,41 @@ public final class ThingWriteModel extends AbstractWriteModel {
             return Optional.empty();
         }
         final BsonDocument currentWriteModel = getThingDocument();
-        final var diff = tryComputeDiff(currentWriteModel, lastWriteModel.getThingDocument(), maxWireVersion);
         if (currentWriteModel.isEmpty()) {
             LOGGER.debug("Skipping update due to empty currentWriteModel <{}>",
                     ((AbstractWriteModel) this).getClass().getSimpleName());
             PATCH_SKIP_COUNT.increment();
             return Optional.empty();
-        } else if (diff.isPresent() && diff.get().isDiffSmaller()) {
-            final var aggregationPipeline = diff.get().consumeAndExport();
-            if (aggregationPipeline.isEmpty()) {
-                LOGGER.debug("Skipping update due to {} <{}>", "empty diff",
-                        ((AbstractWriteModel) this).getClass().getSimpleName());
-                LOGGER.trace("Skipping update due to {} <{}>", "empty diff", this);
-                PATCH_SKIP_COUNT.increment();
-                return Optional.empty();
-            }
-            thingWriteModel = asPatchUpdate(lastWriteModel.getMetadata().getThingRevision());
-            final var filter = thingWriteModel.getFilter();
-            mongoWriteModel = new UpdateOneModel<>(filter, aggregationPipeline);
-            LOGGER.debug("Using incremental update <{}>", mongoWriteModel.getClass().getSimpleName());
-            LOGGER.trace("Using incremental update <{}>", mongoWriteModel);
-            PATCH_UPDATE_COUNT.increment();
-            isPatchUpdate1 = true;
         } else {
-            thingWriteModel = this;
-            mongoWriteModel = this.toMongo();
-            LOGGER.debug("Using replacement because diff is bigger or nonexistent: <{}>",
-                    mongoWriteModel.getClass().getSimpleName());
-            if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("Using replacement because diff is bigger or nonexistent. Diff=<{}>",
-                        diff.map(BsonDiff::consumeAndExport));
+            final var diff = tryComputeDiff(currentWriteModel, lastWriteModel.getThingDocument(), maxWireVersion);
+            if (diff.isPresent() && diff.get().isDiffSmaller()) {
+                final var aggregationPipeline = diff.get().consumeAndExport();
+                if (aggregationPipeline.isEmpty()) {
+                    LOGGER.debug("Skipping update due to {} <{}>", "empty diff",
+                            ((AbstractWriteModel) this).getClass().getSimpleName());
+                    LOGGER.trace("Skipping update due to {} <{}>", "empty diff", this);
+                    PATCH_SKIP_COUNT.increment();
+                    return Optional.empty();
+                }
+                thingWriteModel = asPatchUpdate(lastWriteModel.getMetadata().getThingRevision());
+                final var filter = thingWriteModel.getFilter();
+                mongoWriteModel = new UpdateOneModel<>(filter, aggregationPipeline);
+                LOGGER.debug("Using incremental update <{}>", mongoWriteModel.getClass().getSimpleName());
+                LOGGER.trace("Using incremental update <{}>", mongoWriteModel);
+                PATCH_UPDATE_COUNT.increment();
+                isPatchUpdate1 = true;
+            } else {
+                thingWriteModel = this;
+                mongoWriteModel = this.toMongo();
+                LOGGER.debug("Using replacement because diff is bigger or nonexistent: <{}>",
+                        mongoWriteModel.getClass().getSimpleName());
+                if (LOGGER.isTraceEnabled()) {
+                    LOGGER.trace("Using replacement because diff is bigger or nonexistent. Diff=<{}>",
+                            diff.map(BsonDiff::consumeAndExport));
+                }
+                FULL_UPDATE_COUNT.increment();
+                isPatchUpdate1 = false;
             }
-            FULL_UPDATE_COUNT.increment();
-            isPatchUpdate1 = false;
         }
         return Optional.of(MongoWriteModel.of(thingWriteModel, mongoWriteModel, isPatchUpdate1));
     }

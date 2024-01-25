@@ -14,8 +14,11 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.javadsl.Source;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
@@ -24,10 +27,6 @@ import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 import org.slf4j.Logger;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Search Update Mapper to be loaded by reflection.
