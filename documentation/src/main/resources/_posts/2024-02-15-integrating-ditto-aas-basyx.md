@@ -1,7 +1,7 @@
 ---
-title: "Making Eclipse Ditto Things Accessible in the Asset Administration Shell"
+title: "Access Ditto Things from an Asset Administration Shell"
 published: true
-permalink: 2024-01-15-integrating-ditto-aas-basyx.html
+permalink: 2024-02-15-integrating-ditto-aas-basyx.html
 layout: post
 author: bs-jokri
 tags: [blog]
@@ -21,9 +21,7 @@ Luckily, [Eclipse Ditto](https://eclipse.dev/ditto/) relieves us from that task 
 
 We came up with a solution to use Eclipse Ditto Things from an AAS infrastructure, based on the [Eclipse Basyx](https://eclipse.dev/basyx/) project.
 
-![User-device interaction via AAS and IoT
-backend](fig/basic-interaction.svg)
-
+{% include image.html file="blog/2024-02-15-integrating-ditto-ass-basyx/basic-interaction.svg" alt="User-device interaction via AAS and IoT backend" max-width=1000 %}
 *Figure 1:  User-device interaction via BaSyx and Ditto*
 
 In this blog post we want to share our solution and learnings.
@@ -51,9 +49,7 @@ The flow starts by requesting an AAS ID from the AAS discovery interface based o
 The application then requests the SM ID from that AAS endpoint and uses this SM ID to get the SM endpoint from the SM Registry.
 From that SM endpoint, the user can request the SME, which contains the required value.
 
-![Sequence of data flow through AAS
-infrastructure](fig/aas-sequenz.svg)
-
+{% include image.html file="blog/2024-02-15-integrating-ditto-ass-basyx/aas-sequenz.svg" alt="Sequence of data flow through AAS infrastructure" max-width=1000 %}
 *Figure 2: Sequence of data flow through AAS infrastructure*
 
 If you want to dig deeper into the specifics of the AAS, you might want to consult  the [AAS Reading Guide](https://www.plattform-i40.de/IP/Redaktion/DE/Downloads/Publikation/AAS-ReadingGuide_202201.html), a document helping the interested reader to navigate through the available material.
@@ -95,7 +91,7 @@ We see three approaches:
 
 ## Wrapper around Eclipse Ditto exposing AAS APIs
 This approach requires to implement a custom AAS infrastructure arround Eclipse Ditto, without the chance of reusing existing components of the Eclipse Basyx project.
-A similar approach was taken by the Eclipse Ditto project to implement the [Web of Things](https://eclipse.dev/ditto/2022-03-03-wot-integration.html) (WoT), which is another specification to integrate IoT devices from different contexts and align their utilized data model.
+A similar approach was taken by the Eclipse Ditto project to implement [Web of Things](https://eclipse.dev/ditto/2022-03-03-wot-integration.html) (WoT) APIs, which is another specification to integrate IoT devices from different contexts and align their utilized data model.
 Ditto now allows the generation of new Things based on a WoT Thing Description.
 
 
@@ -109,7 +105,7 @@ For that the BaSyx SM-server component has a delegation feature, where the user 
 For this approach Eclipse Ditto is configured so that it pushes state changes of devices every time a device changes.
 The data is transformed into the AAS format and pushed to the BaSyx SM server, which directly responds to the requests by the users.
 
-![Push approach sequence](fig/push.svg)
+{% include image.html file="blog/2024-02-15-integrating-ditto-ass-basyx/push.svg" alt="Push approach sequence" max-width=1000 %}
 *Figure 3: Push approach sequence*
 
 As the push approach treats the AAS infrastructure as a blackbox and almost all configuration happens within Eclipe Ditto we will follow this approach.
@@ -142,18 +138,18 @@ mapped to SMEs.
 By that it is possible to have more then one Thing organized in an AAS. This can especially be useful if an AAS organizes some more complex equipment with different sensors and actuators, which belong together.
 
 # Configuration steps
-With the more theoretical details completed we can now turn to the actual implementation and describe step by step what is required to integrate Eclipes Ditto into an AAS infrastructure of Eclipse BaSyx.
+With the more theoretical details completed we can now turn to the actual implementation and describe step by step what is required to integrate Eclipse Ditto into an AAS infrastructure of Eclipse BaSyx.
 
 ## Prerequisites
 1. Running instance of [Eclipse Ditto](https://eclipse.dev/ditto/)
 2. Running instance of [Eclipse BaSyx](https://wiki.eclipse.org/BaSyx_/_Documentation_/_Components)
 
-Those two instances must be available and a network connection must exist between both. In this tutorial we use the demo environment of Eclipse Ditto called `ditto.eclipseprojects.io`.
+Those two instances must be available and a network connection must exist between both. In this tutorial we use the demo environment of Eclipse Ditto reachable at `ditto.eclipseprojects.io`.
 
-For our tests we used version 3.0.1 for Eclipse Ditto and version for Eclipse BaSyx. However we assume other versions might work as well.
+For our tests we used version 3.0.1 for Eclipse Ditto and version 1.4.0 for Eclipse BaSyx. However we assume other versions might work as well.
 
 ## Scenario
-Let's assume for this tutorial that we have a device with a sensor named `machine:sensor` which is capable of measuring temperature. This device sends sensor data to an Eclipse Ditto instance in the following format.
+Let's assume for this tutorial that we have a device with a sensor named `machine:sensor`, which is capable of measuring temperature values. This device sends sensor data to an Eclipse Ditto instance in the following format.
 
 ```json
 {
@@ -165,13 +161,13 @@ Let's assume for this tutorial that we have a device with a sensor named `machin
 ```
 
 Surprisingly, the very same format as Ditto expects in a [Ditto Protocol message](https://eclipse.dev/ditto/1.3/protocol-overview.html) for updating the internal representation of a Thing.
-As this message is already in the format of a Ditto Protocol message, this saves us one mapping step from a custom message to a Ditto Protocol message. So if you have a custom message, you have to map it first to a Ditto Protocol message. You can find more details on that [here](https://eclipse.dev/ditto/connectivity-mapping.html).
+As this message is already in the format of a Ditto Protocol message, this saves us the mapping from a custom message to a Ditto Protocol message. 
+So if you have a custom message, you have to map it first to a Ditto Protocol message. You can find more details on that [here](https://eclipse.dev/ditto/connectivity-mapping.html).
 
 ## Create a connection to BaSyx
 
 We further proceed with the example Thing given above.
 This message will update the temperature value of a Thing ``machine:sensor`` in an Eclipse Ditto instance.
-So we assume that we already could access the device's sensor data as API via Eclipse Ditto.
 
 Now, if such a message arrives at Eclipse Ditto, we want to achieve that it is mapped to an AAS-conforming representation and forwarded to some outbound connection to an AAS infrastructure.
 Eclipse Ditto provides the feature of [payload mapping](https://eclipse.dev/ditto/connectivity-mapping.html) in its connectivity service.
@@ -185,13 +181,20 @@ Secondly, an AAS submodel must be created. As we want to map a Ditto `feature` t
 
 The third payload mapping will be triggered every time a message updates the (temperature) value of a Ditto Thing. With that mapping we could create and modify an AAS submodel element with the latest (temperature) value.
 
-As one may already have observed, the first two payload mappings only react on actions, where something was created. So these mappings perform a configuratio. In the third payload mapping the actual device data is processed. The reason why we update a submodel element instead of the whole submodel is that when a Ditto Protocol message arrives at Eclipse Ditto, we only have access to one changed property of a Ditto Thing and no information about the other Ditto Thing properties and therefore submodel elements, which may already be contained in the submodel.
+As one may already have observed, the first two payload mappings only react on actions, where something was created. 
+So these mappings perform a configuration. 
+In the third payload mapping the actual device data is processed. 
+The reason why we update a submodel element instead of the whole submodel is that when a Ditto Protocol message arrives at Eclipse Ditto, we only have access to one changed property of a Ditto Thing and no information about the other Ditto Thing properties.
+Therefore submodel elements, which may already be contained in the submodel, will be removed from the thing.
+With our solution we preseve the already existing values and only update the values, we receive an update for.
 
 In the next sections, we discuss the different payload mappings in more detail and look at how the BaSyx-Ditto connection can be registered with the Ditto connectivity service.
+First we show the javascript-based implemenentations, which are later on used in a Ditto connection configuration.
 
 ### AAS mapping
 
-Ditto's Payload mappings are defined in Javascript. The following JavaScript-based mapping performs a mapping to an AAS every time a Ditto Thing is created.
+Ditto's Payload mappings are defined in Javascript. 
+The following JavaScript-based mapping performs a mapping to an AAS every time a Ditto Thing is created.
 
 ```javascript
 function mapFromDittoProtocolMsg(
@@ -247,8 +250,13 @@ function mapFromDittoProtocolMsg(
 }
 ```
 
-The function `mapFromDittoProtocolMsg` maps the passed parameters which originated from a Ditto Protocol message to an external message. In this mapping, only `namespace` is used. That is the first part of the name of a Ditto Thing, e.g. `machine` in our example.
-More precisely, a text payload is created with the configuration of an AAS with the id `namespace` and the function returns a new message with this text payload. After the Ditto connectivity services runs the Javascript with success, the new message will be pushed to the BaSyx AAS server and an AAS will be created. For example, whenever a Ditto Thing with id `machine:sensor` is created, an AAS will be created with the id `machine`.
+The function `mapFromDittoProtocolMsg` maps the passed parameters,
+which originated from a Ditto Protocol message to an external message. 
+In this mapping, only `namespace` is used. That is the first part of the name of a Ditto Thing, e.g. `machine` in our example.
+More precisely, a text payload is created with the configuration of an AAS with the id `namespace` and 
+the function returns a new message with this text payload. After the Ditto connectivity services runs the Javascript with success, 
+the new message will be pushed to the BaSyx AAS server and an AAS will be created. 
+For example, whenever a Ditto Thing with id `machine:sensor` is created, an AAS will be created with the id `machine`.
 
 
 ### AAS Submodel mapping
@@ -310,7 +318,10 @@ function mapFromDittoProtocolMsg(
 }
 ```
 
-In contrast to the previous mapping additionally to `namespace`, in this mapping also the parameters `name` and `path` from the Ditto Protocol message are used. The parameter `name` represents the second part of the name of a Ditto Thing, e.g. `sensor` from our example. The `path` is the path which is affected by the Ditto Protocol message. It can include the feature id of the Ditto Thing as well as the whole path of the property of a Ditto Thing, but it can also be only `/`, when a Ditto Thing is created. You can find an example for this parameter in the message from the section "Scenario".
+In contrast to the previous mapping, additionally to `namespace`, 
+in this mapping also the parameters `name` and `path` 
+from the Ditto Protocol message are used. The parameter `name`
+represents the second part of the name of a Ditto Thing, e.g. `sensor` from our example. The `path` is the path which is affected by the Ditto Protocol message. It can include the feature id of the Ditto Thing as well as the whole path of the property of a Ditto Thing, but it can also be only `/`, when a Ditto Thing is created. You can find an example for this parameter in the message from the section "Scenario".
 
 In this mapping, the function extracts the id of the feature from parameter `path` and uses this together with the `name` of the Ditto Thing to build the id of an AAS submodel; in our example this would be `sensor_temperature`. Therefore it is important that the `path` contains the id of the feature. We come to that back again in section "Create the connection".
 
@@ -401,11 +412,12 @@ So if a message updates a corresponding `property` of a Ditto Thing, the functio
 
 ### Create a connection to the BaSyx AAS server
 
-With the mappings defined above it is now possible to configure a new [Ditto connection](https://eclipse.dev/ditto/basic-connections.html) to a BaSyx AAS server. Be aware, that the scripts above must be provided to Ditto's Connectivity service via http. This also requires to escape certain characters and remove the line breaks. So replace newlines with `\n` and `'` with `'"'`.
+With the mappings above defined it is now possible to configure a new [Ditto connection](https://eclipse.dev/ditto/basic-connections.html) to a BaSyx AAS server. 
+Be aware, that the scripts above must be provided to Ditto's Connectivity service via http. This also requires to escape certain characters and remove the line breaks. So replace newlines with `\n` and `'` with `'"'`.
 
 In the following script we have added the Ditto demo instance called `ditto.eclipseprojects.io` for testing purposes, which needs to be exchanged, if someone needs to use a custom Ditto instance. Also you must have access to the Ditto [Devops](https://eclipse.dev/ditto/installation-operating.html#devops-commands) credentials. The default devops credentials are username: devops, password: foobar, but the password can be changed by setting the environment variable DEVOPS_PASSWORD in the [gateway service](https://eclipse.dev/ditto/architecture-services-gateway.html).
 
-Finally adjust the parameter `uri` with the ip of your running BaSyx server.
+Finally adjust the parameter `uri` with the URL of your running BaSyx server.
 ```bash
 curl -X POST -u devops:foobar -H 'Content-Type: application/json' --data-binary '{
     "targetActorSelection": "/system/sharding/connection",
@@ -506,17 +518,27 @@ curl -X POST -u devops:foobar -H 'Content-Type: application/json' --data-binary 
   }' http://ditto.eclipseprojects.io/devops/piggyback/connectivity
 ```
 
-The Javascripts from above you can find in `mappingforShell`, `mappingforSubmodel` and `mappingforSubmodelElement`. The address of the BaSyx AAS server is configured in the parameter `uri`. As the Ditto connectivity services creates the connection to the AAS server, the connectivity service must be allowed to reach the address from `uri`. So you must have a running Ditto instance and a running BaSyx AAS server, where the Ditto connectivity service and the AAS server are in the same network.
+You can find the Javascript snippets from above in sections `mappingforShell`, `mappingforSubmodel` and `mappingforSubmodelElement`. 
+The address of the BaSyx AAS server is configured in the parameter `uri`. 
+As the Ditto connectivity services creates the connection to the AAS server, 
+the connectivity service must be allowed to reach the address provided at the parameter `uri`. 
+Thus, make sure you have a running Ditto instance and a running BaSyx AAS server, 
+where the Ditto connectivity service and the AAS server are in the same network.
 
-When the connection is established and our payload mapping works we receive a successful HTTP response otherwise an error message is returned.
+When the connection is established and our payload mapping works, we receive a successful HTTP response otherwise an error message is returned.
 
-With that connection configured changes to the state of a Thing are now propagated to the configured BaSyx AAS server according to the mapping defined in "Concept mapping". However, without any further means the payload mapping is executed for all changes.
+With that connection configured changes to the state of a Thing are now propagated to the configured BaSyx AAS server 
+according to the mapping defined in "Concept mapping". However, without any further means the payload mapping is 
+executed for all changes.
 Thus, we use [filtering](https://eclipse.dev/ditto/basic-changenotifications.html#filtering) with [RQL expressions](https://eclipse.dev/ditto/basic-rql.html) to make sure that our payload mappings are executed for the right messages, e.g. the filter for `mappingforShell` makes sure that it is only  triggered for messages, which creates a Ditto Thing. Moreover, we can make sure, that in the `mappingforSubmodel` the parameter `path` contains the id of a Ditto `feature`.
 
 
-### Setup Connection to BaSyx AAS Registry
+### Setup Connection to an BaSyx AAS Registry
 
-To make the AAS available from the Eclipse Basyx AAS Registry, we additionally have to create a connection from Eclipse Ditto to the BaSyx AAS Registry. Whenever a Thing is created, an AAS entry should be registered in the Eclipse Basyx AAS Registry. For that we definde the following payload mapping:
+To make the AAS available from the Eclipse Basyx AAS Registry, 
+we additionally have to create a connection from Eclipse Ditto to the BaSyx AAS Registry. 
+Whenever a Thing is created, an AAS entry should be registered in the Eclipse Basyx AAS Registry. 
+For that we -- again -- define a payload mapping:
 
 ```javascript
 function mapFromDittoProtocolMsg(
@@ -574,9 +596,16 @@ function mapFromDittoProtocolMsg(
 }
 ```
 
-As in Section "AAS mapping" the `namespace` of the Ditto Thing is mapped to an `AAS`. In contrast to the mapping in Section "AAS mapping" here it is important, that the new BaSyx Registry entry contains the BaSyx AAS server endpoint for the new AAS in the variable `endpoints`. After we defined this mapping, it is now possible to configure a new connection to a BaSyx AAS registry. Be aware, that the script above must be provided to Dittos Connectivity service via http. This also requires to escape certain characters and remove the line breaks. So replace newlines with `\n` and `'` with `'"'`.
+As in Section "AAS mapping" the `namespace` of the Ditto Thing is mapped to an `AAS`.
+In contrast to the mapping in Section "AAS mapping" here it is important that the new BaSyx Registry entry 
+contains the BaSyx AAS server endpoint for the new AAS in the variable `endpoints`. 
+After we defined this mapping, it is now possible to configure a new connection to a BaSyx AAS registry. 
+Be aware, that the script above must be provided to Dittos Connectivity service via http. 
+This also requires to escape certain characters and remove the line breaks. 
+So replace newlines with `\n` and `'` with `'"'`.
 
-In the following script we have added the Ditto demo instance called `ditto.eclipseprojects.io` for testing porpuses, which needs to be adjusted if someone needs to use a custom Ditto instance.
+In the following script we have added the Ditto demo instance `ditto.eclipseprojects.io` for testing purposes,
+which needs to be adjusted if someone needs to use a custom Ditto instance.
 
 ```bash
 curl -X POST -u devops:foobar -H 'Content-Type: application/json' --data-binary '{
@@ -621,13 +650,21 @@ curl -X POST -u devops:foobar -H 'Content-Type: application/json' --data-binary 
   }' http://ditto.eclipseprojects.io/devops/piggyback/connectivity
 ```
 
-The same Javascript function `mapFromDittoProtocolMsg` presented above is also contained in the json document assigned to parameter `payloadMapping` referenced as `mappingforShell`. The address of the BaSyx AAS registry is configured in the parameter `uri`. As the Ditto connectivity services creates the connection to the AAS registry, the connectivity service must be allowed to reach the address from `uri`. So you must have a running Ditto instance and a running BaSyx AAS registry, where the Ditto connectivity service and the AAS registry are in the same network.
+The same Javascript function `mapFromDittoProtocolMsg` presented above is also contained in the json document assigned 
+to parameter `payloadMapping` referenced as `mappingforShell`. 
+The address of the BaSyx AAS registry is configured in the parameter `uri`. As the Ditto connectivity services creates 
+the connection to the AAS registry, the connectivity service must be allowed to reach the address from `uri`. 
+So you must have a running Ditto instance and a running BaSyx AAS registry, where the Ditto connectivity service and 
+the AAS registry are in the same network.
 
-Here again, we used the option of [filtering](https://eclipse.dev/ditto/basic-changenotifications.html#filtering) with [RQL expressions](https://eclipse.dev/ditto/basic-rql.html) to make sure that our function in the Javascript will only be triggered when a Thing was created.
+Here again, we used the option of [filtering](https://eclipse.dev/ditto/basic-changenotifications.html#filtering) with 
+[RQL expressions](https://eclipse.dev/ditto/basic-rql.html) to make sure that our function in the Javascript will only be triggered when a Thing was created.
 
-So with the configuration given above, everytime a Ditto Thing is created an entry for an AAS with the name of the namespace of the Thing is created in the AAS Registry pointing to the configured AAS Server.
+So with the configuration given above, everytime a Ditto Thing is created an entry for an AAS with the name of the 
+namespace of the Thing is created in the AAS Registry pointing to the configured AAS Server.
 
-Note that it is enough to only register the AAS with its BaSyx AAS server endpoint in the BaSyx AAS registry. The registry only needs the AAS server endpoint to also get access to all submodels and submodel elements from the AAS.
+Note that it is enough to only register the AAS with its BaSyx AAS server endpoint in the BaSyx AAS registry. 
+The registry only needs the AAS server endpoint to also get access to all submodels and submodel elements from the AAS.
 
 ## Test the connection
 Now we have all required Connections properly configured and we are able to test our setup.
@@ -777,7 +814,7 @@ If plain json responses are not fancy enough to test this, you can use one of th
 In case you deployed it and want to try, then you can access your web UI in a web browser e.g. on `http://basyx-aas-web-ui:4006`.
 As ,,Registry Server URL" paste the URL from your AAS Registry in the following form `http://basyx-aas-registry:4000/registry`. After reloading the page you can see the created Shell und Submodel in die AAS Web UI.
 
-{% include image.html file="blog/2024-01-15-integrating-ditto-ass-basyx/AASDashboard.png" alt="AAS Dashboard" max-width=1000 %}
+{% include image.html file="blog/2024-02-15-integrating-ditto-ass-basyx/AASDashboard.png" alt="AAS Dashboard" max-width=1000 %}
 *Figure 4: BaSyx AAS Web UI*
 
 # Summary
