@@ -1,0 +1,55 @@
+# Copyright (c) 2024 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+{{- if and .Values.global.podDeletionCostPatching.enabled -}}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "ditto.fullname" . }}-pod-deletion-cron-job
+  labels:
+{{ include "ditto.labels" . | indent 4 }}
+spec:
+  schedule: "*/5 * * * *" # every 5 minutes
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          name: {{ include "ditto.fullname" . }}-pod-deletion-cron-job
+          labels:
+            app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+            app.kubernetes.io/instance: {{ .Release.Name | quote }}
+            helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+        spec:
+          {{- if .Values.rbac.enabled }}
+          serviceAccountName: {{ template "ditto.serviceAccountName" . }}
+          {{- end }}
+          restartPolicy: Never
+          containers:
+            - name: {{ .Chart.Name }}-pod-deletion-cost-cronjob
+              image: "public.ecr.aws/h0h9t7p1/alpine-bash-curl-jq:latest"
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  cd /opt/ditto-scripts
+                  ./patch-pods-deletion-cost.sh
+              volumeMounts:
+              - name: hook-scripts
+                mountPath: "/opt/ditto-scripts"
+          volumes:
+            - name: hook-scripts
+              configMap:
+                name: {{ include "ditto.fullname" . }}-hook-scripts
+                defaultMode: 0555
+{{- end }}
