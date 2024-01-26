@@ -8,7 +8,7 @@ io.opentelemetry:opentelemetry-semconv:jar:1.13.0-alpha:runtime
 io.projectreactor:reactor-core:jar:3.5.0:runtime
 javax.inject:javax.inject:jar:1:runtime
 net.jodah:failsafe:jar:2.4.4:runtime
-net.logstash.logback:logstash-logback-encoder:jar:7.2:runtime
+net.logstash.logback:logstash-logback-encoder:jar:7.4:runtime
 org.jctools:jctools-core:jar:2.1.2:runtime
 org.jetbrains.kotlin:kotlin-stdlib-common:jar:1.4.0:runtime
 org.jetbrains.kotlin:kotlin-stdlib:jar:1.4.10:runtime
