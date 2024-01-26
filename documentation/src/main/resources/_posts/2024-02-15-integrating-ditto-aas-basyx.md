@@ -3,7 +3,7 @@ title: "Access Ditto Things from an Asset Administration Shell"
 published: true
 permalink: 2024-02-15-integrating-ditto-aas-basyx.html
 layout: post
-author: bs-jokri
+author: johannes_kristan
 tags: [blog]
 hide_sidebar: true
 sidebar: false
@@ -69,51 +69,32 @@ You can either pull them from Docker Hub or [follow the instructions](https://wi
 In the following we mainly work with the AAS Server Component and the Registry Component. The AAS Web UI Component can be helpful for visualization purposes. Later we will show how you can integrate the UI into a Basyx-based AAS setup.
 
 
-# Making Eclipse Ditto Things available in an AAS
-The AAS specification defines APIs of several services required within an AAS infrastructure.
-For now we only need to focus on the *AAS Interface* and the *AAS Registry Interface*.
-The AAS Interface is implemented by an AAS server, in our case this API is provided by the Eclipse Basyx AAS server.
-The AAS Registry, in a similar way, is implemented by an AAS Registry component, in our case by the Eclipse Basyx AAS Registry component.
+# Architectural Considerations
+Making Eclipse Ditto Things available in an AAS infrastructure, in our case from the Eclipse Basyx project, boils down to make them available as Submodels of an AAS accessible via the AAS Interface.
 
-The AAS server provides access to information on assets.
-This information is organized in Submodels and there Submodel Elements.
-
-Making Eclipse Ditto Things availabe in an AAS infrastructure boils down to make them available as Submodels of an AAS accessible from an AAS server.
-The Submodel representing a Ditto Thing can either be attached to an already existing AAS or a new AAS needs to be created.
-In case we use an existing AAS it is already registered at an AAS registry.
-In case a Ditto Thing is to be added to a new AAS , the new AAS needs to be created as well, which in turn needs to be registered in the AAS registry.
-
-The next question is, how to make the Thing data available as a Submodel accessible from an AAS server.
 We see three approaches:
-* Eclipse Ditto *pushes* latest updates to an BaSyx AAS SM server
 * BaSyx AAS SM server *pulls* the current state from Eclipse Ditto via a *wrapper* arround Eclipse Ditto
+  This approach requires to implement a custom AAS infrastructure arround Eclipse Ditto, without the chance of reusing existing components of the Eclipse Basyx project.
+  A similar approach was taken by the Eclipse Ditto project to implement [Web of Things](https://eclipse.dev/ditto/2022-03-03-wot-integration.html) (WoT) APIs, which is another specification to integrate IoT devices from different contexts and align their utilized data model.
+  Ditto now allows the generation of new Things based on a WoT Thing Description.
 * BaSyx AAS SM server *pulls* the current state from Eclipse Ditto via a *bridge* component Eclipse Basyx already provides.
-
-## Wrapper around Eclipse Ditto exposing AAS APIs
-This approach requires to implement a custom AAS infrastructure arround Eclipse Ditto, without the chance of reusing existing components of the Eclipse Basyx project.
-A similar approach was taken by the Eclipse Ditto project to implement [Web of Things](https://eclipse.dev/ditto/2022-03-03-wot-integration.html) (WoT) APIs, which is another specification to integrate IoT devices from different contexts and align their utilized data model.
-Ditto now allows the generation of new Things based on a WoT Thing Description.
-
-
-## Pulling Device Data upon Request
-Eclipse Basyx provides a bridge component that can be registered with the BaSyx AAS server,
-The AAS server delegates requests for an AAS to the bridge that retrieves the actual data from Ditto and applies transformation logic.
-For that the BaSyx SM-server component has a delegation feature, where the user can configure an SME with an endpoint to which the server delegates requests.
-
-
-## Push Device State into AAS Infrastructure
-For this approach Eclipse Ditto is configured so that it pushes state changes of devices every time a device changes.
-The data is transformed into the AAS format and pushed to the BaSyx SM server, which directly responds to the requests by the users.
+  Eclipse Basyx provides a bridge component that can be registered with the BaSyx AAS server,
+  The AAS server delegates requests for an AAS to the bridge that retrieves the actual data from Ditto and applies transformation logic.
+  For that the BaSyx SM-server component has a delegation feature, where the user can configure an SME with an endpoint to which the server delegates requests.
+* Eclipse Ditto *pushes* latest updates to an BaSyx AAS SM server
+  For this approach Eclipse Ditto is configured so that it pushes state changes of devices every time a device changes.
+  The data is transformed into the AAS format and pushed to the BaSyx SM server, which directly responds to the requests by the users.
 
 {% include image.html file="blog/2024-02-15-integrating-ditto-ass-basyx/push.svg" alt="Push approach sequence" max-width=1000 %}
 *Figure 3: Push approach sequence*
 
-As the push approach treats the AAS infrastructure as a blackbox and almost all configuration happens within Eclipe Ditto we will follow this approach.
+As the push approach treats the AAS infrastructure as a blackbox and almost all configuration happens within Eclipse Ditto we will follow this approach.
 
 
-## Concept Mapping
+# Concept Mapping
 Eclipse Ditto and Eclipse Basyx work with different data structures.
-Eclipse Ditto is using [Things](https://eclipse.dev/ditto/basic-thing.html) Eclipse Basyx [Submodels](https://industrialdigitaltwin.org/en/wp-content/uploads/sites/2/2023/04/IDTA-01001-3-0_SpecificationAssetAdministrationShell_Part1_Metamodel.pdf) from the AAS specification to represent Devices or Assets in general.
+Eclipse Ditto is using [Things](https://eclipse.dev/ditto/basic-thing.html) 
+Eclipse Basyx [Submodels](https://industrialdigitaltwin.org/en/wp-content/uploads/sites/2/2023/04/IDTA-01001-3-0_SpecificationAssetAdministrationShell_Part1_Metamodel.pdf) from the AAS specification to represent Devices or Assets in general.
 
 Thus, the Things data structure needs to be mapped to Submodels and their respective Submodel Elements.
 The following Table 1 shows the mapping of Eclipse Ditto to AAS.
@@ -131,9 +112,8 @@ The following Table 1 shows the mapping of Eclipse Ditto to AAS.
 
 A Ditto [`Namespace`](https://eclipse.dev/ditto/basic-namespaces-and-names.html#namespace) is mapped to a single AAS. An AAS holds multiple
 SMs. Since a `Thing` comprises one or more [`Features`](https://eclipse.dev/ditto/basic-feature.html), we treat a
-`Thing` as an opaque concept and do not define an explicit mapping for a
-`Thing` but map one `Feature` to one SM. [`Property`](https://eclipse.dev/ditto/basic-feature.html#feature-properties) and [`Attribute`](https://eclipse.dev/ditto/basic-thing.html#attributes) are
-mapped to SMEs.
+`Thing` as an opaque concept and do not define an explicit mapping for a `Thing` but map one `Feature` to one SM. 
+[`Property`](https://eclipse.dev/ditto/basic-feature.html#feature-properties) and [`Attribute`](https://eclipse.dev/ditto/basic-thing.html#attributes) are mapped to SMEs.
 
 By that it is possible to have more then one Thing organized in an AAS. This can especially be useful if an AAS organizes some more complex equipment with different sensors and actuators, which belong together.
 
@@ -828,12 +808,9 @@ The *pull with bridge* approach could be realized by using the bridge component 
 Ditto's features allowed us to easily integrate devices connected to Ditto into AAS. We assume our presented approach can be applied to other technologies in a similar way.
 
 
-
-
-
-
 <br/>
 <br/>
-{% include image.html file="ditto.svg" alt="Ditto" max-width=500 %}
---<br/>
-The Eclipse Ditto team
+Milena Jäntgen, [Sven Erik Jeroschewski](https://github.com/eriksven) and [Max Grzanna](https://github.com/max-grzanna) contributed to this post.
+
+
+
