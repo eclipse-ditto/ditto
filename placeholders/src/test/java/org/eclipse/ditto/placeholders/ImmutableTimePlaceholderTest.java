@@ -14,9 +14,13 @@ package org.eclipse.ditto.placeholders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -87,6 +91,33 @@ public final class ImmutableTimePlaceholderTest {
     @Test
     public void testReplaceCurrentTimestampIsoPlusHoursTruncateMinute() {
         testWithTimePlaceholder("now+4h[m]", Instant.now().plus(Duration.ofHours(4)).truncatedTo(ChronoUnit.MINUTES));
+    }
+
+    @Test
+    public void testReplaceCurrentTimestampIsoTruncateWeek() {
+        testWithTimePlaceholder("now[w]",
+                ZonedDateTime.now(ZoneId.systemDefault())
+                        .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).truncatedTo(ChronoUnit.DAYS)
+                        .toInstant()
+        );
+    }
+
+    @Test
+    public void testReplaceCurrentTimestampIsoTruncateMonth() {
+        testWithTimePlaceholder("now[mo]",
+                ZonedDateTime.now(ZoneId.systemDefault())
+                        .with(TemporalAdjusters.firstDayOfMonth()).truncatedTo(ChronoUnit.DAYS)
+                        .toInstant()
+        );
+    }
+
+    @Test
+    public void testReplaceCurrentTimestampIsoTruncateYear() {
+        testWithTimePlaceholder("now[y]",
+                ZonedDateTime.now(ZoneId.systemDefault())
+                        .with(TemporalAdjusters.firstDayOfYear()).truncatedTo(ChronoUnit.DAYS)
+                        .toInstant()
+        );
     }
 
     @Test

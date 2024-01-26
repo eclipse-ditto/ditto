@@ -1,23 +1,23 @@
 # Third-party Content
 
-## Logback Classic Module (1.2.12)
+## Logback Classic Module (1.4.14)
 
-* Maven coordinates: `ch.qos.logback:logback-classic:1.2.12`
+* Maven coordinates: `ch.qos.logback:logback-classic:1.4.14`
 * License: [EPL-1.0](https://spdx.org/licenses/EPL-1.0.html), [LGPL-2.1](https://spdx.org/licenses/LGPL-2.1.html)
 * Project: http://logback.qos.ch/logback-classic
 * Sources: 
    * declared as SCM: https://github.com/qos-ch/logback/logback-classic
-   * Maven sources: https://search.maven.org/remotecontent?filepath=ch/qos/logback/logback-classic/1.2.12/logback-classic-1.2.12-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=ch/qos/logback/logback-classic/1.4.14/logback-classic-1.4.14-sources.jar
 
 
-## Logback Core Module (1.2.12)
+## Logback Core Module (1.4.14)
 
-* Maven coordinates: `ch.qos.logback:logback-core:1.2.12`
+* Maven coordinates: `ch.qos.logback:logback-core:1.4.14`
 * License: [EPL-1.0](https://spdx.org/licenses/EPL-1.0.html), [LGPL-2.1](https://spdx.org/licenses/LGPL-2.1.html)
 * Project: http://logback.qos.ch/logback-core
 * Sources: 
    * declared as SCM: https://github.com/qos-ch/logback/logback-core
-   * Maven sources: https://search.maven.org/remotecontent?filepath=ch/qos/logback/logback-core/1.2.12/logback-core-1.2.12-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=ch/qos/logback/logback-core/1.4.14/logback-core-1.4.14-sources.jar
 
 
 ## minimal-json (0.9.5)
@@ -240,14 +240,14 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/hivemq/hivemq-mqtt-client/1.3.3/hivemq-mqtt-client-1.3.3-sources.jar
 
 
-## RabbitMQ Java Client (5.14.3)
+## RabbitMQ Java Client (5.18.0)
 
-* Maven coordinates: `com.rabbitmq:amqp-client:5.14.3`
+* Maven coordinates: `com.rabbitmq:amqp-client:5.18.0`
 * License: [AL 2.0](https://spdx.org/licenses/AL 2.0.html), [GPL-2.0](https://spdx.org/licenses/GPL-2.0.html), [MPL 2.0](https://spdx.org/licenses/MPL 2.0.html)
 * Project: https://www.rabbitmq.com
 * Sources: 
    * declared as SCM: https://github.com/rabbitmq/rabbitmq-java-client
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/rabbitmq/amqp-client/5.14.3/amqp-client-5.14.3-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/rabbitmq/amqp-client/5.18.0/amqp-client-5.18.0-sources.jar
 
 
 ## okhttp (4.9.3)
@@ -370,64 +370,64 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=io/jsonwebtoken/jjwt-impl/0.11.5/jjwt-impl-0.11.5-sources.jar
 
 
-## kamon-core (2.6.5)
+## kamon-core (2.6.6)
 
-* Maven coordinates: `io.kamon:kamon-core_2.13:2.6.5`
+* Maven coordinates: `io.kamon:kamon-core_2.13:2.6.6`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-core_2.13/2.6.5/kamon-core_2.13-2.6.5-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-core_2.13/2.6.6/kamon-core_2.13-2.6.6-sources.jar
 
 
-## kamon-executors (2.6.5)
+## kamon-executors (2.6.6)
 
-* Maven coordinates: `io.kamon:kamon-executors_2.13:2.6.5`
+* Maven coordinates: `io.kamon:kamon-executors_2.13:2.6.6`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-executors_2.13/2.6.5/kamon-executors_2.13-2.6.5-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-executors_2.13/2.6.6/kamon-executors_2.13-2.6.6-sources.jar
 
 
-## kamon-instrumentation-common (2.6.5)
+## kamon-instrumentation-common (2.6.6)
 
-* Maven coordinates: `io.kamon:kamon-instrumentation-common_2.13:2.6.5`
+* Maven coordinates: `io.kamon:kamon-instrumentation-common_2.13:2.6.6`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-instrumentation-common_2.13/2.6.5/kamon-instrumentation-common_2.13-2.6.5-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-instrumentation-common_2.13/2.6.6/kamon-instrumentation-common_2.13-2.6.6-sources.jar
 
 
-## kamon-opentelemetry (2.6.5)
+## kamon-opentelemetry (2.6.6)
 
-* Maven coordinates: `io.kamon:kamon-opentelemetry_2.13:2.6.5`
+* Maven coordinates: `io.kamon:kamon-opentelemetry_2.13:2.6.6`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-opentelemetry_2.13/2.6.5/kamon-opentelemetry_2.13-2.6.5-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-opentelemetry_2.13/2.6.6/kamon-opentelemetry_2.13-2.6.6-sources.jar
 
 
-## kamon-prometheus (2.6.5)
+## kamon-prometheus (2.6.6)
 
-* Maven coordinates: `io.kamon:kamon-prometheus_2.13:2.6.5`
+* Maven coordinates: `io.kamon:kamon-prometheus_2.13:2.6.6`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-prometheus_2.13/2.6.5/kamon-prometheus_2.13-2.6.5-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-prometheus_2.13/2.6.6/kamon-prometheus_2.13-2.6.6-sources.jar
 
 
-## kamon-system-metrics (2.6.5)
+## kamon-system-metrics (2.6.6)
 
-* Maven coordinates: `io.kamon:kamon-system-metrics_2.13:2.6.5`
+* Maven coordinates: `io.kamon:kamon-system-metrics_2.13:2.6.6`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-system-metrics_2.13/2.6.5/kamon-system-metrics_2.13-2.6.5-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-system-metrics_2.13/2.6.6/kamon-system-metrics_2.13-2.6.6-sources.jar
 
 
 ## Netty/Buffer (4.1.99.Final)
@@ -700,14 +700,14 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=net/jodah/failsafe/2.4.4/failsafe-2.4.4-sources.jar
 
 
-## Logstash Logback Encoder (7.2)
+## Logstash Logback Encoder (7.4)
 
-* Maven coordinates: `net.logstash.logback:logstash-logback-encoder:7.2`
+* Maven coordinates: `net.logstash.logback:logstash-logback-encoder:7.4`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html), [MIT](https://spdx.org/licenses/MIT.html)
 * Project: https://github.com/logfellow/logstash-logback-encoder
 * Sources: 
    * declared as SCM: https://github.com/logfellow/logstash-logback-encoder
-   * Maven sources: https://search.maven.org/remotecontent?filepath=net/logstash/logback/logstash-logback-encoder/7.2/logstash-logback-encoder-7.2-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=net/logstash/logback/logstash-logback-encoder/7.4/logstash-logback-encoder-7.4-sources.jar
 
 
 ## metrics4-scala (4.2.9)
@@ -1050,24 +1050,24 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/atteo/classindex/classindex/3.13/classindex-3.13-sources.jar
 
 
-## commons-compiler (3.1.10)
+## commons-compiler (3.1.11)
 
-* Maven coordinates: `org.codehaus.janino:commons-compiler:3.1.10`
+* Maven coordinates: `org.codehaus.janino:commons-compiler:3.1.11`
 * License: [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)
 * Project: http://janino-compiler.github.io/commons-compiler/
 * Sources: 
    * declared as SCM: https://github.com/janino-compiler/commons-compiler
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/codehaus/janino/commons-compiler/3.1.10/commons-compiler-3.1.10-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/codehaus/janino/commons-compiler/3.1.11/commons-compiler-3.1.11-sources.jar
 
 
-## janino (3.1.10)
+## janino (3.1.11)
 
-* Maven coordinates: `org.codehaus.janino:janino:3.1.10`
+* Maven coordinates: `org.codehaus.janino:janino:3.1.11`
 * License: [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)
 * Project: http://janino-compiler.github.io/janino/
 * Sources: 
    * declared as SCM: https://github.com/janino-compiler/janino
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/codehaus/janino/janino/3.1.10/janino-3.1.10-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/codehaus/janino/janino/3.1.11/janino-3.1.11-sources.jar
 
 
 ## Java Concurrency Tools Core Library (2.1.2)
@@ -1360,34 +1360,34 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/scala-lang/modules/scala-java8-compat_2.13/1.0.2/scala-java8-compat_2.13-1.0.2-sources.jar
 
 
-## JCL 1.2 implemented over SLF4J (1.7.36)
+## JCL 1.2 implemented over SLF4J (2.0.11)
 
-* Maven coordinates: `org.slf4j:jcl-over-slf4j:1.7.36`
+* Maven coordinates: `org.slf4j:jcl-over-slf4j:2.0.11`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://www.slf4j.org
 * Sources: 
-   * declared as SCM: https://github.com/qos-ch/slf4j/jcl-over-slf4j
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/slf4j/jcl-over-slf4j/1.7.36/jcl-over-slf4j-1.7.36-sources.jar
+   * declared as SCM: https://github.com/qos-ch/slf4j/slf4j-parent/jcl-over-slf4j
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/slf4j/jcl-over-slf4j/2.0.11/jcl-over-slf4j-2.0.11-sources.jar
 
 
-## JUL to SLF4J bridge (1.7.36)
+## JUL to SLF4J bridge (2.0.11)
 
-* Maven coordinates: `org.slf4j:jul-to-slf4j:1.7.36`
+* Maven coordinates: `org.slf4j:jul-to-slf4j:2.0.11`
 * License: [MIT](https://spdx.org/licenses/MIT.html)
 * Project: http://www.slf4j.org
 * Sources: 
-   * declared as SCM: https://github.com/qos-ch/slf4j/jul-to-slf4j
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/slf4j/jul-to-slf4j/1.7.36/jul-to-slf4j-1.7.36-sources.jar
+   * declared as SCM: https://github.com/qos-ch/slf4j/slf4j-parent/jul-to-slf4j
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/slf4j/jul-to-slf4j/2.0.11/jul-to-slf4j-2.0.11-sources.jar
 
 
-## SLF4J API Module (1.7.36)
+## SLF4J API Module (2.0.11)
 
-* Maven coordinates: `org.slf4j:slf4j-api:1.7.36`
+* Maven coordinates: `org.slf4j:slf4j-api:2.0.11`
 * License: [MIT](https://spdx.org/licenses/MIT.html)
 * Project: http://www.slf4j.org
 * Sources: 
-   * declared as SCM: https://github.com/qos-ch/slf4j/slf4j-api
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36-sources.jar
+   * declared as SCM: https://github.com/qos-ch/slf4j/slf4j-parent/slf4j-api
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/slf4j/slf4j-api/2.0.11/slf4j-api-2.0.11-sources.jar
 
 
 ## bytebuffer (5.0.1)

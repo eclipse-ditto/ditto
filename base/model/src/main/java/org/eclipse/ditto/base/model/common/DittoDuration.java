@@ -17,6 +17,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.time.Duration;
+import java.time.Period;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Objects;
@@ -217,7 +218,10 @@ public final class DittoDuration implements CharSequence {
         MILLISECONDS("ms", Duration::ofMillis, ChronoUnit.MILLIS),
         MINUTES("m", Duration::ofMinutes, ChronoUnit.MINUTES),
         HOURS("h", Duration::ofHours, ChronoUnit.HOURS),
-        DAYS("d", Duration::ofDays, ChronoUnit.DAYS);
+        DAYS("d", Duration::ofDays, ChronoUnit.DAYS),
+        WEEKS("w", weeks -> ofPeriodGreaterThanDays(Period.ofWeeks((int) weeks)), ChronoUnit.WEEKS),
+        MONTHS("mo", months -> ofPeriodGreaterThanDays(Period.ofMonths((int) months)), ChronoUnit.MONTHS),
+        YEARS("y", years -> ofPeriodGreaterThanDays(Period.ofYears((int) years)), ChronoUnit.YEARS);
 
         private final String suffix;
         private final LongFunction<Duration> toJavaDuration;
@@ -241,6 +245,13 @@ public final class DittoDuration implements CharSequence {
             return Arrays.stream(values())
                     .filter(unit -> unit.getSuffix().equals(suffix))
                     .findAny();
+        }
+
+        private static Duration ofPeriodGreaterThanDays(final Period period) {
+            final Duration years = ChronoUnit.YEARS.getDuration().multipliedBy(period.getYears());
+            final Duration months = ChronoUnit.MONTHS.getDuration().multipliedBy(period.getMonths());
+            final Duration days = ChronoUnit.DAYS.getDuration().multipliedBy(period.getDays());
+            return years.plus(months).plus(days);
         }
 
         public Matcher getRegexMatcher(final CharSequence duration) {

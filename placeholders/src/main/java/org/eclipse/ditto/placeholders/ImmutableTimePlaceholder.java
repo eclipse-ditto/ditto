@@ -12,8 +12,12 @@
  */
 package org.eclipse.ditto.placeholders;
 
+import java.time.DayOfWeek;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.Collections;
 import java.util.List;
 
@@ -151,22 +155,41 @@ final class ImmutableTimePlaceholder implements TimePlaceholder {
             final DittoDuration dittoDuration = extractTimeRangeDuration(timeRangeSuffix);
             Instant nowMinus = now.minus(dittoDuration.getDuration());
             if (truncateTo != null) {
-                nowMinus = nowMinus.truncatedTo(truncateTo);
+                nowMinus = truncateInstantTo(nowMinus, truncateTo);
             }
             return buildResult(placeholder, nowMinus);
         } else if (sign == '+') {
             final DittoDuration dittoDuration = extractTimeRangeDuration(timeRangeSuffix);
             Instant nowPlus = now.plus(dittoDuration.getDuration());
             if (truncateTo != null) {
-                nowPlus = nowPlus.truncatedTo(truncateTo);
+                nowPlus = truncateInstantTo(nowPlus, truncateTo);
             }
             return buildResult(placeholder, nowPlus);
         } else if (truncateTo != null) {
-            final Instant nowTruncated = now.truncatedTo(truncateTo);
+            final Instant nowTruncated = truncateInstantTo(now, truncateTo);
             return buildResult(placeholder, nowTruncated);
         }
 
         return Collections.emptyList();
+    }
+
+    private static Instant truncateInstantTo(final Instant instant, final ChronoUnit truncateTo) {
+        switch (truncateTo) {
+            case WEEKS:
+                return ZonedDateTime.ofInstant(instant, ZoneId.systemDefault())
+                        .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).truncatedTo(ChronoUnit.DAYS)
+                        .toInstant();
+            case MONTHS:
+                return ZonedDateTime.ofInstant(instant, ZoneId.systemDefault())
+                        .with(TemporalAdjusters.firstDayOfMonth()).truncatedTo(ChronoUnit.DAYS)
+                        .toInstant();
+            case YEARS:
+                return ZonedDateTime.ofInstant(instant, ZoneId.systemDefault())
+                        .with(TemporalAdjusters.firstDayOfYear()).truncatedTo(ChronoUnit.DAYS)
+                        .toInstant();
+            default:
+                return instant.truncatedTo(truncateTo);
+        }
     }
 
     private static List<String> buildResult(final String placeholder, final Instant nowMinus) {
