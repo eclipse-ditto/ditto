@@ -9,15 +9,19 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 {{- if and .Values.global.podDeletionCostPatching.enabled -}}
+{{- $releaseName := .Release.Name -}}
+{{- $name := include "ditto.name" . -}}
+{{- $labels := include "ditto.labels" . -}}
+{{ $root := . }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "ditto.fullname" . }}-hook-scripts
+  name: {{ $releaseName }}-hook-scripts
   labels:
-    app.kubernetes.io/name: {{ include "ditto.name" . }}-hook-scripts
-{{ include "ditto.labels" . | indent 4 }}
+    app.kubernetes.io/name: {{ $name }}-hook-scripts
+{{ $labels | indent 4 }}
 data:
   patch-pods-deletion-cost.sh: |
-{{- tpl (.Files.Get "scripts/patch-pods-deletion-cost.sh") . | nindent 4 }}
+{{ $root.Files.Get "scripts/patch-pods-deletion-cost.sh" | nindent 4 }}
 {{- end }}
