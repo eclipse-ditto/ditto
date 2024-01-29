@@ -20,6 +20,10 @@ metadata:
   name: {{ $releaseName }}-hook-scripts
   labels:
     app.kubernetes.io/name: {{ $name }}-hook-scripts
+  annotations:
+    helm.sh/hook: pre-upgrade,pre-install
+    helm.sh/hook-weight: "-5"
+    helm.sh/resource-policy: keep
 {{ $labels | indent 4 }}
 data:
   patch-pods-deletion-cost.sh: |
