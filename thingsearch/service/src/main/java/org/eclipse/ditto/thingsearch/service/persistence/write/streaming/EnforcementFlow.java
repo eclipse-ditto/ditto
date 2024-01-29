@@ -22,7 +22,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
-import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
@@ -81,14 +80,14 @@ final class EnforcementFlow {
             Source.single(Entry.nonexistent());
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final CachingSignalEnrichmentFacade thingsFacade;
-    private final Cache<PolicyId, Entry<Pair<Policy, Set<PolicyTag>>>> policyEnforcerCache;
+    private final Cache<PolicyIdResolvingImports, Entry<Pair<Policy, Set<PolicyTag>>>> policyEnforcerCache;
     private final Duration cacheRetryDelay;
     private final SearchUpdateObserver searchUpdateObserver;
     private final int maxArraySize;
 
     private EnforcementFlow(final ActorSystem actorSystem,
             final ActorRef thingsShardRegion,
-            final Cache<PolicyId, Entry<Pair<Policy, Set<PolicyTag>>>> policyEnforcerCache,
+            final Cache<PolicyIdResolvingImports, Entry<Pair<Policy, Set<PolicyTag>>>> policyEnforcerCache,
             final AskWithRetryConfig askWithRetryConfig,
             final StreamCacheConfig thingCacheConfig,
             final Executor thingCacheDispatcher) {
@@ -127,11 +126,11 @@ final class EnforcementFlow {
 
         final PolicyCacheLoader policyCacheLoader =
                 PolicyCacheLoader.getNewInstance(askWithRetryConfig, scheduler, policiesShardRegion);
-        final CompletableFuture<Cache<PolicyId, Entry<Pair<Policy, Set<PolicyTag>>>>> cacheFuture =
+        final CompletableFuture<Cache<PolicyIdResolvingImports, Entry<Pair<Policy, Set<PolicyTag>>>>> cacheFuture =
                 new CompletableFuture<>();
         final ResolvedPolicyCacheLoader resolvedPolicyCacheLoader =
                 new ResolvedPolicyCacheLoader(policyCacheLoader, cacheFuture);
-        final Cache<PolicyId, Entry<Pair<Policy, Set<PolicyTag>>>> policyEnforcerCache =
+        final Cache<PolicyIdResolvingImports, Entry<Pair<Policy, Set<PolicyTag>>>> policyEnforcerCache =
                 CacheFactory.createCache(resolvedPolicyCacheLoader, policyCacheConfig,
                         "things-search_enforcementflow_enforcer_cache_policy", policyCacheDispatcher);
         cacheFuture.complete(policyEnforcerCache);
@@ -332,18 +331,17 @@ final class EnforcementFlow {
 
         final Source<Entry<Pair<Policy, Set<PolicyTag>>>, ?> lazySource = Source.lazySource(() -> {
             final CompletionStage<Source<Entry<Pair<Policy, Set<PolicyTag>>>, NotUsed>> enforcerFuture =
-                    policyEnforcerCache.get(policyId)
+                    policyEnforcerCache.get(new PolicyIdResolvingImports(policyId, true))
                             .thenApply(optionalEnforcerEntry -> {
                                 if (shouldReloadCache(optionalEnforcerEntry.orElse(null), metadata, iteration)) {
                                     // invalid entry; invalidate and retry after delay
-                                    policyEnforcerCache.invalidate(policyId);
+                                    policyEnforcerCache.invalidate(new PolicyIdResolvingImports(policyId, true));
 
                                     // only invalidate causing policy tag once, e.g. when a massively imported policy is changed:
                                     metadata.getCausingPolicyTag()
-                                            .filter(Predicate.not(tag -> policyId.equals(tag.getEntityId())))
                                             .ifPresent(causingPolicyTag -> {
                                                 final boolean invalidated = policyEnforcerCache.invalidateConditionally(
-                                                        causingPolicyTag.getEntityId(),
+                                                        new PolicyIdResolvingImports(causingPolicyTag.getEntityId(), false),
                                                         entry -> entry.exists() &&
                                                                 entry.getRevision() < causingPolicyTag.getRevision()
                                                 );
