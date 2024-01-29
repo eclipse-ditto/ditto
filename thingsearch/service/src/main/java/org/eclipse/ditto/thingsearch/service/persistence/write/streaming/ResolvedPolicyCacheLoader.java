@@ -25,6 +25,7 @@ import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.enforcement.PolicyCacheLoader;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.policies.model.PolicyRevision;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
@@ -49,35 +50,34 @@ final class ResolvedPolicyCacheLoader implements AsyncCacheLoader<PolicyId, Entr
                     if (policyEntry.exists()) {
                         final Policy policy = policyEntry.getValueOrThrow();
                         final Set<PolicyTag> referencedPolicies = new HashSet<>();
-                        return policy.withResolvedImports(
-                                        importedPolicyId -> cacheFuture
-                                                .thenCompose(cache -> cache.get(importedPolicyId))
+                        return cacheFuture.thenCompose(cache -> CompletableFuture.allOf(policy.getPolicyImports()
+                                        .stream()
+                                        .map(PolicyImport::getImportedPolicyId)
+                                        .map(cache::get)
+                                        .map(fut -> fut
                                                 .thenApply(entry -> entry.flatMap(Entry::get))
-                                                .thenApply(optionalReferencedPolicy -> {
-                                                    if (optionalReferencedPolicy.isPresent()) {
-                                                        final Policy referencedPolicy =
-                                                                optionalReferencedPolicy.get().first();
-                                                        final Optional<PolicyRevision> revision =
-                                                                referencedPolicy.getRevision();
-                                                        final Optional<PolicyId> entityId =
-                                                                referencedPolicy.getEntityId();
-                                                        if (revision.isPresent() && entityId.isPresent()) {
-                                                            referencedPolicies.add(
-                                                                    PolicyTag.of(entityId.get(),
-                                                                            revision.get().toLong())
-                                                            );
-                                                        }
-                                                    }
-                                                    return optionalReferencedPolicy.map(Pair::first);
-                                                }))
-                                .thenApply(resolvedPolicy -> {
+                                                .thenAccept(optPolicy -> optPolicy
+                                                        .map(Pair::first)
+                                                        .ifPresent(refPolicy -> {
+                                                            final Optional<PolicyRevision> revision = refPolicy.getRevision();
+                                                            final Optional<PolicyId> entityId = refPolicy.getEntityId();
+                                                            if (revision.isPresent() && entityId.isPresent()) {
+                                                                referencedPolicies.add(
+                                                                        PolicyTag.of(entityId.get(), revision.get().toLong())
+                                                                );
+                                                            }
+                                                        })
+                                                )
+                                        )
+                                        .toArray(CompletableFuture[]::new)
+                                ))
+                                .thenApply(allFuturesCompletedVoidMarker -> {
                                     final long revision = policy.getRevision().map(PolicyRevision::toLong)
-                                            .orElseThrow(
-                                                    () -> new IllegalStateException(
+                                            .orElseThrow(() ->
+                                                    new IllegalStateException(
                                                             "Bad SudoRetrievePolicyResponse: no revision"));
-                                    return Entry.of(revision, new Pair<>(resolvedPolicy, referencedPolicies));
+                                    return Entry.of(revision, new Pair<>(policy, referencedPolicies));
                                 });
-
                     } else {
                         return CompletableFuture.completedFuture(Entry.nonexistent());
                     }
