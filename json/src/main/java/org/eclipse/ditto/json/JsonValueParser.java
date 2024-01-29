@@ -30,7 +30,7 @@ import com.eclipsesource.json.ParseException;
  * This class provides access to functionality for parsing a {@link JsonValue} from various inputs.
  */
 @Immutable
-final class JsonValueParser {
+public final class JsonValueParser {
 
     @Nullable private static Function<String, JsonValue> fromStringInstance = null;
 

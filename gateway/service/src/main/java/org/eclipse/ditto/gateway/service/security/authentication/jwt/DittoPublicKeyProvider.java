@@ -38,6 +38,12 @@ import java.util.function.Function;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.SystemMaterializer;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.util.ByteString;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.gateway.api.GatewayAuthenticationProviderUnavailableException;
 import org.eclipse.ditto.gateway.api.GatewayJwtIssuerNotSupportedException;
@@ -65,12 +71,6 @@ import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalListener;
 
-import org.apache.pekko.http.javadsl.model.HttpRequest;
-import org.apache.pekko.http.javadsl.model.HttpResponse;
-import org.apache.pekko.stream.Materializer;
-import org.apache.pekko.stream.SystemMaterializer;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.util.ByteString;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 
@@ -391,10 +391,10 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
     }
 
     private PublicKeyWithParser mapToPublicKeyWithParser(final PublicKey publicKey) {
-        final var jwtParserBuilder = Jwts.parserBuilder();
-        final JwtParser jwtParser = jwtParserBuilder.deserializeJsonWith(JjwtDeserializer.getInstance())
-                .setSigningKey(publicKey)
-                .setAllowedClockSkewSeconds(oAuthConfig.getAllowedClockSkew().getSeconds())
+        final var jwtParserBuilder = Jwts.parser();
+        final JwtParser jwtParser = jwtParserBuilder.json(JjwtDeserializer.getInstance())
+                .verifyWith(publicKey)
+                .clockSkewSeconds(oAuthConfig.getAllowedClockSkew().getSeconds())
                 .build();
 
         return new PublicKeyWithParser(publicKey, jwtParser);
