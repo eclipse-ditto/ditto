@@ -226,6 +226,7 @@ public final class EnforcementFlowTest {
         final long policy2Rev1 = 3L;
         final ThingId thingId1 = ThingId.of("thing:id-1");
         final ThingId thingId2 = ThingId.of("thing:id-2");
+        final PolicyId motherPolicyId = PolicyId.of("policy:mother"); // mother should never be loaded
         final PolicyId importedPolicyId = PolicyId.of("policy:imported");
         final PolicyId importingPolicy1Id = PolicyId.of("policy:importing-1");
         final PolicyId importingPolicy2Id = PolicyId.of("policy:importing-2");
@@ -264,8 +265,12 @@ public final class EnforcementFlowTest {
 
         final SudoRetrievePolicy sudoRetrieveImportedPolicy = policiesProbe.expectMsgClass(SudoRetrievePolicy.class);
         assertThat(sudoRetrieveImportedPolicy.getEntityId().toString()).isEqualTo(importedPolicyId.toString());
-        final var importedPolicy = Policy.newBuilder(importedPolicyId).setRevision(importedPolicyRev1).build();
+        final var importedPolicy = Policy.newBuilder(importedPolicyId)
+                .setPolicyImport(PolicyImport.newInstance(motherPolicyId, null))
+                .setRevision(importedPolicyRev1).build();
         policiesProbe.reply(SudoRetrievePolicyResponse.of(importedPolicyId, importedPolicy, DittoHeaders.empty()));
+
+        policiesProbe.expectNoMessage();
 
         final AbstractWriteModel writeModel1 = sinkProbe.expectNext().get(0);
         assertThat(writeModel1).isInstanceOf(ThingWriteModel.class);
@@ -333,7 +338,9 @@ public final class EnforcementFlowTest {
 
         final SudoRetrievePolicy sudoRetrieveImportedPolicy_2 = policiesProbe.expectMsgClass(SudoRetrievePolicy.class);
         assertThat(sudoRetrieveImportedPolicy_2.getEntityId().toString()).isEqualTo(importedPolicyId.toString());
-        final var importedPolicy_2 = Policy.newBuilder(importedPolicyId).setRevision(importedPolicyRev2).build();
+        final var importedPolicy_2 = Policy.newBuilder(importedPolicyId)
+                .setPolicyImport(PolicyImport.newInstance(motherPolicyId, null))
+                .setRevision(importedPolicyRev2).build();
         policiesProbe.reply(SudoRetrievePolicyResponse.of(importedPolicyId, importedPolicy_2, DittoHeaders.empty()));
 
         // THEN: write model contains up-to-date policy revisions.
