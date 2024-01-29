@@ -12,21 +12,21 @@
  */
 
 import * as Utils from '../utils.js';
+import { FilterType, Term } from '../utils/basicFilters.js';
 import { TableFilter } from '../utils/tableFilter.js';
 import messagesIncomingHTML from './messagesIncoming.html';
 import * as Things from './things.js';
 import * as ThingsSSE from './thingsSSE.js';
-import { FilterType, Term } from '../utils/basicFilters.js';
 /* eslint-disable prefer-const */
 /* eslint-disable max-len */
 /* eslint-disable no-invalid-this */
 /* eslint-disable require-jsdoc */
 
 enum ThingUpdateMessageContent {
-  FULL_THING_WITH_CONTEXT="FULL_THING_WITH_CONTEXT",
-  FULL_THING="FULL_THING",
+  ONLY_CONTEXT="ONLY_CONTEXT",
   ONLY_CONTEXT_WITH_METADATA="ONLY_CONTEXT_WITH_METADATA",
-  ONLY_CONTEXT="ONLY_CONTEXT"
+  FULL_THING="FULL_THING",
+  FULL_THING_WITH_CONTEXT="FULL_THING_WITH_CONTEXT"
 }
 
 type DomElements = {
@@ -50,7 +50,7 @@ let filteredMessages = [];
 let selectedRow;
 let messageDetail;
 let currentThingId;
-let thingUpdateMessageContent = ThingUpdateMessageContent.FULL_THING_WITH_CONTEXT;
+let thingUpdateMessageContent = ThingUpdateMessageContent.ONLY_CONTEXT;
 
 document.getElementById('messagesIncomingHTML').innerHTML = messagesIncomingHTML;
 
