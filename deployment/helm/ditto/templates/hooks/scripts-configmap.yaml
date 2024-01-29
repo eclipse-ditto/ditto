@@ -26,6 +26,6 @@ metadata:
     helm.sh/resource-policy: keep
 {{ $labels | indent 4 }}
 data:
-  patch-pods-deletion-cost.sh: |
+  patch-pods-deletion-cost.sh: |-
 {{ $root.Files.Get "scripts/patch-pods-deletion-cost.sh" | nindent 4 }}
 {{- end }}
