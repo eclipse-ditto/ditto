@@ -17,7 +17,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ $releaseName }}-hook-scripts
+  name: {{ include "ditto.fullname" . }}-hook-scripts
   labels:
     app.kubernetes.io/name: {{ $name }}-hook-scripts
   annotations:
