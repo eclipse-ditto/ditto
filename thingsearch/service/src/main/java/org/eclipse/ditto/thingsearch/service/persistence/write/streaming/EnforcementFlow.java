@@ -342,7 +342,7 @@ final class EnforcementFlow {
                                             .ifPresent(causingPolicyTag -> {
                                                 final boolean invalidated = policyEnforcerCache.invalidateConditionally(
                                                         new PolicyIdResolvingImports(causingPolicyTag.getEntityId(), false),
-                                                        entry -> entry.exists() &&
+                                                        entry -> !entry.exists() ||
                                                                 entry.getRevision() < causingPolicyTag.getRevision()
                                                 );
                                                 log.debug("Causing policy tag was invalidated conditionally: <{}>",
