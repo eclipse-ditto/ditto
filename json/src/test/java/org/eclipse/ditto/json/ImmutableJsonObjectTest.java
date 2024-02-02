@@ -1434,6 +1434,68 @@ public final class ImmutableJsonObjectTest {
     }
 
     @Test
+    public void nestedObjectsInsideArraysAreSelectedWhenSelectingViaFieldSelector() {
+        final JsonObject underTest = JsonObject.newBuilder()
+                .set("some", JsonObject.newBuilder()
+                        .set("nested", JsonArray.newBuilder()
+                                .add(JsonObject.newBuilder()
+                                        .set("a", 1)
+                                        .set("b", 2)
+                                        .set("c", 3)
+                                        .build()
+                                )
+                                .add(JsonObject.newBuilder()
+                                        .set("a", 11)
+                                        .set("b", 22)
+                                        .set("c", 33)
+                                        .build()
+                                )
+                                .build())
+                        .build()
+                )
+                .set("other", "foo")
+                .build();
+
+        final JsonFieldSelector selectorSelectingArray =
+                JsonFieldSelector.newInstance("some/nested/b");
+        final JsonObject actual = underTest.get(selectorSelectingArray);
+
+        final JsonObject expected = JsonObject.newBuilder()
+                .set("some", JsonObject.newBuilder()
+                        .set("nested", JsonArray.newBuilder()
+                                .add(JsonObject.newBuilder()
+                                        .set("b", 2)
+                                        .build()
+                                )
+                                .add(JsonObject.newBuilder()
+                                        .set("b", 22)
+                                        .build()
+                                )
+                                .build())
+                        .build()
+                )
+                .build();
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void simpleArraysArePreservedWhenSelectingViaFieldSelector() {
+        final JsonObject underTest = JsonObject.newBuilder()
+                .set("some", JsonObject.newBuilder()
+                        .set("nested", JsonArray.newBuilder()
+                                .add(1, 2, 3)
+                                .build())
+                        .build()
+                )
+                .set("other", "foo")
+                .build();
+        final JsonFieldSelector selectorSelectingArray =
+                JsonFieldSelector.newInstance("some/nested");
+        final JsonObject actual = underTest.get(selectorSelectingArray);
+        assertThat(actual).isEqualTo(underTest.remove("other"));
+    }
+
+    @Test
     public void jsonObjectsNestedInArraysShouldCompareWithoutFieldDefinitions() {
         final JsonObject objectWithoutDefinition =
                 ImmutableJsonObject.of(toMap("x", JsonArray.of(JsonObject.of("{\"y\":5}"))));
