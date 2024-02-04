@@ -432,8 +432,8 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
                     filteredChildValue = filterByTrie(childValue.asObject(), trie.descend(key)); // recurse!
                 } else if (childValue.isArray()) {
                     filteredChildValue = childValue.asArray().stream()
-                            .filter(JsonValue::isObject)
-                            .map(value -> filterByTrie(value.asObject(), trie.descend(key))) // recurse!
+                            .map(value -> value.isObject() ? filterByTrie(value.asObject(), trie.descend(key)) // recurse!
+                                    : value)
                             .collect(JsonCollectors.valuesToArray());
                 } else {
                     filteredChildValue = childValue;
