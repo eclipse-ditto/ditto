@@ -370,7 +370,7 @@ export async function callDittoREST(method,
       throw new Error('An error occurred: ' + response.status);
     }
   }
-  if (response.status !== 204) {
+  if (response.status !== 204 && response.status !== 202) {
     if (returnHeaders) {
       return response;
     } else {

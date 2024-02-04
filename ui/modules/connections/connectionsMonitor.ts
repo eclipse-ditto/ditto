@@ -65,6 +65,7 @@ export async function ready() {
   Utils.getAllElementsById(dom);
 
   connectionLogDetail = Utils.createAceEditor('connectionLogDetail', 'ace/mode/json', true);
+  connectionLogDetail.session.setUseWrapMode(true);
   connectionStatusDetail = Utils.createAceEditor('connectionStatusDetail', 'ace/mode/json', true);
 
   // Status --------------
@@ -162,6 +163,7 @@ function fillConnectionLogsTable() {
     Utils.addTableRow(
         dom.tbodyConnectionLogs,
         Utils.formatDate(entry.timestamp, true), false, null,
+        entry.category,
         entry.type,
         entry.level
     );

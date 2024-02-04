@@ -96,8 +96,6 @@ function onConnectionEditorInput() {
 
 function onConnectionEditorChangeAnnotation() {
   hasErrors = connectionEditor.getSession().getAnnotations().filter((a) => a.type === 'error').length > 0;
-  incomingEditor.setReadOnly(hasErrors);
-  outgoingEditor.setReadOnly(hasErrors);
 }
 
 function onUpdateConnectionClick() {
