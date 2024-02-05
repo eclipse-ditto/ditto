@@ -13,10 +13,10 @@
 
 import * as API from '../api.js';
 import * as Utils from '../utils.js';
+import authorizationHTML from './authorization.html';
 /* eslint-disable prefer-const */
 /* eslint-disable require-jsdoc */
 import * as Environments from './environments.js';
-import authorizationHTML from './authorization.html';
 
 let dom = {
   bearer: null,
@@ -41,7 +41,7 @@ export function setForDevops(forDevops) {
 export function ready() {
   Utils.getAllElementsById(dom);
 
-  document.getElementById('authorize').onclick = () => {
+  document.getElementById('authorize').onclick = (e) => {
     let mainAuth = Environments.current().mainAuth;
     let devopsAuth = Environments.current().devopsAuth;
 
@@ -71,7 +71,8 @@ export function ready() {
     });
   };
 
-  document.getElementById('authorizeSubmit').onclick = () => {
+  document.getElementById('authorizeSubmit').onclick = (e) => {
+    e.preventDefault();
     const mainAuthSelector = document.querySelector('input[name="main-auth"]:checked') as HTMLInputElement;
     const mainAuth = mainAuthSelector ? mainAuthSelector.value : undefined;
     const devopsAuthSelector = document.querySelector('input[name="devops-auth"]:checked') as HTMLInputElement;
