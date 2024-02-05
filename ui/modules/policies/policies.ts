@@ -11,18 +11,18 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
+import * as API from '../api.js';
+import * as Environments from '../environments/environments.js';
+import * as Things from '../things/things.js';
 /* eslint-disable comma-dangle */
 /* eslint-disable prefer-const */
 /* eslint-disable no-invalid-this */
 /* eslint-disable require-jsdoc */
 import * as Utils from '../utils.js';
-import * as API from '../api.js';
-import * as Things from '../things/things.js';
-import * as Environments from '../environments/environments.js';
-import {TabHandler} from '../utils/tabHandler.js';
-import policyHTML from './policies.html';
-import { Observable } from '../utils/observable.js';
 import { CrudOperation, CrudToolbar } from '../utils/crudToolbar.js';
+import { Observable } from '../utils/observable.js';
+import { TabHandler } from '../utils/tabHandler.js';
+import policyHTML from './policies.html';
 
 export interface Policy {
   policyId: string,
@@ -64,7 +64,8 @@ export function ready() {
 
   dom.tbodyRecentPolicies.addEventListener('click', onRecentPoliciesTableClicked); 
 
-  dom.buttonLoadPolicy.onclick = () => {
+  dom.buttonLoadPolicy.onclick = (e) => {
+    e.preventDefault();
     Utils.assert(dom.inputPolicyId.value, 'Please enter a policyId', dom.inputPolicyId);
     refreshPolicy(dom.inputPolicyId.value);
   };
