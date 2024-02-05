@@ -307,9 +307,17 @@ export function setAuthHeader(forDevOps) {
   }
 }
 
+function shouldShowAuthDialog(dittoErr) {
+  return (dittoErr.status === 400 && dittoErr.error === "jwt:invalid") ||
+    dittoErr.status === 401;
+}
+
 function showDittoError(dittoErr, response) {
   if (dittoErr.status && dittoErr.message) {
     Utils.showError(dittoErr.description + `\n(${dittoErr.error})`, dittoErr.message, dittoErr.status);
+    if (shouldShowAuthDialog(dittoErr)) {
+      document.getElementById('authorize').click();
+    }
   } else {
     Utils.showError(JSON.stringify(dittoErr), 'Error', response.status);
   }
@@ -343,7 +351,7 @@ export async function callDittoREST(method,
         [authHeaderKey]: authHeaderValue,
         ...additionalHeaders,
       },
-      ...(body) && {body: JSON.stringify(body)},
+      ...(method !== 'GET' && method !== 'DELETE' && body !== undefined) && {body: JSON.stringify(body)},
     });
   } catch (err) {
     Utils.showError(err);
