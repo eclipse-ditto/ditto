@@ -125,7 +125,7 @@ function onSelectThingUpdateMessageContentSelect() {
 function onMessage(messageData) {
   messages.push(messageData);
   
-  const filteredMessage = dom.tableFilterMessagesIncoming.filterItems([messageData]);
+  const filteredMessage = dom.tableFilterMessagesIncoming.filterItems(messages);
   
   if (filteredMessage.length > 0) {
     filteredMessages.push(filteredMessage[0]);
