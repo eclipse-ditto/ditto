@@ -400,12 +400,6 @@ curl -X POST -u devops:foobar -H 'Content-Type: application/json' --data-binary 
             "options": {
               "outgoingScript": "function mapFromDittoProtocolMsg(\n  namespace,\n  name,\n  group,\n  channel,\n  criterion,\n  action,\n  path,\n  dittoHeaders,\n  value,\n  status,\n  extra\n) {\n  let property_id = path.split('"'/'"').slice(3).join('"'_'"');\n  let feature_id = path.split('"'/'"').slice(2,3);\n  let headers = dittoHeaders;\n  let dataType = typeof value;\n  dataType = mapDataType(dataType)\n\n  function mapDataType(dataType) {\n    switch (dataType) {\n        case '"'undefined'"':\n        return '"'Undefined'"';\n        case '"'boolean'"':\n        return '"'boolean'"';\n        case '"'number'"':\n        return '"'int'"';\n        case '"'string'"':\n        return '"'string'"';\n        case '"'symbol'"':\n        return '"'Symbol'"';\n        case '"'bigint'"':\n        return '"'BigInt'"';\n        case '"'object'"':\n        return '"'string'"';\n        case '"'function'"':\n        return '"'Function'"';\n        default:\n        return '"'Unknown'"';\n    }\n  }\n  let textPayload = JSON.stringify(\n  {\n    parent: {\n      keys: [\n        {\n          idType: '"'Custom'"',\n          type: '"'Submodel'"',\n          value: name+'"'_'"'+feature_id,\n          local: true\n        }\n      ]\n    },\n    idShort: property_id,\n    kind: '"'Instance'"',\n    valueType: dataType,\n    modelType: {\n      name: '"'Property'"'\n    },\n    value: value\n  }\n  );\n  let bytePayload = null;\n  let contentType = '"'application/json'"';\n  return Ditto.buildExternalMsg(\n    headers, \n    textPayload, \n    bytePayload, \n    contentType \n  );\n}"
             }
-          },
-          "mappingforAttributesSubmodel": {
-            "mappingEngine": "JavaScript",
-            "options": {
-                "outgoingScript": "function mapFromDittoProtocolMsg(\n  namespace,\n  name,\n  group,\n  channel,\n  criterion,\n  action,\n  path,\n  dittoHeaders,\n  value,\n  status,\n  extra\n) {\n\n  let headers = dittoHeaders;\n  let textPayload = JSON.stringify(value);\n  let bytePayload = null;\n  let contentType = '"'application/json'"';\n  return Ditto.buildExternalMsg(\n    headers, \n    textPayload, \n    bytePayload, \n    contentType \n  );\n}"
-            }
           }
         },
         "sources": [],
@@ -447,19 +441,6 @@ curl -X POST -u devops:foobar -H 'Content-Type: application/json' --data-binary 
             ],
             "payloadMapping": [
               "mappingforSubmodelElement"
-            ]
-          },
-          {
-            "address": "PUT:/aasServer/shells/{{ thing:namespace }}/aas/submodels/{{ resource:path | fn:substring-after('"'/attributes/submodels/'"') }}",
-            "headerMapping": {
-              "content-type": "{{ header:content-type }}"
-            },
-            "authorizationContext": ["nginx:ditto"],
-            "topics": [
-              "_/_/things/twin/events?filter=and(in(topic:action,'"'modified'"'),like(resource:path,'"'/attributes/submodels*'"'))"
-            ],
-            "payloadMapping": [
-              "mappingforAttributesSubmodel"
             ]
           }
         ]
