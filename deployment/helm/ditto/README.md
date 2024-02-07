@@ -10,9 +10,6 @@ This chart uses `eclipse/ditto-XXX` containers to run Ditto inside Kubernetes.
 
 ## Prerequisites
 
-Installing Ditto using the chart requires the Helm tool to be installed as described on the
-[IoT Packages chart repository prerequisites](https://www.eclipse.org/packages/prereqs/) page.
-
 TL;DR:
 
 * have a correctly configured [`kubectl`](https://kubernetes.io/docs/tasks/tools/#kubectl) (either against a local or remote k8s cluster)
