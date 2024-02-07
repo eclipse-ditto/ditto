@@ -12,7 +12,7 @@ version: '3.4'
 
 services:
   mongodb:
-    image: docker.io/mongo:5.0
+    image: docker.io/mongo:6.0
     deploy:
       resources:
         limits:
