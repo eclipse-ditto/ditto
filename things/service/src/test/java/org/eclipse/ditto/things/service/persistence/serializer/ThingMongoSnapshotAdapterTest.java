@@ -16,7 +16,14 @@ import static org.assertj.core.api.Assertions.within;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
+import org.apache.pekko.persistence.SnapshotMetadata;
+import org.apache.pekko.persistence.SnapshotOffer;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.bson.BsonDocument;
 import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
@@ -30,12 +37,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.cluster.pubsub.DistributedPubSubMediator;
-import org.apache.pekko.persistence.SnapshotMetadata;
-import org.apache.pekko.persistence.SnapshotOffer;
-import org.apache.pekko.testkit.TestProbe;
-import org.apache.pekko.testkit.javadsl.TestKit;
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Unit test for {@link ThingMongoSnapshotAdapter}.
@@ -56,7 +58,9 @@ public final class ThingMongoSnapshotAdapterTest {
     public void setUp() {
         system = ActorSystem.create();
         pubSubProbe = TestProbe.apply(system);
-        underTest = new ThingMongoSnapshotAdapter(pubSubProbe.ref());
+        underTest = new ThingMongoSnapshotAdapter(pubSubProbe.ref(), ConfigFactory.parseMap(
+                Map.of(ThingMongoSnapshotAdapter.THING_SNAPSHOT_TAKEN_EVENT_PUBLISHING_ENABLED, true)
+        ));
     }
 
     @After

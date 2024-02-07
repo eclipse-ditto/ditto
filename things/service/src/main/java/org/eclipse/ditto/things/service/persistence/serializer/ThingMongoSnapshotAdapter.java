@@ -17,6 +17,9 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.ThreadSafe;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.cluster.pubsub.DistributedPubSub;
 import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.base.api.persistence.SnapshotTaken;
 import org.eclipse.ditto.base.model.entity.Revision;
@@ -35,10 +38,6 @@ import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.cluster.pubsub.DistributedPubSub;
-
 /**
  * A {@link org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter} for snapshotting a
  * {@link org.eclipse.ditto.things.model.Thing}.
@@ -48,7 +47,11 @@ public final class ThingMongoSnapshotAdapter extends AbstractMongoSnapshotAdapte
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ThingMongoSnapshotAdapter.class);
 
+    static final String THING_SNAPSHOT_TAKEN_EVENT_PUBLISHING_ENABLED =
+            "thing-snapshot-taken-event-publishing-enabled";
+
     private final ActorRef pubSubMediator;
+    private final boolean snapshotTakenEventPublishingEnabled;
 
     /**
      * @param actorSystem the actor system in which to load the extension
@@ -56,7 +59,8 @@ public final class ThingMongoSnapshotAdapter extends AbstractMongoSnapshotAdapte
      */
     @SuppressWarnings("unused")
     public ThingMongoSnapshotAdapter(final ActorSystem actorSystem, final Config config) {
-        this(DistributedPubSub.get(actorSystem).mediator());
+        this(DistributedPubSub.get(actorSystem).mediator(), config);
+
     }
 
     /**
@@ -64,9 +68,10 @@ public final class ThingMongoSnapshotAdapter extends AbstractMongoSnapshotAdapte
      *
      * @param pubSubMediator Pekko pubsub mediator with which to publish snapshot events.
      */
-    public ThingMongoSnapshotAdapter(final ActorRef pubSubMediator) {
+    public ThingMongoSnapshotAdapter(final ActorRef pubSubMediator, final Config config) {
         super(LOGGER);
         this.pubSubMediator = pubSubMediator;
+        snapshotTakenEventPublishingEnabled = config.getBoolean(THING_SNAPSHOT_TAKEN_EVENT_PUBLISHING_ENABLED);
     }
 
     @Override
@@ -95,20 +100,22 @@ public final class ThingMongoSnapshotAdapter extends AbstractMongoSnapshotAdapte
 
     @Override
     protected void onSnapshotStoreConversion(final Thing thing, final JsonObject thingJson) {
-        final Optional<ThingId> thingId = thing.getEntityId();
-        if (thingId.isPresent()) {
-            final var thingSnapshotTaken = ThingSnapshotTaken.newBuilder(thingId.get(),
-                            thing.getRevision().map(Revision::toLong).orElse(0L),
-                            thing.getLifecycle()
-                                    .map(ThingLifecycle::name)
-                                    .flatMap(PersistenceLifecycle::forName)
-                                    .orElse(PersistenceLifecycle.ACTIVE),
-                            thingJson)
-                    .timestamp(Instant.now())
-                    .build();
-            publishThingSnapshotTaken(thingSnapshotTaken);
-        } else {
-            LOGGER.warn("Could not publish snapshot taken event for thing <{}>.", thing);
+        if (snapshotTakenEventPublishingEnabled) {
+            final Optional<ThingId> thingId = thing.getEntityId();
+            if (thingId.isPresent()) {
+                final var thingSnapshotTaken = ThingSnapshotTaken.newBuilder(thingId.get(),
+                                thing.getRevision().map(Revision::toLong).orElse(0L),
+                                thing.getLifecycle()
+                                        .map(ThingLifecycle::name)
+                                        .flatMap(PersistenceLifecycle::forName)
+                                        .orElse(PersistenceLifecycle.ACTIVE),
+                                thingJson)
+                        .timestamp(Instant.now())
+                        .build();
+                publishThingSnapshotTaken(thingSnapshotTaken);
+            } else {
+                LOGGER.warn("Could not publish snapshot taken event for thing <{}>.", thing);
+            }
         }
     }
 
