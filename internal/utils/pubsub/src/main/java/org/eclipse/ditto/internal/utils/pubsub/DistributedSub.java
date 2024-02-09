@@ -18,10 +18,9 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorRef;
 import org.eclipse.ditto.internal.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.internal.utils.pubsub.api.SubAck;
-
-import org.apache.pekko.actor.ActorRef;
 
 /**
  * Access point for Ditto pub-sub subscribers.
@@ -40,7 +39,7 @@ public interface DistributedSub {
      */
     CompletionStage<SubAck> subscribeWithFilterAndGroup(Collection<String> topics,
             ActorRef subscriber, @Nullable Predicate<Collection<String>> filter, @Nullable String group,
-            final boolean resubscribe);
+            boolean resubscribe);
 
     /**
      * Unsubscribe for a collection of topics.

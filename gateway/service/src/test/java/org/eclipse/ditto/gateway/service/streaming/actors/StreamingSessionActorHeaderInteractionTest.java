@@ -25,6 +25,19 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.stream.Attributes;
+import org.apache.pekko.stream.OverflowStrategy;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.javadsl.SourceQueueWithComplete;
+import org.apache.pekko.testkit.TestProbe;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
@@ -61,19 +74,6 @@ import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigFactory;
 
-import org.apache.pekko.actor.AbstractActor;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.apache.pekko.stream.Attributes;
-import org.apache.pekko.stream.OverflowStrategy;
-import org.apache.pekko.stream.javadsl.Keep;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
-import org.apache.pekko.stream.javadsl.SourceQueueWithComplete;
-import org.apache.pekko.testkit.TestProbe;
-import org.apache.pekko.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -196,6 +196,7 @@ public final class StreamingSessionActorHeaderInteractionTest {
         final Connect connect =
                 new Connect(sourceQueue, "connectionCorrelationId", "ws",
                         JsonSchemaVersion.V_2, null, Set.of(), AuthorizationModelFactory.emptyAuthContext(),
+                        List.of(),
                         null);
         final Props props = StreamingSessionActor.props(connect, dittoProtocolSub, commandRouterProbe.ref(),
                 DefaultStreamingConfig.of(ConfigFactory.empty()), HeaderTranslator.empty(),

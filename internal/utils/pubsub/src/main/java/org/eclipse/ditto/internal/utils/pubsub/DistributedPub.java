@@ -14,11 +14,10 @@ package org.eclipse.ditto.internal.utils.pubsub;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorRef;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
-
-import org.apache.pekko.actor.ActorRef;
 
 /**
  * A jolly locale for the spreading of news.
@@ -42,7 +41,7 @@ public interface DistributedPub<T> {
      * of a signal to ensure event order for each entity.
      * @return the wrapped message to send to the publisher.
      */
-    Object wrapForPublication(T message, final CharSequence groupIndexKey);
+    Object wrapForPublication(T message, CharSequence groupIndexKey);
 
     /**
      * Wrap the message in an envelope to send to the publisher.
@@ -53,7 +52,7 @@ public interface DistributedPub<T> {
      * @param ackExtractor extractor of ack-related information from the message.
      * @return the wrapped message to send to the publisher.
      */
-    <S extends T> Object wrapForPublicationWithAcks(S message, final CharSequence groupIndexKey,
+    <S extends T> Object wrapForPublicationWithAcks(S message, CharSequence groupIndexKey,
             AckExtractor<S> ackExtractor);
 
     /**
