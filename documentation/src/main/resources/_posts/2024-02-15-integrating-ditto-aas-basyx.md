@@ -366,6 +366,12 @@ We assume you have access rights to the Ditto [Devops Commands](https://eclipse.
 
 You can change the password by setting the environment variable *DEVOPS_PASSWORD* in the [gateway service](https://eclipse.dev/ditto/architecture-services-gateway.html).
 
+Alternatively, an already existing password can be obtained and stored as an environment variable using the following command:
+```bash
+export DEVOPS_PWD=$(kubectl --namespace ditto get secret my-ditto-gateway-secret -o jsonpath="{.data.devops-password}" | base64 --decode)
+```
+Please be aware that this command assumes Ditto has been deployed within a namespace named "ditto".
+
 Finally, you adjust the parameter `piggybackCommand.connection.uri` with the URL of the running BaSyx server to which Ditto should have network connectivity.
 
 ```bash
