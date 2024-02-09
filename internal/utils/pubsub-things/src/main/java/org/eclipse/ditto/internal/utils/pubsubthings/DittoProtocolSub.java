@@ -19,12 +19,11 @@ import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
-import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
-
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Extension;
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 
 /**
  * Subscriptions for Ditto protocol channels.
@@ -55,7 +54,7 @@ public interface DittoProtocolSub extends Extension {
      * check for resubscriptions.
      */
     CompletionStage<Boolean> subscribe(Collection<StreamingType> types, Collection<String> topics, ActorRef subscriber,
-            @Nullable String group, final boolean resubscribe);
+            @Nullable String group, boolean resubscribe);
 
     /**
      * Remove a subscriber.

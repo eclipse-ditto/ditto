@@ -297,7 +297,9 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                                 jsonPointerString -> {
                                                     if (INBOX_OUTBOX_PATTERN.matcher(jsonPointerString).matches()) {
                                                         return createMessagesSseRoute(ctx, dhcs, thingId,
-                                                                jsonPointerString);
+                                                                jsonPointerString,
+                                                                getNamespaces(parameters.get(PARAM_NAMESPACES))
+                                                        );
                                                     } else {
                                                         params.put(PARAM_FIELDS, jsonPointerString);
                                                         return createSseRoute(ctx, dhcs,
@@ -428,7 +430,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                         connectionCorrelationId, dittoHeaders);
                                 final var connect = new Connect(withQueue.getSourceQueue(), connectionCorrelationId,
                                         STREAMING_TYPE_SSE, jsonSchemaVersion, null, Set.of(),
-                                        authorizationContext, null);
+                                        authorizationContext, namespaces, null);
                                 Patterns.ask(streamingActor, connect, LOCAL_ASK_TIMEOUT)
                                         .thenApply(ActorRef.class::cast)
                                         .thenAccept(streamingSessionActor ->
@@ -459,7 +461,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     private Route createMessagesSseRoute(final RequestContext ctx,
             final CompletionStage<DittoHeaders> dittoHeadersStage,
             final String thingId,
-            final String messagePath) {
+            final String messagePath,
+            final List<String> namespaces) {
 
         final List<ThingId> targetThingIds = List.of(ThingId.of(thingId));
         final CompletionStage<SignalEnrichmentFacade> facadeStage = signalEnrichmentProvider == null
@@ -490,7 +493,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                         final var connect =
                                                 new Connect(withQueue.getSourceQueue(), connectionCorrelationId,
                                                         STREAMING_TYPE_SSE, jsonSchemaVersion, null, Set.of(),
-                                                        authorizationContext, null);
+                                                        authorizationContext, namespaces, null);
                                         final String resourcePathRqlStatement;
                                         if (INBOX_OUTBOX_WITH_SUBJECT_PATTERN.matcher(messagePath).matches()) {
                                             resourcePathRqlStatement = String.format(

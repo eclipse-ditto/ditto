@@ -18,6 +18,7 @@ import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJso
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -575,7 +576,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                             return new Connect(withQueue.getSourceQueue(), connectionCorrelationId, STREAMING_TYPE_WS,
                                     version, optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null),
                                     readDeclaredAcknowledgementLabels(additionalHeaders), connectionAuthContext,
-                                    wsKillSwitch);
+                                    List.of(), wsKillSwitch);
                         })
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<SessionedJsonifiable, NotUsed>>()
                         .match(GatewayWebsocketSessionAbortedException.class,
