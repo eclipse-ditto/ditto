@@ -68,11 +68,12 @@ global:
     maxHeadersSize: 5k
     # maxAuthSubjectsCount the maximum possible number of authorization subjects in Ditto headers, default: 100
     maxAuthSubjectsCount: 100
-  # basicAuthUsers configures (as a map) several user/password combinations which the nginx of the Ditto chart will authenticate
-  basicAuthUsers: {}
-  # ditto:
-  #   user: ditto
+  # basicAuthUsers configures several user/password combinations which the nginx of the Ditto chart will authenticate
+  basicAuthUsers:
+  # - user: ditto
   #   password: ditto
+  # - user: jane
+  #   password: janesPw
   # hashedBasicAuthUsers configures a list of hashed .htpasswd username/password entries
   hashedBasicAuthUsers: []
   # jwtOnly controls whether only OpenID-Connect authentication is supported
