@@ -16,8 +16,7 @@
 global:
   jwtOnly: false
   basicAuthUsers:
-    ditto:
-      user: ditto
+    - user: ditto
       password: ditto
   logging:
     customConfigFile:
