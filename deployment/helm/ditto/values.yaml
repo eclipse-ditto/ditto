@@ -172,6 +172,9 @@ global:
   podDeletionCostPatching:
     # enabled whether the pod-deletion-cost annotation patching should be enabled
     enabled: true
+    # annotations defines k8s annotations to add to corresponding jobs
+    annotations: {}
+
 
 ## ----------------------------------------------------------------------------
 ## dbconfig for mongodb connections

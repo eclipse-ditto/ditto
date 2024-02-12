@@ -31,6 +31,10 @@ spec:
         app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
         app.kubernetes.io/instance: {{ .Release.Name | quote }}
         helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+      {{- with .Values.global.podDeletionCostPatching.annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     spec:
       {{- if .Values.rbac.enabled }}
       serviceAccountName: {{ template "ditto.serviceAccountName" . }}
