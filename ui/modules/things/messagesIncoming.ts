@@ -125,14 +125,14 @@ function onSelectThingUpdateMessageContentSelect() {
 function onMessage(messageData) {
   messages.push(messageData);
   
-  const filteredMessage = dom.tableFilterMessagesIncoming.filterItems(messages);
+  const filteredMessage = dom.tableFilterMessagesIncoming.filterItems([messageData]);
   
   if (filteredMessage.length > 0) {
     filteredMessages.push(filteredMessage[0]);
     addTableRow(filteredMessage[0]);
   }
   
-  Utils.updateCounterBadge(dom.badgeMessageIncomingCount, messages, filteredMessage);
+  Utils.updateCounterBadge(dom.badgeMessageIncomingCount, messages, filteredMessages);
 }
 
 function addTableRow(messageData: any) {
