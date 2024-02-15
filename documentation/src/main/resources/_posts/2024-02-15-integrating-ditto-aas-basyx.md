@@ -72,7 +72,7 @@ We see three approaches to achieve this:
 * BaSyx AAS SM server *pulls* the current state from Eclipse Ditto via a *bridge* component, which Eclipse Basyx already provides.
   To integrate the bridge, the BaSyx SM-server component has a delegation feature, where the user can configure an SME with an endpoint to which the server delegates incoming requests.
   The configured endpoint can reference the bridge that then retrieves the actual data from Ditto and applies transformation logic.
-* Eclipse Ditto *pushes* the latest updates to a BaSyx SM server
+* Eclipse Ditto *pushes* the latest updates to a BaSyx SM server.
   For this approach, we configure Eclipse Ditto to notify the BaSyx SM server about any change to the relevant Things. During the creation of the notification message, Ditto applies a payload mapping to transform the data into the AAS format. The BaSyx SM server then caches the received submodel element and responds directly to the requests by the users.
 
 {% include image.html file="blog/2024-02-15-integrating-ditto-ass-basyx/push.svg" alt="Push approach sequence" max-width=1000 %}
@@ -97,18 +97,25 @@ Eclipse Ditto and Eclipse Basyx work with different data structures and conceptu
 We map a Ditto [`Namespace`](https://eclipse.dev/ditto/basic-namespaces-and-names.html#namespace) to a single AAS. An AAS holds multiple SMs, and not all of these SMs necessarily have counterparts in Ditto. We thus treat a `Thing` as an opaque concept and do not define an explicit mapping for a `Thing` but map each [`Feature`](https://eclipse.dev/ditto/basic-feature.html) to one SM.
 [`Property`](https://eclipse.dev/ditto/basic-feature.html#feature-properties) and [`Attribute`](https://eclipse.dev/ditto/basic-thing.html#attributes) are mapped to SMEs.
 
-By that, it is possible to have more than one Thing organized in one AAS. This can especially be useful if an AAS organizes complex equipment with different sensors and actuators, which belong together but are in multiple Things.
+By that, it is possible to have more than one Thing organized in one AAS. 
+This can especially be useful if an AAS organizes complex equipment with different sensors and actuators, which belong together but are organized in multiple Things.
 
 ## Integration steps
 
-With the more theoretical details completed, we can now turn to the actual implementation and describe what is required to integrate Eclipse Ditto into an AAS infrastructure of Eclipse BaSyx.
+With the more theoretical details completed, we can now turn to the actual implementation and describe what is required 
+to integrate Eclipse Ditto into an AAS infrastructure of Eclipse BaSyx.
 
 ### Prerequisites
 
 1. Running instance of [Eclipse Ditto](https://eclipse.dev/ditto/)
 2. Running instance of [Eclipse BaSyx](https://wiki.eclipse.org/BaSyx_/_Documentation_/_Components)
 
-Those two instances must be available, and a network connection must exist between them. In this tutorial, we use the demo environment of Eclipse Ditto available at `ditto.eclipseprojects.io`.
+Those two instances must be available, and a network connection must exist between them.
+In the code snippets below, we use placeholders for the URLs of Ditto as well as BaSyx. 
+So, you need to replace ```<eclipse-ditto-instance-url>``` and ```<eclipse-basyx-instance-url>``` with the proper URLs
+in your environment.
+For example, if you would use the Ditto demo instance, you need to replace ```<eclipse-ditto-instance-url>``` with ```http://ditto.eclipseprojects.io```.
+
 
 For our setup, we used version 3.0.1 for Eclipse Ditto and version 1.4.0 for Eclipse BaSyx.
 
@@ -386,7 +393,7 @@ curl -X POST -u devops:foobar -H 'Content-Type: application/json' --data-binary 
         "id": "basyxserver-http-connection",
         "connectionType": "http-push",
         "connectionStatus": "open",
-        "uri": "http://basyx-aas-server:4001",
+        "uri": "<eclipse-basyx-instance-url>:4001",
         "failoverEnabled": true,
         "mappingDefinitions": {
           "mappingforShell": {
@@ -452,7 +459,7 @@ curl -X POST -u devops:foobar -H 'Content-Type: application/json' --data-binary 
         ]
       }
     }
-  }' http://ditto.eclipseprojects.io/devops/piggyback/connectivity
+  }' <eclipse-ditto-instance-url>/devops/piggyback/connectivity
 ```
 
 When Ditto established the connection and our payload mappings work, it returns a successful HTTP response and otherwise an error message.
@@ -496,7 +503,7 @@ function mapFromDittoProtocolMsg(
   let textPayload = JSON.stringify({
     endpoints: [
         {
-            address: 'http://basyx-aas-server:4001/aasServer/shells/' + namespace + '/aas',
+            address: '<eclipse-basyx-instance-url>:4001/aasServer/shells/' + namespace + '/aas',
             type: 'http'
         }
     ],
@@ -557,7 +564,7 @@ curl -X POST -u devops:foobar -H 'Content-Type: application/json' --data-binary 
           "mappingforShell": {
             "mappingEngine": "JavaScript",
             "options": {
-              "outgoingScript": "function mapFromDittoProtocolMsg(namespace, name, group, channel, criterion, action, path, dittoHeaders, value, status, extra) {\n  let headers = dittoHeaders;\n  let textPayload = JSON.stringify({\n    endpoints: [\n        {\n            address: '"'http://basyx-aas-server:4001/aasServer/shells/'"' + namespace + '"'/aas'"',\n            type: '"'http'"'\n        }\n    ],\n    modelType: {\n        name: '"'AssetAdministrationShellDescriptor'"'\n    },\n    identification: {\n        idType: '"'Custom'"',\n        id: namespace\n},\n    idShort: namespace,\n      asset: {\n          identification: {\n              idType: '"'Custom'"',\n              id: namespace + '"'-asset'"'\n          },\n          idShort: namespace + '"'-asset'"',\n          kind: '"'Instance'"',\n          dataSpecification: [],\n          modelType: {\n              name: '"'Asset'"'\n          },\n          embeddedDataSpecifications: []\n      },\n      submodels: []\n  });\n  let bytePayload = null;\n  let contentType = '"'application/json'"';\n  return Ditto.buildExternalMsg(headers, textPayload, bytePayload, contentType);}"
+              "outgoingScript": "function mapFromDittoProtocolMsg(namespace, name, group, channel, criterion, action, path, dittoHeaders, value, status, extra) {\n  let headers = dittoHeaders;\n  let textPayload = JSON.stringify({\n    endpoints: [\n        {\n            address: '"'<eclipse-basyx-instance-url>:4001/aasServer/shells/'"' + namespace + '"'/aas'"',\n            type: '"'http'"'\n        }\n    ],\n    modelType: {\n        name: '"'AssetAdministrationShellDescriptor'"'\n    },\n    identification: {\n        idType: '"'Custom'"',\n        id: namespace\n},\n    idShort: namespace,\n      asset: {\n          identification: {\n              idType: '"'Custom'"',\n              id: namespace + '"'-asset'"'\n          },\n          idShort: namespace + '"'-asset'"',\n          kind: '"'Instance'"',\n          dataSpecification: [],\n          modelType: {\n              name: '"'Asset'"'\n          },\n          embeddedDataSpecifications: []\n      },\n      submodels: []\n  });\n  let bytePayload = null;\n  let contentType = '"'application/json'"';\n  return Ditto.buildExternalMsg(headers, textPayload, bytePayload, contentType);}"
             }
           }
         },
@@ -579,7 +586,7 @@ curl -X POST -u devops:foobar -H 'Content-Type: application/json' --data-binary 
         ]
       }
     }
-  }' http://ditto.eclipseprojects.io/devops/piggyback/connectivity
+  }' <eclipse-ditto-instance-url>/devops/piggyback/connectivity
 ```
 
 We list the JavaScript mapper in `piggybackCommand.connection.mappingDefinitions.mappingForShell.options.outgoingScript` and reference it as `mappingForShell` in `piggybackCommand.connection.targets[0].payloadMapping`.
@@ -633,7 +640,7 @@ curl -i -X PUT -u ditto:ditto -H 'Content-Type: application/json' --data '{
       }
     }
   }
-}' http://ditto.eclipseprojects.io/api/2/policies/$POLICY_ID
+}' <eclipse-ditto-instance-url>/api/2/policies/$POLICY_ID
 ```
 
  You will get a response `201 Created` response, if the policy creation concluded successfuly. In the subsequent steps, we use the policy-id `machine:my-policy` to refer to the created policy.
@@ -649,7 +656,7 @@ DEVICE_ID=$NAMESPACE:$NAME
 
 curl -i -X PUT -u ditto:ditto -H 'Content-Type: application/json' --data '{
   "policyId": "'$POLICY_ID'"
-}' http://ditto.eclipseprojects.io/api/2/things/$DEVICE_ID
+}' <eclipse-ditto-instance-url>/api/2/things/$DEVICE_ID
 ```
 
 Again, a successful creation returns a `201 Created` response.
@@ -659,7 +666,7 @@ We configured two connections to trigger a mapper on the create event of a Thing
 You can check whether the execution of the scripts was successful by running:
 
 ```bash
-curl -X GET http://basyx-aas-server:4001/aasServer/shells
+curl -X GET <eclipse-basyx-instance-url>:4001/aasServer/shells
 ```
 
 which should return the following result
@@ -677,7 +684,7 @@ curl -X GET http://basyx-aas-registry:4000/registry/api/v1/registry
 should return:
 
 ```json
-[{"modelType":{"name":"AssetAdministrationShellDescriptor"},"endpoints":[{"address":"http://basyx-aas-server:4001/aasServer/shells/machine/aas","type":"http"}],"identification":{"idType":"Custom","id":"machine"},"idShort":"machine","asset":{"identification":{"idType":"Custom","id":"machine-asset"},"idShort":"machine-asset","kind":"Instance","dataSpecification":[],"modelType":{"name":"Asset"},"embeddedDataSpecifications":[]},"submodels":[]}]
+[{"modelType":{"name":"AssetAdministrationShellDescriptor"},"endpoints":[{"address":"<eclipse-basyx-instance-url>:4001/aasServer/shells/machine/aas","type":"http"}],"identification":{"idType":"Custom","id":"machine"},"idShort":"machine","asset":{"identification":{"idType":"Custom","id":"machine-asset"},"idShort":"machine-asset","kind":"Instance","dataSpecification":[],"modelType":{"name":"Asset"},"embeddedDataSpecifications":[]},"submodels":[]}]
 ```
 
 At this point, the newly created Thing has no features, properties, or attributes yet.
@@ -694,7 +701,7 @@ curl -X PUT -u ditto:ditto -H 'Content-Type: application/json' --data-binary '{
   "properties": {
     "value": null
   }
-}' http://ditto.eclipseprojects.io/api/2/things/$DEVICE_ID/features/$FEATURE_ID
+}' <eclipse-ditto-instance-url>/api/2/things/$DEVICE_ID/features/$FEATURE_ID
 ```
 
 The feature creation triggers the mapper (`mappingforSubmodel`) to create a corresponding Submodel in the previously created AAS.
@@ -702,7 +709,7 @@ The feature creation triggers the mapper (`mappingforSubmodel`) to create a corr
 To check if this was successful, we use curl:
 
 ```bash
-curl -X GET http://basyx-aas-server:4001/aasServer/shells/$NAMESPACE/aas/submodels/${NAME}_${FEATURE_ID}/submodel
+curl -X GET <eclipse-basyx-instance-url>:4001/aasServer/shells/$NAMESPACE/aas/submodels/${NAME}_${FEATURE_ID}/submodel
 ```
 
 which should result in the following response:
@@ -716,13 +723,13 @@ which should result in the following response:
 After we have successfully created a device, we can check if the update of a property works as well by executing:
 
 ```bash
-curl -i -X PUT -u ditto:ditto -H "content-type: application/json" --data-binary '46' http://ditto.eclipseprojects.io/api/2/things/$DEVICE_ID/features/$FEATURE_ID/properties/value
+curl -i -X PUT -u ditto:ditto -H "content-type: application/json" --data-binary '46' <eclipse-ditto-instance-url>/api/2/things/$DEVICE_ID/features/$FEATURE_ID/properties/value
 ```
 
 Again, we check if our change was successful:
 
 ```bash
-curl -u ditto:ditto -w '\n' http://ditto.eclipseprojects.io/api/2/things/$DEVICE_ID
+curl -u ditto:ditto -w '\n' <eclipse-ditto-instance-url>/api/2/things/$DEVICE_ID
 ```
 
 and expect:
@@ -735,7 +742,7 @@ If this was successful, then the mapping `mappingforSubmodelElement` should trig
 To verify that the Submodel was updated, call:
 
 ```bash
-curl -X GET http://basyx-aas-server:4001/aasServer/shells/$NAMESPACE/aas/submodels/${NAME}_${FEATURE_ID}/submodel/submodelElements/properties_value
+curl -X GET <eclipse-basyx-instance-url>:4001/aasServer/shells/$NAMESPACE/aas/submodels/${NAME}_${FEATURE_ID}/submodel/submodelElements/properties_value
 ```
 
 This should lead to the response:
