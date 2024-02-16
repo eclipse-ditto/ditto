@@ -384,57 +384,61 @@ public abstract class AbstractPersistenceActor<
                             .build(),
                     getSelf()
             );
-            return;
-        }
-        final Instant atHistoricalTimestamp = Optional
-                .ofNullable(command.getDittoHeaders().get(DittoHeaderDefinition.AT_HISTORICAL_TIMESTAMP.getKey()))
-                .map(Instant::parse)
-                .orElse(Instant.EPOCH);
-        if (atHistoricalTimestamp.isAfter(Instant.now())) {
-            getSender().tell(
-                    newHistoryNotAccessibleExceptionBuilder(atHistoricalTimestamp)
-                            .dittoHeaders(command.getDittoHeaders())
-                            .build(),
-                    getSelf()
-            );
-            return;
-        }
+        } else if (atHistoricalRevision == lastSequenceNr()) {
+            // for current revision, don't make the effort to load snapshot, etc., but return from memory like a normal
+            // "RetrieveThing" command does:
+            handleByCommandStrategy(command);
+        } else {
+            final Instant atHistoricalTimestamp = Optional
+                    .ofNullable(command.getDittoHeaders().get(DittoHeaderDefinition.AT_HISTORICAL_TIMESTAMP.getKey()))
+                    .map(Instant::parse)
+                    .orElse(Instant.EPOCH);
+            if (atHistoricalTimestamp.isAfter(Instant.now())) {
+                getSender().tell(
+                        newHistoryNotAccessibleExceptionBuilder(atHistoricalTimestamp)
+                                .dittoHeaders(command.getDittoHeaders())
+                                .build(),
+                        getSelf()
+                );
+                return;
+            }
 
-        loadSnapshot(persistenceId(), SnapshotSelectionCriteria.create(
-                atHistoricalRevision,
-                atHistoricalTimestamp.equals(Instant.EPOCH) ? Long.MAX_VALUE : atHistoricalTimestamp.toEpochMilli(),
-                0L,
-                0L
-        ), getLatestSnapshotSequenceNumber());
+            loadSnapshot(persistenceId(), SnapshotSelectionCriteria.create(
+                    atHistoricalRevision,
+                    atHistoricalTimestamp.equals(Instant.EPOCH) ? Long.MAX_VALUE : atHistoricalTimestamp.toEpochMilli(),
+                    0L,
+                    0L
+            ), getLatestSnapshotSequenceNumber());
 
-        final Duration waitTimeout = Duration.ofSeconds(5);
-        final Cancellable cancellableSnapshotLoadTimeout =
-                getContext().getSystem().getScheduler().scheduleOnce(waitTimeout, getSelf(), waitTimeout,
-                        getContext().getDispatcher(), getSelf());
-        getContext().become(ReceiveBuilder.create()
-                .match(SnapshotProtocol.LoadSnapshotResult.class, loadSnapshotResult ->
-                        historicalRetrieveHandleLoadSnapshotResult(command,
-                                commandStrategy,
-                                eventStrategy,
-                                sender,
-                                self,
-                                atHistoricalRevision,
-                                atHistoricalTimestamp,
-                                cancellableSnapshotLoadTimeout,
-                                loadSnapshotResult
-                        )
-                )
-                .match(SnapshotProtocol.LoadSnapshotFailed.class, loadSnapshotFailed ->
-                        log.warning(loadSnapshotFailed.cause(), "Loading snapshot failed")
-                )
-                .matchEquals(waitTimeout, wt -> {
-                    log.withCorrelationId(command)
-                            .warning("Timed out waiting for receiving snapshot result!");
-                    becomeCreatedOrDeletedHandler();
-                    unstashAll();
-                })
-                .matchAny(any -> stash())
-                .build());
+            final Duration waitTimeout = Duration.ofSeconds(5);
+            final Cancellable cancellableSnapshotLoadTimeout =
+                    getContext().getSystem().getScheduler().scheduleOnce(waitTimeout, getSelf(), waitTimeout,
+                            getContext().getDispatcher(), getSelf());
+            getContext().become(ReceiveBuilder.create()
+                    .match(SnapshotProtocol.LoadSnapshotResult.class, loadSnapshotResult ->
+                            historicalRetrieveHandleLoadSnapshotResult(command,
+                                    commandStrategy,
+                                    eventStrategy,
+                                    sender,
+                                    self,
+                                    atHistoricalRevision,
+                                    atHistoricalTimestamp,
+                                    cancellableSnapshotLoadTimeout,
+                                    loadSnapshotResult
+                            )
+                    )
+                    .match(SnapshotProtocol.LoadSnapshotFailed.class, loadSnapshotFailed ->
+                            log.warning(loadSnapshotFailed.cause(), "Loading snapshot failed")
+                    )
+                    .matchEquals(waitTimeout, wt -> {
+                        log.withCorrelationId(command)
+                                .warning("Timed out waiting for receiving snapshot result!");
+                        becomeCreatedOrDeletedHandler();
+                        unstashAll();
+                    })
+                    .matchAny(any -> stash())
+                    .build());
+        }
     }
 
     private void historicalRetrieveHandleLoadSnapshotResult(final C command,

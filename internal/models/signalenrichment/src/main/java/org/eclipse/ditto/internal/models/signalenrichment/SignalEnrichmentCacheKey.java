@@ -27,7 +27,7 @@ import org.eclipse.ditto.internal.utils.cache.CacheKey;
  * Implementation for a {@link CacheKey} used in scope of signal enrichment.
  */
 @Immutable
-final class SignalEnrichmentCacheKey implements CacheKey<SignalEnrichmentContext> {
+public final class SignalEnrichmentCacheKey implements CacheKey<SignalEnrichmentContext> {
 
     static final String DELIMITER = ":";
 
@@ -63,8 +63,7 @@ final class SignalEnrichmentCacheKey implements CacheKey<SignalEnrichmentContext
 
     @Override
     public boolean equals(@Nullable final Object o) {
-        if (o instanceof SignalEnrichmentCacheKey) {
-            final var that = (SignalEnrichmentCacheKey) o;
+        if (o instanceof SignalEnrichmentCacheKey that) {
             return isIdEqualValueBased(that) && Objects.equals(context, that.context);
         } else {
             return false;

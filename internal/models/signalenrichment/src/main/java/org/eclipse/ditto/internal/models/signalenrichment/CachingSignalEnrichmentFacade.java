@@ -38,11 +38,11 @@ public interface CachingSignalEnrichmentFacade extends SignalEnrichmentFacade {
      *
      * @param thingId the thing to retrieve.
      * @param events received thing events to reduce traffic. If there are no events, a fresh entry is retrieved.
-     * @param minAcceptableSeqNr the minimum sequence number acceptable as result. If negative,
+     * @param atRevisionNumber the revision/sequence number to retrieve the thing at. If negative,
      * cache loading is forced.
      * @return future of the retrieved thing.
      */
-    CompletionStage<JsonObject> retrieveThing(ThingId thingId, List<ThingEvent<?>> events, long minAcceptableSeqNr);
+    CompletionStage<JsonObject> retrieveThing(ThingId thingId, List<ThingEvent<?>> events, long atRevisionNumber);
 
     default JsonObject applyJsonFieldSelector(final JsonObject jsonObject,
             @Nullable final JsonFieldSelector fieldSelector) {
