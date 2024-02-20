@@ -433,6 +433,7 @@ public final class StreamingSessionActorTest {
                 null,
                 declaredAcks,
                 authorizationContext,
+                List.of(),
                 killSwitch);
     }
 

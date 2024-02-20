@@ -88,6 +88,7 @@ import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
+import org.eclipse.ditto.internal.utils.pubsub.extractors.ReadSubjectExtractor;
 import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.search.SubscriptionManager;
 import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
@@ -138,6 +139,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     private final Set<AcknowledgementLabel> declaredAcks;
     private final ThreadSafeDittoLoggingAdapter logger;
     private AuthorizationContext authorizationContext;
+    private List<String> namespaces;
 
     private Cancellable cancellableShutdownTask;
     @Nullable private final KillSwitch killSwitch;
@@ -164,6 +166,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         this.jwtAuthenticationResultProvider = jwtAuthenticationResultProvider;
         outstandingSubscriptionAcks = EnumSet.noneOf(StreamingType.class);
         authorizationContext = connect.getConnectionAuthContext();
+        namespaces = connect.getNamespaces();
         killSwitch = connect.getKillSwitch().orElse(null);
         streamingSessions = new EnumMap<>(StreamingType.class);
         ackregatorStarter = AcknowledgementAggregatorActorStarter.of(getContext(),
@@ -373,6 +376,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 })
                 .match(StartStreaming.class, startStreaming -> {
                     authorizationContext = startStreaming.getAuthorizationContext();
+                    namespaces = startStreaming.getNamespaces();
                     Criteria criteria;
                     try {
                         criteria = startStreaming.getFilter()
@@ -399,7 +403,10 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     final var subscribeConfirmation = new ConfirmSubscription(startStreaming.getStreamingType());
                     final Collection<StreamingType> currentStreamingTypes = streamingSessions.keySet();
                     dittoProtocolSub.subscribe(currentStreamingTypes,
-                            authorizationContext.getAuthorizationSubjectIds(),
+                            ReadSubjectExtractor.determineTopicsFor(
+                                    startStreaming.getNamespaces(),
+                                    authorizationContext.getAuthorizationSubjects()
+                            ),
                             getSelf()
                     ).whenComplete((ack, throwable) -> {
                         if (null == throwable) {
@@ -444,7 +451,12 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                         case LIVE_COMMANDS, LIVE_EVENTS, MESSAGES:
                         default:
                             dittoProtocolSub.updateLiveSubscriptions(currentStreamingTypes,
-                                            authorizationContext.getAuthorizationSubjectIds(), getSelf())
+                                            ReadSubjectExtractor.determineTopicsFor(
+                                                    namespaces,
+                                                    authorizationContext.getAuthorizationSubjects()
+                                            ),
+                                            getSelf()
+                                    )
                                     .thenAccept(ack -> getSelf().tell(unsubscribeConfirmation, getSelf()));
                     }
                 })
@@ -817,7 +829,11 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
     private void resubscribe(final Control trigger) {
         if (!streamingSessions.isEmpty() && outstandingSubscriptionAcks.isEmpty()) {
-            dittoProtocolSub.subscribe(streamingSessions.keySet(), authorizationContext.getAuthorizationSubjectIds(),
+            dittoProtocolSub.subscribe(streamingSessions.keySet(),
+                    ReadSubjectExtractor.determineTopicsFor(
+                            namespaces,
+                            authorizationContext.getAuthorizationSubjects()
+                    ),
                     getSelf(), null, true);
         }
         startSubscriptionRefreshTimer();

@@ -25,6 +25,13 @@ import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.SystemMaterializer;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.assertions.MongoIndexAssertions;
@@ -35,14 +42,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.mongodb.MongoCommandException;
-
-import org.apache.pekko.Done;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.stream.Materializer;
-import org.apache.pekko.stream.SystemMaterializer;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * MongoDB integration test for {@link IndexInitializer}.
@@ -63,7 +62,7 @@ public final class IndexInitializerIT {
 
     private static final String FOO_KEY = "foo_key";
     private static final Index INDEX_FOO = IndexFactory.newInstanceWithCustomKeys(FOO_KEY,
-            Collections.singletonList(DefaultIndexKey.of(FOO_FIELD, IndexDirection.ASCENDING)), false);
+            Collections.singletonList(DefaultIndexKey.of(FOO_FIELD, IndexDirection.ASCENDING)), true);
     private static final String FOO_DESCENDING_KEY = "foo_descending_key";
     private static final Index INDEX_FOO_DESCENDING =
             IndexFactory.newInstanceWithCustomKeys(FOO_DESCENDING_KEY,

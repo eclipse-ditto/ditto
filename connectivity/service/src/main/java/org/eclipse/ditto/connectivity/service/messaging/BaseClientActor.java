@@ -74,7 +74,6 @@ import org.apache.pekko.stream.javadsl.Sink;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.FatalPubSubException;
 import org.eclipse.ditto.base.model.acks.PubSubTerminatedException;
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -146,6 +145,7 @@ import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
+import org.eclipse.ditto.internal.utils.pubsub.extractors.ReadSubjectExtractor;
 import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.search.SubscriptionManager;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
@@ -181,7 +181,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private static final Pattern EXCLUDED_ADDRESS_REPORTING_CHILD_NAME_PATTERN = Pattern.compile(
             OutboundMappingProcessorActor.ACTOR_NAME + "|" + OutboundDispatchingActor.ACTOR_NAME + "|" +
                     "ackr.*" + "|" + "StreamSupervisor-.*|" +
-                    SubscriptionManager.ACTOR_NAME  + "|" + StreamingSubscriptionManager.ACTOR_NAME);
+                    SubscriptionManager.ACTOR_NAME + "|" + StreamingSubscriptionManager.ACTOR_NAME);
     private static final String DITTO_STATE_TIMEOUT_TIMER = "dittoStateTimeout";
 
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
@@ -330,7 +330,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         inboundMappingSink = getInboundMappingSink(protocolAdapter, inboundDispatchingSink);
         subscriptionManager =
                 startSubscriptionManager(commandForwarderActorSelection, connectivityConfig().getClientConfig());
-        streamingSubscriptionManager = startStreamingSubscriptionManager(commandForwarderActorSelection, connectivityConfig().getClientConfig());
+        streamingSubscriptionManager = startStreamingSubscriptionManager(commandForwarderActorSelection,
+                connectivityConfig().getClientConfig());
 
         if (connection.getSshTunnel().map(SshTunnel::isEnabled).orElse(false)) {
             tunnelActor = childActorNanny.startChildActor(SshTunnelActor.ACTOR_NAME,
@@ -1924,7 +1925,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      *
      * @return reference of the streaming subscription manager.
      */
-    private ActorRef startStreamingSubscriptionManager(final ActorSelection proxyActor, final ClientConfig clientConfig) {
+    private ActorRef startStreamingSubscriptionManager(final ActorSelection proxyActor,
+            final ClientConfig clientConfig) {
         final var mat = Materializer.createMaterializer(this::getContext);
         final var props = StreamingSubscriptionManager.props(clientConfig.getSubscriptionManagerTimeout(),
                 proxyActor, mat);
@@ -2098,9 +2100,14 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private Set<String> getTargetAuthSubjects() {
         return connection.getTargets()
                 .stream()
-                .map(Target::getAuthorizationContext)
-                .map(AuthorizationContext::getAuthorizationSubjectIds)
-                .flatMap(List::stream)
+                .map(target -> {
+                    final Set<String> namespaces = target.getTopics().stream()
+                            .flatMap(ft -> ft.getNamespaces().stream())
+                            .collect(Collectors.toSet());
+                    return ReadSubjectExtractor
+                            .determineTopicsFor(namespaces, target.getAuthorizationContext().getAuthorizationSubjects());
+                })
+                .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
     }
 
