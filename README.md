@@ -30,7 +30,14 @@ You should be able to work with your locally running default using the `local_di
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=eclipse-ditto/ditto&type=Date)](https://star-history.com/#eclipse-ditto/ditto&Date)
+<a href="https://star-history.com/#eclipse-ditto/ditto&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=eclipse-ditto/ditto&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=eclipse-ditto/ditto&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=eclipse-ditto/ditto&type=Date" />
+  </picture>
+</a>
+
 
 ## Getting started
 
