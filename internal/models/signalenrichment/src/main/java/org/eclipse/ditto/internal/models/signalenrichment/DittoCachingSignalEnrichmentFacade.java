@@ -14,12 +14,14 @@ package org.eclipse.ditto.internal.models.signalenrichment;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -148,6 +150,37 @@ public class DittoCachingSignalEnrichmentFacade implements CachingSignalEnrichme
         // as second step only return what was originally requested as fields:
         final var cachingParameters =
                 new CachingParameters(jsonFieldSelector, thingEvents, true, 0);
+
+        return doRetrievePartialThing(thingId, dittoHeaders, null, cachingParameters)
+                .thenApply(jsonObject -> applyJsonFieldSelector(jsonObject, jsonFieldSelector));
+    }
+
+    /**
+     * Retrieve parts of a thing.
+     *
+     * @param thingId ID of the thing.
+     * @param jsonFieldSelector the selected fields of the thing.
+     * @param dittoHeaders Ditto headers containing authorization information.
+     * @param concernedSignals the Signals which caused that this partial thing retrieval was triggered
+     * (e.g. a {@code ThingEvent})
+     * @param minAcceptableSeqNr minimum sequence number of the concerned signals to not invalidate the cache.
+     * @return future that completes with the parts of a thing or fails with an error.
+     */
+    @SuppressWarnings({"java:S1612", "unused"})
+    public CompletionStage<JsonObject> retrievePartialThing(final EntityId thingId,
+            final JsonFieldSelector jsonFieldSelector,
+            final DittoHeaders dittoHeaders,
+            final Collection<? extends Signal<?>> concernedSignals,
+            final long minAcceptableSeqNr) {
+
+        final List<ThingEvent<?>> thingEvents = concernedSignals.stream()
+                .filter(signal -> signal instanceof ThingEvent && !Signal.isChannelLive(signal))
+                .map(signal -> (ThingEvent<?>) signal)
+                .collect(Collectors.toList());
+
+        // as second step only return what was originally requested as fields:
+        final var cachingParameters =
+                new CachingParameters(jsonFieldSelector, thingEvents, true, minAcceptableSeqNr);
 
         return doRetrievePartialThing(thingId, dittoHeaders, null, cachingParameters)
                 .thenApply(jsonObject -> applyJsonFieldSelector(jsonObject, jsonFieldSelector));
