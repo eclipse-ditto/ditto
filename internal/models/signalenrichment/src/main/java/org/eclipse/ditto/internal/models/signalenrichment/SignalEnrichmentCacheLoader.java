@@ -56,7 +56,10 @@ final class SignalEnrichmentCacheLoader implements AsyncCacheLoader<SignalEnrich
             final ThingId thingId = ThingId.of(key.getId());
             final JsonFieldSelector jsonFieldSelector = selectorOptional.orElse(null);
             final DittoHeaders dittoHeaders = context.getDittoHeaders();
-            return facade.retrievePartialThing(thingId, jsonFieldSelector, dittoHeaders, null)
+            final DittoHeaders retrieveHeaders = context.getDittoHeadersNotAddedToCacheKey()
+                    .map(extraHeaders -> (DittoHeaders) dittoHeaders.toBuilder().putHeaders(extraHeaders).build())
+                    .orElse(dittoHeaders);
+            return facade.retrievePartialThing(thingId, jsonFieldSelector, retrieveHeaders, null)
                     .toCompletableFuture();
         } else {
             // no context; nothing to load.
