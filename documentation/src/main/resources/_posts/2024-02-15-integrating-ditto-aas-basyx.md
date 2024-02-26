@@ -28,7 +28,7 @@ We start with some background on the AAS and Eclipse Basyx. If you are allready 
 ### Asset Administration Shell
 
 The Asset Administration Shell (AAS) is a standardization effort of
-the International Digital Twin Association (IDTA) that originated from the
+the Industrial Digital Twin Association (IDTA) that originated from the
 Platform Industry 4.0 (I4.0) ([AAS Spec Part I](https://industrialdigitaltwin.org/en/wp-content/uploads/sites/2/2023/04/IDTA-01001-3-0_SpecificationAssetAdministrationShell_Part1_Metamodel.pdf); [AAS Spec Part II](https://industrialdigitaltwin.org/en/wp-content/uploads/sites/2/2023/04/IDTA-01002-3-0_SpecificationAssetAdministrationShell_Part2_API.pdf)).
 
 An AAS is a digital representation of a physical asset and consists of one or more submodels. Each submodel contains a structured set of submodel elements.
@@ -372,7 +372,7 @@ function mapFromDittoProtocolMsg(
 The mapper extracts the `feature_id` and the `property_id` from the `path`, which is only possible if the parameter `path` includes the `property_id`. So, in the configuration of the connection, we have to ensure that this mapper only runs for the right messages.
 Moreover, we can access the `value` of the modified `property`, which will be set as `value` in the submodel element from the `textPayload` output.
 
-For example if a message updates the `path`: `/features/temperature/properties/value` in the Thing `machine:sensor`, the submodel element with the ID `properties_value` in the submodel `sensor_temperature` will be updated with the new temperature as `value`.
+For example, if a message updates the `path`: `/features/temperature/properties/value` in the Thing `machine:sensor`, the submodel element with the ID `properties_value` in the submodel `sensor_temperature` will be updated with the new temperature as `value`.
 
 We update a submodel element instead of the whole submodel if an existing Thing changes because the mapper only has access to the changed property of the Thing and no information about the other properties.
 Therefore, submodel elements, which may already be part of the submodel due to previous updates, would implicitly be dropped.
@@ -678,9 +678,9 @@ curl -i -X PUT -u ditto:ditto -H 'Content-Type: application/json' --data '{
 
  You will get a `201 Created` response, if the policy creation concluded successfuly. In the subsequent steps, we use the policy-id `machine:my-policy` to refer to the created policy.
 
-#### Create the Thing
+#### Create a Thing
 
-The next step is to create the actual Thing.
+The next step is to create an actual Thing.
 We use the namespace and name `machine:my-policy` and policy-id `machine:my-policy` here:
 
 ```bash
@@ -740,7 +740,7 @@ curl -X PUT -u ditto:ditto -H 'Content-Type: application/json' --data-binary '{
 }' <ditto-instance-url>/api/2/things/$DEVICE_ID/features/$FEATURE_ID
 ```
 
-*Listing 10: Request to add a feature to the demo Thing (variables refers to previous Listings)*
+*Listing 10: Request to add a feature to the demo Thing (variables refer to previous Listings)*
 
 The feature creation triggers the mapper (`mappingforSubmodel`) to create a corresponding Submodel in the previously created AAS.
 
@@ -756,7 +756,7 @@ which should result in the following response:
 {"parent":{"keys":[{"idType":"Custom","type":"AssetAdministrationShell","value":"machine","local":true}]},"identification":{"idType":"Custom","id":"sensor_temperature"},"idShort":"sensor_temperature","kind":"Instance","dataSpecification":[],"modelType":{"name":"Submodel"},"embeddedDataSpecifications":[],"submodelElements":[]}
 ```
 
-#### Updating the Thing
+#### Updating a Thing
 
 After we have successfully created a Thing, we can check if the update of a property works as well by executing:
 
@@ -804,7 +804,7 @@ To apply the mapping concept, we created connections with mappers from Ditto to 
 Afterwards, we tested the connections with an example Thing and data from a sensor.
 
 Our example of integrating Ditto Things into an AAS environment shows, how the capbilities of Ditto, such as
-custom mappers, filters etc, render it to a useful tool to integrate device states into various environments.
+custom mappers, filters etc, render it a useful tool to integrate device states into various environments.
 We discussed the integration into AAS but believe a similar approach could be applied in other domains as well.
 
 <br/>
