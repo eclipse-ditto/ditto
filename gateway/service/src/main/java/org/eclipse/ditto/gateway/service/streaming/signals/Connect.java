@@ -15,19 +15,19 @@ package org.eclipse.ditto.gateway.service.streaming.signals;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.stream.KillSwitch;
+import org.apache.pekko.stream.javadsl.SourceQueueWithComplete;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
-
-import org.apache.pekko.stream.KillSwitch;
-import org.apache.pekko.stream.javadsl.SourceQueueWithComplete;
 
 /**
  * Message to be sent in order to establish a new "streaming" connection via {@link org.eclipse.ditto.gateway.service.streaming.actors.StreamingActor}.
@@ -41,6 +41,7 @@ public final class Connect {
     @Nullable private final Instant sessionExpirationTime;
     private final Set<AcknowledgementLabel> declaredAcknowledgementLabels;
     private final AuthorizationContext connectionAuthContext;
+    private final List<String> namespaces;
     @Nullable private final KillSwitch killSwitch;
 
     /**
@@ -53,6 +54,7 @@ public final class Connect {
      * @param sessionExpirationTime how long to keep the session alive when idling.
      * @param declaredAcknowledgementLabels labels of acknowledgements this session may send.
      * @param connectionAuthContext the authorizationContext of the streaming session.
+     * @param namespaces the namespaces to subscribe to in the streaming session (if already known).
      * @param killSwitch the kill switch to terminate the streaming session.
      */
     public Connect(final SourceQueueWithComplete<SessionedJsonifiable> eventAndResponsePublisher,
@@ -62,6 +64,7 @@ public final class Connect {
             @Nullable final Instant sessionExpirationTime,
             final Set<AcknowledgementLabel> declaredAcknowledgementLabels,
             final AuthorizationContext connectionAuthContext,
+            final List<String> namespaces,
             @Nullable final KillSwitch killSwitch) {
         this.eventAndResponsePublisher = eventAndResponsePublisher;
         this.connectionCorrelationId = checkNotNull(connectionCorrelationId, "connectionCorrelationId")
@@ -71,6 +74,7 @@ public final class Connect {
         this.sessionExpirationTime = sessionExpirationTime;
         this.declaredAcknowledgementLabels = declaredAcknowledgementLabels;
         this.connectionAuthContext = connectionAuthContext;
+        this.namespaces = namespaces;
         this.killSwitch = killSwitch;
     }
 
@@ -102,6 +106,10 @@ public final class Connect {
         return connectionAuthContext;
     }
 
+    public List<String> getNamespaces() {
+        return namespaces;
+    }
+
     public Optional<KillSwitch> getKillSwitch() {
         return Optional.ofNullable(killSwitch);
     }
@@ -121,13 +129,14 @@ public final class Connect {
                 Objects.equals(sessionExpirationTime, connect.sessionExpirationTime) &&
                 Objects.equals(declaredAcknowledgementLabels, connect.declaredAcknowledgementLabels) &&
                 Objects.equals(connectionAuthContext, connect.connectionAuthContext) &&
+                Objects.equals(namespaces, connect.namespaces) &&
                 Objects.equals(killSwitch, connect.killSwitch);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(eventAndResponsePublisher, connectionCorrelationId, type, sessionExpirationTime,
-                declaredAcknowledgementLabels, connectionAuthContext, killSwitch);
+                declaredAcknowledgementLabels, connectionAuthContext, namespaces, killSwitch);
     }
 
     @Override
@@ -139,6 +148,7 @@ public final class Connect {
                 ", sessionExpirationTime=" + sessionExpirationTime +
                 ", declaredAcknowledgementLabels=" + declaredAcknowledgementLabels +
                 ", connectionAuthContext=" + connectionAuthContext +
+                ", namespaces=" + namespaces +
                 ", killSwitch=" + killSwitch +
                 "]";
     }

@@ -118,10 +118,9 @@ final class ImmutableTimePlaceholder implements TimePlaceholder {
             final String durationWithTruncate = timeRangeSuffix.substring(1);
             final String durationString;
             if (durationWithTruncate.contains(TRUNCATE_START) && durationWithTruncate.contains(TRUNCATE_END)) {
-                final String[] durationStringAndTruncateString = durationWithTruncate.split(TRUNCATE_START, 2);
-                durationString = durationStringAndTruncateString[0];
-                final String truncateString = durationStringAndTruncateString[1];
-                if (!isValidTruncateStatement(truncateString.substring(0, truncateString.lastIndexOf(TRUNCATE_END)))) {
+                durationString = durationWithTruncate
+                        .substring(0, durationWithTruncate.indexOf(TRUNCATE_START));
+                if (!isValidTruncation(durationWithTruncate)) {
                     return false;
                 }
             } else {
@@ -133,9 +132,17 @@ final class ImmutableTimePlaceholder implements TimePlaceholder {
             } catch (final Exception e) {
                 return false;
             }
+        } else if (timeRangeSuffix.contains(TRUNCATE_START) && timeRangeSuffix.contains(TRUNCATE_END)) {
+            return isValidTruncation(timeRangeSuffix);
         } else {
             return false;
         }
+    }
+
+    private boolean isValidTruncation(final String durationWithTruncate) {
+        final String truncateString = durationWithTruncate
+                .substring(durationWithTruncate.indexOf(TRUNCATE_START) + 1);
+        return isValidTruncateStatement(truncateString.substring(0, truncateString.lastIndexOf(TRUNCATE_END)));
     }
 
     private boolean isValidTruncateStatement(final String truncateString) {

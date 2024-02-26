@@ -336,11 +336,13 @@ public abstract class AbstractHttpRequestActor extends AbstractActorWithShutdown
     }
 
     private void rememberResponseLocationUri(final CommandResponse<?> commandResponse) {
-        final var optionalEntityId = WithEntityId.getEntityId(commandResponse);
-        if (HttpStatus.CREATED.equals(commandResponse.getHttpStatus()) && optionalEntityId.isPresent()) {
-            responseLocationUri =
-                    getUriForLocationHeader(httpRequest, optionalEntityId.get(), commandResponse.getResourcePath());
-            logger.debug("Setting responseLocationUri=<{}> from request <{}>", responseLocationUri, httpRequest);
+        if (HttpStatus.CREATED.equals(commandResponse.getHttpStatus())) {
+            final var optionalEntityId = WithEntityId.getEntityId(commandResponse);
+            if (optionalEntityId.isPresent()) {
+                responseLocationUri =
+                        getUriForLocationHeader(httpRequest, optionalEntityId.get(), commandResponse.getResourcePath());
+                logger.debug("Setting responseLocationUri=<{}> from request <{}>", responseLocationUri, httpRequest);
+            }
         }
     }
 
