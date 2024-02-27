@@ -7,6 +7,12 @@ topnav: topnav
 
 This page contains a collection of presentations, videos and workshops about Eclipse Ditto, sorted from most recent ones downwards.
 
+## 27.02.2024 Eclipse Ditto project update in Eclipse IoT monthly WG meeting
+
+Topic: Status of the project in 2024
+
+The slides can be found here: [2024_02_27_eclipse-iot-wg-update](slides/2024_02_27_eclipse-iot-wg-update/index.html).
+
 ## 26.01.2023 Eclipse Ditto in 30 minutes
 
 Topic: Short 30 minutes overview of Eclipse Ditto

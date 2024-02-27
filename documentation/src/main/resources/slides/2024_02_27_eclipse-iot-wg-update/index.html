@@ -1,0 +1,493 @@
+<!--
+  ~ Copyright (c) 2024 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+
+  <title>2024 - Eclipse Ditto™ status</title>
+
+  <meta name="description" content="2024 - Eclipse Ditto™ status">
+  <meta name="author" content="Thomas Jäckle">
+  <meta name="date" content="2024-02-27">
+  <meta http-equiv="content-language" content="en">
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <link rel="icon" type="image/png" href="../../images/favicon-16x16.png" sizes="16x16">
+  <link rel="icon" type="image/png" href="../../images/favicon-32x32.png" sizes="32x32">
+  <link rel="icon" type="image/png" href="../../images/favicon-96x96.png" sizes="96x96">
+
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=News+Cycle">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/theme/simple.min.css"
+        id="theme">
+
+  <!-- Theme used for syntax highlighting of code -->
+<!--  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/plugin/highlight/zenburn.min.css">-->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/plugin/highlight/monokai.min.css">
+
+  <style>
+    @font-face {
+      font-family: "News Cycle";
+    }
+
+    #header-left {
+      position: absolute;
+      top: 0;
+      left: 0;
+      opacity: 1 !important;
+    }
+    #header-left img {
+        width: 80px;
+        padding-top: 0;
+        padding-left: 20px
+    }
+
+    #header-right {
+      position: absolute;
+      top: 0;
+      right: 0;
+      opacity: 1 !important;
+    }
+    #header-right img {
+        width: 120px;
+        padding-top: 0;
+        padding-right: 20px
+    }
+
+    .reveal section img {
+      background: none;
+      border: none;
+      box-shadow: none;
+    }
+
+    .dim-background .slide-background {
+      opacity: 0.3 !important;
+    }
+
+    .chapter-background .slide-background .slide-background-content {
+      opacity: 0.4 !important;
+    }
+
+    .pdf-page .reveal .slide-background .slide-background-content {
+      opacity: 0.7 !important;
+    }
+
+    .pdf-page #header-left img {
+        width: 50%;
+        padding-left: 0;
+    }
+    .pdf-page #header-right img {
+        width: 50%;
+        padding-right: 0;
+    }
+    .pdf-page .dim-background .slide-background {
+        background: none !important;
+    }
+    .pdf-page .slide-background .slide-background-content {
+        background: none !important;
+    }
+
+    .dim-background .slide-background.past {
+      display: none !important;
+    }
+
+    .dim-background .slide-background.future {
+      display: none !important;
+    }
+
+    .chapter-background .slide-background.past {
+      display: none !important;
+    }
+
+    .chapter-background .slide-background.future {
+      display: none !important;
+    }
+
+    /*.new-chapter h3 { color: #586e75; }*/
+    .introlink a:link {
+      font-weight: bold;
+      color: #000000
+    }
+
+    /* unvisited links */
+    .introlink a:visited {
+      font-weight: bold;
+      color: #000000
+    }
+
+    /* visited links   */
+    .introlink a:hover {
+      font-weight: bold;
+      color: #000000
+    }
+
+    /* user hovers     */
+    .introlink a:active {
+      font-weight: bold;
+      color: #000000
+    }
+
+    ul {
+      list-style: none !important;
+    }
+
+    ul li {
+      padding-left: 1.3em;
+    }
+
+    ul li:before {
+      list-style: none;
+      content: "→";
+      display: inline-block;
+      margin-left: -1.3em; /* same as padding-left set on li */
+      width: 1.3em; /* same as padding-left set on li */
+    }
+
+    .footer {
+      font-size: 12px !Important;
+      font-family: "News Cycle", Impact, sans-serif;
+      color: #687175;
+      position: absolute;
+      bottom: 15px;
+      left: 15px;
+      margin-bottom: 10px
+    }
+
+    .footer a {
+      color: #003b6a;
+      text-decoration: none;
+    }
+
+    /* active links    */
+  </style>
+
+</head>
+
+<body>
+
+<div class="reveal">
+
+    <!-- 2. Create hidden header/footer <div> -->
+    <div id="hidden" style="display:none;">
+        <div id="header">
+            <div id="header-left"><img src="../../images/ditto.svg" alt="Ditto logo"></div>
+            <div id="header-right"><img src="../../images/iot_logo.svg" alt="Eclipse IoT logo"></div>
+        </div>
+    </div>
+
+    <div class="slides">
+      <section id="title" class="new-chapter" data-background="../bg-images/background-twin-small.jpg" data-state="chapter-background">
+          <!-- background source: https://unsplash.com/collections/425779/iot -->
+        <br/>
+          <h1 style="font: 2.0em Helvetica, sans-serif;"><img src="../../images/ditto.svg"
+                                                              style="width: 30%; padding-top: 0.5em;"
+                                                              alt="Eclipse Ditto"></h1>
+          <br/>
+          <h2 style="font-size: 1.0em">Status February 2024</h2>
+          <h2 style="font-size: 1.0em">27.02.2024</h2>
+
+        <br style="clear: both"/>
+      </section>
+
+      <section id="about-1" style="clear: both;">
+        <h2>Ditto in a nutshell</h2>
+        <div style="text-align: left; float: left; width: 65%">
+          <img src="../../images/ditto-overview-1.png" style="width: 90%;padding-top:0.5em" alt="Ditto in action"/>
+        </div>
+        <div style="text-align: center; float: right; width: 35%">
+          <p style="padding-top:3.5em">Ditto as IoT "middleware"<br/>utilizing<br/><em>Digital Twin</em><br/> pattern</p>
+        </div>
+      </section>
+      <section id="about-2" style="clear: both;">
+        <p>since version 3.0.0, Ditto provides a web UI</p>
+        <img src="ditto-ui.png" style="width: 90%;padding-top:0.5em" alt="Ditto in action"/>
+      </section>
+
+      <section id="status-2a" style="clear: both;">
+        <h3>History</h3>
+        <ul>
+          <li style="font-size: 0.75em; margin-top: 0.5em;">Eclipse Ditto was
+            <a href="https://github.com/eclipse-ditto/ditto/commit/1b7c634385571c48c54502ac15226f489c07484c">open sourced</a> 08/2018 by Bosch.IO</li>
+          <li class="fragment" style="font-size: 0.75em; margin-top: 0.5em;">then, already used productive at Bosch.IO
+            (as a <a href="https://bosch-iot-suite.com/news/bosch-iot-suite-now-available-aws-marketplace/">SaaS</a>)</li>
+          <li class="fragment"  style="font-size: 0.75em; margin-top: 0.5em;">out of Eclipse incubation with
+            <a href="https://projects.eclipse.org/projects/iot.ditto/releases/1.0.0">1.0.0</a> in 12/2019</li>
+          <li class="fragment"  style="font-size: 0.75em; margin-top: 0.5em;">every 3-5 months a release since then</li>
+          <li class="fragment"  style="font-size: 0.75em; margin-top: 0.5em;">Bosch.IO
+            <a href="https://bosch-iot-suite.com/news/bosch-iot-device-management-boschio-to-support-device-management-together-with-major-cloud-providers/">announced</a> (10/2022)
+            shutdown of their SaaS offering for mid of 2024</li>
+          <li class="fragment"  style="font-size: 0.75em; margin-top: 0.5em;">Bosch reduced resources on Ditto development since then</li>
+          <li class="fragment"  style="font-size: 0.75em; margin-top: 0.5em;">projects at Bosch still using SaaS service
+            <a href="https://bosch-iot-suite.com/news/migration-of-managed-bosch-iot-things-instances-to-ditto-as-device-management-backend/">migrated to Ditto</a></li>
+          <li class="fragment"  style="font-size: 0.75em; margin-top: 0.5em;">most contributions are now from outside of Bosch</li>
+        </ul>
+      </section>
+
+      <section id="status-2" style="clear: both;">
+        <h2>Stats</h2>
+        <br/>
+        <table style="font-size: 0.8em;">
+          <tr>
+            <td></td>
+            <th>2018</th>
+            <th>2020</th>
+            <th>2022</th>
+            <th>2024</th>
+          </tr>
+          <tr>
+            <td>Github stars</td>
+            <td>65</td>
+            <td>204</td>
+            <td>411</td>
+            <td>566</td>
+          </tr>
+          <tr>
+            <td>Docker pulls ~</td>
+            <td>1.200</td>
+            <td>10.000</td>
+            <td>80.000</td>
+            <td>167.000</td>
+          </tr>
+          <tr>
+            <td>Active committers</td>
+            <td>8</td>
+            <td>8</td>
+            <td>8</td>
+            <td>2</td>
+          </tr>
+          <tr>
+            <td>Adopters*</td>
+            <td>1</td>
+            <td>6</td>
+            <td>6</td>
+            <td>8</td>
+          </tr>
+          <tr>
+            <td>Contributors</td>
+            <td>-</td>
+            <td>~ 8</td>
+            <td>~ 8</td>
+            <td>~ 5</td>
+          </tr>
+        </table>
+        <h4 style="margin-top: 1em; font-size: 0.8em;">* officially declared, we know of more</h4>
+      </section>
+
+      <section id="achievements-1" style="clear: both;">
+        <h2>Achievements - Releases</h2>
+        <br/>
+        <ul>
+          <li style="font-size: 0.9em; margin-top: 0.5em;"><a
+            href="https://eclipse.dev/ditto/2023-03-08-release-announcement-320.html">3.2.0 (03/2023)</a>:
+            <b>History API</b> (retrieve things at given time from the past); stream all historical changes
+          </li>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;"><a
+            href="https://eclipse.dev/ditto/2023-06-23-release-announcement-330.html">3.3.0 (06/2023)</a>:
+            Revived Ditto <b>Helm chart</b> (moved from IoT Packages to Ditto repo, added lots of config options); improvements to <b>PATCH APIs</b>
+          </li>
+        </ul>
+      </section>
+      <section id="achievements-2" style="clear: both;">
+        <h3>Release <a
+          href="https://eclipse.dev/ditto/2023-10-17-release-announcement-340.html">3.4.0 (10/2023)</a></h3>
+        <ul>
+          <li style="font-size: 0.9em; margin-top: 0.5em;"><b>exchanging</b> main dependency "Akka"<br/>with <b>"Apache Pekko"</b></li>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;">reason: Akka license change from ASL-2.0 to BSL-1.1
+            <ul class="fragment" style="font-size: 0.9em; margin-top: 0.5em;">
+              <li>Ditto heavily relies on the Akka toolkit</li>
+              <li>fork of Akka under Apache-Foundation with name "Apache Pekko" was done and released</li>
+            </ul>
+          </li>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;">
+            other small enhancements as well
+          </li>
+        </ul>
+      </section>
+      <section id="achievements-3" style="clear: both;">
+        <h3>Release <a
+          href="https://eclipse.dev/ditto/2024-01-26-release-announcement-350.html">3.5.0 (01/2024)</a></h3>
+        <ul>
+          <li style="font-size: 0.9em; margin-top: 0.5em;"><b>search</b> in the <b>history</b> of a thing</li>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;"><b>configure</b> per namespace <b>which fields to
+          index</b> in the Ditto search index</li>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;">expose <b>configured count queries</b> as
+            Prometheus <b>metrics</b></li>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;">show policy imports in UI; enhance UI to perform devops commands;
+          several usability improvements</li>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;"><b>improve stability</b> in Kubernetes when doing
+            <b>rolling updates</b></li>
+        </ul>
+      </section>
+      <section id="achievements-4" style="clear: both;">
+        <h2>Project health</h2>
+        <div style="text-align: left; float: left; width: 55%">
+          <img src="ditto-commits-per-month-2024.png" style="width: 90%;padding-top:0.5em" alt="Ditto commits per month"/>
+
+        </div>
+        <div style="text-align: center; float: right; width: 40%">
+          <img class="fragment" src="ditto-last-12m.png" style="width: 90%;padding-top:0.5em" alt="Ditto last 12 months"/>
+        </div>
+      </section>
+      <section id="achievements-5" style="clear: both;">
+        <h2>Contributions</h2>
+        <br/>
+        <p>Ditto receives more (big) contributions from non-committers, e.g.:</p>
+        <ul>
+          <li style="font-size: 0.9em; margin-top: 0.5em;"><a href="https://github.com/eclipse-ditto/ditto/issues/1521">Configure on a namespace basis the fields to index in the thing-search</a> by Ditto adopter Synamedia</li>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;">many UI contributions from <a href="https://github.com/thfries">@thfries</a> (private contributor)</li>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;">MQTT related and operational contributions from <a href="https://github.com/dimabarbul">@dimabarbul</a>, working for Lohika</li>
+        </ul>
+      </section>
+      <section id="achievements-6" style="clear: both;">
+        <h2>Achievements - Blog posts</h2>
+        <br/>
+        <ul>
+          <li>HiveMQ (one of their customers was willing to replace Azure IoT Hub with HiveMQ and Ditto):
+            <ul>
+              <li style="font-size: 0.9em; margin-top: 0.5em;"><a href="https://www.hivemq.com/blog/hivemq-eclipse-ditto-friends-or-foes/">HiveMQ and Eclipse Ditto: Friends or Foes?</a></li>
+              <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;"><a href="https://www.hivemq.com/blog/hands-on-guide-using-mqtt-hivemq-eclipse-ditto-digital-twins-iiot/">Hands-on Guide to Using MQTT and Eclipse Ditto for Digital Twins</a></li>
+            </ul>
+          </li>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;"><a href="https://github.com/eclipse-ditto/ditto/pull/1907">Integrate Eclipse Ditto Things in an Asset Administration Shell Environment</a> (published soon)</li>
+        </ul>
+      </section>
+      <section id="achievements-7" style="clear: both;">
+        <h3>Blog post:<br/><a
+          href="https://eclipse.dev/ditto/2023-10-09-ditto-benchmark.html">Ditto Benchmark (09/2023)</a>
+        </h3>
+        <ul>
+          <li style="font-size: 0.9em; margin-top: 0.5em;">Bosch.IO performed an extensive benchmark</li>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;">based on Ditto deployed together with Apache Kafka in Kubernetes on AWS, with Atlas MongoDB (DBaaS)</li>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;">benchmark toolkit was open sourced in the Ditto GitHub repo</li>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;">scenario with <code>1.000.000</code> things showed horizontal scalability capabilities</li>
+        </ul>
+      </section>
+
+      <!-- Section: Roadmap -->
+      <section id="roadmap-1" style="clear: both;">
+        <h2>Roadmap</h2>
+        <p style="font-size: 0.6em;">we have to deal with reduced resources for Ditto development</p>
+        <h4 class="fragment">Short term (next major release):<br/>WoT (Web of Things) enhancements</h4>
+        <ul>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;">validation/enforcement of WoT models: <a href="https://github.com/eclipse-ditto/ditto/issues/1650">#1650</a></li>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;">updating WoT model versions: <a href="https://github.com/eclipse-ditto/ditto/issues/1843">#1843</a></li>
+          <li class="fragment" style="font-size: 0.9em; margin-top: 0.5em;">enhancements of the UI, e.g. providing templates based on WoT actions when sending messages</li>
+        </ul>
+        <br/>
+        <p class="fragment" style="font-size: 0.6em;">* disclaimer: the "roadmap ideas" are based on what I, working for a company using Ditto, need from Ditto</p>
+      </section>
+      <section id="roadmap-2" style="clear: both;">
+        <h2>Roadmap - Long term</h2>
+        <img src="../../images/ditto.svg"
+             style="width: 15%; padding-top: 0.5em;"
+             alt="Eclipse Ditto"></h1>
+        <h3 class="fragment">It's up to us all</h3>
+        <p class="fragment">let's shape the roadmap as a community, without one single company dictating it</p>
+      </section>
+
+      <section style="clear: both;">
+        <section id="q-a" class="new-chapter" data-background="../bg-images/background-conclusion-small.jpg"
+                 data-state="chapter-background">
+          <h1>Q & A</h1>
+          <br/>
+          <h3>thanks for attending</h3>
+          <br/>
+          <br/>
+          <a href="https://www.eclipse.dev/ditto/feedback.html">reach out to the Ditto team</a>
+        </section>
+      </section>
+
+</div>
+
+<div class="footer">
+    Copyright ©2024
+    <a href="https://www.bosch.io" target="_blank">beyonnex.io GmbH</a> All rights reserved. |
+    <a href="https://www.eclipse.dev/ditto/intro-overview.html" target="_blank">Documentation</a> |
+    <a href="https://github.com/eclipse-ditto/ditto" target="_blank">GitHub</a> |
+    <a href="https://ditto.eclipseprojects.io" target="_blank">Sandbox</a>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/plugin/markdown/markdown.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/plugin/notes/notes.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/plugin/highlight/highlight.min.js"></script>
+
+<script>
+  function getParameterByName(name, url) {
+    if (!url) {
+      url = window.location.href;
+    }
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+      results = regex.exec(url);
+    if (!results) {
+      return null;
+    }
+    if (!results[2]) {
+      return '';
+    }
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+  }
+
+  // More info https://github.com/hakimel/reveal.js#configuration
+  Reveal.initialize({
+                      controls: true,
+                      progress: true,
+                      history: true,
+                      center: true,
+                      fragments: getParameterByName('fragments') === '', // only use "fragments" feature if queryParam 'fragments' is present
+                      slideNumber: 'h.v',
+                      // slideNumber: false, /* for printing */
+
+                      transition: 'convex', // none/fade/cube/slide/convex/concave/zoom
+
+                      // IMPORTANT: The order matters!
+                      // So, RevealHightlight must be the LAST to load
+                      plugins: [RevealMarkdown, RevealNotes, RevealHighlight],
+                      keyboard: { // for hama remote presenter:
+                      //  38: 'next',
+                      //  40: 'prev'
+                      }
+                    });
+
+  /* for printing */
+  Reveal.configure({ pdfSeparateFragments: false });
+
+
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+<script type="text/javascript">
+  // 3. On Reveal.js ready event, copy header/footer <div> into each `.slide-background` <div>
+  var header = $('#header').html();
+  if (window.location.search.match(/print-pdf/gi)) {
+    Reveal.addEventListener('ready', function (event) {
+      $('.slide-background').append(header);
+    });
+  }
+  else {
+    $('div.reveal').append(header);
+  }
+</script>
+
+</body>
+</html>
