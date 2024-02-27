@@ -1,7 +1,7 @@
 ---
 title: "Access Ditto Things from an Asset Administration Shell"
 published: true
-permalink: 2024-02-15-integrating-ditto-aas-basyx.html
+permalink: 2024-02-27-integrating-ditto-aas-basyx.html
 layout: post
 author: johannes_kristan
 tags: [blog]
@@ -68,7 +68,7 @@ We see three approaches to achieve this:
 
 * BaSyx AAS SM server *pulls* the current state from Eclipse Ditto via a *wrapper* around Eclipse Ditto.
   This approach requires the creation of a custom AAS infrastructure around Eclipse Ditto without the chance of reusing existing components of the Eclipse Basyx project.
-  The Eclipse Ditto project followed a comparable approach to support [Web of Things](https://eclipse.dev/ditto/2022-03-03-wot-integration.html) (WoT) definitions, which is another specification to integrate IoT devices from different contexts and align their utilized data model.
+  The Eclipse Ditto project followed a comparable approach to support [Web of Things](2022-03-03-wot-integration.html) (WoT) definitions, which is another specification to integrate IoT devices from different contexts and align their utilized data model.
   Ditto now allows the generation of new Things based on a WoT Thing Description.
 * BaSyx AAS SM server *pulls* the current state from Eclipse Ditto via a *bridge* component, which Eclipse Basyx already provides.
   To integrate the bridge, the BaSyx SM-server component has a delegation feature, where the user can configure an SME with an endpoint to which the server delegates incoming requests.
@@ -95,8 +95,8 @@ Eclipse Ditto and Eclipse Basyx work with different data structures and conceptu
 
 *Table 1: Concept mapping from Eclipse Ditto to the AAS*
 
-We map a Ditto [`Namespace`](https://eclipse.dev/ditto/basic-namespaces-and-names.html#namespace) to a single AAS. An AAS holds multiple SMs, and not all of these SMs necessarily have counterparts in Ditto. We thus treat a `Thing` as an opaque concept and do not define an explicit mapping for a `Thing` but map each [`feature`](https://eclipse.dev/ditto/basic-feature.html) to one SM.
-[`property`](https://eclipse.dev/ditto/basic-feature.html#feature-properties) and [`Attribute`](https://eclipse.dev/ditto/basic-thing.html#attributes) are mapped to SMEs.
+We map a Ditto [`Namespace`](basic-namespaces-and-names.html#namespace) to a single AAS. An AAS holds multiple SMs, and not all of these SMs necessarily have counterparts in Ditto. We thus treat a `Thing` as an opaque concept and do not define an explicit mapping for a `Thing` but map each [`feature`](basic-feature.html) to one SM.
+[`property`](basic-feature.html#feature-properties) and [`Attribute`](basic-thing.html#attributes) are mapped to SMEs.
 
 By that, it is possible to have more than one Thing organized in one AAS.
 This can especially be useful if an AAS organizes complex equipment with different sensors and actuators, which belong together but are organized in multiple Things.
@@ -123,7 +123,7 @@ Please note that the Ditto demo instance, does not work for the described setup 
 ### Payload Mappers from Ditto to BaSyx
 
 Let us assume a device with a sensor named `machine:sensor` that is capable of measuring temperature values.
-This device may send sensor data to an Eclipse Ditto instance as a Ditto Protocol message [Ditto Protocol message](https://eclipse.dev/ditto/1.3/protocol-overview.html):
+This device may send sensor data to an Eclipse Ditto instance as a Ditto Protocol message [Ditto Protocol message](protocol-overview.html):
 
 ```json
 {
@@ -136,10 +136,10 @@ This device may send sensor data to an Eclipse Ditto instance as a Ditto Protoco
 
 *Listing 1: Ditto Protocol message for the Thing `machine:senor`*
 
-If the device uses another message format, you can find more details on [how to map it](https://eclipse.dev/ditto/connectivity-mapping.html) to a Ditto Protocol message.
+If the device uses another message format, you can find more details on [how to map it](connectivity-mapping.html) to a Ditto Protocol message.
 
 After an update to a Thing, we want Ditto to map the information to an AAS-conforming representation and forward this via an outbound connection to an AAS server.
-The task in Eclipse Ditto is to define [payload mappers](https://eclipse.dev/ditto/connectivity-mapping.html) for these transformations in accordance with the mapping from [Mapping of Data Models](#mapping-of-data-models). Ditto allows the usage of JavaScript to create the mappers. We thus configure connections in Ditto to the BaSyx components, where we filter for the relevant changes to a Thing and then trigger the respective mapper.
+The task in Eclipse Ditto is to define [payload mappers](connectivity-mapping.html) for these transformations in accordance with the mapping from [Mapping of Data Models](#mapping-of-data-models). Ditto allows the usage of JavaScript to create the mappers. We thus configure connections in Ditto to the BaSyx components, where we filter for the relevant changes to a Thing and then trigger the respective mapper.
 
 We need to implement the following mappers:
 
@@ -380,15 +380,15 @@ With our approach, we preserve the existing properties and only modify the updat
 
 #### Create a Connection to the BaSyx AAS Server
 
-To apply the introduced mappers, we configure a new [Ditto connection](https://eclipse.dev/ditto/basic-connections.html) to a BaSyx AAS server.
+To apply the introduced mappers, we configure a new [Ditto connection](basic-connections.html) to a BaSyx AAS server.
 The listings below show the respective HTTP calls using curl to configure this connection.
 
 The JavaScript mappers from above are part of `piggybackCommand.connection.mappingDefinitions` in `mappingforShell`, `mappingforSubmodel` and `mappingforSubmodelElement`.
 
 In the example, we use the placeholder `<ditto-instance-url>` for the used Ditto instance. You need to adjust to the valid URL of your environment.
-We assume you have access rights to the Ditto [Devops Commands](https://eclipse.dev/ditto/installation-operating.html#devops-commands) credentials in the used instance (username: `devops`, password: `foobar is the default).
+We assume you have access rights to the Ditto [Devops Commands](installation-operating.html#devops-commands) credentials in the used instance (username: `devops`, password: `foobar is the default).
 
-You can change the password by setting the environment variable *DEVOPS_PASSWORD* in the [gateway service](https://eclipse.dev/ditto/architecture-services-gateway.html).
+You can change the password by setting the environment variable *DEVOPS_PASSWORD* in the [gateway service](architecture-services-gateway.html).
 
 Alternatively, an already existing password can be obtained and stored as an environment variable using the following command:
 
@@ -440,9 +440,9 @@ curl -X POST -u devops:foobar -H 'Content-Type: application/json' --data-binary 
         "sources": [],
         "targets": [
           {
-            "address": "PUT:/aasServer/shells/{{ thing:namespace }}",
+            "address": "PUT:/aasServer/shells/{%raw%}{{ thing:namespace }}{%endraw%}",
             "headerMapping": {
-              "content-type": "{{ header:content-type }}"
+              "content-type": "{%raw%}{{ header:content-type }}{%endraw%}"
             },
             "authorizationContext": ["nginx:ditto"],
             "topics": [
@@ -453,9 +453,9 @@ curl -X POST -u devops:foobar -H 'Content-Type: application/json' --data-binary 
             ]
           },
           {
-            "address": "PUT:/aasServer/shells/{{ thing:namespace }}/aas/submodels/{{ thing:name }}_{{ resource:path | fn:substring-after('"'/features/'"') }}",
+            "address": "PUT:/aasServer/shells/{%raw%}{{ thing:namespace }}{%endraw%}/aas/submodels/{%raw%}{{ thing:name }}{%endraw%}_{%raw%}{{ resource:path | fn:substring-after('"'/features/'"') }}{%endraw%}",
             "headerMapping": {
-              "content-type": "{{ header:content-type }}"
+              "content-type": "{%raw%}{{ header:content-type }}{%endraw%}"
             },
             "authorizationContext": ["nginx:ditto"],
             "topics": [
@@ -466,9 +466,9 @@ curl -X POST -u devops:foobar -H 'Content-Type: application/json' --data-binary 
             ]
           },
           {
-            "address": "PUT:/aasServer/shells/{{ thing:namespace }}/aas/submodels/{{ thing:name }}_{{ resource:path | fn:substring-after('"'/features/'"') | fn:substring-before('"'/properties'"') }}/submodel/submodelElements/properties_{{ resource:path | fn:substring-after('"'/properties/'"') | fn:replace('"'/'"','"'_'"') }}",
+            "address": "PUT:/aasServer/shells/{%raw%}{{ thing:namespace }}{%endraw%}/aas/submodels/{%raw%}{{ thing:name }}{%endraw%}_{%raw%}{{ resource:path | fn:substring-after('"'/features/'"') | fn:substring-before('"'/properties'"') }}{%endraw%}/submodel/submodelElements/properties_{%raw%}{{ resource:path | fn:substring-after('"'/properties/'"') | fn:replace('"'/'"','"'_'"') }}{%endraw%}",
             "headerMapping": {
-              "content-type": "{{ header:content-type }}"
+              "content-type": "{%raw%}{{ header:content-type }}{%endraw%}"
             },
             "authorizationContext": ["nginx:ditto"],
             "topics": [
@@ -489,7 +489,7 @@ curl -X POST -u devops:foobar -H 'Content-Type: application/json' --data-binary 
 When Ditto established the connection and our payload mappings work, it returns a successful HTTP response and otherwise an error message.
 
 Without any further means, the payload mappings defined in `piggybackCommand.mappingDefinition` and set in `piggybackCommand.targets` would get executed for all changes to a Thing.
-To prevent this, we use [filtering](https://eclipse.dev/ditto/basic-changenotifications.html#filtering) with [RQL expressions](https://eclipse.dev/ditto/basic-rql.html) to make sure that our payload mappings are only executed for the correct messages.
+To prevent this, we use [filtering](basic-changenotifications.html#filtering) with [RQL expressions](basic-rql.html) to make sure that our payload mappings are only executed for the correct messages.
 For example, the filter:
 
 ```json
@@ -598,9 +598,9 @@ curl -X POST -u devops:foobar -H 'Content-Type: application/json' --data-binary 
         "sources": [],
         "targets": [
           {
-            "address": "PUT:/registry/api/v1/registry/{{ thing:namespace }}",
+            "address": "PUT:/registry/api/v1/registry/{%raw%}{{ thing:namespace }}{%endraw%}",
             "headerMapping": {
-              "content-type": "{{ header:content-type }}"
+              "content-type": "{%raw%}{{ header:content-type }}{%endraw%}"
             },
             "authorizationContext": ["nginx:ditto"],
             "topics": [
@@ -642,7 +642,7 @@ which you need to adapt to the URL of your Ditto instance.
 ##### Setup a common policy
 
 To define authorization information to be used by the Things,
-we first create a [policy](https://eclipse.dev/ditto/basic-policy.html) with the policy-id `machine:my-policy`.
+we first create a [policy](basic-policy.html) with the policy-id `machine:my-policy`.
 
 ```bash
 POLICY_ID=machine:my-policy
@@ -651,7 +651,7 @@ curl -i -X PUT -u ditto:ditto -H 'Content-Type: application/json' --data '{
   "entries": {
     "DEFAULT": {
       "subjects": {
-        "{{ request:subjectId }}": {
+        "{%raw%}{{ request:subjectId }}{%endraw%}": {
            "type": "Ditto user authenticated via nginx"
         }
       },
