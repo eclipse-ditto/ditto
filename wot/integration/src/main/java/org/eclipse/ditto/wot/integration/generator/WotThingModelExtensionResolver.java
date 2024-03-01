@@ -13,8 +13,10 @@
 package org.eclipse.ditto.wot.integration.generator;
 
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.wot.integration.provider.WotThingModelFetcher;
 import org.eclipse.ditto.wot.model.ThingModel;
 
 /**
@@ -56,4 +58,15 @@ public interface WotThingModelExtensionResolver {
      * be parsed/interpreted as correct WoT ThingModel.
      */
     CompletionStage<ThingModel> resolveThingModelRefs(ThingModel thingModel, DittoHeaders dittoHeaders);
+
+    /**
+     * Creates a new instance of WotThingModelExtensionResolver with the given {@code thingModelFetcher}.
+     *
+     * @param thingModelFetcher the ThingModel fetcher to fetch linked other ThingModels during the generation process.
+     * @param executor the executor to use for async tasks.
+     * @return the created WotThingSkeletonGenerator.
+     */
+    static WotThingModelExtensionResolver of(final WotThingModelFetcher thingModelFetcher, final Executor executor) {
+        return new DefaultWotThingModelExtensionResolver(thingModelFetcher, executor);
+    }
 }

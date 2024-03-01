@@ -53,14 +53,6 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     CORRELATION_ID("correlation-id", String.class, true, true, HeaderValueValidators.getNonEmptyValidator()),
 
     /**
-     * Header definition for schema version value.
-     * <p>
-     * Key: {@code "version"}, Java type: {@code int}.
-     * </p>
-     */
-    SCHEMA_VERSION("version", int.class, true, true, HeaderValueValidators.getIntValidator()),
-
-    /**
      * Header definition for response required value.
      * <p>
      * Key: {@code "response-required"}, Java type: {@code boolean}.

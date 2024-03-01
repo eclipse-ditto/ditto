@@ -181,9 +181,7 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
 
     @Override
     public Optional<JsonSchemaVersion> getSchemaVersion() {
-        return getStringForDefinition(DittoHeaderDefinition.SCHEMA_VERSION)
-                .map(Integer::valueOf)
-                .flatMap(JsonSchemaVersion::forInt);
+        return Optional.of(JsonSchemaVersion.V_2);
     }
 
     @Override

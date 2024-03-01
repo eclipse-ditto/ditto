@@ -245,11 +245,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
     @Override
     public S schemaVersion(@Nullable final JsonSchemaVersion schemaVersion) {
-        if (null != schemaVersion) {
-            putCharSequence(DittoHeaderDefinition.SCHEMA_VERSION, schemaVersion.toString());
-        } else {
-            removeHeader(DittoHeaderDefinition.SCHEMA_VERSION.getKey());
-        }
+        // no-op
         return myself;
     }
 

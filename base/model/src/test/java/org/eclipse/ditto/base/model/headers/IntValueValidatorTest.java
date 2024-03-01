@@ -13,13 +13,11 @@
 package org.eclipse.ditto.base.model.headers;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
-import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -49,18 +47,6 @@ public final class IntValueValidatorTest {
     }
 
     @Test
-    public void tryToAcceptNullValue() {
-        final DittoHeaderDefinition headerDefinition = DittoHeaderDefinition.SCHEMA_VERSION;
-
-        assertThatExceptionOfType(DittoHeaderInvalidException.class)
-                .isThrownBy(() -> underTest.accept(headerDefinition, null))
-                .withMessageContaining("null")
-                .withMessageContaining(headerDefinition.getKey())
-                .withMessageEndingWith("is not a valid int.")
-                .withNoCause();
-    }
-
-    @Test
     public void canValidateInteger() {
         try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
             softly.assertThat(underTest.canValidate(int.class)).as("int").isTrue();
@@ -70,7 +56,7 @@ public final class IntValueValidatorTest {
 
     @Test
     public void acceptValidCharSequence() {
-        assertThatCode(() -> underTest.accept(DittoHeaderDefinition.SCHEMA_VERSION, "2"))
+        assertThatCode(() -> underTest.accept(DittoHeaderDefinition.RESPONSE_REQUIRED, "false"))
                 .doesNotThrowAnyException();
     }
 
@@ -78,17 +64,6 @@ public final class IntValueValidatorTest {
     public void doesNotValidateAsDefinedJavaTypeIsNotInt() {
         assertThatCode(() -> underTest.accept(DittoHeaderDefinition.RESPONSE_REQUIRED, "2"))
                 .doesNotThrowAnyException();
-    }
-
-    @Test
-    public void acceptInvalidCharSequence() {
-        final String invalidInt = "true";
-
-        assertThatExceptionOfType(DittoHeaderInvalidException.class)
-                .isThrownBy(() -> underTest.accept(DittoHeaderDefinition.SCHEMA_VERSION, invalidInt))
-                .withMessageContaining(invalidInt)
-                .withMessageEndingWith("is not a valid int.")
-                .withNoCause();
     }
 
 }

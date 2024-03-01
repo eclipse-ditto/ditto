@@ -84,7 +84,7 @@ public final class BooleanValueValidatorTest {
 
     @Test
     public void doesNotValidateAsDefinedJavaTypeIsNotBoolean() {
-        assertThatCode(() -> underTest.accept(DittoHeaderDefinition.SCHEMA_VERSION, BOOLEAN_CHAR_SEQUENCE))
+        assertThatCode(() -> underTest.accept(DittoHeaderDefinition.CHANNEL, BOOLEAN_CHAR_SEQUENCE))
                 .doesNotThrowAnyException();
     }
 

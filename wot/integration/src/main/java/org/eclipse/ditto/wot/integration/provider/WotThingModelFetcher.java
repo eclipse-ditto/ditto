@@ -15,7 +15,9 @@ package org.eclipse.ditto.wot.integration.provider;
 import java.net.URL;
 import java.util.concurrent.CompletionStage;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.wot.integration.config.WotConfig;
 import org.eclipse.ditto.wot.model.IRI;
 import org.eclipse.ditto.wot.model.ThingModel;
 
@@ -54,4 +56,15 @@ public interface WotThingModelFetcher {
      * fetched at the given {@code url}.
      */
     CompletionStage<ThingModel> fetchThingModel(URL url, DittoHeaders dittoHeaders);
+
+    /**
+     * Creates a new instance of WotThingModelExtensionResolver with the given {@code actorSystem}.
+     *
+     * @param actorSystem the actor system to use.
+     * @param wotConfig the WoTConfig to use for creating the generator.
+     * @return the created WotThingSkeletonGenerator.
+     */
+    static WotThingModelFetcher of(final ActorSystem actorSystem, final WotConfig wotConfig) {
+        return new DefaultWotThingModelFetcher(actorSystem, wotConfig);
+    }
 }

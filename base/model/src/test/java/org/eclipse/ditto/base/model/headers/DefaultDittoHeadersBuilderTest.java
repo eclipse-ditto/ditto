@@ -75,7 +75,6 @@ public final class DefaultDittoHeadersBuilderTest {
 
         DittoBaseAssertions.assertThat(dittoHeaders)
                 .hasNoCorrelationId()
-                .hasNoSchemaVersion()
                 .hasNoAuthorizationSubjects()
                 .hasNoReadGrantedSubjects();
     }
@@ -92,15 +91,6 @@ public final class DefaultDittoHeadersBuilderTest {
     @Test(expected = IllegalArgumentException.class)
     public void tryToSetEmptyCorrelationId() {
         underTest.correlationId("");
-    }
-
-    @Test
-    public void setNullSchemaVersionRemovesSchemaVersion() {
-        underTest.schemaVersion(JSON_SCHEMA_VERSION);
-        underTest.schemaVersion(null);
-        final DittoHeaders dittoHeaders = underTest.build();
-
-        assertThat(dittoHeaders.getSchemaVersion()).isEmpty();
     }
 
     @Test
@@ -173,17 +163,6 @@ public final class DefaultDittoHeadersBuilderTest {
         assertThat(jsonObject)
                 .hasSize(1)
                 .contains(JsonFactory.newKey(DittoHeaderDefinition.CORRELATION_ID.getKey()), CORRELATION_ID);
-    }
-
-    @Test
-    public void jsonRepresentationOfDittoHeadersWithSchemaVersionOnlyIsExpected() {
-        final DittoHeaders dittoHeaders = underTest.schemaVersion(JSON_SCHEMA_VERSION).build();
-        final JsonObject jsonObject = dittoHeaders.toJson();
-
-        assertThat(jsonObject)
-                .hasSize(1)
-                .contains(JsonFactory.newKey(DittoHeaderDefinition.SCHEMA_VERSION.getKey()),
-                        JsonFactory.newValue(JSON_SCHEMA_VERSION.toInt()));
     }
 
     @Test
@@ -260,7 +239,7 @@ public final class DefaultDittoHeadersBuilderTest {
 
     @Test
     public void tryToCreateInstanceWithJsonObjectContainingInvalidHeader() {
-        final String schemaVersionKey = DittoHeaderDefinition.SCHEMA_VERSION.getKey();
+        final String schemaVersionKey = DittoHeaderDefinition.RESPONSE_REQUIRED.getKey();
         final String invalidSchemaVersionValue = "meh";
 
         final JsonObject headersJsonObject = JsonFactory.newObjectBuilder()
@@ -271,7 +250,7 @@ public final class DefaultDittoHeadersBuilderTest {
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> of(headersJsonObject))
-                .withMessage("The value '%s' of the header '%s' is not a valid int.", invalidSchemaVersionValue,
+                .withMessage("The value '%s' of the header '%s' is not a valid boolean.", invalidSchemaVersionValue,
                         schemaVersionKey)
                 .withNoCause();
     }
@@ -304,7 +283,7 @@ public final class DefaultDittoHeadersBuilderTest {
 
     @Test
     public void tryToPutMapWithInvalidMessageHeader() {
-        final String key = DittoHeaderDefinition.SCHEMA_VERSION.getKey();
+        final String key = DittoHeaderDefinition.RESPONSE_REQUIRED.getKey();
         final String invalidValue = "bar";
 
         final Map<String, String> invalidHeaders = new HashMap<>();
@@ -313,7 +292,7 @@ public final class DefaultDittoHeadersBuilderTest {
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.putHeaders(invalidHeaders))
-                .withMessage("The value '%s' of the header '%s' is not a valid int.", invalidValue, key)
+                .withMessage("The value '%s' of the header '%s' is not a valid boolean.", invalidValue, key)
                 .withNoCause();
     }
 
