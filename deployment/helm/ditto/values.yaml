@@ -409,6 +409,8 @@ ingress:
         add_header "X-Content-Type-Options" "nosniff" always;
         add_header "X-Frame-Options" "SAMEORIGIN" always;
         add_header "X-XSS-Protection" "1; mode=block" always;
+        rewrite ^(/ui)$ $1/ permanent;
+        rewrite ^(/apidoc)$ $1/ permanent;
   # devops the /devops, /api/2/connections, /status and /health commands Ingress configuration
   devops:
     # paths configures ingress paths
