@@ -226,6 +226,8 @@ spec:
               value: "{{ .Values.gateway.config.sse.throttling.limit }}"
             - name: OAUTH_ALLOWED_CLOCK_SKEW
               value: "{{ .Values.gateway.config.authentication.oauth.allowedClockSkew }}"
+            - name: OAUTH_TOKEN_INTEGRATION_SUBJECT
+              value: "{{ .Values.gateway.config.authentication.oauth.tokenIntegrationSubject }}"
             {{- if .Values.gateway.extraEnv }}
               {{- toYaml .Values.gateway.extraEnv | nindent 12 }}
             {{- end }}

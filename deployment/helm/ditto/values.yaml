@@ -1521,6 +1521,8 @@ gateway:
         #    authSubjects:
         #    - "{{ jwt:sub }}"
         #    - "{{ jwt:groups }}"
+        # configure the subject to inject in policy action activateTokenIntegration
+        tokenIntegrationSubject: "integration:{{policy-entry:label}}:{{jwt:aud}}"
       # devops contains the configuration of the gateway's "/devops" API, e.g. access to it
       devops:
         # secured this controls whether "/devops" and "/api/2/connections" resources are secured or not
