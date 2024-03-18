@@ -24,13 +24,24 @@ type: Opaque
 stringData:
   auth: |-
 {{- if .Values.global.hashedBasicAuthUsers }}
-{{ range .Values.global.hashedBasicAuthUsers }}
-{{- . | indent 4 }}
-{{ end }}
+  {{ range .Values.global.hashedBasicAuthUsers }}
+    {{- . | indent 4 }}
+  {{ end }}
 {{- else }}
-{{ range $key, $value := .Values.global.basicAuthUsers }}
-{{- (htpasswd $value.user $value.password) | indent 4 }}
-{{ end }}
+  {{- if (quote .Values.global.existingSecret | empty) }}
+    {{ range $key, $value := .Values.global.basicAuthUsers }}
+      {{- (htpasswd $value.user $value.password) | indent 4 }}
+    {{ end }}
+  {{- else }}
+    {{- $secret := lookup "v1" "Secret" $.Release.Namespace .Values.global.existingSecret }}
+    {{- if $secret }}
+      {{- range $user, $password := $secret.data }}
+        {{ htpasswd $user ($password | b64dec) | indent 4 }}
+      {{- end }}
+    {{- else}}
+      {{- fail (printf "Missing provided existingSecret for basicAuthUsers: %s" .Values.global.existingSecret) }}
+    {{- end }}
+  {{ end }}
 {{ end }}
 ---
 {{- end }}

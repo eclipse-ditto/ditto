@@ -74,6 +74,13 @@ global:
   #   password: ditto
   # - user: jane
   #   password: janesPw
+
+  # existingSecret contains the name of existing secret containing user and password
+  #  format: ${user}:${password}, where secret key is ${user} and value is ${password}
+  #  example creating secret for users ditto and jane:
+  #    kubectl create secret generic ditto-basic-auth --from-literal ditto=ditto --from-literal jane=janesPw
+  #  if not set then basicAuthUsers values are used.
+  existingSecret:
   # hashedBasicAuthUsers configures a list of hashed .htpasswd username/password entries
   hashedBasicAuthUsers: []
   # jwtOnly controls whether only OpenID-Connect authentication is supported
