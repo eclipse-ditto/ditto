@@ -95,10 +95,10 @@ public final class JwtValidatorTest {
     }
 
     private JwtParser getJwtParser(final PublicKey publicKey) {
-        final var jwtParserBuilder = Jwts.parserBuilder();
-        return jwtParserBuilder.deserializeJsonWith(JjwtDeserializer.getInstance())
-            .setSigningKey(publicKey)
-            .setAllowedClockSkewSeconds(oAuthConfig.getAllowedClockSkew().getSeconds())
+        final var jwtParserBuilder = Jwts.parser();
+        return jwtParserBuilder.json(JjwtDeserializer.getInstance())
+            .verifyWith(publicKey)
+            .clockSkewSeconds(oAuthConfig.getAllowedClockSkew().getSeconds())
             .build();
     }
 

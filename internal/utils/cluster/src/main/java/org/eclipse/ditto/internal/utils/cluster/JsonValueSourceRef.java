@@ -17,15 +17,15 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.ConditionChecker;
-
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.stream.SourceRef;
 import org.apache.pekko.stream.javadsl.Source;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.json.JsonValue;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Wraps a {@link SourceRef} of {@link JsonValue}s. The purpose of this class is to make working with SourceRef type
@@ -51,7 +51,7 @@ public final class JsonValueSourceRef implements PekkoJacksonCborSerializable {
      * @throws NullPointerException if {@code sourceRef} is {@code null}.
      */
     @JsonCreator
-    public static JsonValueSourceRef of(final SourceRef<JsonValue> sourceRef) {
+    public static JsonValueSourceRef of(@JsonProperty("sourceRef") final SourceRef<JsonValue> sourceRef) {
         return new JsonValueSourceRef(ConditionChecker.checkNotNull(sourceRef, "sourceRef"));
     }
 

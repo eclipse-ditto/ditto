@@ -39,22 +39,22 @@ public final class JjwtDeserializerTest {
         claims.put(Claims.ISSUER, KNOWN_ISS);
         claims.put(Claims.SUBJECT, KNOWN_SUB);
         final String compact = Jwts.builder()
-                .serializeToJsonWith(JjwtSerializer.getInstance())
-                .setClaims(claims)
-                .setExpiration(KNOWN_EXP)
+                .json(JjwtSerializer.getInstance())
+                .claims(claims)
+                .expiration(KNOWN_EXP)
                 .compact();
 
-        final Jwt jwt = Jwts.parserBuilder()
-                .deserializeJsonWith(JjwtDeserializer.getInstance())
+        final Jwt<?, ?> jwt = Jwts.parser().json(JjwtDeserializer.getInstance())
+                .unsecured()
                 .build()
                 .parse(compact);
 
-        final Object jwtBody = jwt.getBody();
+        final Object jwtBody = jwt.getPayload();
 
         Assertions.assertThat(jwtBody).isInstanceOf(Claims.class);
         Assertions.assertThat(((Claims) jwtBody)).containsEntry(Claims.ISSUER, KNOWN_ISS)
                 .containsEntry(Claims.SUBJECT, KNOWN_SUB)
-                .containsEntry(Claims.EXPIRATION, (int) (KNOWN_EXP.getTime() / 1000L));
+                .containsEntry(Claims.EXPIRATION, (KNOWN_EXP.getTime() / 1000L));
     }
 
 }

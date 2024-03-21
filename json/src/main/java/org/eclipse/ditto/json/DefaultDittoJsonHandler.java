@@ -27,7 +27,7 @@ import javax.annotation.concurrent.NotThreadSafe;
  * for creating a new {@link JsonArray} or {@link JsonObject}.
  */
 @NotThreadSafe
-final class DefaultDittoJsonHandler extends DittoJsonHandler<List<JsonValue>, List<JsonField>, JsonValue> {
+public final class DefaultDittoJsonHandler extends DittoJsonHandler<List<JsonValue>, List<JsonField>, JsonValue> {
 
     private static final int DEFAULT_INITIAL_STRING_BUILDER_CAPACITY = 512;
     private static final char DELIMITER = ',';

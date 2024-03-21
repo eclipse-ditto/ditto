@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.internal.utils.jwt;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.Collection;
@@ -28,6 +30,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
+import io.jsonwebtoken.io.AbstractSerializer;
 import io.jsonwebtoken.io.Encoders;
 import io.jsonwebtoken.io.SerializationException;
 import io.jsonwebtoken.io.Serializer;
@@ -39,7 +42,7 @@ import io.jsonwebtoken.lang.Objects;
  * JJWT library Serializer implementation which translates Java Objects (e.g. Maps) to JSON strings.
  */
 @Immutable
-public final class JjwtSerializer implements Serializer<Map<String, ?>> {
+public final class JjwtSerializer extends AbstractSerializer<Map<String, ?>> {
 
     private static Serializer<Map<String, ?>> instance;
 
@@ -54,15 +57,12 @@ public final class JjwtSerializer implements Serializer<Map<String, ?>> {
     }
 
     @Override
-    public byte[] serialize(final Map<String, ?> t) {
-
+    protected void doSerialize(final Map<String, ?> stringMap, final OutputStream out) throws Exception {
         try {
-            return toJson(t).toString().getBytes(StandardCharsets.UTF_8);
-        } catch (final SerializationException se) {
-            throw se;
-        } catch (final Exception e) {
+            out.write(toJson(stringMap).toString().getBytes(StandardCharsets.UTF_8));
+        } catch (final IOException e) {
             throw new SerializationException("Unable to serialize object of type " +
-                    Optional.ofNullable(t).map(obj -> obj.getClass().getName()).orElse("<null>") +
+                    Optional.ofNullable(stringMap).map(obj -> obj.getClass().getName()).orElse("<null>") +
                     " to JSON: " + e.getMessage(), e);
         }
     }
@@ -91,7 +91,7 @@ public final class JjwtSerializer implements Serializer<Map<String, ?>> {
             return JsonFactory.newValue(Encoders.BASE64.encode((bytes)));
         } else if (input instanceof char[] chars) {
             return JsonFactory.newValue(new String(chars));
-        } else if (input instanceof Map map) {
+        } else if (input instanceof Map<?, ?> map) {
             return toJsonObject(map);
         } else if (input instanceof Collection<?> collection) {
             return toJsonArray(collection);
