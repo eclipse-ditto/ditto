@@ -14,6 +14,9 @@ package org.eclipse.ditto.internal.utils.pubsubpolicies;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.policies.model.SubjectId;
@@ -28,11 +31,19 @@ final class PolicyAnnouncementTopicExtractor implements PubSubTopicExtractor<Pol
     @Override
     public Collection<String> getTopics(final PolicyAnnouncement<?> message) {
         if (message instanceof SubjectDeletionAnnouncement announcement) {
-            return announcement.getSubjectIds()
+            final Set<String> topicsWithoutNamespace =  announcement.getSubjectIds()
                     .stream()
                     .map(SubjectId::toString)
-                    .toList();
+                    .collect(Collectors.toSet());
+            return Stream.concat(combineNamespaceWithAuthSubjects(announcement.getEntityId().getNamespace(), topicsWithoutNamespace),
+                    topicsWithoutNamespace.stream())
+                    .collect(Collectors.toList());
         }
         return List.of();
+    }
+
+    private static Stream<String> combineNamespaceWithAuthSubjects(final String namespace,
+                                                                   final Set<String> authorizationSubjectIds) {
+        return authorizationSubjectIds.stream().map(subject -> namespace + "#" + subject);
     }
 }
