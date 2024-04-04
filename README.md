@@ -86,6 +86,7 @@ In order to first build Ditto and then start the built Docker images.
 
 #### 1. Build Ditto with Maven
 ```bash
+cd ~/ditto
 mvn clean install
 ```
 
