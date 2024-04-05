@@ -59,7 +59,13 @@ public final class IfMatchPreconditionHeader implements PreconditionHeader<Entit
             return false;
         }
 
-        return entityTagsToMatch.stream().anyMatch(entityTagToMatch -> entityTagToMatch.strongMatch(entityTag));
+        return entityTagsToMatch.stream().anyMatch(entityTagToMatch -> {
+            if (entityTag.isWeak()) {
+                return entityTagToMatch.weakMatch(entityTag);
+            } else {
+                return entityTagToMatch.strongMatch(entityTag);
+            }
+        });
     }
 
     /**
