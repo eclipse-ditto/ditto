@@ -82,7 +82,8 @@ public interface SecurityScheme extends TypedJsonObject<SecurityScheme>, Jsonifi
                         return AdditionalSecurityScheme.fromJson(schemeName, jsonObject);
                     }
                 })
-                .orElseThrow(() -> new IllegalArgumentException("Could not create SingleDataSchema"));
+                .orElseThrow(() -> new IllegalArgumentException("Could not create SecurityScheme - " +
+                        "json field <" + SecuritySchemeJsonFields.SCHEME.getPointer() + "> was missing or unknown"));
     }
 
     static NoSecurityScheme.Builder newNoSecurityBuilder(final CharSequence securitySchemeName) {
