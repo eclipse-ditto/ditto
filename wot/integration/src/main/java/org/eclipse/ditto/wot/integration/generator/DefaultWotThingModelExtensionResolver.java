@@ -147,6 +147,14 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
                                 .orElseGet(() -> CompletableFuture.completedFuture(null))
                         , executor
                 )
+                .thenCompose(refObject -> {
+                    if (refObject.contains(TM_REF)) {
+                        return resolveRefs(refObject, dittoHeaders) // recurse!
+                                .thenApply(JsonValue::asObject);
+                    } else {
+                        return potentiallyResolveRefs(refObject, dittoHeaders); // recurse!
+                    }
+                })
                 .thenApply(refObject ->
                         JsonFactory.mergeJsonValues(objectWithTmRef.remove(TM_REF), refObject).asObject()
                 );

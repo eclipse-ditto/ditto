@@ -68,7 +68,8 @@ public interface SingleDataSchema extends DataSchema, Jsonifiable<JsonObject> {
                             throw new IllegalArgumentException("Unsupported dataSchema-type: " + type);
                     }
                 })
-                .orElseThrow(() -> new IllegalArgumentException("Could not create SingleDataSchema"));
+                .orElseThrow(() -> new IllegalArgumentException("Could not create SingleDataSchema - " +
+                        "json field <" + DataSchemaJsonFields.TYPE.getPointer() + "> was missing or unknown"));
     }
 
     static BooleanSchema.Builder newBooleanSchemaBuilder() {
