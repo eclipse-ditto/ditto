@@ -56,7 +56,13 @@ public final class IfNoneMatchPreconditionHeader implements PreconditionHeader<E
             return true;
         }
 
-        return entityTagsToMatch.stream().noneMatch(entityTagToMatch -> entityTagToMatch.weakMatch(entityTag));
+        return entityTagsToMatch.stream().noneMatch(entityTagToMatch -> {
+            if (entityTag.isWeak()) {
+                return entityTagToMatch.weakMatch(entityTag);
+            } else {
+                return entityTagToMatch.strongMatch(entityTag);
+            }
+        });
     }
 
     /**
