@@ -12,14 +12,14 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-import {JSONPath} from 'jsonpath-plus';
+import { JSONPath } from 'jsonpath-plus';
 import * as API from '../api.js';
 /* eslint-disable comma-dangle */
 /* eslint-disable new-cap */
 import * as Utils from '../utils.js';
+import featuresHTML from './features.html';
 import * as Fields from './fields.js';
 import * as Things from './things.js';
-import featuresHTML from './features.html';
 
 const observers = [];
 
@@ -243,7 +243,7 @@ function onEditToggle(event) {
   if (isEditing && dom.crudFeature.idValue && dom.crudFeature.idValue !== '') {
     API.callDittoREST('GET', `/things/${Things.theThing.thingId}/features/${dom.crudFeature.idValue}`, null, null, true)
         .then((response) => {
-          eTag = response.headers.get('ETag').replace('W/', '');
+          eTag = response.headers.get('ETag');
           return response.json();
         })
         .then((featureJson) => {
