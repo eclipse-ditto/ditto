@@ -160,7 +160,7 @@ function onEditToggle(event) {
   if (isEditing && Things.theThing) {
     API.callDittoREST('GET', `/things/${Things.theThing.thingId}`, null, null, true)
         .then((response) => {
-          eTag = response.headers.get('ETag');
+          eTag = response.headers.get('ETag').replace('W/', '');
           return response.json();
         })
         .then((thingJson) => {

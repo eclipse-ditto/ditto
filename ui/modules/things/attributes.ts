@@ -170,7 +170,7 @@ function onEditToggle(event) {
     API.callDittoREST('GET', `/things/${Things.theThing.thingId}/attributes/${dom.crudAttribute.idValue}`,
         null, null, true)
         .then((response) => {
-          eTag = response.headers.get('ETag');
+          eTag = response.headers.get('ETag').replace('W/', '');
           return response.json();
         })
         .then((attributeValue) => {
