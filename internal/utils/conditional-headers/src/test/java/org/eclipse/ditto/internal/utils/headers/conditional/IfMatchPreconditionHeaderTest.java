@@ -56,6 +56,13 @@ public class IfMatchPreconditionHeaderTest {
     }
 
     @Test
+    public void meetsConditionForWeak() {
+        final IfMatchPreconditionHeader ifMatchPreconditionHeader =
+                createIfMatchPreconditionHeader(fromCommaSeparatedString("W/\"4711\""));
+        assertThat(ifMatchPreconditionHeader.meetsConditionFor(EntityTag.fromString("W/\"4711\""))).isTrue();
+    }
+
+    @Test
     public void doesNotMeetConditionForNull() {
         final IfMatchPreconditionHeader ifMatchPreconditionHeader =
                 createIfMatchPreconditionHeader(fromCommaSeparatedString("\"4711\""));

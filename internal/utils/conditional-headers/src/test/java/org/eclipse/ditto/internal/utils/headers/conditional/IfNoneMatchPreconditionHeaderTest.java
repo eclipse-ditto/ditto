@@ -58,6 +58,14 @@ public class IfNoneMatchPreconditionHeaderTest {
     }
 
     @Test
+    public void doesNotMeetConditionForEqualOpaqueTagForWeak() {
+        final IfNoneMatchPreconditionHeader ifNoneMatchPreconditionHeader =
+                createIfNoneMatchPreconditionHeader(EntityTagMatchers.fromCommaSeparatedString("W/\"4711\""));
+        assertThat(ifNoneMatchPreconditionHeader.meetsConditionFor(EntityTag.fromString("\"4711\""))).isTrue();
+        assertThat(ifNoneMatchPreconditionHeader.meetsConditionFor(EntityTag.fromString("W/\"4711\""))).isFalse();
+    }
+
+    @Test
     public void meetsConditionForNull() {
         final IfNoneMatchPreconditionHeader ifNoneMatchPreconditionHeader =
                 createIfNoneMatchPreconditionHeader(EntityTagMatchers.fromCommaSeparatedString("\"4711\""));
