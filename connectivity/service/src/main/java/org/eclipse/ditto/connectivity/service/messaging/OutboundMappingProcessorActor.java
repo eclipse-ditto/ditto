@@ -49,6 +49,7 @@ import org.apache.pekko.stream.javadsl.Source;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -553,14 +554,17 @@ public final class OutboundMappingProcessorActor
 
         final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(exception);
 
-        if (l.isInfoEnabled()) {
-            l.info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}",
-                    exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""));
+        if (exception.getHttpStatus().equals(HttpStatus.PRECONDITION_FAILED)) {
+            l.debug("Precondition failed when ExternalMessage was processed: <{}: {}>",
+                    exception.getClass().getSimpleName(), exception.getMessage());
+        } else {
+            l.info("Got DittoRuntimeException when ExternalMessage was processed: <{}: {}> - {}",
+                    exception.getClass().getSimpleName(), exception.getMessage(), exception.getDescription().orElse(""));
         }
         if (l.isDebugEnabled()) {
             final String stackTrace = stackTraceAsString(exception);
-            l.debug("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}. StackTrace: {}",
-                    exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""),
+            l.debug("Got DittoRuntimeException when ExternalMessage was processed: <{}: {}> - {}. StackTrace: {}",
+                    exception.getClass().getSimpleName(), exception.getMessage(), exception.getDescription().orElse(""),
                     stackTrace);
         }
 

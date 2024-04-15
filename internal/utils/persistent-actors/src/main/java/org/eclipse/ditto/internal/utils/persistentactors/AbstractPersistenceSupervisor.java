@@ -45,6 +45,7 @@ import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.stream.javadsl.StreamRefs;
 import org.bson.BsonDocument;
 import org.eclipse.ditto.base.api.commands.sudo.SudoCommand;
+import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -833,14 +834,22 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
 
         if (null != throwable) {
             final DittoRuntimeException dre = getEnforcementExceptionAsRuntimeException(throwable, signal);
-            log.withCorrelationId(dre)
-                    .info("Received DittoRuntimeException during enforcement or " +
-                            "forwarding to target actor, telling sender: {}", dre);
+            if (dre.getHttpStatus().equals(HttpStatus.PRECONDITION_FAILED)) {
+                log.withCorrelationId(dre)
+                        .debug("Precondition during enforcement or " +
+                                "forwarding to target actor, telling sender: {}", dre);
+            } else {
+                log.withCorrelationId(dre)
+                        .info("Received DittoRuntimeException during enforcement or " +
+                                "forwarding to target actor, telling sender: {}", dre);
+            }
             sender.tell(dre, getSelf());
         } else if (response instanceof Status.Success success) {
-            log.withCorrelationId(signal).debug("Ignoring Status.Success message as expected 'to be ignored' outcome: <{}>", success);
+            log.withCorrelationId(signal)
+                    .debug("Ignoring Status.Success message as expected 'to be ignored' outcome: <{}>", success);
         } else if (null != response) {
-            log.withCorrelationId(signal).debug("Sending response: <{}> back to sender: <{}>", response, sender.path());
+            log.withCorrelationId(signal)
+                    .debug("Sending response: <{}> back to sender: <{}>", response, sender.path());
             sender.tell(response, getSelf());
         } else {
             log.withCorrelationId(signal)

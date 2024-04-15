@@ -19,7 +19,15 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.AbstractExtensionId;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.actor.Extension;
+import org.apache.pekko.cluster.pubsub.DistributedPubSubMessage;
+import org.apache.pekko.pattern.AskTimeoutException;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.AskException;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -28,21 +36,13 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.edge.service.EdgeServiceTimeoutException;
-import org.eclipse.ditto.internal.utils.pekko.PekkoClassLoader;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-
-import org.apache.pekko.actor.AbstractExtensionId;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.ExtendedActorSystem;
-import org.apache.pekko.actor.Extension;
-import org.apache.pekko.cluster.pubsub.DistributedPubSubMessage;
-import org.apache.pekko.pattern.AskTimeoutException;
+import org.eclipse.ditto.internal.utils.pekko.PekkoClassLoader;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 
 /**
  * Forwards commands from the edges to a specified ActorRef, waiting for a response if the command demands one.
@@ -208,7 +208,13 @@ public final class AskWithRetryCommandForwarder implements Extension {
                 : throwable;
         final var dre = DittoRuntimeException.asDittoRuntimeException(
                 error, t -> reportUnexpectedError(command, t));
-        LOGGER.withCorrelationId(command).info("{}: {}", dre.getClass().getSimpleName(), dre.getMessage());
+        if (dre.getHttpStatus().equals(HttpStatus.PRECONDITION_FAILED)) {
+            LOGGER.withCorrelationId(command)
+                    .debug("Precondition failed: <{}: {}>", dre.getClass().getSimpleName(), dre.getMessage());
+        } else {
+            LOGGER.withCorrelationId(command)
+                    .info("{}: {}", dre.getClass().getSimpleName(), dre.getMessage());
+        }
         return dre;
     }
 
