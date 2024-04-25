@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.jwt;
 
-import java.nio.charset.StandardCharsets;
+import java.io.Reader;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Map;
@@ -20,13 +20,13 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.json.JsonValueParser;
 
+import io.jsonwebtoken.io.AbstractDeserializer;
 import io.jsonwebtoken.io.DeserializationException;
 import io.jsonwebtoken.io.Deserializer;
 
@@ -34,7 +34,7 @@ import io.jsonwebtoken.io.Deserializer;
  * JJWT library Deserializer implementation which translates JSON strings to Java Objects (e.g. Maps).
  */
 @Immutable
-public final class JjwtDeserializer implements Deserializer<Map<String, ?>> {
+public final class JjwtDeserializer extends AbstractDeserializer<Map<String, ?>> {
 
     private static Deserializer<Map<String, ?>> instance;
 
@@ -49,25 +49,13 @@ public final class JjwtDeserializer implements Deserializer<Map<String, ?>> {
     }
 
     @Override
-    public Map<String, ?> deserialize(final byte[] bytes) {
-
-        ConditionChecker.argumentNotNull(bytes, "JSON byte array cannot be null");
-
-        if (bytes.length == 0) {
-            throw new DeserializationException("Invalid JSON: zero length byte array.");
-        }
-
+    @SuppressWarnings("unchecked")
+    protected Map<String, ?> doDeserialize(final Reader reader) throws Exception {
         try {
-            return parse(new String(bytes, StandardCharsets.UTF_8));
+            return (Map<String, ?>) toJavaObject(JsonValueParser.fromReader().apply(reader));
         } catch (final Exception e) {
             throw new DeserializationException("Invalid JSON: " + e.getMessage(), e);
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Map<String, ?> parse(final String json) {
-
-        return (Map<String, ?>) toJavaObject(JsonFactory.readFrom(json));
     }
 
     private static Map<String, Object> toJavaMap(final JsonObject jsonObject) {
