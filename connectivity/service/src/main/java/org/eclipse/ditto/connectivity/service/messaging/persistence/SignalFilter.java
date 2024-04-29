@@ -24,6 +24,7 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.namespaces.NamespaceReader;
@@ -39,6 +40,9 @@ import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
+import org.eclipse.ditto.edge.service.placeholders.EntityIdPlaceholder;
+import org.eclipse.ditto.edge.service.placeholders.FeaturePlaceholder;
+import org.eclipse.ditto.edge.service.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
@@ -70,6 +74,9 @@ public final class SignalFilter {
 
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final TopicPathPlaceholder TOPIC_PATH_PLACEHOLDER = TopicPathPlaceholder.getInstance();
+    private static final EntityIdPlaceholder ENTITY_ID_PLACEHOLDER = EntityIdPlaceholder.getInstance();
+    private static final ThingPlaceholder THING_PLACEHOLDER = ThingPlaceholder.getInstance();
+    private static final FeaturePlaceholder FEATURE_PLACEHOLDER = FeaturePlaceholder.getInstance();
     private static final ResourcePlaceholder RESOURCE_PLACEHOLDER = ResourcePlaceholder.getInstance();
     private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
 
@@ -165,24 +172,35 @@ public final class SignalFilter {
             final TopicPath topicPath = DITTO_PROTOCOL_ADAPTER.toTopicPath(signal);
             final PlaceholderResolver<TopicPath> topicPathPlaceholderResolver =
                     PlaceholderFactory.newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER, topicPath);
+            final PlaceholderResolver<EntityId> entityIdPlaceholderResolver = PlaceholderFactory
+                    .newPlaceholderResolver(ENTITY_ID_PLACEHOLDER,
+                            (signal instanceof WithEntityId withEntityId) ? withEntityId.getEntityId() : null);
+            final PlaceholderResolver<EntityId> thingPlaceholderResolver = PlaceholderFactory
+                    .newPlaceholderResolver(THING_PLACEHOLDER,
+                            (signal instanceof WithEntityId withEntityId) ? withEntityId.getEntityId() : null);
+            final PlaceholderResolver<Signal<?>> featurePlaceholderResolver = PlaceholderFactory
+                    .newPlaceholderResolver(FEATURE_PLACEHOLDER, signal);
             final PlaceholderResolver<WithResource> resourcePlaceholderResolver = PlaceholderFactory
                     .newPlaceholderResolver(RESOURCE_PLACEHOLDER, signal);
             final PlaceholderResolver<Object> timePlaceholderResolver = PlaceholderFactory
                     .newPlaceholderResolver(TIME_PLACEHOLDER, new Object());
             final Criteria criteria = parseCriteria(filterOptional.get(), signal.getDittoHeaders(),
-                    topicPathPlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver);
+                    topicPathPlaceholderResolver, entityIdPlaceholderResolver, thingPlaceholderResolver,
+                    featurePlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver);
             final Set<JsonPointer> extraFields = filteredTopic.getExtraFields()
                     .map(JsonFieldSelector::getPointers)
                     .orElse(Collections.emptySet());
             if (signal instanceof ThingEvent) {
                 return ThingEventToThingConverter.thingEventToThing((ThingEvent<?>) signal)
                         .filter(thing -> Thing3ValuePredicateVisitor.couldBeTrue(criteria, extraFields, thing,
-                                topicPathPlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver))
+                                topicPathPlaceholderResolver, entityIdPlaceholderResolver, thingPlaceholderResolver,
+                                featurePlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver))
                         .isPresent();
             } else {
                 final Thing emptyThing = Thing.newBuilder().build();
                 return Thing3ValuePredicateVisitor.couldBeTrue(criteria, extraFields, emptyThing,
-                        topicPathPlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver);
+                        topicPathPlaceholderResolver, entityIdPlaceholderResolver, thingPlaceholderResolver,
+                        featurePlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver);
             }
         } else {
             return true;

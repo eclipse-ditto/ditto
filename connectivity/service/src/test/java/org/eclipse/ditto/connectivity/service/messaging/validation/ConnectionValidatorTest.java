@@ -34,6 +34,10 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.event.LoggingAdapter;
+import org.apache.pekko.http.javadsl.model.Uri;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotUniqueException;
@@ -74,11 +78,6 @@ import org.junit.rules.ExpectedException;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
-
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.event.LoggingAdapter;
-import org.apache.pekko.http.javadsl.model.Uri;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link ConnectionValidator}.
@@ -457,6 +456,22 @@ public class ConnectionValidatorTest {
         return TestConstants.createConnection(connectionId).toBuilder()
                 .uri("amqps://8.8.4.4:443")
                 .build();
+    }
+
+    @Test
+    public void acceptValidConnectionWithValidTargetFilterContainingPlaceholders() {
+        final List<Target> targetWithValidFilter = singletonList(
+                ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
+                        .topics(ConnectivityModelFactory.newFilteredTopicBuilder(Topic.TWIN_EVENTS)
+                                .withFilter("and(exists(feature:id),eq(thing:namespace,'org.eclipse.ditto'))")
+                                .build())
+                        .build());
+        final Connection connection = createConnection(CONNECTION_ID)
+                .toBuilder()
+                .setTargets(targetWithValidFilter)
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
     }
 
     @Test
