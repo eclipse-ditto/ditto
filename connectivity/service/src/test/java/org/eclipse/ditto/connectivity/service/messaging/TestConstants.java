@@ -142,6 +142,7 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.events.FeatureDesiredPropertiesModified;
+import org.eclipse.ditto.things.model.signals.events.FeaturePropertiesModified;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 import org.mockito.Mockito;
@@ -331,6 +332,8 @@ public final class TestConstants {
     public static final class Feature {
 
         public static final String FEATURE_ID = "Feature";
+        public static final FeatureProperties FEATURE_PROPERTIES = FeatureProperties.newBuilder()
+                .set("property", "test").build();
         public static final FeatureProperties FEATURE_DESIRED_PROPERTIES = FeatureProperties.newBuilder()
                 .set("property", "test").build();
 
@@ -996,8 +999,14 @@ public final class TestConstants {
                 TestConstants.INSTANT, dittoHeaders, TestConstants.METADATA);
     }
 
+    public static ThingModifiedEvent<?> featurePropertiesModified(Collection<AuthorizationSubject> readSubjects) {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().readGrantedSubjects(readSubjects).build();
+        return FeaturePropertiesModified.of(Things.THING_ID, Feature.FEATURE_ID,
+                Feature.FEATURE_PROPERTIES, 1, null, dittoHeaders, null);
+    }
+
     public static ThingModifiedEvent<?> featureDesiredPropertiesModified(Collection<AuthorizationSubject> readSubjects) {
-        DittoHeaders dittoHeaders = DittoHeaders.newBuilder().readGrantedSubjects(readSubjects).build();
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().readGrantedSubjects(readSubjects).build();
         return FeatureDesiredPropertiesModified.of(Things.THING_ID, Feature.FEATURE_ID,
                 Feature.FEATURE_DESIRED_PROPERTIES, 1, null, dittoHeaders, null);
     }

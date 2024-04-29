@@ -313,16 +313,36 @@ public final class SignalFilterWithFilterTest {
      */
     @Test
     public void applySignalFilterOnFeatureDesiredPropertiesModified() {
-        Target target = ConnectivityModelFactory.newTargetBuilder().address("address")
+        final Target target = ConnectivityModelFactory.newTargetBuilder().address("address")
                 .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED))
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
                         .withFilter("like(resource:path,'/features/" + TestConstants.Feature.FEATURE_ID + "*')")
                         .build()).build();
-        Connection connection = TestConstants.createConnection(CONNECTION_ID, target);
-        SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
-        Signal<?> signal = TestConstants.featureDesiredPropertiesModified(Collections.singletonList(AUTHORIZED));
+        final Connection connection = TestConstants.createConnection(CONNECTION_ID, target);
+        final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
+        final Signal<?> signal = TestConstants.featureDesiredPropertiesModified(Collections.singletonList(AUTHORIZED));
 
-        List<Target> filteredTargets = signalFilter.filter(signal);
+        final List<Target> filteredTargets = signalFilter.filter(signal);
+        Assertions.assertThat(filteredTargets).hasSize(1).contains(target);
+    }
+
+    /**
+     * Test that target filtering works using feature:id placeholder
+     */
+    @Test
+    public void applySignalFilterWithFeatureIdPlaceholder() {
+        Target target = ConnectivityModelFactory.newTargetBuilder().address("address")
+                .authorizationContext(newAuthContext(DittoAuthorizationContextType.UNSPECIFIED, AUTHORIZED))
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withFilter("eq(feature:id,'Feature')")
+                        .build()
+                )
+                .build();
+        final Connection connection = TestConstants.createConnection(CONNECTION_ID, target);
+        final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
+        final Signal<?> signal = TestConstants.featurePropertiesModified(Collections.singletonList(AUTHORIZED));
+
+        final List<Target> filteredTargets = signalFilter.filter(signal);
         Assertions.assertThat(filteredTargets).hasSize(1).contains(target);
     }
 }
