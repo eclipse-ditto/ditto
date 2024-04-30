@@ -26,13 +26,14 @@ import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.event.LoggingAdapter;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
@@ -52,6 +53,10 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MapperLimitsConfig;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
+import org.eclipse.ditto.edge.service.placeholders.EntityIdPlaceholder;
+import org.eclipse.ditto.edge.service.placeholders.FeaturePlaceholder;
+import org.eclipse.ditto.edge.service.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
@@ -59,9 +64,6 @@ import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
-
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.event.LoggingAdapter;
 
 /**
  * Validate a connection according to its type.
@@ -83,7 +85,8 @@ public final class ConnectionValidator {
                 .collect(Collectors.toMap(AbstractProtocolValidator::type, Function.identity()));
         this.specMap = Collections.unmodifiableMap(theSpecMap);
         queryFilterCriteriaFactory = QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(),
-                TopicPathPlaceholder.getInstance(), ResourcePlaceholder.getInstance(), TimePlaceholder.getInstance());
+                TopicPathPlaceholder.getInstance(), ResourcePlaceholder.getInstance(), TimePlaceholder.getInstance(),
+                EntityIdPlaceholder.getInstance(), ThingPlaceholder.getInstance(), FeaturePlaceholder.getInstance());
     }
 
     /**

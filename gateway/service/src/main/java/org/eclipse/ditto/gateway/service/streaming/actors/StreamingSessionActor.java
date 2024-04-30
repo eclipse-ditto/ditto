@@ -70,6 +70,8 @@ import org.eclipse.ditto.edge.service.acknowledgements.things.ThingCommandRespon
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.edge.service.placeholders.EntityIdPlaceholder;
+import org.eclipse.ditto.edge.service.placeholders.FeaturePlaceholder;
+import org.eclipse.ditto.edge.service.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.edge.service.streaming.StreamingSubscriptionManager;
 import org.eclipse.ditto.gateway.api.GatewayInternalErrorException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionAbortedException;
@@ -93,6 +95,7 @@ import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.search.SubscriptionManager;
 import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
+import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
@@ -799,8 +802,11 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 RqlPredicateParser.getInstance(),
                 TopicPathPlaceholder.getInstance(),
                 EntityIdPlaceholder.getInstance(),
+                ThingPlaceholder.getInstance(),
+                FeaturePlaceholder.getInstance(),
                 ResourcePlaceholder.getInstance(),
-                TimePlaceholder.getInstance()
+                TimePlaceholder.getInstance(),
+                PlaceholderFactory.newHeadersPlaceholder()
         );
 
         return queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders);
