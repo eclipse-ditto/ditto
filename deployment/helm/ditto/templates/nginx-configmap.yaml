@@ -30,10 +30,9 @@ data:
       default_type application/json;
       include mime.types;
     
-      # timeouts are configured slightly higher than ditto-eclipse-ditto-gateway read-timeout of 60 seconds
-      proxy_connect_timeout 70; # seconds, default: 60
-      proxy_send_timeout 70; # seconds, default: 60
-      proxy_read_timeout 70; # seconds, default: 60
+      proxy_connect_timeout {{ .Values.nginx.config.timeout }}; # seconds, default: 60
+      proxy_send_timeout {{ .Values.nginx.config.timeout }}; # seconds, default: 60
+      proxy_read_timeout {{ .Values.nginx.config.timeout }}; # seconds, default: 60
       # will try another upstream if an error or timeout occurred during the connection
       # or if the upstream returns 502 response
       proxy_next_upstream error timeout http_502;
@@ -42,7 +41,7 @@ data:
       # will try for max. 20s to find another upstream to connect to
       proxy_next_upstream_timeout 20;
 
-      send_timeout 70; # seconds, default: 60
+      send_timeout {{ .Values.nginx.config.timeout }}; # seconds, default: 60
     
       client_header_buffer_size 8k; # allow longer URIs + headers (default: 1k)
       large_client_header_buffers 4 16k;
