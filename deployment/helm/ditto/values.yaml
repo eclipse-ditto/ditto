@@ -1679,6 +1679,9 @@ nginx:
     workerProcesses: 4
     # workerProcesses the 'events' 'worker_connections' option for nginx to use
     workerConnections: 1024
+    # the 'proxy_connect_timeout', 'proxy_send_timeout', 'proxy_read_timeout' and 'send_timeout' options for nginx
+    # timeouts are configured slightly higher than ditto-eclipse-ditto-gateway read-timeout
+    timeout: 70
 
 ## ----------------------------------------------------------------------------
 ## Ditto UI configuration
