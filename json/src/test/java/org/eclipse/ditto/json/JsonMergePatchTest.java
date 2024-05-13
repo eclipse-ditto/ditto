@@ -476,21 +476,21 @@ public final class JsonMergePatchTest {
 
         final JsonObject objectToPatch = JsonFactory.newObjectBuilder()
                 .set("a", JsonFactory.newObjectBuilder()
-                        .set("{{ /2023-04-.*/ }}", JsonValue.nullLiteral())
+                        .set("{{ ~2023-04-.*~ }}", JsonValue.nullLiteral())
                         .set("2023-05-01", JsonValue.of("new"))
                         .set("2023-05-02", JsonValue.of("catch"))
                         .set("2023-05-03", JsonValue.of("phrase"))
                         .build())
                 .set("b", JsonFactory.newObjectBuilder()
-                        .set("{{ /2023-04-01/ }}", JsonValue.nullLiteral())
-                        .set("{{ /^2023-04-03$/ }}", JsonValue.nullLiteral())
-                        .set("{{ /[0-9]{4}-04-.+4/ }}", JsonValue.nullLiteral())
+                        .set("{{ ~2023-04-01~ }}", JsonValue.nullLiteral())
+                        .set("{{ ~^2023-04-03$~ }}", JsonValue.nullLiteral())
+                        .set("{{ ~[0-9]{4}-04-.+4~ }}", JsonValue.nullLiteral())
                         .set("2023-05-01", JsonValue.of("new"))
                         .set("2023-05-02", JsonValue.of("catch"))
                         .set("2023-05-03", JsonValue.of("phrase"))
                         .build())
                 .set("c", JsonFactory.newObjectBuilder()
-                        .set("{{ /.*/ }}", JsonValue.nullLiteral())
+                        .set("{{ ~.*~ }}", JsonValue.nullLiteral())
                         .set("2023-05-01", JsonValue.of("new"))
                         .set("2023-05-02", JsonValue.of("catch"))
                         .set("2023-05-03", JsonValue.of("phrase"))
@@ -516,6 +516,51 @@ public final class JsonMergePatchTest {
                         .set("2023-05-02", JsonValue.of("catch"))
                         .set("2023-05-03", JsonValue.of("phrase"))
                         .build())
+                .build();
+
+        final JsonValue mergedObject = JsonMergePatch.of(objectToPatch).applyOn(originalObject);
+
+        Assertions.assertThat(mergedObject).isEqualTo(expectedObject);
+    }
+
+    @Test
+    public void removeFieldsUsingRegexWithNullValueWithHierarchy() {
+        final JsonObject originalObject = JsonFactory.newObjectBuilder()
+                .set("first", JsonFactory.newObjectBuilder()
+                        .set("second", JsonFactory.newObjectBuilder()
+                                .set("third", JsonFactory.newObjectBuilder()
+                                        .set("something-on-third", "foobar3")
+                                        .set("another-on-third", false)
+                                        .build())
+                                .set("something-on-second", "foobar2")
+                                .set("another-on-second", false)
+                                .build())
+                        .set("something-on-first", "foobar1")
+                        .set("another-on-first", 42)
+                        .build()
+                )
+                .build();
+
+        final JsonObject objectToPatch = JsonFactory.newObjectBuilder()
+                .set("first", JsonFactory.newObjectBuilder()
+                        .set("{{ ~seco.*~ }}", JsonValue.nullLiteral())
+                        .set("second", JsonFactory.newObjectBuilder()
+                                .set("another-on-second", true)
+                                .build()
+                        )
+                        .build()
+                )
+                .build();
+
+        final JsonValue expectedObject = JsonFactory.newObjectBuilder()
+                .set("first", JsonFactory.newObjectBuilder()
+                        .set("second", JsonFactory.newObjectBuilder()
+                                .set("another-on-second", true)
+                                .build())
+                        .set("something-on-first", "foobar1")
+                        .set("another-on-first", 42)
+                        .build()
+                )
                 .build();
 
         final JsonValue mergedObject = JsonMergePatch.of(objectToPatch).applyOn(originalObject);
