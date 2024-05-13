@@ -409,13 +409,24 @@ JSON objects using a regular expression **before** applying all other patch valu
 The syntax for this function is rather specific (so that no "normally" occurring JSON keys match the same syntax):
 ```json
 {
+  "{%raw%}{{ ~.*~ }}{%endraw%}": null
+}
+```
+
+The recommended regex delimiter to use is the `~` character, additionally supported delimiters at this point are:
+* `~`
+* `/` (discouraged due to the special meaning of `/` for HTTP paths)
+
+A discouraged and thus deprecated way to define the regex (using `/` as delimiter) is:
+```json
+{
   "{%raw%}{{ /.*/ }}{%endraw%}": null
 }
 ```
 
-When such a `{%raw%}{{ /<regex>/ }}{%endraw%}` with the value `null` is detected in the merge patch, the content between the 2 `/` is 
+When such a `{%raw%}{{ ~<regex>~ }}{%endraw%}` with the value `null` is detected in the merge patch, the content between the 2 delimiters is 
 interpreted as regular expression to apply for finding keys to delete from the target object.  
-As a result, using `"{%raw%}{{ /.*/ }}{%endraw%}": null` would delete all the values inside a JSON object before applying the new 
+As a result, using `"{%raw%}{{ ~.*~ }}{%endraw%}": null` would delete all the values inside a JSON object before applying the new 
 values provided in the patch.
 
 Example:  
@@ -444,7 +455,7 @@ of this year:
   "features": {
     "aggregated-history": {
       "properties": {
-        "{%raw%}{{ /2022-.*/ }}{%endraw%}": null,
+        "{%raw%}{{ ~2022-.*~ }}{%endraw%}": null,
         "2023-03": 105.21
       }
     }
