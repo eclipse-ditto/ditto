@@ -20,7 +20,7 @@ import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.wot.api.config.WotConfig;
 import org.eclipse.ditto.wot.api.resolver.WotThingModelResolver;
-import org.eclipse.ditto.wot.model.ThingSkeleton;
+import org.eclipse.ditto.wot.model.ThingModel;
 
 /**
  * TODO TJ doc
@@ -36,7 +36,7 @@ public interface WotThingModelValidator {
     /**
      * TODO TJ doc
      */
-    CompletionStage<Void> validateThing(ThingSkeleton<?> thingSkeleton, Thing thing, DittoHeaders dittoHeaders);
+    CompletionStage<Void> validateThing(ThingModel thingModel, Thing thing, DittoHeaders dittoHeaders);
 
     /**
      * TODO TJ doc
@@ -46,7 +46,7 @@ public interface WotThingModelValidator {
     /**
      * TODO TJ doc
      */
-    CompletionStage<Void> validateFeature(ThingSkeleton<?> thingSkeleton, Feature feature, DittoHeaders dittoHeaders);
+    CompletionStage<Void> validateFeature(ThingModel thingModel, Feature feature, DittoHeaders dittoHeaders);
 
     /**
      * Creates a new instance of WotThingModelValidator with the given {@code wotConfig}.
