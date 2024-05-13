@@ -194,8 +194,10 @@ public final class JsonMergePatch {
 
         // add fields of jsonObject2 not present in jsonObject1
         jsonObject2.forEach(jsonField -> {
-            if (!jsonObject1.contains(jsonField.getKey()) && toBeNulledKeysByRegex.contains(jsonField.getKey())) {
+            if (toBeNulledKeysByRegex.contains(jsonField.getKey())) {
                 builder.remove(jsonField.getKey());
+                jsonObject1.getValue(jsonField.getKey())
+                        .ifPresent(v -> builder.set(jsonField.getKey(), v));
             }
         });
 
@@ -208,11 +210,11 @@ public final class JsonMergePatch {
 
         final List<JsonKey> toBeNulledKeysByRegex = new ArrayList<>();
         final List<JsonKey> keyRegexes = jsonObject1.getKeys().stream()
-                .filter(key -> key.toString().startsWith("{{") && key.toString().endsWith("}}"))
+                .filter(JsonMergePatch::isEnclosedByCurlyBraces)
                 .collect(Collectors.toList());
         keyRegexes.forEach(keyRegex -> {
             final String keyRegexWithoutCurly = keyRegex.toString().substring(2, keyRegex.length() - 2).trim();
-            if (keyRegexWithoutCurly.startsWith("/") && keyRegexWithoutCurly.endsWith("/")) {
+            if (isEnclosedByRegexDelimiter(keyRegexWithoutCurly)) {
                 final String regexStr = keyRegexWithoutCurly.substring(1, keyRegexWithoutCurly.length() - 1);
                 final Pattern pattern = Pattern.compile(regexStr);
                 jsonObject1.getValue(keyRegex)
@@ -225,6 +227,15 @@ public final class JsonMergePatch {
             }
         });
         return toBeNulledKeysByRegex;
+    }
+
+    private static boolean isEnclosedByCurlyBraces(final JsonKey key) {
+        return key.toString().startsWith("{{") && key.toString().endsWith("}}");
+    }
+
+    private static boolean isEnclosedByRegexDelimiter(final String keyRegexWithoutCurly) {
+        return keyRegexWithoutCurly.startsWith("~") && keyRegexWithoutCurly.endsWith("~") ||
+                keyRegexWithoutCurly.startsWith("/") && keyRegexWithoutCurly.endsWith("/");
     }
 
     /**
