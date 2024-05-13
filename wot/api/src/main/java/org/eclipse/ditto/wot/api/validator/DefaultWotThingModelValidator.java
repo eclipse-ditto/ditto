@@ -13,11 +13,14 @@
 package org.eclipse.ditto.wot.api.validator;
 
 import java.net.URL;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -30,7 +33,6 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.wot.api.config.WotConfig;
 import org.eclipse.ditto.wot.api.resolver.WotThingModelResolver;
 import org.eclipse.ditto.wot.model.ThingModel;
-import org.eclipse.ditto.wot.model.ThingSkeleton;
 import org.eclipse.ditto.wot.validation.WotThingModelValidation;
 
 /**
@@ -73,12 +75,29 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     }
 
     @Override
-    public CompletionStage<Void> validateThing(final ThingSkeleton<?> thingSkeleton,
+    public CompletionStage<Void> validateThing(final ThingModel thingModel,
             final Thing thing,
             final DittoHeaders dittoHeaders) {
 
         if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled()) {
-            return thingModelValidation.validateThing(thingSkeleton, thing, dittoHeaders);
+            return thingModelValidation.validateThingAttributes(thingModel, thing, dittoHeaders)
+                    .thenCompose(aVoid ->
+                            thing.getFeatures().map(features ->
+                                    thingModelResolver.resolveThingModelSubmodels(thingModel, dittoHeaders)
+                                            .thenAccept(subModels -> // TODO TJ do this async?
+                                                    thingModelValidation.validateFeatures(
+                                                            subModels.entrySet().stream().collect(
+                                                                    Collectors.toMap(
+                                                                            e -> e.getKey().instanceName(),
+                                                                            Map.Entry::getValue,
+                                                                            (a, b) -> a,
+                                                                            LinkedHashMap::new
+                                                                    )
+                                                            ), features, dittoHeaders
+                                                    )
+                                            )
+                            ).orElse(CompletableFuture.completedStage(null))
+                    );
         } else {
             return CompletableFuture.completedStage(null);
         }
@@ -106,11 +125,11 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     }
 
     @Override
-    public CompletionStage<Void> validateFeature(final ThingSkeleton<?> thingSkeleton, final Feature feature,
+    public CompletionStage<Void> validateFeature(final ThingModel thingModel, final Feature feature,
             final DittoHeaders dittoHeaders) {
 
         if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled()) {
-            return thingModelValidation.validateFeature(thingSkeleton, feature, dittoHeaders);
+            return thingModelValidation.validateFeature(thingModel, feature, dittoHeaders);
         } else {
             return CompletableFuture.completedStage(null);
         }

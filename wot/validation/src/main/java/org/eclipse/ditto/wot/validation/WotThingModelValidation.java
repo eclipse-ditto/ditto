@@ -12,12 +12,14 @@
  */
 package org.eclipse.ditto.wot.validation;
 
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.wot.model.ThingSkeleton;
+import org.eclipse.ditto.wot.model.ThingModel;
 import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
 
 /**
@@ -28,14 +30,21 @@ public interface WotThingModelValidation {
     /**
      * TODO TJ doc
      */
-    CompletionStage<Void> validateThing(ThingSkeleton<?> thingSkeleton,
+    CompletionStage<Void> validateThingAttributes(ThingModel thingModel,
             Thing thing,
             DittoHeaders dittoHeaders);
 
     /**
      * TODO TJ doc
      */
-    CompletionStage<Void> validateFeature(ThingSkeleton<?> thingSkeleton,
+    CompletionStage<Void> validateFeatures(Map<String, ThingModel> featureModels,
+            Features features,
+            DittoHeaders dittoHeaders);
+
+    /**
+     * TODO TJ doc
+     */
+    CompletionStage<Void> validateFeature(ThingModel thingModel,
             Feature feature,
             DittoHeaders dittoHeaders);
 

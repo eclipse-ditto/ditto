@@ -13,7 +13,6 @@
 package org.eclipse.ditto.wot.validation;
 
 import java.util.AbstractMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -31,10 +30,10 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.wot.model.Properties;
 import org.eclipse.ditto.wot.model.ThingModel;
-import org.eclipse.ditto.wot.model.ThingSkeleton;
 import org.eclipse.ditto.wot.model.TmOptionalElement;
 import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
 
@@ -53,29 +52,26 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
     }
 
     @Override
-    public CompletionStage<Void> validateThing(final ThingSkeleton<?> thingSkeleton,
+    public CompletionStage<Void> validateThingAttributes(final ThingModel thingModel,
             final Thing thing,
             final DittoHeaders dittoHeaders) {
 
         if (validationConfig.getThingValidationConfig().isEnforceAttributes()) {
-            return enforceThingAttributes(thingSkeleton, thing, dittoHeaders);
-        }
-        if (validationConfig.getFeatureValidationConfig().isEnforceProperties()) {
-            return enforceThingFeatures(thingSkeleton, thing, dittoHeaders);
+            return enforceThingAttributes(thingModel, thing, dittoHeaders);
         }
         return success();
     }
 
-    private CompletableFuture<Void> enforceThingAttributes(final ThingSkeleton<?> thingSkeleton,
+    private CompletableFuture<Void> enforceThingAttributes(final ThingModel thingModel,
             final Thing thing,
             final DittoHeaders dittoHeaders) {
-        return thingSkeleton.getProperties()
+        return thingModel.getProperties()
                 .map(tdProperties -> {
                     final Attributes attributes =
                             thing.getAttributes().orElseGet(() -> Attributes.newBuilder().build());
 
                     final CompletableFuture<Void> ensureRequiredPropertiesStage =
-                            ensureRequiredProperties(thingSkeleton, dittoHeaders, tdProperties, attributes,
+                            ensureRequiredProperties(thingModel, dittoHeaders, tdProperties, attributes,
                                     ATTRIBUTES, JsonPointer.of(ATTRIBUTES));
 
                     final CompletableFuture<Void> ensureOnlyDefinedPropertiesStage;
@@ -98,37 +94,24 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                 }).orElseGet(DefaultWotThingModelValidation::success);
     }
 
-    private CompletionStage<Void> enforceThingFeatures(final ThingSkeleton<?> thingSkeleton,
-            final Thing thing,
-            final DittoHeaders dittoHeaders) {
-
-
-        return null;
-    }
-
-    private CompletableFuture<Void> ensureRequiredProperties(final ThingSkeleton<?> thingSkeleton,
+    private CompletableFuture<Void> ensureRequiredProperties(final ThingModel thingModel,
             final DittoHeaders dittoHeaders, final Properties tdProperties, final JsonObject propertiesContainer,
             final String containerName, final JsonPointer pointerPrefix) {
 
+        final Set<String> requiredProperties = extractRequiredProperties(tdProperties, thingModel);
+        propertiesContainer.getKeys().stream().map(JsonKey::toString).forEach(requiredProperties::remove);
         final CompletableFuture<Void> requiredPropertiesStage;
-        if (thingSkeleton instanceof ThingModel thingModel) {
-            final Set<String> requiredProperties = extractRequiredProperties(tdProperties, thingModel);
-
-            propertiesContainer.getKeys().stream().map(JsonKey::toString).forEach(requiredProperties::remove);
-            if (!requiredProperties.isEmpty()) {
-                final var exceptionBuilder = WotThingModelPayloadValidationException
-                        .newBuilder("Required properties were missing from the Thing's " + containerName);
-                requiredProperties.forEach(rp ->
-                        exceptionBuilder.addValidationDetail(
-                                pointerPrefix.addLeaf(JsonKey.of(rp)),
-                                List.of(containerName + " <" + rp + "> is non optional and must be present")
-                        )
-                );
-                requiredPropertiesStage = CompletableFuture
-                        .failedFuture(exceptionBuilder.dittoHeaders(dittoHeaders).build());
-            } else {
-                requiredPropertiesStage = success();
-            }
+        if (!requiredProperties.isEmpty()) {
+            final var exceptionBuilder = WotThingModelPayloadValidationException
+                    .newBuilder("Required properties were missing from the Thing's " + containerName);
+            requiredProperties.forEach(rp ->
+                    exceptionBuilder.addValidationDetail(
+                            pointerPrefix.addLeaf(JsonKey.of(rp)),
+                            List.of(containerName + " <" + rp + "> is non optional and must be present")
+                    )
+            );
+            requiredPropertiesStage = CompletableFuture
+                    .failedFuture(exceptionBuilder.dittoHeaders(dittoHeaders).build());
         } else {
             requiredPropertiesStage = success();
         }
@@ -206,11 +189,27 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
     }
 
     @Override
-    public CompletionStage<Void> validateFeature(final ThingSkeleton<?> thingSkeleton,
+    public CompletionStage<Void> validateFeatures(final Map<String, ThingModel> featureModels,
+            final Features features,
+            final DittoHeaders dittoHeaders) {
+        // TODO TJ implement - this should collect errors of all invalid features of the thing in a combined exception!
+        return success();
+    }
+
+    @Override
+    public CompletionStage<Void> validateFeature(final ThingModel thingModel,
             final Feature feature,
             final DittoHeaders dittoHeaders) {
         // TODO TJ implement
         return success();
+    }
+
+    private CompletionStage<Void> enforceThingFeatures(final ThingModel thingModel,
+            final Thing thing,
+            final DittoHeaders dittoHeaders) {
+
+
+        return null;
     }
 
     private static CompletableFuture<Void> success() {
@@ -225,9 +224,9 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     .filter(el -> el.startsWith("/properties/"))
                     .map(el -> el.replace("/properties/", ""))
                     .collect(Collectors.toSet());
-            final Set<String> allRequiredProperties = new HashSet<>(allDefinedProperties);
+            final Set<String> allRequiredProperties = new LinkedHashSet<>(allDefinedProperties);
             allRequiredProperties.removeAll(allOptionalProperties);
             return allRequiredProperties;
-        }).orElseGet(HashSet::new);
+        }).orElseGet(LinkedHashSet::new);
     }
 }
