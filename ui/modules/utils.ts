@@ -15,6 +15,7 @@
 import autoComplete from '@tarekraafat/autocomplete.js';
 import * as ace from 'ace-builds/src-noconflict/ace';
 import { Modal, Toast } from 'bootstrap';
+import * as DOMPurify from 'dompurify';
 
 
 const dom = {
@@ -84,7 +85,7 @@ export function addCheckboxToRow(row, id, checked, onToggle) {
  */
 export function addCellToRow(row, cellContent, cellTooltip = null, position = -1) {
   const cell = row.insertCell(position);
-  cell.innerHTML = cellContent;
+  cell.textContent = cellContent;
   cell.setAttribute('data-bs-toggle', 'tooltip');
   cell.title = cellTooltip ?? cellContent;
   return cell;
@@ -115,27 +116,8 @@ export function addClipboardCopyToRow(row: HTMLTableRowElement) {
  */
 export function insertHeaderCell(row, label) {
   const th = document.createElement('th');
-  th.innerHTML = label;
+  th.textContent = label;
   row.appendChild(th);
-}
-
-/**
- * Create a radio button element
- * @param {HTMLElement} target target element
- * @param {String} groupName group for consecutive added radio buttons
- * @param {String} value name of the radio button
- * @param {boolean} checked check the radio button
- */
-export function addRadioButton(target, groupName, value, checked) {
-  const radio = document.createElement('div');
-  radio.innerHTML = `<div class="form-check">
-    <input class="form-check-input" type="radio" id="${value}" name="${groupName}" value="${value}"
-        ${checked ? 'checked' : ''}>
-    <label class="form-check-label" for="${value}">
-      ${value}
-    </label>
-  </div>`;
-  target.appendChild(radio);
 }
 
 /**
@@ -144,7 +126,7 @@ export function addRadioButton(target, groupName, value, checked) {
  * @param {array} options Array of strings to be filled as options
  */
 export function setOptions(target, options) {
-  target.innerHTML = '';
+  target.textContent = '';
   options.forEach((key) => {
     const option = document.createElement('option');
     option.text = key;
@@ -212,6 +194,15 @@ export function getAllElementsById(domObjects: object, searchRoot: DocumentFragm
 }
 
 /**
+ * Sanitizes the passed unsafeString to be safely used e.g. inside innerHTML without risking XSS.
+
+ * @param unsafeString the string to sanitize.
+ */
+export function sanitizeHTML(unsafeString: String) {
+  return DOMPurify.sanitize(unsafeString);
+}
+
+/**
  * Show an error toast
  * @param {String} message Message for toast
  * @param {String} header Header for toast
@@ -222,11 +213,11 @@ export function showError(message, header = 'Error', status = '') {
   domToast.classList.add('toast');
   domToast.innerHTML = `<div class="toast-header alert-danger">
   <i class="bi me-2 bi-exclamation-triangle-fill"></i>
-  <strong class="me-auto">${header}</strong>
+  <strong class="me-auto">${sanitizeHTML(header)}</strong>
   <small>${status}</small>
   <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
   </div>
-  <div class="toast-body">${message}</div>`;
+  <div class="toast-body">${sanitizeHTML(message)}</div>`;
 
   dom.toastContainer.appendChild(domToast);
   domToast.addEventListener("hidden.bs.toast", () => {
@@ -258,7 +249,7 @@ export function assert(condition, message, validatedElement = null) {
   }
   if (!condition) {
     if (validatedElement) {
-      validatedElement.parentNode.getElementsByClassName('invalid-feedback')[0].innerHTML = message;
+      validatedElement.parentNode.getElementsByClassName('invalid-feedback')[0].textContent = message;
       validatedElement.classList.add('is-invalid');
     } else {
       showError(message, 'Error');
@@ -291,7 +282,7 @@ let modalConfirm;
  */
 export function confirm(message, action, callback) {
   modalConfirm = modalConfirm ?? new Modal('#modalConfirm');
-  dom.modalBodyConfirm.innerHTML = message;
+  dom.modalBodyConfirm.textContent = message;
   dom.buttonConfirmed.innerText = action;
   dom.buttonConfirmed.onclick = callback;
   modalConfirm.show();
@@ -341,7 +332,7 @@ export function createAutoComplete(selector, src, placeHolder) {
       highlight: true,
       element: (item, data) => {
         item.style = 'display: flex;';
-        item.innerHTML = `<span style="flex-grow: 1;" >${data.key === 'label' ? data.match : data.value.label}</span>
+        item.innerHTML = `<span style="flex-grow: 1;" >${sanitizeHTML(data.key === 'label' ? data.match : data.value.label)}</span>
             <span style="color: 3a8c9a;" class="fw-light fst-italic ms-1">
               ${data.key === 'group' ? data.match : data.value.group}</span>`;
       },

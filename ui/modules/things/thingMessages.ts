@@ -152,11 +152,11 @@ function clearAllFields() {
   dom.inputThingMessageTimeout.value = '10';
   acePayload.setValue('');
   aceResponse.setValue('');
-  dom.ulThingMessageTemplates.innerHTML = '';
+  dom.ulThingMessageTemplates.textContent = '';
 }
 
 function refillTemplates() {
-  dom.ulThingMessageTemplates.innerHTML = '';
+  dom.ulThingMessageTemplates.textContent = '';
   Utils.addDropDownEntries(dom.ulThingMessageTemplates, ['Saved message templates'], true);
   if (Environments.current().messageTemplates['/']) {
     Utils.addDropDownEntries(

@@ -86,7 +86,7 @@ function onEnableConnectionLogsClick() {
 
 function retrieveConnectionMetrics() {
   Utils.assert(selectedConnectionId, 'Please select a connection', dom.tableValidationConnections);
-  dom.tbodyConnectionMetrics.innerHTML = '';
+  dom.tbodyConnectionMetrics.textContent = '';
   API.callConnectionsAPI('retrieveConnectionMetrics', (response) => {
     if (response.connectionMetrics) {
       Object.keys(response.connectionMetrics).forEach((direction) => {
@@ -149,8 +149,8 @@ function onConnectionChange(connection, isNewConnection = true) {
   selectedConnectionId = connection ? connection.id : null;
   connectionStatusDetail.setValue('');
   connectionLogDetail.setValue('');
-  dom.tbodyConnectionMetrics.innerHTML = '';
-  dom.tbodyConnectionLogs.innerHTML = '';
+  dom.tbodyConnectionMetrics.textContent = '';
+  dom.tbodyConnectionLogs.textContent = '';
   if (!isNewConnection && connection && connection.id) {
     retrieveConnectionLogs();
   }

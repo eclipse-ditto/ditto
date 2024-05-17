@@ -219,7 +219,7 @@ function refreshFeature(thing, featureId = null) {
 function onThingChanged(thing) {
   dom.crudFeature.editDisabled = (thing === null);
   // Update features table
-  dom.tbodyFeatures.innerHTML = '';
+  dom.tbodyFeatures.textContent = '';
   let count = 0;
   let thingHasFeature = false;
   if (thing && thing.features) {

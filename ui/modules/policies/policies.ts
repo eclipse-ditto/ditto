@@ -227,7 +227,7 @@ function onThingChanged(thing) {
 }
 
 function refreshWhoAmI() {
-  dom.tbodyWhoami.innerHTML = '';
+  dom.tbodyWhoami.textContent = '';
   API.callDittoREST('GET', '/whoami')
       .then((whoamiResult) => {
         whoamiResult.subjects.forEach((subject) => {

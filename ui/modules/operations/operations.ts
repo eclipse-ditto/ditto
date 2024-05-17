@@ -47,12 +47,12 @@ function loadAllLogLevels() {
   API.callDittoREST('GET', '/devops/logging', null, null, false, true)
       .then((result) => createLoggerView(result))
       .catch((error) => {
-        dom.divLoggers.innerHTML = '';
+        dom.divLoggers.textContent = '';
       });
 }
 
 function createLoggerView(allLogLevels) {
-  dom.divLoggers.innerHTML = '';
+  dom.divLoggers.textContent = '';
 
   type LogLevel = {
     loggerConfigs?: object[]

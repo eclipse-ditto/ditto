@@ -53,7 +53,7 @@ function onMessageTableClick(event) {
 function onResetMessagesClick() {
   messages = [];
   dom.badgeMessageIncomingCount.textContent = '';
-  dom.tbodyMessagesIncoming.innerHTML = '';
+  dom.tbodyMessagesIncoming.textContent = '';
   messageDetail.setValue('');
 }
 

@@ -20,8 +20,8 @@ import { JSONPath } from 'jsonpath-plus';
 
 import * as API from '../api.js';
 import * as Environments from '../environments/environments.js';
-
 import * as Utils from '../utils.js';
+import { sanitizeHTML } from '../utils.js';
 import * as Fields from './fields.js';
 import * as Things from './things.js';
 import * as ThingsSSE from './thingsSSE.js';
@@ -75,12 +75,14 @@ function onThingsTableClicked(event) {
 /**
  * Tests if the search filter is an RQL. If yes, things search is called otherwise just things get
  * @param {String} filter search filter string containing an RQL or a thingId
+ * @param rqlFilterCallback a callback to invoke when the passed `filter` was a valid RQL statement
  */
-export function searchTriggered(filter) {
+export function searchTriggered(filter: string, rqlFilterCallback: () => void) {
   lastSearch = filter;
   const regex = /^(eq\(|ne\(|gt\(|ge\(|lt\(|le\(|in\(|like\(|ilike\(|exists\(|and\(|or\(|not\().*/;
   if (filter === '' || regex.test(filter)) {
     searchThings(filter);
+    rqlFilterCallback();
   } else {
     getThings([filter]);
   }
@@ -104,7 +106,7 @@ export function performLastSearch() {
   if (lastSearch === 'pinned') {
     pinnedTriggered();
   } else {
-    searchTriggered(lastSearch);
+    searchTriggered(lastSearch, () => null);
   }
 }
 
@@ -113,7 +115,7 @@ export function performLastSearch() {
  * @param {Array} thingIds Array of thingIds
  */
 export function getThings(thingIds) {
-  dom.thingsTableBody.innerHTML = '';
+  dom.thingsTableBody.textContent = '';
   const fieldsQueryParameter = Fields.getQueryParameter();
   if (thingIds.length > 0) {
     API.callDittoREST('GET',
@@ -134,8 +136,8 @@ export function getThings(thingIds) {
 
 function resetAndClearViews(retainThing = false) {
   theSearchCursor = null;
-  dom.thingsTableHead.innerHTML = '';
-  dom.thingsTableBody.innerHTML = '';
+  dom.thingsTableHead.textContent = '';
+  dom.thingsTableBody.textContent = '';
   if (!retainThing) {
     Things.setTheThing(null);
   }
@@ -187,7 +189,7 @@ function searchThings(filter, isMore = false) {
 
   function addMoreToThingList() {
     const moreCell = dom.thingsTableBody.insertRow().insertCell(-1);
-    moreCell.innerHTML = 'load more...';
+    moreCell.textContent = 'load more...';
     moreCell.colSpan = dom.thingsTableBody.rows[0].childElementCount;
     moreCell.style.textAlign = 'center';
     moreCell.style.cursor = 'pointer';
@@ -225,7 +227,7 @@ function fillThingsTable(thingsList) {
   }
 
   function fillHeaderRow() {
-    dom.thingsTableHead.innerHTML = '';
+    dom.thingsTableHead.textContent = '';
     // Utils.addCheckboxToRow(dom.thingsTableHead, 'checkboxHead', false, null);
     Utils.insertHeaderCell(dom.thingsTableHead, '');
     Utils.insertHeaderCell(dom.thingsTableHead, 'Thing ID');
@@ -302,7 +304,7 @@ export function updateTableRow(thingUpdateJson) {
         path: path,
       });
       if (elem.length !== 0) {
-        cell.innerHTML = elem[0];
+        cell.innerHTML = sanitizeHTML(elem[0]);
       }
     }
   });
