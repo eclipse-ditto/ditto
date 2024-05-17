@@ -144,8 +144,8 @@ export function addDropDownEntries(target, items, isHeader = false) {
   items.forEach((value) => {
     const li = document.createElement('li');
     li.innerHTML = isHeader ?
-        `<h6 class="dropdown-header">${value}</h6>` :
-        `<a class="dropdown-item" href="#">${value}</a>`;
+        `<h6 class="dropdown-header">${sanitizeHTML(value)}</h6>` :
+        `<a class="dropdown-item" href="#">${sanitizeHTML(value)}</a>`;
     target.appendChild(li);
   });
 }
