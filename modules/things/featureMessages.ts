@@ -163,12 +163,12 @@ function clearAllFields() {
   dom.inputMessageTimeout.value = '10';
   acePayload.setValue('');
   aceResponse.setValue('');
-  dom.ulMessageTemplates.innerHTML = '';
+  dom.ulMessageTemplates.textContent = '';
   dom.buttonMessageSend.disabled = !theFeatureId || theFeatureId === '';
 }
 
 function refillTemplates() {
-  dom.ulMessageTemplates.innerHTML = '';
+  dom.ulMessageTemplates.textContent = '';
   Utils.addDropDownEntry(dom.ulMessageTemplates, 'Saved message templates', true);
   if (theFeatureId && Environments.current().messageTemplates[theFeatureId]) {
     Utils.addDropDownEntries(

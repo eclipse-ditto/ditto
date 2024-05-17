@@ -11,10 +11,10 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-import * as Utils from '../utils.js';
 import * as API from '../api.js';
-import { Observable } from '../utils/observable.js';
+import * as Utils from '../utils.js';
 import { CrudOperation, CrudToolbar } from '../utils/crudToolbar.js';
+import { Observable } from '../utils/observable.js';
 import * as Policies from './policies.js';
 
 export let observable = Observable();
@@ -101,7 +101,7 @@ function putOrDeletePolicyEntry(entry, value, onSuccess) {
 };
 
 function onPolicyChanged(policy: Policies.Policy) {
-  dom.tbodyPolicyEntries.innerHTML = '';
+  dom.tbodyPolicyEntries.textContent = '';
   dom.crudEntry.idValue = null;
   dom.crudEntry.editDisabled = (policy === null);
   

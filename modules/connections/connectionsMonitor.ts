@@ -10,13 +10,11 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-import {JSONPath} from 'jsonpath-plus';
-
 import * as API from '../api.js';
 import * as Utils from '../utils.js';
-import * as Connections from './connections.js';
-import { TableFilter } from '../utils/tableFilter.js';
 import { FilterType, Term } from '../utils/basicFilters.js';
+import { TableFilter } from '../utils/tableFilter.js';
+import * as Connections from './connections.js';
 /* eslint-disable prefer-const */
 /* eslint-disable max-len */
 /* eslint-disable no-invalid-this */
@@ -112,7 +110,7 @@ function onEnableConnectionLogsClick() {
 
 function retrieveConnectionMetrics() {
   Utils.assert(selectedConnectionId, 'Please select a connection', dom.tableValidationConnections);
-  dom.tbodyConnectionMetrics.innerHTML = '';
+  dom.tbodyConnectionMetrics.textContent = '';
   API.callConnectionsAPI('retrieveConnectionMetrics', (response) => {
     if (response.connectionMetrics) {
       Object.keys(response.connectionMetrics).forEach((direction) => {
@@ -154,7 +152,7 @@ function retrieveConnectionLogs() {
 }
 
 function fillConnectionLogsTable() {
-  dom.tbodyConnectionLogs.innerHTML = '';
+  dom.tbodyConnectionLogs.textContent = '';
   connectionLogDetail.setValue('');
 
   filteredLogs = dom.tableFilterConnectionLogs.filterItems(connectionLogs);
@@ -188,8 +186,8 @@ function onConnectionChange(connection, isNewConnection = true) {
   selectedConnectionId = connection ? connection.id : null;
   connectionStatusDetail.setValue('');
   connectionLogDetail.setValue('');
-  dom.tbodyConnectionMetrics.innerHTML = '';
-  dom.tbodyConnectionLogs.innerHTML = '';
+  dom.tbodyConnectionMetrics.textContent = '';
+  dom.tbodyConnectionLogs.textContent = '';
   if (!isNewConnection && connection && connection.id) {
     retrieveConnectionLogs();
   }

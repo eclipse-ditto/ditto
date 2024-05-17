@@ -12,11 +12,11 @@
  */
 
 import * as ace from 'ace-builds/src-noconflict/ace';
-import * as Utils from '../utils.js';
 import * as API from '../api.js';
+import * as Utils from '../utils.js';
+import { CrudOperation, CrudToolbar } from '../utils/crudToolbar.js';
 import * as Policies from './policies.js';
 import * as PolicyEntries from './policiesEntries.js';
-import { CrudOperation, CrudToolbar } from '../utils/crudToolbar.js';
 
 
 let selectedSubject: string;
@@ -121,7 +121,7 @@ function onEditToggleSubject(event: CustomEvent) {
 function onEntryChanged(entryLabel: string) {
   selectedSubject = null;
 
-  dom.tbodyPolicySubjects.innerHTML = '';
+  dom.tbodyPolicySubjects.textContent = '';
   dom.crudSubject.idValue = null;
   dom.crudSubject.editDisabled = (entryLabel === null);
   subjectEditor.setValue('');

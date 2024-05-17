@@ -16,7 +16,7 @@
 /* eslint-disable require-jsdoc */
 import * as API from '../api.js';
 import * as Utils from '../utils.js';
-import {TabHandler} from '../utils/tabHandler.js';
+import { TabHandler } from '../utils/tabHandler.js';
 import servicesLoggingHTML from './servicesLogging.html';
 
 let dom = {
@@ -47,12 +47,12 @@ function loadAllLogLevels() {
   API.callDittoREST('GET', '/devops/logging', null, null, false, true)
       .then((result) => createLoggerView(result))
       .catch((error) => {
-        dom.divLoggers.innerHTML = '';
+        dom.divLoggers.textContent = '';
       });
 }
 
 function createLoggerView(allLogLevels) {
-  dom.divLoggers.innerHTML = '';
+  dom.divLoggers.textContent = '';
 
   type LogLevel = {
     loggerConfigs?: object[]
