@@ -13,8 +13,8 @@
 
 import { JSONPath } from 'jsonpath-plus';
 import * as Utils from '../utils.js';
-import tableFilterHTML from './tableFilter.html';
 import { BasicFilters, FilterListener, Term } from './basicFilters.js';
+import tableFilterHTML from './tableFilter.html';
 
 enum Mode {
   BASIC=0,
@@ -81,7 +81,7 @@ export class TableFilter extends HTMLElement implements FilterListener {
     
   private fillUIChips() {
     const div = this.querySelector('[data-bs-theme="dark"]') as HTMLElement;
-    div.innerHTML = '';
+    div.textContent = '';
     this.basicFilters.getAllUIs().forEach((chip) => div.appendChild(chip));
   }
   

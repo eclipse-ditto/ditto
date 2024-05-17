@@ -113,7 +113,7 @@ function onResetMessagesClick() {
   messages = [];
   filteredMessages = [];
   dom.badgeMessageIncomingCount.textContent = '';
-  dom.tbodyMessagesIncoming.innerHTML = '';
+  dom.tbodyMessagesIncoming.textContent = '';
   messageDetail.setValue('');
 }
 
@@ -188,7 +188,7 @@ function createFilterOptions(thing?: any): [Term?] {
 }
 
 function onMessageFilterChange(event: CustomEvent) {
-  dom.tbodyMessagesIncoming.innerHTML = '';
+  dom.tbodyMessagesIncoming.textContent = '';
   filteredMessages = dom.tableFilterMessagesIncoming.filterItems(messages);
   filteredMessages.forEach((entry) => addTableRow(entry));
   Utils.updateCounterBadge(dom.badgeMessageIncomingCount, messages, filteredMessages);

@@ -120,7 +120,7 @@ function refreshAttribute(thing, attributePath = null) {
 function onThingChanged(thing) {
   dom.crudAttribute.editDisabled = (thing === null);
 
-  dom.tbodyAttributes.innerHTML = '';
+  dom.tbodyAttributes.textContent = '';
   let count = 0;
   let thingHasAttribute = false;
   if (thing && thing.attributes) {

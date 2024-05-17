@@ -11,12 +11,10 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-import * as ace from 'ace-builds/src-noconflict/ace';
-import * as Utils from '../utils.js';
 import * as API from '../api.js';
-import * as Policies from './policies.js';
-import * as PolicyEntries from './policiesEntries.js';
+import * as Utils from '../utils.js';
 import { CrudOperation, CrudToolbar } from '../utils/crudToolbar.js';
+import * as Policies from './policies.js';
 
 
 let selectedImport: string;
@@ -111,7 +109,7 @@ function setExplicitCheckboxesDisabledState(disabled: boolean) {
 }
 
 function onPolicyChanged(policy: Policies.Policy) {
-  dom.tbodyPolicyImports.innerHTML = '';
+  dom.tbodyPolicyImports.textContent = '';
   dom.crudImport.idValue = null;
   dom.crudImport.editDisabled = (policy === null);
   
@@ -145,7 +143,7 @@ function onPolicyChanged(policy: Policies.Policy) {
 async function setImport(importedPolicyId: string) {
 
   dom.crudImport.idValue = importedPolicyId;
-  dom.tbodyPolicyImportEntries.innerHTML = '';
+  dom.tbodyPolicyImportEntries.textContent = '';
 
   if (importedPolicyId) {
     const importedPolicy: Policies.Policy = await API.callDittoREST('GET', '/policies/' + importedPolicyId)

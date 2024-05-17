@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-import {Modal} from 'bootstrap';
+import { Modal } from 'bootstrap';
 
 import * as Environments from '../environments/environments.js';
 import * as Utils from '../utils.js';
@@ -165,14 +165,14 @@ function onEnvironmentChanged() {
  * (Re-)Initializes the fieldlist in the UI
  */
 function updateFieldList() {
-  dom.fieldList.innerHTML = '';
+  dom.fieldList.textContent = '';
   theFieldIndex = -1;
   Environments.current().fieldList.forEach((field, i) => {
     const fieldSelected = dom.fieldPath.value === field.path;
     const row = dom.fieldList.insertRow();
     Utils.addCheckboxToRow(row, i, field.active, false, toggleFieldActiveEventHandler);
-    row.insertCell(-1).innerHTML = field.path;
-    row.insertCell(-1).innerHTML = field['label'] ? field.label : null;
+    row.insertCell(-1).textContent = field.path;
+    row.insertCell(-1).textContent = field['label'] ? field.label : null;
     if (fieldSelected) {
       theFieldIndex = i;
       row.classList.add('table-active');
