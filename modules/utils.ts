@@ -165,8 +165,8 @@ export function addDropDownEntries(target: HTMLUListElement, labels: Array<Strin
 export function addDropDownEntry(target: HTMLUListElement, label: String, isHeader: boolean = false, value?: String) {
   const li = document.createElement('li');
   li.innerHTML = isHeader ?
-    `<h6 class="dropdown-header" data-value='${value}'>${label}</h6>` :
-    `<a class="dropdown-item" data-value='${value}'>${label}</a>`;
+    `<h6 class="dropdown-header" data-value='${value}'>${sanitizeHTML(label)}</h6>` :
+    `<a class="dropdown-item" data-value='${value}'>${sanitizeHTML(label)}</a>`;
   target.appendChild(li);
 }
 
