@@ -77,6 +77,7 @@ jobs:
             eclipse/ditto-policies:${{ env.IMAGE_TAG }}
             eclipse/ditto-policies:${{ env.IMAGE_MINOR_TAG }}
             eclipse/ditto-policies:${{ env.IMAGE_MAJOR_TAG }}
+            eclipse/ditto-policies:latest
       -
         name: Build and push ditto-things
         if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG
@@ -95,6 +96,7 @@ jobs:
             eclipse/ditto-things:${{ env.IMAGE_TAG }}
             eclipse/ditto-things:${{ env.IMAGE_MINOR_TAG }}
             eclipse/ditto-things:${{ env.IMAGE_MAJOR_TAG }}
+            eclipse/ditto-things:latest
       -
         name: Build and push ditto-gateway
         if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG
@@ -113,6 +115,7 @@ jobs:
             eclipse/ditto-gateway:${{ env.IMAGE_TAG }}
             eclipse/ditto-gateway:${{ env.IMAGE_MINOR_TAG }}
             eclipse/ditto-gateway:${{ env.IMAGE_MAJOR_TAG }}
+            eclipse/ditto-gateway:latest
       -
         name: Build and push ditto-thingsearch
         if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG
@@ -131,6 +134,7 @@ jobs:
             eclipse/ditto-things-search:${{ env.IMAGE_TAG }}
             eclipse/ditto-things-search:${{ env.IMAGE_MINOR_TAG }}
             eclipse/ditto-things-search:${{ env.IMAGE_MAJOR_TAG }}
+            eclipse/ditto-things-search:latest
       -
         name: Build and push ditto-connectivity
         if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG
@@ -150,6 +154,7 @@ jobs:
             eclipse/ditto-connectivity:${{ env.IMAGE_TAG }}
             eclipse/ditto-connectivity:${{ env.IMAGE_MINOR_TAG }}
             eclipse/ditto-connectivity:${{ env.IMAGE_MAJOR_TAG }}
+            eclipse/ditto-connectivity:latest
       -
         name: Use Node.js 18.x
         uses: actions/setup-node@v3
@@ -177,6 +182,7 @@ jobs:
             eclipse/ditto-ui:${{ env.IMAGE_TAG }}
             eclipse/ditto-ui:${{ env.IMAGE_MINOR_TAG }}
             eclipse/ditto-ui:${{ env.IMAGE_MAJOR_TAG }}
+            eclipse/ditto-ui:latest
       -
         name: Build and push ditto-policies milestone/RC
         if: env.MILESTONE_OR_RC_SUFFIX != env.IMAGE_TAG
