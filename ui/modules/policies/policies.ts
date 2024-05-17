@@ -111,7 +111,7 @@ function onThingChanged(thing) {
 }
 
 function refreshWhoAmI() {
-  dom.tbodyWhoami.innerHTML = '';
+  dom.tbodyWhoami.textContent = '';
   API.callDittoREST('GET', '/whoami')
       .then((whoamiResult) => {
         whoamiResult.subjects.forEach((subject) => {
@@ -166,7 +166,7 @@ export function updateRecentPolicies(policyId: String) {
 
 function onEnvironmentChanged(modifiedField: String) {
   Environments.current()['recentPolicyIds'] = Environments.current()['recentPolicyIds'] || [];
-  dom.tbodyRecentPolicies.innerHTML = '';
+  dom.tbodyRecentPolicies.textContent = '';
   Environments.current().recentPolicyIds.forEach(entry => {
     Utils.addTableRow(dom.tbodyRecentPolicies, entry, thePolicy && thePolicy.policyId === entry, entry);
   });

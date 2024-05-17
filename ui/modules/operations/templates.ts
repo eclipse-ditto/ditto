@@ -11,9 +11,9 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 import * as Utils from '../utils.js';
-import templatesHTML from './templates.html';
-import templatesByService from './piggybackTemplates.json';
 import * as Piggyback from './piggyback.js';
+import templatesByService from './piggybackTemplates.json';
+import templatesHTML from './templates.html';
 
 const dom = {
     templateServiceSelector: null,
@@ -88,9 +88,9 @@ function onTemplateSelected() {
     if (selectedTemplate) {
         let templateBody = buildPiggybackCommand(selectedTemplate.targetActorSelection,
             selectedTemplate.headers, selectedTemplate.command);
-        dom.commandPreview.innerHTML = Utils.stringifyPretty(templateBody);
+        dom.commandPreview.textContent = Utils.stringifyPretty(templateBody);
     } else {
-        dom.commandPreview.innerHTML = "";
+        dom.commandPreview.textContent = '';
     }
 }
 

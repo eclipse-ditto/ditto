@@ -153,12 +153,12 @@ function clearAllFields() {
   dom.inputThingMessageTimeout.value = '10';
   acePayload.setValue('');
   aceResponse.setValue('');
-  dom.ulThingMessageTemplates.innerHTML = '';
+  dom.ulThingMessageTemplates.textContent = '';
   dom.buttonThingMessageSend.disabled = Things.theThing === null;
 }
 
 function refillTemplates() {
-  dom.ulThingMessageTemplates.innerHTML = '';
+  dom.ulThingMessageTemplates.textContent = '';
   Utils.addDropDownEntry(dom.ulThingMessageTemplates, 'Saved message templates', true);
   if (Environments.current().messageTemplates['/']) {
     Utils.addDropDownEntries(

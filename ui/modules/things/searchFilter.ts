@@ -61,8 +61,7 @@ export async function ready() {
   });
 
   dom.searchThings.onclick = () => {
-    fillHistory(dom.searchFilterEdit.value);
-    ThingsSearch.searchTriggered(dom.searchFilterEdit.value);
+    ThingsSearch.searchTriggered(dom.searchFilterEdit.value, () => fillHistory(dom.searchFilterEdit.value));
   };
 
   dom.searchFavorite.onclick = () => {
@@ -74,8 +73,7 @@ export async function ready() {
 
   dom.searchFilterEdit.onkeyup = (event) => {
     if ((event.key === 'Enter' || event.code === 13) && dom.searchFilterEdit.value.indexOf(FILTER_PLACEHOLDER) < 0) {
-      fillHistory(dom.searchFilterEdit.value);
-      ThingsSearch.searchTriggered(dom.searchFilterEdit.value);
+      ThingsSearch.searchTriggered(dom.searchFilterEdit.value, () => fillHistory(dom.searchFilterEdit.value));
     } else {
       clearTimeout(keyStrokeTimeout);
       keyStrokeTimeout = setTimeout(checkIfFavorite, 1000);
@@ -107,7 +105,7 @@ function fillSearchFilterEdit(fillString) {
   checkIfFavorite();
   const filterEditNeeded = Utils.checkAndMarkInInput(dom.searchFilterEdit, FILTER_PLACEHOLDER);
   if (!filterEditNeeded) {
-    ThingsSearch.searchTriggered(dom.searchFilterEdit.value);
+    ThingsSearch.searchTriggered(dom.searchFilterEdit.value, () => null);
   }
 }
 

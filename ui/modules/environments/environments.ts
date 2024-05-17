@@ -11,13 +11,13 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
+import * as Utils from '../utils.js';
 /* eslint-disable arrow-parens */
 /* eslint-disable prefer-const */
 /* eslint-disable require-jsdoc */
 import * as Authorization from './authorization.js';
-import * as Utils from '../utils.js';
-import defaultTemplates from './environmentTemplates.json';
 import environmentsHTML from './environments.html';
+import defaultTemplates from './environmentTemplates.json';
 
 
 const URL_PRIMARY_ENVIRONMENT_NAME = 'primaryEnvironmentName';
@@ -222,7 +222,7 @@ export function environmentsJsonChanged(modifiedField = null) {
   }
 
   function updateEnvTable() {
-    dom.tbodyEnvironments.innerHTML = '';
+    dom.tbodyEnvironments.textContent = '';
     Object.keys(environments).forEach((key) => {
       Utils.addTableRow(dom.tbodyEnvironments, key, key === selectedEnvName);
     });
