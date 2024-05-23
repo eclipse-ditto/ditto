@@ -23,7 +23,7 @@ to Cross-Site Scripting (XSS) at multiple input fields.
 Affected versions are all Ditto-UI versions starting from when the Ditto-UI was introduced, with Ditto 
 [3.0.0](release_notes_300.html#new-ditto-explorer-ui).
 
-This is tracked through CVE [https://nvd.nist.gov/vuln/detail/CVE-2024-5165](CVE-2024-5165).
+This is tracked through CVE [https://nvd.nist.gov/vuln/detail/CVE-2024-5165](https://nvd.nist.gov/vuln/detail/CVE-2024-5165).
 
 The issue was detected and reported by [Manuel Sommer](https://gitlab.eclipse.org/manuelsommer) and 
 [Quirin Zießler](https://gitlab.eclipse.org/quirinziessler) and disclosed via the 
