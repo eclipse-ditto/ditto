@@ -15,21 +15,6 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.stats;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.base.model.common.ConditionChecker;
-import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
-import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
-import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.gateway.service.endpoints.actors.AbstractHttpRequestActor;
-import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
-import org.eclipse.ditto.base.api.devops.signals.commands.DevOpsCommand;
-import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatistics;
-import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
-
 import org.apache.pekko.http.javadsl.model.ContentTypes;
 import org.apache.pekko.http.javadsl.model.HttpResponse;
 import org.apache.pekko.http.javadsl.server.Directives;
@@ -41,6 +26,20 @@ import org.apache.pekko.stream.javadsl.Keep;
 import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.util.ByteString;
+import org.eclipse.ditto.base.api.devops.signals.commands.DevOpsCommand;
+import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatistics;
+import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.gateway.service.endpoints.actors.AbstractHttpRequestActor;
+import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
+import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
+import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
 
 /**
  * Builder for Pekko HTTP route for providing statistics.
@@ -111,6 +110,7 @@ public final class StatsRoute extends AbstractRoute {
 
     private Route buildDetailsRoute(final RequestContext ctx, final CharSequence correlationId) {
         return devOpsAuthenticationDirective.authenticateDevOps(DevOpsOAuth2AuthenticationDirective.REALM_DEVOPS,
+                DittoHeaders.newBuilder().correlationId(correlationId).build(),
                 parameterList(ENTITY_PARAM, shardRegions ->
                         parameterList(NAMESPACE_PARAM, namespaces ->
                                 handleDevOpsPerRequest(ctx, RetrieveStatisticsDetails.of(shardRegions, namespaces,

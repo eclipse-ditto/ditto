@@ -20,6 +20,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
+import org.apache.pekko.http.javadsl.model.ContentTypes;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.server.Directives;
+import org.apache.pekko.http.javadsl.server.ExceptionHandler;
+import org.apache.pekko.http.javadsl.server.RejectionHandler;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.http.javadsl.testkit.TestRoute;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -40,15 +48,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import org.apache.pekko.http.javadsl.model.ContentTypes;
-import org.apache.pekko.http.javadsl.model.HttpRequest;
-import org.apache.pekko.http.javadsl.model.StatusCodes;
-import org.apache.pekko.http.javadsl.server.Directives;
-import org.apache.pekko.http.javadsl.server.ExceptionHandler;
-import org.apache.pekko.http.javadsl.server.RejectionHandler;
-import org.apache.pekko.http.javadsl.server.Route;
-import org.apache.pekko.http.javadsl.testkit.TestRoute;
 
 public final class ConnectionsRouteTest extends EndpointTestBase {
 
@@ -96,7 +95,7 @@ public final class ConnectionsRouteTest extends EndpointTestBase {
     public void setUp() {
         final DevopsAuthenticationDirective devopsAuthenticationDirective = Mockito.mock(
                 DevopsAuthenticationDirective.class);
-        Mockito.when(devopsAuthenticationDirective.authenticateDevOps(Mockito.any(), Mockito.any()))
+        Mockito.when(devopsAuthenticationDirective.authenticateDevOps(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenAnswer(a -> a.getArguments()[1]);
         final var connectionsRoute = new ConnectionsRoute(routeBaseProperties, devopsAuthenticationDirective);
         final Route route =

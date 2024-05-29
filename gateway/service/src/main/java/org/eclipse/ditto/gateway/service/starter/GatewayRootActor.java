@@ -14,6 +14,17 @@ package org.eclipse.ditto.gateway.service.starter;
 
 import java.util.concurrent.CompletionStage;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorRefFactory;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.cluster.Cluster;
+import org.apache.pekko.event.DiagnosticLoggingAdapter;
+import org.apache.pekko.http.javadsl.Http;
+import org.apache.pekko.http.javadsl.ServerBinding;
+import org.apache.pekko.http.javadsl.server.Route;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.stream.SystemMaterializer;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
@@ -52,7 +63,6 @@ import org.eclipse.ditto.gateway.service.util.config.health.HealthCheckConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.AuthenticationConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
@@ -63,22 +73,11 @@ import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.internal.utils.http.DefaultHttpClientFacade;
 import org.eclipse.ditto.internal.utils.http.HttpClientFacade;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
 
 import com.typesafe.config.Config;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorRefFactory;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.cluster.Cluster;
-import org.apache.pekko.event.DiagnosticLoggingAdapter;
-import org.apache.pekko.http.javadsl.Http;
-import org.apache.pekko.http.javadsl.ServerBinding;
-import org.apache.pekko.http.javadsl.server.Route;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.apache.pekko.stream.SystemMaterializer;
 
 /**
  * The Root Actor of the API Gateway's Pekko ActorSystem.
@@ -124,11 +123,12 @@ public final class GatewayRootActor extends DittoRootActor {
                 JwtAuthenticationFactory.newInstance(oAuthConfig, publicKeysConfig, httpClient, actorSystem);
 
         final JwtAuthenticationResultProvider jwtAuthenticationResultProvider =
-                jwtAuthenticationFactory.newJwtAuthenticationResultProvider("ditto.gateway.authentication.oauth");
+                jwtAuthenticationFactory.newJwtAuthenticationResultProvider(dittoExtensionConfig, null);
 
         final DevOpsConfig devOpsConfig = authenticationConfig.getDevOpsConfig();
         final DevopsAuthenticationDirectiveFactory devopsAuthenticationDirectiveFactory =
-                getDevopsAuthenticationDirectiveFactory(httpClient, publicKeysConfig, devOpsConfig, actorSystem);
+                getDevopsAuthenticationDirectiveFactory(httpClient, publicKeysConfig, devOpsConfig, actorSystem,
+                        dittoExtensionConfig);
 
         final ProtocolAdapterProvider protocolAdapterProvider =
                 ProtocolAdapterProvider.load(gatewayConfig.getProtocolConfig(), actorSystem);
@@ -303,12 +303,14 @@ public final class GatewayRootActor extends DittoRootActor {
             final HttpClientFacade httpClient,
             final CacheConfig publicKeysConfig,
             final DevOpsConfig devOpsConfig,
-            final ActorSystem actorSystem) {
+            final ActorSystem actorSystem,
+            final Config dittoExtensionConfig) {
         final var devopsOauthConfig = devOpsConfig.getOAuthConfig();
         final var devopsJwtAuthenticationFactory =
                 JwtAuthenticationFactory.newInstance(devopsOauthConfig, publicKeysConfig, httpClient, actorSystem);
 
-        return DevopsAuthenticationDirectiveFactory.newInstance(devopsJwtAuthenticationFactory, devOpsConfig);
+        return DevopsAuthenticationDirectiveFactory.newInstance(devopsJwtAuthenticationFactory, devOpsConfig,
+                dittoExtensionConfig);
     }
 
     private String getHostname(final HttpConfig httpConfig) {

@@ -26,6 +26,11 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ReceiveTimeout;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
+import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -43,18 +48,12 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConne
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionsResponse;
 import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFieldSelector;
-
-import org.apache.pekko.actor.AbstractActor;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ReceiveTimeout;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.apache.pekko.pattern.Patterns;
 
 
 /**
@@ -195,20 +194,19 @@ public abstract class AbstractConnectionsRetrievalActor extends AbstractActor {
 
     private CompletionStage<RetrieveConnectionResponse> askConnectivity(final RetrieveConnection command) {
 
-        logger.withCorrelationId(command).debug("Sending command <{}> to connectivity.service.", command);
+        final ThreadSafeDittoLogger log = logger.withCorrelationId(command);
+        log.debug("Sending command <{}> to connectivity.service.", command);
         final var commandWithCorrelationId = ensureCommandHasCorrelationId(command);
         Duration askTimeout = initialCommand.getDittoHeaders().getTimeout().orElse(defaultTimeout);
         return Patterns.ask(edgeCommandForwarder, commandWithCorrelationId, askTimeout)
                 .thenApply(response -> {
-                    logger.withCorrelationId(command)
-                            .debug("Received response <{}> from connectivity.service.", response);
+                    log.debug("Received response <{}> from connectivity service", response);
                     throwCauseIfErrorResponse(response);
                     throwCauseIfDittoRuntimeException(response);
                     final RetrieveConnectionResponse mappedResponse =
                             mapToType(response, RetrieveConnectionResponse.class, command);
-                    logger.withCorrelationId(command)
-                            .info("Received response of type <{}> from connectivity.service.",
-                                    mappedResponse.getType());
+                    log.info("Received response of type <{}> for id <{}> from connectivity service",
+                            mappedResponse.getType(), mappedResponse.getEntityId());
                     return mappedResponse;
                 });
     }
