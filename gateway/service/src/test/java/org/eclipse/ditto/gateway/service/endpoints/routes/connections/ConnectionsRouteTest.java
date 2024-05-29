@@ -96,7 +96,7 @@ public final class ConnectionsRouteTest extends EndpointTestBase {
         final DevopsAuthenticationDirective devopsAuthenticationDirective = Mockito.mock(
                 DevopsAuthenticationDirective.class);
         Mockito.when(devopsAuthenticationDirective.authenticateDevOps(Mockito.any(), Mockito.any(), Mockito.any()))
-                .thenAnswer(a -> a.getArguments()[1]);
+                .thenAnswer(a -> a.getArguments()[2]);
         final var connectionsRoute = new ConnectionsRoute(routeBaseProperties, devopsAuthenticationDirective);
         final Route route =
                 extractRequestContext(ctx -> connectionsRoute.buildConnectionsRoute(ctx, dittoHeaders));

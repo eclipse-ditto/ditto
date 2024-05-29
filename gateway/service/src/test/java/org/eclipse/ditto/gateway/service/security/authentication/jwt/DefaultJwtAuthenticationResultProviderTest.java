@@ -23,6 +23,7 @@ import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.junit.Test;
@@ -49,8 +50,10 @@ public final class DefaultJwtAuthenticationResultProviderTest {
 
     @Test
     public void getAuthorizationContext() {
+        final var dittoExtensionConfig =
+                ScopedConfig.dittoExtension(ACTOR_SYSTEM.settings().config());
         final JwtAuthenticationResultProvider underTest =
-                JwtAuthenticationResultProvider.get(ACTOR_SYSTEM, ConfigFactory.empty(), "regular");
+                JwtAuthenticationResultProvider.get(ACTOR_SYSTEM, dittoExtensionConfig, null);
         final JsonWebToken jsonWebToken = ImmutableJsonWebToken.fromToken(JwtTestConstants.VALID_JWT_TOKEN);
         final AuthorizationSubject myTestSubj = AuthorizationSubject.newInstance("example:myTestSubj");
 

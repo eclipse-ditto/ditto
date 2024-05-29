@@ -28,6 +28,7 @@ import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthent
 import org.eclipse.ditto.gateway.service.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.gateway.service.health.StatusAndHealthProvider;
 import org.eclipse.ditto.gateway.service.util.config.security.DevOpsConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.cluster.ClusterStatus;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,16 +50,19 @@ public final class OverallStatusRouteTest extends EndpointTestBase {
 
     @Before
     public void setUp() {
+        final var dittoExtensionConfig =
+                ScopedConfig.dittoExtension(routeBaseProperties.getActorSystem().settings().config());
         final Supplier<ClusterStatus> clusterStateSupplier = createClusterStatusSupplierMock();
         final StatusAndHealthProvider statusHealthProvider =
                 DittoStatusAndHealthProviderFactory.of(system(), clusterStateSupplier, healthCheckConfig);
         final DevOpsConfig devOpsConfig = authConfig.getDevOpsConfig();
         final DevopsAuthenticationDirectiveFactory devopsAuthenticationDirectiveFactory =
-                DevopsAuthenticationDirectiveFactory.newInstance(jwtAuthenticationFactory, devOpsConfig);
+                DevopsAuthenticationDirectiveFactory.newInstance(jwtAuthenticationFactory, devOpsConfig,
+                        dittoExtensionConfig);
         final DevopsAuthenticationDirective authenticationDirective = devopsAuthenticationDirectiveFactory.status();
         final OverallStatusRoute statusRoute =
                 new OverallStatusRoute(clusterStateSupplier, statusHealthProvider, authenticationDirective);
-        statusTestRoute = testRoute(statusRoute.buildOverallStatusRoute(correlationId));
+        statusTestRoute = testRoute(statusRoute.buildOverallStatusRoute("correlationId"));
     }
 
     @Test
