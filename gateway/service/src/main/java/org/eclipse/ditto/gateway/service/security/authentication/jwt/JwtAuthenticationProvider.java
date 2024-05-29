@@ -131,11 +131,12 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
     private CompletionStage<AuthenticationResult> getAuthenticationResult(final JsonWebToken jwt,
             final DittoHeaders dittoHeaders) {
 
+        final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(dittoHeaders);
         return jwtValidator.validate(jwt)
                 .thenCompose(validationResult -> {
                     if (!validationResult.isValid()) {
                         final Throwable reasonForInvalidity = validationResult.getReasonForInvalidity();
-                        LOGGER.withCorrelationId(dittoHeaders).debug("The JWT is invalid.", reasonForInvalidity);
+                        logger.debug("The JWT is invalid.", reasonForInvalidity);
                         final DittoRuntimeException reasonForFailure =
                                 buildJwtUnauthorizedException(dittoHeaders, reasonForInvalidity);
                         return CompletableFuture.completedFuture(
@@ -144,7 +145,7 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
                     return tryToGetAuthenticationResult(jwt, dittoHeaders);
                 })
                 .thenApply(authenticationResult -> {
-                    LOGGER.withCorrelationId(dittoHeaders).info("Completed JWT authentication successfully.");
+                    logger.info("Completed JWT authentication successfully.");
                     return authenticationResult;
                 });
     }

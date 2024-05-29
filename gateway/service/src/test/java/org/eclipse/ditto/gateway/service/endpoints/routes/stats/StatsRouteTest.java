@@ -18,6 +18,11 @@ import static org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants.
 import java.util.Optional;
 import java.util.UUID;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.testkit.TestRoute;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants;
@@ -26,18 +31,11 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationProvider;
 import org.eclipse.ditto.gateway.service.util.config.security.DevOpsConfig;
-import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThingsResponse;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.http.javadsl.model.HttpRequest;
-import org.apache.pekko.http.javadsl.model.StatusCodes;
-import org.apache.pekko.http.javadsl.testkit.TestRoute;
 
 /**
  * Tests {@link StatsRoute}.
@@ -63,7 +61,7 @@ public final class StatsRouteTest extends EndpointTestBase {
                 JwtAuthenticationFactory.newInstance(devOpsConfig.getOAuthConfig(), cacheConfig, httpClientFacade,
                         actorSystem);
         final var jwtAuthenticationProvider = JwtAuthenticationProvider.newInstance(
-                devopsJwtAuthenticationFactory.newJwtAuthenticationResultProvider(ScopedConfig.DITTO_EXTENSIONS_SCOPE),
+                devopsJwtAuthenticationFactory.newJwtAuthenticationResultProvider(ConfigFactory.empty(), null),
                 devopsJwtAuthenticationFactory.getJwtValidator());
         final var routeBaseProperties = RouteBaseProperties.newBuilder(this.routeBaseProperties)
                 .proxyActor(proxyActor)

@@ -15,17 +15,17 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.status;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
-import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
-import org.eclipse.ditto.gateway.service.health.StatusAndHealthProvider;
-import org.eclipse.ditto.internal.utils.health.cluster.ClusterStatus;
-
 import org.apache.pekko.http.javadsl.model.ContentTypes;
 import org.apache.pekko.http.javadsl.model.HttpResponse;
 import org.apache.pekko.http.javadsl.model.StatusCodes;
 import org.apache.pekko.http.javadsl.server.PathMatchers;
 import org.apache.pekko.http.javadsl.server.Route;
 import org.apache.pekko.http.javadsl.server.directives.RouteDirectives;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
+import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
+import org.eclipse.ditto.gateway.service.health.StatusAndHealthProvider;
+import org.eclipse.ditto.internal.utils.health.cluster.ClusterStatus;
 
 /**
  * Builder for creating Pekko HTTP routes for {@code /status}.
@@ -66,26 +66,28 @@ public final class OverallStatusRoute extends RouteDirectives {
      *
      * @return the {@code /status} route.
      */
-    public Route buildOverallStatusRoute() {
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_OVERALL), () -> {// /overall/*
-            return devOpsAuthenticationDirective.authenticateDevOps(DevOpsOAuth2AuthenticationDirective.REALM_STATUS, get(() -> // GET
-                    // /overall/status
-                    // /overall/status/health
-                    // /overall/status/cluster
-                    rawPathPrefix(PathMatchers.slash().concat(PATH_STATUS), () -> concat(
-                            // /status
-                            pathEndOrSingleSlash(() -> completeWithFuture(createOverallStatusResponse())),
-                            // /status/health
-                            path(PATH_HEALTH, () -> completeWithFuture(createOverallHealthResponse())),
-                            // /status/cluster
-                            path(PATH_CLUSTER, () -> complete(
-                                    HttpResponse.create().withStatus(StatusCodes.OK)
-                                            .withEntity(ContentTypes.APPLICATION_JSON,
-                                                    clusterStateSupplier.get().toJson().toString()))
-                            )
+    public Route buildOverallStatusRoute(final String correlationId) {
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_OVERALL), () ->  // /overall/*
+            devOpsAuthenticationDirective.authenticateDevOps(DevOpsOAuth2AuthenticationDirective.REALM_STATUS,
+                    DittoHeaders.newBuilder().correlationId(correlationId).build(),
+                    get(() -> // GET
+                            // /overall/status
+                            // /overall/status/health
+                            // /overall/status/cluster
+                            rawPathPrefix(PathMatchers.slash().concat(PATH_STATUS), () -> concat(
+                                    // /status
+                                    pathEndOrSingleSlash(() -> completeWithFuture(createOverallStatusResponse())),
+                                    // /status/health
+                                    path(PATH_HEALTH, () -> completeWithFuture(createOverallHealthResponse())),
+                                    // /status/cluster
+                                    path(PATH_CLUSTER, () -> complete(
+                                            HttpResponse.create().withStatus(StatusCodes.OK)
+                                                    .withEntity(ContentTypes.APPLICATION_JSON,
+                                                            clusterStateSupplier.get().toJson().toString()))
+                                    )
+                            ))
                     ))
-            ));
-        });
+        );
     }
 
     private CompletionStage<HttpResponse> createOverallStatusResponse() {

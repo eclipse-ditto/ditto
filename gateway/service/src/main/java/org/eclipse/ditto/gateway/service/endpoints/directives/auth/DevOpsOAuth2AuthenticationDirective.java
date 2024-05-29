@@ -30,8 +30,8 @@ import org.eclipse.ditto.gateway.api.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationProvider;
 import org.eclipse.ditto.gateway.service.util.config.security.DevOpsConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLogger;
 
 import scala.util.Try;
 
@@ -40,7 +40,8 @@ import scala.util.Try;
  */
 public final class DevOpsOAuth2AuthenticationDirective implements DevopsAuthenticationDirective {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DevOpsOAuth2AuthenticationDirective.class);
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(DevOpsOAuth2AuthenticationDirective.class);
 
     /**
      * The Http basic auth realm for the "ditto-devops" user used for /devops resource.
@@ -92,38 +93,37 @@ public final class DevOpsOAuth2AuthenticationDirective implements DevopsAuthenti
         return new DevOpsOAuth2AuthenticationDirective(jwtAuthenticationProvider, expectedSubjects);
     }
 
-    /**
-     * Authenticates the devops resources with the chosen authentication method.
-     *
-     * @param realm the realm to apply.
-     * @param inner the inner route, which will be performed on successful authentication.
-     * @return the inner route wrapped with authentication.
-     */
-    public Route authenticateDevOps(final String realm, final Route inner) {
-        LOGGER.debug("DevOps OAuth authentication is enabled for {}.", realm);
+    @Override
+    public Route authenticateDevOps(final String realm, final DittoHeaders dittoHeaders, final Route inner) {
+        final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(dittoHeaders);
+        logger.debug("DevOps OAuth authentication is enabled for {}.", realm);
         return extractRequestContext(requestContext -> {
             final String authorizationHeaderValue = requestContext.getRequest()
                     .getHeader("authorization")
                     .map(HttpHeader::value)
                     .orElse("");
-            LOGGER.debug("Trying to use OAuth2 authentication for authorization header <{}>", authorizationHeaderValue);
+            logger.debug("Trying to use OAuth2 authentication for authorization header <{}>", authorizationHeaderValue);
             final CompletionStage<AuthenticationResult> authenticationResult =
-                    jwtAuthenticationProvider.authenticate(requestContext, DittoHeaders.empty());
+                    jwtAuthenticationProvider.authenticate(requestContext, dittoHeaders);
 
             final Function<Try<AuthenticationResult>, Route> handleAuthenticationTry =
-                    authenticationResultTry -> handleAuthenticationTry(authenticationResultTry, inner, requestContext);
+                    authenticationResultTry ->
+                            handleAuthenticationTry(authenticationResultTry, dittoHeaders, inner, requestContext);
 
             return Directives.onComplete(authenticationResult, handleAuthenticationTry);
         });
     }
 
-    private Route handleAuthenticationTry(final Try<AuthenticationResult> authenticationResultTry, final Route inner,
+    private Route handleAuthenticationTry(final Try<AuthenticationResult> authenticationResultTry,
+            final DittoHeaders dittoHeaders,
+            final Route inner,
             final RequestContext requestContext) {
 
         if (authenticationResultTry.isSuccess()) {
             final AuthenticationResult authenticationResult = authenticationResultTry.get();
+            final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(dittoHeaders);
             if (!authenticationResult.isSuccess()) {
-                LOGGER.info("DevOps OAuth authentication was not successful for request: '{}' because of '{}'.",
+                logger.info("DevOps OAuth authentication was not successful for request: '{}' because of '{}'.",
                         requestContext.getRequest(), authenticationResult.getReasonOfFailure().getMessage());
                 return Directives.failWith(authenticationResult.getReasonOfFailure());
             } else {
@@ -131,7 +131,8 @@ public final class DevOpsOAuth2AuthenticationDirective implements DevopsAuthenti
                         authenticationResult.getAuthorizationContext().getAuthorizationSubjectIds();
                 final boolean isAuthorized = expectedSubjects.isEmpty() || authorizationSubjectIds.stream().anyMatch(expectedSubjects::contains);
                 if (isAuthorized) {
-                    LOGGER.info("DevOps Oauth authentication was successful.");
+                    logger.info("DevOps Oauth authentication was successful, user subjects {} were " +
+                            "part of expected subjects: {}", authorizationSubjectIds, expectedSubjects);
                     return inner;
                 } else {
                     final String message = String.format(
@@ -139,8 +140,8 @@ public final class DevOpsOAuth2AuthenticationDirective implements DevopsAuthenti
                             authorizationSubjectIds, expectedSubjects
                     );
                     final GatewayAuthenticationFailedException reasonOfFailure =
-                            GatewayAuthenticationFailedException.fromMessage(message, DittoHeaders.empty());
-                    LOGGER.warn("DevOps Oauth authentication failed.", reasonOfFailure);
+                            GatewayAuthenticationFailedException.fromMessage(message, dittoHeaders);
+                    logger.warn("DevOps Oauth authentication failed.", reasonOfFailure);
                     return Directives.failWith(reasonOfFailure);
                 }
             }
