@@ -75,8 +75,10 @@ final class JsonSchemaTools {
         final JsonMetaSchema.Builder metaSchemaBuilder = JsonMetaSchema.builder(SchemaId.V7, JsonMetaSchema.getV7());
         metaSchemaBuilder.keyword(new NonValidationKeyword("@type"));
         metaSchemaBuilder.keyword(new NonValidationKeyword("unit"));
+        metaSchemaBuilder.keyword(new NonValidationKeyword("ditto:category"));
         return JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7, builder ->
-                        builder.metaSchema(metaSchemaBuilder.build()))
+                        builder.metaSchema(metaSchemaBuilder.build())
+                )
                 .getSchema(jsonNode, schemaValidatorsConfig);
     }
 
