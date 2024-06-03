@@ -23,6 +23,9 @@ import org.eclipse.ditto.wot.model.ThingModel;
 import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
 
 /**
+ * Provides functionality to validate specific parts of a Ditto {@link Thing} and/or Ditto Thing {@link Features} and
+ * single {@link Feature} instances.
+ *
  * @since 3.6.0
  */
 public interface WotThingModelValidation {
@@ -37,14 +40,14 @@ public interface WotThingModelValidation {
     /**
      * TODO TJ doc
      */
-    CompletionStage<Void> validateFeatures(Map<String, ThingModel> featureModels,
+    CompletionStage<Void> validateFeaturesProperties(Map<String, ThingModel> featureThingModels,
             Features features,
             DittoHeaders dittoHeaders);
 
     /**
      * TODO TJ doc
      */
-    CompletionStage<Void> validateFeature(ThingModel thingModel,
+    CompletionStage<Void> validateFeatureProperties(ThingModel featureThingModel,
             Feature feature,
             DittoHeaders dittoHeaders);
 

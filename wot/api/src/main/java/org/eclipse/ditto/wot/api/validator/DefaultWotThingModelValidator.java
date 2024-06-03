@@ -84,8 +84,8 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                     .thenCompose(aVoid ->
                             thing.getFeatures().map(features ->
                                     thingModelResolver.resolveThingModelSubmodels(thingModel, dittoHeaders)
-                                            .thenAccept(subModels -> // TODO TJ do this async?
-                                                    thingModelValidation.validateFeatures(
+                                            .thenComposeAsync(subModels ->
+                                                    thingModelValidation.validateFeaturesProperties(
                                                             subModels.entrySet().stream().collect(
                                                                     Collectors.toMap(
                                                                             e -> e.getKey().instanceName(),
@@ -94,7 +94,8 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                                                                             LinkedHashMap::new
                                                                     )
                                                             ), features, dittoHeaders
-                                                    )
+                                                    ),
+                                                    executor
                                             )
                             ).orElse(CompletableFuture.completedStage(null))
                     );
@@ -129,7 +130,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             final DittoHeaders dittoHeaders) {
 
         if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled()) {
-            return thingModelValidation.validateFeature(thingModel, feature, dittoHeaders);
+            return thingModelValidation.validateFeatureProperties(thingModel, feature, dittoHeaders);
         } else {
             return CompletableFuture.completedStage(null);
         }
