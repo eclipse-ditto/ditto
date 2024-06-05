@@ -99,16 +99,17 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
 
         final Thing modifiedThing = applyThingModifications(command.getThing(), thing, eventTs, nextRevision);
         // validate based on potentially referenced Thing WoT TM/TD
-        final CompletionStage<Void> validatedStage = wotThingModelValidator
-                .validateThing(modifiedThing, command.getDittoHeaders());
+        final CompletionStage<Thing> validatedStage = wotThingModelValidator
+                .validateThing(modifiedThing, command.getResourcePath(), command.getDittoHeaders())
+                .thenApply(aVoid -> modifiedThing);
 
         final CompletionStage<ThingEvent<?>> eventStage =
-                validatedStage.thenApply(aVoid ->
-                        ThingModified.of(modifiedThing, nextRevision, eventTs, dittoHeaders, metadata));
+                validatedStage.thenApply(theThing ->
+                        ThingModified.of(theThing, nextRevision, eventTs, dittoHeaders, metadata));
         final CompletionStage<WithDittoHeaders> responseStage =
-                validatedStage.thenApply(aVoid ->
+                validatedStage.thenApply(theThing ->
                         appendETagHeaderIfProvided(command,
-                                ModifyThingResponse.modified(context.getState(), dittoHeaders), modifiedThing));
+                                ModifyThingResponse.modified(context.getState(), dittoHeaders), theThing));
 
         return ResultFactory.newMutationResult(command, eventStage, responseStage);
     }

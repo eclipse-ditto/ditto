@@ -13,11 +13,14 @@
 package org.eclipse.ditto.wot.validation;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.json.CborFactoryLoader;
 import org.eclipse.ditto.json.CborFactory;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.wot.model.SingleDataSchema;
 import org.eclipse.ditto.wot.model.WotInternalErrorException;
@@ -27,6 +30,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.cbor.databind.CBORMapper;
 import com.networknt.schema.JsonMetaSchema;
+import com.networknt.schema.JsonNodePath;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.NonValidationKeyword;
@@ -83,15 +87,25 @@ final class JsonSchemaTools {
     }
 
     OutputUnit validateDittoJsonBasedOnDataSchema(final SingleDataSchema dataSchema,
+            final JsonPointer pointerPath,
             final JsonValue jsonValue,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders
+    ) {
         final JsonSchema jsonSchema = extractFromSingleDataSchema(dataSchema, dittoHeaders);
-        return validateDittoJson(jsonSchema, jsonValue, dittoHeaders);
+        final JsonPointer relativePropertyPath;
+        if (pointerPath.getLevelCount() > 1) {
+            relativePropertyPath = pointerPath.getSubPointer(1).orElseThrow();
+        } else {
+            relativePropertyPath = JsonPointer.empty();
+        }
+        return validateDittoJson(jsonSchema, relativePropertyPath, jsonValue, dittoHeaders);
     }
 
     OutputUnit validateDittoJson(final JsonSchema jsonSchema,
+            final JsonPointer relativePropertyPath,
             final JsonValue jsonValue,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders
+    ) {
         final JsonNode jsonNode;
         try {
             final byte[] bytes = cborFactory.toByteArray(jsonValue);
@@ -109,6 +123,32 @@ final class JsonSchemaTools {
                     .dittoHeaders(dittoHeaders)
                     .build();
         }
-        return jsonSchema.validate(jsonNode, OutputFormat.LIST);
+        final OutputUnit validate = jsonSchema.validate(jsonNode, OutputFormat.LIST);
+        if (!validate.isValid() && !validate.getDetails().isEmpty()) {
+            final List<OutputUnit> validationDetails = new ArrayList<>(validate.getDetails());
+            validate.getDetails().forEach(detail -> {
+                if (!relativePropertyPath.isEmpty()) {
+                    if (detail.getInstanceLocation().equals(relativePropertyPath.toString())) {
+                        validationDetails.remove(detail);
+                        detail.setInstanceLocation("");
+                        validationDetails.add(detail);
+                    } else {
+                        validationDetails.remove(detail);
+                    }
+                }
+            });
+            validate.setDetails(validationDetails);
+        }
+        return validate;
+    }
+
+    private static JsonNodePath transformJsonPointerToJsonNodePath(final JsonPointer pointerPath) {
+        JsonNodePath fragment = new JsonNodePath(PathType.JSON_POINTER);
+        JsonPointer currentPointer = pointerPath;
+        while (!currentPointer.isEmpty()) {
+            fragment = fragment.append(currentPointer.getRoot().orElseThrow().toString());
+            currentPointer = currentPointer.nextLevel();
+        }
+        return fragment;
     }
 }

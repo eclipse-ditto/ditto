@@ -842,6 +842,10 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 log.withCorrelationId(dre)
                         .info("Received DittoRuntimeException during enforcement or " +
                                 "forwarding to target actor, telling sender: {}", dre);
+                if (dre instanceof DittoInternalErrorException) {
+                    log.withCorrelationId(dre)
+                            .error(dre, "Received DittoInternalErrorException during enforcement");
+                }
             }
             sender.tell(dre, getSelf());
         } else if (response instanceof Status.Success success) {

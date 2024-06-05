@@ -10,9 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.wot.api.generator;
-
-import org.eclipse.ditto.wot.model.SingleUriAtContext;
+package org.eclipse.ditto.wot.model;
 
 /**
  * Contains the specifics of Ditto's WoT Extension Ontology.
@@ -20,12 +18,12 @@ import org.eclipse.ditto.wot.model.SingleUriAtContext;
  * @see <a href="https://ditto.eclipseprojects.io/wot/ditto-extension#">Ditto - WoT Extension Ontology</a>
  * @since 3.0.0
  */
-final class DittoWotExtension {
+public final class DittoWotExtension {
 
     /**
      * The {@code SingleUriAtContext} (being an IRI) of the Ditto WoT Extension.
      */
-    static final SingleUriAtContext DITTO_WOT_EXTENSION = SingleUriAtContext.DITTO_WOT_EXTENSION;
+    public static final SingleUriAtContext DITTO_WOT_EXTENSION = SingleUriAtContext.DITTO_WOT_EXTENSION;
 
     /**
      * Contains a category with which WoT property affordances may optionally be categorized.
@@ -33,7 +31,7 @@ final class DittoWotExtension {
      *
      * @see <a href="https://ditto.eclipseprojects.io/wot/ditto-extension#category">Property category</a>
      */
-    static final String DITTO_WOT_EXTENSION_CATEGORY = "category";
+    public static final String DITTO_WOT_EXTENSION_CATEGORY = "category";
 
 
     private DittoWotExtension() {

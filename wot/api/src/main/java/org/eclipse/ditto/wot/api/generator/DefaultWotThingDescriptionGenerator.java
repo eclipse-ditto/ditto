@@ -65,6 +65,7 @@ import org.eclipse.ditto.wot.model.AtType;
 import org.eclipse.ditto.wot.model.BaseLink;
 import org.eclipse.ditto.wot.model.BooleanSchema;
 import org.eclipse.ditto.wot.model.Description;
+import org.eclipse.ditto.wot.model.DittoWotExtension;
 import org.eclipse.ditto.wot.model.Event;
 import org.eclipse.ditto.wot.model.EventFormElement;
 import org.eclipse.ditto.wot.model.EventForms;

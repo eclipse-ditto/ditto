@@ -30,6 +30,8 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
 
     private static final String CONFIG_PATH = "feature";
 
+    private final boolean enforcePresenceOfModeledFeatures;
+    private final boolean allowNonModeledFeatures;
     private final boolean enforceProperties;
     private final boolean allowNonModeledProperties;
     private final boolean enforceDesiredProperties;
@@ -40,6 +42,10 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
     private final boolean allowNonModeledOutboxMessages;
 
     private DefaultFeatureValidationConfig(final ScopedConfig scopedConfig) {
+        enforcePresenceOfModeledFeatures =
+                scopedConfig.getBoolean(ConfigValue.ENFORCE_PRESENCE_OF_MODELED_FEATURES.getConfigPath());
+        allowNonModeledFeatures =
+                scopedConfig.getBoolean(ConfigValue.ALLOW_NON_MODELED_FEATURES.getConfigPath());
         enforceProperties =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_PROPERTIES.getConfigPath());
         allowNonModeledProperties =
@@ -68,6 +74,16 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
     public static DefaultFeatureValidationConfig of(final Config config) {
         return new DefaultFeatureValidationConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH,
                 ConfigValue.values()));
+    }
+
+    @Override
+    public boolean isEnforcePresenceOfModeledFeatures() {
+        return enforcePresenceOfModeledFeatures;
+    }
+
+    @Override
+    public boolean isAllowNonModeledFeatures() {
+        return allowNonModeledFeatures;
     }
 
     @Override
@@ -115,7 +131,9 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final DefaultFeatureValidationConfig that = (DefaultFeatureValidationConfig) o;
-        return enforceProperties == that.enforceProperties &&
+        return enforcePresenceOfModeledFeatures == that.enforcePresenceOfModeledFeatures &&
+                allowNonModeledFeatures == that.allowNonModeledFeatures &&
+                enforceProperties == that.enforceProperties &&
                 allowNonModeledProperties == that.allowNonModeledProperties &&
                 enforceDesiredProperties == that.enforceDesiredProperties &&
                 allowNonModeledDesiredProperties == that.allowNonModeledDesiredProperties &&
@@ -127,15 +145,18 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(enforceProperties, allowNonModeledProperties, enforceDesiredProperties,
-                allowNonModeledDesiredProperties, enforceInboxMessages, allowNonModeledInboxMessages,
-                enforceOutboxMessages, allowNonModeledOutboxMessages);
+        return Objects.hash(enforcePresenceOfModeledFeatures, allowNonModeledFeatures, enforceProperties,
+                allowNonModeledProperties, enforceDesiredProperties, allowNonModeledDesiredProperties,
+                enforceInboxMessages, allowNonModeledInboxMessages, enforceOutboxMessages,
+                allowNonModeledOutboxMessages);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "enforceProperties=" + enforceProperties +
+                "enforcePresenceOfModeledFeatures=" + enforcePresenceOfModeledFeatures +
+                ", allowNonModeledFeatures=" + allowNonModeledFeatures +
+                ", enforceProperties=" + enforceProperties +
                 ", allowNonModeledProperties=" + allowNonModeledProperties +
                 ", enforceDesiredProperties=" + enforceDesiredProperties +
                 ", allowNonModeledDesiredProperties=" + allowNonModeledDesiredProperties +
