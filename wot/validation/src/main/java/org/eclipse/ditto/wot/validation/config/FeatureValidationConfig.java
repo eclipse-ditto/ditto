@@ -25,6 +25,18 @@ import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 public interface FeatureValidationConfig {
 
     /**
+     * TODO TJ doc
+     * @return
+     */
+    boolean isEnforcePresenceOfModeledFeatures();
+
+    /**
+     * TODO TJ doc
+     * @return
+     */
+    boolean isAllowNonModeledFeatures();
+
+    /**
      * @return whether to enforce/validate properties of a feature following the defined WoT properties.
      */
     boolean isEnforceProperties();
@@ -70,6 +82,10 @@ public interface FeatureValidationConfig {
      * {@code FeatureValidationConfig}.
      */
     enum ConfigValue implements KnownConfigValue {
+
+        ENFORCE_PRESENCE_OF_MODELED_FEATURES("enforce-presence-of-modeled-features", true),
+
+        ALLOW_NON_MODELED_FEATURES("allow-non-modeled-features", false),
 
         ENFORCE_PROPERTIES("enforce-properties", true),
 

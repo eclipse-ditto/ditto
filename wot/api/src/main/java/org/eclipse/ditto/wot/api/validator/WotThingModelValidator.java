@@ -15,9 +15,16 @@ package org.eclipse.ditto.wot.api.validator;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.wot.api.config.WotConfig;
 import org.eclipse.ditto.wot.api.resolver.WotThingModelResolver;
 import org.eclipse.ditto.wot.model.ThingModel;
@@ -31,22 +38,90 @@ public interface WotThingModelValidator {
     /**
      * TODO TJ doc
      */
-    CompletionStage<Void> validateThing(Thing thing, DittoHeaders dittoHeaders);
+    CompletionStage<Void> validateThing(Thing thing,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
 
     /**
      * TODO TJ doc
      */
-    CompletionStage<Void> validateThing(ThingModel thingModel, Thing thing, DittoHeaders dittoHeaders);
+    CompletionStage<Void> validateThing(ThingModel thingModel,
+            Thing thing,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
 
     /**
      * TODO TJ doc
      */
-    CompletionStage<Void> validateFeature(Feature feature, DittoHeaders dittoHeaders);
+    CompletionStage<Void> validateThingAttributes(@Nullable ThingDefinition thingDefinition,
+            @Nullable Attributes attributes,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
 
     /**
      * TODO TJ doc
      */
-    CompletionStage<Void> validateFeature(ThingModel thingModel, Feature feature, DittoHeaders dittoHeaders);
+    CompletionStage<Void> validateThingAttributes(ThingModel thingModel,
+            @Nullable Attributes attributes,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * TODO TJ doc
+     * @param thingDefinition
+     * @param attributePointer
+     * @param attributeValue
+     * @param resourcePath
+     * @param dittoHeaders
+     * @return
+     */
+    CompletionStage<Void> validateThingAttribute(@Nullable ThingDefinition thingDefinition,
+            JsonPointer attributePointer,
+            JsonValue attributeValue,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * TODO TJ doc
+     */
+    CompletionStage<Void> validateFeatures(@Nullable ThingDefinition thingDefinition,
+            Features features,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * TODO TJ doc
+     */
+    CompletionStage<Void> validateFeatures(ThingModel thingModel,
+            Features features,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * TODO TJ doc
+     */
+    CompletionStage<Void> validateFeature(@Nullable ThingDefinition thingDefinition,
+            Feature feature,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * TODO TJ doc
+     */
+    CompletionStage<Void> validateFeature(@Nullable ThingModel thingModel,
+            @Nullable ThingModel featureThingModel,
+            Feature feature,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
 
     /**
      * Creates a new instance of WotThingModelValidator with the given {@code wotConfig}.

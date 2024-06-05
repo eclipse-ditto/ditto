@@ -15,7 +15,12 @@ package org.eclipse.ditto.wot.validation;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
@@ -34,22 +39,60 @@ public interface WotThingModelValidation {
      * TODO TJ doc
      */
     CompletionStage<Void> validateThingAttributes(ThingModel thingModel,
-            Thing thing,
-            DittoHeaders dittoHeaders);
+            @Nullable Attributes attributes,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * TODO TJ doc
+     * @param thingModel
+     * @param attributePointer
+     * @param attributeValue
+     * @param resourcePath
+     * @param dittoHeaders
+     * @return
+     */
+    CompletionStage<Void> validateThingAttribute(ThingModel thingModel,
+            JsonPointer attributePointer,
+            JsonValue attributeValue,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * TODO TJ doc
+     */
+    CompletionStage<Void> validateFeaturesPresence(Map<String, ThingModel> featureThingModels,
+            @Nullable Features features,
+            DittoHeaders dittoHeaders
+    );
 
     /**
      * TODO TJ doc
      */
     CompletionStage<Void> validateFeaturesProperties(Map<String, ThingModel> featureThingModels,
-            Features features,
-            DittoHeaders dittoHeaders);
+            @Nullable Features features,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * TODO TJ doc
+     */
+    CompletionStage<Void> validateFeaturePresence(Map<String, ThingModel> featureThingModels,
+            Feature feature,
+            DittoHeaders dittoHeaders
+    );
 
     /**
      * TODO TJ doc
      */
     CompletionStage<Void> validateFeatureProperties(ThingModel featureThingModel,
             Feature feature,
-            DittoHeaders dittoHeaders);
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
 
     /**
      * TODO TJ doc

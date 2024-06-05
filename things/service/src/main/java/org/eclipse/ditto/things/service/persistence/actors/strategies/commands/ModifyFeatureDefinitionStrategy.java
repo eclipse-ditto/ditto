@@ -55,6 +55,8 @@ final class ModifyFeatureDefinitionStrategy extends AbstractThingCommandStrategy
             final ModifyFeatureDefinition command,
             @Nullable final Metadata metadata) {
 
+        // TODO TJ we probably must also validate the current feature properties based on the new feature definition
+
         final String featureId = command.getFeatureId();
 
         return extractFeature(command, thing)

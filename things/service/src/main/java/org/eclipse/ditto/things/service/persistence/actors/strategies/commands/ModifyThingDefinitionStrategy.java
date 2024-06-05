@@ -55,6 +55,10 @@ final class ModifyThingDefinitionStrategy extends AbstractThingCommandStrategy<M
             final ModifyThingDefinition command,
             @Nullable final Metadata metadata) {
 
+        // TODO TJ when changing the thing "definition", we must also validate the complete thing against the new definition
+        //  and fail the request if it does not match
+        //  only that way, we can support upgrading a WoT model version
+
         return extractDefinition(thing)
                 .map(definition -> getModifyResult(context, nextRevision, command, thing, metadata))
                 .orElseGet(() -> getCreateResult(context, nextRevision, command, thing, metadata));

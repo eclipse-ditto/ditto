@@ -13,6 +13,7 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -87,27 +88,42 @@ final class ModifyAttributesStrategy extends AbstractThingCommandStrategy<Modify
         final ThingId thingId = context.getState();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final ThingEvent<?> event =
-                AttributesModified.of(thingId, command.getAttributes(), nextRevision, getEventTimestamp(),
-                        dittoHeaders, metadata);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyAttributesResponse.modified(thingId, dittoHeaders), thing);
+        final CompletionStage<Attributes> validatedStage = getValidatedStage(command, thing);
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(attributes ->
+                AttributesModified.of(thingId, attributes, nextRevision, getEventTimestamp(), dittoHeaders, metadata)
+        );
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(attributes ->
+                appendETagHeaderIfProvided(command, ModifyAttributesResponse.modified(thingId, dittoHeaders), thing)
+        );
 
-        return ResultFactory.newMutationResult(command, event, response);
+        return ResultFactory.newMutationResult(command, eventStage, responseStage);
+    }
+
+    private CompletionStage<Attributes> getValidatedStage(final ModifyAttributes command, @Nullable final Thing thing) {
+        return wotThingModelValidator
+                .validateThingAttributes(Optional.ofNullable(thing).flatMap(Thing::getDefinition).orElse(null),
+                        command.getAttributes(),
+                        command.getResourcePath(),
+                        command.getDittoHeaders()
+                )
+                .thenApply(aVoid -> command.getAttributes());
     }
 
     private Result<ThingEvent<?>> getCreateResult(final Context<ThingId> context, final long nextRevision,
             final ModifyAttributes command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
         final ThingId thingId = context.getState();
-        final Attributes attributes = command.getAttributes();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final ThingEvent<?> event =
-                AttributesCreated.of(thingId, attributes, nextRevision, getEventTimestamp(), dittoHeaders, metadata);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyAttributesResponse.created(thingId, attributes, dittoHeaders), thing);
+        final CompletionStage<Attributes> validatedStage = getValidatedStage(command, thing);
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(attributes ->
+                AttributesCreated.of(thingId, attributes, nextRevision, getEventTimestamp(), dittoHeaders, metadata)
+        );
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(attributes ->
+                appendETagHeaderIfProvided(command, ModifyAttributesResponse.created(thingId, attributes, dittoHeaders),
+                        thing)
+        );
 
-        return ResultFactory.newMutationResult(command, event, response);
+        return ResultFactory.newMutationResult(command, eventStage, responseStage);
     }
 
     @Override

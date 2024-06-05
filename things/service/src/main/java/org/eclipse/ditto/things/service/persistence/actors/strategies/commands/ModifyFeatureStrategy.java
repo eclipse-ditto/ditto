@@ -95,7 +95,12 @@ final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFea
                     // validate based on potentially referenced Feature WoT TM
                     final CompletionStage<Void> validatedStage;
                     if (featureDefinition.isPresent()) {
-                        validatedStage = wotThingModelValidator.validateFeature(feature, command.getDittoHeaders());
+                        validatedStage = wotThingModelValidator.validateFeature(
+                                nonNullThing.getDefinition().orElse(null),
+                                feature,
+                                command.getResourcePath(),
+                                command.getDittoHeaders()
+                        );
                     } else {
                         validatedStage = CompletableFuture.completedStage(null);
                     }
@@ -169,7 +174,12 @@ final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFea
                 );
 
         final Function<Feature, CompletionStage<Feature>> validationFunction = feature ->
-                wotThingModelValidator.validateFeature(feature, command.getDittoHeaders())
+                wotThingModelValidator.validateFeature(
+                                Optional.ofNullable(thing).flatMap(Thing::getDefinition).orElse(null),
+                                feature,
+                                command.getResourcePath(),
+                                command.getDittoHeaders()
+                        )
                         .thenApply(aVoid -> feature);
         final CompletionStage<ThingEvent<?>> eventStage =
                 featureStage.thenCompose(validationFunction).thenApply(feature ->

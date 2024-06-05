@@ -125,12 +125,18 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
                         .build()
                 );
 
+        // validate based on potentially referenced Thing WoT TM/TD
+        final CompletionStage<Thing> validatedStage = thingStage.thenCompose(createdThing -> wotThingModelValidator
+                .validateThing(createdThing, command.getResourcePath(), command.getDittoHeaders())
+                .thenApply(aVoid -> createdThing)
+        );
+
         final CompletionStage<ThingEvent<?>> eventStage =
-                thingStage.thenApply(newThingWithImplicits ->
+                validatedStage.thenApply(newThingWithImplicits ->
                         ThingCreated.of(newThingWithImplicits, nextRevision, now, commandHeaders, metadata)
                 );
 
-        final CompletionStage<WithDittoHeaders> responseStage = thingStage.thenApply(newThingWithImplicits ->
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(newThingWithImplicits ->
                 appendETagHeaderIfProvided(command, CreateThingResponse.of(newThingWithImplicits, commandHeaders),
                         newThingWithImplicits)
         );

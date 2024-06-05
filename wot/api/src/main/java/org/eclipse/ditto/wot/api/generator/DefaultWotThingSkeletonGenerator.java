@@ -60,6 +60,7 @@ import org.eclipse.ditto.wot.api.resolver.WotThingModelResolver;
 import org.eclipse.ditto.wot.model.ArraySchema;
 import org.eclipse.ditto.wot.model.BaseLink;
 import org.eclipse.ditto.wot.model.DataSchemaType;
+import org.eclipse.ditto.wot.model.DittoWotExtension;
 import org.eclipse.ditto.wot.model.IRI;
 import org.eclipse.ditto.wot.model.IntegerSchema;
 import org.eclipse.ditto.wot.model.NumberSchema;
