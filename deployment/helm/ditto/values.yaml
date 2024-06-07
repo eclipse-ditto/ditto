@@ -181,6 +181,13 @@ global:
     enabled: true
     # annotations defines k8s annotations to add to corresponding jobs
     annotations: {}
+    image:
+      # repository for the pod-deletion-cost annotation patching job docker image
+      repository: public.ecr.aws/h0h9t7p1/alpine-bash-curl-jq
+      # tag for the pod-deletion-cost annotation patching job docker image
+      tag: latest
+      # pullPolicy for the pod-deletion-cost annotation patching job docker image
+      pullPolicy: IfNotPresent
 
 
 ## ----------------------------------------------------------------------------
