@@ -57,6 +57,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoReadJournalConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexFactory;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexInitializer;
@@ -169,6 +170,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
     private final String snapsCollection;
     private final DittoMongoClient mongoClient;
     private final IndexInitializer indexInitializer;
+    private final MongoReadJournalConfig readJournalConfig;
 
     private final JavaDslMongoReadJournal pekkoReadJournal;
 
@@ -176,6 +178,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
             final String snapsCollection,
             final String readJournalConfigurationKey,
             final DittoMongoClient mongoClient,
+            final MongoReadJournalConfig mongoReadJournalConfig,
             final ActorSystem actorSystem) {
 
         this.journalCollection = journalCollection;
@@ -183,6 +186,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
         this.mongoClient = mongoClient;
         final var materializer = SystemMaterializer.get(actorSystem).materializer();
         indexInitializer = IndexInitializer.of(mongoClient.getDefaultDatabase(), materializer);
+        readJournalConfig = mongoReadJournalConfig;
         pekkoReadJournal = PersistenceQuery.get(actorSystem)
                 .getReadJournalFor(JavaDslMongoReadJournal.class, readJournalConfigurationKey);
     }
@@ -197,7 +201,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
         final Config config = system.settings().config();
         final MongoDbConfig mongoDbConfig =
                 DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(config));
-        return newInstance(config, MongoClientWrapper.newInstance(mongoDbConfig), system);
+        return newInstance(config, MongoClientWrapper.newInstance(mongoDbConfig), mongoDbConfig.getReadJournalConfig(), system);
     }
 
     /**
@@ -205,10 +209,12 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
      *
      * @param config The Pekko system configuration.
      * @param mongoClient The Mongo client wrapper.
+     * @param mongoReadJournalConfig the configuration to use for the mongo read journal.
+     * @param actorSystem the actor system.
      * @return A {@code MongoReadJournal} object.
      */
     public static MongoReadJournal newInstance(final Config config, final DittoMongoClient mongoClient,
-            final ActorSystem actorSystem) {
+            final MongoReadJournalConfig mongoReadJournalConfig, final ActorSystem actorSystem) {
 
         final String autoStartJournalKey = extractAutoStartConfigKey(config, PEKKO_PERSISTENCE_JOURNAL_AUTO_START);
         final String autoStartSnapsKey = extractAutoStartConfigKey(config, PEKKO_PERSISTENCE_SNAPS_AUTO_START);
@@ -220,6 +226,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
                 snapshotCollection,
                 autoStartJournalKey + "-read",
                 mongoClient,
+                mongoReadJournalConfig,
                 actorSystem
         );
     }
@@ -330,16 +337,21 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
 
     private Source<String, NotUsed> filterPidsThatDoesntContainTagInNewestEntry(final MongoCollection<Document> journal,
             final List<String> pids, final String tag) {
-        return Source.fromPublisher(journal.aggregate(List.of(
-                        Aggregates.match(Filters.in(J_PROCESSOR_ID, pids)),
-                        Aggregates.sort(Sorts.descending(J_TO)),
-                        Aggregates.group(
-                                "$" + J_PROCESSOR_ID,
-                                toFirstJournalEntryFields(Set.of(J_PROCESSOR_ID, J_TAGS))
-                        ),
-                        Aggregates.match(Filters.eq(J_TAGS, tag)),
-                        Aggregates.sort(Sorts.ascending(J_PROCESSOR_ID))
-                )))
+        final AggregatePublisher<Document> aggregate = journal.aggregate(List.of(
+                Aggregates.match(Filters.in(J_PROCESSOR_ID, pids)),
+                Aggregates.sort(Sorts.descending(J_TO)),
+                Aggregates.group(
+                        "$" + J_PROCESSOR_ID,
+                        toFirstJournalEntryFields(Set.of(J_PROCESSOR_ID, J_TAGS))
+                ),
+                Aggregates.match(Filters.eq(J_TAGS, tag)),
+                Aggregates.sort(Sorts.ascending(J_PROCESSOR_ID))
+        ));
+        final AggregatePublisher<Document> hintedAggregate =
+                readJournalConfig.getIndexNameHintForFilterPidsThatDoesntContainTagInNewestEntry()
+                        .map(aggregate::hintString)
+                        .orElse(aggregate);
+        return Source.fromPublisher(hintedAggregate)
                 .flatMapConcat(document -> {
                     final Object objectPid = document.get(J_PROCESSOR_ID);
                     if (objectPid instanceof CharSequence) {
@@ -834,7 +846,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
         );
     }
 
-    private static Source<Document, NotUsed> listLatestJournalEntries(final MongoCollection<Document> journal,
+    private Source<Document, NotUsed> listLatestJournalEntries(final MongoCollection<Document> journal,
             final String startPid,
             final String tag,
             final int batchSize,
@@ -870,10 +882,18 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
                         MongoReadJournal.MAX_BACK_OFF_DURATION, randomFactor)
                 .withMaxRestarts(maxRestarts, minBackOff);
         return RestartSource.onFailuresWithBackoff(restartSettings, () ->
-                Source.fromPublisher(journal.aggregate(pipeline)
-                                .batchSize(batchSize)
-                        // use batchSize also for the cursor batchSize (16 by default bc of backpressure!)
-                )
+                {
+                    final AggregatePublisher<Document> aggregate = journal.aggregate(pipeline);
+                    final AggregatePublisher<Document> hintedAggregate =
+                            readJournalConfig.getIndexNameHintForListLatestJournalEntries()
+                                    .map(aggregate::hintString)
+                                    .orElse(aggregate);
+                    return Source.fromPublisher(
+                            hintedAggregate
+                                    .batchSize(batchSize)
+                            // use batchSize also for the cursor batchSize (16 by default bc of backpressure!)
+                    );
+                }
         );
     }
 
@@ -899,7 +919,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
         }
     }
 
-    private static Source<SnapshotBatch, NotUsed> listNewestActiveSnapshotsByBatch(
+    private Source<SnapshotBatch, NotUsed> listNewestActiveSnapshotsByBatch(
             final MongoCollection<Document> snapshotStore,
             final SnapshotFilter snapshotFilter,
             final int batchSize,
@@ -942,7 +962,13 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
                         .append("else", includeDeleted ? "$$DESCEND" : "$$PRUNE")
                 )));
 
-        return Source.fromPublisher(snapshotStore.aggregate(pipeline)
+        final AggregatePublisher<Document> aggregate = snapshotStore.aggregate(pipeline);
+        final AggregatePublisher<Document> hintedAggregate =
+                readJournalConfig.getIndexNameHintForListNewestActiveSnapshotsByBatch()
+                        .map(aggregate::hintString)
+                        .orElse(aggregate);
+        return Source.fromPublisher(
+                hintedAggregate
                         .batchSize(batchSize) // use batchSize also for the cursor batchSize (16 by default bc of backpressure!)
                 )
                 .flatMapConcat(document -> {
