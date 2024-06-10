@@ -97,7 +97,7 @@ final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFea
                     if (featureDefinition.isPresent()) {
                         validatedStage = wotThingModelValidator.validateFeature(
                                 nonNullThing.getDefinition().orElse(null),
-                                feature,
+                                command.getFeature(),
                                 command.getResourcePath(),
                                 command.getDittoHeaders()
                         );

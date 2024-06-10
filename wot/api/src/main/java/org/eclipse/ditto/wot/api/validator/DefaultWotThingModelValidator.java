@@ -33,6 +33,7 @@ import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.DefinitionIdentifier;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.FeatureDefinition;
+import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingDefinition;
@@ -75,12 +76,10 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                         thingModelWithExtensionsAndImports ->
                                 validateThing(thingModelWithExtensionsAndImports, thing, resourcePath, dittoHeaders);
                 return fetchResolveAndValidateWith(url, dittoHeaders, validationFunction);
-            } else {
-                return success();
             }
-        } else {
-            return success();
         }
+        return success();
+
     }
 
     @Override
@@ -99,9 +98,8 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                                             dittoHeaders)
                             )
             );
-        } else {
-            return success();
         }
+        return success();
     }
 
     @Override
@@ -120,12 +118,9 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                                 validateThingAttributes(thingModelWithExtensionsAndImports, attributes, resourcePath,
                                         dittoHeaders);
                 return fetchResolveAndValidateWith(url, dittoHeaders, validationFunction);
-            } else {
-                return success();
             }
-        } else {
-            return success();
         }
+        return success();
     }
 
     @Override
@@ -137,9 +132,8 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
         if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled() &&
                 attributes != null) {
             return thingModelValidation.validateThingAttributes(thingModel, attributes, resourcePath, dittoHeaders);
-        } else {
-            return success();
         }
+        return success();
     }
 
     @Override
@@ -159,12 +153,9 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                                 thingModelValidation.validateThingAttribute(thingModelWithExtensionsAndImports,
                                         attributePointer, attributeValue, resourcePath, dittoHeaders);
                 return fetchResolveAndValidateWith(url, dittoHeaders, validationFunction);
-            } else {
-                return success();
             }
-        } else {
-            return success();
         }
+        return success();
     }
 
     @Override
@@ -183,12 +174,9 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                                 validateFeatures(thingModelWithExtensionsAndImports, features, resourcePath,
                                         dittoHeaders);
                 return fetchResolveAndValidateWith(url, dittoHeaders, validationFunction);
-            } else {
-                return success();
             }
-        } else {
-            return success();
         }
+        return success();
     }
 
     @Override
@@ -226,7 +214,6 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             } else {
                 return doValidateFeature(null, feature, resourcePath, dittoHeaders);
             }
-
         } else {
             return success();
         }
@@ -248,7 +235,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                                         feature,
                                         dittoHeaders
                                 ).thenCompose(aVoid ->
-                                        thingModelValidation.validateFeatureProperties(featureThingModel, feature,
+                                        thingModelValidation.validateFeature(featureThingModel, feature,
                                                 resourcePath, dittoHeaders)
                                 )
                         );
@@ -261,13 +248,80 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                                         dittoHeaders
                                 )
                         );
-            } else {
-                return thingModelValidation.validateFeatureProperties(featureThingModel, feature, resourcePath,
+            } else if (featureThingModel != null) {
+                return thingModelValidation.validateFeature(featureThingModel, feature, resourcePath,
                         dittoHeaders);
             }
-        } else {
-            return success();
         }
+        return success();
+    }
+
+    @Override
+    public CompletionStage<Void> validateFeatureProperties(@Nullable final FeatureDefinition featureDefinition,
+            final String featureId,
+            @Nullable final FeatureProperties properties,
+            final boolean desiredProperties,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled()) {
+            final Optional<DefinitionIdentifier> definitionIdentifier =
+                    Optional.ofNullable(featureDefinition).map(FeatureDefinition::getFirstIdentifier);
+            final Optional<URL> urlOpt = definitionIdentifier.flatMap(DefinitionIdentifier::getUrl);
+            if (urlOpt.isPresent()) {
+                final URL url = urlOpt.get();
+                final Function<ThingModel, CompletionStage<Void>> validationFunction =
+                        featureThingModelWithExtensionsAndImports ->
+                                validateFeatureProperties(featureThingModelWithExtensionsAndImports, featureId,
+                                        properties, desiredProperties, resourcePath, dittoHeaders
+                                );
+                return fetchResolveAndValidateWith(url, dittoHeaders, validationFunction);
+            }
+        }
+        return success();
+    }
+
+    @Override
+    public CompletionStage<Void> validateFeatureProperties(final ThingModel featureThingModel,
+            final String featureId,
+            @Nullable final FeatureProperties properties,
+            final boolean desiredProperties,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled()) {
+            return thingModelValidation.validateFeatureProperties(featureThingModel, featureId, properties,
+                    desiredProperties, resourcePath, dittoHeaders
+            );
+        }
+        return success();
+    }
+
+    @Override
+    public CompletionStage<Void> validateFeatureProperty(@Nullable final FeatureDefinition featureDefinition,
+            final String featureId,
+            final JsonPointer propertyPointer,
+            final JsonValue propertyValue,
+            final boolean desiredProperty,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled()) {
+            final Optional<URL> urlOpt = Optional.ofNullable(featureDefinition)
+                    .map(FeatureDefinition::getFirstIdentifier)
+                    .flatMap(DefinitionIdentifier::getUrl);
+            if (urlOpt.isPresent()) {
+                final URL url = urlOpt.get();
+                final Function<ThingModel, CompletionStage<Void>> validationFunction =
+                        featureThingModelWithExtensionsAndImports ->
+                                thingModelValidation.validateFeatureProperty(featureThingModelWithExtensionsAndImports,
+                                        featureId, propertyPointer, propertyValue, desiredProperty, resourcePath,
+                                        dittoHeaders
+                                );
+                return fetchResolveAndValidateWith(url, dittoHeaders, validationFunction);
+            }
+        }
+        return success();
     }
 
     private static <T> CompletionStage<T> success() {

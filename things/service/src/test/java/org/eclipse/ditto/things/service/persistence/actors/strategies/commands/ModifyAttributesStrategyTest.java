@@ -65,7 +65,7 @@ public final class ModifyAttributesStrategyTest extends AbstractCommandStrategyT
         final ModifyAttributes command =
                 ModifyAttributes.of(context.getState(), modifiedAttributes, DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2.removeAttributes(), command,
+        assertStagedModificationResult(underTest, THING_V2.removeAttributes(), command,
                 AttributesCreated.class,
                 ETagTestUtils.modifyAttributeResponse(context.getState(), modifiedAttributes, command.getDittoHeaders(), true));
     }
@@ -76,7 +76,7 @@ public final class ModifyAttributesStrategyTest extends AbstractCommandStrategyT
         final ModifyAttributes command =
                 ModifyAttributes.of(context.getState(), modifiedAttributes, DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2, command,
+        assertStagedModificationResult(underTest, THING_V2, command,
                 AttributesModified.class,
                 ETagTestUtils.modifyAttributeResponse(context.getState(), modifiedAttributes, command.getDittoHeaders(), false));
     }

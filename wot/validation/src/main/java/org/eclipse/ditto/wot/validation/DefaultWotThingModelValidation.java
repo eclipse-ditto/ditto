@@ -43,6 +43,8 @@ import org.eclipse.ditto.wot.model.SingleUriAtContext;
 import org.eclipse.ditto.wot.model.ThingModel;
 import org.eclipse.ditto.wot.model.TmOptionalElement;
 import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.networknt.schema.output.OutputUnit;
 
@@ -55,6 +57,8 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
     private static final String FEATURES = "features";
     private static final String PROPERTIES = "properties";
     private static final String DESIRED_PROPERTIES = "desiredProperties";
+
+    private static final Logger log = LoggerFactory.getLogger(DefaultWotThingModelValidation.class);
 
     private final TmValidationConfig validationConfig;
     private final JsonSchemaTools jsonSchemaTools;
@@ -84,7 +88,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final DittoHeaders dittoHeaders
     ) {
         if (validationConfig.getThingValidationConfig().isEnforceAttributes()) {
-            return enforceThingAttribute(thingModel, attributePointer, attributeValue, dittoHeaders);
+            return enforceThingAttribute(thingModel, attributePointer, attributeValue, resourcePath, dittoHeaders);
         }
         return success();
     }
@@ -154,8 +158,10 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     .map(entry ->
                             enforceFeatureProperties(entry.getValue(),
                                     features.getFeature(entry.getKey()).orElseThrow(),
-                                    true, false,
-                                    resourcePath, dittoHeaders
+                                    false,
+                                    validationConfig.getFeatureValidationConfig().isAllowNonModeledProperties(),
+                                    resourcePath,
+                                    dittoHeaders
                             )
                     )
                     .toList();
@@ -174,8 +180,12 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     .entrySet()
                     .stream()
                     .map(entry -> enforceFeatureProperties(entry.getValue(),
-                            features.getFeature(entry.getKey()).orElseThrow(),
-                            false, true, resourcePath, dittoHeaders)
+                                    features.getFeature(entry.getKey()).orElseThrow(),
+                                    true,
+                                    validationConfig.getFeatureValidationConfig().isAllowNonModeledDesiredProperties(),
+                                    resourcePath,
+                                    dittoHeaders
+                            )
                     )
                     .toList();
             return enforcedPropertiesListFuture.thenCompose(voidL ->
@@ -216,7 +226,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
     }
 
     @Override
-    public CompletionStage<Void> validateFeatureProperties(final ThingModel featureThingModel,
+    public CompletionStage<Void> validateFeature(final ThingModel featureThingModel,
             final Feature feature,
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
@@ -224,7 +234,12 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
         final CompletableFuture<Void> enforcedPropertiesFuture;
         if (validationConfig.getFeatureValidationConfig().isEnforceProperties()) {
             enforcedPropertiesFuture = enforceFeatureProperties(featureThingModel,
-                    feature, true, false, resourcePath, dittoHeaders);
+                    feature,
+                    false,
+                    validationConfig.getFeatureValidationConfig().isAllowNonModeledProperties(),
+                    resourcePath,
+                    dittoHeaders
+            );
         } else {
             enforcedPropertiesFuture = success();
         }
@@ -232,10 +247,64 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
         if (validationConfig.getFeatureValidationConfig().isEnforceDesiredProperties()) {
             return enforcedPropertiesFuture.thenCompose(aVoid ->
                     enforceFeatureProperties(featureThingModel,
-                            feature, false, true, resourcePath, dittoHeaders)
+                            feature,
+                            true,
+                            validationConfig.getFeatureValidationConfig().isAllowNonModeledDesiredProperties(),
+                            resourcePath,
+                            dittoHeaders
+                    )
             );
         }
         return enforcedPropertiesFuture;
+    }
+
+    @Override
+    public CompletionStage<Void> validateFeatureProperties(final ThingModel featureThingModel,
+            final String featureId,
+            @Nullable final FeatureProperties properties,
+            final boolean desiredProperties,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        if (validationConfig.getFeatureValidationConfig().isEnforceProperties()) {
+            return enforceFeatureProperties(featureThingModel,
+                    desiredProperties ?
+                            Feature.newBuilder().desiredProperties(properties).withId(featureId).build() :
+                            Feature.newBuilder().properties(properties).withId(featureId).build(),
+                    desiredProperties,
+                    desiredProperties ?
+                            validationConfig.getFeatureValidationConfig().isAllowNonModeledDesiredProperties() :
+                            validationConfig.getFeatureValidationConfig().isAllowNonModeledProperties(),
+                    resourcePath,
+                    dittoHeaders
+            );
+        }
+        return success();
+    }
+
+    @Override
+    public CompletionStage<Void> validateFeatureProperty(final ThingModel featureThingModel,
+            final String featureId,
+            final JsonPointer propertyPointer,
+            final JsonValue propertyValue,
+            final boolean desiredProperty,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        if (validationConfig.getFeatureValidationConfig().isEnforceProperties()) {
+            return enforceFeatureProperty(featureThingModel,
+                    featureId,
+                    propertyPointer,
+                    propertyValue,
+                    desiredProperty,
+                    desiredProperty ?
+                            validationConfig.getFeatureValidationConfig().isAllowNonModeledDesiredProperties() :
+                            validationConfig.getFeatureValidationConfig().isAllowNonModeledProperties(),
+                    resourcePath,
+                    dittoHeaders
+            );
+        }
+        return success();
     }
 
     private CompletableFuture<Void> enforceThingAttributes(final ThingModel thingModel,
@@ -265,7 +334,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
 
                     final CompletableFuture<Void> validatePropertiesStage =
                             getValidatePropertiesStage(thingModel, dittoHeaders, tdProperties, attributes,
-                                    containerNamePlural, pathPrefix, false);
+                                    true, containerNamePlural, pathPrefix, false);
 
                     return CompletableFuture.allOf(
                             ensureRequiredPropertiesStage,
@@ -278,6 +347,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
     private CompletableFuture<Void> enforceThingAttribute(final ThingModel thingModel,
             final JsonPointer attributePath,
             final JsonValue attributeValue,
+            final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
 
@@ -285,7 +355,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                 .map(tdProperties -> {
                     final Attributes attributes = Attributes.newBuilder().set(attributePath, attributeValue).build();
                     final CompletableFuture<Void> ensureOnlyDefinedPropertiesStage;
-                    if (!validationConfig.getThingValidationConfig().isAllowNonModeledAttributes()) {
+                    if (!validationConfig.getFeatureValidationConfig().isAllowNonModeledProperties()) {
                         ensureOnlyDefinedPropertiesStage = ensureOnlyDefinedProperties(thingModel, dittoHeaders,
                                 tdProperties, attributes, "Thing's attributes", false);
                     } else {
@@ -293,8 +363,10 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     }
 
                     final CompletableFuture<Void> validatePropertiesStage =
-                            getValidatePropertyStage(dittoHeaders, tdProperties, attributePath, attributeValue,
-                                    "Thing's attribute <" + attributePath + ">");
+                            getValidatePropertyStage(thingModel, dittoHeaders, tdProperties, attributePath,
+                                    true, attributeValue,
+                                    "Thing's attribute <" + attributePath + ">", resourcePath, false
+                            );
 
                     return CompletableFuture.allOf(
                             ensureOnlyDefinedPropertiesStage,
@@ -424,6 +496,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final DittoHeaders dittoHeaders,
             final Properties tdProperties,
             final JsonObject propertiesContainer,
+            final boolean validateRequiredObjectFields,
             final String containerNamePlural,
             final JsonPointer pointerPrefix,
             final boolean handleDittoCategory
@@ -438,11 +511,13 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                                     .orElse("")
                                     .concat(p.getPropertyName())
                     ),
+                    validateRequiredObjectFields,
                     dittoHeaders
             );
         } else {
             invalidProperties = determineInvalidProperties(tdProperties,
                     p -> propertiesContainer.getValue(p.getPropertyName()),
+                    validateRequiredObjectFields,
                     dittoHeaders
             );
         }
@@ -474,31 +549,64 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
         return validatePropertiesStage;
     }
 
-    private CompletableFuture<Void> getValidatePropertyStage(final DittoHeaders dittoHeaders,
+    private CompletableFuture<Void> getValidatePropertyStage(final ThingModel thingModel,
+            final DittoHeaders dittoHeaders,
             final Properties tdProperties,
-            final JsonPointer attributePath,
+            final JsonPointer propertyPath,
+            final boolean validateRequiredObjectFields,
             final JsonValue propertyValue,
-            final String propertyDescription
+            final String propertyDescription,
+            final JsonPointer resourcePath,
+            final boolean handleDittoCategory
     ) {
         final JsonValue valueToValidate;
-        if (attributePath.getLevelCount() > 1) {
+        if (propertyPath.getLevelCount() > 1) {
             valueToValidate = JsonObject.newBuilder()
-                    .set(attributePath.getSubPointer(1).orElseThrow(), propertyValue)
+                    .set(propertyPath.getSubPointer(1).orElseThrow(), propertyValue)
                     .build();
         } else {
             valueToValidate = propertyValue;
         }
 
         final Optional<OutputUnit> validationOutput = tdProperties
-                .getProperty(attributePath.getRoot().orElseThrow())
-                .map(property ->
-                        jsonSchemaTools.validateDittoJsonBasedOnDataSchema(
+                .values().stream()
+                .filter(property -> {
+                    if (handleDittoCategory) {
+                        final JsonPointer thePropertyPath = determineDittoCategory(thingModel, property)
+                                .flatMap(cat -> propertyPath.getSubPointer(1))
+                                .orElse(propertyPath);
+                        return property.getPropertyName().equals(thePropertyPath.getRoot().orElseThrow().toString());
+                    } else {
+                        return property.getPropertyName().equals(propertyPath.getRoot().orElseThrow().toString());
+                    }
+                })
+                .findFirst()
+                .map(property -> {
+                    if (handleDittoCategory) {
+                        final Optional<String> dittoCategory = determineDittoCategory(thingModel, property);
+                        final JsonPointer thePropertyPath = dittoCategory
+                                .flatMap(cat -> propertyPath.getSubPointer(1))
+                                .orElse(propertyPath);
+                        final JsonValue theValueToValidate = dittoCategory
+                                .flatMap(cat -> valueToValidate.asObject().getValue(thePropertyPath))
+                                .orElse(valueToValidate);
+                        return jsonSchemaTools.validateDittoJsonBasedOnDataSchema(
                                 property,
-                                attributePath,
+                                thePropertyPath,
+                                validateRequiredObjectFields,
+                                theValueToValidate,
+                                dittoHeaders
+                        );
+                    } else {
+                        return jsonSchemaTools.validateDittoJsonBasedOnDataSchema(
+                                property,
+                                propertyPath,
+                                validateRequiredObjectFields,
                                 valueToValidate,
                                 dittoHeaders
-                        )
-                )
+                        );
+                    }
+                })
                 .filter(outputUnit -> !outputUnit.isValid());
 
         final CompletableFuture<Void> validatePropertiesStage;
@@ -523,17 +631,19 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
 
     private Map<Property, OutputUnit> determineInvalidProperties(final Properties tdProperties,
             final Function<Property, Optional<JsonValue>> propertyExtractor,
+            final boolean validateRequiredObjectFields,
             final DittoHeaders dittoHeaders
     ) {
         return tdProperties.entrySet().stream()
                 .flatMap(tdPropertyEntry ->
                         propertyExtractor.apply(tdPropertyEntry.getValue())
-                                .map(attributeValue -> new AbstractMap.SimpleEntry<>(
+                                .map(propertyValue -> new AbstractMap.SimpleEntry<>(
                                         tdPropertyEntry.getValue(),
                                         jsonSchemaTools.validateDittoJsonBasedOnDataSchema(
                                                 tdPropertyEntry.getValue(),
                                                 JsonPointer.empty(),
-                                                attributeValue,
+                                                validateRequiredObjectFields,
+                                                propertyValue,
                                                 dittoHeaders
                                         )
                                 ))
@@ -544,8 +654,8 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
 
     private CompletableFuture<Void> enforceFeatureProperties(final ThingModel featureThingModel,
             final Feature feature,
-            final boolean checkForRequiredProperties,
             final boolean desiredProperties,
+            final boolean allowNonModeledProperties,
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
@@ -571,7 +681,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                             pathPrefix.addLeaf(JsonKey.of(PROPERTIES));
 
                     final CompletableFuture<Void> ensureRequiredPropertiesStage;
-                    if (checkForRequiredProperties) {
+                    if (!desiredProperties) {
                         ensureRequiredPropertiesStage = ensureRequiredProperties(featureThingModel, dittoHeaders,
                                 tdProperties, featureProperties, containerNamePlural,
                                 containerNamePrefix + "property", JsonPointer.of(path), true);
@@ -580,7 +690,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     }
 
                     final CompletableFuture<Void> ensureOnlyDefinedPropertiesStage;
-                    if (!validationConfig.getThingValidationConfig().isAllowNonModeledAttributes()) {
+                    if (!allowNonModeledProperties) {
                         ensureOnlyDefinedPropertiesStage = ensureOnlyDefinedProperties(featureThingModel, dittoHeaders,
                                 tdProperties, featureProperties, containerNamePlural, true);
                     } else {
@@ -589,7 +699,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
 
                     final CompletableFuture<Void> validatePropertiesStage =
                             getValidatePropertiesStage(featureThingModel, dittoHeaders, tdProperties, featureProperties,
-                                    containerNamePlural, JsonPointer.of(path), true);
+                                    !desiredProperties, containerNamePlural, JsonPointer.of(path), true);
 
                     return CompletableFuture.allOf(
                             ensureRequiredPropertiesStage,
@@ -597,6 +707,127 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                             validatePropertiesStage
                     );
                 }).orElseGet(DefaultWotThingModelValidation::success);
+    }
+
+    private CompletableFuture<Void> enforceFeatureProperty(final ThingModel featureThingModel,
+            final String featureId,
+            final JsonPointer propertyPath,
+            final JsonValue propertyValue,
+            final boolean desiredProperty,
+            final boolean allowNonModeledProperties,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        return featureThingModel.getProperties()
+                .map(tdProperties -> {
+                    final String containerNamePrefix = "Feature <" + featureId + ">'s " +
+                            (desiredProperty ? "desired " : "");
+                    final String containerNamePlural = containerNamePrefix + "properties";
+
+                    // TODO TJ when updating a ditto:category (e.g. PUT /status), we also need to check that all of the
+                    //  non-optional properties are present in that request
+                    //  maybe we even need a separate "enforceFeaturePropertiesCategory" method to handle that special case?
+                    final CompletableFuture<Void> ensureOnlyDefinedPropertiesStage;
+                    if (!allowNonModeledProperties) {
+                        final FeatureProperties properties = FeatureProperties.newBuilder()
+                                .set(propertyPath, propertyValue)
+                                .build();
+                        ensureOnlyDefinedPropertiesStage = ensureOnlyDefinedProperties(featureThingModel, dittoHeaders,
+                                tdProperties, properties, containerNamePlural, true);
+                    } else {
+                        ensureOnlyDefinedPropertiesStage = success();
+                    }
+
+                    final CompletableFuture<Void> validatePropertiesStage;
+                    if (propertyPath.getLevelCount() == 1) {
+                        // potential "category update" (e.g. updating complete /configuration "ditto:category")
+                        final List<Property> sameCategoryProperties = tdProperties.values().stream()
+                                .filter(jsonFields -> {
+                                    // gather all properties from the same category
+                                    final Optional<String> dittoCategory =
+                                            determineDittoCategory(featureThingModel, jsonFields);
+                                    final JsonPointer categoryPath;
+                                    if (propertyPath.getLevelCount() > 1) {
+                                        categoryPath = propertyPath.getSubPointer(1).orElseThrow();
+                                    } else {
+                                        categoryPath = propertyPath;
+                                    }
+                                    return dittoCategory
+                                            .filter(cat -> cat.equals(categoryPath.getRoot().orElseThrow().toString()))
+                                            .isPresent();
+                                })
+                                .toList();
+
+                        if (!sameCategoryProperties.isEmpty() && propertyValue.isObject()) {
+                            log.debug("Category update of category <{}> with known properties in same category: {}",
+                                    propertyPath.getRoot().orElseThrow(), sameCategoryProperties);
+                            validatePropertiesStage = getValidatePropertyCategoryStage(
+                                    featureThingModel, dittoHeaders, Properties.from(sameCategoryProperties),
+                                    propertyPath, !desiredProperty, propertyValue.asObject(),
+                                    containerNamePrefix + "property", resourcePath
+                            );
+                        } else {
+                            validatePropertiesStage =
+                                    getValidatePropertyStage(featureThingModel, dittoHeaders, tdProperties,
+                                            propertyPath,
+                                            !desiredProperty, propertyValue,
+                                            containerNamePrefix + "property <" + propertyPath + ">",
+                                            resourcePath, true
+                                    );
+                        }
+                    } else {
+                        validatePropertiesStage =
+                                getValidatePropertyStage(featureThingModel, dittoHeaders, tdProperties, propertyPath,
+                                        !desiredProperty, propertyValue,
+                                        containerNamePrefix + "property <" + propertyPath + ">",
+                                        resourcePath, true
+                                );
+                    }
+
+                    return CompletableFuture.allOf(
+                            ensureOnlyDefinedPropertiesStage,
+                            validatePropertiesStage
+                    );
+                }).orElseGet(DefaultWotThingModelValidation::success);
+    }
+
+    private CompletableFuture<Void> getValidatePropertyCategoryStage(final ThingModel featureThingModel,
+            final DittoHeaders dittoHeaders,
+            final Properties categoryProperties,
+            final JsonPointer propertyPath,
+            final boolean validateRequiredObjectFields,
+            final JsonObject categoryObject,
+            final String propertyDescription,
+            final JsonPointer resourcePath
+    ) {
+        final Map<String, Property> nonProvidedRequiredProperties =
+                filterNonProvidedRequiredProperties(categoryProperties, featureThingModel, categoryObject, false);
+        final JsonKey category = propertyPath.getRoot().orElseThrow();
+        final String propertyCategoryDescription = propertyDescription + " category <" + category + ">";
+        if (validateRequiredObjectFields && !nonProvidedRequiredProperties.isEmpty()) {
+            final var exceptionBuilder = WotThingModelPayloadValidationException
+                    .newBuilder("Required JSON fields were missing from the " + propertyCategoryDescription);
+            nonProvidedRequiredProperties.forEach((rpKey, requiredProperty) ->
+                    exceptionBuilder.addValidationDetail(
+                            propertyPath.addLeaf(JsonKey.of(rpKey)),
+                            List.of(propertyDescription + " category <" + category +
+                                    ">'s <" + rpKey + "> is non optional and must be provided")
+                    )
+            );
+            return CompletableFuture
+                    .failedFuture(exceptionBuilder.dittoHeaders(dittoHeaders).build());
+        }
+
+        return getValidatePropertiesStage(
+                featureThingModel,
+                dittoHeaders,
+                categoryProperties,
+                categoryObject,
+                validateRequiredObjectFields,
+                propertyCategoryDescription,
+                resourcePath,
+                false
+        );
     }
 
     private static <T> CompletableFuture<T> success() {

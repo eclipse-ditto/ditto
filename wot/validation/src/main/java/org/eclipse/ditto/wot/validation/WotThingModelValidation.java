@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.wot.model.ThingModel;
@@ -88,8 +89,39 @@ public interface WotThingModelValidation {
     /**
      * TODO TJ doc
      */
-    CompletionStage<Void> validateFeatureProperties(ThingModel featureThingModel,
+    CompletionStage<Void> validateFeature(ThingModel featureThingModel,
             Feature feature,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * TODO TJ doc
+     */
+    CompletionStage<Void> validateFeatureProperties(ThingModel featureThingModel,
+            String featureId,
+            @Nullable FeatureProperties properties,
+            boolean desiredProperties,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * TODO TJ Doc
+     * @param featureThingModel
+     * @param featureId
+     * @param propertyPointer
+     * @param propertyValue
+     * @param desiredProperty
+     * @param resourcePath
+     * @param dittoHeaders
+     * @return
+     */
+    CompletionStage<Void> validateFeatureProperty(ThingModel featureThingModel,
+            String featureId,
+            JsonPointer propertyPointer,
+            JsonValue propertyValue,
+            boolean desiredProperty,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders
     );
