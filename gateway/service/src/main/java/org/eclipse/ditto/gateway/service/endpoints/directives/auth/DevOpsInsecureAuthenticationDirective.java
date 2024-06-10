@@ -12,17 +12,17 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.directives.auth;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import org.apache.pekko.http.javadsl.server.Route;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLogger;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 
 /**
  * Authentication directive which does not perform any authentication.
  */
 public final class DevOpsInsecureAuthenticationDirective implements DevopsAuthenticationDirective {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DevOpsInsecureAuthenticationDirective.class);
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(DevOpsInsecureAuthenticationDirective.class);
     private static final DevOpsInsecureAuthenticationDirective INSTANCE = new DevOpsInsecureAuthenticationDirective();
 
     private DevOpsInsecureAuthenticationDirective() {}
@@ -32,8 +32,8 @@ public final class DevOpsInsecureAuthenticationDirective implements DevopsAuthen
     }
 
     @Override
-    public Route authenticateDevOps(final String realm, final Route inner) {
-        LOGGER.warn("DevOps resource is not secured");
+    public Route authenticateDevOps(final String realm, final DittoHeaders dittoHeaders, final Route inner) {
+        LOGGER.withCorrelationId(dittoHeaders).warn("DevOps resource is not secured");
         return inner;
     }
 }

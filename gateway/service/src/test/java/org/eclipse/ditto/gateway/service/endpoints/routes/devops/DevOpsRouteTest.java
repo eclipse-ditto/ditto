@@ -14,19 +14,7 @@
 package org.eclipse.ditto.gateway.service.endpoints.routes.devops;
 
 import java.util.Collections;
-
-import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackCommand;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
-import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
-import org.eclipse.ditto.gateway.service.util.config.security.DefaultDevOpsConfig;
-import org.eclipse.ditto.gateway.service.util.config.security.DevOpsConfig;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
-import org.junit.Before;
-import org.junit.Test;
-
-import com.typesafe.config.ConfigFactory;
+import java.util.UUID;
 
 import org.apache.pekko.http.javadsl.model.ContentTypes;
 import org.apache.pekko.http.javadsl.model.HttpEntities;
@@ -35,6 +23,19 @@ import org.apache.pekko.http.javadsl.model.RequestEntity;
 import org.apache.pekko.http.javadsl.model.StatusCodes;
 import org.apache.pekko.http.javadsl.server.Route;
 import org.apache.pekko.http.javadsl.testkit.TestRoute;
+import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackCommand;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
+import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
+import org.eclipse.ditto.gateway.service.util.config.security.DefaultDevOpsConfig;
+import org.eclipse.ditto.gateway.service.util.config.security.DevOpsConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Unit test for {@link DevOpsRoute}.
@@ -47,11 +48,14 @@ public final class DevOpsRouteTest extends EndpointTestBase {
 
     @Before
     public void setUp() {
+        final var dittoExtensionConfig =
+                ScopedConfig.dittoExtension(routeBaseProperties.getActorSystem().settings().config());
         final var devopsAuthenticationDirectiveFactory =
-                DevopsAuthenticationDirectiveFactory.newInstance(jwtAuthenticationFactory, getInsecureDevopsConfig());
+                DevopsAuthenticationDirectiveFactory.newInstance(jwtAuthenticationFactory, getInsecureDevopsConfig(),
+                        dittoExtensionConfig);
         final var authenticationDirective = devopsAuthenticationDirectiveFactory.devops();
         devOpsRoute = new DevOpsRoute(routeBaseProperties, authenticationDirective);
-        final Route route = extractRequestContext(ctx -> devOpsRoute.buildDevOpsRoute(ctx, Collections.emptyMap()));
+        final Route route = extractRequestContext(ctx -> devOpsRoute.buildDevOpsRoute(ctx, UUID.randomUUID().toString(), Collections.emptyMap()));
         underTest = testRoute(route);
     }
 

@@ -24,6 +24,14 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.HttpRequest;
+import org.apache.pekko.http.javadsl.model.StatusCodes;
+import org.apache.pekko.http.javadsl.model.headers.Location;
+import org.apache.pekko.http.javadsl.model.headers.RawHeader;
+import org.apache.pekko.http.javadsl.testkit.TestRoute;
+import org.apache.pekko.http.javadsl.testkit.TestRouteResult;
+import org.apache.pekko.stream.SystemMaterializer;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
@@ -69,15 +77,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.http.javadsl.model.HttpRequest;
-import org.apache.pekko.http.javadsl.model.StatusCodes;
-import org.apache.pekko.http.javadsl.model.headers.Location;
-import org.apache.pekko.http.javadsl.model.headers.RawHeader;
-import org.apache.pekko.http.javadsl.testkit.TestRoute;
-import org.apache.pekko.http.javadsl.testkit.TestRouteResult;
-import org.apache.pekko.stream.SystemMaterializer;
 
 /**
  * Tests {@link RootRoute}.
@@ -137,12 +136,12 @@ public final class RootRouteTest extends EndpointTestBase {
         final var statusAndHealthProvider = DittoStatusAndHealthProviderFactory.of(routeBaseProperties.getActorSystem(),
                 clusterStatusSupplier,
                 healthCheckConfig);
-        final var devopsAuthenticationDirectiveFactory =
-                DevopsAuthenticationDirectiveFactory.newInstance(jwtAuthenticationFactory,
-                        authConfig.getDevOpsConfig());
-        final var devOpsAuthenticationDirective = devopsAuthenticationDirectiveFactory.devops();
         final var dittoExtensionConfig =
                 ScopedConfig.dittoExtension(routeBaseProperties.getActorSystem().settings().config());
+        final var devopsAuthenticationDirectiveFactory =
+                DevopsAuthenticationDirectiveFactory.newInstance(jwtAuthenticationFactory,
+                        authConfig.getDevOpsConfig(), dittoExtensionConfig);
+        final var devOpsAuthenticationDirective = devopsAuthenticationDirectiveFactory.devops();
         final var rootRoute = RootRoute.getBuilder(httpConfig)
                 .statsRoute(new StatsRoute(routeBaseProperties, devOpsAuthenticationDirective))
                 .statusRoute(new StatusRoute(clusterStatusSupplier,
