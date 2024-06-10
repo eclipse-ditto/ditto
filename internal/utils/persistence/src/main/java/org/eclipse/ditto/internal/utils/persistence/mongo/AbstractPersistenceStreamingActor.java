@@ -18,19 +18,18 @@ import java.time.Duration;
 import java.util.List;
 import java.util.function.Function;
 
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.stream.javadsl.Source;
 import org.eclipse.ditto.internal.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamPids;
-import org.eclipse.ditto.internal.utils.pekko.streaming.AbstractStreamingActor;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.pekko.streaming.AbstractStreamingActor;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
-
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.stream.javadsl.Source;
 
 /**
  * Abstract implementation of an Actor that streams information about persisted entities modified in a time window in
@@ -64,7 +63,8 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
         final MongoDbConfig mongoDbConfig =
                 DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(config));
         mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
-        readJournal = MongoReadJournal.newInstance(config, mongoClient, getContext().getSystem());
+        readJournal = MongoReadJournal.newInstance(config, mongoClient, mongoDbConfig.getReadJournalConfig(),
+                getContext().getSystem());
     }
 
     /**

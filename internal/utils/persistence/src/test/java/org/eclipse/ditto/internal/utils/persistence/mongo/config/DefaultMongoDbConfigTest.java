@@ -55,7 +55,8 @@ public final class DefaultMongoDbConfigTest {
                         DefaultOptionsConfig.class,
                         DefaultConnectionPoolConfig.class,
                         DefaultCircuitBreakerConfig.class,
-                        DefaultMonitoringConfig.class).areAlsoImmutable());
+                        DefaultMonitoringConfig.class,
+                        DefaultMongoReadJournalConfig.class).areAlsoImmutable());
     }
 
     @Test
