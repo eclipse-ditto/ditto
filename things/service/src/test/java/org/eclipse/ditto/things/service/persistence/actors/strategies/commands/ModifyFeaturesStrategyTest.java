@@ -86,7 +86,7 @@ public final class ModifyFeaturesStrategyTest extends AbstractCommandStrategyTes
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ModifyFeatures command = ModifyFeatures.of(context.getState(), modifiedFeatures, DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2, command,
+        assertStagedModificationResult(underTest, THING_V2, command,
                 FeaturesModified.class,
                 ETagTestUtils.modifyFeaturesResponse(context.getState(), modifiedFeatures, command.getDittoHeaders(), false));
     }

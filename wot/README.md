@@ -14,3 +14,5 @@ This module is separated in 2 submodules:
 * **integration** (ditto-wot-integration): contains interfaces and implementation of how WoT "Thing Models" are 
   converted to "Thing Descriptions" by e.g. injecting Ditto specific endpoints in the `form` definitions of the TDs 
  (Thing Descriptions)
+
+TODO TJ update readme ..

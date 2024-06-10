@@ -66,7 +66,7 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
         final ModifyAttribute command =
                 ModifyAttribute.of(context.getState(), attributePointer, attributeValue, DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2.removeAttributes(), command,
+        assertStagedModificationResult(underTest, THING_V2.removeAttributes(), command,
                 AttributeCreated.class,
                 ETagTestUtils.modifyAttributeResponse(context.getState(), attributePointer, attributeValue,
                         command.getDittoHeaders(), true));
@@ -78,7 +78,7 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
         final ModifyAttribute command =
                 ModifyAttribute.of(context.getState(), attributePointer, attributeValue, DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2, command,
+        assertStagedModificationResult(underTest, THING_V2, command,
                 AttributeCreated.class,
                 ETagTestUtils.modifyAttributeResponse(context.getState(), attributePointer, attributeValue,
                         command.getDittoHeaders(), true));
@@ -94,7 +94,7 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
                 ModifyAttribute.of(context.getState(), existingAttributePointer, newAttributeValue,
                         DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2, command,
+        assertStagedModificationResult(underTest, THING_V2, command,
                 AttributeModified.class,
                 ETagTestUtils.modifyAttributeResponse(context.getState(), existingAttributePointer, newAttributeValue,
                         command.getDittoHeaders(), false));

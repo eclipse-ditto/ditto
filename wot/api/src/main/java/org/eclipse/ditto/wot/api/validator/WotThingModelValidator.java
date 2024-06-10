@@ -22,6 +22,8 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.FeatureDefinition;
+import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingDefinition;
@@ -119,6 +121,40 @@ public interface WotThingModelValidator {
     CompletionStage<Void> validateFeature(@Nullable ThingModel thingModel,
             @Nullable ThingModel featureThingModel,
             Feature feature,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * TODO TJ doc
+     */
+    CompletionStage<Void> validateFeatureProperties(@Nullable FeatureDefinition featureDefinition,
+            String featureId,
+            @Nullable FeatureProperties properties,
+            boolean desiredProperties,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * TODO TJ doc
+     */
+    CompletionStage<Void> validateFeatureProperties(ThingModel featureThingModel,
+            String featureId,
+            @Nullable FeatureProperties properties,
+            boolean desiredProperties,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * TODO TJ doc
+     */
+    CompletionStage<Void> validateFeatureProperty(@Nullable FeatureDefinition featureDefinition,
+            String featureId,
+            JsonPointer propertyPointer,
+            JsonValue propertyValue,
+            boolean desiredProperty,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders
     );

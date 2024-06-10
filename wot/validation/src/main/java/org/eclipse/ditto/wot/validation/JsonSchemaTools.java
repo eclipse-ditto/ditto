@@ -15,13 +15,20 @@ package org.eclipse.ditto.wot.validation;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.json.CborFactoryLoader;
 import org.eclipse.ditto.json.CborFactory;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.wot.model.ArraySchema;
+import org.eclipse.ditto.wot.model.DataSchemaType;
+import org.eclipse.ditto.wot.model.ObjectSchema;
 import org.eclipse.ditto.wot.model.SingleDataSchema;
 import org.eclipse.ditto.wot.model.WotInternalErrorException;
 
@@ -58,17 +65,26 @@ final class JsonSchemaTools {
         schemaValidatorsConfig.setPathType(PathType.JSON_POINTER);
     }
 
-    JsonSchema extractFromSingleDataSchema(final SingleDataSchema dataSchema, final DittoHeaders dittoHeaders) {
+    JsonSchema extractFromSingleDataSchema(final SingleDataSchema dataSchema,
+            final boolean validateRequiredObjectFields,
+            final DittoHeaders dittoHeaders
+    ) {
         final JsonNode jsonNode;
         try {
-            final byte[] bytes = cborFactory.toByteArray(dataSchema.toJson());
+            final JsonObject dataSchemaJson;
+            if (!validateRequiredObjectFields) {
+                dataSchemaJson = adjustDataSchemaRemovingRequiredObjectFields(dataSchema.toJson());
+            } else {
+                dataSchemaJson = dataSchema.toJson();
+            }
+            final byte[] bytes = cborFactory.toByteArray(dataSchemaJson);
             jsonNode = jacksonCborMapper.reader().readTree(bytes);
         } catch (final JsonParseException e) {
             throw DittoRuntimeException.asDittoRuntimeException(e, t -> WotInternalErrorException.newBuilder()
                             .message("Error during parsing input JSON")
                             .cause(t)
                             .dittoHeaders(dittoHeaders)
-                            .build() )
+                            .build())
                     .setDittoHeaders(dittoHeaders);
         } catch (final IOException e) {
             throw WotInternalErrorException.newBuilder()
@@ -86,12 +102,53 @@ final class JsonSchemaTools {
                 .getSchema(jsonNode, schemaValidatorsConfig);
     }
 
+    private static JsonObject adjustDataSchemaRemovingRequiredObjectFields(final JsonObject dataSchemaJson) {
+        final Optional<String> type = dataSchemaJson.getValue(SingleDataSchema.DataSchemaJsonFields.TYPE);
+        if (type.filter(DataSchemaType.OBJECT.getName()::equals).isPresent()) {
+            final Optional<JsonObject> adjustedProperties = dataSchemaJson.getValue(ObjectSchema.JsonFields.PROPERTIES)
+                    .filter(JsonValue::isObject)
+                    .map(JsonValue::asObject)
+                    .map(obj -> obj.stream()
+                            .map(field -> JsonField.newInstance(field.getKey(),
+                                            adjustDataSchemaRemovingRequiredObjectFields(field.getValue().asObject()))
+                                    // recurse!
+                            ).collect(JsonCollectors.fieldsToObject())
+                    );
+
+            JsonObject dataSchemaJsonAdjusted = dataSchemaJson;
+            if (adjustedProperties.isPresent()) {
+                dataSchemaJsonAdjusted = adjustedProperties.map(
+                                adjProps -> dataSchemaJson.set(ObjectSchema.JsonFields.PROPERTIES, adjProps)
+                        )
+                        .orElse(dataSchemaJson);
+            }
+            return dataSchemaJsonAdjusted.remove("required");
+        } else if (type.filter(DataSchemaType.ARRAY.getName()::equals).isPresent()) {
+            final Optional<JsonObject> adjustedItems = dataSchemaJson.getValue(ArraySchema.JsonFields.ITEMS)
+                    .filter(JsonValue::isObject)
+                    .map(JsonValue::asObject)
+                    .map(JsonSchemaTools::adjustDataSchemaRemovingRequiredObjectFields); // recurse!
+
+            JsonObject dataSchemaJsonAdjusted = dataSchemaJson;
+            if (adjustedItems.isPresent()) {
+                dataSchemaJsonAdjusted = adjustedItems.map(
+                                adjProps -> dataSchemaJson.set(ArraySchema.JsonFields.ITEMS, adjProps)
+                        )
+                        .orElse(dataSchemaJson);
+            }
+            return dataSchemaJsonAdjusted;
+        }
+        return dataSchemaJson;
+    }
+
     OutputUnit validateDittoJsonBasedOnDataSchema(final SingleDataSchema dataSchema,
             final JsonPointer pointerPath,
+            final boolean validateRequiredObjectFields,
             final JsonValue jsonValue,
             final DittoHeaders dittoHeaders
     ) {
-        final JsonSchema jsonSchema = extractFromSingleDataSchema(dataSchema, dittoHeaders);
+        final JsonSchema jsonSchema =
+                extractFromSingleDataSchema(dataSchema, validateRequiredObjectFields, dittoHeaders);
         final JsonPointer relativePropertyPath;
         if (pointerPath.getLevelCount() > 1) {
             relativePropertyPath = pointerPath.getSubPointer(1).orElseThrow();
@@ -115,7 +172,7 @@ final class JsonSchemaTools {
                             .message("Error during parsing input JSON")
                             .cause(t)
                             .dittoHeaders(dittoHeaders)
-                            .build() )
+                            .build())
                     .setDittoHeaders(dittoHeaders);
         } catch (final IOException e) {
             throw WotInternalErrorException.newBuilder()
@@ -128,9 +185,11 @@ final class JsonSchemaTools {
             final List<OutputUnit> validationDetails = new ArrayList<>(validate.getDetails());
             validate.getDetails().forEach(detail -> {
                 if (!relativePropertyPath.isEmpty()) {
-                    if (detail.getInstanceLocation().equals(relativePropertyPath.toString())) {
+                    if (detail.getInstanceLocation().startsWith(relativePropertyPath.toString())) {
+                        final String adjustedInstanceLocation =
+                                detail.getInstanceLocation().replace(relativePropertyPath.toString(), "");
                         validationDetails.remove(detail);
-                        detail.setInstanceLocation("");
+                        detail.setInstanceLocation(adjustedInstanceLocation);
                         validationDetails.add(detail);
                     } else {
                         validationDetails.remove(detail);
