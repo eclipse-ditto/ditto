@@ -19,12 +19,28 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.actor.FSM;
+import org.apache.pekko.actor.Props;
+import org.apache.pekko.event.Logging;
+import org.apache.pekko.japi.Pair;
+import org.apache.pekko.stream.Attributes;
+import org.apache.pekko.stream.KillSwitches;
+import org.apache.pekko.stream.javadsl.Keep;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.stream.testkit.javadsl.TestSource;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.api.common.ModifyConfig;
 import org.eclipse.ditto.base.api.common.ModifyConfigResponse;
 import org.eclipse.ditto.base.api.common.RetrieveConfig;
@@ -45,21 +61,6 @@ import com.mongodb.client.result.DeleteResult;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigRenderOptions;
 
-import org.apache.pekko.Done;
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.actor.FSM;
-import org.apache.pekko.actor.Props;
-import org.apache.pekko.event.Logging;
-import org.apache.pekko.japi.Pair;
-import org.apache.pekko.stream.Attributes;
-import org.apache.pekko.stream.KillSwitches;
-import org.apache.pekko.stream.javadsl.Keep;
-import org.apache.pekko.stream.javadsl.Source;
-import org.apache.pekko.stream.testkit.javadsl.TestSource;
-import org.apache.pekko.testkit.javadsl.TestKit;
-
 /**
  * Tests {@link PersistenceCleanupActor}.
  */
@@ -69,13 +70,18 @@ public final class PersistenceCleanupActorTest {
             ConfigFactory.load("test.conf"));
     private final AtomicReference<Source<Source<CleanupResult, NotUsed>, NotUsed>> sourceBox =
             new AtomicReference<>(Source.empty());
+
+    private MongoReadJournal mongoReadJournal;
     private Cleanup cleanup;
     private Credits credits;
 
     @Before
     public void init() {
+        mongoReadJournal = mock(MongoReadJournal.class);
         cleanup = mock(Cleanup.class);
         credits = mock(Credits.class);
+        when(mongoReadJournal.ensureSnapshotCollectionPidIdIndex())
+                .thenReturn(CompletableFuture.completedFuture(Done.getInstance()));
         doAnswer(inv -> Source.empty()).when(cleanup).getCleanupStream(any());
         doAnswer(inv -> sourceBox.get()).when(credits).regulate(any(), any());
     }
@@ -333,7 +339,7 @@ public final class PersistenceCleanupActorTest {
 
     private Props testProps() {
         return Props.create(PersistenceCleanupActor.class,
-                () -> new PersistenceCleanupActor(cleanup, credits, mock(MongoReadJournal.class),
+                () -> new PersistenceCleanupActor(cleanup, credits, mongoReadJournal,
                         () -> Pair.create(0, 1)));
     }
 

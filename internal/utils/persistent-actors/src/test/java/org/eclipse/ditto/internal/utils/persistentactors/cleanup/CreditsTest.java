@@ -23,18 +23,12 @@ import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAccumulator;
 
-import org.bson.Document;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import com.mongodb.client.result.DeleteResult;
-
+import org.apache.pekko.Done;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.event.Logging;
 import org.apache.pekko.japi.Pair;
@@ -48,6 +42,14 @@ import org.apache.pekko.stream.testkit.TestSubscriber;
 import org.apache.pekko.stream.testkit.javadsl.TestSink;
 import org.apache.pekko.stream.testkit.javadsl.TestSource;
 import org.apache.pekko.testkit.javadsl.TestKit;
+import org.bson.Document;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.mongodb.client.result.DeleteResult;
 
 /**
  * Tests {@link Credits}.
@@ -110,6 +112,8 @@ public final class CreditsTest {
     @Test
     public void onePersistenceWriteAllowedPerCredit() {
         final var mongoReadJournal = mock(MongoReadJournal.class);
+        when(mongoReadJournal.ensureSnapshotCollectionPidIdIndex())
+                .thenReturn(CompletableFuture.completedFuture(Done.getInstance()));
         final var opsCounter = new AtomicInteger(0);
 
         when(mongoReadJournal.getNewestSnapshotsAbove(any(), anyInt(), eq(true), any(), any()))
@@ -134,7 +138,8 @@ public final class CreditsTest {
         // mock timer permits 1 batch of credit, after which no credit is given out
         final var mockTimerResult = new AtomicLong(0L);
         doAnswer(inv -> mockTimerResult.getAndSet(1001L)).when(mockTimer).getThenReset();
-        final var cleanup = new Cleanup(mongoReadJournal, materializer, () -> Pair.create(0, 1),
+        final var cleanup = new Cleanup(mongoReadJournal,  mock(ThreadSafeDittoLoggingAdapter.class), materializer,
+                () -> Pair.create(0, 1),
                 Duration.ZERO, 1, 4, true);
         final var underTest = new Credits(getFastCreditConfig(4), mockTimer);
 
