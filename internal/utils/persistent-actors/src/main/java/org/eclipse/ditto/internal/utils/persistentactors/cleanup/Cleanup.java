@@ -21,12 +21,12 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.LongStream;
 
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
-
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.japi.Pair;
 import org.apache.pekko.stream.Materializer;
 import org.apache.pekko.stream.javadsl.Source;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 
 /**
  * An Pekko stream to handle background cleanup regulated by insert times.
@@ -42,6 +42,7 @@ final class Cleanup {
     private final boolean deleteFinalDeletedSnapshot;
 
     Cleanup(final MongoReadJournal readJournal,
+            final ThreadSafeDittoLoggingAdapter logger,
             final Materializer materializer,
             final Supplier<Pair<Integer, Integer>> responsibilitySupplier,
             final Duration historyRetentionDuration,
@@ -56,14 +57,22 @@ final class Cleanup {
         this.readBatchSize = readBatchSize;
         this.deleteBatchSize = deleteBatchSize;
         this.deleteFinalDeletedSnapshot = deleteFinalDeletedSnapshot;
+
+        readJournal.ensureSnapshotCollectionPidIdIndex()
+                .thenCompose(done -> readJournal.ensureSnapshotCollectionPidIndex())
+                .exceptionally(e -> {
+                    logger.error(e, "Failed to create index for read journal snapshot aggregation queries");
+                    return null;
+                });
     }
 
     static Cleanup of(final CleanupConfig config,
             final MongoReadJournal readJournal,
+            final ThreadSafeDittoLoggingAdapter logger,
             final Materializer materializer,
             final Supplier<Pair<Integer, Integer>> responsibilitySupplier) {
 
-        return new Cleanup(readJournal, materializer, responsibilitySupplier,
+        return new Cleanup(readJournal, logger, materializer, responsibilitySupplier,
                 config.getHistoryRetentionDuration(),
                 config.getReadsPerQuery(),
                 config.getWritesPerCredit(),
@@ -76,7 +85,8 @@ final class Cleanup {
     }
 
     private Source<SnapshotRevision, NotUsed> getSnapshotRevisions(final String lowerBound) {
-        return readJournal.getNewestSnapshotsAbove(lowerBound, readBatchSize, true, historyRetentionDuration, materializer)
+        return readJournal.getNewestSnapshotsAbove(lowerBound, readBatchSize, true, historyRetentionDuration,
+                        materializer)
                 .map(document -> new SnapshotRevision(document.getString(S_ID),
                         document.getLong(S_SN),
                         "DELETED".equals(document.getString(LIFECYCLE))))
