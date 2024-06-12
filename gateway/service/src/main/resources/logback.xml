@@ -53,6 +53,8 @@
             <appender name="stash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
                 <destination>${DITTO_LOGGING_LOGSTASH_SERVER}</destination>
                 <reconnectionDelay>1 second</reconnectionDelay>
+                <writeBufferSize>${LOGSTASH_WRITE_BUFFER_SIZE:-8192}</writeBufferSize>
+                <ringBufferSize>${LOGSTASH_RING_BUFFER_SIZE:-8192}</ringBufferSize>
 
                 <!-- Encoder is required -->
                 <encoder class="net.logstash.logback.encoder.LogstashEncoder">
