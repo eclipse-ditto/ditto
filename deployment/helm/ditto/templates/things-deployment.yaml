@@ -105,6 +105,10 @@ spec:
             {{- if .Values.global.logging.logstash.enabled }}
             - name: DITTO_LOGGING_LOGSTASH_SERVER
               value: "{{ .Values.global.logging.logstash.endpoint }}"
+            - name: LOGSTASH_WRITE_BUFFER_SIZE
+              value: "{{ .Values.global.logging.logstash.writeBufferSize }}"
+            - name: LOGSTASH_RING_BUFFER_SIZE
+              value: "{{ .Values.global.logging.logstash.ringBufferSize }}"
             {{- end }}
             - name: POD_LABEL_SELECTOR
               value: "app.kubernetes.io/name=%s"

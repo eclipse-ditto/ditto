@@ -131,6 +131,10 @@ global:
       enabled: false
       # endpoint configures the logstash endpoint to send logs to
       endpoint: ""
+      # logstash write buffer size
+      writeBufferSize: 8192
+      # logstash ring buffer size
+      ringBufferSize: 8192
     # logFiles defines logging to log files config
     logFiles:
       # enabled whether to write logs to log files
