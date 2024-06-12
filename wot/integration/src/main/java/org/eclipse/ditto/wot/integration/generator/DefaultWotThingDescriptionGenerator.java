@@ -35,6 +35,7 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -97,8 +98,6 @@ import org.eclipse.ditto.wot.model.UriVariables;
 import org.eclipse.ditto.wot.model.Version;
 import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
 import org.eclipse.ditto.wot.model.WotThingModelPlaceholderUnresolvedException;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Default Ditto specific implementation of {@link WotThingDescriptionGenerator}.
@@ -311,9 +310,9 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
     private void addBase(final ThingDescription.Builder thingDescriptionBuilder,
             final ThingId thingId, @Nullable final String featureId) {
         if (null != featureId) {
-            final String featurePath = "/features/" + featureId;
-            thingDescriptionBuilder.setId(IRI.of("urn:" + thingId + featurePath))
-                    .setBase(IRI.of(buildThingIdBasePath(thingId) + featurePath));
+            final String featurePath = "features/" + featureId;
+            thingDescriptionBuilder.setId(IRI.of("urn:" + thingId + "/" + featurePath))
+                    .setBase(IRI.of(buildThingIdBasePath(thingId) + featurePath + "/"));
         } else {
             thingDescriptionBuilder.setId(IRI.of("urn:" + thingId))
                     .setBase(IRI.of(buildThingIdBasePath(thingId)));
@@ -331,7 +330,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
     }
 
     private String buildThingIdBasePath(final ThingId thingId) {
-        return toThingDescriptionConfig.getBasePrefix() + "/api/2/things/" + thingId;
+        return toThingDescriptionConfig.getBasePrefix() + "/api/2/things/" + thingId + "/";
     }
 
     private void addThingDescriptionLinks(final ThingDescription.Builder tdBuilder, final URL tmUrl,
@@ -372,7 +371,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                             return Link.newBuilder()
                                     .setRel("item")
                                     .setType(ContentType.APPLICATION_TD_JSON.getValue())
-                                    .setHref(IRI.of("/features/" + link.getValue(TM_SUBMODEL_INSTANCE_NAME)
+                                    .setHref(IRI.of("features/" + link.getValue(TM_SUBMODEL_INSTANCE_NAME)
                                             .filter(JsonValue::isString)
                                             .map(JsonValue::asString)
                                             .orElseThrow(() -> WotThingModelInvalidException
@@ -436,11 +435,12 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                 DITTO_FIELDS_URI_VARIABLE,
                 DittoHeaderDefinition.CHANNEL.getKey(),
                 DittoHeaderDefinition.TIMEOUT.getKey());
+        final String hrefWithoutLeadingSlash = propertiesPath.toString().substring(1);
         if (thingModelForms.isPresent()) {
             tdBuilder.setForms(thingModelForms.get()
                     .stream()
                     .map(rfe -> RootFormElement.fromJson(rfe.toBuilder()
-                            .setHref(IRI.of(propertiesPath))
+                            .setHref(IRI.of(hrefWithoutLeadingSlash))
                             .setAdditionalResponses(provideAdditionalResponses())
                             .build()
                     ))
@@ -449,19 +449,19 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
         } else {
             tdBuilder.setForms(List.of(
                     buildRootFormElement(SingleRootFormElementOp.READALLPROPERTIES,
-                            propertiesPath + readUriVariablesParams,
+                            hrefWithoutLeadingSlash + readUriVariablesParams,
                             "GET"
                     ),
                     buildRootFormElement(SingleRootFormElementOp.READMULTIPLEPROPERTIES,
-                            propertiesPath + readMultiplePropertiesUriVariablesParams,
+                            hrefWithoutLeadingSlash + readMultiplePropertiesUriVariablesParams,
                             "GET"
                     ),
                     buildRootFormElement(SingleRootFormElementOp.WRITEALLPROPERTIES,
-                            propertiesPath + writeUriVariablesParams,
+                            hrefWithoutLeadingSlash + writeUriVariablesParams,
                             "PUT"
                     ),
                     buildRootFormElement(SingleRootFormElementOp.WRITEMULTIPLEPROPERTIES,
-                            propertiesPath + writeUriVariablesParams,
+                            hrefWithoutLeadingSlash + writeUriVariablesParams,
                             "PATCH",
                             builder -> builder.setContentType(ContentType.APPLICATION_MERGE_PATCH_JSON.getValue())
                     ),
@@ -469,7 +469,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                                     SingleRootFormElementOp.OBSERVEALLPROPERTIES,
                                     SingleRootFormElementOp.UNOBSERVEALLPROPERTIES
                             ),
-                            propertiesPath,
+                            hrefWithoutLeadingSlash,
                             "GET",
                             builder -> builder
                                     .setSubprotocol(SUBPROTOCOL_SSE)
@@ -479,7 +479,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                                     SingleRootFormElementOp.SUBSCRIBEALLEVENTS,
                                     SingleRootFormElementOp.UNSUBSCRIBEALLEVENTS
                             ),
-                            JsonPointer.of("/outbox/messages"),
+                            "outbox/messages",
                             "GET",
                             builder -> builder
                                     .setSubprotocol(SUBPROTOCOL_SSE)
@@ -512,7 +512,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
     }
 
     private RootFormElement buildRootFormElement(final Collection<SingleRootFormElementOp> ops,
-            final JsonPointer hrefPointer,
+            final CharSequence hrefPointer,
             final String htvMethodName,
             final Consumer<RootFormElement.Builder> builderConsumer
     ) {
@@ -557,11 +557,12 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                     final String readUriVariablesParams = provideUriVariablesBag(
                             DittoHeaderDefinition.CHANNEL.getKey(),
                             DittoHeaderDefinition.TIMEOUT.getKey());
+                    final String hrefWithoutLeadingSlash = propertyHref.toString().substring(1);
                     return property.getForms()
                             .map(propertyFormElements -> property.toBuilder()
                                     .setForms(PropertyForms.of(propertyFormElements.stream()
                                             .map(pfe -> pfe.toBuilder()
-                                                    .setHref(IRI.of(propertyHref))
+                                                    .setHref(IRI.of(hrefWithoutLeadingSlash))
                                                     .setAdditionalResponses(provideAdditionalResponses())
                                                     .build()
                                             )
@@ -573,18 +574,18 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                                         final List<PropertyFormElement> formElements = new ArrayList<>();
                                         if (!property.isWriteOnly()) {
                                             formElements.add(buildPropertyFormElement(SinglePropertyFormElementOp.READPROPERTY,
-                                                    propertyHref + readUriVariablesParams,
+                                                    hrefWithoutLeadingSlash + readUriVariablesParams,
                                                     "GET"
                                             ));
                                         }
 
                                         if (!property.isReadOnly()) {
                                             formElements.add(buildPropertyFormElement(SinglePropertyFormElementOp.WRITEPROPERTY,
-                                                    propertyHref + writeUriVariablesParams,
+                                                    hrefWithoutLeadingSlash + writeUriVariablesParams,
                                                     "PUT"
                                             ));
                                             formElements.add(buildPropertyFormElement(SinglePropertyFormElementOp.WRITEPROPERTY,
-                                                    propertyHref + writeUriVariablesParams,
+                                                    hrefWithoutLeadingSlash + writeUriVariablesParams,
                                                     "PATCH",
                                                     builder -> builder
                                                             .setContentType(
@@ -599,7 +600,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                                                             SinglePropertyFormElementOp.OBSERVEPROPERTY,
                                                             SinglePropertyFormElementOp.UNOBSERVEPROPERTY
                                                     ),
-                                                    propertyHref,
+                                                    hrefWithoutLeadingSlash,
                                                     "GET",
                                                     builder -> builder
                                                             .setSubprotocol(SUBPROTOCOL_SSE)
@@ -725,7 +726,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                 .map(actions -> actions.map(actionEntry -> {
                     final String actionName = actionEntry.getKey();
                     final Action action = actionEntry.getValue();
-                    final JsonPointer actionHref = JsonPointer.of("/inbox/messages/" + actionName);
+                    final String actionHrefWithoutLeadingSlash = "inbox/messages/" + actionName;
                     final String uriVariablesParams = provideUriVariablesBag(
                             DittoHeaderDefinition.TIMEOUT.getKey(),
                             DittoHeaderDefinition.RESPONSE_REQUIRED.getKey());
@@ -734,7 +735,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                                     .setSynchronous(true)
                                     .setForms(ActionForms.of(actionFormElements.stream()
                                             .map(afe -> afe.toBuilder()
-                                                    .setHref(IRI.of(actionHref))
+                                                    .setHref(IRI.of(actionHrefWithoutLeadingSlash))
                                                     .setAdditionalResponses(provideAdditionalResponses())
                                                     .build()
                                             )
@@ -746,7 +747,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                                     .setSynchronous(true)
                                     .setForms(ActionForms.of(List.of(
                                             buildActionFormElement(SingleActionFormElementOp.INVOKEACTION,
-                                                    actionHref + uriVariablesParams)
+                                                    actionHrefWithoutLeadingSlash + uriVariablesParams)
                                     )))
                                     .build()
                             );
@@ -788,12 +789,12 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                 .map(events -> events.map(eventEntry -> {
                     final String eventName = eventEntry.getKey();
                     final Event event = eventEntry.getValue();
-                    final JsonPointer eventHref = JsonPointer.of("/outbox/messages/" + eventName);
+                    final String eventHrefWithoutLeadingSlash = "outbox/messages/" + eventName;
                     return event.getForms()
                             .map(eventFormElements -> event.toBuilder()
                                     .setForms(EventForms.of(eventFormElements.stream()
                                             .map(efe -> efe.toBuilder()
-                                                    .setHref(IRI.of(eventHref))
+                                                    .setHref(IRI.of(eventHrefWithoutLeadingSlash))
                                                     .setAdditionalResponses(provideAdditionalResponses())
                                                     .build()
                                             )
@@ -803,7 +804,8 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                             )
                             .orElseGet(() -> event.toBuilder()
                                     .setForms(EventForms.of(List.of(
-                                            buildEventFormElement(SingleEventFormElementOp.SUBSCRIBEEVENT, eventHref)
+                                            buildEventFormElement(SingleEventFormElementOp.SUBSCRIBEEVENT,
+                                                    eventHrefWithoutLeadingSlash)
                                     )))
                                     .build()
                             );
@@ -814,7 +816,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
     }
 
     private EventFormElement buildEventFormElement(final SingleEventFormElementOp op,
-            final JsonPointer hrefPointer
+            final CharSequence hrefPointer
     ) {
         return EventFormElement.newBuilder()
                 .setOp(op)
@@ -887,7 +889,8 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
             final String placeholderToResolve = matcher.group(TM_PLACEHOLDER_PL_GROUP).trim();
             if (null != modelPlaceholders) {
                 return modelPlaceholders.getValue(placeholderToResolve)
-                        .or(() -> Optional.ofNullable(toThingDescriptionConfig.getPlaceholders().get(placeholderToResolve)));
+                        .or(() -> Optional.ofNullable(
+                                toThingDescriptionConfig.getPlaceholders().get(placeholderToResolve)));
             } else {
                 return Optional.ofNullable(toThingDescriptionConfig.getPlaceholders().get(placeholderToResolve));
             }

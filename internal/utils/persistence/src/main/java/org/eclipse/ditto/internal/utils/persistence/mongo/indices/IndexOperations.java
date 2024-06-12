@@ -19,6 +19,10 @@ import java.util.List;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.Done;
+import org.apache.pekko.NotUsed;
+import org.apache.pekko.japi.pf.PFBuilder;
+import org.apache.pekko.stream.javadsl.Source;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,10 +32,6 @@ import com.mongodb.client.model.IndexModel;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
-import org.apache.pekko.Done;
-import org.apache.pekko.NotUsed;
-import org.apache.pekko.japi.pf.PFBuilder;
-import org.apache.pekko.stream.javadsl.Source;
 import scala.PartialFunction;
 
 /**
@@ -42,7 +42,7 @@ public final class IndexOperations {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IndexOperations.class);
 
-    private static final String DEFAULT_INDEX_NAME = "_id_";
+    public static final String DEFAULT_INDEX_NAME = "_id_";
 
     private final MongoDatabase db;
 

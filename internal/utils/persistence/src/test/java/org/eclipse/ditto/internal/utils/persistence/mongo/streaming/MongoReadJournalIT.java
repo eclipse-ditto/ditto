@@ -23,13 +23,22 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.stream.Materializer;
+import org.apache.pekko.stream.SystemMaterializer;
+import org.apache.pekko.stream.javadsl.Sink;
+import org.apache.pekko.stream.javadsl.Source;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.bson.BsonArray;
 import org.bson.BsonDocument;
 import org.bson.BsonInt64;
 import org.bson.BsonString;
 import org.bson.Document;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.test.docker.mongo.MongoDbResource;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -44,13 +53,6 @@ import com.mongodb.client.result.DeleteResult;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
-
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.stream.Materializer;
-import org.apache.pekko.stream.SystemMaterializer;
-import org.apache.pekko.stream.javadsl.Sink;
-import org.apache.pekko.stream.javadsl.Source;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link MongoReadJournal}.
@@ -107,8 +109,11 @@ public final class MongoReadJournalIT {
         final Config config = ConfigFactory.load("mongo-read-journal-test")
                 .withValue("pekko.contrib.persistence.mongodb.mongo.mongouri", ConfigValueFactory.fromAnyRef(mongoUri));
         actorSystem = ActorSystem.create("PekkoTestSystem", config);
+        final MongoDbConfig mongoDbConfig =
+                DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(config));
         materializer = SystemMaterializer.get(actorSystem).materializer();
-        readJournal = MongoReadJournal.newInstance(config, mongoClient, actorSystem);
+        readJournal =
+                MongoReadJournal.newInstance(config, mongoClient, mongoDbConfig.getReadJournalConfig(), actorSystem);
     }
 
     @After
@@ -247,9 +252,9 @@ public final class MongoReadJournalIT {
 
     private static Document snapshot(final String pid, final long sn, final boolean deleted) {
         return new Document().append("pid", pid)
-                            .append("sn", sn)
-                            .append("s2", new Document().append("_modified", Instant.ofEpochSecond(sn).toString())
-                                    .append("__lifecycle", deleted  ? "DELETED"  :"ACTIVE"));
+                .append("sn", sn)
+                .append("s2", new Document().append("_modified", Instant.ofEpochSecond(sn).toString())
+                        .append("__lifecycle", deleted ? "DELETED" : "ACTIVE"));
     }
 
     @Test
@@ -311,7 +316,8 @@ public final class MongoReadJournalIT {
 
         // WHEN: latest snapshots requested lower bound and pid filter
         final List<Document> snapshots =
-                readJournal.getNewestSnapshotsAbove(SnapshotFilter.of("snap:pid2", "^snap:.*"), 3, materializer, "_modified")
+                readJournal.getNewestSnapshotsAbove(SnapshotFilter.of("snap:pid2", "^snap:.*"), 3, materializer,
+                                "_modified")
                         .runWith(Sink.seq(), materializer)
                         .toCompletableFuture()
                         .join();
@@ -455,8 +461,8 @@ public final class MongoReadJournalIT {
                 new JournalEntry("pid4").withSn(2L).withTags(Set.of()).getDocument());
 
         return readJournal.getJournalPidsWithTag("test", 5, Duration.ZERO, materializer, considerOnlyLatest)
-                        .runWith(Sink.seq(), materializer)
-                        .toCompletableFuture().join();
+                .runWith(Sink.seq(), materializer)
+                .toCompletableFuture().join();
     }
 
     @Test

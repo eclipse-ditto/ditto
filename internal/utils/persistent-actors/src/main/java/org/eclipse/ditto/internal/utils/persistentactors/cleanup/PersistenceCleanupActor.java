@@ -17,26 +17,6 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.api.common.ModifyConfig;
-import org.eclipse.ditto.base.api.common.RetrieveConfig;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.utils.pekko.actors.ModifyConfigBehavior;
-import org.eclipse.ditto.internal.utils.pekko.actors.RetrieveConfigBehavior;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
-import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
-import org.eclipse.ditto.internal.utils.health.StatusDetailMessage;
-import org.eclipse.ditto.internal.utils.health.StatusInfo;
-import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
-
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-
 import org.apache.pekko.Done;
 import org.apache.pekko.actor.AbstractFSM;
 import org.apache.pekko.actor.ActorRef;
@@ -53,6 +33,25 @@ import org.apache.pekko.stream.Materializer;
 import org.apache.pekko.stream.UniqueKillSwitch;
 import org.apache.pekko.stream.javadsl.Keep;
 import org.apache.pekko.stream.javadsl.Sink;
+import org.eclipse.ditto.base.api.common.ModifyConfig;
+import org.eclipse.ditto.base.api.common.RetrieveConfig;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
+import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
+import org.eclipse.ditto.internal.utils.health.StatusDetailMessage;
+import org.eclipse.ditto.internal.utils.health.StatusInfo;
+import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.internal.utils.pekko.actors.ModifyConfigBehavior;
+import org.eclipse.ditto.internal.utils.pekko.actors.RetrieveConfigBehavior;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Actor to control persistence cleanup.
@@ -110,7 +109,7 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
         this.mongoReadJournal = mongoReadJournal;
         responsibilitySupplier = ClusterResponsibilitySupplier.of(cluster, myRole);
         this.config = config;
-        cleanup = Cleanup.of(config, mongoReadJournal, materializer, responsibilitySupplier);
+        cleanup = Cleanup.of(config, mongoReadJournal, logger, materializer, responsibilitySupplier);
         credits = Credits.of(config);
     }
 
@@ -324,7 +323,7 @@ public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanu
     @Override
     public Config setConfig(final Config config) {
         this.config = this.config.setAll(config);
-        cleanup = Cleanup.of(this.config, mongoReadJournal, materializer, responsibilitySupplier);
+        cleanup = Cleanup.of(this.config, mongoReadJournal, logger, materializer, responsibilitySupplier);
         credits = Credits.of(this.config);
         getSelf().tell(Control.SHUTDOWN, ActorRef.noSender());
 

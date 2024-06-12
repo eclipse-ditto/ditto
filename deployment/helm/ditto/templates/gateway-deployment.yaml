@@ -153,6 +153,12 @@ spec:
                 "{{ printf "%s%s%s%d=%s" "-Dditto.gateway.authentication.devops.oauth.openid-connect-issuers." $key ".auth-subjects." $index $subject }}"
                 {{- end }}
                 {{- end }}
+                {{- range $index, $oauthSubject := .Values.gateway.config.authentication.devops.oauthSubjects }}
+                "{{ printf "%s%d=%s" "-Dditto.gateway.authentication.devops.devops-oauth2-subjects." $index $oauthSubject }}"
+                {{- end }}
+                {{- range $index, $oauthSubject := .Values.gateway.config.authentication.devops.statusOauthSubjects }}
+                "{{ printf "%s%d=%s" "-Dditto.gateway.authentication.devops.status-oauth2-subjects." $index $oauthSubject }}"
+                {{- end }}
                 {{ join " " .Values.gateway.systemProps }}
             - name: CLUSTER_BS_REQUIRED_CONTACTS
               value: "{{ .Values.global.cluster.requiredContactPoints }}"
@@ -195,10 +201,6 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.gateway.config.authentication.devops.existingSecret | default ( printf "%s-gateway-secret" ( include "ditto.fullname" . )) }}
                   key: devops-password
-            {{- range $index, $oauthSubject := .Values.gateway.config.authentication.devops.oauthSubjects }}
-            - name: DEVOPS_OAUTH2_SUBJECTS.{{ $index }}
-              value: "{{ $oauthSubject }}"
-            {{- end }}
             - name: DEVOPS_STATUS_SECURED
               value: "{{ .Values.gateway.config.authentication.devops.statusSecured }}"
             - name: STATUS_AUTHENTICATION_METHOD
@@ -208,10 +210,6 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.gateway.config.authentication.devops.existingSecret | default ( printf "%s-gateway-secret" ( include "ditto.fullname" . )) }}
                   key: status-password
-            {{- range $index, $oauthSubject := .Values.gateway.config.authentication.devops.statusOauthSubjects }}
-            - name: STATUS_OAUTH2_SUBJECTS.{{ $index }}
-              value: "{{ $oauthSubject }}"
-            {{- end }}
             - name: WS_SUBSCRIBER_BACKPRESSURE
               value: "{{ .Values.gateway.config.websocket.subscriber.backpressureQueueSize }}"
             - name: WS_PUBLISHER_BACKPRESSURE

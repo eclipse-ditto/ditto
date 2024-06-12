@@ -23,6 +23,10 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.http.javadsl.model.MediaTypes;
+import org.apache.pekko.http.javadsl.server.PathMatchers;
+import org.apache.pekko.http.javadsl.server.RequestContext;
+import org.apache.pekko.http.javadsl.server.Route;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -55,11 +59,6 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-
-import org.apache.pekko.http.javadsl.model.MediaTypes;
-import org.apache.pekko.http.javadsl.server.PathMatchers;
-import org.apache.pekko.http.javadsl.server.RequestContext;
-import org.apache.pekko.http.javadsl.server.Route;
 
 /**
  * Builder for creating Pekko HTTP routes for {@code /connections}.
@@ -107,8 +106,8 @@ public final class ConnectionsRoute extends AbstractRoute {
     public Route buildConnectionsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
         return rawPathPrefix(PathMatchers.slash().concat(PATH_CONNECTIONS), () ->  // /connections
                 Optional.ofNullable(devOpsAuthenticationDirective)
-                        .orElse((realm, route) -> route)
-                        .authenticateDevOps(DevOpsOAuth2AuthenticationDirective.REALM_DEVOPS,
+                        .orElse((realm, dh, route) -> route)
+                        .authenticateDevOps(DevOpsOAuth2AuthenticationDirective.REALM_DEVOPS, dittoHeaders,
                                 concat(
                                         // /connections
                                         connections(ctx, dittoHeaders),

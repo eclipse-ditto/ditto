@@ -19,25 +19,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.bson.Document;
-import org.eclipse.ditto.base.model.entity.id.AbstractNamespacedEntityId;
-import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.entity.type.EntityType;
-import org.eclipse.ditto.internal.models.streaming.StreamedSnapshot;
-import org.eclipse.ditto.internal.models.streaming.SudoStreamSnapshots;
-import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithShutdownBehavior;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.SnapshotFilter;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
-
 import org.apache.pekko.Done;
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.actor.ActorRef;
@@ -53,6 +34,24 @@ import org.apache.pekko.stream.SharedKillSwitch;
 import org.apache.pekko.stream.SourceRef;
 import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.stream.javadsl.StreamRefs;
+import org.bson.Document;
+import org.eclipse.ditto.base.model.entity.id.AbstractNamespacedEntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.eclipse.ditto.internal.models.streaming.StreamedSnapshot;
+import org.eclipse.ditto.internal.models.streaming.SudoStreamSnapshots;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.pekko.actors.AbstractActorWithShutdownBehavior;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.SnapshotFilter;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 
 /**
@@ -103,7 +102,8 @@ public final class SnapshotStreamingActor extends AbstractActorWithShutdownBehav
         final MongoDbConfig mongoDbConfig =
                 DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(config));
         mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
-        readJournal = MongoReadJournal.newInstance(config, mongoClient, getContext().getSystem());
+        readJournal = MongoReadJournal.newInstance(config, mongoClient, mongoDbConfig.getReadJournalConfig(),
+                getContext().getSystem());
         pubSubMediator = DistributedPubSub.get(getContext().getSystem()).mediator();
     }
 

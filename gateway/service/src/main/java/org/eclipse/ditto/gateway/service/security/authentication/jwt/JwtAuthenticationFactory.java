@@ -16,12 +16,12 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
-import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.http.HttpClientFacade;
 
-import org.apache.pekko.actor.ActorSystem;
+import com.typesafe.config.Config;
 
 /**
  * A factory for {@link org.eclipse.ditto.jwt.model.JsonWebToken} related security.
@@ -95,11 +95,10 @@ public final class JwtAuthenticationFactory {
         return jwtSubjectIssuersConfig;
     }
 
-    public JwtAuthenticationResultProvider newJwtAuthenticationResultProvider(final String configLevel) {
-        return JwtAuthenticationResultProvider.get(
-                actorSystem,
-                ScopedConfig.getOrEmpty(actorSystem.settings().config(), configLevel)
-        );
+    public JwtAuthenticationResultProvider newJwtAuthenticationResultProvider(final Config extensionConfig,
+            @Nullable final String role) {
+
+        return JwtAuthenticationResultProvider.get(actorSystem, extensionConfig, role);
     }
 
 }

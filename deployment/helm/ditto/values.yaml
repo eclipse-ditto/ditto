@@ -185,6 +185,13 @@ global:
     enabled: true
     # annotations defines k8s annotations to add to corresponding jobs
     annotations: {}
+    image:
+      # repository for the pod-deletion-cost annotation patching job docker image
+      repository: public.ecr.aws/h0h9t7p1/alpine-bash-curl-jq
+      # tag for the pod-deletion-cost annotation patching job docker image
+      tag: latest
+      # pullPolicy for the pod-deletion-cost annotation patching job docker image
+      pullPolicy: IfNotPresent
 
 
 ## ----------------------------------------------------------------------------
@@ -643,6 +650,26 @@ policies:
       #  a revision number 1 higher than the previously deleted entity. If the final snapshot is deleted as well,
       #  recreation of an entity with the same ID will lead to revisionNumber=1 after its recreation.
       deleteFinalDeletedSnapshot: true
+    # readJournal holds configuration regarding the MongoReadJournal and e.g. the aggregation queries which are performed in it
+    readJournal:
+      # indexes contains configuration about additional indexes to create
+      indexes:
+        # createSnapshotAggregationIndexPidId whether to create the "pid"+"_id" compound index on the snapshot collection
+        createSnapshotAggregationIndexPidId: false
+        # createSnapshotAggregationIndexPid whether to create the "pid" compound index on the snapshot collection
+        createSnapshotAggregationIndexPid: false
+      # hints contains hint names to configure for different aggregation calls done in MongoReadJournal
+      hints:
+        # filterPidsThatDoesntContainTagInNewestEntry contains the hint name to use in the aggregation query
+        filterPidsThatDoesntContainTagInNewestEntry: null
+        # listLatestJournalEntries contains the hint name to use in the aggregation query
+        listLatestJournalEntries: null
+        # listNewestActiveSnapshotsByBatchPidId contains the hint name to use in the aggregation query where the $match contains both "pid" and "_id"
+        listNewestActiveSnapshotsByBatchPidId: null
+        # listNewestActiveSnapshotsByBatchPidId contains the hint name to use in the aggregation query where the $match contains only "pid"
+        listNewestActiveSnapshotsByBatchPid: null
+        # listNewestActiveSnapshotsByBatchPidId contains the hint name to use in the aggregation query where the $match contains only "_id"
+        listNewestActiveSnapshotsByBatchId: null
     # persistence holds configuration regarding (pekko) persistence of policies (event journal and snapshots)
     persistence:
       # activityCheckInterval configures to keep policies for that amount of time in memory when no other use did happen:
@@ -852,6 +879,26 @@ things:
       #  a revision number 1 higher than the previously deleted entity. If the final snapshot is deleted as well,
       #  recreation of an entity with the same ID will lead to revisionNumber=1 after its recreation.
       deleteFinalDeletedSnapshot: true
+    # readJournal holds configuration regarding the MongoReadJournal and e.g. the aggregation queries which are performed in it
+    readJournal:
+      # indexes contains configuration about additional indexes to create
+      indexes:
+        # createSnapshotAggregationIndexPidId whether to create the "pid"+"_id" compound index on the snapshot collection
+        createSnapshotAggregationIndexPidId: false
+        # createSnapshotAggregationIndexPid whether to create the "pid" compound index on the snapshot collection
+        createSnapshotAggregationIndexPid: false
+      # hints contains hint names to configure for different aggregation calls done in MongoReadJournal
+      hints:
+        # filterPidsThatDoesntContainTagInNewestEntry contains the hint name to use in the aggregation query
+        filterPidsThatDoesntContainTagInNewestEntry: null
+        # listLatestJournalEntries contains the hint name to use in the aggregation query
+        listLatestJournalEntries: null
+        # listNewestActiveSnapshotsByBatchPidId contains the hint name to use in the aggregation query where the $match contains both "pid" and "_id"
+        listNewestActiveSnapshotsByBatchPidId: null
+        # listNewestActiveSnapshotsByBatchPidId contains the hint name to use in the aggregation query where the $match contains only "pid"
+        listNewestActiveSnapshotsByBatchPid: null
+        # listNewestActiveSnapshotsByBatchPidId contains the hint name to use in the aggregation query where the $match contains only "_id"
+        listNewestActiveSnapshotsByBatchId: null
     # persistence holds configuration regarding (pekko) persistence of things (event journal and snapshots)
     persistence:
       # activityCheckInterval configures to keep things for that amount of time in memory when no other use did happen
@@ -1310,6 +1357,26 @@ connectivity:
       #  a revision number 1 higher than the previously deleted entity. If the final snapshot is deleted as well,
       #  recreation of an entity with the same ID will lead to revisionNumber=1 after its recreation.
       deleteFinalDeletedSnapshot: true
+    # readJournal holds configuration regarding the MongoReadJournal and e.g. the aggregation queries which are performed in it
+    readJournal:
+      # indexes contains configuration about additional indexes to create
+      indexes:
+        # createSnapshotAggregationIndexPidId whether to create the "pid"+"_id" compound index on the snapshot collection
+        createSnapshotAggregationIndexPidId: false
+        # createSnapshotAggregationIndexPid whether to create the "pid" compound index on the snapshot collection
+        createSnapshotAggregationIndexPid: false
+      # hints contains hint names to configure for different aggregation calls done in MongoReadJournal
+      hints:
+        # filterPidsThatDoesntContainTagInNewestEntry contains the hint name to use in the aggregation query
+        filterPidsThatDoesntContainTagInNewestEntry: null
+        # listLatestJournalEntries contains the hint name to use in the aggregation query
+        listLatestJournalEntries: null
+        # listNewestActiveSnapshotsByBatchPidId contains the hint name to use in the aggregation query where the $match contains both "pid" and "_id"
+        listNewestActiveSnapshotsByBatchPidId: null
+        # listNewestActiveSnapshotsByBatchPidId contains the hint name to use in the aggregation query where the $match contains only "pid"
+        listNewestActiveSnapshotsByBatchPid: null
+        # listNewestActiveSnapshotsByBatchPidId contains the hint name to use in the aggregation query where the $match contains only "_id"
+        listNewestActiveSnapshotsByBatchId: null
     # persistence holds configuration regarding (akka) persistence of connections (event journal and snapshots)
     persistence:
       # keep closed, inactive connections for that amount of time in memory when no other use did happen:

@@ -78,6 +78,13 @@ public interface MongoDbConfig {
     MonitoringConfig getMonitoringConfig();
 
     /**
+     * Returns the configuration settings of the MongoReadJournal.
+     *
+     * @return the MongoReadJournal config.
+     */
+    MongoReadJournalConfig getReadJournalConfig();
+
+    /**
      * An enumeration of known value paths and associated default values of the MongoDbConfig.
      */
     enum MongoDbConfigValue implements KnownConfigValue {

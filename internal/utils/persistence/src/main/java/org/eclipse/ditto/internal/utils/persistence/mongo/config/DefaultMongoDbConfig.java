@@ -41,6 +41,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
     private final DefaultConnectionPoolConfig connectionPoolConfig;
     private final DefaultCircuitBreakerConfig circuitBreakerConfig;
     private final DefaultMonitoringConfig monitoringConfig;
+    private final MongoReadJournalConfig readJournalConfig;
 
     private DefaultMongoDbConfig(final ConfigWithFallback config) {
         maxQueryTime = config.getNonNegativeAndNonZeroDurationOrThrow(MongoDbConfigValue.MAX_QUERY_TIME);
@@ -61,6 +62,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
         connectionPoolConfig = DefaultConnectionPoolConfig.of(config);
         circuitBreakerConfig = DefaultCircuitBreakerConfig.of(config);
         monitoringConfig = DefaultMonitoringConfig.of(config);
+        readJournalConfig = DefaultMongoReadJournalConfig.of(config);
     }
 
     /**
@@ -123,6 +125,11 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
     }
 
     @Override
+    public MongoReadJournalConfig getReadJournalConfig() {
+        return readJournalConfig;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -137,13 +144,14 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
                 Objects.equals(optionsConfig, that.optionsConfig) &&
                 Objects.equals(connectionPoolConfig, that.connectionPoolConfig) &&
                 Objects.equals(circuitBreakerConfig, that.circuitBreakerConfig) &&
+                Objects.equals(readJournalConfig, that.readJournalConfig) &&
                 Objects.equals(monitoringConfig, that.monitoringConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(mongoDbUri, maxQueryTime, documentDbCompatibilityMode, optionsConfig, connectionPoolConfig,
-                circuitBreakerConfig, monitoringConfig);
+                circuitBreakerConfig, monitoringConfig, readJournalConfig);
     }
 
     @Override
@@ -156,6 +164,7 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
                 ", connectionPoolConfig=" + connectionPoolConfig +
                 ", circuitBreakerConfig=" + circuitBreakerConfig +
                 ", monitoringConfig=" + monitoringConfig +
+                ", readJournalConfig=" + readJournalConfig +
                 "]";
     }
 
