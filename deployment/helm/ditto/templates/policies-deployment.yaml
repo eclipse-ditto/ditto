@@ -237,6 +237,20 @@ spec:
               value: "{{ .Values.policies.config.cleanup.creditsPerBatch }}"
             - name: CLEANUP_DELETE_FINAL_DELETED_SNAPSHOT
               value: "{{ .Values.policies.config.cleanup.deleteFinalDeletedSnapshot }}"
+            - name: MONGODB_READ_JOURNAL_SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_ID
+              value: "{{ .Values.policies.config.readJournal.indexes.createSnapshotAggregationIndexPidId }}"
+            - name: MONGODB_READ_JOURNAL_SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID
+              value: "{{ .Values.policies.config.readJournal.indexes.createSnapshotAggregationIndexPid }}"
+            - name: MONGODB_READ_JOURNAL_HINT_NAME_FILTER_PIDS_THAT_DOESNT_CONTAIN_TAG_IN_NEWEST_ENTRY
+              value: "{{ .Values.policies.config.readJournal.hints.filterPidsThatDoesntContainTagInNewestEntry }}"
+            - name: MONGODB_READ_JOURNAL_HINT_NAME_LIST_LATEST_JOURNAL_ENTRIES
+              value: "{{ .Values.policies.config.readJournal.hints.listLatestJournalEntries }}"
+            - name: MONGODB_READ_JOURNAL_HINT_NAME_LIST_NEWEST_ACTIVE_SNAPSHOT_BY_BATCH_PID_ID
+              value: "{{ .Values.policies.config.readJournal.hints.listNewestActiveSnapshotsByBatchPidId }}"
+            - name: MONGODB_READ_JOURNAL_HINT_NAME_LIST_NEWEST_ACTIVE_SNAPSHOT_BY_BATCH_PID
+              value: "{{ .Values.policies.config.readJournal.hints.listNewestActiveSnapshotsByBatchPid }}"
+            - name: MONGODB_READ_JOURNAL_HINT_NAME_LIST_NEWEST_ACTIVE_SNAPSHOT_BY_BATCH_ID
+              value: "{{ .Values.policies.config.readJournal.hints.listNewestActiveSnapshotsByBatchId }}"
             - name: POLICIES_PERSISTENCE_PING_RATE_FREQUENCY
               value: "{{ .Values.policies.config.persistence.pingRate.frequency }}"
             - name: POLICIES_PERSISTENCE_PING_RATE_ENTITIES
