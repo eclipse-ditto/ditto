@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -166,6 +167,12 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
     private static final Index TAG_PID_INDEX =
             IndexFactory.newInstance("ditto_tag_pid", List.of(J_TAGS, J_PROCESSOR_ID), false, true);
 
+    private static final Index SNAPS_PID_ID_INDEX =
+            IndexFactory.newInstance("snaps_pid_id_index", List.of(S_PROCESSOR_ID, S_ID), false, false);
+
+    private static final Index SNAPS_PID_INDEX =
+            IndexFactory.newInstance("snaps_pid_index", List.of(S_PROCESSOR_ID), false, false);
+
     private final String journalCollection;
     private final String snapsCollection;
     private final DittoMongoClient mongoClient;
@@ -201,7 +208,8 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
         final Config config = system.settings().config();
         final MongoDbConfig mongoDbConfig =
                 DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(config));
-        return newInstance(config, MongoClientWrapper.newInstance(mongoDbConfig), mongoDbConfig.getReadJournalConfig(), system);
+        return newInstance(config, MongoClientWrapper.newInstance(mongoDbConfig), mongoDbConfig.getReadJournalConfig(),
+                system);
     }
 
     /**
@@ -238,6 +246,32 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
      */
     public CompletionStage<Done> ensureTagPidIndex() {
         return indexInitializer.createNonExistingIndices(journalCollection, List.of(TAG_PID_INDEX));
+    }
+
+    /**
+     * Ensure a compound index exists for snapshot cleanup aggregation matching on "pid" and "_id".
+     *
+     * @return a future that completes after index creation completes or fails when index creation fails.
+     */
+    public CompletionStage<Done> ensureSnapshotCollectionPidIdIndex() {
+        if (readJournalConfig.shouldCreateAdditionalSnapshotAggregationIndexPidId()) {
+            return indexInitializer.createNonExistingIndices(snapsCollection, List.of(SNAPS_PID_ID_INDEX));
+        } else {
+            return CompletableFuture.completedFuture(Done.getInstance());
+        }
+    }
+
+    /**
+     * Ensure a compound index exists for snapshot cleanup aggregation matching on "pid" .
+     *
+     * @return a future that completes after index creation completes or fails when index creation fails.
+     */
+    public CompletionStage<Done> ensureSnapshotCollectionPidIndex() {
+        if (readJournalConfig.shouldCreateAdditionalSnapshotAggregationIndexPid()) {
+            return indexInitializer.createNonExistingIndices(snapsCollection, List.of(SNAPS_PID_INDEX));
+        } else {
+            return CompletableFuture.completedFuture(Done.getInstance());
+        }
     }
 
     /**
@@ -349,6 +383,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
         ));
         final AggregatePublisher<Document> hintedAggregate =
                 readJournalConfig.getIndexNameHintForFilterPidsThatDoesntContainTagInNewestEntry()
+                        .filter(hint -> !hint.equals("null"))
                         .map(aggregate::hintString)
                         .orElse(aggregate);
         return Source.fromPublisher(hintedAggregate)
@@ -928,7 +963,8 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
 
         final List<Bson> pipeline = new ArrayList<>(5);
         // match stage
-        pipeline.add(Aggregates.match(snapshotFilter.toMongoFilter()));
+        final Bson matchFilter = snapshotFilter.toMongoFilter();
+        pipeline.add(Aggregates.match(matchFilter));
 
         // sort stage
         pipeline.add(Aggregates.sort(Sorts.orderBy(Sorts.ascending(S_PROCESSOR_ID), Sorts.descending(S_SN))));
@@ -947,8 +983,8 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
         final String items = "i";
         pipeline.add(Aggregates.group(
                 new Document("_id", new BsonNull()),
-                Accumulators.max(maxPid, "$"+ S_ID),
-                Accumulators.push(items,"$$ROOT")));
+                Accumulators.max(maxPid, "$" + S_ID),
+                Accumulators.push(items, "$$ROOT")));
 
         // redact stage - "$$PRUNE"s documents with "__lifecycle" = DELETED if includeDeleted=false
         // if includeDeleted=true keeps them using "$$DESCEND"
@@ -963,13 +999,15 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
                 )));
 
         final AggregatePublisher<Document> aggregate = snapshotStore.aggregate(pipeline);
-        final AggregatePublisher<Document> hintedAggregate =
-                readJournalConfig.getIndexNameHintForListNewestActiveSnapshotsByBatch()
-                        .map(aggregate::hintString)
-                        .orElse(aggregate);
+        final Optional<String> indexHint = calculateIndexHint(matchFilter);
+        final AggregatePublisher<Document> hintedAggregate = indexHint
+                .filter(hint -> !hint.equals("null"))
+                .map(aggregate::hintString)
+                .orElse(aggregate);
         return Source.fromPublisher(
-                hintedAggregate
-                        .batchSize(batchSize) // use batchSize also for the cursor batchSize (16 by default bc of backpressure!)
+                        hintedAggregate
+                                .batchSize(batchSize)
+                        // use batchSize also for the cursor batchSize (16 by default bc of backpressure!)
                 )
                 .flatMapConcat(document -> {
                     final String theMaxPid = document.getString(maxPid);
@@ -981,6 +1019,23 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
                         return Source.single(snapshotBatch);
                     }
                 });
+    }
+
+    private Optional<String> calculateIndexHint(final Bson matchFilter) {
+        final String matchJson = matchFilter.toBsonDocument().toJson();
+        final boolean matchContainsPid = matchJson.contains("\"pid\":");
+        final boolean matchContainsId = matchJson.contains("\"_id\":");
+        final Optional<String> indexHint;
+        if (matchContainsPid && matchContainsId) {
+            indexHint = readJournalConfig.getIndexNameHintForListNewestActiveSnapshotsByBatchPidId();
+        } else if (matchContainsPid) {
+            indexHint = readJournalConfig.getIndexNameHintForListNewestActiveSnapshotsByBatchPid();
+        } else if (matchContainsId) {
+            indexHint = readJournalConfig.getIndexNameHintForListNewestActiveSnapshotsByBatchId();
+        } else {
+            indexHint = Optional.empty();
+        }
+        return indexHint;
     }
 
     private static Source<List<String>, NotUsed> listJournalEntryTags(final MongoCollection<Document> journal,

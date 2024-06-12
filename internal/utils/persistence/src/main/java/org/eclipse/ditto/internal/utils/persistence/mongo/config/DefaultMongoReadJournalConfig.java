@@ -32,17 +32,31 @@ public final class DefaultMongoReadJournalConfig implements MongoReadJournalConf
 
     private static final String CONFIG_PATH = "read-journal";
 
+    private final boolean createAdditionalSnapshotAggregationIndexPidId;
+    private final boolean createAdditionalSnapshotAggregationIndexPid;
     @Nullable private final String hintNameFilterPidsThatDoesntContainTagInNewestEntry;
     @Nullable private final String hintNameListLatestJournalEntries;
-    @Nullable private final String listNewestActiveSnapshotsByBatch;
+    @Nullable private final String listNewestActiveSnapshotsByBatchPidId;
+    @Nullable private final String listNewestActiveSnapshotsByBatchPid;
+    @Nullable private final String listNewestActiveSnapshotsByBatchId;
 
     private DefaultMongoReadJournalConfig(final ScopedConfig config) {
+        createAdditionalSnapshotAggregationIndexPidId = config.getBoolean(
+                MongoReadJournalConfigValue.SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_ID.getConfigPath()
+        );
+        createAdditionalSnapshotAggregationIndexPid = config.getBoolean(
+                MongoReadJournalConfigValue.SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID.getConfigPath()
+        );
         hintNameFilterPidsThatDoesntContainTagInNewestEntry = getNullableString(config,
                 MongoReadJournalConfigValue.HINT_NAME_FILTER_PIDS_THAT_DOESNT_CONTAIN_TAG_IN_NEWEST_ENTRY);
         hintNameListLatestJournalEntries = getNullableString(config,
                 MongoReadJournalConfigValue.HINT_NAME_LIST_LATEST_JOURNAL_ENTRIES);
-        listNewestActiveSnapshotsByBatch = getNullableString(config,
-                MongoReadJournalConfigValue.HINT_NAME_LIST_NEWEST_ACTIVE_SNAPSHOT_BY_BATCH);
+        listNewestActiveSnapshotsByBatchPidId = getNullableString(config,
+                MongoReadJournalConfigValue.HINT_NAME_LIST_NEWEST_ACTIVE_SNAPSHOT_BY_BATCH_PID_ID);
+        listNewestActiveSnapshotsByBatchPid = getNullableString(config,
+                MongoReadJournalConfigValue.HINT_NAME_LIST_NEWEST_ACTIVE_SNAPSHOT_BY_BATCH_PID);
+        listNewestActiveSnapshotsByBatchId = getNullableString(config,
+                MongoReadJournalConfigValue.HINT_NAME_LIST_NEWEST_ACTIVE_SNAPSHOT_BY_BATCH_ID);
     }
 
     /**
@@ -59,7 +73,20 @@ public final class DefaultMongoReadJournalConfig implements MongoReadJournalConf
 
     @Nullable
     private static String getNullableString(final Config config, final KnownConfigValue configValue) {
-        return config.getIsNull(configValue.getConfigPath()) ? null : config.getString(configValue.getConfigPath());
+        return config.getIsNull(configValue.getConfigPath()) ? null :
+                Optional.of(config.getString(configValue.getConfigPath()))
+                        .filter(s -> !s.equals("null"))
+                        .orElse(null);
+    }
+
+    @Override
+    public boolean shouldCreateAdditionalSnapshotAggregationIndexPidId() {
+        return createAdditionalSnapshotAggregationIndexPidId;
+    }
+
+    @Override
+    public boolean shouldCreateAdditionalSnapshotAggregationIndexPid() {
+        return createAdditionalSnapshotAggregationIndexPid;
     }
 
     @Override
@@ -73,8 +100,18 @@ public final class DefaultMongoReadJournalConfig implements MongoReadJournalConf
     }
 
     @Override
-    public Optional<String> getIndexNameHintForListNewestActiveSnapshotsByBatch() {
-        return Optional.ofNullable(listNewestActiveSnapshotsByBatch);
+    public Optional<String> getIndexNameHintForListNewestActiveSnapshotsByBatchPidId() {
+        return Optional.ofNullable(listNewestActiveSnapshotsByBatchPidId);
+    }
+
+    @Override
+    public Optional<String> getIndexNameHintForListNewestActiveSnapshotsByBatchPid() {
+        return Optional.ofNullable(listNewestActiveSnapshotsByBatchPid);
+    }
+
+    @Override
+    public Optional<String> getIndexNameHintForListNewestActiveSnapshotsByBatchId() {
+        return Optional.ofNullable(listNewestActiveSnapshotsByBatchId);
     }
 
     @Override
@@ -86,25 +123,33 @@ public final class DefaultMongoReadJournalConfig implements MongoReadJournalConf
             return false;
         }
         final DefaultMongoReadJournalConfig that = (DefaultMongoReadJournalConfig) o;
-        return Objects.equals(hintNameFilterPidsThatDoesntContainTagInNewestEntry,
-                that.hintNameFilterPidsThatDoesntContainTagInNewestEntry) &&
+        return createAdditionalSnapshotAggregationIndexPidId == that.createAdditionalSnapshotAggregationIndexPidId &&
+                createAdditionalSnapshotAggregationIndexPid == that.createAdditionalSnapshotAggregationIndexPid &&
+                Objects.equals(hintNameFilterPidsThatDoesntContainTagInNewestEntry,
+                        that.hintNameFilterPidsThatDoesntContainTagInNewestEntry) &&
                 Objects.equals(hintNameListLatestJournalEntries, that.hintNameListLatestJournalEntries) &&
-                Objects.equals(listNewestActiveSnapshotsByBatch, that.listNewestActiveSnapshotsByBatch);
+                Objects.equals(listNewestActiveSnapshotsByBatchPidId, that.listNewestActiveSnapshotsByBatchPidId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(hintNameFilterPidsThatDoesntContainTagInNewestEntry, hintNameListLatestJournalEntries,
-                listNewestActiveSnapshotsByBatch);
+        return Objects.hash(createAdditionalSnapshotAggregationIndexPidId, createAdditionalSnapshotAggregationIndexPid,
+                hintNameFilterPidsThatDoesntContainTagInNewestEntry, hintNameListLatestJournalEntries,
+                listNewestActiveSnapshotsByBatchPidId, listNewestActiveSnapshotsByBatchPid,
+                listNewestActiveSnapshotsByBatchId);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "hintNameFilterPidsThatDoesntContainTagInNewestEntry=" +
+                "createAdditionalSnapshotAggregationIndexPidId=" + createAdditionalSnapshotAggregationIndexPidId +
+                ", createAdditionalSnapshotAggregationIndexPid=" + createAdditionalSnapshotAggregationIndexPid +
+                ", hintNameFilterPidsThatDoesntContainTagInNewestEntry=" +
                 hintNameFilterPidsThatDoesntContainTagInNewestEntry +
                 ", hintNameListLatestJournalEntries=" + hintNameListLatestJournalEntries +
-                ", listNewestActiveSnapshotsByBatch=" + listNewestActiveSnapshotsByBatch +
+                ", listNewestActiveSnapshotsByBatchPidId=" + listNewestActiveSnapshotsByBatchPidId +
+                ", listNewestActiveSnapshotsByBatchPid=" + listNewestActiveSnapshotsByBatchPid +
+                ", listNewestActiveSnapshotsByBatchId=" + listNewestActiveSnapshotsByBatchId +
                 "]";
     }
 
