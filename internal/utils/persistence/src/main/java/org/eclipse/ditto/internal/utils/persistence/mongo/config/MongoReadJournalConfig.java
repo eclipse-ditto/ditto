@@ -32,10 +32,16 @@ public interface MongoReadJournalConfig {
     boolean shouldCreateAdditionalSnapshotAggregationIndexPidId();
 
     /**
-     * @return whether additional index for "pid" should be created in order to speed up MongoReadJournal
+     * @return whether additional index for "pid" + "sn" should be created in order to speed up MongoReadJournal
      * aggregation queries on the snapshot collection.
      */
-    boolean shouldCreateAdditionalSnapshotAggregationIndexPid();
+    boolean shouldCreateAdditionalSnapshotAggregationIndexPidSn();
+
+    /**
+     * @return whether additional index for "pid" + "sn" + "_id" should be created in order to speed up MongoReadJournal
+     * aggregation queries on the snapshot collection.
+     */
+    boolean shouldCreateAdditionalSnapshotAggregationIndexPidSnId();
 
     /**
      * @return the optional hint name for aggregation done in {@code filterPidsThatDoesntContainTagInNewestEntry}.
@@ -78,10 +84,16 @@ public interface MongoReadJournalConfig {
         SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_ID("should-create-additional-snapshot-aggregation-index-pid-id", false),
 
         /**
-         * Whether additional index for "pid" should be created in order to speed up MongoReadJournal aggregation
+         * Whether additional index for "pid" + "sn" should be created in order to speed up MongoReadJournal aggregation
          * queries on the snapshot collection.
          */
-        SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID("should-create-additional-snapshot-aggregation-index-pid", false),
+        SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_SN("should-create-additional-snapshot-aggregation-index-pid-sn", false),
+
+        /**
+         * Whether additional index for "pid" + "sn" + "_id" should be created in order to speed up MongoReadJournal aggregation
+         * queries on the snapshot collection.
+         */
+        SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_SN_ID("should-create-additional-snapshot-aggregation-index-pid-sn-id", false),
 
         /**
          * Hint name for aggregation done in {@code filterPidsThatDoesntContainTagInNewestEntry}.

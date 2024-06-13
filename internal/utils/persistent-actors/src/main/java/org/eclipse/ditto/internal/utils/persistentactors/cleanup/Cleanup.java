@@ -59,7 +59,8 @@ final class Cleanup {
         this.deleteFinalDeletedSnapshot = deleteFinalDeletedSnapshot;
 
         readJournal.ensureSnapshotCollectionPidIdIndex()
-                .thenCompose(done -> readJournal.ensureSnapshotCollectionPidIndex())
+                .thenCompose(done -> readJournal.ensureSnapshotCollectionPidSnIndex())
+                .thenCompose(done -> readJournal.ensureSnapshotCollectionPidSnIdIndex())
                 .exceptionally(e -> {
                     logger.error(e, "Failed to create index for read journal snapshot aggregation queries");
                     return null;

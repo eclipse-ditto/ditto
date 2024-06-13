@@ -244,18 +244,20 @@ spec:
               value: "{{ .Values.things.config.cleanup.deleteFinalDeletedSnapshot }}"
             - name: MONGODB_READ_JOURNAL_SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_ID
               value: "{{ .Values.things.config.readJournal.indexes.createSnapshotAggregationIndexPidId }}"
-            - name: MONGODB_READ_JOURNAL_SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID
-              value: "{{ .Values.things.config.readJournal.indexes.createSnapshotAggregationIndexPid }}"
+            - name: MONGODB_READ_JOURNAL_SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_SN
+              value: "{{ .Values.things.config.readJournal.indexes.createSnapshotAggregationIndexPidSn }}"
+            - name: MONGODB_READ_JOURNAL_SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_SN_ID
+              value: "{{ .Values.things.config.readJournal.indexes.createSnapshotAggregationIndexPidSnId }}"
             - name: MONGODB_READ_JOURNAL_HINT_NAME_FILTER_PIDS_THAT_DOESNT_CONTAIN_TAG_IN_NEWEST_ENTRY
-              value: "{{ .Values.things.config.readJournal.hints.filterPidsThatDoesntContainTagInNewestEntry }}"
+              value: {{ .Values.things.config.readJournal.hints.filterPidsThatDoesntContainTagInNewestEntry | default "null" | quote }}
             - name: MONGODB_READ_JOURNAL_HINT_NAME_LIST_LATEST_JOURNAL_ENTRIES
-              value: "{{ .Values.things.config.readJournal.hints.listLatestJournalEntries }}"
+              value: {{ .Values.things.config.readJournal.hints.listLatestJournalEntries | default "null" | quote }}
             - name: MONGODB_READ_JOURNAL_HINT_NAME_LIST_NEWEST_ACTIVE_SNAPSHOT_BY_BATCH_PID_ID
-              value: "{{ .Values.things.config.readJournal.hints.listNewestActiveSnapshotsByBatchPidId }}"
+              value: {{ .Values.things.config.readJournal.hints.listNewestActiveSnapshotsByBatchPidId | default "null" | quote }}
             - name: MONGODB_READ_JOURNAL_HINT_NAME_LIST_NEWEST_ACTIVE_SNAPSHOT_BY_BATCH_PID
-              value: "{{ .Values.things.config.readJournal.hints.listNewestActiveSnapshotsByBatchPid }}"
+              value: {{ .Values.things.config.readJournal.hints.listNewestActiveSnapshotsByBatchPid | default "null" | quote }}
             - name: MONGODB_READ_JOURNAL_HINT_NAME_LIST_NEWEST_ACTIVE_SNAPSHOT_BY_BATCH_ID
-              value: "{{ .Values.things.config.readJournal.hints.listNewestActiveSnapshotsByBatchId }}"
+              value: {{ .Values.things.config.readJournal.hints.listNewestActiveSnapshotsByBatchId | default "null" | quote }}
             - name: THING_SNAPSHOT_INTERVAL
               value: "{{ .Values.things.config.persistence.snapshots.interval }}"
             - name: THING_SNAPSHOT_THRESHOLD

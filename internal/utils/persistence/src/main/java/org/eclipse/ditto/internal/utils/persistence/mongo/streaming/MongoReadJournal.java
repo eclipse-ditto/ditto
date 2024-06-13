@@ -59,7 +59,9 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoReadJournalConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.indices.DefaultIndexKey;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
+import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexDirection;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexFactory;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
@@ -170,8 +172,20 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
     private static final Index SNAPS_PID_ID_INDEX =
             IndexFactory.newInstance("snaps_pid_id_index", List.of(S_PROCESSOR_ID, S_ID), false, false);
 
-    private static final Index SNAPS_PID_INDEX =
-            IndexFactory.newInstance("snaps_pid_index", List.of(S_PROCESSOR_ID), false, false);
+    private static final Index SNAPS_PID_SN_INDEX =
+            IndexFactory.newInstanceWithCustomKeys("snaps_pid_sn_index",
+                    List.of(
+                            DefaultIndexKey.of(S_PROCESSOR_ID, IndexDirection.DEFAULT),
+                            DefaultIndexKey.of(S_SN, IndexDirection.DESCENDING)
+                    ), false);
+
+    private static final Index SNAPS_PID_SN_ID_INDEX =
+            IndexFactory.newInstanceWithCustomKeys("snaps_pid_sn_id_index",
+                    List.of(
+                            DefaultIndexKey.of(S_PROCESSOR_ID, IndexDirection.DEFAULT),
+                            DefaultIndexKey.of(S_SN, IndexDirection.DESCENDING),
+                            DefaultIndexKey.of(S_ID, IndexDirection.DEFAULT)
+                    ), false);
 
     private final String journalCollection;
     private final String snapsCollection;
@@ -249,7 +263,7 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
     }
 
     /**
-     * Ensure a compound index exists for snapshot cleanup aggregation matching on "pid" and "_id".
+     * Ensure a compound index exists for snapshot cleanup aggregation matching/sorting on "pid" and "_id".
      *
      * @return a future that completes after index creation completes or fails when index creation fails.
      */
@@ -262,13 +276,26 @@ public final class MongoReadJournal implements CurrentEventsByPersistenceIdQuery
     }
 
     /**
-     * Ensure a compound index exists for snapshot cleanup aggregation matching on "pid" .
+     * Ensure a compound index exists for snapshot cleanup aggregation matching/sorting on "pid" and "sn".
      *
      * @return a future that completes after index creation completes or fails when index creation fails.
      */
-    public CompletionStage<Done> ensureSnapshotCollectionPidIndex() {
-        if (readJournalConfig.shouldCreateAdditionalSnapshotAggregationIndexPid()) {
-            return indexInitializer.createNonExistingIndices(snapsCollection, List.of(SNAPS_PID_INDEX));
+    public CompletionStage<Done> ensureSnapshotCollectionPidSnIndex() {
+        if (readJournalConfig.shouldCreateAdditionalSnapshotAggregationIndexPidSn()) {
+            return indexInitializer.createNonExistingIndices(snapsCollection, List.of(SNAPS_PID_SN_INDEX));
+        } else {
+            return CompletableFuture.completedFuture(Done.getInstance());
+        }
+    }
+
+    /**
+     * Ensure a compound index exists for snapshot cleanup aggregation matching/sorting on "pid", "sn" and "_id".
+     *
+     * @return a future that completes after index creation completes or fails when index creation fails.
+     */
+    public CompletionStage<Done> ensureSnapshotCollectionPidSnIdIndex() {
+        if (readJournalConfig.shouldCreateAdditionalSnapshotAggregationIndexPidSnId()) {
+            return indexInitializer.createNonExistingIndices(snapsCollection, List.of(SNAPS_PID_SN_ID_INDEX));
         } else {
             return CompletableFuture.completedFuture(Done.getInstance());
         }
