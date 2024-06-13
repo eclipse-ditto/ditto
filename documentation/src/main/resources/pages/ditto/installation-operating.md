@@ -29,6 +29,51 @@ the following environment variables in order to configure the connection to the 
 * `PEKKO_PERSISTENCE_MONGO_JOURNAL_WRITE_CONCERN`: Configure Pekko Persistence MongoDB journal write concern
 * `PEKKO_PERSISTENCE_MONGO_SNAPS_WRITE_CONCERN`: Configure Pekko Persistence MongoDB snapshot write concern
 
+#### MongoDB tuning
+
+This section contains known aspects when/how to tune Ditto working with MongoDB.
+
+##### Background aggregation queries
+
+Ditto runs several "background" queries against MongoDB (e.g. in order to clean up data in the background, 
+depending on the current load to the DB) using `aggregate`.  
+This mainly is done on the "snapshot" collections, e.g. `things_snaps`, `policies_snaps`, `connections_snaps`.  
+
+###### MongoDB 5
+
+In MongoDB 5, the default settings of Ditto work just fine - the MongoDB `aggregate` queries run quick enough and do
+not cause much disk read operations.
+
+###### MongoDB 6
+
+In MongoDB 6 however, the `aggregate` queries Ditto does to the snapshot collections drastically slowed down with much
+data in the snapshot stores.  
+If you encounter poor query performance and e.g. a lot of additional "disk read IOPS", you are also affected by this
+issue. In that case, there are options in Ditto to enable creation of additional indexes which speed up the aggregation 
+queries to a comparable level than with MongoDB 5.
+
+The following environment variables can be enabled to create those indexes:
+
+* `MONGODB_READ_JOURNAL_SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_ID`: `true`
+* `MONGODB_READ_JOURNAL_SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_SN`: `true`
+* `MONGODB_READ_JOURNAL_SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_SN_ID`: `true`
+
+They are also configurable via Helm values, e.g. for the `things` service:
+```yaml
+things:
+  config:
+    # holds configuration regarding the MongoReadJournal and e.g. the aggregation queries which are performed in it
+    readJournal:
+      # indexes contains configuration about additional indexes to create
+      indexes:
+        # whether to create the "pid"+"_id" compound index on the snapshot collection
+        createSnapshotAggregationIndexPidId: true
+        # whether to create the "pid"+"sn" compound index on the snapshot collection
+        createSnapshotAggregationIndexPidSn: true
+        # whether to create the "pid"+"sn"+"_id" compound index on the snapshot collection
+        createSnapshotAggregationIndexPidSnId: true
+```
+
 ### Ditto configuration
 
 Each of Ditto's microservice has many options for configuration, e.g. timeouts, cache sizes, etc.
