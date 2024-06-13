@@ -33,7 +33,8 @@ public final class DefaultMongoReadJournalConfig implements MongoReadJournalConf
     private static final String CONFIG_PATH = "read-journal";
 
     private final boolean createAdditionalSnapshotAggregationIndexPidId;
-    private final boolean createAdditionalSnapshotAggregationIndexPid;
+    private final boolean createAdditionalSnapshotAggregationIndexPidSn;
+    private final boolean createAdditionalSnapshotAggregationIndexPidSnId;
     @Nullable private final String hintNameFilterPidsThatDoesntContainTagInNewestEntry;
     @Nullable private final String hintNameListLatestJournalEntries;
     @Nullable private final String listNewestActiveSnapshotsByBatchPidId;
@@ -44,8 +45,11 @@ public final class DefaultMongoReadJournalConfig implements MongoReadJournalConf
         createAdditionalSnapshotAggregationIndexPidId = config.getBoolean(
                 MongoReadJournalConfigValue.SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_ID.getConfigPath()
         );
-        createAdditionalSnapshotAggregationIndexPid = config.getBoolean(
-                MongoReadJournalConfigValue.SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID.getConfigPath()
+        createAdditionalSnapshotAggregationIndexPidSn = config.getBoolean(
+                MongoReadJournalConfigValue.SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_SN.getConfigPath()
+        );
+        createAdditionalSnapshotAggregationIndexPidSnId = config.getBoolean(
+                MongoReadJournalConfigValue.SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_SN_ID.getConfigPath()
         );
         hintNameFilterPidsThatDoesntContainTagInNewestEntry = getNullableString(config,
                 MongoReadJournalConfigValue.HINT_NAME_FILTER_PIDS_THAT_DOESNT_CONTAIN_TAG_IN_NEWEST_ENTRY);
@@ -85,8 +89,13 @@ public final class DefaultMongoReadJournalConfig implements MongoReadJournalConf
     }
 
     @Override
-    public boolean shouldCreateAdditionalSnapshotAggregationIndexPid() {
-        return createAdditionalSnapshotAggregationIndexPid;
+    public boolean shouldCreateAdditionalSnapshotAggregationIndexPidSn() {
+        return createAdditionalSnapshotAggregationIndexPidSn;
+    }
+
+    @Override
+    public boolean shouldCreateAdditionalSnapshotAggregationIndexPidSnId() {
+        return createAdditionalSnapshotAggregationIndexPidSnId;
     }
 
     @Override
@@ -124,7 +133,9 @@ public final class DefaultMongoReadJournalConfig implements MongoReadJournalConf
         }
         final DefaultMongoReadJournalConfig that = (DefaultMongoReadJournalConfig) o;
         return createAdditionalSnapshotAggregationIndexPidId == that.createAdditionalSnapshotAggregationIndexPidId &&
-                createAdditionalSnapshotAggregationIndexPid == that.createAdditionalSnapshotAggregationIndexPid &&
+                createAdditionalSnapshotAggregationIndexPidSn == that.createAdditionalSnapshotAggregationIndexPidSn &&
+                createAdditionalSnapshotAggregationIndexPidSnId ==
+                        that.createAdditionalSnapshotAggregationIndexPidSnId &&
                 Objects.equals(hintNameFilterPidsThatDoesntContainTagInNewestEntry,
                         that.hintNameFilterPidsThatDoesntContainTagInNewestEntry) &&
                 Objects.equals(hintNameListLatestJournalEntries, that.hintNameListLatestJournalEntries) &&
@@ -133,7 +144,8 @@ public final class DefaultMongoReadJournalConfig implements MongoReadJournalConf
 
     @Override
     public int hashCode() {
-        return Objects.hash(createAdditionalSnapshotAggregationIndexPidId, createAdditionalSnapshotAggregationIndexPid,
+        return Objects.hash(createAdditionalSnapshotAggregationIndexPidId,
+                createAdditionalSnapshotAggregationIndexPidSn, createAdditionalSnapshotAggregationIndexPidSnId,
                 hintNameFilterPidsThatDoesntContainTagInNewestEntry, hintNameListLatestJournalEntries,
                 listNewestActiveSnapshotsByBatchPidId, listNewestActiveSnapshotsByBatchPid,
                 listNewestActiveSnapshotsByBatchId);
@@ -143,7 +155,8 @@ public final class DefaultMongoReadJournalConfig implements MongoReadJournalConf
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "createAdditionalSnapshotAggregationIndexPidId=" + createAdditionalSnapshotAggregationIndexPidId +
-                ", createAdditionalSnapshotAggregationIndexPid=" + createAdditionalSnapshotAggregationIndexPid +
+                ", createAdditionalSnapshotAggregationIndexPidSn=" + createAdditionalSnapshotAggregationIndexPidSn +
+                ", createAdditionalSnapshotAggregationIndexPidSnId=" + createAdditionalSnapshotAggregationIndexPidSnId +
                 ", hintNameFilterPidsThatDoesntContainTagInNewestEntry=" +
                 hintNameFilterPidsThatDoesntContainTagInNewestEntry +
                 ", hintNameListLatestJournalEntries=" + hintNameListLatestJournalEntries +

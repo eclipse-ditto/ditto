@@ -656,8 +656,10 @@ policies:
       indexes:
         # createSnapshotAggregationIndexPidId whether to create the "pid"+"_id" compound index on the snapshot collection
         createSnapshotAggregationIndexPidId: false
-        # createSnapshotAggregationIndexPid whether to create the "pid" compound index on the snapshot collection
-        createSnapshotAggregationIndexPid: false
+        # createSnapshotAggregationIndexPidSn whether to create the "pid"+"sn" compound index on the snapshot collection
+        createSnapshotAggregationIndexPidSn: false
+        # createSnapshotAggregationIndexPidSn whether to create the "pid"+"sn"+"_id" compound index on the snapshot collection
+        createSnapshotAggregationIndexPidSnId: false
       # hints contains hint names to configure for different aggregation calls done in MongoReadJournal
       hints:
         # filterPidsThatDoesntContainTagInNewestEntry contains the hint name to use in the aggregation query
@@ -885,8 +887,10 @@ things:
       indexes:
         # createSnapshotAggregationIndexPidId whether to create the "pid"+"_id" compound index on the snapshot collection
         createSnapshotAggregationIndexPidId: false
-        # createSnapshotAggregationIndexPid whether to create the "pid" compound index on the snapshot collection
-        createSnapshotAggregationIndexPid: false
+        # createSnapshotAggregationIndexPidSn whether to create the "pid"+"sn" compound index on the snapshot collection
+        createSnapshotAggregationIndexPidSn: false
+        # createSnapshotAggregationIndexPidSn whether to create the "pid"+"sn"+"_id" compound index on the snapshot collection
+        createSnapshotAggregationIndexPidSnId: false
       # hints contains hint names to configure for different aggregation calls done in MongoReadJournal
       hints:
         # filterPidsThatDoesntContainTagInNewestEntry contains the hint name to use in the aggregation query
@@ -1363,8 +1367,10 @@ connectivity:
       indexes:
         # createSnapshotAggregationIndexPidId whether to create the "pid"+"_id" compound index on the snapshot collection
         createSnapshotAggregationIndexPidId: false
-        # createSnapshotAggregationIndexPid whether to create the "pid" compound index on the snapshot collection
-        createSnapshotAggregationIndexPid: false
+        # createSnapshotAggregationIndexPidSn whether to create the "pid"+"sn" compound index on the snapshot collection
+        createSnapshotAggregationIndexPidSn: false
+        # createSnapshotAggregationIndexPidSn whether to create the "pid"+"sn"+"_id" compound index on the snapshot collection
+        createSnapshotAggregationIndexPidSnId: false
       # hints contains hint names to configure for different aggregation calls done in MongoReadJournal
       hints:
         # filterPidsThatDoesntContainTagInNewestEntry contains the hint name to use in the aggregation query
@@ -1691,7 +1697,7 @@ nginx:
     # repository for the nginx docker image
     repository: docker.io/nginx
     # tag for the nginx docker image
-    tag: 1.25
+    tag: 1.26
     # pullPolicy for the nginx docker image
     pullPolicy: IfNotPresent
   # extraEnv to add arbitrary environment variables to nginx container
@@ -1827,7 +1833,7 @@ swaggerui:
     # repository for the swagger ui docker image
     repository: docker.io/swaggerapi/swagger-ui
     # tag for the swagger ui docker image
-    tag: v5.9.1
+    tag: v5.17.14
     # pullPolicy for the swagger ui docker image
     pullPolicy: IfNotPresent
   # extraEnv to add arbitrary environment variable to swagger ui container
