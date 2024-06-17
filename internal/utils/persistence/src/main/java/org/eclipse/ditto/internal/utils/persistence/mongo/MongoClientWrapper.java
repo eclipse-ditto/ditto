@@ -39,7 +39,7 @@ import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcern;
 import com.mongodb.connection.ClusterDescription;
 import com.mongodb.connection.ServerDescription;
-import com.mongodb.connection.netty.NettyStreamFactoryFactory;
+import com.mongodb.connection.TransportSettings;
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
 import com.mongodb.management.JMXConnectionPoolListener;
@@ -448,7 +448,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
             if (sslEnabled) {
                 eventLoopGroup = new NioEventLoopGroup();
                 mongoClientSettingsBuilder
-                        .streamFactoryFactory(NettyStreamFactoryFactory.builder().eventLoopGroup(eventLoopGroup).build())
+                        .transportSettings(TransportSettings.nettyBuilder().eventLoopGroup(eventLoopGroup).build())
                         .applyToSslSettings(builder -> builder
                                 .context(tryToCreateAndInitSslContext())
                                 .enabled(sslEnabled));
