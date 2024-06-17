@@ -597,10 +597,12 @@ policies:
       # maxPoolIdleTime configures the maximum amount of time a pooled connection is allowed to idle before closing the connection
       maxPoolIdleTime: 10m
       # journalWriteConcern the MongoDB write concern to apply for writing operations on the event journal
-      #  one of: Unacknowledged | Acknowledged | Journaled | ReplicaAcknowledged
+      #  one of: Unacknowledged | Acknowledged | Journaled | ReplicaAcknowledged | W1 | W2 | W3
+      #  caution: Acknowledged refers to the MongoDB server's configured "default write concern"
       journalWriteConcern: "Journaled"
       # snapsWriteConcern the MongoDB write concern to apply for writing operations on the snapshots persistence
-      #  one of: Unacknowledged | Acknowledged | Journaled | ReplicaAcknowledged
+      #  one of: Unacknowledged | Acknowledged | Journaled | ReplicaAcknowledged | W1 | W2 | W3
+      #  caution: Acknowledged refers to the MongoDB server's configured "default write concern"
       snapsWriteConcern: "Journaled"
       # journalCircuitBreaker configures the circuit breaker for MongoDB operations on the event journal
       journalCircuitBreaker:
@@ -828,10 +830,12 @@ things:
       # maxPoolIdleTime configures the maximum amount of time a pooled connection is allowed to idle before closing the connection
       maxPoolIdleTime: 10m
       # journalWriteConcern the MongoDB write concern to apply for writing operations on the event journal
-      #  one of: Unacknowledged | Acknowledged | Journaled | ReplicaAcknowledged
+      #  one of: Unacknowledged | Acknowledged | Journaled | ReplicaAcknowledged | W1 | W2 | W3
+      #  caution: Acknowledged refers to the MongoDB server's configured "default write concern"
       journalWriteConcern: "Acknowledged"
       # snapsWriteConcern the MongoDB write concern to apply for writing operations on the snapshots persistence
-      #  one of: Unacknowledged | Acknowledged | Journaled | ReplicaAcknowledged
+      #  one of: Unacknowledged | Acknowledged | Journaled | ReplicaAcknowledged | W1 | W2 | W3
+      #  caution: Acknowledged refers to the MongoDB server's configured "default write concern"
       snapsWriteConcern: "Acknowledged"
       # journalCircuitBreaker configures the circuit breaker for MongoDB operations on the event journal
       journalCircuitBreaker:
@@ -1296,10 +1300,12 @@ connectivity:
       # maxPoolIdleTime configures the maximum amount of time a pooled connection is allowed to idle before closing the connection
       maxPoolIdleTime: 10m
       # journalWriteConcern the MongoDB write concern to apply for writing operations on the event journal
-      #  one of: Unacknowledged | Acknowledged | Journaled | ReplicaAcknowledged
+      #  one of: Unacknowledged | Acknowledged | Journaled | ReplicaAcknowledged | W1 | W2 | W3
+      #  caution: Acknowledged refers to the MongoDB server's configured "default write concern"
       journalWriteConcern: "Journaled"
       # snapsWriteConcern the MongoDB write concern to apply for writing operations on the snapshots persistence
-      #  one of: Unacknowledged | Acknowledged | Journaled | ReplicaAcknowledged
+      #  one of: Unacknowledged | Acknowledged | Journaled | ReplicaAcknowledged | W1 | W2 | W3
+      #  caution: Acknowledged refers to the MongoDB server's configured "default write concern"
       snapsWriteConcern: "Journaled"
       # journalCircuitBreaker configures the circuit breaker for MongoDB operations on the event journal
       journalCircuitBreaker:
