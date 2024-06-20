@@ -38,6 +38,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchU
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdaterStream;
 import org.eclipse.ditto.thingsearch.service.starter.actors.MongoClientExtension;
 import org.eclipse.ditto.thingsearch.service.starter.actors.OperatorMetricsProviderActor;
+import org.eclipse.ditto.thingsearch.service.starter.actors.OperatorSearchMetricsProviderActor;
 
 /**
  * Our "Parent" Actor which takes care of supervision of all other Actors in our system.
@@ -131,6 +132,9 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         if (searchConfig.getOperatorMetricsConfig().isEnabled()) {
             startClusterSingletonActor(OperatorMetricsProviderActor.ACTOR_NAME,
                     OperatorMetricsProviderActor.props(searchConfig.getOperatorMetricsConfig(), searchActor)
+            );
+            startClusterSingletonActor(OperatorSearchMetricsProviderActor.ACTOR_NAME,
+                    OperatorSearchMetricsProviderActor.props(searchConfig.getOperatorMetricsConfig(), searchActor, pubSubMediator)
             );
         }
 
