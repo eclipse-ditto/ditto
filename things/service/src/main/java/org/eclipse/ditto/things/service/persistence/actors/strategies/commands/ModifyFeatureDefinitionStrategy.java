@@ -13,6 +13,7 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -55,8 +56,6 @@ final class ModifyFeatureDefinitionStrategy extends AbstractThingCommandStrategy
             final ModifyFeatureDefinition command,
             @Nullable final Metadata metadata) {
 
-        // TODO TJ we probably must also validate the current feature properties based on the new feature definition
-
         final String featureId = command.getFeatureId();
 
         return extractFeature(command, thing)
@@ -87,13 +86,19 @@ final class ModifyFeatureDefinitionStrategy extends AbstractThingCommandStrategy
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final String featureId = command.getFeatureId();
 
-        final ThingEvent<?> event =
+        final CompletionStage<Void> validatedStage = getValidatedStage(command, Optional.ofNullable(thing)
+                .flatMap(t -> t.getFeatures().flatMap(f -> f.getFeature(command.getFeatureId())))
+                .orElseThrow());
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(aVoid ->
                 FeatureDefinitionModified.of(thingId, featureId, command.getDefinition(), nextRevision,
-                        getEventTimestamp(), dittoHeaders, metadata);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyFeatureDefinitionResponse.modified(thingId, featureId, dittoHeaders), thing);
+                        getEventTimestamp(), dittoHeaders, metadata)
+        );
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(aVoid ->
+                appendETagHeaderIfProvided(command,
+                        ModifyFeatureDefinitionResponse.modified(thingId, featureId, dittoHeaders), thing)
+        );
 
-        return ResultFactory.newMutationResult(command, event, response);
+        return ResultFactory.newMutationResult(command, eventStage, responseStage);
     }
 
     private Result<ThingEvent<?>> getCreateResult(final Context<ThingId> context, final long nextRevision,
@@ -103,13 +108,30 @@ final class ModifyFeatureDefinitionStrategy extends AbstractThingCommandStrategy
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final String featureId = command.getFeatureId();
 
-        final ThingEvent<?> event = FeatureDefinitionCreated.of(thingId, featureId, command.getDefinition(),
-                nextRevision, getEventTimestamp(), dittoHeaders, metadata);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyFeatureDefinitionResponse.created(thingId, featureId, command.getDefinition(), dittoHeaders),
-                thing);
+        final CompletionStage<Void> validatedStage = getValidatedStage(command, Optional.ofNullable(thing)
+                .flatMap(t -> t.getFeatures().flatMap(f -> f.getFeature(command.getFeatureId())))
+                .orElseThrow());
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(aVoid ->
+                FeatureDefinitionCreated.of(thingId, featureId, command.getDefinition(),
+                        nextRevision, getEventTimestamp(), dittoHeaders, metadata)
+        );
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(aVoid ->
+                appendETagHeaderIfProvided(command,
+                        ModifyFeatureDefinitionResponse.created(thingId, featureId, command.getDefinition(),
+                                dittoHeaders),
+                        thing)
+        );
 
-        return ResultFactory.newMutationResult(command, event, response);
+        return ResultFactory.newMutationResult(command, eventStage, responseStage);
+    }
+
+    private CompletionStage<Void> getValidatedStage(final ModifyFeatureDefinition command, final Feature feature) {
+        return wotThingModelValidator.validateFeatureDefinitionModification(
+                command.getDefinition(),
+                feature,
+                command.getResourcePath(),
+                command.getDittoHeaders()
+        );
     }
 
     @Override

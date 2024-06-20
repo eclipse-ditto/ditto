@@ -25,14 +25,19 @@ import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 public interface ThingValidationConfig {
 
     /**
+     * @return whether to enforce/validate a thing whenever its {@code description} is modified.
+     */
+    boolean isEnforceThingDescriptionModification();
+
+    /**
      * @return whether to enforce/validate attributes of a thing following the defined WoT properties.
      */
     boolean isEnforceAttributes();
 
     /**
-     * @return whether to allow/accept persisting attributes which are not defined as properties in the WoT model.
+     * @return whether to forbid persisting attributes which are not defined as properties in the WoT model.
      */
-    boolean isAllowNonModeledAttributes();
+    boolean isForbidNonModeledAttributes();
 
     /**
      * @return whether to enforce/validate inbox messages to a thing following the defined WoT actions.
@@ -40,9 +45,9 @@ public interface ThingValidationConfig {
     boolean isEnforceInboxMessages();
 
     /**
-     * @return whether to allow/accept dispatching of inbox messages which are not defined as actions in the WoT model.
+     * @return whether to forbid dispatching of inbox messages which are not defined as actions in the WoT model.
      */
-    boolean isAllowNonModeledInboxMessages();
+    boolean isForbidNonModeledInboxMessages();
 
     /**
      * @return whether to enforce/validate outbox messages from a thing following the defined WoT actions.
@@ -50,9 +55,9 @@ public interface ThingValidationConfig {
     boolean isEnforceOutboxMessages();
 
     /**
-     * @return whether to allow/accept dispatching of outbox messages which are not defined as actions in the WoT model.
+     * @return whether to forbid dispatching of outbox messages which are not defined as actions in the WoT model.
      */
-    boolean isAllowNonModeledOutboxMessages();
+    boolean isForbidNonModeledOutboxMessages();
 
 
     /**
@@ -61,17 +66,19 @@ public interface ThingValidationConfig {
      */
     enum ConfigValue implements KnownConfigValue {
 
+        ENFORCE_THING_DESCRIPTION_MODIFICATION("enforce-thing-description-modification", false),
+
         ENFORCE_ATTRIBUTES("enforce-attributes", true),
 
-        ALLOW_NON_MODELED_ATTRIBUTES("allow-non-modeled-attributes", false),
+        FORBID_NON_MODELED_ATTRIBUTES("forbid-non-modeled-attributes", true),
 
         ENFORCE_INBOX_MESSAGES("enforce-inbox-messages", true),
 
-        ALLOW_NON_MODELED_INBOX_MESSAGES("allow-non-modeled-inbox-messages", false),
+        FORBID_NON_MODELED_INBOX_MESSAGES("forbid-non-modeled-inbox-messages", true),
 
         ENFORCE_OUTBOX_MESSAGES("enforce-outbox-messages", true),
 
-        ALLOW_NON_MODELED_OUTBOX_MESSAGES("allow-non-modeled-outbox-messages", false);
+        FORBID_NON_MODELED_OUTBOX_MESSAGES("forbid-non-modeled-outbox-messages", true);
 
 
         private final String path;

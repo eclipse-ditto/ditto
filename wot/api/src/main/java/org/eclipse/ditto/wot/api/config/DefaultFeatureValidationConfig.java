@@ -30,38 +30,41 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
 
     private static final String CONFIG_PATH = "feature";
 
+    private final boolean enforceFeatureDescriptionModification;
     private final boolean enforcePresenceOfModeledFeatures;
-    private final boolean allowNonModeledFeatures;
+    private final boolean forbidNonModeledFeatures;
     private final boolean enforceProperties;
-    private final boolean allowNonModeledProperties;
+    private final boolean forbidNonModeledProperties;
     private final boolean enforceDesiredProperties;
-    private final boolean allowNonModeledDesiredProperties;
+    private final boolean forbidNonModeledDesiredProperties;
     private final boolean enforceInboxMessages;
-    private final boolean allowNonModeledInboxMessages;
+    private final boolean forbidNonModeledInboxMessages;
     private final boolean enforceOutboxMessages;
-    private final boolean allowNonModeledOutboxMessages;
+    private final boolean forbidNonModeledOutboxMessages;
 
     private DefaultFeatureValidationConfig(final ScopedConfig scopedConfig) {
+        enforceFeatureDescriptionModification =
+                scopedConfig.getBoolean(ConfigValue.ENFORCE_FEATURE_DESCRIPTION_MODIFICATION.getConfigPath());
         enforcePresenceOfModeledFeatures =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_PRESENCE_OF_MODELED_FEATURES.getConfigPath());
-        allowNonModeledFeatures =
-                scopedConfig.getBoolean(ConfigValue.ALLOW_NON_MODELED_FEATURES.getConfigPath());
+        forbidNonModeledFeatures =
+                scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_FEATURES.getConfigPath());
         enforceProperties =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_PROPERTIES.getConfigPath());
-        allowNonModeledProperties =
-                scopedConfig.getBoolean(ConfigValue.ALLOW_NON_MODELED_PROPERTIES.getConfigPath());
+        forbidNonModeledProperties =
+                scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_PROPERTIES.getConfigPath());
         enforceDesiredProperties =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_DESIRED_PROPERTIES.getConfigPath());
-        allowNonModeledDesiredProperties =
-                scopedConfig.getBoolean(ConfigValue.ALLOW_NON_MODELED_DESIRED_PROPERTIES.getConfigPath());
+        forbidNonModeledDesiredProperties =
+                scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_DESIRED_PROPERTIES.getConfigPath());
         enforceInboxMessages =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_INBOX_MESSAGES.getConfigPath());
-        allowNonModeledInboxMessages =
-                scopedConfig.getBoolean(ConfigValue.ALLOW_NON_MODELED_INBOX_MESSAGES.getConfigPath());
+        forbidNonModeledInboxMessages =
+                scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_INBOX_MESSAGES.getConfigPath());
         enforceOutboxMessages =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_OUTBOX_MESSAGES.getConfigPath());
-        allowNonModeledOutboxMessages =
-                scopedConfig.getBoolean(ConfigValue.ALLOW_NON_MODELED_OUTBOX_MESSAGES.getConfigPath());
+        forbidNonModeledOutboxMessages =
+                scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_OUTBOX_MESSAGES.getConfigPath());
     }
 
     /**
@@ -77,13 +80,18 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
     }
 
     @Override
+    public boolean isEnforceFeatureDescriptionModification() {
+        return enforceFeatureDescriptionModification;
+    }
+
+    @Override
     public boolean isEnforcePresenceOfModeledFeatures() {
         return enforcePresenceOfModeledFeatures;
     }
 
     @Override
-    public boolean isAllowNonModeledFeatures() {
-        return allowNonModeledFeatures;
+    public boolean isForbidNonModeledFeatures() {
+        return forbidNonModeledFeatures;
     }
 
     @Override
@@ -92,8 +100,8 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
     }
 
     @Override
-    public boolean isAllowNonModeledProperties() {
-        return allowNonModeledProperties;
+    public boolean isForbidNonModeledProperties() {
+        return forbidNonModeledProperties;
     }
 
     @Override
@@ -102,8 +110,8 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
     }
 
     @Override
-    public boolean isAllowNonModeledDesiredProperties() {
-        return allowNonModeledDesiredProperties;
+    public boolean isForbidNonModeledDesiredProperties() {
+        return forbidNonModeledDesiredProperties;
     }
 
     @Override
@@ -112,8 +120,8 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
     }
 
     @Override
-    public boolean isAllowNonModeledInboxMessages() {
-        return allowNonModeledInboxMessages;
+    public boolean isForbidNonModeledInboxMessages() {
+        return forbidNonModeledInboxMessages;
     }
 
     @Override
@@ -122,8 +130,8 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
     }
 
     @Override
-    public boolean isAllowNonModeledOutboxMessages() {
-        return allowNonModeledOutboxMessages;
+    public boolean isForbidNonModeledOutboxMessages() {
+        return forbidNonModeledOutboxMessages;
     }
 
     @Override
@@ -132,38 +140,38 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
         if (o == null || getClass() != o.getClass()) return false;
         final DefaultFeatureValidationConfig that = (DefaultFeatureValidationConfig) o;
         return enforcePresenceOfModeledFeatures == that.enforcePresenceOfModeledFeatures &&
-                allowNonModeledFeatures == that.allowNonModeledFeatures &&
+                forbidNonModeledFeatures == that.forbidNonModeledFeatures &&
                 enforceProperties == that.enforceProperties &&
-                allowNonModeledProperties == that.allowNonModeledProperties &&
+                forbidNonModeledProperties == that.forbidNonModeledProperties &&
                 enforceDesiredProperties == that.enforceDesiredProperties &&
-                allowNonModeledDesiredProperties == that.allowNonModeledDesiredProperties &&
+                forbidNonModeledDesiredProperties == that.forbidNonModeledDesiredProperties &&
                 enforceInboxMessages == that.enforceInboxMessages &&
-                allowNonModeledInboxMessages == that.allowNonModeledInboxMessages &&
+                forbidNonModeledInboxMessages == that.forbidNonModeledInboxMessages &&
                 enforceOutboxMessages == that.enforceOutboxMessages &&
-                allowNonModeledOutboxMessages == that.allowNonModeledOutboxMessages;
+                forbidNonModeledOutboxMessages == that.forbidNonModeledOutboxMessages;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(enforcePresenceOfModeledFeatures, allowNonModeledFeatures, enforceProperties,
-                allowNonModeledProperties, enforceDesiredProperties, allowNonModeledDesiredProperties,
-                enforceInboxMessages, allowNonModeledInboxMessages, enforceOutboxMessages,
-                allowNonModeledOutboxMessages);
+        return Objects.hash(enforcePresenceOfModeledFeatures, forbidNonModeledFeatures, enforceProperties,
+                forbidNonModeledProperties, enforceDesiredProperties, forbidNonModeledDesiredProperties,
+                enforceInboxMessages, forbidNonModeledInboxMessages, enforceOutboxMessages,
+                forbidNonModeledOutboxMessages);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "enforcePresenceOfModeledFeatures=" + enforcePresenceOfModeledFeatures +
-                ", allowNonModeledFeatures=" + allowNonModeledFeatures +
+                ", forbidNonModeledFeatures=" + forbidNonModeledFeatures +
                 ", enforceProperties=" + enforceProperties +
-                ", allowNonModeledProperties=" + allowNonModeledProperties +
+                ", forbidNonModeledProperties=" + forbidNonModeledProperties +
                 ", enforceDesiredProperties=" + enforceDesiredProperties +
-                ", allowNonModeledDesiredProperties=" + allowNonModeledDesiredProperties +
+                ", forbidNonModeledDesiredProperties=" + forbidNonModeledDesiredProperties +
                 ", enforceInboxMessages=" + enforceInboxMessages +
-                ", allowNonModeledInboxMessages=" + allowNonModeledInboxMessages +
+                ", forbidNonModeledInboxMessages=" + forbidNonModeledInboxMessages +
                 ", enforceOutboxMessages=" + enforceOutboxMessages +
-                ", allowNonModeledOutboxMessages=" + allowNonModeledOutboxMessages +
+                ", forbidNonModeledOutboxMessages=" + forbidNonModeledOutboxMessages +
                 "]";
     }
 }

@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
-import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory.newErrorResult;
-import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory.newMutationResult;
-
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
@@ -31,6 +28,7 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -94,7 +92,7 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
                     handleCommandVersion(context, command.getImplementedSchemaVersion(), command.getThing(),
                             commandHeaders);
         } catch (final DittoRuntimeException e) {
-            return newErrorResult(e, command);
+            return ResultFactory.newErrorResult(e, command);
         }
 
         // for v2 upwards, set the policy-id to the thing-id if none is specified:
@@ -141,7 +139,7 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
                         newThingWithImplicits)
         );
 
-        return newMutationResult(command, eventStage, responseStage, true, false);
+        return ResultFactory.newMutationResult(command, eventStage, responseStage, true, false);
     }
 
     private Thing handleCommandVersion(final Context<ThingId> context, final JsonSchemaVersion version,

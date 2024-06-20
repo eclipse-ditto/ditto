@@ -93,7 +93,7 @@ public final class ModifyFeatureDefinitionStrategyTest extends AbstractCommandSt
                 ModifyFeatureDefinition.of(context.getState(), featureId, modifiedFeatureDefinition,
                         DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2.setFeature(featureWithoutDefinition), command,
+        assertStagedModificationResult(underTest, THING_V2.setFeature(featureWithoutDefinition), command,
                 FeatureDefinitionCreated.class,
                 ETagTestUtils.modifyFeatureDefinitionResponse(context.getState(), featureId, command.getDefinition(),
                         command.getDittoHeaders(), true));
@@ -106,7 +106,7 @@ public final class ModifyFeatureDefinitionStrategyTest extends AbstractCommandSt
                 ModifyFeatureDefinition.of(context.getState(), featureId, modifiedFeatureDefinition,
                         DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2, command,
+        assertStagedModificationResult(underTest, THING_V2, command,
                 FeatureDefinitionModified.class,
                 ETagTestUtils.modifyFeatureDefinitionResponse(context.getState(), featureId, modifiedFeatureDefinition,
                         command.getDittoHeaders(), false));
