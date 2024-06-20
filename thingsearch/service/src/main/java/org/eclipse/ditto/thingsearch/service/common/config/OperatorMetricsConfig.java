@@ -48,6 +48,13 @@ public interface OperatorMetricsConfig {
     Map<String, CustomMetricConfig> getCustomMetricConfigurations();
 
     /**
+     * Returns all registered custom search metrics with the key being the metric name to use.
+     *
+     * @return the registered custom search metrics.
+     */
+    Map<String, CustomSearchMetricConfig> getCustomSearchMetricConfigurations();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * OperatorMetricsConfig.
      */
@@ -66,7 +73,12 @@ public interface OperatorMetricsConfig {
         /**
          * All registered custom metrics with the key being the metric name to use.
          */
-        CUSTOM_METRICS("custom-metrics", Collections.emptyMap());
+        CUSTOM_METRICS("custom-metrics", Collections.emptyMap()),
+
+        /**
+         * All registered custom search metrics with the key being the metric name to use.
+         */
+        CUSTOM_SEARCH_METRICS("custom-search-metrics", Collections.emptyMap());
 
         private final String path;
         private final Object defaultValue;

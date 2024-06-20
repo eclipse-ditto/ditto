@@ -477,8 +477,11 @@ public final class SearchActor extends AbstractActorWithShutdownBehaviorAndReque
                                 final StartedTimer databaseAccessTimer =
                                         searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
 
-                                final List<String> subjectIds =
-                                        command.getDittoHeaders()
+                                final boolean isSudo = queryThings.getDittoHeaders()
+                                        .isSudo();
+
+                                final List<String> subjectIds = isSudo ? null
+                                        : command.getDittoHeaders()
                                                 .getAuthorizationContext()
                                                 .getAuthorizationSubjectIds();
                                 final Source<ResultList<TimestampedThingId>, NotUsed> findAllResult =
