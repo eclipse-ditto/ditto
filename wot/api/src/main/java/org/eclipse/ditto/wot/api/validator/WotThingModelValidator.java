@@ -48,9 +48,26 @@ public interface WotThingModelValidator {
     /**
      * TODO TJ doc
      */
+    CompletionStage<Void> validateThing(@Nullable ThingDefinition thingDefinition,
+            Thing thing,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * TODO TJ doc
+     */
     CompletionStage<Void> validateThing(ThingModel thingModel,
             Thing thing,
             JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * TODO TJ doc
+     */
+    CompletionStage<Void> validateThingDefinitionModification(ThingDefinition thingDefinition,
+            Thing thing,
             DittoHeaders dittoHeaders
     );
 
@@ -120,6 +137,15 @@ public interface WotThingModelValidator {
      */
     CompletionStage<Void> validateFeature(@Nullable ThingModel thingModel,
             @Nullable ThingModel featureThingModel,
+            Feature feature,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * TODO TJ doc
+     */
+    CompletionStage<Void> validateFeatureDefinitionModification(FeatureDefinition featureDefinition,
             Feature feature,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders

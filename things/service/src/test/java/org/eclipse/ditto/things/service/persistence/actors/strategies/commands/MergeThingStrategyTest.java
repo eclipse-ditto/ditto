@@ -77,7 +77,7 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
         final MergeThing mergeThing = MergeThing.of(thingId, path, thingJson, DittoHeaders.empty());
         final MergeThingResponse expectedCommandResponse =
                 ETagTestUtils.mergeThingResponse(existing, path, mergeThing.getDittoHeaders());
-        assertModificationResult(underTest, existing, mergeThing, ThingMerged.class, expectedCommandResponse);
+        assertStagedModificationResult(underTest, existing, mergeThing, ThingMerged.class, expectedCommandResponse);
     }
 
     @Test

@@ -30,26 +30,29 @@ final class DefaultThingValidationConfig implements ThingValidationConfig {
 
     private static final String CONFIG_PATH = "thing";
 
+    private final boolean enforceThingDescriptionModification;
     private final boolean enforceAttributes;
-    private final boolean allowNonModeledAttributes;
+    private final boolean forbidNonModeledAttributes;
     private final boolean enforceInboxMessages;
-    private final boolean allowNonModeledInboxMessages;
+    private final boolean forbidNonModeledInboxMessages;
     private final boolean enforceOutboxMessages;
-    private final boolean allowNonModeledOutboxMessages;
+    private final boolean forbidNonModeledOutboxMessages;
 
     private DefaultThingValidationConfig(final ScopedConfig scopedConfig) {
+        enforceThingDescriptionModification =
+                scopedConfig.getBoolean(ConfigValue.ENFORCE_THING_DESCRIPTION_MODIFICATION.getConfigPath());
         enforceAttributes =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_ATTRIBUTES.getConfigPath());
-        allowNonModeledAttributes =
-                scopedConfig.getBoolean(ConfigValue.ALLOW_NON_MODELED_ATTRIBUTES.getConfigPath());
+        forbidNonModeledAttributes =
+                scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_ATTRIBUTES.getConfigPath());
         enforceInboxMessages =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_INBOX_MESSAGES.getConfigPath());
-        allowNonModeledInboxMessages =
-                scopedConfig.getBoolean(ConfigValue.ALLOW_NON_MODELED_INBOX_MESSAGES.getConfigPath());
+        forbidNonModeledInboxMessages =
+                scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_INBOX_MESSAGES.getConfigPath());
         enforceOutboxMessages =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_OUTBOX_MESSAGES.getConfigPath());
-        allowNonModeledOutboxMessages =
-                scopedConfig.getBoolean(ConfigValue.ALLOW_NON_MODELED_OUTBOX_MESSAGES.getConfigPath());
+        forbidNonModeledOutboxMessages =
+                scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_OUTBOX_MESSAGES.getConfigPath());
     }
 
     /**
@@ -65,13 +68,18 @@ final class DefaultThingValidationConfig implements ThingValidationConfig {
     }
 
     @Override
+    public boolean isEnforceThingDescriptionModification() {
+        return enforceThingDescriptionModification;
+    }
+
+    @Override
     public boolean isEnforceAttributes() {
         return enforceAttributes;
     }
 
     @Override
-    public boolean isAllowNonModeledAttributes() {
-        return allowNonModeledAttributes;
+    public boolean isForbidNonModeledAttributes() {
+        return forbidNonModeledAttributes;
     }
 
     @Override
@@ -80,8 +88,8 @@ final class DefaultThingValidationConfig implements ThingValidationConfig {
     }
 
     @Override
-    public boolean isAllowNonModeledInboxMessages() {
-        return allowNonModeledInboxMessages;
+    public boolean isForbidNonModeledInboxMessages() {
+        return forbidNonModeledInboxMessages;
     }
 
     @Override
@@ -90,8 +98,8 @@ final class DefaultThingValidationConfig implements ThingValidationConfig {
     }
 
     @Override
-    public boolean isAllowNonModeledOutboxMessages() {
-        return allowNonModeledOutboxMessages;
+    public boolean isForbidNonModeledOutboxMessages() {
+        return forbidNonModeledOutboxMessages;
     }
 
     @Override
@@ -99,29 +107,32 @@ final class DefaultThingValidationConfig implements ThingValidationConfig {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final DefaultThingValidationConfig that = (DefaultThingValidationConfig) o;
-        return enforceAttributes == that.enforceAttributes &&
-                allowNonModeledAttributes == that.allowNonModeledAttributes &&
+        return enforceThingDescriptionModification == that.enforceThingDescriptionModification &&
+                enforceAttributes == that.enforceAttributes &&
+                forbidNonModeledAttributes == that.forbidNonModeledAttributes &&
                 enforceInboxMessages == that.enforceInboxMessages &&
-                allowNonModeledInboxMessages == that.allowNonModeledInboxMessages &&
+                forbidNonModeledInboxMessages == that.forbidNonModeledInboxMessages &&
                 enforceOutboxMessages == that.enforceOutboxMessages &&
-                allowNonModeledOutboxMessages == that.allowNonModeledOutboxMessages;
+                forbidNonModeledOutboxMessages == that.forbidNonModeledOutboxMessages;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(enforceAttributes, allowNonModeledAttributes, enforceInboxMessages,
-                allowNonModeledInboxMessages, enforceOutboxMessages, allowNonModeledOutboxMessages);
+        return Objects.hash(enforceThingDescriptionModification, enforceAttributes, forbidNonModeledAttributes,
+                enforceInboxMessages, forbidNonModeledInboxMessages, enforceOutboxMessages,
+                forbidNonModeledOutboxMessages);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "enforceAttributes=" + enforceAttributes +
-                ", allowNonModeledAttributes=" + allowNonModeledAttributes +
+                "enforceThingDescriptionModification=" + enforceThingDescriptionModification +
+                ", enforceAttributes=" + enforceAttributes +
+                ", forbidNonModeledAttributes=" + forbidNonModeledAttributes +
                 ", enforceInboxMessages=" + enforceInboxMessages +
-                ", allowNonModeledInboxMessages=" + allowNonModeledInboxMessages +
+                ", forbidNonModeledInboxMessages=" + forbidNonModeledInboxMessages +
                 ", enforceOutboxMessages=" + enforceOutboxMessages +
-                ", allowNonModeledOutboxMessages=" + allowNonModeledOutboxMessages +
+                ", forbidNonModeledOutboxMessages=" + forbidNonModeledOutboxMessages +
                 "]";
     }
 }

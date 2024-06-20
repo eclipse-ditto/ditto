@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -100,13 +101,17 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
 
         final Thing mergedThing = wrapException(() -> mergeThing(context, command, thing, eventTs, nextRevision),
                 command.getDittoHeaders());
-        final ThingEvent<?> event =
-                ThingMerged.of(command.getEntityId(), path, value, nextRevision, eventTs, dittoHeaders, metadata);
-        final MergeThingResponse mergeThingResponse =
-                MergeThingResponse.of(command.getEntityId(), path, dittoHeaders);
 
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command, mergeThingResponse, mergedThing);
-        return ResultFactory.newMutationResult(command, event, response);
+        final CompletionStage<Thing> validatedStage = getValidatedStage(command, mergedThing);
+
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(validatedThing ->
+                ThingMerged.of(command.getEntityId(), path, value, nextRevision, eventTs, dittoHeaders, metadata)
+        );
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(validatedThing ->
+                appendETagHeaderIfProvided(command, MergeThingResponse.of(command.getEntityId(), path, dittoHeaders),
+                        validatedThing)
+        );
+        return ResultFactory.newMutationResult(command, eventStage, responseStage);
     }
 
     private Thing mergeThing(final Context<ThingId> context, final MergeThing command, final Thing thing,
@@ -129,6 +134,15 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
         return mergedThing;
     }
 
+    private CompletionStage<Thing> getValidatedStage(final MergeThing command, final Thing thing) {
+        return wotThingModelValidator.validateThing(
+                        thing,
+                        command.getResourcePath(),
+                        command.getDittoHeaders()
+                )
+                .thenApply(aVoid -> thing);
+    }
+
     @Override
     public Optional<EntityTag> previousEntityTag(final MergeThing command, @Nullable final Thing previousEntity) {
         return ENTITY_TAG_MAPPER.map(command.getPath(), previousEntity);
@@ -143,9 +157,9 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
         try {
             return supplier.get();
         } catch (final JsonRuntimeException
-                | IllegalArgumentException
-                | NullPointerException
-                | UnsupportedOperationException e) {
+                       | IllegalArgumentException
+                       | NullPointerException
+                       | UnsupportedOperationException e) {
             throw ThingMergeInvalidException.fromMessage(e.getMessage(), dittoHeaders);
         }
     }

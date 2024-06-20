@@ -107,7 +107,7 @@ public interface WotThingModelValidation {
     );
 
     /**
-     * TODO TJ Doc
+     * TODO TJ doc
      * @param featureThingModel
      * @param featureId
      * @param propertyPointer

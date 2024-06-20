@@ -54,7 +54,7 @@ public final class ModifyThingDefinitionStrategyTest extends AbstractCommandStra
         final ModifyThingDefinition command = ModifyThingDefinition.of(context.getState(), DEFINITION,
                 DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2.toBuilder().setDefinition(null).build(), command,
+        assertStagedModificationResult(underTest, THING_V2.toBuilder().setDefinition(null).build(), command,
                 ThingDefinitionCreated.class, ETagTestUtils.modifyThingDefinitionResponse(context.getState(), command.getDefinition(),
                         command.getDittoHeaders(), true));
     }
@@ -65,7 +65,7 @@ public final class ModifyThingDefinitionStrategyTest extends AbstractCommandStra
         final ModifyThingDefinition command = ModifyThingDefinition.of(context.getState(), DEFINITION,
                 DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2, command,
+        assertStagedModificationResult(underTest, THING_V2, command,
                 ThingDefinitionModified.class, ETagTestUtils.modifyThingDefinitionResponse(context.getState(),
                         command.getDefinition(),
                         command.getDittoHeaders(), false));

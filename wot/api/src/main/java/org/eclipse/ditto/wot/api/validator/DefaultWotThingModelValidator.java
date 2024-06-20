@@ -68,8 +68,19 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
+        return thing.getDefinition()
+                .map(thingDefinition -> validateThing(thingDefinition, thing, resourcePath, dittoHeaders))
+                .orElseGet(DefaultWotThingModelValidator::success);
+    }
+
+    @Override
+    public CompletionStage<Void> validateThing(@Nullable final ThingDefinition thingDefinition,
+            final Thing thing,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
         if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled()) {
-            final Optional<URL> urlOpt = thing.getDefinition().flatMap(DefinitionIdentifier::getUrl);
+            final Optional<URL> urlOpt = Optional.ofNullable(thingDefinition).flatMap(DefinitionIdentifier::getUrl);
             if (urlOpt.isPresent()) {
                 final URL url = urlOpt.get();
                 final Function<ThingModel, CompletionStage<Void>> validationFunction =
@@ -79,7 +90,6 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             }
         }
         return success();
-
     }
 
     @Override
@@ -98,6 +108,18 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                                             dittoHeaders)
                             )
             );
+        }
+        return success();
+    }
+
+    @Override
+    public CompletionStage<Void> validateThingDefinitionModification(final ThingDefinition thingDefinition,
+            final Thing thing,
+            final DittoHeaders dittoHeaders
+    ) {
+        if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled() &&
+                wotConfig.getValidationConfig().getThingValidationConfig().isEnforceThingDescriptionModification()) {
+            return validateThing(thingDefinition, thing, Thing.JsonFields.DEFINITION.getPointer(), dittoHeaders);
         }
         return success();
     }
@@ -196,7 +218,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     }
 
     @Override
-    public CompletionStage<Void> validateFeature(final @Nullable ThingDefinition thingDefinition,
+    public CompletionStage<Void> validateFeature(@Nullable final ThingDefinition thingDefinition,
             final Feature feature,
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
@@ -251,6 +273,28 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             } else if (featureThingModel != null) {
                 return thingModelValidation.validateFeature(featureThingModel, feature, resourcePath,
                         dittoHeaders);
+            }
+        }
+        return success();
+    }
+
+    @Override
+    public CompletionStage<Void> validateFeatureDefinitionModification(final FeatureDefinition featureDefinition,
+            final Feature feature,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled() &&
+                wotConfig.getValidationConfig()
+                        .getFeatureValidationConfig()
+                        .isEnforceFeatureDescriptionModification()) {
+            final Optional<URL> urlOpt = featureDefinition.getFirstIdentifier().getUrl();
+            if (urlOpt.isPresent()) {
+                final Function<ThingModel, CompletionStage<Void>> validationFunction =
+                        featureThingModelWithExtensionsAndImports ->
+                                thingModelValidation.validateFeature(featureThingModelWithExtensionsAndImports, feature,
+                                        resourcePath, dittoHeaders);
+                return fetchResolveAndValidateWith(urlOpt.get(), dittoHeaders, validationFunction);
             }
         }
         return success();

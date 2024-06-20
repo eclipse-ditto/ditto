@@ -13,6 +13,7 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -55,13 +56,9 @@ final class ModifyThingDefinitionStrategy extends AbstractThingCommandStrategy<M
             final ModifyThingDefinition command,
             @Nullable final Metadata metadata) {
 
-        // TODO TJ when changing the thing "definition", we must also validate the complete thing against the new definition
-        //  and fail the request if it does not match
-        //  only that way, we can support upgrading a WoT model version
-
         return extractDefinition(thing)
-                .map(definition -> getModifyResult(context, nextRevision, command, thing, metadata))
-                .orElseGet(() -> getCreateResult(context, nextRevision, command, thing, metadata));
+                .map(definition -> getModifyResult(context, nextRevision, command, getEntityOrThrow(thing), metadata))
+                .orElseGet(() -> getCreateResult(context, nextRevision, command, getEntityOrThrow(thing), metadata));
     }
 
     private Optional<ThingDefinition> extractDefinition(final @Nullable Thing thing) {
@@ -69,34 +66,50 @@ final class ModifyThingDefinitionStrategy extends AbstractThingCommandStrategy<M
     }
 
     private Result<ThingEvent<?>> getModifyResult(final Context<ThingId> context, final long nextRevision,
-            final ModifyThingDefinition command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
+            final ModifyThingDefinition command, final Thing thing, @Nullable final Metadata metadata) {
 
         final ThingId thingId = context.getState();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final ThingEvent<?> event =
+        final CompletionStage<Void> validatedStage = getValidatedStage(command, thing);
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(aVoid ->
                 ThingDefinitionModified.of(thingId, command.getDefinition(), nextRevision, getEventTimestamp(),
-                        dittoHeaders, metadata);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyThingDefinitionResponse.modified(thingId, dittoHeaders), thing);
+                        dittoHeaders, metadata)
+        );
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(aVoid ->
+                appendETagHeaderIfProvided(command,
+                        ModifyThingDefinitionResponse.modified(thingId, dittoHeaders), thing)
+        );
 
-        return ResultFactory.newMutationResult(command, event, response);
+        return ResultFactory.newMutationResult(command, eventStage, responseStage);
     }
 
     private Result<ThingEvent<?>> getCreateResult(final Context<ThingId> context, final long nextRevision,
-            final ModifyThingDefinition command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
+            final ModifyThingDefinition command, final Thing thing, @Nullable final Metadata metadata) {
 
         final ThingId thingId = context.getState();
         final ThingDefinition definition = command.getDefinition();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final ThingEvent<?> event =
+        final CompletionStage<Void> validatedStage = getValidatedStage(command, thing);
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(aVoid ->
                 ThingDefinitionCreated.of(thingId, definition, nextRevision, getEventTimestamp(), dittoHeaders,
-                        metadata);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyThingDefinitionResponse.created(thingId, definition, dittoHeaders), thing);
+                        metadata)
+        );
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(aVoid ->
+                appendETagHeaderIfProvided(command,
+                        ModifyThingDefinitionResponse.created(thingId, definition, dittoHeaders), thing)
+        );
 
-        return ResultFactory.newMutationResult(command, event, response);
+        return ResultFactory.newMutationResult(command, eventStage, responseStage);
+    }
+
+    private CompletionStage<Void> getValidatedStage(final ModifyThingDefinition command, final Thing thing) {
+        return wotThingModelValidator.validateThingDefinitionModification(
+                command.getDefinition(),
+                thing,
+                command.getDittoHeaders()
+        );
     }
 
     @Override
