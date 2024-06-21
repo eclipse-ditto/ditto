@@ -161,6 +161,22 @@ public interface WotThingModelValidator {
     );
 
     /**
+     * TODO TJ doc
+     * @param thingDefinition
+     * @param messageSubject
+     * @param inputPayload
+     * @param resourcePath
+     * @param dittoHeaders
+     * @return
+     */
+    CompletionStage<Void> validateThingMessageInput(@Nullable ThingDefinition thingDefinition,
+            String messageSubject,
+            @Nullable JsonValue inputPayload,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
      * Validates the provided {@code features} of a Thing against the provided {@code thingDefinition}
      * (if this links to a WoT TM).
      *

@@ -17,6 +17,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.json.CborFactoryLoader;
@@ -143,7 +145,7 @@ final class JsonSchemaTools {
     OutputUnit validateDittoJsonBasedOnDataSchema(final SingleDataSchema dataSchema,
             final JsonPointer pointerPath,
             final boolean validateRequiredObjectFields,
-            final JsonValue jsonValue,
+            @Nullable final JsonValue jsonValue,
             final DittoHeaders dittoHeaders
     ) {
         final JsonSchema jsonSchema =
@@ -159,9 +161,16 @@ final class JsonSchemaTools {
 
     OutputUnit validateDittoJson(final JsonSchema jsonSchema,
             final JsonPointer relativePropertyPath,
-            final JsonValue jsonValue,
+            @Nullable final JsonValue jsonValue,
             final DittoHeaders dittoHeaders
     ) {
+        if (jsonValue == null) {
+            // TODO TJ check and improve message
+            throw WotThingModelPayloadValidationException.newBuilder("No provided input was present")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+
         final JsonNode jsonNode;
         try {
             final byte[] bytes = cborFactory.toByteArray(jsonValue);

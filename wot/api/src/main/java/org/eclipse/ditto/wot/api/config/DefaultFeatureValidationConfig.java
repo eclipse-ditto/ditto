@@ -37,7 +37,8 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
     private final boolean forbidNonModeledProperties;
     private final boolean enforceDesiredProperties;
     private final boolean forbidNonModeledDesiredProperties;
-    private final boolean enforceInboxMessages;
+    private final boolean enforceInboxMessagesInput;
+    private final boolean enforceInboxMessagesOutput;
     private final boolean forbidNonModeledInboxMessages;
     private final boolean enforceOutboxMessages;
     private final boolean forbidNonModeledOutboxMessages;
@@ -57,8 +58,10 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_DESIRED_PROPERTIES.getConfigPath());
         forbidNonModeledDesiredProperties =
                 scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_DESIRED_PROPERTIES.getConfigPath());
-        enforceInboxMessages =
-                scopedConfig.getBoolean(ConfigValue.ENFORCE_INBOX_MESSAGES.getConfigPath());
+        enforceInboxMessagesInput =
+                scopedConfig.getBoolean(ConfigValue.ENFORCE_INBOX_MESSAGES_INPUT.getConfigPath());
+        enforceInboxMessagesOutput =
+                scopedConfig.getBoolean(ConfigValue.ENFORCE_INBOX_MESSAGES_OUTPUT.getConfigPath());
         forbidNonModeledInboxMessages =
                 scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_INBOX_MESSAGES.getConfigPath());
         enforceOutboxMessages =
@@ -115,8 +118,13 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
     }
 
     @Override
-    public boolean isEnforceInboxMessages() {
-        return enforceInboxMessages;
+    public boolean isEnforceInboxMessagesInput() {
+        return enforceInboxMessagesInput;
+    }
+
+    @Override
+    public boolean isEnforceInboxMessagesOutput() {
+        return enforceInboxMessagesOutput;
     }
 
     @Override
@@ -145,7 +153,7 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
                 forbidNonModeledProperties == that.forbidNonModeledProperties &&
                 enforceDesiredProperties == that.enforceDesiredProperties &&
                 forbidNonModeledDesiredProperties == that.forbidNonModeledDesiredProperties &&
-                enforceInboxMessages == that.enforceInboxMessages &&
+                enforceInboxMessagesInput == that.enforceInboxMessagesInput &&
                 forbidNonModeledInboxMessages == that.forbidNonModeledInboxMessages &&
                 enforceOutboxMessages == that.enforceOutboxMessages &&
                 forbidNonModeledOutboxMessages == that.forbidNonModeledOutboxMessages;
@@ -155,8 +163,8 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
     public int hashCode() {
         return Objects.hash(enforcePresenceOfModeledFeatures, forbidNonModeledFeatures, enforceProperties,
                 forbidNonModeledProperties, enforceDesiredProperties, forbidNonModeledDesiredProperties,
-                enforceInboxMessages, forbidNonModeledInboxMessages, enforceOutboxMessages,
-                forbidNonModeledOutboxMessages);
+                enforceInboxMessagesInput, enforceInboxMessagesOutput, forbidNonModeledInboxMessages,
+                enforceOutboxMessages, forbidNonModeledOutboxMessages);
     }
 
     @Override
@@ -168,7 +176,8 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
                 ", forbidNonModeledProperties=" + forbidNonModeledProperties +
                 ", enforceDesiredProperties=" + enforceDesiredProperties +
                 ", forbidNonModeledDesiredProperties=" + forbidNonModeledDesiredProperties +
-                ", enforceInboxMessages=" + enforceInboxMessages +
+                ", enforceInboxMessagesInput=" + enforceInboxMessagesInput +
+                ", enforceInboxMessagesOutput=" + enforceInboxMessagesOutput +
                 ", forbidNonModeledInboxMessages=" + forbidNonModeledInboxMessages +
                 ", enforceOutboxMessages=" + enforceOutboxMessages +
                 ", forbidNonModeledOutboxMessages=" + forbidNonModeledOutboxMessages +

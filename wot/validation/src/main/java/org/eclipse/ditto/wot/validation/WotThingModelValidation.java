@@ -72,6 +72,22 @@ public interface WotThingModelValidation {
     );
 
     /**
+     * TODO TJ doc
+     * @param thingModel
+     * @param messageSubject
+     * @param inputPayload
+     * @param resourcePath
+     * @param dittoHeaders
+     * @return
+     */
+    CompletionStage<Void> validateThingMessageInput(ThingModel thingModel,
+            String messageSubject,
+            @Nullable JsonValue inputPayload,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
      * Validates the presence of the provided {@link Features} in the provided {@code featureThingModels} Map consisting
      * of all submodels of a Thing's {@code ThingModel}.
      *
