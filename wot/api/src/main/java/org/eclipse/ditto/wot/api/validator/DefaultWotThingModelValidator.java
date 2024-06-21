@@ -59,7 +59,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             final Executor executor) {
         this.wotConfig = wotConfig;
         this.thingModelResolver = thingModelResolver;
-        thingModelValidation = WotThingModelValidation.createInstance(wotConfig.getValidationConfig());
+        thingModelValidation = WotThingModelValidation.of(wotConfig.getValidationConfig());
         this.executor = executor;
     }
 
@@ -303,7 +303,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     @Override
     public CompletionStage<Void> validateFeatureProperties(@Nullable final FeatureDefinition featureDefinition,
             final String featureId,
-            @Nullable final FeatureProperties properties,
+            @Nullable final FeatureProperties featureProperties,
             final boolean desiredProperties,
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
@@ -317,7 +317,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                 final Function<ThingModel, CompletionStage<Void>> validationFunction =
                         featureThingModelWithExtensionsAndImports ->
                                 validateFeatureProperties(featureThingModelWithExtensionsAndImports, featureId,
-                                        properties, desiredProperties, resourcePath, dittoHeaders
+                                        featureProperties, desiredProperties, resourcePath, dittoHeaders
                                 );
                 return fetchResolveAndValidateWith(url, dittoHeaders, validationFunction);
             }
@@ -328,13 +328,13 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     @Override
     public CompletionStage<Void> validateFeatureProperties(final ThingModel featureThingModel,
             final String featureId,
-            @Nullable final FeatureProperties properties,
+            @Nullable final FeatureProperties featureProperties,
             final boolean desiredProperties,
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
         if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled()) {
-            return thingModelValidation.validateFeatureProperties(featureThingModel, featureId, properties,
+            return thingModelValidation.validateFeatureProperties(featureThingModel, featureId, featureProperties,
                     desiredProperties, resourcePath, dittoHeaders
             );
         }

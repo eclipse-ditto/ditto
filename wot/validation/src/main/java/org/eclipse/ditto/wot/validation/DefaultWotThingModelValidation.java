@@ -256,16 +256,19 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
     @Override
     public CompletionStage<Void> validateFeatureProperties(final ThingModel featureThingModel,
             final String featureId,
-            @Nullable final FeatureProperties properties,
+            @Nullable final FeatureProperties featureProperties,
             final boolean desiredProperties,
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        if (validationConfig.getFeatureValidationConfig().isEnforceProperties()) {
+        if (
+                (!desiredProperties && validationConfig.getFeatureValidationConfig().isEnforceProperties()) ||
+                (desiredProperties && validationConfig.getFeatureValidationConfig().isEnforceDesiredProperties())
+        ) {
             return enforceFeatureProperties(featureThingModel,
                     desiredProperties ?
-                            Feature.newBuilder().desiredProperties(properties).withId(featureId).build() :
-                            Feature.newBuilder().properties(properties).withId(featureId).build(),
+                            Feature.newBuilder().desiredProperties(featureProperties).withId(featureId).build() :
+                            Feature.newBuilder().properties(featureProperties).withId(featureId).build(),
                     desiredProperties,
                     desiredProperties ?
                             validationConfig.getFeatureValidationConfig().isForbidNonModeledDesiredProperties() :

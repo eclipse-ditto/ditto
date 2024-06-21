@@ -37,7 +37,14 @@ import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
 public interface WotThingModelValidation {
 
     /**
-     * TODO TJ doc
+     * Validates the provided {@link Attributes} of a {@code Thing} based on the provided {@code ThingModel}.
+     *
+     * @param thingModel the ThingModel to validate against
+     * @param attributes the attributes to validate
+     * @param resourcePath the originating path of the command which caused validation
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
     CompletionStage<Void> validateThingAttributes(ThingModel thingModel,
             @Nullable Attributes attributes,
@@ -46,13 +53,16 @@ public interface WotThingModelValidation {
     );
 
     /**
-     * TODO TJ doc
-     * @param thingModel
-     * @param attributePointer
-     * @param attributeValue
-     * @param resourcePath
-     * @param dittoHeaders
-     * @return
+     * Validates the provided attribute at {@code attributePointer} having value {@code attributeValue} based on the
+     * provided {@code ThingModel}.
+     *
+     * @param thingModel the ThingModel to validate against
+     * @param attributePointer the attribute pointer (path) to validate
+     * @param attributeValue the attribute value to validate
+     * @param resourcePath the originating path of the command which caused validation
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
     CompletionStage<Void> validateThingAttribute(ThingModel thingModel,
             JsonPointer attributePointer,
@@ -62,7 +72,15 @@ public interface WotThingModelValidation {
     );
 
     /**
-     * TODO TJ doc
+     * Validates the presence of the provided {@link Features} in the provided {@code featureThingModels} Map consisting
+     * of all submodels of a Thing's {@code ThingModel}.
+     *
+     * @param featureThingModels a Map of submodels with their {@code instanceName} as key and their resolved
+     * {@code ThingModel} as value
+     * @param features the Features of a Thing to validate presence of the models in
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
     CompletionStage<Void> validateFeaturesPresence(Map<String, ThingModel> featureThingModels,
             @Nullable Features features,
@@ -70,7 +88,15 @@ public interface WotThingModelValidation {
     );
 
     /**
-     * TODO TJ doc
+     * Validates the {@code properties} of the provided {@link Features} against the passed {@code featureThingModels}.
+     *
+     * @param featureThingModels a Map of submodels with their {@code instanceName} as key and their resolved
+     * {@code ThingModel} as value
+     * @param features the Features of a Thing to validate the {@code properties} in
+     * @param resourcePath the originating path of the command which caused validation
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
     CompletionStage<Void> validateFeaturesProperties(Map<String, ThingModel> featureThingModels,
             @Nullable Features features,
@@ -79,7 +105,15 @@ public interface WotThingModelValidation {
     );
 
     /**
-     * TODO TJ doc
+     * Validates the presence of the provided {@code feature} in the provided {@code featureThingModels} Map consisting
+     * of all submodels of a Thing's {@code ThingModel}.
+     *
+     * @param featureThingModels a Map of submodels with their {@code instanceName} as key and their resolved
+     * {@code ThingModel} as value
+     * @param feature the Feature to validate presence of the models in
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
     CompletionStage<Void> validateFeaturePresence(Map<String, ThingModel> featureThingModels,
             Feature feature,
@@ -87,7 +121,14 @@ public interface WotThingModelValidation {
     );
 
     /**
-     * TODO TJ doc
+     * Validates the complete passed {@code feature} (properties and desired properties) based on the provided
+     * {@code featureThingModel}.
+     *
+     * @param featureThingModel the feature's ThingModel to validate against
+     * @param feature the Feature to validate
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
     CompletionStage<Void> validateFeature(ThingModel featureThingModel,
             Feature feature,
@@ -96,26 +137,39 @@ public interface WotThingModelValidation {
     );
 
     /**
-     * TODO TJ doc
+     * Validates the provided {@code featureProperties} (either being properties or desired properties based on the
+     * passed {@code desiredProperties} flag) against the passed {@code featureThingModel}.
+     *
+     * @param featureThingModel the feature's ThingModel to validate against
+     * @param featureId the feature's id to validate properties in
+     * @param featureProperties the properties to validate
+     * @param desiredProperties whether the provided {@code properties} are "desired" properties
+     * @param resourcePath the originating path of the command which caused validation
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
     CompletionStage<Void> validateFeatureProperties(ThingModel featureThingModel,
             String featureId,
-            @Nullable FeatureProperties properties,
+            @Nullable FeatureProperties featureProperties,
             boolean desiredProperties,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders
     );
 
     /**
-     * TODO TJ doc
-     * @param featureThingModel
-     * @param featureId
-     * @param propertyPointer
-     * @param propertyValue
-     * @param desiredProperty
-     * @param resourcePath
-     * @param dittoHeaders
-     * @return
+     * Validates the provided feature property at path {@code propertyPointer} and its value {@code propertyValue}
+     * against the passed {@code featureThingModel}.
+     *
+     * @param featureThingModel the feature's ThingModel to validate against
+     * @param featureId the feature's id to validate the property in
+     * @param propertyPointer the feature property pointer (path) to validate
+     * @param propertyValue the feature property value to validate
+     * @param desiredProperty whether the provided feature property is a "desired" property
+     * @param resourcePath the originating path of the command which caused validation
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
     CompletionStage<Void> validateFeatureProperty(ThingModel featureThingModel,
             String featureId,
@@ -127,10 +181,12 @@ public interface WotThingModelValidation {
     );
 
     /**
-     * TODO TJ doc
-     * @return
+     * Creates a new instance of WotThingModelValidation with the given {@code validationConfig}.
+     *
+     * @param validationConfig the WoT TM validation config to use.
+     * @return the created WotThingModelValidation.
      */
-    static WotThingModelValidation createInstance(final TmValidationConfig validationConfig) {
+    static WotThingModelValidation of(final TmValidationConfig validationConfig) {
         return new DefaultWotThingModelValidation(validationConfig);
     }
 }
