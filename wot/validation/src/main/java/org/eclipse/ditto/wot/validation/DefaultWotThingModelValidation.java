@@ -53,11 +53,6 @@ import com.networknt.schema.output.OutputUnit;
  */
 final class DefaultWotThingModelValidation implements WotThingModelValidation {
 
-    private static final String ATTRIBUTES = "attributes";
-    private static final String FEATURES = "features";
-    private static final String PROPERTIES = "properties";
-    private static final String DESIRED_PROPERTIES = "desiredProperties";
-
     private static final Logger log = LoggerFactory.getLogger(DefaultWotThingModelValidation.class);
 
     private final TmValidationConfig validationConfig;
@@ -312,17 +307,13 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-
-        final JsonPointer attributesPointer = JsonPointer.of(ATTRIBUTES);
-        final JsonPointer pathPrefix = attributesPointer.equals(resourcePath) ? JsonPointer.empty() : attributesPointer;
-
         return thingModel.getProperties()
                 .map(tdProperties -> {
                     final String containerNamePlural = "Thing's attributes";
                     final CompletableFuture<Void> ensureRequiredPropertiesStage =
                             ensureRequiredProperties(thingModel, dittoHeaders, tdProperties, attributes,
                                     containerNamePlural, "Thing's attribute",
-                                    pathPrefix, false);
+                                    resourcePath, false);
 
                     final CompletableFuture<Void> ensureOnlyDefinedPropertiesStage;
                     if (validationConfig.getThingValidationConfig().isForbidNonModeledAttributes()) {
@@ -334,7 +325,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
 
                     final CompletableFuture<Void> validatePropertiesStage =
                             getValidatePropertiesStage(thingModel, dittoHeaders, tdProperties, attributes,
-                                    true, containerNamePlural, pathPrefix, false);
+                                    true, containerNamePlural, resourcePath, false);
 
                     return CompletableFuture.allOf(
                             ensureRequiredPropertiesStage,
@@ -628,7 +619,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     .newBuilder("The " + propertyDescription + " contained validation errors, " +
                             "check the validation details.");
             exceptionBuilder.addValidationDetail(
-                    JsonPointer.empty(),
+                    resourcePath,
                     validationOutput.get().getDetails().stream()
                             .map(ou -> ou.getInstanceLocation() + ": " + ou.getErrors())
                             .toList()
@@ -662,7 +653,9 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                                 ))
                                 .filter(entry -> !entry.getValue().isValid())
                                 .stream()
-                ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (u, v) -> {
+                    throw new IllegalStateException(String.format("Duplicate key %s", u));
+                }, LinkedHashMap::new));
     }
 
     private CompletableFuture<Void> enforceFeatureProperties(final ThingModel featureThingModel,
@@ -672,10 +665,6 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        final JsonPointer featuresPointer = JsonPointer.of(FEATURES);
-        final JsonPointer pathPrefix = featuresPointer.equals(resourcePath) ? JsonPointer.of(feature.getId()) :
-                featuresPointer.addLeaf(JsonKey.of(feature.getId()));
-
         return featureThingModel.getProperties()
                 .map(tdProperties -> {
                     final FeatureProperties featureProperties;
@@ -690,14 +679,12 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     final String containerNamePrefix = "Feature <" + feature.getId() + ">'s " +
                             (desiredProperties ? "desired " : "");
                     final String containerNamePlural = containerNamePrefix + "properties";
-                    final JsonPointer path = desiredProperties ? pathPrefix.addLeaf(JsonKey.of(DESIRED_PROPERTIES)) :
-                            pathPrefix.addLeaf(JsonKey.of(PROPERTIES));
 
                     final CompletableFuture<Void> ensureRequiredPropertiesStage;
                     if (!desiredProperties) {
                         ensureRequiredPropertiesStage = ensureRequiredProperties(featureThingModel, dittoHeaders,
                                 tdProperties, featureProperties, containerNamePlural,
-                                containerNamePrefix + "property", JsonPointer.of(path), true);
+                                containerNamePrefix + "property", resourcePath, true);
                     } else {
                         ensureRequiredPropertiesStage = success();
                     }
@@ -712,7 +699,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
 
                     final CompletableFuture<Void> validatePropertiesStage =
                             getValidatePropertiesStage(featureThingModel, dittoHeaders, tdProperties, featureProperties,
-                                    !desiredProperties, containerNamePlural, JsonPointer.of(path), true);
+                                    !desiredProperties, containerNamePlural, resourcePath, true);
 
                     return CompletableFuture.allOf(
                             ensureRequiredPropertiesStage,
@@ -757,7 +744,6 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                             final FeatureProperties featureProperties = FeatureProperties.newBuilder()
                                     .setAll(propertyValue.asObject())
                                     .build();
-                            // TODO TJ check if this works for category updates!
                             ensureOnlyDefinedPropertiesStage =
                                     ensureOnlyDefinedProperties(featureThingModel, dittoHeaders,
                                             propertiesInCategory, featureProperties, containerNamePlural, false);
