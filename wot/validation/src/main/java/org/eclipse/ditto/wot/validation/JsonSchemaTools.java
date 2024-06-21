@@ -37,7 +37,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.cbor.databind.CBORMapper;
 import com.networknt.schema.JsonMetaSchema;
-import com.networknt.schema.JsonNodePath;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.NonValidationKeyword;
@@ -184,30 +183,18 @@ final class JsonSchemaTools {
         if (!validate.isValid() && !validate.getDetails().isEmpty()) {
             final List<OutputUnit> validationDetails = new ArrayList<>(validate.getDetails());
             validate.getDetails().forEach(detail -> {
-                if (!relativePropertyPath.isEmpty()) {
-                    if (detail.getInstanceLocation().startsWith(relativePropertyPath.toString())) {
-                        final String adjustedInstanceLocation =
-                                detail.getInstanceLocation().replace(relativePropertyPath.toString(), "");
-                        validationDetails.remove(detail);
-                        detail.setInstanceLocation(adjustedInstanceLocation);
-                        validationDetails.add(detail);
-                    } else {
-                        validationDetails.remove(detail);
-                    }
+                if (!relativePropertyPath.isEmpty() &&
+                        detail.getInstanceLocation().startsWith(relativePropertyPath.toString())
+                ) {
+                    final String adjustedInstanceLocation =
+                            detail.getInstanceLocation().replace(relativePropertyPath.toString(), "");
+                    validationDetails.remove(detail);
+                    detail.setInstanceLocation(adjustedInstanceLocation);
+                    validationDetails.add(detail);
                 }
             });
             validate.setDetails(validationDetails);
         }
         return validate;
-    }
-
-    private static JsonNodePath transformJsonPointerToJsonNodePath(final JsonPointer pointerPath) {
-        JsonNodePath fragment = new JsonNodePath(PathType.JSON_POINTER);
-        JsonPointer currentPointer = pointerPath;
-        while (!currentPointer.isEmpty()) {
-            fragment = fragment.append(currentPointer.getRoot().orElseThrow().toString());
-            currentPointer = currentPointer.nextLevel();
-        }
-        return fragment;
     }
 }
