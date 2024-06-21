@@ -150,6 +150,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
                                 }
                         );
                     })
+                    .thenCompose(this::performWotBasedSignalValidation)
                     .whenComplete((authorizedSignal, throwable) -> {
                         if (null != authorizedSignal) {
                             startedSpan.mark("enforce_success").finish();
@@ -172,6 +173,16 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
             startedSpan.mark("enforce_failed").tagAsFailed(dittoRuntimeException).finish();
             handleAuthorizationFailure(tracedSignal, dittoRuntimeException, sender);
         }
+    }
+
+    /**
+     * TODO TJ doc
+     * TODO TJ is this the right place? would only work well e.g. for "live signals" / messages .. for the other signals (commands) there is not enough context here
+     * @param authorizedSignal
+     * @return
+     */
+    protected CompletionStage<S> performWotBasedSignalValidation(final S authorizedSignal) {
+        return CompletableFuture.completedStage(authorizedSignal);
     }
 
     private void handleAuthorizationFailure(

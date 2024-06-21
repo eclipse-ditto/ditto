@@ -41,6 +41,8 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonRuntimeException;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.enforcement.AbstractEnforcementReloaded;
@@ -64,6 +66,7 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyRes
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
@@ -73,6 +76,8 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotCreata
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
+import org.eclipse.ditto.wot.api.validator.WotThingModelValidator;
+import org.eclipse.ditto.wot.integration.DittoWotIntegration;
 
 /**
  * Enforcer responsible for enforcing {@link ThingCommand}s and filtering {@link ThingCommandResponse}s utilizing the
@@ -82,13 +87,16 @@ public final class ThingEnforcerActor
         extends AbstractPolicyLoadingEnforcerActor<ThingId, Signal<?>, CommandResponse<?>, ThingEnforcement> {
 
     private static final String ENFORCEMENT_DISPATCHER = "enforcement-dispatcher";
+
     /**
      * Label of default policy entry in default policy.
      */
     private static final String DEFAULT_POLICY_ENTRY_LABEL = "DEFAULT";
+
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
     private final ActorRef policiesShardRegion;
     private final AskWithRetryConfig askWithRetryConfig;
+    private final WotThingModelValidator thingModelValidator;
 
     @SuppressWarnings("unused")
     private ThingEnforcerActor(final ThingId thingId,
@@ -105,6 +113,9 @@ public final class ThingEnforcerActor
         final ActorSystem system = context().system();
         policyIdReferencePlaceholderResolver = PolicyIdReferencePlaceholderResolver.of(
                 thingsShardRegion, askWithRetryConfig, system);
+
+        final DittoWotIntegration wotIntegration = DittoWotIntegration.get(system);
+        thingModelValidator = wotIntegration.getWotThingModelValidator();
     }
 
     /**
@@ -160,6 +171,27 @@ public final class ThingEnforcerActor
                         .build();
             }
         });
+    }
+
+    @Override
+    protected CompletionStage<Signal<?>> performWotBasedSignalValidation(final Signal<?> authorizedSignal) {
+        if (authorizedSignal instanceof SendThingMessage<?> sendThingMessage) {
+            final JsonValue messageInput = ((SendThingMessage<JsonValue>) sendThingMessage) // TODO TJ somehow better? - e.g. only do for content-type being application/json compatible ..
+                    .getMessage()
+                    .getPayload()
+                    .orElse(null);
+            return resolveThingDefinition()
+                    .thenCompose(optThingDefinition -> thingModelValidator.validateThingMessageInput(
+                            optThingDefinition.orElse(null),
+                            sendThingMessage.getMessage().getSubject(),
+                            messageInput,
+                            sendThingMessage.getResourcePath(),
+                            sendThingMessage.getDittoHeaders()
+                    ))
+                    .thenApply(aVoid -> authorizedSignal);
+        } else {
+            return super.performWotBasedSignalValidation(authorizedSignal);
+        }
     }
 
     /**
@@ -331,7 +363,7 @@ public final class ThingEnforcerActor
                 .orElseThrow(() -> {
                     final var message = String.format("The Thing with ID '%s' could not be created with " +
                             "implicit Policy because no authorization subject is present.", thingId);
-                    throw ThingNotCreatableException.newBuilderForPolicyMissing(thingId, PolicyId.of(thingId))
+                    return ThingNotCreatableException.newBuilderForPolicyMissing(thingId, PolicyId.of(thingId))
                             .message(message)
                             .description(() -> null)
                             .dittoHeaders(dittoHeaders)
@@ -457,6 +489,24 @@ public final class ThingEnforcerActor
                 return true;
             } else if (response instanceof ThingNotAccessibleException) {
                 return false;
+            } else {
+                throw new IllegalStateException("expected SudoRetrieveThingResponse, got: " + response);
+            }
+        });
+    }
+
+    private CompletionStage<Optional<ThingDefinition>> resolveThingDefinition() {
+        return Patterns.ask(getContext().getParent(), SudoRetrieveThing.of(entityId,
+                        JsonFieldSelector.newInstance("definition"),
+                        DittoHeaders.newBuilder()
+                                .correlationId("sudoRetrieveThingDefinitionFromThingEnforcerActor-" + UUID.randomUUID())
+                                .build()
+                ), DEFAULT_LOCAL_ASK_TIMEOUT
+        ).thenApply(response -> {
+            if (response instanceof SudoRetrieveThingResponse sudoRetrieveThingResponse) {
+                return sudoRetrieveThingResponse.getThing().getDefinition();
+            } else if (response instanceof ThingNotAccessibleException) {
+                return Optional.empty();
             } else {
                 throw new IllegalStateException("expected SudoRetrieveThingResponse, got: " + response);
             }

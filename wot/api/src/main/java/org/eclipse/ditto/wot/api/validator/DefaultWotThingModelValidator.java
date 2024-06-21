@@ -181,6 +181,28 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     }
 
     @Override
+    public CompletionStage<Void> validateThingMessageInput(@Nullable final ThingDefinition thingDefinition,
+            final String messageSubject,
+            @Nullable final JsonValue inputPayload,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled() &&
+                thingDefinition != null) {
+            final Optional<URL> urlOpt = thingDefinition.getUrl();
+            if (urlOpt.isPresent()) {
+                final URL url = urlOpt.get();
+                final Function<ThingModel, CompletionStage<Void>> validationFunction =
+                        thingModelWithExtensionsAndImports ->
+                                thingModelValidation.validateThingMessageInput(thingModelWithExtensionsAndImports,
+                                        messageSubject, inputPayload, resourcePath, dittoHeaders);
+                return fetchResolveAndValidateWith(url, dittoHeaders, validationFunction);
+            }
+        }
+        return success();
+    }
+
+    @Override
     public CompletionStage<Void> validateFeatures(@Nullable final ThingDefinition thingDefinition,
             final Features features,
             final JsonPointer resourcePath,

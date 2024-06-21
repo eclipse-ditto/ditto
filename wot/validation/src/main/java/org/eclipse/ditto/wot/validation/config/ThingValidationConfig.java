@@ -40,9 +40,14 @@ public interface ThingValidationConfig {
     boolean isForbidNonModeledAttributes();
 
     /**
-     * @return whether to enforce/validate inbox messages to a thing following the defined WoT actions.
+     * @return whether to enforce/validate inbox messages to a thing following the defined WoT action "input".
      */
-    boolean isEnforceInboxMessages();
+    boolean isEnforceInboxMessagesInput();
+
+    /**
+     * @return whether to enforce/validate inbox message responses to a thing following the defined WoT action "output".
+     */
+    boolean isEnforceInboxMessagesOutput();
 
     /**
      * @return whether to forbid dispatching of inbox messages which are not defined as actions in the WoT model.
@@ -72,7 +77,9 @@ public interface ThingValidationConfig {
 
         FORBID_NON_MODELED_ATTRIBUTES("forbid-non-modeled-attributes", true),
 
-        ENFORCE_INBOX_MESSAGES("enforce-inbox-messages", true),
+        ENFORCE_INBOX_MESSAGES_INPUT("enforce-inbox-messages-input", true),
+
+        ENFORCE_INBOX_MESSAGES_OUTPUT("enforce-inbox-messages-output", true),
 
         FORBID_NON_MODELED_INBOX_MESSAGES("forbid-non-modeled-inbox-messages", true),
 

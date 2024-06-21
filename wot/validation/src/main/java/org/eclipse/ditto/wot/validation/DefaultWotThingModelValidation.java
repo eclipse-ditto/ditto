@@ -36,9 +36,12 @@ import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Features;
+import org.eclipse.ditto.wot.model.Action;
+import org.eclipse.ditto.wot.model.Actions;
 import org.eclipse.ditto.wot.model.DittoWotExtension;
 import org.eclipse.ditto.wot.model.Properties;
 import org.eclipse.ditto.wot.model.Property;
+import org.eclipse.ditto.wot.model.SingleDataSchema;
 import org.eclipse.ditto.wot.model.SingleUriAtContext;
 import org.eclipse.ditto.wot.model.ThingModel;
 import org.eclipse.ditto.wot.model.TmOptionalElement;
@@ -84,6 +87,19 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
     ) {
         if (validationConfig.getThingValidationConfig().isEnforceAttributes()) {
             return enforceThingAttribute(thingModel, attributePointer, attributeValue, resourcePath, dittoHeaders);
+        }
+        return success();
+    }
+
+    @Override
+    public CompletionStage<Void> validateThingMessageInput(final ThingModel thingModel,
+            final String messageSubject,
+            @Nullable final JsonValue inputPayload,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        if (validationConfig.getThingValidationConfig().isEnforceInboxMessagesInput()) {
+            return enforceThingMessageInput(thingModel, messageSubject, inputPayload, resourcePath, dittoHeaders);
         }
         return success();
     }
@@ -369,6 +385,41 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                 }).orElseGet(DefaultWotThingModelValidation::success);
     }
 
+    private CompletableFuture<Void> enforceThingMessageInput(final ThingModel thingModel,
+            final String messageSubject,
+            @Nullable final JsonValue inputPayload,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+
+        final CompletableFuture<Void> ensureOnlyDefinedActionsStage;
+        if (validationConfig.getThingValidationConfig().isForbidNonModeledInboxMessages()) {
+            ensureOnlyDefinedActionsStage = ensureOnlyDefinedActions(dittoHeaders,
+                    thingModel.getActions().orElse(null), messageSubject, "Thing's");
+        } else {
+            ensureOnlyDefinedActionsStage = success();
+        }
+
+        return thingModel.getActions()
+                .flatMap(action -> action.getAction(messageSubject))
+                .flatMap(Action::getInput)
+                .map(inputSchema -> {
+                    final CompletableFuture<Void> validatePropertiesStage = validateSingleDataSchema(
+                            inputSchema,
+                            "Action input",
+                            JsonPointer.empty(),
+                            true,
+                            inputPayload,
+                            resourcePath,
+                            dittoHeaders
+                    );
+                    return ensureOnlyDefinedActionsStage.thenCompose(aVoid ->
+                            validatePropertiesStage
+                    );
+                })
+                .orElse(ensureOnlyDefinedActionsStage);
+    }
+
     private CompletableFuture<Void> ensureRequiredProperties(final ThingModel thingModel,
             final DittoHeaders dittoHeaders,
             final Properties tdProperties,
@@ -499,6 +550,25 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
         return success();
     }
 
+    private CompletableFuture<Void> ensureOnlyDefinedActions(final DittoHeaders dittoHeaders,
+            @Nullable final Actions actions,
+            final String messageSubject,
+            final String containerName
+    ) {
+        final Set<String> allDefinedActionKeys = Optional.ofNullable(actions).map(Actions::keySet).orElseGet(Set::of);
+        final boolean messageSubjectIsDefinedAsAction = allDefinedActionKeys.contains(messageSubject);
+        if (!messageSubjectIsDefinedAsAction) {
+            final var exceptionBuilder = WotThingModelPayloadValidationException
+                    .newBuilder("The " + containerName + " message subject <" +
+                            messageSubject + "> is not defined as known action in the model: " + allDefinedActionKeys
+                    );
+            return CompletableFuture.failedFuture(exceptionBuilder
+                    .dittoHeaders(dittoHeaders)
+                    .build());
+        }
+        return success();
+    }
+
     private CompletableFuture<Void> getValidatePropertiesStage(final ThingModel thingModel,
             final DittoHeaders dittoHeaders,
             final Properties tdProperties,
@@ -575,8 +645,8 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             valueToValidate = propertyValue;
         }
 
-        final Optional<OutputUnit> validationOutput = tdProperties
-                .values().stream()
+        return tdProperties.values()
+                .stream()
                 .filter(property -> {
                     if (handleDittoCategory) {
                         final JsonPointer thePropertyPath = determineDittoCategory(thingModel, property)
@@ -597,43 +667,60 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                         final JsonValue theValueToValidate = dittoCategory
                                 .flatMap(cat -> valueToValidate.asObject().getValue(thePropertyPath))
                                 .orElse(valueToValidate);
-                        return jsonSchemaTools.validateDittoJsonBasedOnDataSchema(
+                        return validateSingleDataSchema(
                                 property,
+                                propertyDescription,
                                 thePropertyPath,
                                 validateRequiredObjectFields,
                                 theValueToValidate,
+                                resourcePath,
                                 dittoHeaders
                         );
                     } else {
-                        return jsonSchemaTools.validateDittoJsonBasedOnDataSchema(
+                        return validateSingleDataSchema(
                                 property,
+                                propertyDescription,
                                 propertyPath,
                                 validateRequiredObjectFields,
                                 valueToValidate,
+                                resourcePath,
                                 dittoHeaders
                         );
                     }
-                })
-                .filter(outputUnit -> !outputUnit.isValid());
+                }).orElseGet(DefaultWotThingModelValidation::success);
+    }
 
-        final CompletableFuture<Void> validatePropertiesStage;
-        if (validationOutput.isPresent()) {
+    private CompletableFuture<Void> validateSingleDataSchema(final SingleDataSchema dataSchema,
+            final String validatedDescription,
+            final JsonPointer pointerPath,
+            final boolean validateRequiredObjectFields,
+            @Nullable final JsonValue jsonValue,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        final OutputUnit validationOutput = jsonSchemaTools.validateDittoJsonBasedOnDataSchema(
+                dataSchema,
+                pointerPath,
+                validateRequiredObjectFields,
+                jsonValue,
+                dittoHeaders
+        );
+
+        if (!validationOutput.isValid()) {
             final var exceptionBuilder = WotThingModelPayloadValidationException
-                    .newBuilder("The " + propertyDescription + " contained validation errors, " +
+                    .newBuilder("The " + validatedDescription + " contained validation errors, " +
                             "check the validation details.");
             exceptionBuilder.addValidationDetail(
                     resourcePath,
-                    validationOutput.get().getDetails().stream()
+                    validationOutput.getDetails().stream()
                             .map(ou -> ou.getInstanceLocation() + ": " + ou.getErrors())
                             .toList()
             );
-            validatePropertiesStage = CompletableFuture.failedFuture(exceptionBuilder
+            return CompletableFuture.failedFuture(exceptionBuilder
                     .dittoHeaders(dittoHeaders)
                     .build());
-        } else {
-            validatePropertiesStage = success();
         }
-        return validatePropertiesStage;
+        return success();
     }
 
     private Map<Property, OutputUnit> determineInvalidProperties(final Properties tdProperties,

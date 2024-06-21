@@ -33,7 +33,8 @@ final class DefaultThingValidationConfig implements ThingValidationConfig {
     private final boolean enforceThingDescriptionModification;
     private final boolean enforceAttributes;
     private final boolean forbidNonModeledAttributes;
-    private final boolean enforceInboxMessages;
+    private final boolean enforceInboxMessagesInput;
+    private final boolean enforceInboxMessagesOutput;
     private final boolean forbidNonModeledInboxMessages;
     private final boolean enforceOutboxMessages;
     private final boolean forbidNonModeledOutboxMessages;
@@ -45,8 +46,10 @@ final class DefaultThingValidationConfig implements ThingValidationConfig {
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_ATTRIBUTES.getConfigPath());
         forbidNonModeledAttributes =
                 scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_ATTRIBUTES.getConfigPath());
-        enforceInboxMessages =
-                scopedConfig.getBoolean(ConfigValue.ENFORCE_INBOX_MESSAGES.getConfigPath());
+        enforceInboxMessagesInput =
+                scopedConfig.getBoolean(ConfigValue.ENFORCE_INBOX_MESSAGES_INPUT.getConfigPath());
+        enforceInboxMessagesOutput =
+                scopedConfig.getBoolean(ConfigValue.ENFORCE_INBOX_MESSAGES_OUTPUT.getConfigPath());
         forbidNonModeledInboxMessages =
                 scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_INBOX_MESSAGES.getConfigPath());
         enforceOutboxMessages =
@@ -83,8 +86,13 @@ final class DefaultThingValidationConfig implements ThingValidationConfig {
     }
 
     @Override
-    public boolean isEnforceInboxMessages() {
-        return enforceInboxMessages;
+    public boolean isEnforceInboxMessagesInput() {
+        return enforceInboxMessagesInput;
+    }
+
+    @Override
+    public boolean isEnforceInboxMessagesOutput() {
+        return enforceInboxMessagesOutput;
     }
 
     @Override
@@ -110,7 +118,7 @@ final class DefaultThingValidationConfig implements ThingValidationConfig {
         return enforceThingDescriptionModification == that.enforceThingDescriptionModification &&
                 enforceAttributes == that.enforceAttributes &&
                 forbidNonModeledAttributes == that.forbidNonModeledAttributes &&
-                enforceInboxMessages == that.enforceInboxMessages &&
+                enforceInboxMessagesInput == that.enforceInboxMessagesInput &&
                 forbidNonModeledInboxMessages == that.forbidNonModeledInboxMessages &&
                 enforceOutboxMessages == that.enforceOutboxMessages &&
                 forbidNonModeledOutboxMessages == that.forbidNonModeledOutboxMessages;
@@ -119,8 +127,8 @@ final class DefaultThingValidationConfig implements ThingValidationConfig {
     @Override
     public int hashCode() {
         return Objects.hash(enforceThingDescriptionModification, enforceAttributes, forbidNonModeledAttributes,
-                enforceInboxMessages, forbidNonModeledInboxMessages, enforceOutboxMessages,
-                forbidNonModeledOutboxMessages);
+                enforceInboxMessagesInput, enforceInboxMessagesOutput, forbidNonModeledInboxMessages,
+                enforceOutboxMessages, forbidNonModeledOutboxMessages);
     }
 
     @Override
@@ -129,7 +137,8 @@ final class DefaultThingValidationConfig implements ThingValidationConfig {
                 "enforceThingDescriptionModification=" + enforceThingDescriptionModification +
                 ", enforceAttributes=" + enforceAttributes +
                 ", forbidNonModeledAttributes=" + forbidNonModeledAttributes +
-                ", enforceInboxMessages=" + enforceInboxMessages +
+                ", enforceInboxMessagesInput=" + enforceInboxMessagesInput +
+                ", enforceInboxMessagesOutput=" + enforceInboxMessagesOutput +
                 ", forbidNonModeledInboxMessages=" + forbidNonModeledInboxMessages +
                 ", enforceOutboxMessages=" + enforceOutboxMessages +
                 ", forbidNonModeledOutboxMessages=" + forbidNonModeledOutboxMessages +
