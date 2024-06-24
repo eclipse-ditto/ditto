@@ -309,6 +309,25 @@ public final class OperatorSearchMetricsProviderActor extends AbstractActorWithT
                                     .tags(tags), System.currentTimeMillis());
                         })
                         ._1().set(value));
+
+        aggregatedByTagsValues.forEach(
+                (tags, value) -> metricsGauges.compute(uniqueName(metricName, tags), (key, tupleValue) -> {
+                            if (tupleValue == null) {
+                                log.info("Initializing custom search metric Gauge for metric <{}> with tags <{}>",
+                                        metricName, tags);
+                                customSearchMetricsGauge.increment();
+                                return Tuple2.apply(KamonGauge.newGauge(metricName)
+                                        .tags(tags), System.currentTimeMillis());
+
+                            } else {
+                                // update the timestamp
+                                log.debug("Updating custom search metric Gauge for metric <{}> with tags <{}>",
+                                        metricName, tags);
+                                return Tuple2.apply(tupleValue._1(), System.currentTimeMillis());
+                            }
+                        })
+                        ._1().set(value));
+
         aggregatedByTagsValues.clear();
     }
 
