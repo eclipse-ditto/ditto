@@ -36,8 +36,8 @@
 
         <!-- ### Compile dependencies versions -->
         <minimal-json.version>0.9.5</minimal-json.version>
-        <jackson-bom.version>2.16.1</jackson-bom.version>
-        <json-schema-validator.version>1.4.0</json-schema-validator.version>
+        <jackson-bom.version>2.17.1</jackson-bom.version>
+        <json-schema-validator.version>1.4.2</json-schema-validator.version>
         <typesafe-config.version>1.4.3</typesafe-config.version>
         <ssl-config-core.version>0.6.1</ssl-config-core.version>
         <kafka-client.version>3.6.1</kafka-client.version>
@@ -63,7 +63,7 @@
         <!-- AWS SDK version needed for MongoDB AWS IAM authentication -->
         <awssdk.version>2.26.21</awssdk.version>
 
-        <jjwt.version>0.12.5</jjwt.version>
+        <jjwt.version>0.12.6</jjwt.version>
         <asm.version>9.2</asm.version>
         <qpid-jms-client.version>1.11.0</qpid-jms-client.version>
         <pjfanning-pekko-rabbitmq.version>7.0.0</pjfanning-pekko-rabbitmq.version>

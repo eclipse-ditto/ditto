@@ -62,8 +62,9 @@ final class JsonSchemaTools {
         final var cborFactoryLoader = CborFactoryLoader.getInstance();
         cborFactory = cborFactoryLoader.getCborFactoryOrThrow();
         jacksonCborMapper = new CBORMapper();
-        schemaValidatorsConfig = new SchemaValidatorsConfig();
-        schemaValidatorsConfig.setPathType(PathType.JSON_POINTER);
+        schemaValidatorsConfig = SchemaValidatorsConfig.builder()
+                .pathType(PathType.JSON_POINTER)
+                .build();
     }
 
     JsonSchema extractFromSingleDataSchema(final SingleDataSchema dataSchema,
