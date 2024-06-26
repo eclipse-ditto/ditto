@@ -166,8 +166,7 @@ final class JsonSchemaTools {
             final DittoHeaders dittoHeaders
     ) {
         if (jsonValue == null) {
-            // TODO TJ check and improve message
-            throw WotThingModelPayloadValidationException.newBuilder("No provided input was present")
+            throw WotThingModelPayloadValidationException.newBuilder("No provided JSON value to validate was present")
                     .dittoHeaders(dittoHeaders)
                     .build();
         }

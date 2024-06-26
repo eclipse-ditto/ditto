@@ -79,15 +79,10 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled()) {
-            final Optional<URL> urlOpt = Optional.ofNullable(thingDefinition).flatMap(DefinitionIdentifier::getUrl);
-            if (urlOpt.isPresent()) {
-                final URL url = urlOpt.get();
-                final Function<ThingModel, CompletionStage<Void>> validationFunction =
-                        thingModelWithExtensionsAndImports ->
-                                validateThing(thingModelWithExtensionsAndImports, thing, resourcePath, dittoHeaders);
-                return fetchResolveAndValidateWith(url, dittoHeaders, validationFunction);
-            }
+        if (isWotValidationEnabled()) {
+            return fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModelWithExtensionsAndImports ->
+                    validateThing(thingModelWithExtensionsAndImports, thing, resourcePath, dittoHeaders)
+            );
         }
         return success();
     }
@@ -98,7 +93,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled()) {
+        if (isWotValidationEnabled()) {
             return validateThingAttributes(thingModel, thing.getAttributes().orElse(null), resourcePath,
                     dittoHeaders
             ).thenCompose(aVoid ->
@@ -130,17 +125,10 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled() &&
-                thingDefinition != null && attributes != null) {
-            final Optional<URL> urlOpt = thingDefinition.getUrl();
-            if (urlOpt.isPresent()) {
-                final URL url = urlOpt.get();
-                final Function<ThingModel, CompletionStage<Void>> validationFunction =
-                        thingModelWithExtensionsAndImports ->
-                                validateThingAttributes(thingModelWithExtensionsAndImports, attributes, resourcePath,
-                                        dittoHeaders);
-                return fetchResolveAndValidateWith(url, dittoHeaders, validationFunction);
-            }
+        if (isWotValidationEnabled()) {
+            return fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModelWithExtensionsAndImports ->
+                    validateThingAttributes(thingModelWithExtensionsAndImports, attributes, resourcePath, dittoHeaders)
+            );
         }
         return success();
     }
@@ -151,8 +139,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled() &&
-                attributes != null) {
+        if (isWotValidationEnabled()) {
             return thingModelValidation.validateThingAttributes(thingModel, attributes, resourcePath, dittoHeaders);
         }
         return success();
@@ -165,17 +152,11 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled() &&
-                thingDefinition != null) {
-            final Optional<URL> urlOpt = thingDefinition.getUrl();
-            if (urlOpt.isPresent()) {
-                final URL url = urlOpt.get();
-                final Function<ThingModel, CompletionStage<Void>> validationFunction =
-                        thingModelWithExtensionsAndImports ->
-                                thingModelValidation.validateThingAttribute(thingModelWithExtensionsAndImports,
-                                        attributePointer, attributeValue, resourcePath, dittoHeaders);
-                return fetchResolveAndValidateWith(url, dittoHeaders, validationFunction);
-            }
+        if (isWotValidationEnabled()) {
+            return fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModelWithExtensionsAndImports ->
+                    thingModelValidation.validateThingAttribute(thingModelWithExtensionsAndImports,
+                            attributePointer, attributeValue, resourcePath, dittoHeaders)
+            );
         }
         return success();
     }
@@ -187,17 +168,27 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled() &&
-                thingDefinition != null) {
-            final Optional<URL> urlOpt = thingDefinition.getUrl();
-            if (urlOpt.isPresent()) {
-                final URL url = urlOpt.get();
-                final Function<ThingModel, CompletionStage<Void>> validationFunction =
-                        thingModelWithExtensionsAndImports ->
-                                thingModelValidation.validateThingMessageInput(thingModelWithExtensionsAndImports,
-                                        messageSubject, inputPayload, resourcePath, dittoHeaders);
-                return fetchResolveAndValidateWith(url, dittoHeaders, validationFunction);
-            }
+        if (isWotValidationEnabled()) {
+            return fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModelWithExtensionsAndImports ->
+                    thingModelValidation.validateThingMessageInput(thingModelWithExtensionsAndImports,
+                            messageSubject, inputPayload, resourcePath, dittoHeaders)
+            );
+        }
+        return success();
+    }
+
+    @Override
+    public CompletionStage<Void> validateThingMessageOutput(@Nullable final ThingDefinition thingDefinition,
+            final String messageSubject,
+            @Nullable final JsonValue outputPayload,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        if (isWotValidationEnabled()) {
+            return fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModelWithExtensionsAndImports ->
+                    thingModelValidation.validateThingMessageOutput(thingModelWithExtensionsAndImports,
+                            messageSubject, outputPayload, resourcePath, dittoHeaders)
+            );
         }
         return success();
     }
@@ -208,17 +199,10 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled() &&
-                thingDefinition != null) {
-            final Optional<URL> urlOpt = thingDefinition.getUrl();
-            if (urlOpt.isPresent()) {
-                final URL url = urlOpt.get();
-                final Function<ThingModel, CompletionStage<Void>> validationFunction =
-                        thingModelWithExtensionsAndImports ->
-                                validateFeatures(thingModelWithExtensionsAndImports, features, resourcePath,
-                                        dittoHeaders);
-                return fetchResolveAndValidateWith(url, dittoHeaders, validationFunction);
-            }
+        if (isWotValidationEnabled()) {
+            return fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModelWithExtensionsAndImports ->
+                    validateFeatures(thingModelWithExtensionsAndImports, features, resourcePath, dittoHeaders)
+            );
         }
         return success();
     }
@@ -229,7 +213,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled()) {
+        if (isWotValidationEnabled()) {
             return thingModelResolver.resolveThingModelSubmodels(thingModel, dittoHeaders)
                     .thenCompose(subModels ->
                             doValidateFeatures(subModels, features, resourcePath, dittoHeaders)
@@ -245,19 +229,15 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled()) {
-            final Optional<URL> thingModelUrlOpt = Optional.ofNullable(thingDefinition)
-                    .flatMap(ThingDefinition::getUrl);
-            if (thingModelUrlOpt.isPresent()) {
-                final URL thingModelUrl = thingModelUrlOpt.get();
-                final Function<ThingModel, CompletionStage<Void>> validationFunction =
-                        thingModelWithExtensionsAndImports ->
-                                doValidateFeature(thingModelWithExtensionsAndImports, feature, resourcePath,
-                                        dittoHeaders);
-                return fetchResolveAndValidateWith(thingModelUrl, dittoHeaders, validationFunction);
-            } else {
-                return doValidateFeature(null, feature, resourcePath, dittoHeaders);
-            }
+        if (isWotValidationEnabled()) {
+            final Optional<URL> urlOpt = Optional.ofNullable(thingDefinition).flatMap(ThingDefinition::getUrl);
+            return urlOpt
+                    .map(url ->
+                            fetchResolveAndValidateWith(url, dittoHeaders, thingModelWithExtensionsAndImports ->
+                                    doValidateFeature(thingModelWithExtensionsAndImports, feature, resourcePath,
+                                            dittoHeaders)
+                            )
+                    ).orElseGet(() -> doValidateFeature(null, feature, resourcePath, dittoHeaders));
         } else {
             return success();
         }
@@ -270,7 +250,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled()) {
+        if (isWotValidationEnabled()) {
             if (thingModel != null && featureThingModel != null) {
                 return thingModelResolver.resolveThingModelSubmodels(thingModel, dittoHeaders)
                         .thenCompose(subModels ->
@@ -309,15 +289,13 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
         if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled() &&
                 wotConfig.getValidationConfig()
                         .getFeatureValidationConfig()
-                        .isEnforceFeatureDescriptionModification()) {
-            final Optional<URL> urlOpt = featureDefinition.getFirstIdentifier().getUrl();
-            if (urlOpt.isPresent()) {
-                final Function<ThingModel, CompletionStage<Void>> validationFunction =
-                        featureThingModelWithExtensionsAndImports ->
-                                thingModelValidation.validateFeature(featureThingModelWithExtensionsAndImports, feature,
-                                        resourcePath, dittoHeaders);
-                return fetchResolveAndValidateWith(urlOpt.get(), dittoHeaders, validationFunction);
-            }
+                        .isEnforceFeatureDescriptionModification()
+        ) {
+            return fetchResolveAndValidateWith(featureDefinition.getFirstIdentifier(), dittoHeaders,
+                    featureThingModelWithExtensionsAndImports ->
+                            thingModelValidation.validateFeature(featureThingModelWithExtensionsAndImports, feature,
+                                    resourcePath, dittoHeaders)
+            );
         }
         return success();
     }
@@ -330,19 +308,15 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled()) {
-            final Optional<DefinitionIdentifier> definitionIdentifier =
-                    Optional.ofNullable(featureDefinition).map(FeatureDefinition::getFirstIdentifier);
-            final Optional<URL> urlOpt = definitionIdentifier.flatMap(DefinitionIdentifier::getUrl);
-            if (urlOpt.isPresent()) {
-                final URL url = urlOpt.get();
-                final Function<ThingModel, CompletionStage<Void>> validationFunction =
-                        featureThingModelWithExtensionsAndImports ->
-                                validateFeatureProperties(featureThingModelWithExtensionsAndImports, featureId,
-                                        featureProperties, desiredProperties, resourcePath, dittoHeaders
-                                );
-                return fetchResolveAndValidateWith(url, dittoHeaders, validationFunction);
-            }
+        if (isWotValidationEnabled()) {
+            return fetchResolveAndValidateWith(
+                    Optional.ofNullable(featureDefinition).map(FeatureDefinition::getFirstIdentifier).orElse(null),
+                    dittoHeaders,
+                    featureThingModelWithExtensionsAndImports ->
+                            validateFeatureProperties(featureThingModelWithExtensionsAndImports, featureId,
+                                    featureProperties, desiredProperties, resourcePath, dittoHeaders
+                            )
+            );
         }
         return success();
     }
@@ -355,7 +329,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled()) {
+        if (isWotValidationEnabled()) {
             return thingModelValidation.validateFeatureProperties(featureThingModel, featureId, featureProperties,
                     desiredProperties, resourcePath, dittoHeaders
             );
@@ -372,26 +346,80 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        if (FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled()) {
-            final Optional<URL> urlOpt = Optional.ofNullable(featureDefinition)
-                    .map(FeatureDefinition::getFirstIdentifier)
-                    .flatMap(DefinitionIdentifier::getUrl);
-            if (urlOpt.isPresent()) {
-                final URL url = urlOpt.get();
-                final Function<ThingModel, CompletionStage<Void>> validationFunction =
-                        featureThingModelWithExtensionsAndImports ->
-                                thingModelValidation.validateFeatureProperty(featureThingModelWithExtensionsAndImports,
-                                        featureId, propertyPointer, propertyValue, desiredProperty, resourcePath,
-                                        dittoHeaders
-                                );
-                return fetchResolveAndValidateWith(url, dittoHeaders, validationFunction);
-            }
+        if (isWotValidationEnabled()) {
+            return fetchResolveAndValidateWith(
+                    Optional.ofNullable(featureDefinition).map(FeatureDefinition::getFirstIdentifier).orElse(null),
+                    dittoHeaders,
+                    featureThingModelWithExtensionsAndImports ->
+                            thingModelValidation.validateFeatureProperty(featureThingModelWithExtensionsAndImports,
+                                    featureId, propertyPointer, propertyValue, desiredProperty, resourcePath,
+                                    dittoHeaders
+                            )
+            );
         }
         return success();
     }
 
+    @Override
+    public CompletionStage<Void> validateFeatureMessageInput(@Nullable final FeatureDefinition featureDefinition,
+            final String featureId,
+            final String messageSubject,
+            @Nullable final JsonValue inputPayload,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        if (isWotValidationEnabled()) {
+            return fetchResolveAndValidateWith(
+                    Optional.ofNullable(featureDefinition).map(FeatureDefinition::getFirstIdentifier).orElse(null),
+                    dittoHeaders,
+                    featureThingModelWithExtensionsAndImports ->
+                            thingModelValidation.validateFeatureMessageInput(featureThingModelWithExtensionsAndImports,
+                                    featureId,
+                                    messageSubject, inputPayload,
+                                    resourcePath, dittoHeaders)
+            );
+        }
+        return success();
+    }
+
+    @Override
+    public CompletionStage<Void> validateFeatureMessageOutput(@Nullable final FeatureDefinition featureDefinition,
+            final String featureId,
+            final String messageSubject,
+            @Nullable final JsonValue inputPayload,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        if (isWotValidationEnabled()) {
+            return fetchResolveAndValidateWith(
+                    Optional.ofNullable(featureDefinition).map(FeatureDefinition::getFirstIdentifier).orElse(null),
+                    dittoHeaders,
+                    featureThingModelWithExtensionsAndImports ->
+                            thingModelValidation.validateFeatureMessageOutput(featureThingModelWithExtensionsAndImports,
+                                    featureId,
+                                    messageSubject, inputPayload,
+                                    resourcePath, dittoHeaders)
+            );
+        }
+        return success();
+    }
+
+    private boolean isWotValidationEnabled() {
+        return FeatureToggle.isWotIntegrationFeatureEnabled() && wotConfig.getValidationConfig().isEnabled();
+    }
+
     private static <T> CompletionStage<T> success() {
         return CompletableFuture.completedStage(null);
+    }
+
+    private CompletionStage<Void> fetchResolveAndValidateWith(@Nullable final DefinitionIdentifier definitionIdentifier,
+            final DittoHeaders dittoHeaders,
+            final Function<ThingModel, CompletionStage<Void>> validationFunction
+    ) {
+        final Optional<URL> urlOpt = Optional.ofNullable(definitionIdentifier).flatMap(DefinitionIdentifier::getUrl);
+        return urlOpt
+                .map(url -> fetchResolveAndValidateWith(url, dittoHeaders, validationFunction))
+                .orElseGet(DefaultWotThingModelValidator::success);
     }
 
     private CompletionStage<Void> fetchResolveAndValidateWith(final URL url,
@@ -423,16 +451,12 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
         final Optional<DefinitionIdentifier> definitionIdentifier = feature.getDefinition()
                 .map(FeatureDefinition::getFirstIdentifier);
         final Optional<URL> urlOpt = definitionIdentifier.flatMap(DefinitionIdentifier::getUrl);
-        if (urlOpt.isPresent()) {
-            final URL url = urlOpt.get();
-            final Function<ThingModel, CompletionStage<Void>> validationFunction =
-                    featureThingModelWithExtensionsAndImports ->
-                            validateFeature(thingModel, featureThingModelWithExtensionsAndImports, feature,
-                                    resourcePath, dittoHeaders);
-            return fetchResolveAndValidateWith(url, dittoHeaders, validationFunction);
-        } else {
-            return validateFeature(thingModel, null, feature, resourcePath, dittoHeaders);
-        }
+        return urlOpt
+                .map(url -> fetchResolveAndValidateWith(url, dittoHeaders,
+                        featureThingModelWithExtensionsAndImports ->
+                                validateFeature(thingModel, featureThingModelWithExtensionsAndImports, feature,
+                                        resourcePath, dittoHeaders)
+                )).orElseGet(() -> validateFeature(thingModel, null, feature, resourcePath, dittoHeaders));
     }
 
     private static LinkedHashMap<String, ThingModel> reduceSubmodelMapKeyToFeatureId(
