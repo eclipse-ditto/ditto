@@ -36,7 +36,6 @@ import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Features;
-import org.eclipse.ditto.wot.model.Action;
 import org.eclipse.ditto.wot.model.Actions;
 import org.eclipse.ditto.wot.model.DittoWotExtension;
 import org.eclipse.ditto.wot.model.Properties;
@@ -53,6 +52,8 @@ import com.networknt.schema.output.OutputUnit;
 
 /**
  * Default implementation for WoT ThingModel based validation/enforcement.
+ *
+ * TODO TJ refactor class in smaller pieces
  */
 final class DefaultWotThingModelValidation implements WotThingModelValidation {
 
@@ -99,7 +100,22 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final DittoHeaders dittoHeaders
     ) {
         if (validationConfig.getThingValidationConfig().isEnforceInboxMessagesInput()) {
-            return enforceThingMessageInput(thingModel, messageSubject, inputPayload, resourcePath, dittoHeaders);
+            return enforceThingMessagePayload(thingModel, messageSubject, inputPayload, resourcePath, true,
+                    dittoHeaders);
+        }
+        return success();
+    }
+
+    @Override
+    public CompletionStage<Void> validateThingMessageOutput(final ThingModel thingModel,
+            final String messageSubject,
+            @Nullable final JsonValue outputPayload,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        if (validationConfig.getThingValidationConfig().isEnforceInboxMessagesOutput()) {
+            return enforceThingMessagePayload(thingModel, messageSubject, outputPayload, resourcePath, false,
+                    dittoHeaders);
         }
         return success();
     }
@@ -279,7 +295,8 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
     ) {
         if (
                 (!desiredProperties && validationConfig.getFeatureValidationConfig().isEnforceProperties()) ||
-                (desiredProperties && validationConfig.getFeatureValidationConfig().isEnforceDesiredProperties())
+                        (desiredProperties &&
+                                validationConfig.getFeatureValidationConfig().isEnforceDesiredProperties())
         ) {
             return enforceFeatureProperties(featureThingModel,
                     desiredProperties ?
@@ -317,6 +334,36 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     resourcePath,
                     dittoHeaders
             );
+        }
+        return success();
+    }
+
+    @Override
+    public CompletionStage<Void> validateFeatureMessageInput(final ThingModel featureThingModel,
+            final String featureId,
+            final String messageSubject,
+            @Nullable final JsonValue inputPayload,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        if (validationConfig.getFeatureValidationConfig().isEnforceInboxMessagesInput()) {
+            return enforceFeatureMessagePayload(featureId, featureThingModel, messageSubject, inputPayload,
+                    resourcePath, true, dittoHeaders);
+        }
+        return success();
+    }
+
+    @Override
+    public CompletionStage<Void> validateFeatureMessageOutput(final ThingModel featureThingModel,
+            final String featureId,
+            final String messageSubject,
+            @Nullable final JsonValue outputPayload,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        if (validationConfig.getFeatureValidationConfig().isEnforceInboxMessagesOutput()) {
+            return enforceFeatureMessagePayload(featureId, featureThingModel, messageSubject, outputPayload,
+                    resourcePath, false, dittoHeaders);
         }
         return success();
     }
@@ -385,28 +432,66 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                 }).orElseGet(DefaultWotThingModelValidation::success);
     }
 
-    private CompletableFuture<Void> enforceThingMessageInput(final ThingModel thingModel,
+    private CompletableFuture<Void> enforceThingMessagePayload(final ThingModel thingModel,
             final String messageSubject,
-            @Nullable final JsonValue inputPayload,
+            @Nullable final JsonValue payload,
             final JsonPointer resourcePath,
+            final boolean isInput,
             final DittoHeaders dittoHeaders
     ) {
-
         final CompletableFuture<Void> ensureOnlyDefinedActionsStage;
-        if (validationConfig.getThingValidationConfig().isForbidNonModeledInboxMessages()) {
+        if (isInput && validationConfig.getThingValidationConfig().isForbidNonModeledInboxMessages()) {
             ensureOnlyDefinedActionsStage = ensureOnlyDefinedActions(dittoHeaders,
                     thingModel.getActions().orElse(null), messageSubject, "Thing's");
         } else {
             ensureOnlyDefinedActionsStage = success();
         }
+        return doEnforceMessagePayload(thingModel, messageSubject, payload, resourcePath, isInput,
+                "Thing's action <" + messageSubject + "> " + (isInput ? "input" : "output"),
+                dittoHeaders,
+                ensureOnlyDefinedActionsStage
+        );
+    }
 
-        return thingModel.getActions()
+    private CompletableFuture<Void> enforceFeatureMessagePayload(final String featureId,
+            final ThingModel featureThingModel,
+            final String messageSubject,
+            @Nullable final JsonValue inputPayload,
+            final JsonPointer resourcePath,
+            final boolean isInput,
+            final DittoHeaders dittoHeaders
+    ) {
+        final CompletableFuture<Void> ensureOnlyDefinedActionsStage;
+        if (validationConfig.getFeatureValidationConfig().isForbidNonModeledInboxMessages()) {
+            ensureOnlyDefinedActionsStage = ensureOnlyDefinedActions(dittoHeaders,
+                    featureThingModel.getActions().orElse(null), messageSubject,
+                    "Feature <" + featureId + ">'s");
+        } else {
+            ensureOnlyDefinedActionsStage = success();
+        }
+        return doEnforceMessagePayload(featureThingModel, messageSubject, inputPayload, resourcePath, isInput,
+                "Feature <" + featureId + ">'s action <" + messageSubject + "> " + (isInput ? "input" : "output"),
+                dittoHeaders,
+                ensureOnlyDefinedActionsStage
+        );
+    }
+
+    private CompletableFuture<Void> doEnforceMessagePayload(final ThingModel featureThingModel,
+            final String messageSubject,
+            @Nullable final JsonValue inputPayload,
+            final JsonPointer resourcePath,
+            final boolean isInput,
+            final String validationFailedDescription,
+            final DittoHeaders dittoHeaders,
+            final CompletableFuture<Void> ensureOnlyDefinedActionsStage
+    ) {
+        return featureThingModel.getActions()
                 .flatMap(action -> action.getAction(messageSubject))
-                .flatMap(Action::getInput)
-                .map(inputSchema -> {
+                .flatMap(action -> isInput ? action.getInput() : action.getOutput())
+                .map(schema -> {
                     final CompletableFuture<Void> validatePropertiesStage = validateSingleDataSchema(
-                            inputSchema,
-                            "Action input",
+                            schema,
+                            validationFailedDescription,
                             JsonPointer.empty(),
                             true,
                             inputPayload,

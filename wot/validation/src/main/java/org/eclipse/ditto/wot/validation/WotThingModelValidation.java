@@ -72,17 +72,37 @@ public interface WotThingModelValidation {
     );
 
     /**
-     * TODO TJ doc
-     * @param thingModel
-     * @param messageSubject
-     * @param inputPayload
-     * @param resourcePath
-     * @param dittoHeaders
-     * @return
+     * Validates the {@code inputPayload} of a message sent to a Thing.
+     *
+     * @param thingModel the ThingModel to validate against
+     * @param messageSubject the message subject of the send message
+     * @param inputPayload the input payload to validate
+     * @param resourcePath the originating path of the command which caused validation
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
     CompletionStage<Void> validateThingMessageInput(ThingModel thingModel,
             String messageSubject,
             @Nullable JsonValue inputPayload,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * Validates the {@code outputPayload} of a message response sent to a Thing.
+     *
+     * @param thingModel the ThingModel to validate against
+     * @param messageSubject the message subject of the send message
+     * @param outputPayload the output payload to validate
+     * @param resourcePath the originating path of the command which caused validation
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
+     */
+    CompletionStage<Void> validateThingMessageOutput(ThingModel thingModel,
+            String messageSubject,
+            @Nullable JsonValue outputPayload,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders
     );
@@ -192,6 +212,46 @@ public interface WotThingModelValidation {
             JsonPointer propertyPointer,
             JsonValue propertyValue,
             boolean desiredProperty,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * Validates the {@code inputPayload} of a message sent to a Thing.
+     *
+     * @param featureThingModel the ThingModel to validate against
+     * @param featureId the feature's id to validate the message against
+     * @param messageSubject the message subject of the send message
+     * @param inputPayload the input payload to validate
+     * @param resourcePath the originating path of the command which caused validation
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
+     */
+    CompletionStage<Void> validateFeatureMessageInput(ThingModel featureThingModel,
+            String featureId,
+            String messageSubject,
+            @Nullable JsonValue inputPayload,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * Validates the {@code outputPayload} of a message sent to a Thing.
+     *
+     * @param featureThingModel the ThingModel to validate against
+     * @param featureId the feature's id to validate the message against
+     * @param messageSubject the message subject of the send message
+     * @param outputPayload the output payload to validate
+     * @param resourcePath the originating path of the command which caused validation
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
+     */
+    CompletionStage<Void> validateFeatureMessageOutput(ThingModel featureThingModel,
+            String featureId,
+            String messageSubject,
+            @Nullable JsonValue outputPayload,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders
     );

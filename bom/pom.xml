@@ -37,7 +37,7 @@
         <!-- ### Compile dependencies versions -->
         <minimal-json.version>0.9.5</minimal-json.version>
         <jackson-bom.version>2.17.1</jackson-bom.version>
-        <json-schema-validator.version>1.4.2</json-schema-validator.version>
+        <json-schema-validator.version>1.4.3</json-schema-validator.version>
         <typesafe-config.version>1.4.3</typesafe-config.version>
         <ssl-config-core.version>0.6.1</ssl-config-core.version>
         <kafka-client.version>3.6.1</kafka-client.version>
@@ -46,8 +46,8 @@
         <eddsa.version>0.3.0</eddsa.version>
         <lz4-java.version>1.8.0</lz4-java.version>
 
-        <pekko-bom.version>1.0.2</pekko-bom.version>
-        <pekko-http-bom.version>1.0.0</pekko-http-bom.version>
+        <pekko-bom.version>1.0.3</pekko-bom.version>
+        <pekko-http-bom.version>1.0.1</pekko-http-bom.version>
         <pekko-persistence-mongodb.version>1.2.0</pekko-persistence-mongodb.version>
         <pekko-persistence-inmemory.version>1.0.0</pekko-persistence-inmemory.version>
         <pekko-management.version>1.0.0</pekko-management.version>
