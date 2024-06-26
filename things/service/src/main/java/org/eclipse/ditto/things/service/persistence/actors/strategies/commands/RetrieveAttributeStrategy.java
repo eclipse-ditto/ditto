@@ -17,16 +17,17 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttribute;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
@@ -39,9 +40,11 @@ final class RetrieveAttributeStrategy extends AbstractThingCommandStrategy<Retri
 
     /**
      * Constructs a new {@code RetrieveAttributeStrategy} object.
+     *
+     * @param actorSystem the actor system to use for loading the WoT extension.
      */
-    RetrieveAttributeStrategy() {
-        super(RetrieveAttribute.class);
+    RetrieveAttributeStrategy(final ActorSystem actorSystem) {
+        super(RetrieveAttribute.class, actorSystem);
     }
 
     @Override

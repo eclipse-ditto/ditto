@@ -150,6 +150,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
                                 }
                         );
                     })
+                    .thenCompose(this::performWotBasedSignalValidation)
                     .whenComplete((authorizedSignal, throwable) -> {
                         if (null != authorizedSignal) {
                             startedSpan.mark("enforce_success").finish();
@@ -172,6 +173,30 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
             startedSpan.mark("enforce_failed").tagAsFailed(dittoRuntimeException).finish();
             handleAuthorizationFailure(tracedSignal, dittoRuntimeException, sender);
         }
+    }
+
+    /**
+     * Performs an optional WoT based validation of the already {@code authorizedSignal}.
+     *
+     * @param authorizedSignal the signal to validate against a WoT model.
+     * @return a CompletionStage finished successfully with the {@code authorizedSignal} when WoT validation was
+     * either not applied or passed successfully. In case of a WoT validation error, exceptionally finished with
+     * a WoT validation exception.
+     */
+    protected CompletionStage<S> performWotBasedSignalValidation(final S authorizedSignal) {
+        return CompletableFuture.completedStage(authorizedSignal);
+    }
+
+    /**
+     * Performs an optional WoT based validation of the already {@code filteredResponse}.
+     *
+     * @param filteredResponse the response to validate against a WoT model.
+     * @return a CompletionStage finished successfully with the {@code filteredResponse} when WoT validation was
+     * either not applied or passed successfully. In case of a WoT validation error, exceptionally finished with
+     * a WoT validation exception.
+     */
+    protected CompletionStage<R> performWotBasedResponseValidation(final R filteredResponse) {
+        return CompletableFuture.completedStage(filteredResponse);
     }
 
     private void handleAuthorizationFailure(
@@ -225,7 +250,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
                                 log.withCorrelationId(commandResponse)
                                         .debug("Could not filter command response because policyEnforcer was missing." +
                                                 " Likely the policy was deleted during command processing.");
-                                throw PolicyNotAccessibleException.newBuilder(pair.first()).build();
+                                return PolicyNotAccessibleException.newBuilder(pair.first()).build();
                             }))
                     .thenCompose(policyEnforcer -> doFilterResponse(commandResponse, policyEnforcer));
         } else {
@@ -236,7 +261,9 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
     private CompletionStage<R> doFilterResponse(final R commandResponse, final PolicyEnforcer policyEnforcer) {
         try {
             final CompletionStage<R> filteredResponseStage =
-                    enforcement.filterResponse(commandResponse, policyEnforcer);
+                    enforcement.filterResponse(commandResponse, policyEnforcer)
+                            .thenCompose(this::performWotBasedResponseValidation);
+
             return filteredResponseStage.handle((filteredResponse, throwable) -> {
                 if (null != filteredResponse) {
                     log.withCorrelationId(filteredResponse)

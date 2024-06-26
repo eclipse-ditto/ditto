@@ -16,8 +16,8 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.http.config.HttpProxyConfig;
 
 import com.typesafe.config.Config;
 

@@ -42,7 +42,6 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingRespon
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveWotThingDescriptionResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
-import org.eclipse.ditto.wot.integration.provider.WotThingDescriptionProvider;
 
 /**
  * This strategy handles the {@link RetrieveThing} command.
@@ -50,16 +49,13 @@ import org.eclipse.ditto.wot.integration.provider.WotThingDescriptionProvider;
 @Immutable
 final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveThing> {
 
-    private final WotThingDescriptionProvider wotThingDescriptionProvider;
-
     /**
      * Constructs a new {@code RetrieveThingStrategy} object.
      *
      * @param actorSystem the actor system to use for loading the WoT extension.
      */
     RetrieveThingStrategy(final ActorSystem actorSystem) {
-        super(RetrieveThing.class);
-        wotThingDescriptionProvider = WotThingDescriptionProvider.get(actorSystem);
+        super(RetrieveThing.class, actorSystem);
     }
 
     @Override
@@ -126,7 +122,7 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
     private CompletionStage<WithDittoHeaders> getRetrieveThingDescriptionResponse(@Nullable final Thing thing,
             final RetrieveThing command) {
         if (thing != null) {
-            return wotThingDescriptionProvider
+            return wotThingDescriptionGenerator
                     .provideThingTD(thing.getDefinition().orElse(null),
                             command.getEntityId(),
                             thing,

@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -32,6 +33,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
@@ -41,6 +43,14 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonRuntimeException;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.messages.model.Message;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
+import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessage;
+import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessageResponse;
+import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
+import org.eclipse.ditto.messages.model.signals.commands.SendThingMessageResponse;
 import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.enforcement.AbstractEnforcementReloaded;
@@ -63,7 +73,10 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.FeatureDefinition;
 import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
@@ -73,6 +86,8 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotCreata
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
+import org.eclipse.ditto.wot.api.validator.WotThingModelValidator;
+import org.eclipse.ditto.wot.integration.DittoWotIntegration;
 
 /**
  * Enforcer responsible for enforcing {@link ThingCommand}s and filtering {@link ThingCommandResponse}s utilizing the
@@ -82,13 +97,16 @@ public final class ThingEnforcerActor
         extends AbstractPolicyLoadingEnforcerActor<ThingId, Signal<?>, CommandResponse<?>, ThingEnforcement> {
 
     private static final String ENFORCEMENT_DISPATCHER = "enforcement-dispatcher";
+
     /**
      * Label of default policy entry in default policy.
      */
     private static final String DEFAULT_POLICY_ENTRY_LABEL = "DEFAULT";
+
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
     private final ActorRef policiesShardRegion;
     private final AskWithRetryConfig askWithRetryConfig;
+    private final WotThingModelValidator thingModelValidator;
 
     @SuppressWarnings("unused")
     private ThingEnforcerActor(final ThingId thingId,
@@ -105,6 +123,9 @@ public final class ThingEnforcerActor
         final ActorSystem system = context().system();
         policyIdReferencePlaceholderResolver = PolicyIdReferencePlaceholderResolver.of(
                 thingsShardRegion, askWithRetryConfig, system);
+
+        final DittoWotIntegration wotIntegration = DittoWotIntegration.get(system);
+        thingModelValidator = wotIntegration.getWotThingModelValidator();
     }
 
     /**
@@ -152,7 +173,7 @@ public final class ThingEnforcerActor
             final PolicyId policyId) {
 
         return doesThingExist().thenApply(thingExists -> {
-            if (thingExists) {
+            if (Boolean.TRUE.equals(thingExists)) {
                 return errorForExistingThingWithDeletedPolicy(thingCommand, policyId);
             } else {
                 return ThingNotAccessibleException.newBuilder(entityId)
@@ -160,6 +181,31 @@ public final class ThingEnforcerActor
                         .build();
             }
         });
+    }
+
+    @Override
+    protected CompletionStage<Signal<?>> performWotBasedSignalValidation(final Signal<?> authorizedSignal) {
+        if (authorizedSignal instanceof MessageCommand<?, ?> messageCommand) {
+            return performWotBasedMessageCommandValidation(messageCommand)
+                    .thenApply(Function.identity());
+        } else if (authorizedSignal instanceof MessageCommandResponse<?, ?> messageCommandResponse) {
+            return performWotBasedMessageCommandResponseValidation(messageCommandResponse)
+                    .thenApply(Function.identity());
+        } else {
+            return super.performWotBasedSignalValidation(authorizedSignal);
+        }
+    }
+
+    @Override
+    protected CompletionStage<CommandResponse<?>> performWotBasedResponseValidation(
+            final CommandResponse<?> filteredResponse
+    ) {
+        if (filteredResponse instanceof MessageCommandResponse<?, ?> messageCommandResponse) {
+            return performWotBasedMessageCommandResponseValidation(messageCommandResponse)
+                    .thenApply(Function.identity());
+        } else {
+            return super.performWotBasedResponseValidation(filteredResponse);
+        }
     }
 
     /**
@@ -331,7 +377,7 @@ public final class ThingEnforcerActor
                 .orElseThrow(() -> {
                     final var message = String.format("The Thing with ID '%s' could not be created with " +
                             "implicit Policy because no authorization subject is present.", thingId);
-                    throw ThingNotCreatableException.newBuilderForPolicyMissing(thingId, PolicyId.of(thingId))
+                    return ThingNotCreatableException.newBuilderForPolicyMissing(thingId, PolicyId.of(thingId))
                             .message(message)
                             .description(() -> null)
                             .dittoHeaders(dittoHeaders)
@@ -457,6 +503,130 @@ public final class ThingEnforcerActor
                 return true;
             } else if (response instanceof ThingNotAccessibleException) {
                 return false;
+            } else {
+                throw new IllegalStateException("expected SudoRetrieveThingResponse, got: " + response);
+            }
+        });
+    }
+
+    private CompletionStage<MessageCommand<?, ?>> performWotBasedMessageCommandValidation(
+            final MessageCommand<?, ?> messageCommand
+    ) {
+        if (isJsonMessageContent(messageCommand.getMessage())) {
+            @SuppressWarnings("unchecked")
+            final JsonValue messageCommandPayload = ((MessageCommand<JsonValue, ?>) messageCommand)
+                    .getMessage()
+                    .getPayload()
+                    .orElse(null);
+
+            if (messageCommand instanceof SendThingMessage<?> sendThingMessage) {
+                return resolveThingDefinition()
+                        .thenCompose(optThingDefinition -> thingModelValidator.validateThingMessageInput(
+                                optThingDefinition.orElse(null),
+                                sendThingMessage.getMessage().getSubject(),
+                                messageCommandPayload,
+                                sendThingMessage.getResourcePath(),
+                                sendThingMessage.getDittoHeaders()
+                        ))
+                        .thenApply(aVoid -> messageCommand);
+            } else if (messageCommand instanceof SendFeatureMessage<?> sendFeatureMessage) {
+                final String featureId = sendFeatureMessage.getFeatureId();
+                return resolveFeatureDefinition(featureId)
+                        .thenCompose(optFeatureDefinition -> thingModelValidator.validateFeatureMessageInput(
+                                optFeatureDefinition.orElse(null), featureId,
+                                sendFeatureMessage.getMessage().getSubject(),
+                                messageCommandPayload,
+                                sendFeatureMessage.getResourcePath(),
+                                sendFeatureMessage.getDittoHeaders()
+                        ))
+                        .thenApply(aVoid -> messageCommand);
+            } else {
+                return CompletableFuture.completedFuture(messageCommand);
+            }
+        } else {
+            return CompletableFuture.completedFuture(messageCommand);
+        }
+    }
+
+    private CompletionStage<MessageCommandResponse<?, ?>> performWotBasedMessageCommandResponseValidation(
+            final MessageCommandResponse<?, ?> messageCommandResponse
+    ) {
+        if (isJsonMessageContent(messageCommandResponse.getMessage())) {
+            @SuppressWarnings("unchecked")
+            final JsonValue messageCommandPayload = ((MessageCommandResponse<JsonValue, ?>) messageCommandResponse)
+                    .getMessage()
+                    .getPayload()
+                    .orElse(null);
+
+            if (messageCommandResponse instanceof SendThingMessageResponse<?> sendThingMessageResponse) {
+                return resolveThingDefinition()
+                        .thenCompose(optThingDefinition -> thingModelValidator.validateThingMessageOutput(
+                                optThingDefinition.orElse(null),
+                                sendThingMessageResponse.getMessage().getSubject(),
+                                messageCommandPayload,
+                                sendThingMessageResponse.getResourcePath(),
+                                sendThingMessageResponse.getDittoHeaders()
+                        ))
+                        .thenApply(aVoid -> messageCommandResponse);
+            } else if (messageCommandResponse instanceof SendFeatureMessageResponse<?> sendFeatureMessageResponse) {
+                final String featureId = sendFeatureMessageResponse.getFeatureId();
+                return resolveFeatureDefinition(featureId)
+                        .thenCompose(optFeatureDefinition -> thingModelValidator.validateFeatureMessageOutput(
+                                optFeatureDefinition.orElse(null), featureId,
+                                sendFeatureMessageResponse.getMessage().getSubject(),
+                                messageCommandPayload,
+                                sendFeatureMessageResponse.getResourcePath(),
+                                sendFeatureMessageResponse.getDittoHeaders()
+                        ))
+                        .thenApply(aVoid -> messageCommandResponse);
+            } else {
+                return CompletableFuture.completedFuture(messageCommandResponse);
+            }
+        } else {
+            return CompletableFuture.completedFuture(messageCommandResponse);
+        }
+    }
+
+    private static boolean isJsonMessageContent(final Message<?> message) {
+        return message
+                .getInterpretedContentType()
+                .filter(ContentType::isJson)
+                .isPresent();
+    }
+
+    private CompletionStage<Optional<ThingDefinition>> resolveThingDefinition() {
+        return Patterns.ask(getContext().getParent(), SudoRetrieveThing.of(entityId,
+                        JsonFieldSelector.newInstance("definition"),
+                        DittoHeaders.newBuilder()
+                                .correlationId("sudoRetrieveThingDefinitionFromThingEnforcerActor-" + UUID.randomUUID())
+                                .build()
+                ), DEFAULT_LOCAL_ASK_TIMEOUT
+        ).thenApply(response -> {
+            if (response instanceof SudoRetrieveThingResponse sudoRetrieveThingResponse) {
+                return sudoRetrieveThingResponse.getThing().getDefinition();
+            } else if (response instanceof ThingNotAccessibleException) {
+                return Optional.empty();
+            } else {
+                throw new IllegalStateException("expected SudoRetrieveThingResponse, got: " + response);
+            }
+        });
+    }
+
+    private CompletionStage<Optional<FeatureDefinition>> resolveFeatureDefinition(final String featureId) {
+        return Patterns.ask(getContext().getParent(), SudoRetrieveThing.of(entityId,
+                        JsonFieldSelector.newInstance("features/" + featureId + "/definition"),
+                        DittoHeaders.newBuilder()
+                                .correlationId("sudoRetrieveFeatureDefinitionFromThingEnforcerActor-" + UUID.randomUUID())
+                                .build()
+                ), DEFAULT_LOCAL_ASK_TIMEOUT
+        ).thenApply(response -> {
+            if (response instanceof SudoRetrieveThingResponse sudoRetrieveThingResponse) {
+                return sudoRetrieveThingResponse.getThing()
+                        .getFeatures()
+                        .flatMap(f -> f.getFeature(featureId))
+                        .flatMap(Feature::getDefinition);
+            } else if (response instanceof ThingNotAccessibleException) {
+                return Optional.empty();
             } else {
                 throw new IllegalStateException("expected SudoRetrieveThingResponse, got: " + response);
             }

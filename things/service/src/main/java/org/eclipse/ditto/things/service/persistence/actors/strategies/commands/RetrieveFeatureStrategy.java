@@ -38,7 +38,6 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveWotThingDescriptionResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
-import org.eclipse.ditto.wot.integration.provider.WotThingDescriptionProvider;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature} command.
@@ -46,16 +45,13 @@ import org.eclipse.ditto.wot.integration.provider.WotThingDescriptionProvider;
 @Immutable
 final class RetrieveFeatureStrategy extends AbstractThingCommandStrategy<RetrieveFeature> {
 
-    private final WotThingDescriptionProvider wotThingDescriptionProvider;
-
     /**
      * Constructs a new {@code RetrieveFeatureStrategy} object.
      *
      * @param actorSystem the actor system to use for loading the WoT extension.
      */
     RetrieveFeatureStrategy(final ActorSystem actorSystem) {
-        super(RetrieveFeature.class);
-        wotThingDescriptionProvider = WotThingDescriptionProvider.get(actorSystem);
+        super(RetrieveFeature.class, actorSystem);
     }
 
     @Override
@@ -96,7 +92,7 @@ final class RetrieveFeatureStrategy extends AbstractThingCommandStrategy<Retriev
         if (thing != null) {
             return thing.getFeatures()
                     .flatMap(f -> f.getFeature(featureId))
-                    .map(feature -> wotThingDescriptionProvider
+                    .map(feature -> wotThingDescriptionGenerator
                             .provideFeatureTD(command.getEntityId(), thing, feature, command.getDittoHeaders())
                     )
                     .map(tdStage -> tdStage.thenApply(td ->
