@@ -161,8 +161,8 @@ public interface WotThingModelValidator {
     );
 
     /**
-     * Validates the provided {@code inputPayload} of the message with subject {@code messageSubject} against the
-     * provided {@code thingDefinition}.
+     * Validates the provided {@code inputPayload} of the inbox message (WoT action) with subject {@code messageSubject}
+     * against the provided {@code thingDefinition}.
      *
      * @param thingDefinition the ThingDefinition to retrieve the WoT TM from
      * @param messageSubject the (Thing) message subject
@@ -172,7 +172,7 @@ public interface WotThingModelValidator {
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException}
      */
-    CompletionStage<Void> validateThingMessageInput(@Nullable ThingDefinition thingDefinition,
+    CompletionStage<Void> validateThingActionInput(@Nullable ThingDefinition thingDefinition,
             String messageSubject,
             @Nullable JsonValue inputPayload,
             JsonPointer resourcePath,
@@ -180,8 +180,8 @@ public interface WotThingModelValidator {
     );
 
     /**
-     * Validates the provided {@code outputPayload} of the message with subject {@code messageSubject} against the
-     * provided {@code thingDefinition}.
+     * Validates the provided {@code outputPayload} of the inbox message response (response to WoT action) with subject
+     * {@code messageSubject} against the provided {@code thingDefinition}.
      *
      * @param thingDefinition the ThingDefinition to retrieve the WoT TM from
      * @param messageSubject the (Thing) message subject
@@ -191,9 +191,28 @@ public interface WotThingModelValidator {
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException}
      */
-    CompletionStage<Void> validateThingMessageOutput(@Nullable ThingDefinition thingDefinition,
+    CompletionStage<Void> validateThingActionOutput(@Nullable ThingDefinition thingDefinition,
             String messageSubject,
             @Nullable JsonValue outputPayload,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * Validates the provided {@code dataPayload} of the outbox message (WoT event) with subject {@code messageSubject}
+     * against the provided {@code thingDefinition}.
+     *
+     * @param thingDefinition the ThingDefinition to retrieve the WoT TM from
+     * @param messageSubject the (Thing) message subject
+     * @param dataPayload the data payload to validate
+     * @param resourcePath the originating path of the command which caused validation
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException}
+     */
+    CompletionStage<Void> validateThingEventData(@Nullable ThingDefinition thingDefinition,
+            String messageSubject,
+            @Nullable JsonValue dataPayload,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders
     );
@@ -347,8 +366,8 @@ public interface WotThingModelValidator {
     );
 
     /**
-     * Validates the provided {@code inputPayload} of the feature message with subject {@code messageSubject} against
-     * the provided {@code featureDefinition}.
+     * Validates the provided {@code inputPayload} of the feature message (WoT action) with subject
+     * {@code messageSubject} against the provided {@code featureDefinition}.
      *
      * @param featureDefinition the FeatureDefinition to retrieve the WoT TM from
      * @param featureId the ID of the feature to validate the message input payload for
@@ -359,7 +378,7 @@ public interface WotThingModelValidator {
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException}
      */
-    CompletionStage<Void> validateFeatureMessageInput(@Nullable FeatureDefinition featureDefinition,
+    CompletionStage<Void> validateFeatureActionInput(@Nullable FeatureDefinition featureDefinition,
             String featureId,
             String messageSubject,
             @Nullable JsonValue inputPayload,
@@ -368,22 +387,43 @@ public interface WotThingModelValidator {
     );
 
     /**
-     * Validates the provided {@code outputPayload} of the feature message with subject {@code messageSubject} against
-     * the provided {@code featureDefinition}.
+     * Validates the provided {@code outputPayload} of the feature message (WoT action) with subject
+     * {@code messageSubject} against the provided {@code featureDefinition}.
      *
      * @param featureDefinition the FeatureDefinition to retrieve the WoT TM from
      * @param featureId the ID of the feature to validate the message output payload for
-     * @param outputPayload the output payload to validate
      * @param messageSubject the (Feature) message subject
+     * @param outputPayload the output payload to validate
      * @param resourcePath the originating path of the command which caused validation
      * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException}
      */
-    CompletionStage<Void> validateFeatureMessageOutput(@Nullable FeatureDefinition featureDefinition,
+    CompletionStage<Void> validateFeatureActionOutput(@Nullable FeatureDefinition featureDefinition,
             String featureId,
             String messageSubject,
             @Nullable JsonValue outputPayload,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * Validates the provided {@code dataPayload} of the feature outbox message (WoT event) with subject
+     * {@code messageSubject} against the provided {@code featureDefinition}.
+     *
+     * @param featureDefinition the FeatureDefinition to retrieve the WoT TM from
+     * @param featureId the ID of the feature to validate the message payload for
+     * @param messageSubject the (Feature) message subject
+     * @param dataPayload the data payload to validate
+     * @param resourcePath the originating path of the command which caused validation
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException}
+     */
+    CompletionStage<Void> validateFeatureEventData(@Nullable FeatureDefinition featureDefinition,
+            String featureId,
+            String messageSubject,
+            @Nullable JsonValue dataPayload,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders
     );

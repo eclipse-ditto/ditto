@@ -45,6 +45,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.Message;
+import org.eclipse.ditto.messages.model.MessageDirection;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessage;
@@ -514,32 +515,72 @@ public final class ThingEnforcerActor
     ) {
         if (isJsonMessageContent(messageCommand.getMessage())) {
             @SuppressWarnings("unchecked")
-            final JsonValue messageCommandPayload = ((MessageCommand<JsonValue, ?>) messageCommand)
-                    .getMessage()
+            final Message<JsonValue> message = ((MessageCommand<JsonValue, ?>) messageCommand)
+                    .getMessage();
+
+            final MessageDirection messageDirection = message.getDirection();
+            final JsonValue messageCommandPayload = message
                     .getPayload()
                     .orElse(null);
 
             if (messageCommand instanceof SendThingMessage<?> sendThingMessage) {
                 return resolveThingDefinition()
-                        .thenCompose(optThingDefinition -> thingModelValidator.validateThingMessageInput(
-                                optThingDefinition.orElse(null),
-                                sendThingMessage.getMessage().getSubject(),
-                                messageCommandPayload,
-                                sendThingMessage.getResourcePath(),
-                                sendThingMessage.getDittoHeaders()
-                        ))
-                        .thenApply(aVoid -> messageCommand);
+                        .thenCompose(optThingDefinition -> {
+                            if (messageDirection == MessageDirection.TO) {
+                                return thingModelValidator.validateThingActionInput(
+                                        optThingDefinition.orElse(null),
+                                        sendThingMessage.getMessage().getSubject(),
+                                        messageCommandPayload,
+                                        sendThingMessage.getResourcePath(),
+                                        sendThingMessage.getDittoHeaders()
+                                );
+                            } else if (messageDirection == MessageDirection.FROM) {
+                                return thingModelValidator.validateThingEventData(
+                                        optThingDefinition.orElse(null),
+                                        sendThingMessage.getMessage().getSubject(),
+                                        messageCommandPayload,
+                                        sendThingMessage.getResourcePath(),
+                                        sendThingMessage.getDittoHeaders()
+                                );
+                            } else {
+                                return CompletableFuture.failedStage(DittoInternalErrorException.newBuilder()
+                                        .message("Unknown message direction")
+                                        .dittoHeaders(messageCommand.getDittoHeaders())
+                                        .build()
+                                );
+                            }
+                        }).thenApply(aVoid -> messageCommand);
             } else if (messageCommand instanceof SendFeatureMessage<?> sendFeatureMessage) {
                 final String featureId = sendFeatureMessage.getFeatureId();
                 return resolveFeatureDefinition(featureId)
-                        .thenCompose(optFeatureDefinition -> thingModelValidator.validateFeatureMessageInput(
-                                optFeatureDefinition.orElse(null), featureId,
-                                sendFeatureMessage.getMessage().getSubject(),
-                                messageCommandPayload,
-                                sendFeatureMessage.getResourcePath(),
-                                sendFeatureMessage.getDittoHeaders()
-                        ))
-                        .thenApply(aVoid -> messageCommand);
+                        .thenCompose(optFeatureDefinition -> {
+                            if (messageDirection == MessageDirection.TO) {
+                                return thingModelValidator.validateFeatureActionInput(
+                                        optFeatureDefinition.orElse(null),
+                                        featureId,
+                                        sendFeatureMessage.getMessage().getSubject(),
+                                        messageCommandPayload,
+                                        sendFeatureMessage.getResourcePath(),
+                                        sendFeatureMessage.getDittoHeaders()
+                                );
+                            } else if (messageDirection == MessageDirection.FROM) {
+                                return thingModelValidator.validateFeatureEventData(
+                                        optFeatureDefinition.orElse(null),
+                                        featureId,
+                                        sendFeatureMessage.getMessage().getSubject(),
+                                        messageCommandPayload,
+                                        sendFeatureMessage.getResourcePath(),
+                                        sendFeatureMessage.getDittoHeaders()
+                                );
+                            } else {
+                                return CompletableFuture.failedStage(DittoInternalErrorException.newBuilder()
+                                        .message("Unknown message direction")
+                                        .dittoHeaders(messageCommand.getDittoHeaders())
+                                        .build()
+                                );
+                            }
+                        }).thenApply(aVoid -> messageCommand);
+
             } else {
                 return CompletableFuture.completedFuture(messageCommand);
             }
@@ -553,14 +594,18 @@ public final class ThingEnforcerActor
     ) {
         if (isJsonMessageContent(messageCommandResponse.getMessage())) {
             @SuppressWarnings("unchecked")
-            final JsonValue messageCommandPayload = ((MessageCommandResponse<JsonValue, ?>) messageCommandResponse)
-                    .getMessage()
+            final Message<JsonValue> message = ((MessageCommandResponse<JsonValue, ?>) messageCommandResponse)
+                    .getMessage();
+
+            final MessageDirection messageDirection = message.getDirection();
+            final JsonValue messageCommandPayload = message
                     .getPayload()
                     .orElse(null);
 
-            if (messageCommandResponse instanceof SendThingMessageResponse<?> sendThingMessageResponse) {
+            if (messageDirection == MessageDirection.TO &&
+                    messageCommandResponse instanceof SendThingMessageResponse<?> sendThingMessageResponse) {
                 return resolveThingDefinition()
-                        .thenCompose(optThingDefinition -> thingModelValidator.validateThingMessageOutput(
+                        .thenCompose(optThingDefinition -> thingModelValidator.validateThingActionOutput(
                                 optThingDefinition.orElse(null),
                                 sendThingMessageResponse.getMessage().getSubject(),
                                 messageCommandPayload,
@@ -568,10 +613,11 @@ public final class ThingEnforcerActor
                                 sendThingMessageResponse.getDittoHeaders()
                         ))
                         .thenApply(aVoid -> messageCommandResponse);
-            } else if (messageCommandResponse instanceof SendFeatureMessageResponse<?> sendFeatureMessageResponse) {
+            } else if (messageDirection == MessageDirection.TO &&
+                    messageCommandResponse instanceof SendFeatureMessageResponse<?> sendFeatureMessageResponse) {
                 final String featureId = sendFeatureMessageResponse.getFeatureId();
                 return resolveFeatureDefinition(featureId)
-                        .thenCompose(optFeatureDefinition -> thingModelValidator.validateFeatureMessageOutput(
+                        .thenCompose(optFeatureDefinition -> thingModelValidator.validateFeatureActionOutput(
                                 optFeatureDefinition.orElse(null), featureId,
                                 sendFeatureMessageResponse.getMessage().getSubject(),
                                 messageCommandPayload,

@@ -38,6 +38,8 @@ import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.wot.model.Actions;
 import org.eclipse.ditto.wot.model.DittoWotExtension;
+import org.eclipse.ditto.wot.model.Event;
+import org.eclipse.ditto.wot.model.Events;
 import org.eclipse.ditto.wot.model.Properties;
 import org.eclipse.ditto.wot.model.Property;
 import org.eclipse.ditto.wot.model.SingleDataSchema;
@@ -93,29 +95,42 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
     }
 
     @Override
-    public CompletionStage<Void> validateThingMessageInput(final ThingModel thingModel,
+    public CompletionStage<Void> validateThingActionInput(final ThingModel thingModel,
             final String messageSubject,
             @Nullable final JsonValue inputPayload,
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
         if (validationConfig.getThingValidationConfig().isEnforceInboxMessagesInput()) {
-            return enforceThingMessagePayload(thingModel, messageSubject, inputPayload, resourcePath, true,
+            return enforceThingActionPayload(thingModel, messageSubject, inputPayload, resourcePath, true,
                     dittoHeaders);
         }
         return success();
     }
 
     @Override
-    public CompletionStage<Void> validateThingMessageOutput(final ThingModel thingModel,
+    public CompletionStage<Void> validateThingActionOutput(final ThingModel thingModel,
             final String messageSubject,
             @Nullable final JsonValue outputPayload,
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
         if (validationConfig.getThingValidationConfig().isEnforceInboxMessagesOutput()) {
-            return enforceThingMessagePayload(thingModel, messageSubject, outputPayload, resourcePath, false,
+            return enforceThingActionPayload(thingModel, messageSubject, outputPayload, resourcePath, false,
                     dittoHeaders);
+        }
+        return success();
+    }
+
+    @Override
+    public CompletionStage<Void> validateThingEventData(final ThingModel thingModel,
+            final String messageSubject,
+            @Nullable final JsonValue dataPayload,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        if (validationConfig.getThingValidationConfig().isEnforceOutboxMessages()) {
+            return enforceThingEventPayload(thingModel, messageSubject, dataPayload, resourcePath, dittoHeaders);
         }
         return success();
     }
@@ -339,7 +354,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
     }
 
     @Override
-    public CompletionStage<Void> validateFeatureMessageInput(final ThingModel featureThingModel,
+    public CompletionStage<Void> validateFeatureActionInput(final ThingModel featureThingModel,
             final String featureId,
             final String messageSubject,
             @Nullable final JsonValue inputPayload,
@@ -347,14 +362,14 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final DittoHeaders dittoHeaders
     ) {
         if (validationConfig.getFeatureValidationConfig().isEnforceInboxMessagesInput()) {
-            return enforceFeatureMessagePayload(featureId, featureThingModel, messageSubject, inputPayload,
+            return enforceFeatureActionPayload(featureId, featureThingModel, messageSubject, inputPayload,
                     resourcePath, true, dittoHeaders);
         }
         return success();
     }
 
     @Override
-    public CompletionStage<Void> validateFeatureMessageOutput(final ThingModel featureThingModel,
+    public CompletionStage<Void> validateFeatureActionOutput(final ThingModel featureThingModel,
             final String featureId,
             final String messageSubject,
             @Nullable final JsonValue outputPayload,
@@ -362,8 +377,23 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final DittoHeaders dittoHeaders
     ) {
         if (validationConfig.getFeatureValidationConfig().isEnforceInboxMessagesOutput()) {
-            return enforceFeatureMessagePayload(featureId, featureThingModel, messageSubject, outputPayload,
+            return enforceFeatureActionPayload(featureId, featureThingModel, messageSubject, outputPayload,
                     resourcePath, false, dittoHeaders);
+        }
+        return success();
+    }
+
+    @Override
+    public CompletionStage<Void> validateFeatureEventData(final ThingModel featureThingModel,
+            final String featureId,
+            final String messageSubject,
+            @Nullable final JsonValue dataPayload,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        if (validationConfig.getFeatureValidationConfig().isEnforceOutboxMessages()) {
+            return enforceFeatureEventPayload(featureId, featureThingModel, messageSubject, dataPayload,
+                    resourcePath, dittoHeaders);
         }
         return success();
     }
@@ -432,7 +462,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                 }).orElseGet(DefaultWotThingModelValidation::success);
     }
 
-    private CompletableFuture<Void> enforceThingMessagePayload(final ThingModel thingModel,
+    private CompletableFuture<Void> enforceThingActionPayload(final ThingModel thingModel,
             final String messageSubject,
             @Nullable final JsonValue payload,
             final JsonPointer resourcePath,
@@ -446,14 +476,34 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
         } else {
             ensureOnlyDefinedActionsStage = success();
         }
-        return doEnforceMessagePayload(thingModel, messageSubject, payload, resourcePath, isInput,
+        return doEnforceActionPayload(thingModel, messageSubject, payload, resourcePath, isInput,
                 "Thing's action <" + messageSubject + "> " + (isInput ? "input" : "output"),
                 dittoHeaders,
                 ensureOnlyDefinedActionsStage
         );
     }
 
-    private CompletableFuture<Void> enforceFeatureMessagePayload(final String featureId,
+    private CompletableFuture<Void> enforceThingEventPayload(final ThingModel thingModel,
+            final String messageSubject,
+            @Nullable final JsonValue payload,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        final CompletableFuture<Void> ensureOnlyDefinedEventsStage;
+        if (validationConfig.getThingValidationConfig().isForbidNonModeledOutboxMessages()) {
+            ensureOnlyDefinedEventsStage = ensureOnlyDefinedEvents(dittoHeaders,
+                    thingModel.getEvents().orElse(null), messageSubject, "Thing's");
+        } else {
+            ensureOnlyDefinedEventsStage = success();
+        }
+        return doEnforceEventPayload(thingModel, messageSubject, payload, resourcePath,
+                "Thing's event <" + messageSubject + "> data",
+                dittoHeaders,
+                ensureOnlyDefinedEventsStage
+        );
+    }
+
+    private CompletableFuture<Void> enforceFeatureActionPayload(final String featureId,
             final ThingModel featureThingModel,
             final String messageSubject,
             @Nullable final JsonValue inputPayload,
@@ -469,14 +519,14 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
         } else {
             ensureOnlyDefinedActionsStage = success();
         }
-        return doEnforceMessagePayload(featureThingModel, messageSubject, inputPayload, resourcePath, isInput,
+        return doEnforceActionPayload(featureThingModel, messageSubject, inputPayload, resourcePath, isInput,
                 "Feature <" + featureId + ">'s action <" + messageSubject + "> " + (isInput ? "input" : "output"),
                 dittoHeaders,
                 ensureOnlyDefinedActionsStage
         );
     }
 
-    private CompletableFuture<Void> doEnforceMessagePayload(final ThingModel featureThingModel,
+    private CompletableFuture<Void> doEnforceActionPayload(final ThingModel thingModel,
             final String messageSubject,
             @Nullable final JsonValue inputPayload,
             final JsonPointer resourcePath,
@@ -485,7 +535,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final DittoHeaders dittoHeaders,
             final CompletableFuture<Void> ensureOnlyDefinedActionsStage
     ) {
-        return featureThingModel.getActions()
+        return thingModel.getActions()
                 .flatMap(action -> action.getAction(messageSubject))
                 .flatMap(action -> isInput ? action.getInput() : action.getOutput())
                 .map(schema -> {
@@ -503,6 +553,58 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     );
                 })
                 .orElse(ensureOnlyDefinedActionsStage);
+    }
+
+    private CompletableFuture<Void> enforceFeatureEventPayload(final String featureId,
+            final ThingModel featureThingModel,
+            final String messageSubject,
+            @Nullable final JsonValue payload,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        final CompletableFuture<Void> ensureOnlyDefinedEventsStage;
+        if (validationConfig.getFeatureValidationConfig().isForbidNonModeledOutboxMessages()) {
+            ensureOnlyDefinedEventsStage = ensureOnlyDefinedEvents(dittoHeaders,
+                    featureThingModel.getEvents().orElse(null),
+                    messageSubject,
+                    "Feature <" + featureId + ">'s"
+            );
+        } else {
+            ensureOnlyDefinedEventsStage = success();
+        }
+        return doEnforceEventPayload(featureThingModel, messageSubject, payload, resourcePath,
+                "Feature <" + featureId + ">'s event <" + messageSubject + "> data",
+                dittoHeaders,
+                ensureOnlyDefinedEventsStage
+        );
+    }
+
+    private CompletableFuture<Void> doEnforceEventPayload(final ThingModel thingModel,
+            final String messageSubject,
+            @Nullable final JsonValue dataPayload,
+            final JsonPointer resourcePath,
+            final String validationFailedDescription,
+            final DittoHeaders dittoHeaders,
+            final CompletableFuture<Void> ensureOnlyDefinedEventsStage
+    ) {
+        return thingModel.getEvents()
+                .flatMap(event -> event.getEvent(messageSubject))
+                .flatMap(Event::getData)
+                .map(schema -> {
+                    final CompletableFuture<Void> validatePropertiesStage = validateSingleDataSchema(
+                            schema,
+                            validationFailedDescription,
+                            JsonPointer.empty(),
+                            true,
+                            dataPayload,
+                            resourcePath,
+                            dittoHeaders
+                    );
+                    return ensureOnlyDefinedEventsStage.thenCompose(aVoid ->
+                            validatePropertiesStage
+                    );
+                })
+                .orElse(ensureOnlyDefinedEventsStage);
     }
 
     private CompletableFuture<Void> ensureRequiredProperties(final ThingModel thingModel,
@@ -646,6 +748,25 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final var exceptionBuilder = WotThingModelPayloadValidationException
                     .newBuilder("The " + containerName + " message subject <" +
                             messageSubject + "> is not defined as known action in the model: " + allDefinedActionKeys
+                    );
+            return CompletableFuture.failedFuture(exceptionBuilder
+                    .dittoHeaders(dittoHeaders)
+                    .build());
+        }
+        return success();
+    }
+
+    private CompletableFuture<Void> ensureOnlyDefinedEvents(final DittoHeaders dittoHeaders,
+            @Nullable final Events events,
+            final String messageSubject,
+            final String containerName
+    ) {
+        final Set<String> allDefinedEventKeys = Optional.ofNullable(events).map(Events::keySet).orElseGet(Set::of);
+        final boolean messageSubjectIsDefinedAsEvent = allDefinedEventKeys.contains(messageSubject);
+        if (!messageSubjectIsDefinedAsEvent) {
+            final var exceptionBuilder = WotThingModelPayloadValidationException
+                    .newBuilder("The " + containerName + " message subject <" +
+                            messageSubject + "> is not defined as known event in the model: " + allDefinedEventKeys
                     );
             return CompletableFuture.failedFuture(exceptionBuilder
                     .dittoHeaders(dittoHeaders)

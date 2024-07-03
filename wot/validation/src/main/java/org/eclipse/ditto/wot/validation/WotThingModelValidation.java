@@ -72,7 +72,7 @@ public interface WotThingModelValidation {
     );
 
     /**
-     * Validates the {@code inputPayload} of a message sent to a Thing.
+     * Validates the {@code inputPayload} of an inbox message (a WoT action) sent TO a Thing.
      *
      * @param thingModel the ThingModel to validate against
      * @param messageSubject the message subject of the send message
@@ -82,7 +82,7 @@ public interface WotThingModelValidation {
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
-    CompletionStage<Void> validateThingMessageInput(ThingModel thingModel,
+    CompletionStage<Void> validateThingActionInput(ThingModel thingModel,
             String messageSubject,
             @Nullable JsonValue inputPayload,
             JsonPointer resourcePath,
@@ -90,7 +90,7 @@ public interface WotThingModelValidation {
     );
 
     /**
-     * Validates the {@code outputPayload} of a message response sent to a Thing.
+     * Validates the {@code outputPayload} of an inbox message response (response to a WoT action) sent TO a Thing.
      *
      * @param thingModel the ThingModel to validate against
      * @param messageSubject the message subject of the send message
@@ -100,9 +100,27 @@ public interface WotThingModelValidation {
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
-    CompletionStage<Void> validateThingMessageOutput(ThingModel thingModel,
+    CompletionStage<Void> validateThingActionOutput(ThingModel thingModel,
             String messageSubject,
             @Nullable JsonValue outputPayload,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * Validates the {@code dataPayload} of an outbox message (WoT event) sent FROM a Thing.
+     *
+     * @param thingModel the ThingModel to validate against
+     * @param messageSubject the message subject of the send message
+     * @param dataPayload the output payload to validate
+     * @param resourcePath the originating path of the command which caused validation
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
+     */
+    CompletionStage<Void> validateThingEventData(ThingModel thingModel,
+            String messageSubject,
+            @Nullable JsonValue dataPayload,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders
     );
@@ -217,7 +235,7 @@ public interface WotThingModelValidation {
     );
 
     /**
-     * Validates the {@code inputPayload} of a message sent to a Thing.
+     * Validates the {@code inputPayload} of an inbox message (WoT action) sent TO a feature.
      *
      * @param featureThingModel the ThingModel to validate against
      * @param featureId the feature's id to validate the message against
@@ -228,7 +246,7 @@ public interface WotThingModelValidation {
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
-    CompletionStage<Void> validateFeatureMessageInput(ThingModel featureThingModel,
+    CompletionStage<Void> validateFeatureActionInput(ThingModel featureThingModel,
             String featureId,
             String messageSubject,
             @Nullable JsonValue inputPayload,
@@ -237,7 +255,7 @@ public interface WotThingModelValidation {
     );
 
     /**
-     * Validates the {@code outputPayload} of a message sent to a Thing.
+     * Validates the {@code outputPayload} of an inbox message response (response to a WoT action) sent TO a feature.
      *
      * @param featureThingModel the ThingModel to validate against
      * @param featureId the feature's id to validate the message against
@@ -248,10 +266,30 @@ public interface WotThingModelValidation {
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
-    CompletionStage<Void> validateFeatureMessageOutput(ThingModel featureThingModel,
+    CompletionStage<Void> validateFeatureActionOutput(ThingModel featureThingModel,
             String featureId,
             String messageSubject,
             @Nullable JsonValue outputPayload,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * Validates the {@code dataPayload} of an outbox message (WoT event) sent FROM a feature.
+     *
+     * @param featureThingModel the ThingModel to validate against
+     * @param featureId the feature's id to validate the message against
+     * @param messageSubject the message subject of the send message
+     * @param dataPayload the output payload to validate
+     * @param resourcePath the originating path of the command which caused validation
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
+     */
+    CompletionStage<Void> validateFeatureEventData(ThingModel featureThingModel,
+            String featureId,
+            String messageSubject,
+            @Nullable JsonValue dataPayload,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders
     );

@@ -162,7 +162,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     }
 
     @Override
-    public CompletionStage<Void> validateThingMessageInput(@Nullable final ThingDefinition thingDefinition,
+    public CompletionStage<Void> validateThingActionInput(@Nullable final ThingDefinition thingDefinition,
             final String messageSubject,
             @Nullable final JsonValue inputPayload,
             final JsonPointer resourcePath,
@@ -170,7 +170,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     ) {
         if (isWotValidationEnabled()) {
             return fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModelWithExtensionsAndImports ->
-                    thingModelValidation.validateThingMessageInput(thingModelWithExtensionsAndImports,
+                    thingModelValidation.validateThingActionInput(thingModelWithExtensionsAndImports,
                             messageSubject, inputPayload, resourcePath, dittoHeaders)
             );
         }
@@ -178,7 +178,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     }
 
     @Override
-    public CompletionStage<Void> validateThingMessageOutput(@Nullable final ThingDefinition thingDefinition,
+    public CompletionStage<Void> validateThingActionOutput(@Nullable final ThingDefinition thingDefinition,
             final String messageSubject,
             @Nullable final JsonValue outputPayload,
             final JsonPointer resourcePath,
@@ -186,8 +186,24 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     ) {
         if (isWotValidationEnabled()) {
             return fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModelWithExtensionsAndImports ->
-                    thingModelValidation.validateThingMessageOutput(thingModelWithExtensionsAndImports,
+                    thingModelValidation.validateThingActionOutput(thingModelWithExtensionsAndImports,
                             messageSubject, outputPayload, resourcePath, dittoHeaders)
+            );
+        }
+        return success();
+    }
+
+    @Override
+    public CompletionStage<Void> validateThingEventData(@Nullable final ThingDefinition thingDefinition,
+            final String messageSubject,
+            @Nullable final JsonValue dataPayload,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        if (isWotValidationEnabled()) {
+            return fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModelWithExtensionsAndImports ->
+                    thingModelValidation.validateThingEventData(thingModelWithExtensionsAndImports,
+                            messageSubject, dataPayload, resourcePath, dittoHeaders)
             );
         }
         return success();
@@ -255,9 +271,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                 return thingModelResolver.resolveThingModelSubmodels(thingModel, dittoHeaders)
                         .thenCompose(subModels ->
                                 thingModelValidation.validateFeaturePresence(
-                                        reduceSubmodelMapKeyToFeatureId(subModels),
-                                        feature,
-                                        dittoHeaders
+                                        reduceSubmodelMapKeyToFeatureId(subModels), feature, dittoHeaders
                                 ).thenCompose(aVoid ->
                                         thingModelValidation.validateFeature(featureThingModel, feature,
                                                 resourcePath, dittoHeaders)
@@ -267,10 +281,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                 return thingModelResolver.resolveThingModelSubmodels(thingModel, dittoHeaders)
                         .thenCompose(subModels ->
                                 thingModelValidation.validateFeaturePresence(
-                                        reduceSubmodelMapKeyToFeatureId(subModels),
-                                        feature,
-                                        dittoHeaders
-                                )
+                                        reduceSubmodelMapKeyToFeatureId(subModels), feature, dittoHeaders)
                         );
             } else if (featureThingModel != null) {
                 return thingModelValidation.validateFeature(featureThingModel, feature, resourcePath,
@@ -314,8 +325,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                     dittoHeaders,
                     featureThingModelWithExtensionsAndImports ->
                             validateFeatureProperties(featureThingModelWithExtensionsAndImports, featureId,
-                                    featureProperties, desiredProperties, resourcePath, dittoHeaders
-                            )
+                                    featureProperties, desiredProperties, resourcePath, dittoHeaders)
             );
         }
         return success();
@@ -353,15 +363,14 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                     featureThingModelWithExtensionsAndImports ->
                             thingModelValidation.validateFeatureProperty(featureThingModelWithExtensionsAndImports,
                                     featureId, propertyPointer, propertyValue, desiredProperty, resourcePath,
-                                    dittoHeaders
-                            )
+                                    dittoHeaders)
             );
         }
         return success();
     }
 
     @Override
-    public CompletionStage<Void> validateFeatureMessageInput(@Nullable final FeatureDefinition featureDefinition,
+    public CompletionStage<Void> validateFeatureActionInput(@Nullable final FeatureDefinition featureDefinition,
             final String featureId,
             final String messageSubject,
             @Nullable final JsonValue inputPayload,
@@ -373,17 +382,15 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                     Optional.ofNullable(featureDefinition).map(FeatureDefinition::getFirstIdentifier).orElse(null),
                     dittoHeaders,
                     featureThingModelWithExtensionsAndImports ->
-                            thingModelValidation.validateFeatureMessageInput(featureThingModelWithExtensionsAndImports,
-                                    featureId,
-                                    messageSubject, inputPayload,
-                                    resourcePath, dittoHeaders)
+                            thingModelValidation.validateFeatureActionInput(featureThingModelWithExtensionsAndImports,
+                                    featureId, messageSubject, inputPayload, resourcePath, dittoHeaders)
             );
         }
         return success();
     }
 
     @Override
-    public CompletionStage<Void> validateFeatureMessageOutput(@Nullable final FeatureDefinition featureDefinition,
+    public CompletionStage<Void> validateFeatureActionOutput(@Nullable final FeatureDefinition featureDefinition,
             final String featureId,
             final String messageSubject,
             @Nullable final JsonValue inputPayload,
@@ -395,10 +402,28 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                     Optional.ofNullable(featureDefinition).map(FeatureDefinition::getFirstIdentifier).orElse(null),
                     dittoHeaders,
                     featureThingModelWithExtensionsAndImports ->
-                            thingModelValidation.validateFeatureMessageOutput(featureThingModelWithExtensionsAndImports,
-                                    featureId,
-                                    messageSubject, inputPayload,
-                                    resourcePath, dittoHeaders)
+                            thingModelValidation.validateFeatureActionOutput(featureThingModelWithExtensionsAndImports,
+                                    featureId, messageSubject, inputPayload, resourcePath, dittoHeaders)
+            );
+        }
+        return success();
+    }
+
+    @Override
+    public CompletionStage<Void> validateFeatureEventData(@Nullable final FeatureDefinition featureDefinition,
+            final String featureId,
+            final String messageSubject,
+            @Nullable final JsonValue dataPayload,
+            final JsonPointer resourcePath,
+            final DittoHeaders dittoHeaders
+    ) {
+        if (isWotValidationEnabled()) {
+            return fetchResolveAndValidateWith(
+                    Optional.ofNullable(featureDefinition).map(FeatureDefinition::getFirstIdentifier).orElse(null),
+                    dittoHeaders,
+                    featureThingModelWithExtensionsAndImports ->
+                            thingModelValidation.validateFeatureEventData(featureThingModelWithExtensionsAndImports,
+                                    featureId, messageSubject, dataPayload, resourcePath, dittoHeaders)
             );
         }
         return success();
