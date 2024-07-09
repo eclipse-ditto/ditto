@@ -19,6 +19,8 @@ import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespaceResponse;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.service.cluster.ModifySplitBrainResolverResponse;
+import org.eclipse.ditto.connectivity.api.commands.sudo.ConnectivitySudoQueryCommandResponse;
+import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionTagsResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityErrorResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.ModifyConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionResponse;
@@ -66,7 +68,8 @@ public final class ThingsSearchServiceGlobalCommandResponseRegistryTest extends 
                 ModifyConnectionResponse.class,
                 RetrieveConnectionResponse.class,
                 ModifySplitBrainResolverResponse.class,
-                ConnectivityErrorResponse.class
+                ConnectivityErrorResponse.class,
+                SudoRetrieveConnectionTagsResponse.class
         );
     }
 
