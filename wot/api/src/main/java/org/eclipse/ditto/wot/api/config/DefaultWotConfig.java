@@ -14,6 +14,7 @@ package org.eclipse.ditto.wot.api.config;
 
 import java.util.Objects;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
@@ -22,6 +23,7 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.config.http.DefaultHttpProxyBaseConfig;
 import org.eclipse.ditto.internal.utils.config.http.HttpProxyBaseConfig;
+import org.eclipse.ditto.wot.validation.ValidationContext;
 import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
 
 import com.typesafe.config.Config;
@@ -89,6 +91,11 @@ public final class DefaultWotConfig implements WotConfig {
     @Override
     public TmValidationConfig getValidationConfig() {
         return tmValidationConfig;
+    }
+
+    @Override
+    public TmValidationConfig getValidationConfig(@Nullable final ValidationContext context) {
+        return tmValidationConfig.withValidationContext(context);
     }
 
     @Override

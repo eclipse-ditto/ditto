@@ -80,6 +80,7 @@ public interface WotThingModelValidator {
     /**
      * Validates the provided {@code thing} against the provided {@code thingModel}.
      *
+     * @param thingDefinition the ThingDefinition which was used to retrieve the passed {@code thingModel}
      * @param thingModel the ThingModel to validate against
      * @param thing the Thing to validate
      * @param resourcePath the originating path of the command which caused validation
@@ -87,7 +88,8 @@ public interface WotThingModelValidator {
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException}
      */
-    CompletionStage<Void> validateThing(ThingModel thingModel,
+    CompletionStage<Void> validateThing(ThingDefinition thingDefinition,
+            ThingModel thingModel,
             Thing thing,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders
@@ -128,6 +130,7 @@ public interface WotThingModelValidator {
     /**
      * Validates the provided {@code attributes} against on the provided {@code thingModel}.
      *
+     * @param thingDefinition the ThingDefinition which was used to retrieve the passed {@code thingModel}
      * @param thingModel the ThingModel to validate against
      * @param attributes the attributes to validate
      * @param resourcePath the originating path of the command which caused validation
@@ -135,7 +138,8 @@ public interface WotThingModelValidator {
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException}
      */
-    CompletionStage<Void> validateThingAttributes(ThingModel thingModel,
+    CompletionStage<Void> validateThingAttributes(ThingDefinition thingDefinition,
+            ThingModel thingModel,
             @Nullable Attributes attributes,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders
@@ -237,6 +241,7 @@ public interface WotThingModelValidator {
     /**
      * Validates the provided {@code features} of a Thing against the provided {@code thingModel}.
      *
+     * @param thingDefinition the ThingDefinition which was used to retrieve the passed {@code thingModel}
      * @param thingModel the ThingModel to validate against
      * @param features the features to validate
      * @param resourcePath the originating path of the command which caused validation
@@ -244,7 +249,8 @@ public interface WotThingModelValidator {
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException}
      */
-    CompletionStage<Void> validateFeatures(ThingModel thingModel,
+    CompletionStage<Void> validateFeatures(ThingDefinition thingDefinition,
+            ThingModel thingModel,
             Features features,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders
@@ -270,14 +276,19 @@ public interface WotThingModelValidator {
     /**
      * Validates the provided {@code feature} of a Thing against the provided {@code thingModel}.
      *
+     * @param thingDefinition the ThingDefinition which was used to retrieve the passed {@code thingModel}
      * @param thingModel the ThingModel to validate against
+     * @param featureDefinition the FeatureDefinition which was used to retrieve the passed {@code featureThingModel}
+     * @param featureThingModel the feature ThingModel to validate against
      * @param feature the feature to validate
      * @param resourcePath the originating path of the command which caused validation
      * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException}
      */
-    CompletionStage<Void> validateFeature(@Nullable ThingModel thingModel,
+    CompletionStage<Void> validateFeature(@Nullable ThingDefinition thingDefinition,
+            @Nullable ThingModel thingModel,
+            @Nullable FeatureDefinition featureDefinition,
             @Nullable ThingModel featureThingModel,
             Feature feature,
             JsonPointer resourcePath,
@@ -325,6 +336,7 @@ public interface WotThingModelValidator {
      * Validates the provided {@code featureProperties} against the provided {@code featureDefinition}
      * (if this links to a WoT TM).
      *
+     * @param featureDefinition the FeatureDefinition which was used to retrieve the passed {@code featureThingModel}
      * @param featureThingModel the feature's ThingModel to validate against
      * @param featureId the ID of the feature to validate the properties for
      * @param featureProperties the properties to validate
@@ -334,7 +346,8 @@ public interface WotThingModelValidator {
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException}
      */
-    CompletionStage<Void> validateFeatureProperties(ThingModel featureThingModel,
+    CompletionStage<Void> validateFeatureProperties(FeatureDefinition featureDefinition,
+            ThingModel featureThingModel,
             String featureId,
             @Nullable FeatureProperties featureProperties,
             boolean desiredProperties,

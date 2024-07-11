@@ -12,10 +12,12 @@
  */
 package org.eclipse.ditto.wot.api.config;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.config.http.HttpProxyBaseConfig;
+import org.eclipse.ditto.wot.validation.ValidationContext;
 import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
 
 /**
@@ -61,5 +63,13 @@ public interface WotConfig {
      * @since 3.6.0
      */
     TmValidationConfig getValidationConfig();
+
+    /**
+     * @param context the ValidationContext to evaluate for determining config dynamically
+     * @return configuration for WoT (Web of Things) integration regarding the validation of Things and Features
+     * based on their WoT ThingModels.
+     * @since 3.6.0
+     */
+    TmValidationConfig getValidationConfig(@Nullable ValidationContext context);
 
 }

@@ -64,7 +64,6 @@ public interface ThingValidationConfig {
      */
     boolean isForbidNonModeledOutboxMessages();
 
-
     /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code ThingValidationConfig}.

@@ -12,17 +12,22 @@
  */
 package org.eclipse.ditto.wot.api.config;
 
+import java.util.List;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.wot.validation.ValidationContext;
 import org.eclipse.ditto.wot.validation.config.FeatureValidationConfig;
 import org.eclipse.ditto.wot.validation.config.ThingValidationConfig;
 import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 /**
  * This class is the default implementation of the WoT (Web of Things) {@link org.eclipse.ditto.wot.validation.config.TmValidationConfig}.
@@ -32,14 +37,31 @@ final class DefaultTmValidationConfig implements TmValidationConfig {
 
     private static final String CONFIG_PATH = "tm-model-validation";
 
+    private static final String CONFIG_KEY_DYNAMIC_CONFIGURATION = "dynamic-configuration";
+
+    private final ScopedConfig scopedConfig;
+    private final List<InternalDynamicTmValidationConfiguration> dynamicTmValidationConfigurations;
+
     private final boolean enabled;
     private final ThingValidationConfig thingValidationConfig;
     private final FeatureValidationConfig featureValidationConfig;
 
-    private DefaultTmValidationConfig(final ScopedConfig scopedConfig) {
-        enabled = scopedConfig.getBoolean(ConfigValue.ENABLED.getConfigPath());
-        thingValidationConfig = DefaultThingValidationConfig.of(scopedConfig);
-        featureValidationConfig = DefaultFeatureValidationConfig.of(scopedConfig);
+
+    private DefaultTmValidationConfig(final ScopedConfig scopedConfig,
+            final List<InternalDynamicTmValidationConfiguration> dynamicTmValidationConfigurations,
+            @Nullable final ValidationContext context
+    ) {
+        this.scopedConfig = scopedConfig;
+        this.dynamicTmValidationConfigurations = dynamicTmValidationConfigurations;
+
+        final Config effectiveConfig = dynamicTmValidationConfigurations.stream()
+                .flatMap(dynamicConfig -> dynamicConfig.calculateDynamicTmValidationConfigOverrides(context).stream())
+                .reduce(ConfigFactory.empty(), (a, b) -> b.withFallback(a))
+                .withFallback(scopedConfig.resolve());
+        enabled = effectiveConfig.getBoolean(ConfigValue.ENABLED.getConfigPath());
+
+        thingValidationConfig = DefaultThingValidationConfig.of(effectiveConfig);
+        featureValidationConfig = DefaultFeatureValidationConfig.of(effectiveConfig);
     }
 
     /**
@@ -50,8 +72,14 @@ final class DefaultTmValidationConfig implements TmValidationConfig {
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultTmValidationConfig of(final Config config) {
+        final List<InternalDynamicTmValidationConfiguration> dynamicTmValidationConfigurations =
+                DefaultScopedConfig.newInstance(config, CONFIG_PATH)
+                        .getConfigList(CONFIG_KEY_DYNAMIC_CONFIGURATION)
+                        .stream()
+                        .map(InternalDynamicTmValidationConfiguration::new)
+                        .toList();
         return new DefaultTmValidationConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH,
-                ConfigValue.values()));
+                ConfigValue.values()), dynamicTmValidationConfigurations, null);
     }
 
     @Override
@@ -70,6 +98,15 @@ final class DefaultTmValidationConfig implements TmValidationConfig {
     }
 
     @Override
+    public TmValidationConfig withValidationContext(@Nullable final ValidationContext context) {
+        if (dynamicTmValidationConfigurations.isEmpty()) {
+            return this;
+        } else {
+            return new DefaultTmValidationConfig(scopedConfig, dynamicTmValidationConfigurations, context);
+        }
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -78,22 +115,27 @@ final class DefaultTmValidationConfig implements TmValidationConfig {
             return false;
         }
         final DefaultTmValidationConfig that = (DefaultTmValidationConfig) o;
-        return enabled == that.enabled &&
+        return Objects.equals(dynamicTmValidationConfigurations, that.dynamicTmValidationConfigurations) &&
+                enabled == that.enabled &&
                 Objects.equals(thingValidationConfig, that.thingValidationConfig) &&
-                Objects.equals(featureValidationConfig, that.featureValidationConfig);
+                Objects.equals(featureValidationConfig, that.featureValidationConfig) &&
+                Objects.equals(scopedConfig, that.scopedConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(enabled, thingValidationConfig, featureValidationConfig);
+        return Objects.hash(dynamicTmValidationConfigurations, enabled, thingValidationConfig, featureValidationConfig,
+                scopedConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "enabled=" + enabled +
+                "dynamicTmValidationConfiguration=" + dynamicTmValidationConfigurations +
+                ", enabled=" + enabled +
                 ", thingValidationConfig=" + thingValidationConfig +
                 ", featureValidationConfig=" + featureValidationConfig +
+                ", scopedConfig=" + scopedConfig +
                 "]";
     }
 }

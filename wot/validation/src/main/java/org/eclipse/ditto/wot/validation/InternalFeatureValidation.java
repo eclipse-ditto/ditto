@@ -35,7 +35,6 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -58,7 +57,7 @@ final class InternalFeatureValidation {
 
     static CompletableFuture<Void> forbidNonModeledFeatures(@Nullable final Features features,
             final Set<String> definedFeatureIds,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
 
         final Set<String> extraFeatureIds = Optional.ofNullable(features)
@@ -72,7 +71,7 @@ final class InternalFeatureValidation {
                     .newBuilder("Attempting to update the Thing with feature(s) are were not " +
                             "defined in the model: " + extraFeatureIds);
             return CompletableFuture.failedFuture(exceptionBuilder
-                    .dittoHeaders(dittoHeaders)
+                    .dittoHeaders(context.dittoHeaders())
                     .build());
         }
         return success();
@@ -80,7 +79,7 @@ final class InternalFeatureValidation {
 
     static CompletableFuture<Void> enforcePresenceOfModeledFeatures(@Nullable final Features features,
             final Set<String> definedFeatureIds,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         final Set<String> existingFeatures = Optional.ofNullable(features)
                 .map(Features::stream)
@@ -95,7 +94,7 @@ final class InternalFeatureValidation {
                     .newBuilder("Attempting to update the Thing with missing in the model " +
                             "defined features: " + missingFeatureIds);
             return CompletableFuture.failedFuture(exceptionBuilder
-                    .dittoHeaders(dittoHeaders)
+                    .dittoHeaders(context.dittoHeaders())
                     .build());
         }
         return success();
@@ -107,7 +106,7 @@ final class InternalFeatureValidation {
             final boolean desiredProperties,
             final boolean forbidNonModeledProperties,
             final JsonPointer resourcePath,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         final CompletableFuture<List<Void>> enforcedPropertiesListFuture;
         final List<CompletableFuture<Void>> enforcedPropertiesFutures = featureThingModels
@@ -125,7 +124,7 @@ final class InternalFeatureValidation {
                                                 Feature.JsonFields.DESIRED_PROPERTIES.getPointer() :
                                                 Feature.JsonFields.PROPERTIES.getPointer()
                                         ),
-                                dittoHeaders
+                                context
                         )
                 )
                 .toList();
@@ -143,7 +142,7 @@ final class InternalFeatureValidation {
             final boolean desiredProperties,
             final boolean forbidNonModeledProperties,
             final JsonPointer resourcePath,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         return featureThingModel.getProperties()
                 .map(tdProperties -> {
@@ -169,7 +168,7 @@ final class InternalFeatureValidation {
                                 containerNamePrefix + "property",
                                 resourcePath,
                                 true,
-                                dittoHeaders
+                                context
                         );
                     } else {
                         ensureRequiredPropertiesStage = success();
@@ -182,7 +181,7 @@ final class InternalFeatureValidation {
                                 featureProperties,
                                 containerNamePlural,
                                 true,
-                                dittoHeaders
+                                context
                         );
                     } else {
                         ensureOnlyDefinedPropertiesStage = success();
@@ -195,7 +194,7 @@ final class InternalFeatureValidation {
                             containerNamePlural,
                             resourcePath,
                             true,
-                            dittoHeaders
+                            context
                     );
 
                     return CompletableFuture.allOf(
@@ -213,7 +212,7 @@ final class InternalFeatureValidation {
             final boolean desiredProperty,
             final boolean forbidNonModeledProperties,
             final JsonPointer resourcePath,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         // TODO TJ split?!
         final Set<String> categories = determineDittoCategories(featureThingModel,
@@ -247,7 +246,7 @@ final class InternalFeatureValidation {
                                     featureProperties,
                                     containerNamePlural,
                                     false,
-                                    dittoHeaders
+                                    context
                             );
                         } else {
                             ensureOnlyDefinedPropertiesStage = success();
@@ -262,7 +261,7 @@ final class InternalFeatureValidation {
                                     featureProperties,
                                     containerNamePlural,
                                     true,
-                                    dittoHeaders
+                                    context
                             );
                         } else {
                             ensureOnlyDefinedPropertiesStage = success();
@@ -289,7 +288,7 @@ final class InternalFeatureValidation {
                                     propertyValue.asObject(),
                                     containerNamePrefix + "property",
                                     resourcePath,
-                                    dittoHeaders
+                                    context
                             );
                         } else {
                             validatePropertiesStage = validateProperty(featureThingModel,
@@ -300,7 +299,7 @@ final class InternalFeatureValidation {
                                     containerNamePrefix + "property <" + propertyPath + ">",
                                     resourcePath,
                                     true,
-                                    dittoHeaders
+                                    context
                             );
                         }
                     } else {
@@ -312,7 +311,7 @@ final class InternalFeatureValidation {
                                 containerNamePrefix + "property <" + propertyPath + ">",
                                 resourcePath,
                                 true,
-                                dittoHeaders
+                                context
                         );
                     }
 
@@ -343,14 +342,14 @@ final class InternalFeatureValidation {
             final boolean forbidNonModeledInboxMessages,
             final JsonPointer resourcePath,
             final boolean isInput,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         final CompletableFuture<Void> firstStage;
         if (forbidNonModeledInboxMessages) {
             firstStage = ensureOnlyDefinedActions(featureThingModel.getActions().orElse(null),
                     messageSubject,
                     "Feature <" + featureId + ">'s",
-                    dittoHeaders
+                    context
             );
         } else {
             firstStage = success();
@@ -359,7 +358,7 @@ final class InternalFeatureValidation {
                 enforceActionPayload(featureThingModel, messageSubject, inputPayload, resourcePath, isInput,
                         "Feature <" + featureId + ">'s action <" + messageSubject + "> " +
                                 (isInput ? "input" : "output"),
-                        dittoHeaders
+                        context
                 )
         );
     }
@@ -370,14 +369,15 @@ final class InternalFeatureValidation {
             @Nullable final JsonValue payload,
             final boolean forbidNonModeledOutboxMessages,
             final JsonPointer resourcePath,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         final CompletableFuture<Void> firstStage;
         if (forbidNonModeledOutboxMessages) {
-            firstStage = ensureOnlyDefinedEvents(dittoHeaders,
+            firstStage = ensureOnlyDefinedEvents(
                     featureThingModel.getEvents().orElse(null),
                     messageSubject,
-                    "Feature <" + featureId + ">'s"
+                    "Feature <" + featureId + ">'s",
+                    context
             );
         } else {
             firstStage = success();
@@ -385,7 +385,7 @@ final class InternalFeatureValidation {
         return firstStage.thenCompose(unused ->
                 enforceEventPayload(featureThingModel, messageSubject, payload, resourcePath,
                         "Feature <" + featureId + ">'s event <" + messageSubject + "> data",
-                        dittoHeaders
+                        context
                 )
         );
     }
@@ -397,7 +397,7 @@ final class InternalFeatureValidation {
             final JsonObject categoryObject,
             final String propertyDescription,
             final JsonPointer resourcePath,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         final Map<String, Property> nonProvidedRequiredProperties =
                 filterNonProvidedRequiredProperties(categoryProperties, featureThingModel, categoryObject, false);
@@ -414,7 +414,7 @@ final class InternalFeatureValidation {
                     )
             );
             return CompletableFuture
-                    .failedFuture(exceptionBuilder.dittoHeaders(dittoHeaders).build());
+                    .failedFuture(exceptionBuilder.dittoHeaders(context.dittoHeaders()).build());
         }
 
         return validateProperties(
@@ -425,7 +425,7 @@ final class InternalFeatureValidation {
                 propertyCategoryDescription,
                 resourcePath,
                 false,
-                dittoHeaders
+                context
         );
     }
 

@@ -17,7 +17,6 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Attributes;
@@ -42,14 +41,14 @@ public interface WotThingModelValidation {
      * @param thingModel the ThingModel to validate against
      * @param attributes the attributes to validate
      * @param resourcePath the originating path of the command which caused validation
-     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @param context the validation context to use, e.g. for dynamic configuration and to access the ditto headers
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
     CompletionStage<Void> validateThingAttributes(ThingModel thingModel,
             @Nullable Attributes attributes,
             JsonPointer resourcePath,
-            DittoHeaders dittoHeaders
+            ValidationContext context
     );
 
     /**
@@ -60,7 +59,7 @@ public interface WotThingModelValidation {
      * @param attributePointer the attribute pointer (path) to validate
      * @param attributeValue the attribute value to validate
      * @param resourcePath the originating path of the command which caused validation
-     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @param context the validation context to use, e.g. for dynamic configuration and to access the ditto headers
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
@@ -68,7 +67,7 @@ public interface WotThingModelValidation {
             JsonPointer attributePointer,
             JsonValue attributeValue,
             JsonPointer resourcePath,
-            DittoHeaders dittoHeaders
+            ValidationContext context
     );
 
     /**
@@ -78,7 +77,7 @@ public interface WotThingModelValidation {
      * @param messageSubject the message subject of the send message
      * @param inputPayload the input payload to validate
      * @param resourcePath the originating path of the command which caused validation
-     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @param context the validation context to use, e.g. for dynamic configuration and to access the ditto headers
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
@@ -86,7 +85,7 @@ public interface WotThingModelValidation {
             String messageSubject,
             @Nullable JsonValue inputPayload,
             JsonPointer resourcePath,
-            DittoHeaders dittoHeaders
+            ValidationContext context
     );
 
     /**
@@ -96,7 +95,7 @@ public interface WotThingModelValidation {
      * @param messageSubject the message subject of the send message
      * @param outputPayload the output payload to validate
      * @param resourcePath the originating path of the command which caused validation
-     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @param context the validation context to use, e.g. for dynamic configuration and to access the ditto headers
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
@@ -104,7 +103,7 @@ public interface WotThingModelValidation {
             String messageSubject,
             @Nullable JsonValue outputPayload,
             JsonPointer resourcePath,
-            DittoHeaders dittoHeaders
+            ValidationContext context
     );
 
     /**
@@ -114,7 +113,7 @@ public interface WotThingModelValidation {
      * @param messageSubject the message subject of the send message
      * @param dataPayload the output payload to validate
      * @param resourcePath the originating path of the command which caused validation
-     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @param context the validation context to use, e.g. for dynamic configuration and to access the ditto headers
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
@@ -122,7 +121,7 @@ public interface WotThingModelValidation {
             String messageSubject,
             @Nullable JsonValue dataPayload,
             JsonPointer resourcePath,
-            DittoHeaders dittoHeaders
+            ValidationContext context
     );
 
     /**
@@ -132,13 +131,13 @@ public interface WotThingModelValidation {
      * @param featureThingModels a Map of submodels with their {@code instanceName} as key and their resolved
      * {@code ThingModel} as value
      * @param features the Features of a Thing to validate presence of the models in
-     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @param context the validation context to use, e.g. for dynamic configuration and to access the ditto headers
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
     CompletionStage<Void> validateFeaturesPresence(Map<String, ThingModel> featureThingModels,
             @Nullable Features features,
-            DittoHeaders dittoHeaders
+            ValidationContext context
     );
 
     /**
@@ -148,14 +147,14 @@ public interface WotThingModelValidation {
      * {@code ThingModel} as value
      * @param features the Features of a Thing to validate the {@code properties} in
      * @param resourcePath the originating path of the command which caused validation
-     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @param context the validation context to use, e.g. for dynamic configuration and to access the ditto headers
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
     CompletionStage<Void> validateFeaturesProperties(Map<String, ThingModel> featureThingModels,
             @Nullable Features features,
             JsonPointer resourcePath,
-            DittoHeaders dittoHeaders
+            ValidationContext context
     );
 
     /**
@@ -165,13 +164,13 @@ public interface WotThingModelValidation {
      * @param featureThingModels a Map of submodels with their {@code instanceName} as key and their resolved
      * {@code ThingModel} as value
      * @param feature the Feature to validate presence of the models in
-     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @param context the validation context to use, e.g. for dynamic configuration and to access the ditto headers
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
     CompletionStage<Void> validateFeaturePresence(Map<String, ThingModel> featureThingModels,
             Feature feature,
-            DittoHeaders dittoHeaders
+            ValidationContext context
     );
 
     /**
@@ -180,14 +179,14 @@ public interface WotThingModelValidation {
      *
      * @param featureThingModel the feature's ThingModel to validate against
      * @param feature the Feature to validate
-     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @param context the validation context to use, e.g. for dynamic configuration and to access the ditto headers
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
     CompletionStage<Void> validateFeature(ThingModel featureThingModel,
             Feature feature,
             JsonPointer resourcePath,
-            DittoHeaders dittoHeaders
+            ValidationContext context
     );
 
     /**
@@ -199,7 +198,7 @@ public interface WotThingModelValidation {
      * @param featureProperties the properties to validate
      * @param desiredProperties whether the provided {@code properties} are "desired" properties
      * @param resourcePath the originating path of the command which caused validation
-     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @param context the validation context to use, e.g. for dynamic configuration and to access the ditto headers
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
@@ -208,7 +207,7 @@ public interface WotThingModelValidation {
             @Nullable FeatureProperties featureProperties,
             boolean desiredProperties,
             JsonPointer resourcePath,
-            DittoHeaders dittoHeaders
+            ValidationContext context
     );
 
     /**
@@ -221,7 +220,7 @@ public interface WotThingModelValidation {
      * @param propertyValue the feature property value to validate
      * @param desiredProperty whether the provided feature property is a "desired" property
      * @param resourcePath the originating path of the command which caused validation
-     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @param context the validation context to use, e.g. for dynamic configuration and to access the ditto headers
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
@@ -231,7 +230,7 @@ public interface WotThingModelValidation {
             JsonValue propertyValue,
             boolean desiredProperty,
             JsonPointer resourcePath,
-            DittoHeaders dittoHeaders
+            ValidationContext context
     );
 
     /**
@@ -242,7 +241,7 @@ public interface WotThingModelValidation {
      * @param messageSubject the message subject of the send message
      * @param inputPayload the input payload to validate
      * @param resourcePath the originating path of the command which caused validation
-     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @param context the validation context to use, e.g. for dynamic configuration and to access the ditto headers
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
@@ -251,7 +250,7 @@ public interface WotThingModelValidation {
             String messageSubject,
             @Nullable JsonValue inputPayload,
             JsonPointer resourcePath,
-            DittoHeaders dittoHeaders
+            ValidationContext context
     );
 
     /**
@@ -262,7 +261,7 @@ public interface WotThingModelValidation {
      * @param messageSubject the message subject of the send message
      * @param outputPayload the output payload to validate
      * @param resourcePath the originating path of the command which caused validation
-     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @param context the validation context to use, e.g. for dynamic configuration and to access the ditto headers
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
@@ -271,7 +270,7 @@ public interface WotThingModelValidation {
             String messageSubject,
             @Nullable JsonValue outputPayload,
             JsonPointer resourcePath,
-            DittoHeaders dittoHeaders
+            ValidationContext context
     );
 
     /**
@@ -282,7 +281,7 @@ public interface WotThingModelValidation {
      * @param messageSubject the message subject of the send message
      * @param dataPayload the output payload to validate
      * @param resourcePath the originating path of the command which caused validation
-     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @param context the validation context to use, e.g. for dynamic configuration and to access the ditto headers
      * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
      * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
      */
@@ -291,7 +290,7 @@ public interface WotThingModelValidation {
             String messageSubject,
             @Nullable JsonValue dataPayload,
             JsonPointer resourcePath,
-            DittoHeaders dittoHeaders
+            ValidationContext context
     );
 
     /**

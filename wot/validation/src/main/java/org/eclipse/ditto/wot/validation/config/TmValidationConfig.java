@@ -12,9 +12,11 @@
  */
 package org.eclipse.ditto.wot.validation.config;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.wot.validation.ValidationContext;
 
 /**
  * Provides configuration settings for WoT (Web of Things) integration regarding the validation of Things and Features
@@ -40,6 +42,14 @@ public interface TmValidationConfig {
      */
     FeatureValidationConfig getFeatureValidationConfig();
 
+    /**
+     * Creates a new specific instance of this {@link TmValidationConfig} scoped with the provided validation
+     * {@code context} of the API call.
+     *
+     * @param context the validation context of the API call.
+     * @return an API call specific instance of the validation config.
+     */
+    TmValidationConfig withValidationContext(@Nullable ValidationContext context);
 
     /**
      * An enumeration of the known config path expressions and their associated default values for

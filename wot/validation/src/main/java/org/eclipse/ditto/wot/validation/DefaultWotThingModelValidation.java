@@ -32,7 +32,6 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Attributes;
@@ -57,14 +56,14 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
     public CompletionStage<Void> validateThingAttributes(final ThingModel thingModel,
             @Nullable final Attributes attributes,
             final JsonPointer resourcePath,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         if (validationConfig.getThingValidationConfig().isEnforceAttributes() && attributes != null) {
             return enforceThingAttributes(thingModel,
                     attributes,
                     validationConfig.getThingValidationConfig().isForbidNonModeledAttributes(),
                     resourcePath,
-                    dittoHeaders
+                    context
             );
         }
         return success();
@@ -75,7 +74,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final JsonPointer attributePointer,
             final JsonValue attributeValue,
             final JsonPointer resourcePath,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         if (validationConfig.getThingValidationConfig().isEnforceAttributes()) {
             return enforceThingAttribute(thingModel,
@@ -83,7 +82,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     attributeValue,
                     validationConfig.getThingValidationConfig().isForbidNonModeledAttributes(),
                     resourcePath,
-                    dittoHeaders
+                    context
             );
         }
         return success();
@@ -94,7 +93,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final String messageSubject,
             @Nullable final JsonValue inputPayload,
             final JsonPointer resourcePath,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         if (validationConfig.getThingValidationConfig().isEnforceInboxMessagesInput()) {
             return enforceThingActionPayload(thingModel,
@@ -103,7 +102,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     validationConfig.getThingValidationConfig().isForbidNonModeledInboxMessages(),
                     resourcePath,
                     true,
-                    dittoHeaders
+                    context
             );
         }
         return success();
@@ -114,7 +113,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final String messageSubject,
             @Nullable final JsonValue outputPayload,
             final JsonPointer resourcePath,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         if (validationConfig.getThingValidationConfig().isEnforceInboxMessagesOutput()) {
             return enforceThingActionPayload(thingModel,
@@ -123,7 +122,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     validationConfig.getThingValidationConfig().isForbidNonModeledInboxMessages(),
                     resourcePath,
                     false,
-                    dittoHeaders
+                    context
             );
         }
         return success();
@@ -134,7 +133,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final String messageSubject,
             @Nullable final JsonValue dataPayload,
             final JsonPointer resourcePath,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         if (validationConfig.getThingValidationConfig().isEnforceOutboxMessages()) {
             return enforceThingEventPayload(thingModel,
@@ -142,7 +141,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     dataPayload,
                     validationConfig.getThingValidationConfig().isForbidNonModeledOutboxMessages(),
                     resourcePath,
-                    dittoHeaders
+                    context
             );
         }
         return success();
@@ -151,18 +150,18 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
     @Override
     public CompletionStage<Void> validateFeaturesPresence(final Map<String, ThingModel> featureThingModels,
             @Nullable final Features features,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         final CompletableFuture<Void> firstStage;
         if (validationConfig.getFeatureValidationConfig().isEnforcePresenceOfModeledFeatures()) {
-            firstStage = enforcePresenceOfModeledFeatures(features, featureThingModels.keySet(), dittoHeaders);
+            firstStage = enforcePresenceOfModeledFeatures(features, featureThingModels.keySet(), context);
         } else {
             firstStage = success();
         }
 
         final CompletableFuture<Void> secondStage;
         if (validationConfig.getFeatureValidationConfig().isForbidNonModeledFeatures()) {
-            secondStage = forbidNonModeledFeatures(features, featureThingModels.keySet(), dittoHeaders);
+            secondStage = forbidNonModeledFeatures(features, featureThingModels.keySet(), context);
         } else {
             secondStage = success();
         }
@@ -173,7 +172,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
     public CompletionStage<Void> validateFeaturesProperties(final Map<String, ThingModel> featureThingModels,
             @Nullable final Features features,
             final JsonPointer resourcePath,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         final CompletableFuture<Void> firstStage;
         if (validationConfig.getFeatureValidationConfig().isEnforceProperties() && features != null) {
@@ -183,7 +182,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     false,
                     validationConfig.getFeatureValidationConfig().isForbidNonModeledProperties(),
                     resourcePath,
-                    dittoHeaders
+                    context
             ).thenApply(aVoid -> null);
         } else {
             firstStage = success();
@@ -197,7 +196,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     true,
                     validationConfig.getFeatureValidationConfig().isForbidNonModeledDesiredProperties(),
                     resourcePath,
-                    dittoHeaders
+                    context
             ).thenApply(aVoid -> null);
         } else {
             secondStage = success();
@@ -209,7 +208,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
     @Override
     public CompletionStage<Void> validateFeaturePresence(final Map<String, ThingModel> featureThingModels,
             final Feature feature,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         final Set<String> definedFeatureIds = featureThingModels.keySet();
         final String featureId = feature.getId();
@@ -219,7 +218,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     .newBuilder("Attempting to update the Thing with a feature which is not " +
                             "defined in the model: <" + featureId + ">");
             return CompletableFuture.failedFuture(exceptionBuilder
-                    .dittoHeaders(dittoHeaders)
+                    .dittoHeaders(context.dittoHeaders())
                     .build());
         }
         return success();
@@ -229,7 +228,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
     public CompletionStage<Void> validateFeature(final ThingModel featureThingModel,
             final Feature feature,
             final JsonPointer resourcePath,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         final CompletableFuture<Void> firstStage;
         if (validationConfig.getFeatureValidationConfig().isEnforceProperties()) {
@@ -238,7 +237,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     false,
                     validationConfig.getFeatureValidationConfig().isForbidNonModeledProperties(),
                     resourcePath,
-                    dittoHeaders
+                    context
             );
         } else {
             firstStage = success();
@@ -251,7 +250,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     true,
                     validationConfig.getFeatureValidationConfig().isForbidNonModeledDesiredProperties(),
                     resourcePath,
-                    dittoHeaders
+                    context
             );
         } else {
             secondStage = success();
@@ -265,10 +264,11 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             @Nullable final FeatureProperties featureProperties,
             final boolean desiredProperties,
             final JsonPointer resourcePath,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         if (
-                (!desiredProperties && validationConfig.getFeatureValidationConfig().isEnforceProperties()) ||
+                (!desiredProperties &&
+                        validationConfig.getFeatureValidationConfig().isEnforceProperties()) ||
                         (desiredProperties &&
                                 validationConfig.getFeatureValidationConfig().isEnforceDesiredProperties())
         ) {
@@ -281,7 +281,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                             validationConfig.getFeatureValidationConfig().isForbidNonModeledDesiredProperties() :
                             validationConfig.getFeatureValidationConfig().isForbidNonModeledProperties(),
                     resourcePath,
-                    dittoHeaders
+                    context
             );
         }
         return success();
@@ -294,7 +294,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final JsonValue propertyValue,
             final boolean desiredProperty,
             final JsonPointer resourcePath,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         if (validationConfig.getFeatureValidationConfig().isEnforceProperties()) {
             return enforceFeatureProperty(featureThingModel,
@@ -306,7 +306,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                             validationConfig.getFeatureValidationConfig().isForbidNonModeledDesiredProperties() :
                             validationConfig.getFeatureValidationConfig().isForbidNonModeledProperties(),
                     resourcePath,
-                    dittoHeaders
+                    context
             );
         }
         return success();
@@ -318,7 +318,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final String messageSubject,
             @Nullable final JsonValue inputPayload,
             final JsonPointer resourcePath,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         if (validationConfig.getFeatureValidationConfig().isEnforceInboxMessagesInput()) {
             return enforceFeatureActionPayload(featureId,
@@ -328,7 +328,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     validationConfig.getFeatureValidationConfig().isForbidNonModeledInboxMessages(),
                     resourcePath,
                     true,
-                    dittoHeaders
+                    context
             );
         }
         return success();
@@ -340,7 +340,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final String messageSubject,
             @Nullable final JsonValue outputPayload,
             final JsonPointer resourcePath,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         if (validationConfig.getFeatureValidationConfig().isEnforceInboxMessagesOutput()) {
             return enforceFeatureActionPayload(featureId,
@@ -350,7 +350,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     validationConfig.getFeatureValidationConfig().isForbidNonModeledInboxMessages(),
                     resourcePath,
                     false,
-                    dittoHeaders
+                    context
             );
         }
         return success();
@@ -362,7 +362,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             final String messageSubject,
             @Nullable final JsonValue dataPayload,
             final JsonPointer resourcePath,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         if (validationConfig.getFeatureValidationConfig().isEnforceOutboxMessages()) {
             return enforceFeatureEventPayload(featureId,
@@ -371,7 +371,7 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     dataPayload,
                     validationConfig.getFeatureValidationConfig().isForbidNonModeledOutboxMessages(),
                     resourcePath,
-                    dittoHeaders
+                    context
             );
         }
         return success();

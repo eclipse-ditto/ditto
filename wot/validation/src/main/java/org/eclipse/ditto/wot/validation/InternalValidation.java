@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -56,7 +55,7 @@ final class InternalValidation {
             final JsonObject propertiesContainer,
             final String containerNamePlural,
             final boolean handleDittoCategory,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         final Set<String> allDefinedPropertyKeys = tdProperties.keySet();
         final Set<String> allAvailablePropertiesKeys =
@@ -82,7 +81,7 @@ final class InternalValidation {
                     .newBuilder("The " + containerNamePlural + " contained " +
                             "JSON fields which were not defined in the model: " + allAvailablePropertiesKeys);
             return CompletableFuture.failedFuture(exceptionBuilder
-                    .dittoHeaders(dittoHeaders)
+                    .dittoHeaders(context.dittoHeaders())
                     .build());
         }
         return success();
@@ -95,7 +94,7 @@ final class InternalValidation {
             final String containerName,
             final JsonPointer resourcePath,
             final boolean handleDittoCategory,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         final Map<String, Property> nonProvidedRequiredProperties =
                 filterNonProvidedRequiredProperties(tdProperties, thingModel, propertiesContainer, handleDittoCategory);
@@ -117,7 +116,7 @@ final class InternalValidation {
                         );
                     }
             );
-            return CompletableFuture.failedFuture(exceptionBuilder.dittoHeaders(dittoHeaders).build());
+            return CompletableFuture.failedFuture(exceptionBuilder.dittoHeaders(context.dittoHeaders()).build());
         }
         return success();
     }
@@ -171,7 +170,7 @@ final class InternalValidation {
     static CompletableFuture<Void> ensureOnlyDefinedActions(@Nullable final Actions actions,
             final String messageSubject,
             final String containerName,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         final Set<String> allDefinedActionKeys = Optional.ofNullable(actions).map(Actions::keySet).orElseGet(Set::of);
         final boolean messageSubjectIsDefinedAsAction = allDefinedActionKeys.contains(messageSubject);
@@ -181,16 +180,17 @@ final class InternalValidation {
                             messageSubject + "> is not defined as known action in the model: " + allDefinedActionKeys
                     );
             return CompletableFuture.failedFuture(exceptionBuilder
-                    .dittoHeaders(dittoHeaders)
+                    .dittoHeaders(context.dittoHeaders())
                     .build());
         }
         return success();
     }
 
-    static CompletableFuture<Void> ensureOnlyDefinedEvents(final DittoHeaders dittoHeaders,
+    static CompletableFuture<Void> ensureOnlyDefinedEvents(
             @Nullable final Events events,
             final String messageSubject,
-            final String containerName
+            final String containerName,
+            final ValidationContext context
     ) {
         final Set<String> allDefinedEventKeys = Optional.ofNullable(events).map(Events::keySet).orElseGet(Set::of);
         final boolean messageSubjectIsDefinedAsEvent = allDefinedEventKeys.contains(messageSubject);
@@ -200,7 +200,7 @@ final class InternalValidation {
                             messageSubject + "> is not defined as known event in the model: " + allDefinedEventKeys
                     );
             return CompletableFuture.failedFuture(exceptionBuilder
-                    .dittoHeaders(dittoHeaders)
+                    .dittoHeaders(context.dittoHeaders())
                     .build());
         }
         return success();
@@ -223,7 +223,7 @@ final class InternalValidation {
             final String containerNamePlural,
             final JsonPointer resourcePath,
             final boolean handleDittoCategory,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         final Map<Property, OutputUnit> invalidProperties;
         if (handleDittoCategory) {
@@ -235,13 +235,13 @@ final class InternalValidation {
                                     .concat(p.getPropertyName())
                     ),
                     validateRequiredObjectFields,
-                    dittoHeaders
+                    context
             );
         } else {
             invalidProperties = determineInvalidProperties(tdProperties,
                     p -> propertiesContainer.getValue(p.getPropertyName()),
                     validateRequiredObjectFields,
-                    dittoHeaders
+                    context
             );
         }
 
@@ -264,7 +264,7 @@ final class InternalValidation {
                 );
             });
             return CompletableFuture.failedFuture(exceptionBuilder
-                    .dittoHeaders(dittoHeaders)
+                    .dittoHeaders(context.dittoHeaders())
                     .build());
         }
         return success();
@@ -273,7 +273,7 @@ final class InternalValidation {
     static Map<Property, OutputUnit> determineInvalidProperties(final Properties tdProperties,
             final Function<Property, Optional<JsonValue>> propertyExtractor,
             final boolean validateRequiredObjectFields,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         return tdProperties.entrySet().stream()
                 .flatMap(tdPropertyEntry ->
@@ -285,7 +285,7 @@ final class InternalValidation {
                                                 JsonPointer.empty(),
                                                 validateRequiredObjectFields,
                                                 propertyValue,
-                                                dittoHeaders
+                                                context.dittoHeaders()
                                         )
                                 ))
                                 .filter(entry -> !entry.getValue().isValid())
@@ -303,7 +303,7 @@ final class InternalValidation {
             final String propertyDescription,
             final JsonPointer resourcePath,
             final boolean handleDittoCategory,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         final JsonValue valueToValidate;
         if (propertyPath.getLevelCount() > 1) {
@@ -343,7 +343,7 @@ final class InternalValidation {
                                 validateRequiredObjectFields,
                                 theValueToValidate,
                                 resourcePath,
-                                dittoHeaders
+                                context
                         );
                     } else {
                         return validateSingleDataSchema(
@@ -353,7 +353,7 @@ final class InternalValidation {
                                 validateRequiredObjectFields,
                                 valueToValidate,
                                 resourcePath,
-                                dittoHeaders
+                                context
                         );
                     }
                 }).orElseGet(InternalValidation::success);
@@ -365,7 +365,7 @@ final class InternalValidation {
             final JsonPointer resourcePath,
             final boolean isInput,
             final String validationFailedDescription,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         return thingModel.getActions()
                 .flatMap(action -> action.getAction(messageSubject))
@@ -377,7 +377,7 @@ final class InternalValidation {
                         true,
                         inputPayload,
                         resourcePath,
-                        dittoHeaders
+                        context
                 ))
                 .orElseGet(InternalValidation::success);
     }
@@ -387,7 +387,7 @@ final class InternalValidation {
             @Nullable final JsonValue dataPayload,
             final JsonPointer resourcePath,
             final String validationFailedDescription,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         return thingModel.getEvents()
                 .flatMap(event -> event.getEvent(messageSubject))
@@ -399,7 +399,7 @@ final class InternalValidation {
                         true,
                         dataPayload,
                         resourcePath,
-                        dittoHeaders
+                        context
                 ))
                 .orElseGet(InternalValidation::success);
     }
@@ -410,14 +410,14 @@ final class InternalValidation {
             final boolean validateRequiredObjectFields,
             @Nullable final JsonValue jsonValue,
             final JsonPointer resourcePath,
-            final DittoHeaders dittoHeaders
+            final ValidationContext context
     ) {
         final OutputUnit validationOutput = JSON_SCHEMA_TOOLS.validateDittoJsonBasedOnDataSchema(
                 dataSchema,
                 pointerPath,
                 validateRequiredObjectFields,
                 jsonValue,
-                dittoHeaders
+                context.dittoHeaders()
         );
 
         if (!validationOutput.isValid()) {
@@ -431,7 +431,7 @@ final class InternalValidation {
                             .toList()
             );
             return CompletableFuture.failedFuture(exceptionBuilder
-                    .dittoHeaders(dittoHeaders)
+                    .dittoHeaders(context.dittoHeaders())
                     .build());
         }
         return success();
