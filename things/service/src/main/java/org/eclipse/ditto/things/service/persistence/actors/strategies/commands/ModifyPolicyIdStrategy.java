@@ -13,6 +13,8 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -36,7 +38,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  * This strategy handles the {@link ModifyPolicyId} command.
  */
 @Immutable
-final class ModifyPolicyIdStrategy extends AbstractThingCommandStrategy<ModifyPolicyId> {
+final class ModifyPolicyIdStrategy extends AbstractThingModifyCommandStrategy<ModifyPolicyId> {
 
     /**
      * Constructs a new {@code ModifyPolicyIdStrategy} object.
@@ -55,6 +57,13 @@ final class ModifyPolicyIdStrategy extends AbstractThingCommandStrategy<ModifyPo
             @Nullable final Metadata metadata) {
 
         return getModifyResult(context, nextRevision, command, thing, metadata);
+    }
+
+    @Override
+    protected CompletionStage<ModifyPolicyId> performWotValidation(final ModifyPolicyId command,
+            @Nullable final Thing thing
+    ) {
+        return CompletableFuture.completedFuture(command);
     }
 
     private Optional<PolicyId> extractPolicyId(final @Nullable Thing thing) {

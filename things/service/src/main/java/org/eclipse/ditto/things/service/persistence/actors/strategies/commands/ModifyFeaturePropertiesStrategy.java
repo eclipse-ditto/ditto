@@ -27,7 +27,6 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.Feature;
-import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
@@ -41,7 +40,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  * This strategy handles the {@link org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperties} command.
  */
 @Immutable
-final class ModifyFeaturePropertiesStrategy extends AbstractThingCommandStrategy<ModifyFeatureProperties> {
+final class ModifyFeaturePropertiesStrategy extends AbstractThingModifyCommandStrategy<ModifyFeatureProperties> {
 
     /**
      * Constructs a new {@code ModifyFeaturePropertiesStrategy} object.
@@ -88,6 +87,25 @@ final class ModifyFeaturePropertiesStrategy extends AbstractThingCommandStrategy
                                 command.getDittoHeaders()), command));
     }
 
+    @Override
+    protected CompletionStage<ModifyFeatureProperties> performWotValidation(
+            final ModifyFeatureProperties command,
+            @Nullable final Thing thing
+    ) {
+        return wotThingModelValidator.validateFeatureProperties(
+                Optional.ofNullable(thing)
+                        .flatMap(Thing::getFeatures)
+                        .flatMap(f -> f.getFeature(command.getFeatureId()))
+                        .flatMap(Feature::getDefinition)
+                        .orElse(null),
+                command.getFeatureId(),
+                command.getProperties(),
+                false,
+                command.getResourcePath(),
+                command.getDittoHeaders()
+        ).thenApply(aVoid -> command);
+    }
+
     private Optional<Feature> extractFeature(final ModifyFeatureProperties command, @Nullable final Thing thing) {
         return Optional.ofNullable(thing)
                 .flatMap(Thing::getFeatures)
@@ -110,13 +128,15 @@ final class ModifyFeaturePropertiesStrategy extends AbstractThingCommandStrategy
         final String featureId = command.getFeatureId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final CompletionStage<FeatureProperties> validatedStage = getValidatedStage(command, thing);
-        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(properties ->
-                FeaturePropertiesModified.of(thingId, featureId, properties, nextRevision,
-                        getEventTimestamp(), dittoHeaders, metadata)
-        );
-        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(properties ->
-                appendETagHeaderIfProvided(command,
+        final CompletionStage<ModifyFeatureProperties> validatedStage = buildValidatedStage(command, thing);
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage
+                .thenApply(ModifyFeatureProperties::getProperties)
+                .thenApply(properties ->
+                        FeaturePropertiesModified.of(thingId, featureId, properties, nextRevision,
+                                getEventTimestamp(), dittoHeaders, metadata)
+                );
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(modifyFeatureProperties ->
+                appendETagHeaderIfProvided(modifyFeatureProperties,
                         ModifyFeaturePropertiesResponse.modified(context.getState(), featureId, dittoHeaders), thing)
         );
 
@@ -130,35 +150,20 @@ final class ModifyFeaturePropertiesStrategy extends AbstractThingCommandStrategy
         final String featureId = command.getFeatureId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final CompletionStage<FeatureProperties> validatedStage = getValidatedStage(command, thing);
-        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(properties ->
-                FeaturePropertiesCreated.of(thingId, featureId, properties, nextRevision,
-                        getEventTimestamp(), dittoHeaders, metadata)
-        );
-        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(properties ->
-                appendETagHeaderIfProvided(command,
-                        ModifyFeaturePropertiesResponse.created(thingId, featureId, properties, dittoHeaders), thing)
+        final CompletionStage<ModifyFeatureProperties> validatedStage = buildValidatedStage(command, thing);
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage
+                .thenApply(ModifyFeatureProperties::getProperties)
+                .thenApply(properties ->
+                        FeaturePropertiesCreated.of(thingId, featureId, properties, nextRevision,
+                                getEventTimestamp(), dittoHeaders, metadata)
+                );
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(modifyFeatureProperties ->
+                appendETagHeaderIfProvided(modifyFeatureProperties,
+                        ModifyFeaturePropertiesResponse.created(thingId, featureId,
+                                modifyFeatureProperties.getProperties(), dittoHeaders), thing)
         );
 
         return ResultFactory.newMutationResult(command, eventStage, responseStage);
-    }
-
-    private CompletionStage<FeatureProperties> getValidatedStage(final ModifyFeatureProperties command,
-            @Nullable final Thing thing
-    ) {
-        return wotThingModelValidator
-                .validateFeatureProperties(
-                        Optional.ofNullable(thing)
-                                .flatMap(Thing::getFeatures)
-                                .flatMap(f -> f.getFeature(command.getFeatureId()))
-                                .flatMap(Feature::getDefinition)
-                                .orElse(null),
-                        command.getFeatureId(),
-                        command.getProperties(),
-                        false,
-                        command.getResourcePath(),
-                        command.getDittoHeaders())
-                .thenApply(aVoid -> command.getProperties());
     }
 
     @Override

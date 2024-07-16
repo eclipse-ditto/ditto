@@ -214,7 +214,7 @@ final class InternalFeatureValidation {
             final JsonPointer resourcePath,
             final ValidationContext context
     ) {
-        // TODO TJ split?!
+        // TODO TJ split
         final Set<String> categories = determineDittoCategories(featureThingModel,
                 featureThingModel.getProperties().orElse(Properties.of(Map.of()))
         );

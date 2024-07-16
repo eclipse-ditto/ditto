@@ -38,7 +38,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  * This strategy handles the {@link org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureDefinition} command.
  */
 @Immutable
-final class ModifyFeatureDefinitionStrategy extends AbstractThingCommandStrategy<ModifyFeatureDefinition> {
+final class ModifyFeatureDefinitionStrategy extends AbstractThingModifyCommandStrategy<ModifyFeatureDefinition> {
 
     /**
      * Constructs a new {@code ModifyFeatureDefinitionStrategy} object.
@@ -65,6 +65,20 @@ final class ModifyFeatureDefinitionStrategy extends AbstractThingCommandStrategy
                                 command.getDittoHeaders()), command));
     }
 
+    @Override
+    protected CompletionStage<ModifyFeatureDefinition> performWotValidation(final ModifyFeatureDefinition command,
+            @Nullable final Thing thing
+    ) {
+        return wotThingModelValidator.validateFeatureDefinitionModification(
+                command.getDefinition(),
+                Optional.ofNullable(thing)
+                        .flatMap(t -> t.getFeatures().flatMap(f -> f.getFeature(command.getFeatureId())))
+                        .orElseThrow(),
+                command.getResourcePath(),
+                command.getDittoHeaders()
+        ).thenApply(aVoid -> command);
+    }
+
     private Optional<Feature> extractFeature(final ModifyFeatureDefinition command, final @Nullable Thing thing) {
         return getEntityOrThrow(thing).getFeatures()
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
@@ -86,15 +100,13 @@ final class ModifyFeatureDefinitionStrategy extends AbstractThingCommandStrategy
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final String featureId = command.getFeatureId();
 
-        final CompletionStage<Void> validatedStage = getValidatedStage(command, Optional.ofNullable(thing)
-                .flatMap(t -> t.getFeatures().flatMap(f -> f.getFeature(command.getFeatureId())))
-                .orElseThrow());
-        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(aVoid ->
+        final CompletionStage<ModifyFeatureDefinition> validatedStage = buildValidatedStage(command, thing);
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(modifyFeatureDefinition ->
                 FeatureDefinitionModified.of(thingId, featureId, command.getDefinition(), nextRevision,
                         getEventTimestamp(), dittoHeaders, metadata)
         );
-        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(aVoid ->
-                appendETagHeaderIfProvided(command,
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(modifyFeatureDefinition ->
+                appendETagHeaderIfProvided(modifyFeatureDefinition,
                         ModifyFeatureDefinitionResponse.modified(thingId, featureId, dittoHeaders), thing)
         );
 
@@ -108,30 +120,19 @@ final class ModifyFeatureDefinitionStrategy extends AbstractThingCommandStrategy
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final String featureId = command.getFeatureId();
 
-        final CompletionStage<Void> validatedStage = getValidatedStage(command, Optional.ofNullable(thing)
-                .flatMap(t -> t.getFeatures().flatMap(f -> f.getFeature(command.getFeatureId())))
-                .orElseThrow());
-        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(aVoid ->
+        final CompletionStage<ModifyFeatureDefinition> validatedStage = buildValidatedStage(command, thing);
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(modifyFeatureDefinition ->
                 FeatureDefinitionCreated.of(thingId, featureId, command.getDefinition(),
                         nextRevision, getEventTimestamp(), dittoHeaders, metadata)
         );
-        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(aVoid ->
-                appendETagHeaderIfProvided(command,
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(modifyFeatureDefinition ->
+                appendETagHeaderIfProvided(modifyFeatureDefinition,
                         ModifyFeatureDefinitionResponse.created(thingId, featureId, command.getDefinition(),
                                 dittoHeaders),
                         thing)
         );
 
         return ResultFactory.newMutationResult(command, eventStage, responseStage);
-    }
-
-    private CompletionStage<Void> getValidatedStage(final ModifyFeatureDefinition command, final Feature feature) {
-        return wotThingModelValidator.validateFeatureDefinitionModification(
-                command.getDefinition(),
-                feature,
-                command.getResourcePath(),
-                command.getDittoHeaders()
-        );
     }
 
     @Override

@@ -21,12 +21,12 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.japi.Pair;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.json.JsonFactory;
@@ -46,7 +46,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  * This strategy handles the {@link CreateThingStrategy} command.
  */
 @Immutable
-final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing> {
+final class CreateThingStrategy extends AbstractThingModifyCommandStrategy<CreateThing> {
 
     /**
      * Constructs a new {@link CreateThingStrategy} object.
@@ -88,9 +88,7 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
         // Thing not yet created - do so ..
         Thing newThing;
         try {
-            newThing =
-                    handleCommandVersion(context, command.getImplementedSchemaVersion(), command.getThing(),
-                            commandHeaders);
+            newThing = handleCommandVersion(context, command.getThing(), commandHeaders);
         } catch (final DittoRuntimeException e) {
             return ResultFactory.newErrorResult(e, command);
         }
@@ -124,28 +122,37 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
                 );
 
         // validate based on potentially referenced Thing WoT TM/TD
-        final CompletionStage<Thing> validatedStage = thingStage.thenCompose(createdThing -> wotThingModelValidator
-                .validateThing(createdThing, command.getResourcePath(), command.getDittoHeaders())
-                .thenApply(aVoid -> createdThing)
-        );
-
-        final CompletionStage<ThingEvent<?>> eventStage =
-                validatedStage.thenApply(newThingWithImplicits ->
-                        ThingCreated.of(newThingWithImplicits, nextRevision, now, commandHeaders, metadata)
+        final CompletionStage<Pair<CreateThing, Thing>> validatedStage =
+                thingStage.thenCompose(createdThingWithImplicits ->
+                        buildValidatedStage(command, createdThingWithImplicits)
+                                .thenApply(createThing -> new Pair<>(createThing, createdThingWithImplicits))
                 );
 
-        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(newThingWithImplicits ->
-                appendETagHeaderIfProvided(command, CreateThingResponse.of(newThingWithImplicits, commandHeaders),
-                        newThingWithImplicits)
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(pair ->
+                ThingCreated.of(pair.second(), nextRevision, now, commandHeaders, metadata)
+        );
+
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(pair ->
+                appendETagHeaderIfProvided(pair.first(), CreateThingResponse.of(pair.second(), commandHeaders),
+                        pair.second())
         );
 
         return ResultFactory.newMutationResult(command, eventStage, responseStage, true, false);
     }
 
-    private Thing handleCommandVersion(final Context<ThingId> context, final JsonSchemaVersion version,
-            final Thing thing,
-            final DittoHeaders dittoHeaders) {
+    @Override
+    protected CompletionStage<CreateThing> performWotValidation(final CreateThing command,
+            @Nullable final Thing thing
+    ) {
+        return wotThingModelValidator.validateThing(
+                command.getThing(), command.getResourcePath(), command.getDittoHeaders()
+        ).thenApply(aVoid -> command);
+    }
 
+    private Thing handleCommandVersion(final Context<ThingId> context,
+            final Thing thing,
+            final DittoHeaders dittoHeaders
+    ) {
         // policyId is required for v2
         if (thing.getPolicyId().isEmpty()) {
             throw PolicyIdMissingException.fromThingIdOnCreate(context.getState(), dittoHeaders);

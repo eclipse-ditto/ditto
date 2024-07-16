@@ -34,6 +34,10 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.AbstractActor;
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
@@ -73,9 +77,9 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.Connecti
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
+import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.eclipse.ditto.internal.utils.tracing.span.SpanTagKey;
@@ -85,11 +89,6 @@ import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
-
-import org.apache.pekko.actor.AbstractActor;
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSelection;
-import org.apache.pekko.japi.pf.ReceiveBuilder;
 
 /**
  * Base class for publisher actors. Holds the map of configured targets.
@@ -474,10 +473,13 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             final ExternalMessage mappedMessage = applyHeaderMapping(resolver, outbound, headerMapping);
             final var startedSpan = DittoTracing.newPreparedSpan(
                             mappedMessage.getHeaders(),
-                            SpanOperationName.of(connection.getConnectionType() + "_publish")
+                            SpanOperationName.of("publish " + connection.getConnectionType() + " " +
+                                    outboundSource.getType()
+                            )
                     )
                     .connectionId(connection.getId())
                     .tag(SpanTagKey.CONNECTION_TYPE.getTagForValue(connection.getConnectionType()))
+                    .tag(SpanTagKey.CONNECTION_TARGET.getTagForValue(publishTarget.toString()))
                     .start();
             final var mappedMessageWithTraceContext =
                     mappedMessage.withHeaders(startedSpan.propagateContext(mappedMessage.getHeaders()));

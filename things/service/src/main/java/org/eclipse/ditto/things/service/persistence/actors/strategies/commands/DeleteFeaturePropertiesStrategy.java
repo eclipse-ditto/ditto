@@ -13,6 +13,8 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -36,7 +38,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  * This strategy handles the {@link org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeatureProperties} command.
  */
 @Immutable
-final class DeleteFeaturePropertiesStrategy extends AbstractThingCommandStrategy<DeleteFeatureProperties> {
+final class DeleteFeaturePropertiesStrategy extends AbstractThingModifyCommandStrategy<DeleteFeatureProperties> {
 
     /**
      * Constructs a new {@code DeleteFeaturePropertiesStrategy} object.
@@ -60,6 +62,15 @@ final class DeleteFeaturePropertiesStrategy extends AbstractThingCommandStrategy
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
                                 command.getDittoHeaders()), command));
+    }
+
+    @Override
+    protected CompletionStage<DeleteFeatureProperties> performWotValidation(
+            final DeleteFeatureProperties command,
+            @Nullable final Thing thing
+    ) {
+        // TODO TJ validate if allowed
+        return CompletableFuture.completedFuture(command);
     }
 
     private Optional<Feature> extractFeature(final DeleteFeatureProperties command,

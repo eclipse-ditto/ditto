@@ -26,6 +26,11 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ExtendedActorSystem;
+import org.apache.pekko.io.BufferPool;
+import org.apache.pekko.io.DirectByteBufferPool;
+import org.apache.pekko.serialization.ByteBufferSerializer;
+import org.apache.pekko.serialization.SerializerWithStringManifest;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -35,6 +40,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.JsonParsable;
+import org.eclipse.ditto.base.model.signals.WithType;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
@@ -56,12 +62,6 @@ import org.slf4j.LoggerFactory;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
-
-import org.apache.pekko.actor.ExtendedActorSystem;
-import org.apache.pekko.io.BufferPool;
-import org.apache.pekko.io.DirectByteBufferPool;
-import org.apache.pekko.serialization.ByteBufferSerializer;
-import org.apache.pekko.serialization.SerializerWithStringManifest;
 
 /**
  * Abstract {@link SerializerWithStringManifest} which handles serializing and deserializing {@link Jsonifiable}s
@@ -147,7 +147,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     public void toBinary(final Object object, final ByteBuffer buf) {
         if (object instanceof Jsonifiable<? extends JsonValue> jsonifiable) {
             final var dittoHeaders = getDittoHeadersOrEmpty(object);
-            final var startedSpan = startTracingSpanForSerialization(dittoHeaders, object.getClass());
+            final var startedSpan = startTracingSpanForSerialization(dittoHeaders, object);
             final var jsonObject = JsonObject.newBuilder()
                     .set(JSON_DITTO_HEADERS, getDittoHeadersWithSpanContextAsJson(dittoHeaders, startedSpan))
                     .set(JSON_PAYLOAD, getAsJsonPayload(jsonifiable, dittoHeaders))
@@ -187,12 +187,20 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
 
     private static StartedSpan startTracingSpanForSerialization(
             final DittoHeaders dittoHeaders,
-            final Class<?> typeToSerialize
+            final Object objectToSerialize
     ) {
+        final String spanSerializeName;
+        if (objectToSerialize instanceof WithType withType) {
+            spanSerializeName = withType.getType();
+        } else if (objectToSerialize instanceof DittoRuntimeException dre) {
+            spanSerializeName = dre.getErrorCode();
+        } else {
+            spanSerializeName = objectToSerialize.getClass().getSimpleName();
+        }
         final var startInstant = StartInstant.now();
         return DittoTracing.newPreparedSpan(
                         dittoHeaders,
-                        SpanOperationName.of("serialize " + typeToSerialize.getSimpleName())
+                        SpanOperationName.of("serialize " + spanSerializeName)
                 )
                 .correlationId(dittoHeaders.getCorrelationId().orElse(null))
                 .startAt(startInstant);

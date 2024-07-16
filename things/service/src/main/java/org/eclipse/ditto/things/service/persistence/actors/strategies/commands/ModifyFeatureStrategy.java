@@ -17,7 +17,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -25,6 +24,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.japi.Pair;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -51,7 +51,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  * This strategy handles the {@link org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature} command.
  */
 @Immutable
-final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFeature> {
+final class ModifyFeatureStrategy extends AbstractThingModifyCommandStrategy<ModifyFeature> {
 
     /**
      * Constructs a new {@code ModifyFeatureStrategy} object.
@@ -107,6 +107,19 @@ final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFea
                     return getModifyResult(context, nextRevision, command, thing, metadata, validatedStage);
                 })
                 .orElseGet(() -> getCreateResult(context, nextRevision, command, thing, metadata));
+    }
+
+    @Override
+    protected CompletionStage<ModifyFeature> performWotValidation(
+            final ModifyFeature command,
+            @Nullable final Thing thing
+    ) {
+        return wotThingModelValidator.validateFeature(
+                Optional.ofNullable(thing).flatMap(Thing::getDefinition).orElse(null),
+                command.getFeature(),
+                command.getResourcePath(),
+                command.getDittoHeaders()
+        ).thenApply(aVoid -> command);
     }
 
     private Optional<Feature> extractFeature(final ModifyFeature command, @Nullable final Thing thing) {
@@ -173,26 +186,25 @@ final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFea
                         .orElse(finalNewFeature)
                 );
 
-        final Function<Feature, CompletionStage<Feature>> validationFunction = feature ->
-                wotThingModelValidator.validateFeature(
-                                Optional.ofNullable(thing).flatMap(Thing::getDefinition).orElse(null),
-                                feature,
-                                command.getResourcePath(),
-                                command.getDittoHeaders()
-                        )
-                        .thenApply(aVoid -> feature);
+        final CompletionStage<Pair<ModifyFeature, Feature>> validatedStage =
+                featureStage.thenCompose(createdFeatureWithImplicits ->
+                        buildValidatedStage(
+                                ModifyFeature.of(command.getEntityId(), createdFeatureWithImplicits,
+                                        command.getDittoHeaders()),
+                                thing
+                        ).thenApply(modifyFeature -> new Pair<>(modifyFeature, createdFeatureWithImplicits))
+                );
         final CompletionStage<ThingEvent<?>> eventStage =
-                featureStage.thenCompose(validationFunction).thenApply(feature ->
-                        FeatureCreated.of(command.getEntityId(), feature, nextRevision,
+                validatedStage.thenApply(pair ->
+                        FeatureCreated.of(command.getEntityId(), pair.second(), nextRevision,
                                 getEventTimestamp(), dittoHeaders,
                                 metadata)
                 );
 
-        final CompletionStage<WithDittoHeaders> response = featureStage.thenCompose(validationFunction)
-                .thenApply(modFeature ->
-                        appendETagHeaderIfProvided(command,
-                                ModifyFeatureResponse.created(context.getState(), modFeature, dittoHeaders), thing)
-                );
+        final CompletionStage<WithDittoHeaders> response = validatedStage.thenApply(pair ->
+                appendETagHeaderIfProvided(pair.first(),
+                        ModifyFeatureResponse.created(context.getState(), pair.second(), dittoHeaders), thing)
+        );
 
         return ResultFactory.newMutationResult(command, eventStage, response);
     }

@@ -13,6 +13,8 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -37,7 +39,8 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  * This strategy handles the {@link org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeatureDesiredProperty} command.
  */
 @Immutable
-final class DeleteFeatureDesiredPropertyStrategy extends AbstractThingCommandStrategy<DeleteFeatureDesiredProperty> {
+final class DeleteFeatureDesiredPropertyStrategy extends
+        AbstractThingModifyCommandStrategy<DeleteFeatureDesiredProperty> {
 
     /**
      * Constructs a new {@code DeleteFeatureDesiredPropertyStrategy} object.
@@ -61,6 +64,15 @@ final class DeleteFeatureDesiredPropertyStrategy extends AbstractThingCommandStr
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
                                 command.getDittoHeaders()), command));
+    }
+
+    @Override
+    protected CompletionStage<DeleteFeatureDesiredProperty> performWotValidation(
+            final DeleteFeatureDesiredProperty command,
+            @Nullable final Thing thing
+    ) {
+        // TODO TJ validate if allowed
+        return CompletableFuture.completedFuture(command);
     }
 
     private Optional<Feature> extractFeature(final DeleteFeatureDesiredProperty command, final @Nullable Thing thing) {

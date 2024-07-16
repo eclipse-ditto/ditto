@@ -38,7 +38,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  * This strategy handles the {@link ModifyThingDefinition} command.
  */
 @Immutable
-final class ModifyThingDefinitionStrategy extends AbstractThingCommandStrategy<ModifyThingDefinition> {
+final class ModifyThingDefinitionStrategy extends AbstractThingModifyCommandStrategy<ModifyThingDefinition> {
 
     /**
      * Constructs a new {@code ModifyThingDefinitionStrategy} object.
@@ -61,6 +61,18 @@ final class ModifyThingDefinitionStrategy extends AbstractThingCommandStrategy<M
                 .orElseGet(() -> getCreateResult(context, nextRevision, command, getEntityOrThrow(thing), metadata));
     }
 
+    @Override
+    protected CompletionStage<ModifyThingDefinition> performWotValidation(
+            final ModifyThingDefinition command,
+            @Nullable final Thing thing
+    ) {
+        return wotThingModelValidator.validateThingDefinitionModification(
+                command.getDefinition(),
+                Optional.ofNullable(thing).orElseThrow(),
+                command.getDittoHeaders()
+        ).thenApply(aVoid -> command);
+    }
+
     private Optional<ThingDefinition> extractDefinition(final @Nullable Thing thing) {
         return getEntityOrThrow(thing).getDefinition();
     }
@@ -71,13 +83,13 @@ final class ModifyThingDefinitionStrategy extends AbstractThingCommandStrategy<M
         final ThingId thingId = context.getState();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final CompletionStage<Void> validatedStage = getValidatedStage(command, thing);
-        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(aVoid ->
+        final CompletionStage<ModifyThingDefinition> validatedStage = buildValidatedStage(command, thing);
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(modifyThingDefinition ->
                 ThingDefinitionModified.of(thingId, command.getDefinition(), nextRevision, getEventTimestamp(),
                         dittoHeaders, metadata)
         );
-        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(aVoid ->
-                appendETagHeaderIfProvided(command,
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(modifyThingDefinition ->
+                appendETagHeaderIfProvided(modifyThingDefinition,
                         ModifyThingDefinitionResponse.modified(thingId, dittoHeaders), thing)
         );
 
@@ -91,25 +103,17 @@ final class ModifyThingDefinitionStrategy extends AbstractThingCommandStrategy<M
         final ThingDefinition definition = command.getDefinition();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final CompletionStage<Void> validatedStage = getValidatedStage(command, thing);
-        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(aVoid ->
+        final CompletionStage<ModifyThingDefinition> validatedStage = buildValidatedStage(command, thing);
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(modifyThingDefinition ->
                 ThingDefinitionCreated.of(thingId, definition, nextRevision, getEventTimestamp(), dittoHeaders,
                         metadata)
         );
-        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(aVoid ->
-                appendETagHeaderIfProvided(command,
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(modifyThingDefinition ->
+                appendETagHeaderIfProvided(modifyThingDefinition,
                         ModifyThingDefinitionResponse.created(thingId, definition, dittoHeaders), thing)
         );
 
         return ResultFactory.newMutationResult(command, eventStage, responseStage);
-    }
-
-    private CompletionStage<Void> getValidatedStage(final ModifyThingDefinition command, final Thing thing) {
-        return wotThingModelValidator.validateThingDefinitionModification(
-                command.getDefinition(),
-                thing,
-                command.getDittoHeaders()
-        );
     }
 
     @Override

@@ -16,11 +16,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -43,7 +46,7 @@ final class MappingTimer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MappingTimer.class);
 
-    private static final String TIMER_NAME = "connectivity_message_mapping";
+    private static final String TIMER_NAME = "message_mapping";
     private static final String INBOUND = "inbound";
     private static final String OUTBOUND = "outbound";
     private static final String PAYLOAD_SEGMENT_NAME = "payload";
@@ -128,34 +131,42 @@ final class MappingTimer {
      * The current span context is attached to each resulting external messages.
      *
      * @param mapper ID of the used mapper.
+     * @param outboundSignal the outbound signal which was mapped.
      * @param supplier the supplier which is invoked and measured.
      * @return the result of the supplier.
      */
-    List<ExternalMessage> outboundPayload(final String mapper, final Supplier<List<ExternalMessage>> supplier) {
-        final var startedTimer = startNewTimerSegment(mapper);
-        startedSpan = spawnChildSpanFromStartedTimer(startedTimer);
+    List<ExternalMessage> outboundPayload(final String mapper,
+            final OutboundSignal.Mappable outboundSignal,
+            final Supplier<List<ExternalMessage>> supplier
+    ) {
+        final var startedTimer = timer.startNewSegment(PAYLOAD_SEGMENT_NAME).tag(MAPPER_TAG_NAME, mapper);
+        startedSpan = spawnChildSpanFromStartedTimer(startedTimer, PAYLOAD_SEGMENT_NAME + " " + mapper);
         return timed(
                 startedTimer,
                 () -> {
                     final var externalMessages = supplier.get();
                     return externalMessages.stream()
-                            .map(this::propagateContextToExternalMessage)
-                            .toList();
+                            .map(externalMessage ->
+                                    propagateContextToExternalMessage(externalMessage,
+                                            outboundSignal.getSource().getDittoHeaders().getTraceParent().orElse(null))
+                            ).toList();
                 }
         );
     }
 
-    private StartedTimer startNewTimerSegment(final String mapperName) {
-        return timer.startNewSegment(PAYLOAD_SEGMENT_NAME).tag(MAPPER_TAG_NAME, mapperName);
-    }
-
-    private StartedSpan spawnChildSpanFromStartedTimer(final StartedTimer startedTimer) {
-        final var preparedSpan = startedSpan.spawnChild(SpanOperationName.of(startedTimer.getName()));
+    private StartedSpan spawnChildSpanFromStartedTimer(final StartedTimer startedTimer, final String segmentName) {
+        final var preparedSpan =
+                startedSpan.spawnChild(SpanOperationName.of(startedTimer.getName() + " " + segmentName));
         return preparedSpan.startBy(startedTimer);
     }
 
-    private ExternalMessage propagateContextToExternalMessage(final ExternalMessage externalMessage) {
-        return externalMessage.withHeaders(startedSpan.propagateContext(externalMessage.getHeaders()));
+    private ExternalMessage propagateContextToExternalMessage(final ExternalMessage externalMessage,
+            @Nullable final String formerTraceParent) {
+        final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = DittoHeaders.newBuilder(externalMessage.getHeaders());
+        if (formerTraceParent != null) {
+            dittoHeadersBuilder.traceparent(formerTraceParent);
+        }
+        return externalMessage.withHeaders(startedSpan.propagateContext(dittoHeadersBuilder.build()));
     }
 
     /**
@@ -167,8 +178,8 @@ final class MappingTimer {
      * @return the list of mapped adaptables
      */
     List<Adaptable> inboundPayload(final String mapper, final Supplier<List<Adaptable>> supplier) {
-        final var startedTimer = startNewTimerSegment(mapper);
-        startedSpan = spawnChildSpanFromStartedTimer(startedTimer);
+        final var startedTimer = timer.startNewSegment(PAYLOAD_SEGMENT_NAME).tag(MAPPER_TAG_NAME, mapper);
+        startedSpan = spawnChildSpanFromStartedTimer(startedTimer, PAYLOAD_SEGMENT_NAME + " " + mapper);
         return timed(
                 startedTimer,
                 () -> {
@@ -193,7 +204,7 @@ final class MappingTimer {
      */
     Signal<?> inboundProtocol(final Supplier<Signal<?>> supplier) {
         final var startedTimer = timer.startNewSegment(PROTOCOL_SEGMENT_NAME);
-        startedSpan = spawnChildSpanFromStartedTimer(startedTimer);
+        startedSpan = spawnChildSpanFromStartedTimer(startedTimer, PROTOCOL_SEGMENT_NAME);
         return timed(startedTimer, () -> propagateContextToSignalDittoHeaders(supplier.get()));
     }
 

@@ -13,6 +13,8 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -35,7 +37,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  * This strategy handles the {@link DeleteThing} command.
  */
 @Immutable
-final class DeleteThingStrategy extends AbstractThingCommandStrategy<DeleteThing> {
+final class DeleteThingStrategy extends AbstractThingModifyCommandStrategy<DeleteThing> {
 
     /**
      * Constructs a new {@code DeleteThingStrategy} object.
@@ -63,6 +65,13 @@ final class DeleteThingStrategy extends AbstractThingCommandStrategy<DeleteThing
                 appendETagHeaderIfProvided(command, DeleteThingResponse.of(thingId, dittoHeaders), null);
 
         return ResultFactory.newMutationResult(command, event, response, false, true);
+    }
+
+    @Override
+    protected CompletionStage<DeleteThing> performWotValidation(final DeleteThing command,
+            @Nullable final Thing thing
+    ) {
+        return CompletableFuture.completedFuture(command);
     }
 
     @Override

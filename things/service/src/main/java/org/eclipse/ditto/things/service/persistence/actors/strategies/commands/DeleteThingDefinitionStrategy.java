@@ -13,6 +13,8 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -37,8 +39,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  * This strategy handles the {@link org.eclipse.ditto.things.model.signals.commands.modify.DeleteThingDefinition} command.
  */
 @Immutable
-final class DeleteThingDefinitionStrategy
-        extends AbstractThingCommandStrategy<DeleteThingDefinition> {
+final class DeleteThingDefinitionStrategy extends AbstractThingModifyCommandStrategy<DeleteThingDefinition> {
 
     /**
      * Constructs a new {@code DeleteThingDefinitionStrategy} object.
@@ -62,6 +63,13 @@ final class DeleteThingDefinitionStrategy
                         ThingDefinitionNotAccessibleException.newBuilder(context.getState())
                                 .dittoHeaders(command.getDittoHeaders())
                                 .build(), command));
+    }
+
+    @Override
+    protected CompletionStage<DeleteThingDefinition> performWotValidation(final DeleteThingDefinition command,
+            @Nullable final Thing thing
+    ) {
+        return CompletableFuture.completedFuture(command);
     }
 
     private Optional<ThingDefinition> extractDefinition(final @Nullable Thing thing) {

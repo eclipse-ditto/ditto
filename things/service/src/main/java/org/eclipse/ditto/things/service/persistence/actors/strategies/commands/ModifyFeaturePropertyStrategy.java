@@ -42,7 +42,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  * This strategy handles the {@link org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty} command.
  */
 @Immutable
-final class ModifyFeaturePropertyStrategy extends AbstractThingCommandStrategy<ModifyFeatureProperty> {
+final class ModifyFeaturePropertyStrategy extends AbstractThingModifyCommandStrategy<ModifyFeatureProperty> {
 
     /**
      * Constructs a new {@code ModifyFeaturePropertyStrategy} object.
@@ -90,6 +90,26 @@ final class ModifyFeaturePropertyStrategy extends AbstractThingCommandStrategy<M
                                 command.getDittoHeaders()), command));
     }
 
+    @Override
+    protected CompletionStage<ModifyFeatureProperty> performWotValidation(
+            final ModifyFeatureProperty command,
+            @Nullable final Thing thing
+    ) {
+        return wotThingModelValidator.validateFeatureProperty(
+                Optional.ofNullable(thing)
+                        .flatMap(Thing::getFeatures)
+                        .flatMap(f -> f.getFeature(command.getFeatureId()))
+                        .flatMap(Feature::getDefinition)
+                        .orElse(null),
+                command.getFeatureId(),
+                command.getPropertyPointer(),
+                command.getPropertyValue(),
+                false,
+                command.getResourcePath(),
+                command.getDittoHeaders()
+        ).thenApply(aVoid -> command);
+    }
+
     private Optional<Feature> extractFeature(final ModifyFeatureProperty command, @Nullable final Thing thing) {
         return Optional.ofNullable(thing)
                 .flatMap(Thing::getFeatures)
@@ -113,13 +133,13 @@ final class ModifyFeaturePropertyStrategy extends AbstractThingCommandStrategy<M
         final JsonPointer propertyPointer = command.getPropertyPointer();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final CompletionStage<Void> validatedStage = getValidatedStage(command, thing);
-        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(aVoid ->
+        final CompletionStage<ModifyFeatureProperty> validatedStage = buildValidatedStage(command, thing);
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(modifyFeatureProperty ->
                 FeaturePropertyModified.of(command.getEntityId(), featureId, propertyPointer,
                         command.getPropertyValue(), nextRevision, getEventTimestamp(), dittoHeaders, metadata)
         );
-        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(aVoid ->
-                appendETagHeaderIfProvided(command,
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(modifyFeatureProperty ->
+                appendETagHeaderIfProvided(modifyFeatureProperty,
                         ModifyFeaturePropertyResponse.modified(context.getState(), featureId, propertyPointer,
                                 dittoHeaders),
                         thing)
@@ -136,38 +156,19 @@ final class ModifyFeaturePropertyStrategy extends AbstractThingCommandStrategy<M
         final JsonValue propertyValue = command.getPropertyValue();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final CompletionStage<Void> validatedStage = getValidatedStage(command, thing);
-        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(aVoid ->
+        final CompletionStage<ModifyFeatureProperty> validatedStage = buildValidatedStage(command, thing);
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(modifyFeatureProperty ->
                 FeaturePropertyCreated.of(command.getEntityId(), featureId, propertyPointer, propertyValue,
                         nextRevision, getEventTimestamp(), dittoHeaders, metadata)
         );
-        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(aVoid ->
-                appendETagHeaderIfProvided(command,
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(modifyFeatureProperty ->
+                appendETagHeaderIfProvided(modifyFeatureProperty,
                         ModifyFeaturePropertyResponse.created(context.getState(), featureId, propertyPointer,
                                 propertyValue, dittoHeaders),
                         thing)
         );
 
         return ResultFactory.newMutationResult(command, eventStage, responseStage);
-    }
-
-    private CompletionStage<Void> getValidatedStage(final ModifyFeatureProperty command,
-            @Nullable final Thing thing
-    ) {
-        return wotThingModelValidator
-                .validateFeatureProperty(
-                        Optional.ofNullable(thing)
-                                .flatMap(Thing::getFeatures)
-                                .flatMap(f -> f.getFeature(command.getFeatureId()))
-                                .flatMap(Feature::getDefinition)
-                                .orElse(null),
-                        command.getFeatureId(),
-                        command.getPropertyPointer(),
-                        command.getPropertyValue(),
-                        false,
-                        command.getResourcePath(),
-                        command.getDittoHeaders()
-                );
     }
 
     @Override

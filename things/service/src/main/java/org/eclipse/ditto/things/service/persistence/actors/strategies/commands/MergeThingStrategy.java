@@ -48,7 +48,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingMerged;
  * This strategy handles the {@link MergeThing} command for an already existing Thing.
  */
 @Immutable
-final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> {
+final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeThing> {
 
     private static final ThingResourceMapper<Thing, Optional<EntityTag>> ENTITY_TAG_MAPPER =
             ThingResourceMapper.from(EntityTagCalculator.getInstance());
@@ -72,6 +72,15 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
         final Thing nonNullThing = getEntityOrThrow(thing);
         final Instant eventTs = getEventTimestamp();
         return handleMergeExisting(context, nonNullThing, eventTs, nextRevision, command, metadata);
+    }
+
+    @Override
+    protected CompletionStage<MergeThing> performWotValidation(final MergeThing command, @Nullable final Thing thing) {
+        return wotThingModelValidator.validateThing(
+                Optional.ofNullable(thing).orElseThrow(),
+                command.getResourcePath(),
+                command.getDittoHeaders()
+        ).thenApply(aVoid -> command);
     }
 
     private Result<ThingEvent<?>> handleMergeExisting(final Context<ThingId> context, final Thing thing,
@@ -102,14 +111,14 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
         final Thing mergedThing = wrapException(() -> mergeThing(context, command, thing, eventTs, nextRevision),
                 command.getDittoHeaders());
 
-        final CompletionStage<Thing> validatedStage = getValidatedStage(command, mergedThing);
+        final CompletionStage<MergeThing> validatedStage = buildValidatedStage(command, mergedThing);
 
-        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(validatedThing ->
-                ThingMerged.of(command.getEntityId(), path, value, nextRevision, eventTs, dittoHeaders, metadata)
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(mergeThing ->
+                ThingMerged.of(mergeThing.getEntityId(), path, value, nextRevision, eventTs, dittoHeaders, metadata)
         );
-        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(validatedThing ->
-                appendETagHeaderIfProvided(command, MergeThingResponse.of(command.getEntityId(), path, dittoHeaders),
-                        validatedThing)
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(mergeThing ->
+                appendETagHeaderIfProvided(mergeThing, MergeThingResponse.of(command.getEntityId(), path, dittoHeaders),
+                        mergedThing)
         );
         return ResultFactory.newMutationResult(command, eventStage, responseStage);
     }
@@ -132,15 +141,6 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
                 .setModified(eventTs).build();
         context.getLog().debug("Thing created from merged JSON: {}", mergedThing);
         return mergedThing;
-    }
-
-    private CompletionStage<Thing> getValidatedStage(final MergeThing command, final Thing thing) {
-        return wotThingModelValidator.validateThing(
-                        thing,
-                        command.getResourcePath(),
-                        command.getDittoHeaders()
-                )
-                .thenApply(aVoid -> thing);
     }
 
     @Override

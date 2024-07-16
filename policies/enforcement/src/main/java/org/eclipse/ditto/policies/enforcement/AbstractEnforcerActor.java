@@ -28,6 +28,7 @@ import org.eclipse.ditto.base.api.commands.sudo.SudoCommand;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -110,7 +111,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
                 .build();
     }
 
-    protected CompletionStage<Optional<PolicyEnforcer>> loadPolicyEnforcer(Signal<?> signal) {
+    protected CompletionStage<Optional<PolicyEnforcer>> loadPolicyEnforcer(final Signal<?> signal) {
         return providePolicyIdForEnforcement(signal)
                 .thenCompose(this::providePolicyEnforcer);
     }
@@ -129,10 +130,20 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
     @SuppressWarnings("unchecked")
     private void doEnforceSignal(final S signal, final ActorRef sender) {
 
-        final var startedSpan = DittoTracing.newPreparedSpan(signal.getDittoHeaders(), SpanOperationName.of("enforce"))
+        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        final var startedSpan = DittoTracing.newPreparedSpan(dittoHeaders,
+                        SpanOperationName.of("enforce_policy")
+                )
+                .correlationId(dittoHeaders.getCorrelationId().orElse(null))
                 .start();
-        final var tracedSignal =
-                signal.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(signal.getDittoHeaders())));
+        final Optional<String> formerTraceParent = dittoHeaders.getTraceParent();
+        final var tracedSignal = signal.setDittoHeaders(
+                DittoHeaders.of(startedSpan.propagateContext(
+                        dittoHeaders.toBuilder()
+                                .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
+                                .build()
+                ))
+        );
         final ActorRef self = getSelf();
 
         try {
@@ -157,7 +168,14 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
                             log.withCorrelationId(authorizedSignal)
                                     .info("Completed enforcement of message type <{}> with outcome 'success'",
                                             authorizedSignal.getType());
-                            sender.tell(authorizedSignal, self);
+                            if (formerTraceParent.isPresent()) {
+                                sender.tell(authorizedSignal.setDittoHeaders(authorizedSignal.getDittoHeaders()
+                                        .toBuilder()
+                                        .traceparent(formerTraceParent.get())
+                                        .build()), self);
+                            } else {
+                                sender.tell(authorizedSignal, self);
+                            }
                         } else if (null != throwable) {
                             startedSpan.mark("enforce_failed").tagAsFailed(throwable).finish();
                             handleAuthorizationFailure(tracedSignal, throwable, sender);

@@ -39,6 +39,9 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
@@ -185,12 +188,27 @@ public final class ThingEnforcerActor
     }
 
     @Override
-    protected CompletionStage<Signal<?>> performWotBasedSignalValidation(final Signal<?> authorizedSignal) {
+    protected CompletionStage<Signal<?>> performWotBasedSignalValidation(final Signal<?> authorizedSignal
+    ) {
         if (authorizedSignal instanceof MessageCommand<?, ?> messageCommand) {
-            return performWotBasedMessageCommandValidation(messageCommand)
+            final var startedSpan = DittoTracing.newPreparedSpan(
+                            messageCommand.getDittoHeaders(),
+                            SpanOperationName.of("enforce_wot_model message")
+                    )
+                    .start();
+            return performWotBasedMessageCommandValidation(messageCommand.setDittoHeaders(
+                    DittoHeaders.of(startedSpan.propagateContext(messageCommand.getDittoHeaders())))
+            ).whenComplete((result, error) -> {
+                        if (error instanceof DittoRuntimeException dre) {
+                            startedSpan.tagAsFailed(dre.toString());
+                        } else if (null != error) {
+                            startedSpan.tagAsFailed(error);
+                        }
+                        startedSpan.finish();
+                    })
                     .thenApply(Function.identity());
         } else if (authorizedSignal instanceof MessageCommandResponse<?, ?> messageCommandResponse) {
-            return performWotBasedMessageCommandResponseValidation(messageCommandResponse)
+            return doPerformWotBasedMessageCommandResponseValidation(messageCommandResponse)
                     .thenApply(Function.identity());
         } else {
             return super.performWotBasedSignalValidation(authorizedSignal);
@@ -202,11 +220,34 @@ public final class ThingEnforcerActor
             final CommandResponse<?> filteredResponse
     ) {
         if (filteredResponse instanceof MessageCommandResponse<?, ?> messageCommandResponse) {
-            return performWotBasedMessageCommandResponseValidation(messageCommandResponse)
+            return doPerformWotBasedMessageCommandResponseValidation(messageCommandResponse)
                     .thenApply(Function.identity());
         } else {
             return super.performWotBasedResponseValidation(filteredResponse);
         }
+    }
+
+    private CompletionStage<MessageCommandResponse<?, ?>> doPerformWotBasedMessageCommandResponseValidation(
+            final MessageCommandResponse<?, ?> messageCommandResponse
+    ) {
+        final var startedSpan = DittoTracing.newPreparedSpan(
+                        messageCommandResponse.getDittoHeaders(),
+                        SpanOperationName.of("enforce_wot_model message_response")
+                )
+                .start();
+        return performWotBasedMessageCommandResponseValidation(
+                messageCommandResponse.setDittoHeaders(
+                        DittoHeaders.of(startedSpan.propagateContext(messageCommandResponse.getDittoHeaders()))
+                )
+        )
+                .whenComplete((result, error) -> {
+                    if (error instanceof DittoRuntimeException dre) {
+                        startedSpan.tagAsFailed(dre.toString());
+                    } else if (null != error) {
+                        startedSpan.tagAsFailed(error);
+                    }
+                    startedSpan.finish();
+                });
     }
 
     /**
@@ -458,8 +499,8 @@ public final class ThingEnforcerActor
 
         log.withCorrelationId(command)
                 .info("Failed to create Policy with ID <{}> due to: <{}: {}>." +
-                        " The CreateThing command which would have created a Policy for the Thing with ID <{}>" +
-                        " is therefore not handled.", policyId,
+                                " The CreateThing command which would have created a Policy for the Thing with ID <{}>" +
+                                " is therefore not handled.", policyId,
                         policyException.getClass().getSimpleName(), policyException.getMessage(),
                         command.getEntityId()
                 );
@@ -472,7 +513,8 @@ public final class ThingEnforcerActor
                     .dittoHeaders(command.getDittoHeaders())
                     .build();
         } else {
-            return ThingNotCreatableException.newBuilderForOtherReason(policyException.getHttpStatus(), command.getEntityId(), policyId,
+            return ThingNotCreatableException.newBuilderForOtherReason(policyException.getHttpStatus(),
+                            command.getEntityId(), policyId,
                             policyException.getMessage())
                     .dittoHeaders(command.getDittoHeaders())
                     .build();
@@ -481,15 +523,23 @@ public final class ThingEnforcerActor
 
     @Override
     protected CompletionStage<PolicyId> providePolicyIdForEnforcement(final Signal<?> signal) {
-        return Patterns.ask(getContext().getParent(), SudoRetrieveThing.of(entityId,
-                        JsonFieldSelector.newInstance("policyId"),
-                        DittoHeaders.newBuilder()
-                                .correlationId("sudoRetrieveThingFromThingEnforcerActor-" + UUID.randomUUID())
-                                .putHeader(DittoHeaderDefinition.DITTO_RETRIEVE_DELETED.getKey(),
-                                        Boolean.TRUE.toString())
-                                .build()
-                ), DEFAULT_LOCAL_ASK_TIMEOUT
-        ).thenApply(response -> extractPolicyIdFromSudoRetrieveThingResponse(response).orElse(null));
+        final var startedSpan = DittoTracing.newPreparedSpan(
+                        signal.getDittoHeaders(),
+                        SpanOperationName.of("sudo_retrieve_thing")
+                )
+                .correlationId(signal.getDittoHeaders().getCorrelationId().orElse(null))
+                .start();
+        final SudoRetrieveThing sudoRetrieveThing = SudoRetrieveThing.of(entityId,
+                JsonFieldSelector.newInstance("policyId"),
+                DittoHeaders.of(startedSpan.propagateContext(DittoHeaders.newBuilder()
+                        .correlationId("sudoRetrieveThingFromThingEnforcerActor-" + UUID.randomUUID())
+                        .putHeader(DittoHeaderDefinition.DITTO_RETRIEVE_DELETED.getKey(),
+                                Boolean.TRUE.toString())
+                        .build()))
+        );
+        return Patterns.ask(getContext().getParent(), sudoRetrieveThing, DEFAULT_LOCAL_ASK_TIMEOUT)
+                .thenApply(
+                        response -> extractPolicyIdFromSudoRetrieveThingResponse(response, startedSpan).orElse(null));
     }
 
     private CompletionStage<Boolean> doesThingExist() {
@@ -513,10 +563,11 @@ public final class ThingEnforcerActor
     private CompletionStage<MessageCommand<?, ?>> performWotBasedMessageCommandValidation(
             final MessageCommand<?, ?> messageCommand
     ) {
+        // TODO TJ split
         if (isJsonMessageContent(messageCommand.getMessage())) {
-            @SuppressWarnings("unchecked")
-            final Message<JsonValue> message = ((MessageCommand<JsonValue, ?>) messageCommand)
-                    .getMessage();
+            @SuppressWarnings("unchecked") final Message<JsonValue> message =
+                    ((MessageCommand<JsonValue, ?>) messageCommand)
+                            .getMessage();
 
             final MessageDirection messageDirection = message.getDirection();
             final JsonValue messageCommandPayload = message
@@ -593,9 +644,9 @@ public final class ThingEnforcerActor
             final MessageCommandResponse<?, ?> messageCommandResponse
     ) {
         if (isJsonMessageContent(messageCommandResponse.getMessage())) {
-            @SuppressWarnings("unchecked")
-            final Message<JsonValue> message = ((MessageCommandResponse<JsonValue, ?>) messageCommandResponse)
-                    .getMessage();
+            @SuppressWarnings("unchecked") final Message<JsonValue> message =
+                    ((MessageCommandResponse<JsonValue, ?>) messageCommandResponse)
+                            .getMessage();
 
             final MessageDirection messageDirection = message.getDirection();
             final JsonValue messageCommandPayload = message
@@ -685,14 +736,21 @@ public final class ThingEnforcerActor
      * empty Optional.
      *
      * @param response the response to extract the PolicyId from.
+     * @param startedSpan the started span to finish upon success or failure
      * @return the optional extracted PolicyId.
      */
-    static Optional<PolicyId> extractPolicyIdFromSudoRetrieveThingResponse(final Object response) {
+    static Optional<PolicyId> extractPolicyIdFromSudoRetrieveThingResponse(final Object response,
+            final StartedSpan startedSpan) {
         if (response instanceof SudoRetrieveThingResponse sudoRetrieveThingResponse) {
+            startedSpan.finish();
             return sudoRetrieveThingResponse.getThing().getPolicyId();
         } else if (response instanceof ThingNotAccessibleException) {
+            startedSpan.tagAsFailed("Thing not accessible")
+                    .finish();
             return Optional.empty();
         } else {
+            startedSpan.tagAsFailed("expected SudoRetrieveThingResponse, got: " + response)
+                    .finish();
             throw new IllegalStateException("expected SudoRetrieveThingResponse, got: " + response);
         }
     }

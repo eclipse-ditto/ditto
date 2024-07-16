@@ -44,7 +44,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingModified;
  * This strategy handles the {@link ModifyThing} command for an already existing Thing.
  */
 @Immutable
-final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing> {
+final class ModifyThingStrategy extends AbstractThingModifyCommandStrategy<ModifyThing> {
 
     /**
      * Constructs a new {@code ModifyThingStrategy} object.
@@ -75,6 +75,16 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
         return handleModifyExistingWithV2Command(context, nonNullThing, eventTs, nextRevision, command, metadata);
     }
 
+    @Override
+    protected CompletionStage<ModifyThing> performWotValidation(
+            final ModifyThing command,
+            @Nullable final Thing thing
+    ) {
+        return wotThingModelValidator.validateThing(
+                command.getThing(), command.getResourcePath(), command.getDittoHeaders()
+        ).thenApply(aVoid -> command);
+    }
+
     private Result<ThingEvent<?>> handleModifyExistingWithV2Command(final Context<ThingId> context, final Thing thing,
             final Instant eventTs, final long nextRevision, final ModifyThing command,
             @Nullable final Metadata metadata) {
@@ -99,17 +109,24 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
 
         final Thing modifiedThing = applyThingModifications(command.getThing(), thing, eventTs, nextRevision);
         // validate based on potentially referenced Thing WoT TM/TD
-        final CompletionStage<Thing> validatedStage = wotThingModelValidator
-                .validateThing(modifiedThing, command.getResourcePath(), command.getDittoHeaders())
-                .thenApply(aVoid -> modifiedThing);
+        final CompletionStage<ModifyThing> validatedStage = buildValidatedStage(
+                ModifyThing.of(command.getEntityId(),
+                        modifiedThing,
+                        command.getInitialPolicy().orElse(null),
+                        command.getDittoHeaders()
+                ), thing);
 
-        final CompletionStage<ThingEvent<?>> eventStage =
-                validatedStage.thenApply(theThing ->
-                        ThingModified.of(theThing, nextRevision, eventTs, dittoHeaders, metadata));
-        final CompletionStage<WithDittoHeaders> responseStage =
-                validatedStage.thenApply(theThing ->
-                        appendETagHeaderIfProvided(command,
-                                ModifyThingResponse.modified(context.getState(), dittoHeaders), theThing));
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage
+                .thenApply(ModifyThing::getThing)
+                .thenApply(theThing ->
+                        ThingModified.of(theThing, nextRevision, eventTs, dittoHeaders, metadata)
+                );
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage
+                .thenApply(modifyThing ->
+                        appendETagHeaderIfProvided(modifyThing,
+                                ModifyThingResponse.modified(context.getState(), dittoHeaders),
+                                modifyThing.getThing())
+                );
 
         return ResultFactory.newMutationResult(command, eventStage, responseStage);
     }
