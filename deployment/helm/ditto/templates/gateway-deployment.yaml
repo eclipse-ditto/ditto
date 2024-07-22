@@ -276,6 +276,9 @@ spec:
             - name: ditto-log-files-directory
               mountPath: /var/log/ditto
             {{- end }}
+            {{- if .Values.gateway.extraVolumeMounts }}
+              {{- toYaml .Values.gateway.extraVolumeMounts | nindent 12 }}
+            {{- end }}
           resources:
             requests:
               cpu: {{ mulf .Values.gateway.resources.cpu 1000 }}m
@@ -322,4 +325,7 @@ spec:
             path: /var/log/ditto
             type: DirectoryOrCreate
         {{- end }}
+        {{- if .Values.gateway.extraVolumes }}
+          {{- toYaml .Values.gateway.extraVolumes | nindent 8 }}
+        {{- end}}
 {{- end }}
