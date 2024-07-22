@@ -522,6 +522,14 @@ policies:
   extraEnv:
   # - name: LOG_LEVEL_APPLICATION
   #   value: "DEBUG"
+  extraVolumes:
+  #  - name: policies-extension
+  #    configMap:
+  #      name: policies-extension.jar
+  extraVolumeMounts:
+  #  - name: policies-extension
+  #    mountPath: /opt/ditto/policies-extension.jar
+  #    subPath: policies-extension.jar
   # resources configures the resources available/to use for the policies service
   resources:
     # cpu defines the "required" CPU of a node so that the service is placed there
@@ -755,6 +763,14 @@ things:
   extraEnv:
   # - name: LOG_LEVEL_APPLICATION
   #   value: "DEBUG"
+  extraVolumes:
+  #  - name: things-extension
+  #    configMap:
+  #      name: things-extension.jar
+  extraVolumeMounts:
+  #  - name: things-extension
+  #    mountPath: /opt/ditto/things-extension.jar
+  #    subPath: things-extension.jar
   # resources configures the resources available/to use for the things service
   resources:
     # cpu defines the "required" CPU of a node so that the service is placed there
@@ -1010,6 +1026,14 @@ thingsSearch:
   extraEnv:
   # - name: LOG_LEVEL_APPLICATION
   #   value: "DEBUG"
+  extraVolumes:
+  #  - name: search-extension
+  #    configMap:
+  #      name: search-extension.jar
+  extraVolumeMounts:
+  #  - name: search-extension
+  #    mountPath: /opt/ditto/search-extension.jar
+  #    subPath: search-extension.jar
   # resources configures the resources available/to use for the things search service
   resources:
     # cpu defines the "required" CPU of a node so that the service is placed there
@@ -1225,6 +1249,14 @@ connectivity:
   extraEnv:
   # - name: LOG_LEVEL_APPLICATION
   #   value: "DEBUG"
+  extraVolumes:
+  #  - name: connectivity-extension
+  #    configMap:
+  #      name: connectivity-extension.jar
+  extraVolumeMounts:
+  #  - name: connectivity-extension
+  #    mountPath: /opt/ditto/connectivity-extension.jar
+  #    subPath: connectivity-extension.jar
   # resources configures the resources available/to use for the connectivity service
   resources:
     # cpu defines the "required" CPU of a node so that the service is placed there
@@ -1517,6 +1549,14 @@ gateway:
   extraEnv:
   # - name: LOG_LEVEL_APPLICATION
   #   value: "DEBUG"
+  extraVolumes:
+  #  - name: gatway-extension
+  #    configMap:
+  #      name: gatway-extension.jar
+  extraVolumeMounts:
+  #  - name: gatway-extension
+  #    mountPath: /opt/ditto/gatway-extension.jar
+  #    subPath: gatway-extension.jar
   # resources configures the resources available/to use for the gateway service
   resources:
     # cpu defines the "required" CPU of a node so that the service is placed there
