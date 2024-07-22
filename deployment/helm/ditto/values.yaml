@@ -19,6 +19,8 @@ serviceAccount:
   # name is the name of the service account to use
   #  If not set and create is true, a name is generated using the fullname template
   name:
+  isUseAwsIamRole: false
+  roleArn: ""
 
 rbac:
   # enabled controls whether RBAC resources will be created

@@ -166,6 +166,13 @@ public interface MongoDbConfig {
         boolean isRetryWrites();
 
         /**
+         * Indicates whether to use AWS IAM role for authentication.
+         *
+         * @return {@code true} if IAM role should be used, {@code false} otherwise.
+         */
+        boolean isUseAwsIamRole();
+
+        /**
          * Gets the extra options to add to the configured MongoDB {@code uri}.
          *
          * @return the extra options.
@@ -202,6 +209,11 @@ public interface MongoDbConfig {
              * Determines the "retryWrites" setting used for MongoDB connections.
              */
             RETRY_WRITES("retryWrites", true),
+
+            /**
+             * Determines whether IAM role should be used for authentication.
+             */
+            USE_AWS_IAM_ROLE("useAwsIamRole", false),
 
             /**
              * The extra options to add to the configured MongoDB {@code uri}.

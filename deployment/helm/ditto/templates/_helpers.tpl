@@ -70,3 +70,14 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 {{- end -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Get IAM Role ARN from Values if USE_IAM_ROLE is true
+*/}}
+{{- define "ditto.iamRoleArn" -}}
+{{- if .Values.serviceAccount.isUseAwsIamRole -}}
+  {{ .Values.serviceAccount.roleArn }}
+{{- else -}}
+  ""
+{{- end -}}
+{{- end -}}
