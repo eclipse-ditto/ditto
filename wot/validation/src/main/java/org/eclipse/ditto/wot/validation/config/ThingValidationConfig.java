@@ -30,6 +30,11 @@ public interface ThingValidationConfig {
     boolean isEnforceThingDescriptionModification();
 
     /**
+     * @return whether to forbid deletion of a Thing's {@code description}.
+     */
+    boolean isForbidThingDescriptionDeletion();
+
+    /**
      * @return whether to enforce/validate attributes of a thing following the defined WoT properties.
      */
     boolean isEnforceAttributes();
@@ -71,6 +76,8 @@ public interface ThingValidationConfig {
     enum ConfigValue implements KnownConfigValue {
 
         ENFORCE_THING_DESCRIPTION_MODIFICATION("enforce-thing-description-modification", false),
+
+        FORBID_THING_DESCRIPTION_DELETION("forbid-thing-description-deletion", true),
 
         ENFORCE_ATTRIBUTES("enforce-attributes", true),
 

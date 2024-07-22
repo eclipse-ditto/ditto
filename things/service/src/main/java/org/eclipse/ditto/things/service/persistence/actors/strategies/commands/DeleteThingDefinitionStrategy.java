@@ -13,7 +13,6 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -69,7 +68,11 @@ final class DeleteThingDefinitionStrategy extends AbstractThingModifyCommandStra
     protected CompletionStage<DeleteThingDefinition> performWotValidation(final DeleteThingDefinition command,
             @Nullable final Thing thing
     ) {
-        return CompletableFuture.completedFuture(command);
+        return wotThingModelValidator.validateThingDefinitionDeletion(Optional.ofNullable(thing)
+                        .flatMap(Thing::getDefinition)
+                        .orElseThrow(),
+                command.getDittoHeaders()
+        ).thenApply(aVoid -> command);
     }
 
     private Optional<ThingDefinition> extractDefinition(final @Nullable Thing thing) {
@@ -82,12 +85,16 @@ final class DeleteThingDefinitionStrategy extends AbstractThingModifyCommandStra
         final ThingId thingId = context.getState();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                DeleteThingDefinitionResponse.of(thingId, dittoHeaders), thing);
+        final CompletionStage<DeleteThingDefinition> validatedStage = buildValidatedStage(command, thing);
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(deleteFeature ->
+                ThingDefinitionDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders, metadata)
+        );
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(deleteThingDefinition ->
+                appendETagHeaderIfProvided(deleteThingDefinition,
+                        DeleteThingDefinitionResponse.of(thingId, dittoHeaders), thing)
+        );
 
-        return ResultFactory.newMutationResult(command,
-                ThingDefinitionDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders, metadata),
-                response);
+        return ResultFactory.newMutationResult(command, eventStage, responseStage);
     }
 
     @Override

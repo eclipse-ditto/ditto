@@ -33,6 +33,7 @@ import org.eclipse.ditto.wot.model.Actions;
 import org.eclipse.ditto.wot.model.DittoWotExtension;
 import org.eclipse.ditto.wot.model.Event;
 import org.eclipse.ditto.wot.model.Events;
+import org.eclipse.ditto.wot.model.ObjectSchema;
 import org.eclipse.ditto.wot.model.Properties;
 import org.eclipse.ditto.wot.model.Property;
 import org.eclipse.ditto.wot.model.SingleDataSchema;
@@ -121,12 +122,137 @@ final class InternalValidation {
         return success();
     }
 
+    static CompletableFuture<Void> enforcePresenceOfRequiredPropertiesUponDeletion(
+            final ThingModel thingModel,
+            final JsonPointer resourcePath,
+            final boolean handleDittoCategory,
+            final Set<String> dittoCategories,
+            final String pluralDescription,
+            final String singularDescription,
+            final ValidationContext context
+    ) {
+        if (resourcePath.getLevelCount() == 1) {
+            // deleting all attributes/properties ..
+            //  must be prevented if there is at least one non-optional TM model "property" defined
+            final boolean containsRequiredProperties = thingModel.getProperties()
+                    .map(properties -> extractRequiredTmProperties(properties, thingModel))
+                    .map(map -> !map.isEmpty())
+                    .orElse(false);
+            if (containsRequiredProperties) {
+                final WotThingModelPayloadValidationException.Builder exceptionBuilder =
+                        WotThingModelPayloadValidationException
+                                .newBuilder("Could not delete " + pluralDescription + ", " +
+                                        "as there are some defined as non-optional in the model");
+                return CompletableFuture.failedFuture(exceptionBuilder
+                        .dittoHeaders(context.dittoHeaders())
+                        .build());
+            }
+        } else {
+            // deleting a specific attribute/property ..
+            //  check if that is an optional one
+            final JsonPointer resourcePointer = resourcePath.getSubPointer(1).orElseThrow();
+            final Optional<PropertyWithCategory> propertyWithCategory = findPropertyBasedOnPath(thingModel,
+                    thingModel.getProperties().orElse(Properties.of(Map.of())),
+                    resourcePointer,
+                    handleDittoCategory,
+                    dittoCategories
+            );
+
+            final boolean isPropertyRequired;
+            if (propertyWithCategory.isPresent() && (
+                    (propertyWithCategory.get().category() != null && resourcePointer.getLevelCount() == 2) ||
+                            (propertyWithCategory.get().category() == null && resourcePointer.getLevelCount() == 1)
+            )) {
+                // it is sufficient to only look at the WoT TM Property
+                isPropertyRequired = propertyWithCategory
+                        .filter(withCategory -> isTmPropertyRequired(withCategory.property(), thingModel))
+                        .isPresent();
+            } else {
+                // we need to look into "required" of property schemas of type "object" to find out if the path is required
+                isPropertyRequired = propertyWithCategory
+                        .filter(withCategory ->
+                                isPropertyRequired(withCategory.property(),
+                                        withCategory.category(),
+                                        resourcePointer,
+                                        handleDittoCategory
+                                )
+                        ).isPresent();
+            }
+            if (isPropertyRequired) {
+                final WotThingModelPayloadValidationException.Builder exceptionBuilder =
+                        WotThingModelPayloadValidationException
+                                .newBuilder("Could not delete " + singularDescription + " <" + resourcePointer + "> " +
+                                        "as it is defined as non-optional in the model");
+                return CompletableFuture.failedFuture(exceptionBuilder
+                        .dittoHeaders(context.dittoHeaders())
+                        .build());
+            }
+        }
+        return success();
+    }
+
+    static boolean isPropertyRequired(final Property property,
+            @Nullable final String category,
+            final JsonPointer resourcePath,
+            final boolean handleDittoCategory
+    ) {
+        if (handleDittoCategory) {
+            return Optional.ofNullable(category)
+                    .map(cat ->
+                            resourcePath.getRoot().filter(root -> root.toString().equals(cat)).isPresent() &&
+                                    checkResourceForRequired(resourcePath.getSubPointer(1).orElse(null), property,
+                                            property.getPropertyName())
+                    )
+                    .orElseGet(() ->
+                            checkResourceForRequired(resourcePath, property, property.getPropertyName())
+                    );
+        } else {
+            return checkResourceForRequired(resourcePath, property, property.getPropertyName());
+        }
+    }
+
+    private static boolean checkResourceForRequired(@Nullable final JsonPointer resourcePath,
+            final Property property,
+            final String key
+    ) {
+        if (null == resourcePath || resourcePath.isEmpty()) {
+            return false;
+        } else if (resourcePath.getLevelCount() == 1) {
+            return resourcePath.getRoot().filter(prop -> prop.toString().equals(key)).isPresent();
+        } else if (property.isObjectSchema()) {
+            return checkResourceForRequired(resourcePath.getSubPointer(1).orElseThrow(), property.asObjectSchema());
+        } else {
+            // this should not happen, consider it an error?
+            return false;
+        }
+    }
+
+    private static boolean checkResourceForRequired(@Nullable final JsonPointer resourcePath,
+            final ObjectSchema objectSchema
+    ) {
+        if (null == resourcePath || resourcePath.isEmpty()) {
+            return false;
+        } else {
+            final Optional<String> rootKey = resourcePath.getRoot().map(JsonKey::toString);
+            final boolean isRequired = rootKey
+                    .map(key -> objectSchema.getRequired().contains(key))
+                    .orElse(false);
+            if (resourcePath.getLevelCount() > 1 && isRequired) {
+                final SingleDataSchema subSchema = objectSchema.getProperties().get(rootKey.orElseThrow());
+                // recurse!
+                return checkResourceForRequired(resourcePath.getSubPointer(1).orElseThrow(), (ObjectSchema) subSchema);
+            } else {
+                return isRequired;
+            }
+        }
+    }
+
     static Map<String, Property> filterNonProvidedRequiredProperties(final Properties tdProperties,
             final ThingModel thingModel,
             final JsonObject propertiesContainer,
             final boolean handleDittoCategory
     ) {
-        final Map<String, Property> requiredProperties = extractRequiredProperties(tdProperties, thingModel);
+        final Map<String, Property> requiredProperties = extractRequiredTmProperties(tdProperties, thingModel);
         final Map<String, Property> nonProvidedRequiredProperties = new LinkedHashMap<>(requiredProperties);
         if (handleDittoCategory) {
             requiredProperties.forEach((rpKey, requiredProperty) -> {
@@ -153,7 +279,7 @@ final class InternalValidation {
         return nonProvidedRequiredProperties;
     }
 
-    private static Map<String, Property> extractRequiredProperties(final Properties tdProperties,
+    static Map<String, Property> extractRequiredTmProperties(final Properties tdProperties,
             final ThingModel thingModel
     ) {
         return thingModel.getTmOptional().map(tmOptionalElements -> {
@@ -165,6 +291,18 @@ final class InternalValidation {
                     .forEach(allRequiredProperties::remove);
             return allRequiredProperties;
         }).orElseGet(LinkedHashMap::new);
+    }
+
+    static boolean isTmPropertyRequired(final Property property,
+            final ThingModel thingModel
+    ) {
+        return thingModel.getTmOptional()
+                .map(tmOptionalElements -> tmOptionalElements.stream()
+                        .map(TmOptionalElement::toString)
+                        .filter(el -> el.startsWith("/properties/"))
+                        .map(el -> el.replace("/properties/", ""))
+                        .noneMatch(el -> property.getPropertyName().equals(el))
+                ).orElse(false);
     }
 
     static CompletableFuture<Void> ensureOnlyDefinedActions(@Nullable final Actions actions,
@@ -303,6 +441,7 @@ final class InternalValidation {
             final String propertyDescription,
             final JsonPointer resourcePath,
             final boolean handleDittoCategory,
+            final Set<String> dittoCategories,
             final ValidationContext context
     ) {
         final JsonValue valueToValidate;
@@ -314,22 +453,10 @@ final class InternalValidation {
             valueToValidate = propertyValue;
         }
 
-        return tdProperties.values()
-                .stream()
-                .filter(property -> {
+        return findPropertyBasedOnPath(thingModel, tdProperties, propertyPath, handleDittoCategory, dittoCategories)
+                .map(propertyWithCategory -> {
                     if (handleDittoCategory) {
-                        final JsonPointer thePropertyPath = determineDittoCategory(thingModel, property)
-                                .flatMap(cat -> propertyPath.getSubPointer(1))
-                                .orElse(propertyPath);
-                        return property.getPropertyName().equals(thePropertyPath.getRoot().orElseThrow().toString());
-                    } else {
-                        return property.getPropertyName().equals(propertyPath.getRoot().orElseThrow().toString());
-                    }
-                })
-                .findFirst()
-                .map(property -> {
-                    if (handleDittoCategory) {
-                        final Optional<String> dittoCategory = determineDittoCategory(thingModel, property);
+                        final Optional<String> dittoCategory = Optional.ofNullable(propertyWithCategory.category());
                         final JsonPointer thePropertyPath = dittoCategory
                                 .flatMap(cat -> propertyPath.getSubPointer(1))
                                 .orElse(propertyPath);
@@ -337,7 +464,7 @@ final class InternalValidation {
                                 .flatMap(cat -> valueToValidate.asObject().getValue(thePropertyPath))
                                 .orElse(valueToValidate);
                         return validateSingleDataSchema(
-                                property,
+                                propertyWithCategory.property(),
                                 propertyDescription,
                                 thePropertyPath,
                                 validateRequiredObjectFields,
@@ -347,7 +474,7 @@ final class InternalValidation {
                         );
                     } else {
                         return validateSingleDataSchema(
-                                property,
+                                propertyWithCategory.property(),
                                 propertyDescription,
                                 propertyPath,
                                 validateRequiredObjectFields,
@@ -357,6 +484,32 @@ final class InternalValidation {
                         );
                     }
                 }).orElseGet(InternalValidation::success);
+    }
+
+    private static Optional<PropertyWithCategory> findPropertyBasedOnPath(final ThingModel thingModel,
+            final Properties tdProperties,
+            final JsonPointer propertyPath,
+            final boolean handleDittoCategory,
+            final Set<String> dittoCategories
+    ) {
+        if (handleDittoCategory) {
+            return dittoCategories.stream()
+                    .filter(category -> propertyPath.getRoot().orElseThrow().toString().equals(category))
+                    .map(category ->
+                            tdProperties.getProperty(propertyPath.get(1).orElseThrow().toString())
+                                    .filter(p -> determineDittoCategory(thingModel, p)
+                                            .filter(category::equals)
+                                            .isPresent()
+                                    )
+                                    .map(p -> new PropertyWithCategory(p, category))
+                    )
+                    .findAny()
+                    .orElseGet(() -> tdProperties.getProperty(propertyPath.getRoot().orElseThrow().toString())
+                            .map(p -> new PropertyWithCategory(p, null)));
+        } else {
+            return tdProperties.getProperty(propertyPath.getRoot().orElseThrow().toString())
+                    .map(p -> new PropertyWithCategory(p, null));
+        }
     }
 
     static CompletableFuture<Void> enforceActionPayload(final ThingModel thingModel,
@@ -440,4 +593,6 @@ final class InternalValidation {
     static <T> CompletableFuture<T> success() {
         return CompletableFuture.completedFuture(null);
     }
+
+    record PropertyWithCategory(Property property, @Nullable String category) {}
 }

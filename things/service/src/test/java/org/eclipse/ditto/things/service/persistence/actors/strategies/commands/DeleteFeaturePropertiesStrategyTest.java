@@ -57,7 +57,7 @@ public final class DeleteFeaturePropertiesStrategyTest extends AbstractCommandSt
         final DeleteFeatureProperties command =
                 DeleteFeatureProperties.of(context.getState(), featureId, DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2, command,
+        assertStagedModificationResult(underTest, THING_V2, command,
                 FeaturePropertiesDeleted.class,
                 DeleteFeaturePropertiesResponse.of(context.getState(), featureId, command.getDittoHeaders()));
     }

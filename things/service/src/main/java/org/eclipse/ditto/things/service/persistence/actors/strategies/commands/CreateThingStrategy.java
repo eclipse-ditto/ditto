@@ -145,7 +145,9 @@ final class CreateThingStrategy extends AbstractThingModifyCommandStrategy<Creat
             @Nullable final Thing thing
     ) {
         return wotThingModelValidator.validateThing(
-                command.getThing(), command.getResourcePath(), command.getDittoHeaders()
+                Optional.ofNullable(thing).orElse(command.getThing()),
+                command.getResourcePath(),
+                command.getDittoHeaders()
         ).thenApply(aVoid -> command);
     }
 

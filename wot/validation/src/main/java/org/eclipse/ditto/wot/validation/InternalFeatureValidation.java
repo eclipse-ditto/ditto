@@ -15,10 +15,12 @@ package org.eclipse.ditto.wot.validation;
 import static org.eclipse.ditto.wot.validation.InternalValidation.determineDittoCategory;
 import static org.eclipse.ditto.wot.validation.InternalValidation.enforceActionPayload;
 import static org.eclipse.ditto.wot.validation.InternalValidation.enforceEventPayload;
+import static org.eclipse.ditto.wot.validation.InternalValidation.enforcePresenceOfRequiredPropertiesUponDeletion;
 import static org.eclipse.ditto.wot.validation.InternalValidation.ensureOnlyDefinedActions;
 import static org.eclipse.ditto.wot.validation.InternalValidation.ensureOnlyDefinedEvents;
 import static org.eclipse.ditto.wot.validation.InternalValidation.ensureOnlyDefinedProperties;
 import static org.eclipse.ditto.wot.validation.InternalValidation.ensureRequiredProperties;
+import static org.eclipse.ditto.wot.validation.InternalValidation.extractRequiredTmProperties;
 import static org.eclipse.ditto.wot.validation.InternalValidation.filterNonProvidedRequiredProperties;
 import static org.eclipse.ditto.wot.validation.InternalValidation.success;
 import static org.eclipse.ditto.wot.validation.InternalValidation.validateProperties;
@@ -214,10 +216,7 @@ final class InternalFeatureValidation {
             final JsonPointer resourcePath,
             final ValidationContext context
     ) {
-        // TODO TJ split
-        final Set<String> categories = determineDittoCategories(featureThingModel,
-                featureThingModel.getProperties().orElse(Properties.of(Map.of()))
-        );
+        final Set<String> categories = determineDittoCategories(featureThingModel);
         final boolean isCategoryUpdate = propertyPath.getLevelCount() == 1 &&
                 categories.contains(propertyPath.getRoot().orElseThrow().toString());
 
@@ -227,99 +226,134 @@ final class InternalFeatureValidation {
                             (desiredProperty ? "desired " : "");
                     final String containerNamePlural = containerNamePrefix + "properties";
 
-                    final CompletableFuture<Void> ensureOnlyDefinedPropertiesStage;
-                    if (isCategoryUpdate) {
-                        final String dittoCategory = propertyPath.getRoot().orElseThrow().toString();
-                        if (forbidNonModeledProperties) {
-                            final Properties propertiesInCategory = Properties.from(tdProperties.values().stream()
-                                    .filter(property ->
-                                            determineDittoCategory(featureThingModel, property)
-                                                    .filter(cat -> cat.equals(dittoCategory))
-                                                    .isPresent()
-                                    )
-                                    .toList());
-                            final FeatureProperties featureProperties = FeatureProperties.newBuilder()
-                                    .setAll(propertyValue.asObject())
-                                    .build();
-                            ensureOnlyDefinedPropertiesStage = ensureOnlyDefinedProperties(featureThingModel,
-                                    propertiesInCategory,
-                                    featureProperties,
-                                    containerNamePlural,
-                                    false,
-                                    context
+                    final CompletableFuture<Void> ensureOnlyDefinedPropertiesStage =
+                            enforceFeaturePropertyOnlyDefinedProperties(
+                                    featureThingModel, propertyPath, propertyValue, forbidNonModeledProperties, context,
+                                    tdProperties, isCategoryUpdate, containerNamePlural
                             );
-                        } else {
-                            ensureOnlyDefinedPropertiesStage = success();
-                        }
-                    } else {
-                        if (forbidNonModeledProperties) {
-                            final FeatureProperties featureProperties = FeatureProperties.newBuilder()
-                                    .set(propertyPath, propertyValue)
-                                    .build();
-                            ensureOnlyDefinedPropertiesStage = ensureOnlyDefinedProperties(featureThingModel,
-                                    tdProperties,
-                                    featureProperties,
-                                    containerNamePlural,
-                                    true,
-                                    context
-                            );
-                        } else {
-                            ensureOnlyDefinedPropertiesStage = success();
-                        }
-                    }
 
-                    final CompletableFuture<Void> validatePropertiesStage;
-                    if (isCategoryUpdate) {
-                        final String dittoCategory = propertyPath.getRoot().orElseThrow().toString();
-                        final List<Property> sameCategoryProperties = tdProperties.values().stream()
-                                .filter(property ->
-                                        // gather all properties from the same category
-                                        determineDittoCategory(featureThingModel, property)
-                                                .filter(cat -> cat.equals(dittoCategory))
-                                                .isPresent()
-                                )
-                                .toList();
-
-                        if (!sameCategoryProperties.isEmpty() && propertyValue.isObject()) {
-                            validatePropertiesStage = validatePropertyCategory(featureThingModel,
-                                    Properties.from(sameCategoryProperties),
-                                    propertyPath,
-                                    !desiredProperty,
-                                    propertyValue.asObject(),
-                                    containerNamePrefix + "property",
-                                    resourcePath,
-                                    context
+                    final CompletableFuture<Void> validatePropertiesStage =
+                            enforceFeaturePropertyValidateProperties(
+                                    featureThingModel, propertyPath, propertyValue, desiredProperty, resourcePath,
+                                    context, tdProperties, isCategoryUpdate, containerNamePrefix
                             );
-                        } else {
-                            validatePropertiesStage = validateProperty(featureThingModel,
-                                    tdProperties,
-                                    propertyPath,
-                                    !desiredProperty,
-                                    propertyValue,
-                                    containerNamePrefix + "property <" + propertyPath + ">",
-                                    resourcePath,
-                                    true,
-                                    context
-                            );
-                        }
-                    } else {
-                        validatePropertiesStage = validateProperty(featureThingModel,
-                                tdProperties,
-                                propertyPath,
-                                !desiredProperty,
-                                propertyValue,
-                                containerNamePrefix + "property <" + propertyPath + ">",
-                                resourcePath,
-                                true,
-                                context
-                        );
-                    }
 
                     return CompletableFuture.allOf(
                             ensureOnlyDefinedPropertiesStage,
                             validatePropertiesStage
                     );
                 }).orElseGet(InternalValidation::success);
+    }
+
+    private static CompletableFuture<Void> enforceFeaturePropertyOnlyDefinedProperties(
+            final ThingModel featureThingModel,
+            final JsonPointer propertyPath,
+            final JsonValue propertyValue,
+            final boolean forbidNonModeledProperties,
+            final ValidationContext context,
+            final Properties tdProperties,
+            final boolean isCategoryUpdate,
+            final String containerNamePlural
+    ) {
+        if (isCategoryUpdate) {
+            final String dittoCategory = propertyPath.getRoot().orElseThrow().toString();
+            if (forbidNonModeledProperties) {
+                final Properties propertiesInCategory = Properties.from(tdProperties.values().stream()
+                        .filter(property ->
+                                determineDittoCategory(featureThingModel, property)
+                                        .filter(cat -> cat.equals(dittoCategory))
+                                        .isPresent()
+                        )
+                        .toList());
+                final FeatureProperties featureProperties = FeatureProperties.newBuilder()
+                        .setAll(propertyValue.asObject())
+                        .build();
+                return ensureOnlyDefinedProperties(featureThingModel,
+                        propertiesInCategory,
+                        featureProperties,
+                        containerNamePlural,
+                        false,
+                        context
+                );
+            }
+        } else {
+            if (forbidNonModeledProperties) {
+                final FeatureProperties featureProperties = FeatureProperties.newBuilder()
+                        .set(propertyPath, propertyValue)
+                        .build();
+                return ensureOnlyDefinedProperties(featureThingModel,
+                        tdProperties,
+                        featureProperties,
+                        containerNamePlural,
+                        true,
+                        context
+                );
+            }
+        }
+        return success();
+    }
+
+    private static CompletableFuture<Void> enforceFeaturePropertyValidateProperties(final ThingModel featureThingModel,
+            final JsonPointer propertyPath,
+            final JsonValue propertyValue,
+            final boolean desiredProperty,
+            final JsonPointer resourcePath,
+            final ValidationContext context,
+            final Properties tdProperties,
+            final boolean isCategoryUpdate,
+            final String containerNamePrefix
+    ) {
+        if (isCategoryUpdate) {
+            final String dittoCategory = propertyPath.getRoot().orElseThrow().toString();
+            final List<Property> sameCategoryProperties = tdProperties.values().stream()
+                    .filter(property ->
+                            // gather all properties from the same category
+                            determineDittoCategory(featureThingModel, property)
+                                    .filter(cat -> cat.equals(dittoCategory))
+                                    .isPresent()
+                    )
+                    .toList();
+
+            if (!sameCategoryProperties.isEmpty() && propertyValue.isObject()) {
+                return validatePropertyCategory(featureThingModel,
+                        Properties.from(sameCategoryProperties),
+                        propertyPath,
+                        !desiredProperty,
+                        propertyValue.asObject(),
+                        containerNamePrefix + "property",
+                        resourcePath,
+                        context
+                );
+            } else {
+                return validateProperty(featureThingModel,
+                        tdProperties,
+                        propertyPath,
+                        !desiredProperty,
+                        propertyValue,
+                        containerNamePrefix + "property <" + propertyPath + ">",
+                        resourcePath,
+                        true,
+                        determineDittoCategories(featureThingModel),
+                        context
+                );
+            }
+        } else {
+            return validateProperty(featureThingModel,
+                    tdProperties,
+                    propertyPath,
+                    !desiredProperty,
+                    propertyValue,
+                    containerNamePrefix + "property <" + propertyPath + ">",
+                    resourcePath,
+                    true,
+                    determineDittoCategories(featureThingModel),
+                    context
+            );
+        }
+    }
+
+    private static Set<String> determineDittoCategories(final ThingModel thingModel) {
+        return determineDittoCategories(thingModel, thingModel.getProperties().orElse(Properties.of(Map.of())));
     }
 
     private static Set<String> determineDittoCategories(final ThingModel thingModel, final Properties properties) {
@@ -333,6 +367,76 @@ final class InternalFeatureValidation {
                                 .stream()
                 )
         ).collect(Collectors.toSet());
+    }
+
+    static CompletableFuture<Void> enforcePresenceOfRequiredPropertiesUponFeatureLevelDeletion(
+            final ThingModel featureThingModel,
+            final String featureId,
+            final JsonPointer resourcePath,
+            final ValidationContext context
+    ) {
+        final JsonPointer propertiesPath =
+                resourcePath.getSubPointer(2).orElse(resourcePath); // cut /features/<featureId>
+
+        final CompletableFuture<Void> firstStage;
+        if (propertiesPath.getLevelCount() > 1) {
+            firstStage = enforcePresenceOfRequiredPropertiesUponPropertyCategoryDeletion(featureThingModel,
+                    featureId,
+                    context,
+                    propertiesPath
+            );
+        } else {
+            firstStage = success();
+        }
+
+        return firstStage.thenCompose(unused ->
+                enforcePresenceOfRequiredPropertiesUponDeletion(
+                        featureThingModel,
+                        propertiesPath,
+                        true,
+                        determineDittoCategories(featureThingModel),
+                        "all Feature <" + featureId + "> properties",
+                        "Feature <" + featureId + "> property",
+                        context
+                )
+        );
+    }
+
+    private static CompletableFuture<Void> enforcePresenceOfRequiredPropertiesUponPropertyCategoryDeletion(
+            final ThingModel featureThingModel,
+            final String featureId,
+            final ValidationContext context,
+            final JsonPointer propertiesPath
+    ) {
+        final Set<String> categories = determineDittoCategories(featureThingModel);
+
+        final String potentialCategory = propertiesPath.get(1).orElseThrow().toString();
+        final boolean isCategoryUpdate = propertiesPath.getLevelCount() == 2 && categories.contains(potentialCategory);
+        if (isCategoryUpdate) {
+            // handle deleting whole category like "/properties/status" - must not be allowed if it contains required properties
+            final boolean containsRequiredProperties = featureThingModel.getProperties()
+                    .map(properties -> Properties.from(properties.values().stream()
+                                    .filter(property -> determineDittoCategory(featureThingModel, property)
+                                            .filter(potentialCategory::equals)
+                                            .isPresent()
+                                    )
+                                    .toList()
+                            )
+                    )
+                    .map(properties -> extractRequiredTmProperties(properties, featureThingModel))
+                    .map(map -> !map.isEmpty())
+                    .orElse(false);
+            if (containsRequiredProperties) {
+                final WotThingModelPayloadValidationException.Builder exceptionBuilder =
+                        WotThingModelPayloadValidationException
+                                .newBuilder("Could not delete Feature <" + featureId + "> properties " +
+                                        "category <" + potentialCategory + "> as it contains non-optional properties");
+                return CompletableFuture.failedFuture(exceptionBuilder
+                        .dittoHeaders(context.dittoHeaders())
+                        .build());
+            }
+        }
+        return success();
     }
 
     static CompletableFuture<Void> enforceFeatureActionPayload(final String featureId,

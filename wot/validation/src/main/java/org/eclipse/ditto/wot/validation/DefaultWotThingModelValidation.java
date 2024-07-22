@@ -18,7 +18,9 @@ import static org.eclipse.ditto.wot.validation.InternalFeatureValidation.enforce
 import static org.eclipse.ditto.wot.validation.InternalFeatureValidation.enforceFeaturePropertiesInAllSubmodels;
 import static org.eclipse.ditto.wot.validation.InternalFeatureValidation.enforceFeatureProperty;
 import static org.eclipse.ditto.wot.validation.InternalFeatureValidation.enforcePresenceOfModeledFeatures;
+import static org.eclipse.ditto.wot.validation.InternalFeatureValidation.enforcePresenceOfRequiredPropertiesUponFeatureLevelDeletion;
 import static org.eclipse.ditto.wot.validation.InternalFeatureValidation.forbidNonModeledFeatures;
+import static org.eclipse.ditto.wot.validation.InternalThingValidation.enforcePresenceOfRequiredPropertiesUponThingLevelDeletion;
 import static org.eclipse.ditto.wot.validation.InternalThingValidation.enforceThingActionPayload;
 import static org.eclipse.ditto.wot.validation.InternalThingValidation.enforceThingAttribute;
 import static org.eclipse.ditto.wot.validation.InternalThingValidation.enforceThingAttributes;
@@ -32,12 +34,14 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Features;
+import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.wot.model.ThingModel;
 import org.eclipse.ditto.wot.validation.config.TmValidationConfig;
 
@@ -86,6 +90,46 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
             );
         }
         return success();
+    }
+
+    @Override
+    public CompletionStage<Void> validateThingScopedDeletion(final ThingModel thingModel,
+            final Map<String, ThingModel> featureThingModels,
+            final JsonPointer resourcePath,
+            final ValidationContext context
+    ) {
+        if (resourcePath.getRoot().filter(DefaultWotThingModelValidation::isConcerningAttributes).isPresent() &&
+                validationConfig.getThingValidationConfig().isEnforceAttributes()
+        ) {
+            return enforcePresenceOfRequiredPropertiesUponThingLevelDeletion(thingModel,
+                    resourcePath,
+                    context
+            );
+        }
+
+        if (resourcePath.getRoot().filter(DefaultWotThingModelValidation::isConcerningFeatures).isPresent() &&
+                validationConfig.getFeatureValidationConfig().isEnforcePresenceOfModeledFeatures() &&
+                resourcePath.getLevelCount() == 1 && !featureThingModels.isEmpty()
+        ) {
+            final WotThingModelPayloadValidationException.Builder exceptionBuilder =
+                    WotThingModelPayloadValidationException
+                            .newBuilder("Could not delete all Features, " +
+                                    "as there are submodels defined as in the Thing's model");
+            return CompletableFuture.failedFuture(exceptionBuilder
+                    .dittoHeaders(context.dittoHeaders())
+                    .build());
+        }
+        // all other cases should not be handled here, but in "validateFeatureScopedDeletion"
+
+        return success();
+    }
+
+    private static boolean isConcerningAttributes(final JsonKey root) {
+        return Thing.JsonFields.ATTRIBUTES.getPointer().getRoot().orElseThrow().equals(root);
+    }
+
+    private static boolean isConcerningFeatures(final JsonKey root) {
+        return Thing.JsonFields.FEATURES.getPointer().getRoot().orElseThrow().equals(root);
     }
 
     @Override
@@ -309,6 +353,38 @@ final class DefaultWotThingModelValidation implements WotThingModelValidation {
                     context
             );
         }
+        return success();
+    }
+
+    @Override
+    public CompletionStage<Void> validateFeatureScopedDeletion(final Map<String, ThingModel> featureThingModels,
+            final ThingModel featureThingModel,
+            final String featureId,
+            final JsonPointer resourcePath,
+            final ValidationContext context
+    ) {
+        if (validationConfig.getFeatureValidationConfig().isEnforcePresenceOfModeledFeatures() &&
+                resourcePath.equals(Thing.JsonFields.FEATURES.getPointer().addLeaf(JsonKey.of(featureId))) &&
+                featureThingModels.containsKey(featureId)
+        ) {
+            final WotThingModelPayloadValidationException.Builder exceptionBuilder =
+                    WotThingModelPayloadValidationException
+                            .newBuilder("Could not delete Feature <" + featureId + ">, " +
+                                    "as it is defined as submodel in the Thing's model");
+            return CompletableFuture.failedFuture(exceptionBuilder
+                    .dittoHeaders(context.dittoHeaders())
+                    .build());
+        }
+
+        if (validationConfig.getFeatureValidationConfig().isEnforceProperties()) {
+            return enforcePresenceOfRequiredPropertiesUponFeatureLevelDeletion(featureThingModel,
+                    featureId,
+                    resourcePath,
+                    context
+            );
+        }
+        // desired properties do not need to be checked, as the "required" definitions do not apply for them
+        //  all desired properties are optional by default
         return success();
     }
 

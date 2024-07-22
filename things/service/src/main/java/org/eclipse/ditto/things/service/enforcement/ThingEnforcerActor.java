@@ -563,7 +563,6 @@ public final class ThingEnforcerActor
     private CompletionStage<MessageCommand<?, ?>> performWotBasedMessageCommandValidation(
             final MessageCommand<?, ?> messageCommand
     ) {
-        // TODO TJ split
         if (isJsonMessageContent(messageCommand.getMessage())) {
             @SuppressWarnings("unchecked") final Message<JsonValue> message =
                     ((MessageCommand<JsonValue, ?>) messageCommand)
@@ -575,62 +574,14 @@ public final class ThingEnforcerActor
                     .orElse(null);
 
             if (messageCommand instanceof SendThingMessage<?> sendThingMessage) {
-                return resolveThingDefinition()
-                        .thenCompose(optThingDefinition -> {
-                            if (messageDirection == MessageDirection.TO) {
-                                return thingModelValidator.validateThingActionInput(
-                                        optThingDefinition.orElse(null),
-                                        sendThingMessage.getMessage().getSubject(),
-                                        messageCommandPayload,
-                                        sendThingMessage.getResourcePath(),
-                                        sendThingMessage.getDittoHeaders()
-                                );
-                            } else if (messageDirection == MessageDirection.FROM) {
-                                return thingModelValidator.validateThingEventData(
-                                        optThingDefinition.orElse(null),
-                                        sendThingMessage.getMessage().getSubject(),
-                                        messageCommandPayload,
-                                        sendThingMessage.getResourcePath(),
-                                        sendThingMessage.getDittoHeaders()
-                                );
-                            } else {
-                                return CompletableFuture.failedStage(DittoInternalErrorException.newBuilder()
-                                        .message("Unknown message direction")
-                                        .dittoHeaders(messageCommand.getDittoHeaders())
-                                        .build()
-                                );
-                            }
-                        }).thenApply(aVoid -> messageCommand);
+                return performWotBasedThingMessageValidation(messageCommand, sendThingMessage, messageDirection,
+                        messageCommandPayload
+                ).thenApply(aVoid -> messageCommand);
             } else if (messageCommand instanceof SendFeatureMessage<?> sendFeatureMessage) {
                 final String featureId = sendFeatureMessage.getFeatureId();
-                return resolveFeatureDefinition(featureId)
-                        .thenCompose(optFeatureDefinition -> {
-                            if (messageDirection == MessageDirection.TO) {
-                                return thingModelValidator.validateFeatureActionInput(
-                                        optFeatureDefinition.orElse(null),
-                                        featureId,
-                                        sendFeatureMessage.getMessage().getSubject(),
-                                        messageCommandPayload,
-                                        sendFeatureMessage.getResourcePath(),
-                                        sendFeatureMessage.getDittoHeaders()
-                                );
-                            } else if (messageDirection == MessageDirection.FROM) {
-                                return thingModelValidator.validateFeatureEventData(
-                                        optFeatureDefinition.orElse(null),
-                                        featureId,
-                                        sendFeatureMessage.getMessage().getSubject(),
-                                        messageCommandPayload,
-                                        sendFeatureMessage.getResourcePath(),
-                                        sendFeatureMessage.getDittoHeaders()
-                                );
-                            } else {
-                                return CompletableFuture.failedStage(DittoInternalErrorException.newBuilder()
-                                        .message("Unknown message direction")
-                                        .dittoHeaders(messageCommand.getDittoHeaders())
-                                        .build()
-                                );
-                            }
-                        }).thenApply(aVoid -> messageCommand);
+                return performWotBasedFeatureMessageValidation(messageCommand, sendFeatureMessage, featureId,
+                        messageDirection, messageCommandPayload
+                ).thenApply(aVoid -> messageCommand);
 
             } else {
                 return CompletableFuture.completedFuture(messageCommand);
@@ -638,6 +589,75 @@ public final class ThingEnforcerActor
         } else {
             return CompletableFuture.completedFuture(messageCommand);
         }
+    }
+
+    private CompletionStage<Void> performWotBasedThingMessageValidation(final MessageCommand<?, ?> messageCommand,
+            final SendThingMessage<?> sendThingMessage,
+            final MessageDirection messageDirection,
+            @Nullable final JsonValue messageCommandPayload
+    ) {
+        return resolveThingDefinition()
+                .thenCompose(optThingDefinition -> {
+                    if (messageDirection == MessageDirection.TO) {
+                        return thingModelValidator.validateThingActionInput(
+                                optThingDefinition.orElse(null),
+                                sendThingMessage.getMessage().getSubject(),
+                                messageCommandPayload,
+                                sendThingMessage.getResourcePath(),
+                                sendThingMessage.getDittoHeaders()
+                        );
+                    } else if (messageDirection == MessageDirection.FROM) {
+                        return thingModelValidator.validateThingEventData(
+                                optThingDefinition.orElse(null),
+                                sendThingMessage.getMessage().getSubject(),
+                                messageCommandPayload,
+                                sendThingMessage.getResourcePath(),
+                                sendThingMessage.getDittoHeaders()
+                        );
+                    } else {
+                        return CompletableFuture.failedStage(DittoInternalErrorException.newBuilder()
+                                .message("Unknown message direction")
+                                .dittoHeaders(messageCommand.getDittoHeaders())
+                                .build()
+                        );
+                    }
+                });
+    }
+
+    private CompletionStage<Void> performWotBasedFeatureMessageValidation(final MessageCommand<?, ?> messageCommand,
+            final SendFeatureMessage<?> sendFeatureMessage,
+            final String featureId,
+            final MessageDirection messageDirection,
+            @Nullable final JsonValue messageCommandPayload
+    ) {
+        return resolveFeatureDefinition(featureId)
+                .thenCompose(optFeatureDefinition -> {
+                    if (messageDirection == MessageDirection.TO) {
+                        return thingModelValidator.validateFeatureActionInput(
+                                optFeatureDefinition.orElse(null),
+                                featureId,
+                                sendFeatureMessage.getMessage().getSubject(),
+                                messageCommandPayload,
+                                sendFeatureMessage.getResourcePath(),
+                                sendFeatureMessage.getDittoHeaders()
+                        );
+                    } else if (messageDirection == MessageDirection.FROM) {
+                        return thingModelValidator.validateFeatureEventData(
+                                optFeatureDefinition.orElse(null),
+                                featureId,
+                                sendFeatureMessage.getMessage().getSubject(),
+                                messageCommandPayload,
+                                sendFeatureMessage.getResourcePath(),
+                                sendFeatureMessage.getDittoHeaders()
+                        );
+                    } else {
+                        return CompletableFuture.failedStage(DittoInternalErrorException.newBuilder()
+                                .message("Unknown message direction")
+                                .dittoHeaders(messageCommand.getDittoHeaders())
+                                .build()
+                        );
+                    }
+                });
     }
 
     private CompletionStage<MessageCommandResponse<?, ?>> performWotBasedMessageCommandResponseValidation(

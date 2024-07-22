@@ -31,6 +31,7 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
     private static final String CONFIG_PATH = "feature";
 
     private final boolean enforceFeatureDescriptionModification;
+    private final boolean forbidFeatureDescriptionDeletion;
     private final boolean enforcePresenceOfModeledFeatures;
     private final boolean forbidNonModeledFeatures;
     private final boolean enforceProperties;
@@ -46,6 +47,8 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
     private DefaultFeatureValidationConfig(final ScopedConfig scopedConfig) {
         enforceFeatureDescriptionModification =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_FEATURE_DESCRIPTION_MODIFICATION.getConfigPath());
+        forbidFeatureDescriptionDeletion =
+                scopedConfig.getBoolean(ConfigValue.FORBID_FEATURE_DESCRIPTION_DELETION.getConfigPath());
         enforcePresenceOfModeledFeatures =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_PRESENCE_OF_MODELED_FEATURES.getConfigPath());
         forbidNonModeledFeatures =
@@ -85,6 +88,11 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
     @Override
     public boolean isEnforceFeatureDescriptionModification() {
         return enforceFeatureDescriptionModification;
+    }
+
+    @Override
+    public boolean isForbidFeatureDescriptionDeletion() {
+        return forbidFeatureDescriptionDeletion;
     }
 
     @Override
@@ -148,6 +156,7 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
         if (o == null || getClass() != o.getClass()) return false;
         final DefaultFeatureValidationConfig that = (DefaultFeatureValidationConfig) o;
         return enforcePresenceOfModeledFeatures == that.enforcePresenceOfModeledFeatures &&
+                forbidFeatureDescriptionDeletion == that.forbidFeatureDescriptionDeletion &&
                 forbidNonModeledFeatures == that.forbidNonModeledFeatures &&
                 enforceProperties == that.enforceProperties &&
                 forbidNonModeledProperties == that.forbidNonModeledProperties &&
@@ -161,16 +170,17 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(enforcePresenceOfModeledFeatures, forbidNonModeledFeatures, enforceProperties,
-                forbidNonModeledProperties, enforceDesiredProperties, forbidNonModeledDesiredProperties,
-                enforceInboxMessagesInput, enforceInboxMessagesOutput, forbidNonModeledInboxMessages,
-                enforceOutboxMessages, forbidNonModeledOutboxMessages);
+        return Objects.hash(enforcePresenceOfModeledFeatures, forbidFeatureDescriptionDeletion,
+                forbidNonModeledFeatures, enforceProperties, forbidNonModeledProperties, enforceDesiredProperties,
+                forbidNonModeledDesiredProperties, enforceInboxMessagesInput, enforceInboxMessagesOutput,
+                forbidNonModeledInboxMessages, enforceOutboxMessages, forbidNonModeledOutboxMessages);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "enforcePresenceOfModeledFeatures=" + enforcePresenceOfModeledFeatures +
+                ", forbidFeatureDescriptionDeletion=" + forbidFeatureDescriptionDeletion +
                 ", forbidNonModeledFeatures=" + forbidNonModeledFeatures +
                 ", enforceProperties=" + enforceProperties +
                 ", forbidNonModeledProperties=" + forbidNonModeledProperties +

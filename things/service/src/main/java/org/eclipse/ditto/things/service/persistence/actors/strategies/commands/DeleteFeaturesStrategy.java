@@ -13,7 +13,6 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -59,10 +58,21 @@ final class DeleteFeaturesStrategy extends AbstractThingModifyCommandStrategy<De
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return extractFeatures(thing)
-                .map(features ->
-                        ResultFactory.<ThingEvent<?>>newMutationResult(command,
-                                getEventToPersist(context, nextRevision, dittoHeaders, metadata),
-                                getResponse(context, command, thing))
+                .map(features -> {
+                            final CompletionStage<DeleteFeatures> validatedStage = buildValidatedStage(command, thing);
+                            final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(deleteFeatures ->
+                                    FeaturesDeleted.of(context.getState(), nextRevision, getEventTimestamp(),
+                                            dittoHeaders, metadata)
+                            );
+                            final CompletionStage<WithDittoHeaders> responseStage = validatedStage
+                                    .thenApply(deleteFeatures ->
+                                            appendETagHeaderIfProvided(deleteFeatures,
+                                                    DeleteFeaturesResponse.of(context.getState(), command.getDittoHeaders()),
+                                                    thing)
+                                    );
+
+                            return ResultFactory.newMutationResult(command, eventStage, responseStage);
+                        }
                 )
                 .orElseGet(() ->
                         ResultFactory.newErrorResult(ExceptionFactory.featuresNotFound(context.getState(),
@@ -74,24 +84,17 @@ final class DeleteFeaturesStrategy extends AbstractThingModifyCommandStrategy<De
             final DeleteFeatures command,
             @Nullable final Thing thing
     ) {
-        // TODO TJ validate if allowed
-        return CompletableFuture.completedFuture(command);
+        return wotThingModelValidator.validateThingScopedDeletion(
+                Optional.ofNullable(thing)
+                        .flatMap(Thing::getDefinition)
+                        .orElse(null),
+                command.getResourcePath(),
+                command.getDittoHeaders()
+        ).thenApply(aVoid -> command);
     }
 
-    private Optional<Features> extractFeatures(final @Nullable Thing thing) {
+    private Optional<Features> extractFeatures(@Nullable final Thing thing) {
         return getEntityOrThrow(thing).getFeatures();
-    }
-
-    private static ThingEvent<?> getEventToPersist(final Context<ThingId> context, final long nextRevision,
-            final DittoHeaders dittoHeaders, @Nullable final Metadata metadata) {
-
-        return FeaturesDeleted.of(context.getState(), nextRevision, getEventTimestamp(), dittoHeaders, metadata);
-    }
-
-    private WithDittoHeaders getResponse(final Context<ThingId> context, final DeleteFeatures command,
-            @Nullable final Thing thing) {
-        return appendETagHeaderIfProvided(command,
-                DeleteFeaturesResponse.of(context.getState(), command.getDittoHeaders()), thing);
     }
 
     @Override

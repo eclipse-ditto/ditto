@@ -30,6 +30,11 @@ public interface FeatureValidationConfig {
     boolean isEnforceFeatureDescriptionModification();
 
     /**
+     * @return whether to forbid deletion of a Feature's {@code description}.
+     */
+    boolean isForbidFeatureDescriptionDeletion();
+
+    /**
      * @return whether to enforce that all modeled features (submodels referenced in the Thing's {@code definition}'s
      * WoT model) are present.
      */
@@ -94,6 +99,8 @@ public interface FeatureValidationConfig {
     enum ConfigValue implements KnownConfigValue {
 
         ENFORCE_FEATURE_DESCRIPTION_MODIFICATION("enforce-feature-description-modification", false),
+
+        FORBID_FEATURE_DESCRIPTION_DELETION("forbid-feature-description-deletion", true),
 
         ENFORCE_PRESENCE_OF_MODELED_FEATURES("enforce-presence-of-modeled-features", true),
 

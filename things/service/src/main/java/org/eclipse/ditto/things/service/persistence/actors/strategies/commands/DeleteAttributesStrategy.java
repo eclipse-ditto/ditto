@@ -13,7 +13,6 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -66,8 +65,13 @@ final class DeleteAttributesStrategy extends AbstractThingModifyCommandStrategy<
     protected CompletionStage<DeleteAttributes> performWotValidation(final DeleteAttributes command,
             @Nullable final Thing thing
     ) {
-        // TODO TJ validate if allowed
-        return CompletableFuture.completedFuture(command);
+        return wotThingModelValidator.validateThingScopedDeletion(
+                Optional.ofNullable(thing)
+                        .flatMap(Thing::getDefinition)
+                        .orElse(null),
+                command.getResourcePath(),
+                command.getDittoHeaders()
+        ).thenApply(aVoid -> command);
     }
 
     private Optional<Attributes> extractAttributes(final @Nullable Thing thing) {
@@ -79,11 +83,15 @@ final class DeleteAttributesStrategy extends AbstractThingModifyCommandStrategy<
         final ThingId thingId = context.getState();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                DeleteAttributesResponse.of(thingId, dittoHeaders), thing);
+        final CompletionStage<DeleteAttributes> validatedStage = buildValidatedStage(command, thing);
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(deleteAttributes ->
+                AttributesDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders, metadata)
+        );
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(deleteAttributes ->
+                appendETagHeaderIfProvided(deleteAttributes, DeleteAttributesResponse.of(thingId, dittoHeaders), thing)
+        );
 
-        return ResultFactory.newMutationResult(command,
-                AttributesDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders, metadata), response);
+        return ResultFactory.newMutationResult(command, eventStage, responseStage);
     }
 
     @Override

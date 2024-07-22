@@ -14,6 +14,7 @@ package org.eclipse.ditto.wot.validation;
 
 import static org.eclipse.ditto.wot.validation.InternalValidation.enforceActionPayload;
 import static org.eclipse.ditto.wot.validation.InternalValidation.enforceEventPayload;
+import static org.eclipse.ditto.wot.validation.InternalValidation.enforcePresenceOfRequiredPropertiesUponDeletion;
 import static org.eclipse.ditto.wot.validation.InternalValidation.ensureOnlyDefinedActions;
 import static org.eclipse.ditto.wot.validation.InternalValidation.ensureOnlyDefinedEvents;
 import static org.eclipse.ditto.wot.validation.InternalValidation.ensureOnlyDefinedProperties;
@@ -22,6 +23,7 @@ import static org.eclipse.ditto.wot.validation.InternalValidation.success;
 import static org.eclipse.ditto.wot.validation.InternalValidation.validateProperties;
 import static org.eclipse.ditto.wot.validation.InternalValidation.validateProperty;
 
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
@@ -94,7 +96,6 @@ final class InternalThingValidation {
             final JsonPointer resourcePath,
             final ValidationContext context
     ) {
-
         return thingModel.getProperties()
                 .map(tdProperties -> {
                     final Attributes attributes = Attributes.newBuilder().set(attributePath, attributeValue).build();
@@ -118,6 +119,7 @@ final class InternalThingValidation {
                             attributeValue,
                             "Thing's attribute <" + attributePath + ">", resourcePath,
                             false,
+                            Set.of(),
                             context
                     );
 
@@ -126,6 +128,22 @@ final class InternalThingValidation {
                             validatePropertiesStage
                     );
                 }).orElseGet(InternalValidation::success);
+    }
+
+    static CompletableFuture<Void> enforcePresenceOfRequiredPropertiesUponThingLevelDeletion(
+            final ThingModel thingModel,
+            final JsonPointer resourcePath,
+            final ValidationContext context
+    ) {
+        return enforcePresenceOfRequiredPropertiesUponDeletion(
+                thingModel,
+                resourcePath,
+                false,
+                Set.of(),
+                "all Thing attributes",
+                "Thing attribute",
+                context
+        );
     }
 
     static CompletableFuture<Void> enforceThingActionPayload(final ThingModel thingModel,

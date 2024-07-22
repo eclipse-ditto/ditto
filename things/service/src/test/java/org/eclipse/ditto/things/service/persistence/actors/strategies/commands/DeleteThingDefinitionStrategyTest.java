@@ -52,7 +52,7 @@ public final class DeleteThingDefinitionStrategyTest extends AbstractCommandStra
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final DeleteThingDefinition command = DeleteThingDefinition.of(context.getState(), DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2, command,
+        assertStagedModificationResult(underTest, THING_V2, command,
                 ThingDefinitionDeleted.class,
                 DeleteThingDefinitionResponse.of(context.getState(), command.getDittoHeaders()));
     }

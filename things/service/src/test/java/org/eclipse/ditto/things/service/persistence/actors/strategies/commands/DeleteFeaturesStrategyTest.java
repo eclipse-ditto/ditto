@@ -52,7 +52,7 @@ public final class DeleteFeaturesStrategyTest extends AbstractCommandStrategyTes
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final DeleteFeatures command = DeleteFeatures.of(context.getState(), DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2, command,
+        assertStagedModificationResult(underTest, THING_V2, command,
                 FeaturesDeleted.class,
                 DeleteFeaturesResponse.of(context.getState(), command.getDittoHeaders()));
     }

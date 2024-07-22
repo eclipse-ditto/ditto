@@ -71,6 +71,23 @@ public interface WotThingModelValidation {
     );
 
     /**
+     * Validates a deletion inside a thing on "thing" scope, e.g. all attributes, a single attribute or all features.
+     *
+     * @param thingModel the ThingModel to validate against
+     * @param featureThingModels a Map of submodels with their {@code instanceName} as key and their resolved
+     * {@code ThingModel} as value
+     * @param resourcePath the originating path of the command which caused validation
+     * @param context the validation context to use, e.g. for dynamic configuration and to access the ditto headers
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
+     */
+    CompletionStage<Void> validateThingScopedDeletion(ThingModel thingModel,
+            Map<String, ThingModel> featureThingModels,
+            JsonPointer resourcePath,
+            ValidationContext context
+    );
+
+    /**
      * Validates the {@code inputPayload} of an inbox message (a WoT action) sent TO a Thing.
      *
      * @param thingModel the ThingModel to validate against
@@ -229,6 +246,24 @@ public interface WotThingModelValidation {
             JsonPointer propertyPointer,
             JsonValue propertyValue,
             boolean desiredProperty,
+            JsonPointer resourcePath,
+            ValidationContext context
+    );
+
+    /**
+     * Validates a deletion inside a thing on "feature" scope, e.g. all feature properties or a single feature property.
+     *
+     * @param featureThingModels a Map of submodels with their {@code instanceName} as key and their resolved
+     * {@code ThingModel} as value
+     * @param featureThingModel the feature's ThingModel to validate against
+     * @param resourcePath the originating path of the command which caused validation
+     * @param context the validation context to use, e.g. for dynamic configuration and to access the ditto headers
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link WotThingModelPayloadValidationException}
+     */
+    CompletionStage<Void> validateFeatureScopedDeletion(Map<String, ThingModel> featureThingModels,
+            ThingModel featureThingModel,
+            String featureId,
             JsonPointer resourcePath,
             ValidationContext context
     );

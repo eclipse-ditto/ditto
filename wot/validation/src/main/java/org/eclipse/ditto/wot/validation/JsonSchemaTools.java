@@ -39,6 +39,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.cbor.databind.CBORMapper;
 import com.networknt.schema.JsonMetaSchema;
+import com.networknt.schema.JsonNodePath;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.NonValidationKeyword;
@@ -151,13 +152,26 @@ final class JsonSchemaTools {
     ) {
         final JsonSchema jsonSchema =
                 extractFromSingleDataSchema(dataSchema, validateRequiredObjectFields, dittoHeaders);
+
         final JsonPointer relativePropertyPath;
+        final JsonSchema relativeSchema;
         if (pointerPath.getLevelCount() > 1) {
             relativePropertyPath = pointerPath.getSubPointer(1).orElseThrow();
+            JsonNodePath fullSubPath = new JsonNodePath(PathType.JSON_POINTER);
+            for (int i = 0; i < relativePropertyPath.getLevelCount(); i++) {
+                // adding "properties" only works if we always deal with "object" schemas ..
+                //  which however is the only way Ditto allows to use JsonPointer notation
+                //  accessing array elements is not supported in Ditto
+                fullSubPath = fullSubPath
+                        .append("properties")
+                        .append(relativePropertyPath.get(i).orElseThrow().toString());
+            }
+            relativeSchema = jsonSchema.getSubSchema(fullSubPath);
         } else {
             relativePropertyPath = JsonPointer.empty();
+            relativeSchema = jsonSchema;
         }
-        return validateDittoJson(jsonSchema, relativePropertyPath, jsonValue, dittoHeaders);
+        return validateDittoJson(relativeSchema, relativePropertyPath, jsonValue, dittoHeaders);
     }
 
     OutputUnit validateDittoJson(final JsonSchema jsonSchema,

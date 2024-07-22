@@ -111,6 +111,19 @@ public interface WotThingModelValidator {
     );
 
     /**
+     * Validates if the deletion of the Thing's {@code thingDefinition} is allowed to do.
+     * Does so by just checking the configuration.
+     *
+     * @param thingDefinition the ThingDefinition to delete
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException}
+     */
+    CompletionStage<Void> validateThingDefinitionDeletion(ThingDefinition thingDefinition,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
      * Validates the provided {@code attributes} against on the provided {@code thingDefinition}
      * (if this links to a WoT TM).
      *
@@ -160,6 +173,20 @@ public interface WotThingModelValidator {
     CompletionStage<Void> validateThingAttribute(@Nullable ThingDefinition thingDefinition,
             JsonPointer attributePointer,
             JsonValue attributeValue,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * Validates a deletion inside a thing on "thing" scope, e.g. all attributes, a single attribute or all features.
+     *
+     * @param thingDefinition the ThingDefinition to retrieve the WoT TM from
+     * @param resourcePath the originating path of the command which caused validation
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException}
+     */
+    CompletionStage<Void> validateThingScopedDeletion(@Nullable ThingDefinition thingDefinition,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders
     );
@@ -312,6 +339,23 @@ public interface WotThingModelValidator {
     );
 
     /**
+     * Validates if the deletion of a Feature's {@code featureDefinition} is allowed to do.
+     * Does so by just checking the configuration.
+     *
+     * @param thingDefinition the ThingDefinition of the Thing in which the FeatureDefinition should be deleted
+     * @param featureDefinition the FeatureDefinition to delete
+     * @param featureId the ID of the feature to validate the deletion in
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException}
+     */
+    CompletionStage<Void> validateFeatureDefinitionDeletion(@Nullable ThingDefinition thingDefinition,
+            FeatureDefinition featureDefinition,
+            String featureId,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
      * Validates the provided {@code featureProperties} against the provided {@code featureDefinition}
      * (if this links to a WoT TM).
      *
@@ -374,6 +418,24 @@ public interface WotThingModelValidator {
             JsonPointer propertyPointer,
             JsonValue propertyValue,
             boolean desiredProperty,
+            JsonPointer resourcePath,
+            DittoHeaders dittoHeaders
+    );
+
+    /**
+     * Validates a deletion inside a thing on "feature" scope, e.g. all feature properties or a single feature property.
+     *
+     * @param thingDefinition the ThingDefinition to retrieve the WoT TM for the thing from
+     * @param featureDefinition the FeatureDefinition to retrieve the WoT TM for the feature from
+     * @param featureId the ID of the feature to validate the deletion for
+     * @param resourcePath the originating path of the command which caused validation
+     * @param dittoHeaders the DittoHeaders to use in order to build a potential exception
+     * @return a CompletionStage finished successfully with {@code null} or finished exceptionally in case of a
+     * validation error - exceptionally finished with a {@link org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException}
+     */
+    CompletionStage<Void> validateFeatureScopedDeletion(@Nullable ThingDefinition thingDefinition,
+            @Nullable FeatureDefinition featureDefinition,
+            String featureId,
             JsonPointer resourcePath,
             DittoHeaders dittoHeaders
     );
