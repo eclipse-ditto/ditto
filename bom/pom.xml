@@ -59,6 +59,9 @@
         <!-- Keep these version consistent with pekko-persistence-mongodb.version's build.sbt -->
         <mongo-java-driver.version>5.1.1</mongo-java-driver.version>
 
+        <!-- AWS SDK version needed for MongoDB AWS IAM authentication -->
+        <awssdk.version>2.26.21</awssdk.version>
+
         <jjwt.version>0.12.5</jjwt.version>
         <asm.version>9.2</asm.version>
         <qpid-jms-client.version>1.11.0</qpid-jms-client.version>
@@ -205,7 +208,6 @@
                 <artifactId>mongo-scala-driver_2.13</artifactId>
                 <version>${mongo-java-driver.version}</version>
             </dependency>
-
 
             <!-- Pekko Management -->
             <dependency>
@@ -801,6 +803,18 @@
                 <groupId>org.atteo.classindex</groupId>
                 <artifactId>classindex</artifactId>
                 <version>${classindex.version}</version>
+            </dependency>
+
+            <!-- ### aws sdk ### -->
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>sts</artifactId>
+                <version>${awssdk.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>auth</artifactId>
+                <version>${awssdk.version}</version>
             </dependency>
 
             <!-- ### Provided - own artifacts ### -->

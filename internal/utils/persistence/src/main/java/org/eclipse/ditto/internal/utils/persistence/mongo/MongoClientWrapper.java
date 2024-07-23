@@ -25,11 +25,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.net.ssl.SSLContext;
 
-import org.bson.Document;
-import org.bson.conversions.Bson;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
-import org.reactivestreams.Publisher;
-
 import com.mongodb.ClientSessionOptions;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
@@ -37,6 +32,12 @@ import com.mongodb.ReadConcern;
 import com.mongodb.ReadPreference;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcern;
+import com.mongodb.MongoCredential;
+import org.bson.Document;
+import org.bson.conversions.Bson;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.reactivestreams.Publisher;
+
 import com.mongodb.connection.ClusterDescription;
 import com.mongodb.connection.ServerDescription;
 import com.mongodb.connection.TransportSettings;
@@ -53,6 +54,9 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
+import software.amazon.awssdk.auth.credentials.AwsCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 
 /**
  * Default implementation of DittoMongoClient.
@@ -259,6 +263,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
         @Nullable private ConnectionString connectionString;
         private String defaultDatabaseName;
         private boolean sslEnabled;
+        private boolean isUseAwsIamRole;
         @Nullable private EventLoopGroup eventLoopGroup;
 
         private MongoClientWrapperBuilder() {
@@ -307,12 +312,18 @@ public final class MongoClientWrapper implements DittoMongoClient {
 
             final MongoDbConfig.OptionsConfig optionsConfig = mongoDbConfig.getOptionsConfig();
             builder.enableSsl(optionsConfig.isSslEnabled());
+            builder.useAwsIamRole(optionsConfig.isUseAwsIamRole());
             builder.setReadPreference(optionsConfig.readPreference().getMongoReadPreference());
             builder.setReadConcern(optionsConfig.readConcern().getMongoReadConcern());
             builder.setWriteConcern(optionsConfig.writeConcern());
             builder.setRetryWrites(optionsConfig.isRetryWrites());
 
             return builder;
+        }
+
+        public MongoClientWrapperBuilder useAwsIamRole(boolean useAwsIamRole) {
+            this.isUseAwsIamRole = useAwsIamRole;
+            return this;
         }
 
         @Override
@@ -440,6 +451,10 @@ public final class MongoClientWrapper implements DittoMongoClient {
         public MongoClientWrapper build() {
             buildAndApplySslSettings();
 
+            if (isUseAwsIamRole) {
+                applyAwsIamRoleSettings();
+            }
+
             return new MongoClientWrapper(mongoClientSettingsBuilder.build(), defaultDatabaseName,
                     dittoMongoClientSettingsBuilder.build(), eventLoopGroup);
         }
@@ -476,6 +491,18 @@ public final class MongoClientWrapper implements DittoMongoClient {
             return result;
         }
 
-    }
+        private void applyAwsIamRoleSettings() {
+            final AwsCredentialsProvider credentialsProvider = getAwsCredentialsProvider();
+            final AwsCredentials credentials = credentialsProvider.resolveCredentials();
+            final MongoCredential credential = MongoCredential.createAwsCredential(
+                    credentials.accessKeyId(),
+                    credentials.secretAccessKey().toCharArray()
+            );
+            mongoClientSettingsBuilder.credential(credential);
+        }
 
+        private static AwsCredentialsProvider getAwsCredentialsProvider() {
+            return DefaultCredentialsProvider.create();
+        }
+    }
 }

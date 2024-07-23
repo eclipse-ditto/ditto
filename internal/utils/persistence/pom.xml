@@ -162,6 +162,14 @@
             <groupId>org.apache.pekko</groupId>
             <artifactId>pekko-persistence-query_${scala.version}</artifactId>
         </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>sts</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>auth</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
