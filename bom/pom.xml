@@ -59,7 +59,6 @@
         <!-- Keep these version consistent with pekko-persistence-mongodb.version's build.sbt -->
         <mongo-java-driver.version>5.1.1</mongo-java-driver.version>
 
-        <mongo-driver-sync.version>5.1.2</mongo-driver-sync.version>
 
         <jjwt.version>0.12.5</jjwt.version>
         <asm.version>9.2</asm.version>
@@ -207,11 +206,6 @@
                 <groupId>org.mongodb.scala</groupId>
                 <artifactId>mongo-scala-driver_2.13</artifactId>
                 <version>${mongo-java-driver.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.mongodb</groupId>
-                <artifactId>mongodb-driver-sync</artifactId>
-                <version>${mongo-driver-sync.version}</version>
             </dependency>
 
             <!-- Pekko Management -->
