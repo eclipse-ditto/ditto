@@ -585,6 +585,92 @@ In Prometheus format this would look like:
 ```
 all_produced_and_not_installed_devices{company="acme-corp"} 42.0
 ```
+### Operator defined custom search based metrics
+Starting with Ditto 3.6.0, the "custom metrics" functionality is extended to support search based metrics.  
+This is configured via the [search](architecture-services-things-search.html) service configuration and builds on the
+[search things](basic-search.html#search-queries) functionality.
+
+Now you can augment the statistic about "Things" managed in Ditto
+fulfilling a certain condition with tags with either predefined values or values retrieved from the things. 
+
+This would be an example search service configuration snippet for e.g. providing a metric named
+`online_devices` defining a query on the values of a `ConnectionStatus` feature:
+```hocon
+ditto {
+  search {
+    operator-metrics {
+      enabled = true
+      scrape-interval = 30m
+      custom-metrics {
+        ...
+      }
+      custom-search-metrics {
+        online_status {
+          enabled = true
+          scrape-interval = 20m # override scrape interval, run every 20 minute
+          namespaces = [
+            "org.eclipse.ditto"
+          ]
+          tags: {
+            "online" = "{{online_placeholder}}"
+            "location" = "{{attributes/Info/location}}"
+          }
+          filters = {
+            online-filter = {
+              filter = "gt(features/ConnectionStatus/properties/status/readyUntil/,time:now)"
+              inline-placeholder-values = {
+                // inline-placeholder-values are used to define hardcoded values to be used in the tags values if the placeholders are not json paths to an actual field in the thing
+                // this is used to define different tags values based on the filter that matched the thing
+                "online_placeholder" = true
+              }
+              // in order to do placeholder resolving from thing fields, the fields should be defined in the fields array
+              // by default only the thingId is available for placeholder resolving
+              fields = ["attributes/Info/location"]
+              // The metric-value is used to define the value of the metric for the thing that matched the filter.
+              // It does not support placeholders and should be a numeric value
+            }
+            offline-filter = {
+              filter = "lt(features/ConnectionStatus/properties/status/readyUntil/,time:now)"
+              inline-placeholder-values = {
+                "online_placeholder" = false
+              }
+              fields = ["attributes/Info/location"]
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+To add custom metrics via System properties, the following example shows how the above metric can be configured:
+```
+-Dditto.search.operator-metrics.custom-search-metrics.online_status.enabled=true
+-Dditto.search.operator-metrics.custom-search-metrics.online_status.scrape-interval=20m
+-Dditto.search.operator-metrics.custom-search-metrics.online_status.namespaces.0=org.eclipse.ditto
+-Dditto.search.operator-metrics.custom-search-metrics.online_status.tags.online="{{online_placeholder}}"
+-Dditto.search.operator-metrics.custom-search-metrics.online_status.tags.location="{{attributes/Info/location}}"
+
+-Dditto.search.operator-metrics.custom-search-metrics.online_status.filters.online-filter.filter=gt(features/ConnectionStatus/properties/status/readyUntil/,time:now)
+-Dditto.search.operator-metrics.custom-search-metrics.online_status.filters.online-filter.inline-placeholder-values.online_placeholder=true
+-Dditto.search.operator-metrics.custom-search-metrics.online_status.filters.online-filter.fields.0=attributes/Info/location
+
+-Dditto.search.operator-metrics.custom-search-metrics.online_status.filters.offline-filter.filter=lt(features/ConnectionStatus/properties/status/readyUntil/,time:now)
+-Dditto.search.operator-metrics.custom-search-metrics.online_status.filters.offline-filter.inline-placeholder-values.online_placeholder=false
+-Dditto.search.operator-metrics.custom-search-metrics.online_status.filters.offline-filter.fields.0=attributes/Info/location
+
+```
+
+Ditto will perform a [search things operation](basic-search.html#search-queries) every `20m` (20 minutes), providing
+a gauge named `online_devices` with the value of devices that match the filter. 
+The tags `online` and `location` will be added.
+Their values will be resolved from the placeholders `{{online_placeholder}}` and `{{attributes/Info/location}}` respectively.
+
+In Prometheus format this would look like:
+```
+online_status{location="Berlin",online="false"} 6.0
+online_status{location="Immenstaad",online="true"} 8.0
 
 ## Tracing
 
