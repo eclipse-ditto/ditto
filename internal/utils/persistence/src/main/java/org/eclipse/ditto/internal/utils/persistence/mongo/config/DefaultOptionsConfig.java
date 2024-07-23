@@ -39,6 +39,7 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
      */
     static final String CONFIG_PATH = "options";
 
+    private final boolean useAwsIamRole;
     private final boolean sslEnabled;
     private final ReadPreference readPreference;
     private final ReadConcern readConcern;
@@ -47,6 +48,7 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
     private final Map<String, Object> extraUriOptions;
 
     private DefaultOptionsConfig(final ScopedConfig config) {
+        useAwsIamRole = config.getBoolean(OptionsConfigValue.USE_AWS_IAM_ROLE.getConfigPath());
         sslEnabled = config.getBoolean(OptionsConfigValue.SSL_ENABLED.getConfigPath());
         final var readPreferenceString = config.getString(OptionsConfigValue.READ_PREFERENCE.getConfigPath());
         readPreference = ReadPreference.ofReadPreference(readPreferenceString)
@@ -116,6 +118,11 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
     @Override
     public boolean isRetryWrites() {
         return retryWrites;
+    }
+
+    @Override
+    public boolean isUseAwsIamRole() {
+        return useAwsIamRole;
     }
 
     @Override
