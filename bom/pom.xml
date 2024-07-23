@@ -59,6 +59,8 @@
         <!-- Keep these version consistent with pekko-persistence-mongodb.version's build.sbt -->
         <mongo-java-driver.version>5.1.1</mongo-java-driver.version>
 
+        <!-- AWS SDK version needed for MongoDB AWS IAM authentication -->
+        <awssdk.version>2.26.21</awssdk.version>
 
         <jjwt.version>0.12.5</jjwt.version>
         <asm.version>9.2</asm.version>
@@ -112,7 +114,6 @@
         <scalatest.version>3.2.17</scalatest.version>
         <docker-java.version>3.3.3</docker-java.version>
         <system-rules.version>1.19.0</system-rules.version>
-        <awssdk.version>2.26.21</awssdk.version>
     </properties>
 
     <dependencyManagement>

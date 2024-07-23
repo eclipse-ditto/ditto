@@ -25,7 +25,14 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.net.ssl.SSLContext;
 
-import com.mongodb.*;
+import com.mongodb.ClientSessionOptions;
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.ReadConcern;
+import com.mongodb.ReadPreference;
+import com.mongodb.ServerAddress;
+import com.mongodb.WriteConcern;
+import com.mongodb.MongoCredential;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
@@ -485,9 +492,9 @@ public final class MongoClientWrapper implements DittoMongoClient {
         }
 
         private void applyAwsIamRoleSettings() {
-            AwsCredentialsProvider credentialsProvider = getAwsCredentialsProvider();
-            AwsCredentials credentials = credentialsProvider.resolveCredentials();
-            MongoCredential credential = MongoCredential.createAwsCredential(
+            final AwsCredentialsProvider credentialsProvider = getAwsCredentialsProvider();
+            final AwsCredentials credentials = credentialsProvider.resolveCredentials();
+            final MongoCredential credential = MongoCredential.createAwsCredential(
                     credentials.accessKeyId(),
                     credentials.secretAccessKey().toCharArray()
             );

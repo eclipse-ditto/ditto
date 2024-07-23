@@ -139,7 +139,7 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
             return false;
         }
         final DefaultOptionsConfig that = (DefaultOptionsConfig) o;
-        return sslEnabled == that.sslEnabled && retryWrites == that.retryWrites &&
+        return useAwsIamRole == that.useAwsIamRole && sslEnabled == that.sslEnabled && retryWrites == that.retryWrites &&
                 readPreference == that.readPreference &&
                 readConcern == that.readConcern &&
                 Objects.equals(writeConcern, that.writeConcern) &&
@@ -148,13 +148,14 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(sslEnabled, readPreference, readConcern, writeConcern, retryWrites, extraUriOptions);
+        return Objects.hash(useAwsIamRole, sslEnabled, readPreference, readConcern, writeConcern, retryWrites, extraUriOptions);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "sslEnabled=" + sslEnabled +
+                "useAwsIamRole=" + useAwsIamRole +
+                ", sslEnabled=" + sslEnabled +
                 ", readPreference=" + readPreference +
                 ", readConcern=" + readConcern +
                 ", writeConcern=" + writeConcern +
