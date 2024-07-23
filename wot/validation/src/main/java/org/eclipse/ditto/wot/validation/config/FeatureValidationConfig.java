@@ -98,7 +98,7 @@ public interface FeatureValidationConfig {
      */
     enum ConfigValue implements KnownConfigValue {
 
-        ENFORCE_FEATURE_DESCRIPTION_MODIFICATION("enforce-feature-description-modification", false),
+        ENFORCE_FEATURE_DESCRIPTION_MODIFICATION("enforce-feature-description-modification", true),
 
         FORBID_FEATURE_DESCRIPTION_DELETION("forbid-feature-description-deletion", true),
 

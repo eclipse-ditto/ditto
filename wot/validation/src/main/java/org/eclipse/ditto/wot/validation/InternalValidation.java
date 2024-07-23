@@ -46,6 +46,7 @@ import com.networknt.schema.output.OutputUnit;
 final class InternalValidation {
 
     private static final JsonSchemaTools JSON_SCHEMA_TOOLS = new JsonSchemaTools();
+    private static final String PROPERTIES_PATH_PREFIX = "/properties/";
 
     private InternalValidation() {
         throw new AssertionError();
@@ -286,11 +287,11 @@ final class InternalValidation {
             final Map<String, Property> allRequiredProperties = new LinkedHashMap<>(tdProperties);
             tmOptionalElements.stream()
                     .map(TmOptionalElement::toString)
-                    .filter(el -> el.startsWith("/properties/"))
-                    .map(el -> el.replace("/properties/", ""))
+                    .filter(el -> el.startsWith(PROPERTIES_PATH_PREFIX))
+                    .map(el -> el.replace(PROPERTIES_PATH_PREFIX, ""))
                     .forEach(allRequiredProperties::remove);
             return allRequiredProperties;
-        }).orElseGet(LinkedHashMap::new);
+        }).orElse(tdProperties);
     }
 
     static boolean isTmPropertyRequired(final Property property,
@@ -299,8 +300,8 @@ final class InternalValidation {
         return thingModel.getTmOptional()
                 .map(tmOptionalElements -> tmOptionalElements.stream()
                         .map(TmOptionalElement::toString)
-                        .filter(el -> el.startsWith("/properties/"))
-                        .map(el -> el.replace("/properties/", ""))
+                        .filter(el -> el.startsWith(PROPERTIES_PATH_PREFIX))
+                        .map(el -> el.replace(PROPERTIES_PATH_PREFIX, ""))
                         .noneMatch(el -> property.getPropertyName().equals(el))
                 ).orElse(false);
     }
@@ -495,6 +496,7 @@ final class InternalValidation {
         if (handleDittoCategory) {
             return dittoCategories.stream()
                     .filter(category -> propertyPath.getRoot().orElseThrow().toString().equals(category))
+                    .filter(category -> propertyPath.getLevelCount() > 1)
                     .map(category ->
                             tdProperties.getProperty(propertyPath.get(1).orElseThrow().toString())
                                     .filter(p -> determineDittoCategory(thingModel, p)

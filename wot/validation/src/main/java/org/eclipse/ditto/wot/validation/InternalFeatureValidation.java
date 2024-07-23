@@ -266,7 +266,7 @@ final class InternalFeatureValidation {
                         )
                         .toList());
                 final FeatureProperties featureProperties = FeatureProperties.newBuilder()
-                        .setAll(propertyValue.asObject())
+                        .setAll(propertyValue.isObject() ? propertyValue.asObject() : JsonObject.empty())
                         .build();
                 return ensureOnlyDefinedProperties(featureThingModel,
                         propertiesInCategory,
@@ -305,6 +305,16 @@ final class InternalFeatureValidation {
     ) {
         if (isCategoryUpdate) {
             final String dittoCategory = propertyPath.getRoot().orElseThrow().toString();
+            if (!propertyValue.isObject()) {
+                final WotThingModelPayloadValidationException.Builder exceptionBuilder =
+                        WotThingModelPayloadValidationException
+                                .newBuilder("Could not update Feature property category " +
+                                        "<" + dittoCategory + "> as its value was not a JSON object");
+                return CompletableFuture.failedFuture(exceptionBuilder
+                        .dittoHeaders(context.dittoHeaders())
+                        .build());
+            }
+
             final List<Property> sameCategoryProperties = tdProperties.values().stream()
                     .filter(property ->
                             // gather all properties from the same category

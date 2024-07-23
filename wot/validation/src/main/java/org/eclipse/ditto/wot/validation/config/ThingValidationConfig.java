@@ -75,7 +75,7 @@ public interface ThingValidationConfig {
      */
     enum ConfigValue implements KnownConfigValue {
 
-        ENFORCE_THING_DESCRIPTION_MODIFICATION("enforce-thing-description-modification", false),
+        ENFORCE_THING_DESCRIPTION_MODIFICATION("enforce-thing-description-modification", true),
 
         FORBID_THING_DESCRIPTION_DELETION("forbid-thing-description-deletion", true),
 

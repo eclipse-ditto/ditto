@@ -13,6 +13,7 @@
 package org.eclipse.ditto.wot.model;
 
 import java.util.Collection;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -124,6 +125,12 @@ final class MutablePropertyBuilder
         } else {
             remove(SingleDataSchema.DataSchemaJsonFields.DEFAULT);
         }
+        return myself;
+    }
+
+    @Override
+    public Property.Builder enhanceObjectBuilder(final Consumer<JsonObjectBuilder> builderConsumer) {
+        builderConsumer.accept(wrappedObjectBuilder);
         return myself;
     }
 
