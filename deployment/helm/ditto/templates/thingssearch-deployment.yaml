@@ -271,7 +271,7 @@ spec:
             {{- end }}
             - name: USE_AWS_IAM_ROLE
               value: "{{ printf "%t" .Values.serviceAccount.isUseAwsIamRole }}"
-        ports:
+          ports:
             - name: remoting
               containerPort: {{ .Values.pekko.remoting.port }}
               protocol: TCP
