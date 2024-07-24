@@ -31,32 +31,32 @@ final class DefaultThingValidationConfig implements ThingValidationConfig {
     private static final String CONFIG_PATH = "thing";
 
     private final boolean enforceThingDescriptionModification;
-    private final boolean forbidThingDescriptionDeletion;
     private final boolean enforceAttributes;
-    private final boolean forbidNonModeledAttributes;
     private final boolean enforceInboxMessagesInput;
     private final boolean enforceInboxMessagesOutput;
-    private final boolean forbidNonModeledInboxMessages;
     private final boolean enforceOutboxMessages;
+    private final boolean forbidThingDescriptionDeletion;
+    private final boolean forbidNonModeledAttributes;
+    private final boolean forbidNonModeledInboxMessages;
     private final boolean forbidNonModeledOutboxMessages;
 
     private DefaultThingValidationConfig(final ScopedConfig scopedConfig) {
         enforceThingDescriptionModification =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_THING_DESCRIPTION_MODIFICATION.getConfigPath());
-        forbidThingDescriptionDeletion =
-                scopedConfig.getBoolean(ConfigValue.FORBID_THING_DESCRIPTION_DELETION.getConfigPath());
         enforceAttributes =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_ATTRIBUTES.getConfigPath());
-        forbidNonModeledAttributes =
-                scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_ATTRIBUTES.getConfigPath());
         enforceInboxMessagesInput =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_INBOX_MESSAGES_INPUT.getConfigPath());
         enforceInboxMessagesOutput =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_INBOX_MESSAGES_OUTPUT.getConfigPath());
-        forbidNonModeledInboxMessages =
-                scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_INBOX_MESSAGES.getConfigPath());
         enforceOutboxMessages =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_OUTBOX_MESSAGES.getConfigPath());
+        forbidThingDescriptionDeletion =
+                scopedConfig.getBoolean(ConfigValue.FORBID_THING_DESCRIPTION_DELETION.getConfigPath());
+        forbidNonModeledAttributes =
+                scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_ATTRIBUTES.getConfigPath());
+        forbidNonModeledInboxMessages =
+                scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_INBOX_MESSAGES.getConfigPath());
         forbidNonModeledOutboxMessages =
                 scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_OUTBOX_MESSAGES.getConfigPath());
     }
@@ -79,18 +79,8 @@ final class DefaultThingValidationConfig implements ThingValidationConfig {
     }
 
     @Override
-    public boolean isForbidThingDescriptionDeletion() {
-        return forbidThingDescriptionDeletion;
-    }
-
-    @Override
     public boolean isEnforceAttributes() {
         return enforceAttributes;
-    }
-
-    @Override
-    public boolean isForbidNonModeledAttributes() {
-        return forbidNonModeledAttributes;
     }
 
     @Override
@@ -104,13 +94,23 @@ final class DefaultThingValidationConfig implements ThingValidationConfig {
     }
 
     @Override
-    public boolean isForbidNonModeledInboxMessages() {
-        return forbidNonModeledInboxMessages;
+    public boolean isEnforceOutboxMessages() {
+        return enforceOutboxMessages;
     }
 
     @Override
-    public boolean isEnforceOutboxMessages() {
-        return enforceOutboxMessages;
+    public boolean isForbidThingDescriptionDeletion() {
+        return forbidThingDescriptionDeletion;
+    }
+
+    @Override
+    public boolean isForbidNonModeledAttributes() {
+        return forbidNonModeledAttributes;
+    }
+
+    @Override
+    public boolean isForbidNonModeledInboxMessages() {
+        return forbidNonModeledInboxMessages;
     }
 
     @Override
@@ -144,13 +144,13 @@ final class DefaultThingValidationConfig implements ThingValidationConfig {
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "enforceThingDescriptionModification=" + enforceThingDescriptionModification +
-                ", forbidThingDescriptionDeletion=" + forbidThingDescriptionDeletion +
                 ", enforceAttributes=" + enforceAttributes +
-                ", forbidNonModeledAttributes=" + forbidNonModeledAttributes +
                 ", enforceInboxMessagesInput=" + enforceInboxMessagesInput +
                 ", enforceInboxMessagesOutput=" + enforceInboxMessagesOutput +
-                ", forbidNonModeledInboxMessages=" + forbidNonModeledInboxMessages +
                 ", enforceOutboxMessages=" + enforceOutboxMessages +
+                ", forbidThingDescriptionDeletion=" + forbidThingDescriptionDeletion +
+                ", forbidNonModeledAttributes=" + forbidNonModeledAttributes +
+                ", forbidNonModeledInboxMessages=" + forbidNonModeledInboxMessages +
                 ", forbidNonModeledOutboxMessages=" + forbidNonModeledOutboxMessages +
                 "]";
     }

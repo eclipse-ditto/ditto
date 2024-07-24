@@ -30,21 +30,10 @@ public interface FeatureValidationConfig {
     boolean isEnforceFeatureDescriptionModification();
 
     /**
-     * @return whether to forbid deletion of a Feature's {@code description}.
-     */
-    boolean isForbidFeatureDescriptionDeletion();
-
-    /**
      * @return whether to enforce that all modeled features (submodels referenced in the Thing's {@code definition}'s
      * WoT model) are present.
      */
     boolean isEnforcePresenceOfModeledFeatures();
-
-    /**
-     * @return whether to forbid adding features to a Thing which were not defined in its {@code definition}'s
-     * WoT model.
-     */
-    boolean isForbidNonModeledFeatures();
 
     /**
      * @return whether to enforce/validate properties of a feature following the defined WoT properties.
@@ -52,19 +41,9 @@ public interface FeatureValidationConfig {
     boolean isEnforceProperties();
 
     /**
-     * @return whether to forbid persisting properties which are not defined as properties in the WoT model.
-     */
-    boolean isForbidNonModeledProperties();
-
-    /**
      * @return whether to enforce/validate desired properties of a feature following the defined WoT properties.
      */
     boolean isEnforceDesiredProperties();
-
-    /**
-     * @return whether to forbid persisting desired properties which are not defined as properties in the WoT model.
-     */
-    boolean isForbidNonModeledDesiredProperties();
 
     /**
      * @return whether to enforce/validate inbox messages to a feature following the defined WoT action "input".
@@ -77,20 +56,40 @@ public interface FeatureValidationConfig {
     boolean isEnforceInboxMessagesOutput();
 
     /**
+     * @return whether to enforce/validate outbox messages from a feature following the defined WoT events.
+     */
+    boolean isEnforceOutboxMessages();
+
+    /**
+     * @return whether to forbid deletion of a feature's {@code description}.
+     */
+    boolean isForbidFeatureDescriptionDeletion();
+
+    /**
+     * @return whether to forbid adding features to a Thing which were not defined in its {@code definition}'s
+     * WoT model.
+     */
+    boolean isForbidNonModeledFeatures();
+
+    /**
+     * @return whether to forbid persisting properties which are not defined as properties in the WoT model.
+     */
+    boolean isForbidNonModeledProperties();
+
+    /**
+     * @return whether to forbid persisting desired properties which are not defined as properties in the WoT model.
+     */
+    boolean isForbidNonModeledDesiredProperties();
+
+    /**
      * @return whether to forbid dispatching of inbox messages which are not defined as actions in the WoT model.
      */
     boolean isForbidNonModeledInboxMessages();
 
     /**
-     * @return whether to enforce/validate outbox messages from a feature following the defined WoT actions.
-     */
-    boolean isEnforceOutboxMessages();
-
-    /**
-     * @return whether to forbid dispatching of outbox messages which are not defined as actions in the WoT model.
+     * @return whether to forbid dispatching of outbox messages which are not defined as events in the WoT model.
      */
     boolean isForbidNonModeledOutboxMessages();
-
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
@@ -98,32 +97,31 @@ public interface FeatureValidationConfig {
      */
     enum ConfigValue implements KnownConfigValue {
 
-        ENFORCE_FEATURE_DESCRIPTION_MODIFICATION("enforce-feature-description-modification", true),
+        ENFORCE_FEATURE_DESCRIPTION_MODIFICATION("enforce.feature-description-modification", true),
 
-        FORBID_FEATURE_DESCRIPTION_DELETION("forbid-feature-description-deletion", true),
+        ENFORCE_PRESENCE_OF_MODELED_FEATURES("enforce.presence-of-modeled-features", true),
 
-        ENFORCE_PRESENCE_OF_MODELED_FEATURES("enforce-presence-of-modeled-features", true),
+        ENFORCE_PROPERTIES("enforce.properties", true),
 
-        FORBID_NON_MODELED_FEATURES("forbid-non-modeled-features", true),
+        ENFORCE_DESIRED_PROPERTIES("enforce.desired-properties", true),
 
-        ENFORCE_PROPERTIES("enforce-properties", true),
+        ENFORCE_INBOX_MESSAGES_INPUT("enforce.inbox-messages-input", true),
 
-        FORBID_NON_MODELED_PROPERTIES("forbid-non-modeled-properties", false),
+        ENFORCE_INBOX_MESSAGES_OUTPUT("enforce.inbox-messages-output", true),
 
-        ENFORCE_DESIRED_PROPERTIES("enforce-desired-properties", true),
+        ENFORCE_OUTBOX_MESSAGES("enforce.outbox-messages", true),
 
-        FORBID_NON_MODELED_DESIRED_PROPERTIES("forbid-non-modeled-desired-properties", true),
+        FORBID_FEATURE_DESCRIPTION_DELETION("forbid.feature-description-deletion", true),
 
-        ENFORCE_INBOX_MESSAGES_INPUT("enforce-inbox-messages-input", true),
+        FORBID_NON_MODELED_FEATURES("forbid.non-modeled-features", true),
 
-        ENFORCE_INBOX_MESSAGES_OUTPUT("enforce-inbox-messages-output", true),
+        FORBID_NON_MODELED_PROPERTIES("forbid.non-modeled-properties", true),
 
-        FORBID_NON_MODELED_INBOX_MESSAGES("forbid-non-modeled-inbox-messages", true),
+        FORBID_NON_MODELED_DESIRED_PROPERTIES("forbid.non-modeled-desired-properties", true),
 
-        ENFORCE_OUTBOX_MESSAGES("enforce-outbox-messages", true),
+        FORBID_NON_MODELED_INBOX_MESSAGES("forbid.non-modeled-inbox-messages", true),
 
-        FORBID_NON_MODELED_OUTBOX_MESSAGES("forbid-non-modeled-outbox-messages", true);
-
+        FORBID_NON_MODELED_OUTBOX_MESSAGES("forbid.non-modeled-outbox-messages", true);
 
         private final String path;
         private final Object defaultValue;

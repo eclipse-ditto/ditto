@@ -30,19 +30,9 @@ public interface ThingValidationConfig {
     boolean isEnforceThingDescriptionModification();
 
     /**
-     * @return whether to forbid deletion of a Thing's {@code description}.
-     */
-    boolean isForbidThingDescriptionDeletion();
-
-    /**
      * @return whether to enforce/validate attributes of a thing following the defined WoT properties.
      */
     boolean isEnforceAttributes();
-
-    /**
-     * @return whether to forbid persisting attributes which are not defined as properties in the WoT model.
-     */
-    boolean isForbidNonModeledAttributes();
 
     /**
      * @return whether to enforce/validate inbox messages to a thing following the defined WoT action "input".
@@ -55,17 +45,27 @@ public interface ThingValidationConfig {
     boolean isEnforceInboxMessagesOutput();
 
     /**
+     * @return whether to enforce/validate outbox messages from a thing following the defined WoT event "data".
+     */
+    boolean isEnforceOutboxMessages();
+
+    /**
+     * @return whether to forbid deletion of a thing's {@code description}.
+     */
+    boolean isForbidThingDescriptionDeletion();
+
+    /**
+     * @return whether to forbid persisting attributes which are not defined as properties in the WoT model.
+     */
+    boolean isForbidNonModeledAttributes();
+
+    /**
      * @return whether to forbid dispatching of inbox messages which are not defined as actions in the WoT model.
      */
     boolean isForbidNonModeledInboxMessages();
 
     /**
-     * @return whether to enforce/validate outbox messages from a thing following the defined WoT actions.
-     */
-    boolean isEnforceOutboxMessages();
-
-    /**
-     * @return whether to forbid dispatching of outbox messages which are not defined as actions in the WoT model.
+     * @return whether to forbid dispatching of outbox messages which are not defined as events in the WoT model.
      */
     boolean isForbidNonModeledOutboxMessages();
 
@@ -75,23 +75,23 @@ public interface ThingValidationConfig {
      */
     enum ConfigValue implements KnownConfigValue {
 
-        ENFORCE_THING_DESCRIPTION_MODIFICATION("enforce-thing-description-modification", true),
+        ENFORCE_THING_DESCRIPTION_MODIFICATION("enforce.thing-description-modification", true),
 
-        FORBID_THING_DESCRIPTION_DELETION("forbid-thing-description-deletion", true),
+        ENFORCE_ATTRIBUTES("enforce.attributes", true),
 
-        ENFORCE_ATTRIBUTES("enforce-attributes", true),
+        ENFORCE_INBOX_MESSAGES_INPUT("enforce.inbox-messages-input", true),
 
-        FORBID_NON_MODELED_ATTRIBUTES("forbid-non-modeled-attributes", true),
+        ENFORCE_INBOX_MESSAGES_OUTPUT("enforce.inbox-messages-output", true),
 
-        ENFORCE_INBOX_MESSAGES_INPUT("enforce-inbox-messages-input", true),
+        ENFORCE_OUTBOX_MESSAGES("enforce.outbox-messages", true),
 
-        ENFORCE_INBOX_MESSAGES_OUTPUT("enforce-inbox-messages-output", true),
+        FORBID_THING_DESCRIPTION_DELETION("forbid.thing-description-deletion", true),
 
-        FORBID_NON_MODELED_INBOX_MESSAGES("forbid-non-modeled-inbox-messages", true),
+        FORBID_NON_MODELED_ATTRIBUTES("forbid.non-modeled-attributes", true),
 
-        ENFORCE_OUTBOX_MESSAGES("enforce-outbox-messages", true),
+        FORBID_NON_MODELED_INBOX_MESSAGES("forbid.non-modeled-inbox-messages", true),
 
-        FORBID_NON_MODELED_OUTBOX_MESSAGES("forbid-non-modeled-outbox-messages", true);
+        FORBID_NON_MODELED_OUTBOX_MESSAGES("forbid.non-modeled-outbox-messages", true);
 
 
         private final String path;

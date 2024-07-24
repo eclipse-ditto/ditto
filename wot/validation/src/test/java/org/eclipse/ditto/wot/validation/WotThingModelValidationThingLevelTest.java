@@ -173,6 +173,7 @@ public final class WotThingModelValidationThingLevelTest {
         when(validationConfig.isEnabled()).thenReturn(true);
 
         final ThingValidationConfig thingValidationConfig = mock(ThingValidationConfig.class);
+        when(thingValidationConfig.isEnforceThingDescriptionModification()).thenReturn(true);
         when(thingValidationConfig.isEnforceAttributes()).thenReturn(true);
         when(thingValidationConfig.isForbidNonModeledAttributes()).thenReturn(true);
         when(thingValidationConfig.isEnforceInboxMessagesInput()).thenReturn(true);

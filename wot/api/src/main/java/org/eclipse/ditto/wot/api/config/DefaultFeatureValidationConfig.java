@@ -31,44 +31,44 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
     private static final String CONFIG_PATH = "feature";
 
     private final boolean enforceFeatureDescriptionModification;
-    private final boolean forbidFeatureDescriptionDeletion;
     private final boolean enforcePresenceOfModeledFeatures;
-    private final boolean forbidNonModeledFeatures;
     private final boolean enforceProperties;
-    private final boolean forbidNonModeledProperties;
     private final boolean enforceDesiredProperties;
-    private final boolean forbidNonModeledDesiredProperties;
     private final boolean enforceInboxMessagesInput;
     private final boolean enforceInboxMessagesOutput;
-    private final boolean forbidNonModeledInboxMessages;
     private final boolean enforceOutboxMessages;
+    private final boolean forbidFeatureDescriptionDeletion;
+    private final boolean forbidNonModeledFeatures;
+    private final boolean forbidNonModeledProperties;
+    private final boolean forbidNonModeledDesiredProperties;
+    private final boolean forbidNonModeledInboxMessages;
     private final boolean forbidNonModeledOutboxMessages;
 
     private DefaultFeatureValidationConfig(final ScopedConfig scopedConfig) {
         enforceFeatureDescriptionModification =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_FEATURE_DESCRIPTION_MODIFICATION.getConfigPath());
-        forbidFeatureDescriptionDeletion =
-                scopedConfig.getBoolean(ConfigValue.FORBID_FEATURE_DESCRIPTION_DELETION.getConfigPath());
         enforcePresenceOfModeledFeatures =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_PRESENCE_OF_MODELED_FEATURES.getConfigPath());
-        forbidNonModeledFeatures =
-                scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_FEATURES.getConfigPath());
         enforceProperties =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_PROPERTIES.getConfigPath());
-        forbidNonModeledProperties =
-                scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_PROPERTIES.getConfigPath());
         enforceDesiredProperties =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_DESIRED_PROPERTIES.getConfigPath());
-        forbidNonModeledDesiredProperties =
-                scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_DESIRED_PROPERTIES.getConfigPath());
         enforceInboxMessagesInput =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_INBOX_MESSAGES_INPUT.getConfigPath());
         enforceInboxMessagesOutput =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_INBOX_MESSAGES_OUTPUT.getConfigPath());
-        forbidNonModeledInboxMessages =
-                scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_INBOX_MESSAGES.getConfigPath());
         enforceOutboxMessages =
                 scopedConfig.getBoolean(ConfigValue.ENFORCE_OUTBOX_MESSAGES.getConfigPath());
+        forbidFeatureDescriptionDeletion =
+                scopedConfig.getBoolean(ConfigValue.FORBID_FEATURE_DESCRIPTION_DELETION.getConfigPath());
+        forbidNonModeledFeatures =
+                scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_FEATURES.getConfigPath());
+        forbidNonModeledProperties =
+                scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_PROPERTIES.getConfigPath());
+        forbidNonModeledDesiredProperties =
+                scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_DESIRED_PROPERTIES.getConfigPath());
+        forbidNonModeledInboxMessages =
+                scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_INBOX_MESSAGES.getConfigPath());
         forbidNonModeledOutboxMessages =
                 scopedConfig.getBoolean(ConfigValue.FORBID_NON_MODELED_OUTBOX_MESSAGES.getConfigPath());
     }
@@ -91,18 +91,8 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
     }
 
     @Override
-    public boolean isForbidFeatureDescriptionDeletion() {
-        return forbidFeatureDescriptionDeletion;
-    }
-
-    @Override
     public boolean isEnforcePresenceOfModeledFeatures() {
         return enforcePresenceOfModeledFeatures;
-    }
-
-    @Override
-    public boolean isForbidNonModeledFeatures() {
-        return forbidNonModeledFeatures;
     }
 
     @Override
@@ -111,18 +101,8 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
     }
 
     @Override
-    public boolean isForbidNonModeledProperties() {
-        return forbidNonModeledProperties;
-    }
-
-    @Override
     public boolean isEnforceDesiredProperties() {
         return enforceDesiredProperties;
-    }
-
-    @Override
-    public boolean isForbidNonModeledDesiredProperties() {
-        return forbidNonModeledDesiredProperties;
     }
 
     @Override
@@ -136,13 +116,33 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
     }
 
     @Override
-    public boolean isForbidNonModeledInboxMessages() {
-        return forbidNonModeledInboxMessages;
+    public boolean isEnforceOutboxMessages() {
+        return enforceOutboxMessages;
     }
 
     @Override
-    public boolean isEnforceOutboxMessages() {
-        return enforceOutboxMessages;
+    public boolean isForbidFeatureDescriptionDeletion() {
+        return forbidFeatureDescriptionDeletion;
+    }
+
+    @Override
+    public boolean isForbidNonModeledFeatures() {
+        return forbidNonModeledFeatures;
+    }
+
+    @Override
+    public boolean isForbidNonModeledProperties() {
+        return forbidNonModeledProperties;
+    }
+
+    @Override
+    public boolean isForbidNonModeledDesiredProperties() {
+        return forbidNonModeledDesiredProperties;
+    }
+
+    @Override
+    public boolean isForbidNonModeledInboxMessages() {
+        return forbidNonModeledInboxMessages;
     }
 
     @Override
@@ -180,16 +180,16 @@ final class DefaultFeatureValidationConfig implements FeatureValidationConfig {
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "enforcePresenceOfModeledFeatures=" + enforcePresenceOfModeledFeatures +
-                ", forbidFeatureDescriptionDeletion=" + forbidFeatureDescriptionDeletion +
-                ", forbidNonModeledFeatures=" + forbidNonModeledFeatures +
                 ", enforceProperties=" + enforceProperties +
-                ", forbidNonModeledProperties=" + forbidNonModeledProperties +
                 ", enforceDesiredProperties=" + enforceDesiredProperties +
-                ", forbidNonModeledDesiredProperties=" + forbidNonModeledDesiredProperties +
                 ", enforceInboxMessagesInput=" + enforceInboxMessagesInput +
                 ", enforceInboxMessagesOutput=" + enforceInboxMessagesOutput +
-                ", forbidNonModeledInboxMessages=" + forbidNonModeledInboxMessages +
                 ", enforceOutboxMessages=" + enforceOutboxMessages +
+                ", forbidFeatureDescriptionDeletion=" + forbidFeatureDescriptionDeletion +
+                ", forbidNonModeledFeatures=" + forbidNonModeledFeatures +
+                ", forbidNonModeledProperties=" + forbidNonModeledProperties +
+                ", forbidNonModeledDesiredProperties=" + forbidNonModeledDesiredProperties +
+                ", forbidNonModeledInboxMessages=" + forbidNonModeledInboxMessages +
                 ", forbidNonModeledOutboxMessages=" + forbidNonModeledOutboxMessages +
                 "]";
     }

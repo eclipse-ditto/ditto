@@ -994,6 +994,69 @@ things:
           "security": "basic_sc",
           "support": "https://www.eclipse.dev/ditto/"
         }
+      # tmValidation provides configuration settings for WoT (Web of Things) integration regarding the validation of
+      #  Things and Features based on their WoT ThingModels
+      tmValidation:
+        # enabled whether the ThingModel validation of Things/Features should be enabled
+        enabled: false
+        # thing provides configuration settings for WoT based validation of Things
+        thing:
+          # enforce holds all configuration relating to enforcing the model
+          enforce:
+            # thing-description-modification whether to enforce/validate a thing whenever its description is modified
+            thing-description-modification: true
+            # attributes whether to enforce/validate attributes of a thing following the defined WoT properties
+            attributes: true
+            # inbox-messages-input whether to enforce/validate inbox messages to a thing following the defined WoT action "input"
+            inbox-messages-input: true
+            # inbox-messages-output whether to enforce/validate inbox message responses to a thing following the defined WoT action "output"
+            inbox-messages-output: true
+            # outbox-messages whether to enforce/validate outbox messages from a thing following the defined WoT event "data"
+            outbox-messages: true
+          # forbid holds all configuration relating to forbidding/preventing certain interactions
+          forbid:
+            # thing-description-deletion whether to forbid deletion of a thing's description
+            thing-description-deletion: true
+            # non-modeled-attributes whether to forbid persisting attributes which are not defined as properties in the WoT model
+            non-modeled-attributes: true
+            # non-modeled-inbox-messages whether to forbid dispatching of inbox messages which are not defined as actions in the WoT model
+            non-modeled-inbox-messages: true
+            # non-modeled-outbox-messages whether to forbid dispatching of outbox messages which are not defined as events in the WoT model
+            non-modeled-outbox-messages: true
+        # feature provides configuration settings for WoT based validation of Features
+        feature:
+          # enforce holds all configuration relating to enforcing the model
+          enforce:
+            # feature-description-modification whether to enforce/validate a feature whenever its description is modified
+            feature-description-modification: true
+            # presence-of-modeled-features whether to enforce that all modeled features
+            #  (submodels referenced in the thing's definition's WoT model) are present
+            presence-of-modeled-features: true
+            # properties whether to enforce/validate properties of a feature following the defined WoT properties
+            properties: true
+            # desired-properties whether to enforce/validate desired properties of a feature following the defined WoT properties
+            desired-properties: true
+            # inbox-messages-input whether to enforce/validate inbox messages to a feature following the defined WoT action "input"
+            inbox-messages-input: true
+            # inbox-messages-output whether to enforce/validate inbox message responses to a feature following the defined WoT action "output"
+            inbox-messages-output: true
+            # outbox-messages whether to enforce/validate outbox messages from a feature following the defined WoT events
+            outbox-messages: true
+          # forbid holds all configuration relating to forbidding/preventing certain interactions
+          forbid:
+            # feature-description-deletion whether to forbid deletion of a feature's description
+            feature-description-deletion: true
+            # non-modeled-features whether to forbid adding features to a Thing which were not defined in its definition's WoT model
+            non-modeled-features: true
+            # non-modeled-properties whether to forbid persisting properties which are not defined as properties in the WoT model
+            non-modeled-properties: true
+            # non-modeled-desired-properties whether to forbid persisting desired properties which are not defined as properties in the WoT model
+            non-modeled-desired-properties: true
+            # non-modeled-inbox-messages  whether to forbid dispatching of inbox messages which are not defined as actions in the WoT model
+            non-modeled-inbox-messages: true
+            # non-modeled-outbox-messages whether to forbid dispatching of outbox messages which are not defined as events in the WoT model
+            non-modeled-outbox-messages: true
+        dynamicConfig: []
 
 ## ----------------------------------------------------------------------------
 ## things-search configuration

@@ -200,6 +200,7 @@ public final class WotThingModelValidationFeatureLevelTest {
         when(validationConfig.isEnabled()).thenReturn(true);
 
         final FeatureValidationConfig featureValidationConfig = mock(FeatureValidationConfig.class);
+        when(featureValidationConfig.isEnforceFeatureDescriptionModification()).thenReturn(true);
         when(featureValidationConfig.isEnforcePresenceOfModeledFeatures()).thenReturn(true);
         when(featureValidationConfig.isForbidNonModeledFeatures()).thenReturn(true);
         when(featureValidationConfig.isEnforceProperties()).thenReturn(true);

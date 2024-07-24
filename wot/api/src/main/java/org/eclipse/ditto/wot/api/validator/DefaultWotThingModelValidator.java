@@ -346,6 +346,9 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     ) {
         final ValidationContext context = buildValidationContext(dittoHeaders, featureDefinition);
         return provideValidationConfigIfWotValidationEnabled(context)
+                .filter(validationConfig -> validationConfig.isEnabled() &&
+                        validationConfig.getFeatureValidationConfig().isEnforceFeatureDescriptionModification()
+                )
                 .map(validationConfig -> fetchResolveAndValidateWith(featureDefinition.getFirstIdentifier(),
                         dittoHeaders,
                         featureThingModel ->
