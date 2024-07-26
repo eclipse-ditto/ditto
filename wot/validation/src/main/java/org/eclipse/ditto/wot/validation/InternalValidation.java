@@ -507,7 +507,7 @@ final class InternalValidation {
                                 propertyWithCategory.property(),
                                 propertyDescription,
                                 thePropertyPath,
-                                validateRequiredObjectFields && thePropertyPath.getLevelCount() < 2, // TODO TJ still valid?
+                                validateRequiredObjectFields && thePropertyPath.getLevelCount() < 2,
                                 valueToValidate,
                                 resourcePath,
                                 context

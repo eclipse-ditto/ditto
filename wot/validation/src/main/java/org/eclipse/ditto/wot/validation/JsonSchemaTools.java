@@ -184,9 +184,7 @@ final class JsonSchemaTools {
                             .map(JsonValue::asObject)
                             .flatMap(obj -> obj.getValue(jsonKey))
                             .orElse(valueToValidate);
-                } /*else if (relativePropertyPath.getLeaf().map(JsonKey::toString).filter(jsonKey::equals).isPresent()) {
-                    relativePropertyPath = relativePropertyPath.cutLeaf();
-                }*/
+                }
             }
         }
         return validateDittoJson(relativeSchema, relativePropertyPath, valueToValidate, dittoHeaders);

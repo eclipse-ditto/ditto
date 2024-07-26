@@ -70,11 +70,19 @@ public final class WotThingModelValidationFeatureLevelTest {
     private static final JsonPointer PROP_PATH_SOME_STRING = JsonPointer.of(CATEGORY_CONFIG + "/" + PROP_SOME_STRING);
     private static final String PROP_SOME_ARRAY_STRINGS = "someArray_strings";
     private static final String PROP_SOME_OBJECT = "someObject";
+    private static final String PROP_NESTED_OBJECT = "someNestedObject";
+    private static final String PROP_NESTED_OBJECT_BOOL = "someNestedObjectBool";
+    private static final String PROP_NESTED_OBJECT_STRING = "someNestedObjectString";
 
     private static final JsonObject PROP_KNOWN_SOME_OBJECT = JsonObject.newBuilder()
             .set(PROP_SOME_BOOL, false)
             .set(PROP_SOME_INT, 3)
             .set(PROP_SOME_STRING, "helo")
+            .build();
+
+    private static final JsonObject PROP_KNOWN_SOME_NESTED_OBJECT = JsonObject.newBuilder()
+            .set(PROP_NESTED_OBJECT_BOOL, true)
+            .set(PROP_NESTED_OBJECT_STRING, "woha, nested!")
             .build();
 
     private static final Properties KNOWN_PROPERTIES = Properties.from(List.of(
@@ -102,7 +110,16 @@ public final class WotThingModelValidationFeatureLevelTest {
                             .setProperties(Map.of(
                                     PROP_SOME_BOOL, SingleDataSchema.newBooleanSchemaBuilder().build(),
                                     PROP_SOME_INT, SingleDataSchema.newIntegerSchemaBuilder().build(),
-                                    PROP_SOME_STRING, SingleDataSchema.newStringSchemaBuilder().build()
+                                    PROP_SOME_STRING, SingleDataSchema.newStringSchemaBuilder().build(),
+                                    PROP_NESTED_OBJECT, SingleDataSchema.newObjectSchemaBuilder()
+                                            .setProperties(Map.of(
+                                                    PROP_NESTED_OBJECT_BOOL,
+                                                    SingleDataSchema.newBooleanSchemaBuilder().build(),
+                                                    PROP_NESTED_OBJECT_STRING,
+                                                    SingleDataSchema.newStringSchemaBuilder().build()
+                                            ))
+                                            .setRequired(List.of(PROP_NESTED_OBJECT_STRING))
+                                            .build()
                             ))
                             .setRequired(List.of(PROP_SOME_BOOL, PROP_SOME_STRING))
                             .enhanceObjectBuilder(builder -> builder.set("additionalProperties", false))
@@ -543,6 +560,52 @@ public final class WotThingModelValidationFeatureLevelTest {
     @Test
     public void validateFeaturePropertyFailsForObjectProperty() {
         checkValidateFeatureProperty(KNOWN_FEATURE_ID, PROP_SOME_OBJECT, false, JsonValue.of(false), true);
+    }
+
+    @Test
+    public void validateFeaturePropertiesSucceedsForNestedObjectProperty() {
+        checkValidateFeatureProperty(
+                KNOWN_FEATURE_ID,
+                JsonPointer.of(PROP_SOME_OBJECT + "/" + PROP_NESTED_OBJECT),
+                false,
+                PROP_KNOWN_SOME_NESTED_OBJECT,
+                false
+        );
+    }
+
+    @Test
+    public void validateFeaturePropertiesFailsForNestedObjectPropertyWithWrongSubfieldType() {
+        checkValidateFeatureProperty(
+                KNOWN_FEATURE_ID,
+                JsonPointer.of(PROP_SOME_OBJECT + "/" + PROP_NESTED_OBJECT),
+                false,
+                PROP_KNOWN_SOME_NESTED_OBJECT.toBuilder()
+                        .set(PROP_NESTED_OBJECT_BOOL, 42)
+                        .build(),
+                true
+        );
+    }
+
+    @Test
+    public void validateFeaturePropertiesSucceedsForNestedStringInObjectProperty() {
+        checkValidateFeatureProperty(
+                KNOWN_FEATURE_ID,
+                JsonPointer.of(PROP_SOME_OBJECT + "/" + PROP_NESTED_OBJECT + "/" + PROP_NESTED_OBJECT_STRING),
+                false,
+                JsonValue.of("succeeds!"),
+                false
+        );
+    }
+
+    @Test
+    public void validateFeaturePropertiesFailsForNestedStringInObjectPropertyWithWrongSubfieldType() {
+        checkValidateFeatureProperty(
+                KNOWN_FEATURE_ID,
+                JsonPointer.of(PROP_SOME_OBJECT + "/" + PROP_NESTED_OBJECT + "/" + PROP_NESTED_OBJECT_BOOL),
+                false,
+                JsonValue.of("what the heck!"),
+                true
+        );
     }
 
     @Test
