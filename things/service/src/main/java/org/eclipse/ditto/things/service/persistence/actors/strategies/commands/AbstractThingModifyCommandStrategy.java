@@ -41,7 +41,7 @@ abstract class AbstractThingModifyCommandStrategy<C extends ThingModifyCommand<C
 
     /**
      * Builds a CompletionStage which asynchronously validates the passed in {@code command} and the {@code thing},
-     * using the {@link #performWotValidation(ThingModifyCommand, Thing)} abstract method of this class.
+     * using the {@link #performWotValidation(ThingModifyCommand, Thing, Thing)} abstract method of this class.
      *
      * @param command the command to validate
      * @param thing the (previous) thing state to use for obtaining validation information
@@ -50,6 +50,24 @@ abstract class AbstractThingModifyCommandStrategy<C extends ThingModifyCommand<C
      * validated successfully
      */
     protected CompletionStage<C> buildValidatedStage(final C command, @Nullable final Thing thing) {
+        return buildValidatedStage(command, thing, null);
+    }
+
+    /**
+     * Builds a CompletionStage which asynchronously validates the passed in {@code command} and the {@code previousThing},
+     * using the {@link #performWotValidation(ThingModifyCommand, Thing, Thing)} abstract method of this class.
+     *
+     * @param command the command to validate
+     * @param previousThing the (previous) thing state to use for obtaining validation information
+     * @param previewThing the thing state as preview how it would look like having applied the command (e.g. after merge)
+     * @return a CompletionStage which asynchronously validates the passed in {@code command} and fails with a
+     * {@link org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException} if the command could not be
+     * validated successfully
+     */
+    protected CompletionStage<C> buildValidatedStage(final C command,
+            @Nullable final Thing previousThing,
+            @Nullable final Thing previewThing
+    ) {
         final var startedSpan = DittoTracing.newPreparedSpan(
                         command.getDittoHeaders(),
                         SpanOperationName.of("enforce_wot_model")
@@ -58,7 +76,7 @@ abstract class AbstractThingModifyCommandStrategy<C extends ThingModifyCommand<C
                 .start();
         final var tracedCommand =
                 command.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(command.getDittoHeaders())));
-        return performWotValidation(tracedCommand, thing)
+        return performWotValidation(tracedCommand, previousThing, previewThing)
                 .whenComplete((result, throwable) -> {
                     if (throwable instanceof CompletionException completionException) {
                         if (completionException.getCause() instanceof DittoRuntimeException dre) {
@@ -88,10 +106,14 @@ abstract class AbstractThingModifyCommandStrategy<C extends ThingModifyCommand<C
      * strategy.
      *
      * @param command the command to validate
-     * @param thing the thing to validate
+     * @param previousThing the (previous) thing state to use for obtaining validation information
+     * @param previewThing the thing state as preview how it would look like having applied the command (e.g. after merge)
      * @return a CompletionStage which asynchronously validates the passed in {@code command} and fails with a
      * {@link org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException} if the command could not be
      * validated successfully
      */
-    protected abstract CompletionStage<C> performWotValidation(C command, @Nullable Thing thing);
+    protected abstract CompletionStage<C> performWotValidation(C command,
+            @Nullable Thing previousThing,
+            @Nullable Thing previewThing
+    );
 }

@@ -85,7 +85,9 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
         final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition);
         return provideValidationConfigIfWotValidationEnabled(context)
                 .map(validationConfig -> fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModel ->
-                        doValidateThing(thingModel, thing, resourcePath, context, validationConfig)
+                        doValidateThing(Optional.ofNullable(thingDefinition).orElseThrow(),
+                                thingModel, thing, resourcePath, context, validationConfig
+                        )
                 ))
                 .orElseGet(DefaultWotThingModelValidator::success);
     }
@@ -100,7 +102,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
         final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition);
         return provideValidationConfigIfWotValidationEnabled(context)
                 .map(validationConfig ->
-                        doValidateThing(thingModel, thing, resourcePath, context, validationConfig)
+                        doValidateThing(thingDefinition, thingModel, thing, resourcePath, context, validationConfig)
                 )
                 .orElseGet(DefaultWotThingModelValidator::success);
     }
@@ -116,8 +118,8 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                         validationConfig.getThingValidationConfig().isEnforceThingDescriptionModification()
                 )
                 .map(validationConfig -> fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModel ->
-                        doValidateThing(thingModel, thing, Thing.JsonFields.DEFINITION.getPointer(), context,
-                                validationConfig)
+                        doValidateThing(thingDefinition, thingModel, thing, Thing.JsonFields.DEFINITION.getPointer(),
+                                context, validationConfig)
                 ))
                 .orElseGet(DefaultWotThingModelValidator::success);
     }
@@ -296,22 +298,23 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
 
     @Override
     public CompletionStage<Void> validateFeature(@Nullable final ThingDefinition thingDefinition,
+            @Nullable final FeatureDefinition featureDefinition,
             final Feature feature,
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition);
+        final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition, featureDefinition);
         return provideValidationConfigIfWotValidationEnabled(context)
                 .map(validationConfig -> {
                     final Optional<URL> urlOpt = Optional.ofNullable(thingDefinition).flatMap(ThingDefinition::getUrl);
                     return urlOpt.map(url -> fetchResolveAndValidateWith(url, dittoHeaders, thingModel ->
-                                            doValidateFeature(thingModel,
+                                            doValidateFeature(thingModel, featureDefinition,
                                                     feature, resourcePath, context, validationConfig
                                             )
                                     )
                             )
                             .orElseGet(() ->
-                                    doValidateFeature(null,
+                                    doValidateFeature(null, featureDefinition,
                                             feature, resourcePath, context, validationConfig
                                     )
                             );
@@ -331,7 +334,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
         final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition, featureDefinition);
         return provideValidationConfigIfWotValidationEnabled(context)
                 .map(validationConfig ->
-                        doValidateFeature(thingModel, featureThingModel,
+                        doValidateFeature(thingModel, featureDefinition, featureThingModel,
                                 feature, resourcePath, context, validationConfig
                         )
                 )
@@ -339,12 +342,13 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     }
 
     @Override
-    public CompletionStage<Void> validateFeatureDefinitionModification(final FeatureDefinition featureDefinition,
+    public CompletionStage<Void> validateFeatureDefinitionModification(@Nullable final ThingDefinition thingDefinition,
+            final FeatureDefinition featureDefinition,
             final Feature feature,
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        final ValidationContext context = buildValidationContext(dittoHeaders, featureDefinition);
+        final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition, featureDefinition);
         return provideValidationConfigIfWotValidationEnabled(context)
                 .filter(validationConfig -> validationConfig.isEnabled() &&
                         validationConfig.getFeatureValidationConfig().isEnforceFeatureDescriptionModification()
@@ -365,45 +369,36 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             final DittoHeaders dittoHeaders
     ) {
         final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition, featureDefinition);
-        return provideValidationConfigIfWotValidationEnabled(context)
-                .filter(validationConfig -> validationConfig.isEnabled() &&
-                        validationConfig.getFeatureValidationConfig().isForbidFeatureDescriptionDeletion()
-                )
-                .map(validationConfig ->
-                        CompletableFuture.<Void>failedStage(
-                                WotThingModelPayloadValidationException
-                                        .newBuilder("Deleting the Feature <" + featureId + ">'s " +
-                                                "<definition> is not allowed")
-                                        .dittoHeaders(dittoHeaders)
-                                        .build()
-                        )
-                )
-                .orElseGet(DefaultWotThingModelValidator::success);
+        return doValidateFeatureDefinitionDeletion(featureId, dittoHeaders, context);
     }
 
     @Override
-    public CompletionStage<Void> validateFeatureProperties(@Nullable final FeatureDefinition featureDefinition,
+    public CompletionStage<Void> validateFeatureProperties(@Nullable final ThingDefinition thingDefinition,
+            @Nullable final FeatureDefinition featureDefinition,
             final String featureId,
             @Nullable final FeatureProperties featureProperties,
             final boolean desiredProperties,
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        final ValidationContext context = buildValidationContext(dittoHeaders, featureDefinition);
+        final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition, featureDefinition);
         return provideValidationConfigIfWotValidationEnabled(context)
                 .map(validationConfig -> fetchResolveAndValidateWith(
                         Optional.ofNullable(featureDefinition).map(FeatureDefinition::getFirstIdentifier).orElse(null),
                         dittoHeaders,
                         featureThingModelWithExtensionsAndImports ->
-                                validateFeatureProperties(Optional.ofNullable(featureDefinition).orElseThrow(),
+                                validateFeatureProperties(thingDefinition,
+                                        Optional.ofNullable(featureDefinition).orElseThrow(),
                                         featureThingModelWithExtensionsAndImports, featureId, featureProperties,
-                                        desiredProperties, resourcePath, dittoHeaders)
+                                        desiredProperties, resourcePath, dittoHeaders
+                                )
                 ))
                 .orElseGet(DefaultWotThingModelValidator::success);
     }
 
     @Override
-    public CompletionStage<Void> validateFeatureProperties(final FeatureDefinition featureDefinition,
+    public CompletionStage<Void> validateFeatureProperties(@Nullable final ThingDefinition thingDefinition,
+            final FeatureDefinition featureDefinition,
             final ThingModel featureThingModel,
             final String featureId,
             @Nullable final FeatureProperties featureProperties,
@@ -411,7 +406,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        final ValidationContext context = buildValidationContext(dittoHeaders, featureDefinition);
+        final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition, featureDefinition);
         return provideValidationConfigIfWotValidationEnabled(context)
                 .map(validationConfig ->
                         selectValidation(validationConfig)
@@ -422,7 +417,8 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     }
 
     @Override
-    public CompletionStage<Void> validateFeatureProperty(@Nullable final FeatureDefinition featureDefinition,
+    public CompletionStage<Void> validateFeatureProperty(@Nullable final ThingDefinition thingDefinition,
+            @Nullable final FeatureDefinition featureDefinition,
             final String featureId,
             final JsonPointer propertyPointer,
             final JsonValue propertyValue,
@@ -430,7 +426,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        final ValidationContext context = buildValidationContext(dittoHeaders, featureDefinition);
+        final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition, featureDefinition);
         return provideValidationConfigIfWotValidationEnabled(context)
                 .map(validationConfig -> fetchResolveAndValidateWith(
                         Optional.ofNullable(featureDefinition).map(FeatureDefinition::getFirstIdentifier).orElse(null),
@@ -451,7 +447,7 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        final ValidationContext context = buildValidationContext(dittoHeaders, featureDefinition);
+        final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition, featureDefinition);
         return provideValidationConfigIfWotValidationEnabled(context)
                 .map(validationConfig -> fetchResolveAndValidateWith(thingDefinition, dittoHeaders, thingModel ->
                         thingModelResolver.resolveThingModelSubmodels(thingModel, context.dittoHeaders())
@@ -474,14 +470,15 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     }
 
     @Override
-    public CompletionStage<Void> validateFeatureActionInput(@Nullable final FeatureDefinition featureDefinition,
+    public CompletionStage<Void> validateFeatureActionInput(@Nullable final ThingDefinition thingDefinition,
+            @Nullable final FeatureDefinition featureDefinition,
             final String featureId,
             final String messageSubject,
             @Nullable final JsonValue inputPayload,
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        final ValidationContext context = buildValidationContext(dittoHeaders, featureDefinition);
+        final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition, featureDefinition);
         return provideValidationConfigIfWotValidationEnabled(context)
                 .map(validationConfig -> fetchResolveAndValidateWith(
                         Optional.ofNullable(featureDefinition).map(FeatureDefinition::getFirstIdentifier).orElse(null),
@@ -495,14 +492,15 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     }
 
     @Override
-    public CompletionStage<Void> validateFeatureActionOutput(@Nullable final FeatureDefinition featureDefinition,
+    public CompletionStage<Void> validateFeatureActionOutput(@Nullable final ThingDefinition thingDefinition,
+            @Nullable final FeatureDefinition featureDefinition,
             final String featureId,
             final String messageSubject,
             @Nullable final JsonValue inputPayload,
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        final ValidationContext context = buildValidationContext(dittoHeaders, featureDefinition);
+        final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition, featureDefinition);
         return provideValidationConfigIfWotValidationEnabled(context)
                 .map(validationConfig -> fetchResolveAndValidateWith(
                         Optional.ofNullable(featureDefinition).map(FeatureDefinition::getFirstIdentifier).orElse(null),
@@ -516,14 +514,15 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
     }
 
     @Override
-    public CompletionStage<Void> validateFeatureEventData(@Nullable final FeatureDefinition featureDefinition,
+    public CompletionStage<Void> validateFeatureEventData(@Nullable final ThingDefinition thingDefinition,
+            @Nullable final FeatureDefinition featureDefinition,
             final String featureId,
             final String messageSubject,
             @Nullable final JsonValue dataPayload,
             final JsonPointer resourcePath,
             final DittoHeaders dittoHeaders
     ) {
-        final ValidationContext context = buildValidationContext(dittoHeaders, featureDefinition);
+        final ValidationContext context = buildValidationContext(dittoHeaders, thingDefinition, featureDefinition);
         return provideValidationConfigIfWotValidationEnabled(context)
                 .map(validationConfig -> fetchResolveAndValidateWith(
                         Optional.ofNullable(featureDefinition).map(FeatureDefinition::getFirstIdentifier).orElse(null),
@@ -573,14 +572,24 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                 .thenComposeAsync(validationFunction, executor);
     }
 
-    private CompletionStage<Void> doValidateThing(final ThingModel thingModel,
+    private CompletionStage<Void> doValidateThing(final ThingDefinition thingDefinition,
+            final ThingModel thingModel,
             final Thing thing,
             final JsonPointer resourcePath,
             final ValidationContext context,
             final TmValidationConfig validationConfig
     ) {
-        return doValidateThingAttributes(thingModel, thing.getAttributes().orElse(null), resourcePath, context,
-                validationConfig
+        final CompletionStage<Void> firstStage;
+        if (validationConfig.getThingValidationConfig().isForbidThingDescriptionDeletion() &&
+                thing.getDefinition().isEmpty()) {
+            firstStage = validateThingDefinitionDeletion(thingDefinition, context.dittoHeaders());
+        } else {
+            firstStage = success();
+        }
+        return firstStage.thenCompose(unused ->
+                doValidateThingAttributes(thingModel, thing.getAttributes().orElse(null), resourcePath, context,
+                        validationConfig
+                )
         ).thenCompose(aVoid ->
                 thingModelResolver.resolveThingModelSubmodels(thingModel, context.dittoHeaders())
                         .thenCompose(subModels ->
@@ -622,13 +631,36 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
         final Map<String, ThingModel> featureThingModels = reduceSubmodelMapKeyToFeatureId(subModels);
         return selectValidation(validationConfig)
                 .validateFeaturesPresence(featureThingModels, features, context)
-                .thenCompose(aVoid ->
+                .thenCompose(aVoid -> CompletableFuture.allOf(
+                                featureThingModels.entrySet()
+                                        .stream()
+                                        .map(entry -> {
+                                            final String featureId = entry.getKey();
+                                            if (validationConfig.getFeatureValidationConfig()
+                                                    .isForbidFeatureDescriptionDeletion() &&
+                                                    entry.getValue() != null && Optional.ofNullable(features)
+                                                    .flatMap(fs -> fs.getFeature(featureId))
+                                                    .flatMap(Feature::getDefinition)
+                                                    .isEmpty()
+                                            ) {
+                                                return doValidateFeatureDefinitionDeletion(featureId,
+                                                        context.dittoHeaders(), context
+                                                );
+                                            } else {
+                                                return success();
+                                            }
+                                        })
+                                        .map(CompletionStage::toCompletableFuture)
+                                        .toArray(CompletableFuture[]::new)
+                        )
+                ).thenCompose(aVoid ->
                         selectValidation(validationConfig)
                                 .validateFeaturesProperties(featureThingModels, features, resourcePath, context)
                 );
     }
 
     private CompletionStage<Void> doValidateFeature(@Nullable final ThingModel thingModel,
+            @Nullable final FeatureDefinition previousFeatureDefinition,
             final Feature feature,
             final JsonPointer resourcePath,
             final ValidationContext context,
@@ -639,18 +671,19 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                 .map(FeatureDefinition::getFirstIdentifier);
         final Optional<URL> urlOpt = definitionIdentifier.flatMap(DefinitionIdentifier::getUrl);
         return urlOpt.map(url -> fetchResolveAndValidateWith(url, context.dittoHeaders(), featureThingModel ->
-                        doValidateFeature(thingModel, featureThingModel,
+                        doValidateFeature(thingModel, previousFeatureDefinition, featureThingModel,
                                 feature, resourcePath, context, validationConfig
                         )
                 ))
                 .orElseGet(() ->
-                        doValidateFeature(thingModel, null,
+                        doValidateFeature(thingModel, previousFeatureDefinition, null,
                                 feature, resourcePath, context, validationConfig
                         )
                 );
     }
 
     private CompletionStage<Void> doValidateFeature(@Nullable final ThingModel thingModel,
+            @Nullable final FeatureDefinition previousFeatureDefinition,
             @Nullable final ThingModel featureThingModel,
             final Feature feature,
             final JsonPointer resourcePath,
@@ -658,8 +691,22 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             final TmValidationConfig validationConfig
     ) {
         final WotThingModelValidation selectedValidation = selectValidation(validationConfig);
+        final CompletionStage<Void> firstStage;
+        if (validationConfig.getFeatureValidationConfig().isForbidFeatureDescriptionDeletion() &&
+                previousFeatureDefinition != null && feature.getDefinition().isEmpty()
+        ) {
+            firstStage = doValidateFeatureDefinitionDeletion(
+                    feature.getId(),
+                    context.dittoHeaders(),
+                    context
+            );
+        } else {
+            firstStage = CompletableFuture.completedStage(null);
+        }
+
+        final CompletionStage<Void> secondStage;
         if (thingModel != null && featureThingModel != null) {
-            return thingModelResolver.resolveThingModelSubmodels(thingModel, context.dittoHeaders())
+            secondStage = thingModelResolver.resolveThingModelSubmodels(thingModel, context.dittoHeaders())
                     .thenCompose(subModels ->
                             selectedValidation.validateFeaturePresence(
                                     reduceSubmodelMapKeyToFeatureId(subModels), feature, context
@@ -670,14 +717,42 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                     );
         } else if (thingModel != null) {
             return thingModelResolver.resolveThingModelSubmodels(thingModel, context.dittoHeaders())
-                    .thenCompose(subModels ->
-                            selectedValidation.validateFeaturePresence(
-                                    reduceSubmodelMapKeyToFeatureId(subModels), feature, context)
-                    );
+                    .thenCompose(subModels -> {
+                        final Map<String, ThingModel> featureThingModels = reduceSubmodelMapKeyToFeatureId(subModels);
+                        return selectedValidation.validateFeaturePresence(featureThingModels, feature, context)
+                                .thenCompose(aVoid ->
+                                        selectedValidation.validateFeature(
+                                                featureThingModels.get(feature.getId()),
+                                                feature, resourcePath, context
+                                        )
+                                );
+                    });
         } else if (featureThingModel != null) {
-            return selectedValidation.validateFeature(featureThingModel, feature, resourcePath, context);
+            secondStage = selectedValidation.validateFeature(featureThingModel, feature, resourcePath, context);
+        } else {
+            secondStage = success();
         }
-        return success();
+        return firstStage.thenCompose(unused -> secondStage);
+    }
+
+    private CompletionStage<Void> doValidateFeatureDefinitionDeletion(final String featureId,
+            final DittoHeaders dittoHeaders,
+            final ValidationContext context
+    ) {
+        return provideValidationConfigIfWotValidationEnabled(context)
+                .filter(validationConfig -> validationConfig.isEnabled() &&
+                        validationConfig.getFeatureValidationConfig().isForbidFeatureDescriptionDeletion()
+                )
+                .map(validationConfig ->
+                        CompletableFuture.<Void>failedStage(
+                                WotThingModelPayloadValidationException
+                                        .newBuilder("Deleting the Feature <" + featureId + ">'s " +
+                                                "<definition> is not allowed")
+                                        .dittoHeaders(dittoHeaders)
+                                        .build()
+                        )
+                )
+                .orElseGet(DefaultWotThingModelValidator::success);
     }
 
     private static LinkedHashMap<String, ThingModel> reduceSubmodelMapKeyToFeatureId(

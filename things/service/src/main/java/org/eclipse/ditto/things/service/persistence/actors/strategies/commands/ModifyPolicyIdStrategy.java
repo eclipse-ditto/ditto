@@ -61,7 +61,8 @@ final class ModifyPolicyIdStrategy extends AbstractThingModifyCommandStrategy<Mo
 
     @Override
     protected CompletionStage<ModifyPolicyId> performWotValidation(final ModifyPolicyId command,
-            @Nullable final Thing thing
+            @Nullable final Thing previousThing,
+            @Nullable final Thing previewThing
     ) {
         return CompletableFuture.completedFuture(command);
     }

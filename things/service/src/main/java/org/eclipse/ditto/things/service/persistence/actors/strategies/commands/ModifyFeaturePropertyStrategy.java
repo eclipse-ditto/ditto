@@ -93,10 +93,12 @@ final class ModifyFeaturePropertyStrategy extends AbstractThingModifyCommandStra
     @Override
     protected CompletionStage<ModifyFeatureProperty> performWotValidation(
             final ModifyFeatureProperty command,
-            @Nullable final Thing thing
+            @Nullable final Thing previousThing,
+            @Nullable final Thing previewThing
     ) {
         return wotThingModelValidator.validateFeatureProperty(
-                Optional.ofNullable(thing)
+                Optional.ofNullable(previousThing).flatMap(Thing::getDefinition).orElse(null),
+                Optional.ofNullable(previousThing)
                         .flatMap(Thing::getFeatures)
                         .flatMap(f -> f.getFeature(command.getFeatureId()))
                         .flatMap(Feature::getDefinition)

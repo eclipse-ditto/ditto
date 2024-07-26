@@ -16,6 +16,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -54,6 +56,8 @@ import com.networknt.schema.output.OutputUnit;
  * Contains tools around the used JsonSchema library and validating Ditto JSON, including mapping to Jackson.
  */
 final class JsonSchemaTools {
+
+    private static final String PROPERTIES = "properties";
 
     private final CborFactory cborFactory;
     private final ObjectMapper jacksonCborMapper;
@@ -153,25 +157,39 @@ final class JsonSchemaTools {
         final JsonSchema jsonSchema =
                 extractFromSingleDataSchema(dataSchema, validateRequiredObjectFields, dittoHeaders);
 
-        final JsonPointer relativePropertyPath;
-        final JsonSchema relativeSchema;
+        JsonPointer relativePropertyPath = JsonPointer.empty();
+        JsonSchema relativeSchema = jsonSchema;
+        JsonValue valueToValidate = jsonValue;
         if (pointerPath.getLevelCount() > 1) {
-            relativePropertyPath = pointerPath.getSubPointer(1).orElseThrow();
-            JsonNodePath fullSubPath = new JsonNodePath(PathType.JSON_POINTER);
-            for (int i = 0; i < relativePropertyPath.getLevelCount(); i++) {
+            final JsonPointer subPointer = pointerPath.getSubPointer(1).orElseThrow();
+            relativePropertyPath = subPointer;
+            JsonNodePath jsonNodePath = new JsonNodePath(PathType.JSON_POINTER);
+            for (int i = 0; i < subPointer.getLevelCount(); i++) {
                 // adding "properties" only works if we always deal with "object" schemas ..
                 //  which however is the only way Ditto allows to use JsonPointer notation
                 //  accessing array elements is not supported in Ditto
-                fullSubPath = fullSubPath
-                        .append("properties")
-                        .append(relativePropertyPath.get(i).orElseThrow().toString());
+                final String jsonKey = subPointer.get(i).orElseThrow().toString();
+                if (relativeSchema.getSchemaNode().has(PROPERTIES) &&
+                        relativeSchema.getSchemaNode().get(PROPERTIES).has(jsonKey) &&
+                        Optional.ofNullable(relativeSchema.getSchemaNode().get(PROPERTIES).get(jsonKey).get("type"))
+                                .map(JsonNode::asText).filter("object"::equals).isPresent()
+                ) {
+                    jsonNodePath = jsonNodePath
+                            .append(PROPERTIES)
+                            .append(jsonKey);
+                    relativeSchema = relativeSchema.getSubSchema(jsonNodePath);
+                    relativePropertyPath = relativePropertyPath.getSubPointer(1).orElseThrow();
+                    valueToValidate = Optional.ofNullable(valueToValidate)
+                            .filter(JsonValue::isObject)
+                            .map(JsonValue::asObject)
+                            .flatMap(obj -> obj.getValue(jsonKey))
+                            .orElse(valueToValidate);
+                } /*else if (relativePropertyPath.getLeaf().map(JsonKey::toString).filter(jsonKey::equals).isPresent()) {
+                    relativePropertyPath = relativePropertyPath.cutLeaf();
+                }*/
             }
-            relativeSchema = jsonSchema.getSubSchema(fullSubPath);
-        } else {
-            relativePropertyPath = JsonPointer.empty();
-            relativeSchema = jsonSchema;
         }
-        return validateDittoJson(relativeSchema, relativePropertyPath, jsonValue, dittoHeaders);
+        return validateDittoJson(relativeSchema, relativePropertyPath, valueToValidate, dittoHeaders);
     }
 
     OutputUnit validateDittoJson(final JsonSchema jsonSchema,
@@ -206,14 +224,19 @@ final class JsonSchemaTools {
         if (!validate.isValid() && !validate.getDetails().isEmpty()) {
             final List<OutputUnit> validationDetails = new ArrayList<>(validate.getDetails());
             validate.getDetails().forEach(detail -> {
-                if (!relativePropertyPath.isEmpty() &&
-                        detail.getInstanceLocation().startsWith(relativePropertyPath.toString())
-                ) {
-                    final String adjustedInstanceLocation =
-                            detail.getInstanceLocation().replace(relativePropertyPath.toString(), "");
+                if (!relativePropertyPath.isEmpty()) {
                     validationDetails.remove(detail);
-                    detail.setInstanceLocation(adjustedInstanceLocation);
-                    validationDetails.add(detail);
+                    if (detail.getInstanceLocation().startsWith(relativePropertyPath.toString()) ||
+                        detail.getEvaluationPath().startsWith(
+                                StreamSupport.stream(relativePropertyPath.spliterator(), false)
+                                        .collect(Collectors.joining("/properties/", "/properties/", ""))
+                        )
+                    ) {
+                        final String adjustedInstanceLocation =
+                                detail.getInstanceLocation().replace(relativePropertyPath.toString(), "");
+                        detail.setInstanceLocation(adjustedInstanceLocation);
+                        validationDetails.add(detail);
+                    }
                 }
             });
             validate.setDetails(validationDetails);

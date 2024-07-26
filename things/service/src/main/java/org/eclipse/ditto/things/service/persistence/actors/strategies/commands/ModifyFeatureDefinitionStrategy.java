@@ -67,11 +67,13 @@ final class ModifyFeatureDefinitionStrategy extends AbstractThingModifyCommandSt
 
     @Override
     protected CompletionStage<ModifyFeatureDefinition> performWotValidation(final ModifyFeatureDefinition command,
-            @Nullable final Thing thing
+            @Nullable final Thing previousThing,
+            @Nullable final Thing previewThing
     ) {
         return wotThingModelValidator.validateFeatureDefinitionModification(
+                Optional.ofNullable(previousThing).flatMap(Thing::getDefinition).orElse(null),
                 command.getDefinition(),
-                Optional.ofNullable(thing)
+                Optional.ofNullable(previousThing)
                         .flatMap(t -> t.getFeatures().flatMap(f -> f.getFeature(command.getFeatureId())))
                         .orElseThrow(),
                 command.getResourcePath(),

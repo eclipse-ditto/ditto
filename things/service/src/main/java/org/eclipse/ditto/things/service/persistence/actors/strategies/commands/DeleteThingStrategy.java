@@ -69,7 +69,8 @@ final class DeleteThingStrategy extends AbstractThingModifyCommandStrategy<Delet
 
     @Override
     protected CompletionStage<DeleteThing> performWotValidation(final DeleteThing command,
-            @Nullable final Thing thing
+            @Nullable final Thing previousThing,
+            @Nullable final Thing previewThing
     ) {
         return CompletableFuture.completedFuture(command);
     }

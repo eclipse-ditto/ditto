@@ -75,17 +75,25 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
     }
 
     @Override
-    protected CompletionStage<MergeThing> performWotValidation(final MergeThing command, @Nullable final Thing thing) {
+    protected CompletionStage<MergeThing> performWotValidation(final MergeThing command,
+            @Nullable final Thing previousThing,
+            @Nullable final Thing previewThing
+    ) {
         return wotThingModelValidator.validateThing(
-                Optional.ofNullable(thing).orElseThrow(),
+                Optional.ofNullable(previousThing).flatMap(Thing::getDefinition).orElse(null),
+                Optional.ofNullable(previewThing).orElseThrow(),
                 command.getResourcePath(),
                 command.getDittoHeaders()
         ).thenApply(aVoid -> command);
     }
 
-    private Result<ThingEvent<?>> handleMergeExisting(final Context<ThingId> context, final Thing thing,
-            final Instant eventTs, final long nextRevision, final MergeThing command,
-            @Nullable final Metadata metadata) {
+    private Result<ThingEvent<?>> handleMergeExisting(final Context<ThingId> context,
+            final Thing thing,
+            final Instant eventTs,
+            final long nextRevision,
+            final MergeThing command,
+            @Nullable final Metadata metadata
+    ) {
         return handleMergeExistingV2WithV2Command(context, thing, eventTs, nextRevision, command, metadata);
     }
 
@@ -93,15 +101,21 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
      * Handles a {@link MergeThing} command that was sent via API v2 and targets a Thing with API version V2.
      */
     private Result<ThingEvent<?>> handleMergeExistingV2WithV2Command(final Context<ThingId> context, final Thing thing,
-            final Instant eventTs, final long nextRevision, final MergeThing command,
-            @Nullable final Metadata metadata) {
+            final Instant eventTs,
+            final long nextRevision,
+            final MergeThing command,
+            @Nullable final Metadata metadata
+    ) {
         return applyMergeCommand(context, thing, eventTs, nextRevision, command, metadata);
     }
 
-    private Result<ThingEvent<?>> applyMergeCommand(final Context<ThingId> context, final Thing thing,
-            final Instant eventTs, final long nextRevision, final MergeThing command,
-            @Nullable final Metadata metadata) {
-
+    private Result<ThingEvent<?>> applyMergeCommand(final Context<ThingId> context,
+            final Thing thing,
+            final Instant eventTs,
+            final long nextRevision,
+            final MergeThing command,
+            @Nullable final Metadata metadata
+    ) {
         // make sure that the ThingMerged-Event contains all data contained in the resulting existingThing
         // (this is required e.g. for updating the search-index)
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
@@ -111,7 +125,7 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
         final Thing mergedThing = wrapException(() -> mergeThing(context, command, thing, eventTs, nextRevision),
                 command.getDittoHeaders());
 
-        final CompletionStage<MergeThing> validatedStage = buildValidatedStage(command, mergedThing);
+        final CompletionStage<MergeThing> validatedStage = buildValidatedStage(command, thing, mergedThing);
 
         final CompletionStage<ThingEvent<?>> eventStage = validatedStage.thenApply(mergeThing ->
                 ThingMerged.of(mergeThing.getEntityId(), path, value, nextRevision, eventTs, dittoHeaders, metadata)
@@ -123,8 +137,12 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
         return ResultFactory.newMutationResult(command, eventStage, responseStage);
     }
 
-    private Thing mergeThing(final Context<ThingId> context, final MergeThing command, final Thing thing,
-            final Instant eventTs, final long nextRevision) {
+    private Thing mergeThing(final Context<ThingId> context,
+            final MergeThing command,
+            final Thing thing,
+            final Instant eventTs,
+            final long nextRevision
+    ) {
         final JsonObject existingThingJson = thing.toJson(FieldType.all());
         final JsonMergePatch jsonMergePatch = JsonMergePatch.of(command.getPath(),
                 command.getEntity().orElseGet(command::getValue));

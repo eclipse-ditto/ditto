@@ -99,10 +99,11 @@ final class ModifyFeaturesStrategy extends AbstractThingModifyCommandStrategy<Mo
     @Override
     protected CompletionStage<ModifyFeatures> performWotValidation(
             final ModifyFeatures command,
-            @Nullable final Thing thing
+            @Nullable final Thing previousThing,
+            @Nullable final Thing previewThing
     ) {
         return wotThingModelValidator.validateFeatures(
-                Optional.ofNullable(thing).flatMap(Thing::getDefinition).orElse(null),
+                Optional.ofNullable(previousThing).flatMap(Thing::getDefinition).orElse(null),
                 command.getFeatures(),
                 command.getResourcePath(),
                 command.getDittoHeaders()

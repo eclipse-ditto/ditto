@@ -66,13 +66,14 @@ final class DeleteFeatureDefinitionStrategy extends AbstractThingModifyCommandSt
 
     @Override
     protected CompletionStage<DeleteFeatureDefinition> performWotValidation(final DeleteFeatureDefinition command,
-            @Nullable final Thing thing
+            @Nullable final Thing previousThing,
+            @Nullable final Thing previewThing
     ) {
         return wotThingModelValidator.validateFeatureDefinitionDeletion(
-                Optional.ofNullable(thing)
+                Optional.ofNullable(previousThing)
                         .flatMap(Thing::getDefinition)
                         .orElse(null),
-                Optional.ofNullable(thing)
+                Optional.ofNullable(previousThing)
                         .flatMap(Thing::getFeatures)
                         .flatMap(f -> f.getFeature(command.getFeatureId()))
                         .flatMap(Feature::getDefinition)

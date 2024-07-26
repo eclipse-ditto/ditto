@@ -66,9 +66,10 @@ final class DeleteThingDefinitionStrategy extends AbstractThingModifyCommandStra
 
     @Override
     protected CompletionStage<DeleteThingDefinition> performWotValidation(final DeleteThingDefinition command,
-            @Nullable final Thing thing
+            @Nullable final Thing previousThing,
+            @Nullable final Thing previewThing
     ) {
-        return wotThingModelValidator.validateThingDefinitionDeletion(Optional.ofNullable(thing)
+        return wotThingModelValidator.validateThingDefinitionDeletion(Optional.ofNullable(previousThing)
                         .flatMap(Thing::getDefinition)
                         .orElseThrow(),
                 command.getDittoHeaders()

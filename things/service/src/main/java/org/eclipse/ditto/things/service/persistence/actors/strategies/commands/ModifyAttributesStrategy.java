@@ -84,10 +84,11 @@ final class ModifyAttributesStrategy extends AbstractThingModifyCommandStrategy<
 
     @Override
     protected CompletionStage<ModifyAttributes> performWotValidation(final ModifyAttributes command,
-            @Nullable final Thing thing
+            @Nullable final Thing previousThing,
+            @Nullable final Thing previewThing
     ) {
         return wotThingModelValidator.validateThingAttributes(
-                Optional.ofNullable(thing).flatMap(Thing::getDefinition).orElse(null),
+                Optional.ofNullable(previousThing).flatMap(Thing::getDefinition).orElse(null),
                 command.getAttributes(),
                 command.getResourcePath(),
                 command.getDittoHeaders()

@@ -82,10 +82,11 @@ final class DeleteFeaturesStrategy extends AbstractThingModifyCommandStrategy<De
     @Override
     protected CompletionStage<DeleteFeatures> performWotValidation(
             final DeleteFeatures command,
-            @Nullable final Thing thing
+            @Nullable final Thing previousThing,
+            @Nullable final Thing previewThing
     ) {
         return wotThingModelValidator.validateThingScopedDeletion(
-                Optional.ofNullable(thing)
+                Optional.ofNullable(previousThing)
                         .flatMap(Thing::getDefinition)
                         .orElse(null),
                 command.getResourcePath(),

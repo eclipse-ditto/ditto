@@ -64,11 +64,12 @@ final class ModifyThingDefinitionStrategy extends AbstractThingModifyCommandStra
     @Override
     protected CompletionStage<ModifyThingDefinition> performWotValidation(
             final ModifyThingDefinition command,
-            @Nullable final Thing thing
+            @Nullable final Thing previousThing,
+            @Nullable final Thing previewThing
     ) {
         return wotThingModelValidator.validateThingDefinitionModification(
                 command.getDefinition(),
-                Optional.ofNullable(thing).orElseThrow(),
+                Optional.ofNullable(previousThing).orElseThrow(),
                 command.getDittoHeaders()
         ).thenApply(aVoid -> command);
     }

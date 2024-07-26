@@ -44,10 +44,4 @@ public record ValidationContext(
     ) {
         return new ValidationContext(dittoHeaders, thingDefinition, null);
     }
-
-    public static ValidationContext buildValidationContext(final DittoHeaders dittoHeaders,
-            @Nullable final FeatureDefinition featureDefinition
-    ) {
-        return new ValidationContext(dittoHeaders, null, featureDefinition);
-    }
 }

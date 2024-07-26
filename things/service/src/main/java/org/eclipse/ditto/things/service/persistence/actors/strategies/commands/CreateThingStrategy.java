@@ -124,7 +124,7 @@ final class CreateThingStrategy extends AbstractThingModifyCommandStrategy<Creat
         // validate based on potentially referenced Thing WoT TM/TD
         final CompletionStage<Pair<CreateThing, Thing>> validatedStage =
                 thingStage.thenCompose(createdThingWithImplicits ->
-                        buildValidatedStage(command, createdThingWithImplicits)
+                        buildValidatedStage(command, null, createdThingWithImplicits)
                                 .thenApply(createThing -> new Pair<>(createThing, createdThingWithImplicits))
                 );
 
@@ -142,10 +142,11 @@ final class CreateThingStrategy extends AbstractThingModifyCommandStrategy<Creat
 
     @Override
     protected CompletionStage<CreateThing> performWotValidation(final CreateThing command,
-            @Nullable final Thing thing
+            @Nullable final Thing previousThing,
+            @Nullable final Thing previewThing
     ) {
         return wotThingModelValidator.validateThing(
-                Optional.ofNullable(thing).orElse(command.getThing()),
+                Optional.ofNullable(previewThing).orElse(command.getThing()),
                 command.getResourcePath(),
                 command.getDittoHeaders()
         ).thenApply(aVoid -> command);

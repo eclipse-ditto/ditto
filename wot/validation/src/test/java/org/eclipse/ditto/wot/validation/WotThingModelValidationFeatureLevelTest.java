@@ -54,6 +54,8 @@ import org.junit.Test;
 
 /**
  * Provides unit tests for testing the "feature" related functionality of {@link WotThingModelValidation}.
+ *
+ * TODO TJ enhance with tests on deeper levels
  */
 public final class WotThingModelValidationFeatureLevelTest {
 

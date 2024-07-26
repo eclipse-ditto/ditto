@@ -25,6 +25,7 @@ import javax.annotation.Nullable;
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.actor.Props;
+import org.apache.pekko.japi.Pair;
 import org.apache.pekko.pattern.AskTimeoutException;
 import org.apache.pekko.pattern.Patterns;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
@@ -630,11 +631,12 @@ public final class ThingEnforcerActor
             final MessageDirection messageDirection,
             @Nullable final JsonValue messageCommandPayload
     ) {
-        return resolveFeatureDefinition(featureId)
-                .thenCompose(optFeatureDefinition -> {
+        return resolveThingAndFeatureDefinition(featureId)
+                .thenCompose(optDefinitionPair -> {
                     if (messageDirection == MessageDirection.TO) {
                         return thingModelValidator.validateFeatureActionInput(
-                                optFeatureDefinition.orElse(null),
+                                optDefinitionPair.first().orElse(null),
+                                optDefinitionPair.second().orElse(null),
                                 featureId,
                                 sendFeatureMessage.getMessage().getSubject(),
                                 messageCommandPayload,
@@ -643,7 +645,8 @@ public final class ThingEnforcerActor
                         );
                     } else if (messageDirection == MessageDirection.FROM) {
                         return thingModelValidator.validateFeatureEventData(
-                                optFeatureDefinition.orElse(null),
+                                optDefinitionPair.first().orElse(null),
+                                optDefinitionPair.second().orElse(null),
                                 featureId,
                                 sendFeatureMessage.getMessage().getSubject(),
                                 messageCommandPayload,
@@ -687,9 +690,11 @@ public final class ThingEnforcerActor
             } else if (messageDirection == MessageDirection.TO &&
                     messageCommandResponse instanceof SendFeatureMessageResponse<?> sendFeatureMessageResponse) {
                 final String featureId = sendFeatureMessageResponse.getFeatureId();
-                return resolveFeatureDefinition(featureId)
-                        .thenCompose(optFeatureDefinition -> thingModelValidator.validateFeatureActionOutput(
-                                optFeatureDefinition.orElse(null), featureId,
+                return resolveThingAndFeatureDefinition(featureId)
+                        .thenCompose(optDefinitionPair -> thingModelValidator.validateFeatureActionOutput(
+                                optDefinitionPair.first().orElse(null),
+                                optDefinitionPair.second().orElse(null),
+                                featureId,
                                 sendFeatureMessageResponse.getMessage().getSubject(),
                                 messageCommandPayload,
                                 sendFeatureMessageResponse.getResourcePath(),
@@ -729,21 +734,25 @@ public final class ThingEnforcerActor
         });
     }
 
-    private CompletionStage<Optional<FeatureDefinition>> resolveFeatureDefinition(final String featureId) {
+    private CompletionStage<Pair<Optional<ThingDefinition>, Optional<FeatureDefinition>>>
+    resolveThingAndFeatureDefinition(final String featureId) {
         return Patterns.ask(getContext().getParent(), SudoRetrieveThing.of(entityId,
-                        JsonFieldSelector.newInstance("features/" + featureId + "/definition"),
+                        JsonFieldSelector.newInstance("definition", "features/" + featureId + "/definition"),
                         DittoHeaders.newBuilder()
-                                .correlationId("sudoRetrieveFeatureDefinitionFromThingEnforcerActor-" + UUID.randomUUID())
+                                .correlationId(
+                                        "sudoRetrieveThingAndFeatureDefinitionFromThingEnforcerActor-" + UUID.randomUUID())
                                 .build()
                 ), DEFAULT_LOCAL_ASK_TIMEOUT
         ).thenApply(response -> {
             if (response instanceof SudoRetrieveThingResponse sudoRetrieveThingResponse) {
-                return sudoRetrieveThingResponse.getThing()
-                        .getFeatures()
-                        .flatMap(f -> f.getFeature(featureId))
-                        .flatMap(Feature::getDefinition);
+                return new Pair<>(sudoRetrieveThingResponse.getThing().getDefinition(),
+                        sudoRetrieveThingResponse.getThing()
+                                .getFeatures()
+                                .flatMap(f -> f.getFeature(featureId))
+                                .flatMap(Feature::getDefinition)
+                );
             } else if (response instanceof ThingNotAccessibleException) {
-                return Optional.empty();
+                return new Pair<>(Optional.empty(), Optional.empty());
             } else {
                 throw new IllegalStateException("expected SudoRetrieveThingResponse, got: " + response);
             }

@@ -15,7 +15,6 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -91,19 +90,7 @@ final class ModifyFeatureStrategy extends AbstractThingModifyCommandStrategy<Mod
 
         return extractFeature(command, nonNullThing)
                 .map(feature -> {
-                    final Optional<FeatureDefinition> featureDefinition = feature.getDefinition();
-                    // validate based on potentially referenced Feature WoT TM
-                    final CompletionStage<Void> validatedStage;
-                    if (featureDefinition.isPresent()) {
-                        validatedStage = wotThingModelValidator.validateFeature(
-                                nonNullThing.getDefinition().orElse(null),
-                                command.getFeature(),
-                                command.getResourcePath(),
-                                command.getDittoHeaders()
-                        );
-                    } else {
-                        validatedStage = CompletableFuture.completedStage(null);
-                    }
+                    final CompletionStage<ModifyFeature> validatedStage = buildValidatedStage(command, thing);
                     return getModifyResult(context, nextRevision, command, thing, metadata, validatedStage);
                 })
                 .orElseGet(() -> getCreateResult(context, nextRevision, command, thing, metadata));
@@ -112,10 +99,16 @@ final class ModifyFeatureStrategy extends AbstractThingModifyCommandStrategy<Mod
     @Override
     protected CompletionStage<ModifyFeature> performWotValidation(
             final ModifyFeature command,
-            @Nullable final Thing thing
+            @Nullable final Thing previousThing,
+            @Nullable final Thing previewThing
     ) {
         return wotThingModelValidator.validateFeature(
-                Optional.ofNullable(thing).flatMap(Thing::getDefinition).orElse(null),
+                Optional.ofNullable(previousThing).flatMap(Thing::getDefinition).orElse(null),
+                Optional.ofNullable(previousThing)
+                        .flatMap(Thing::getFeatures)
+                        .flatMap(features -> features.getFeature(command.getFeatureId()))
+                        .flatMap(Feature::getDefinition)
+                        .orElse(null),
                 command.getFeature(),
                 command.getResourcePath(),
                 command.getDittoHeaders()
@@ -129,18 +122,18 @@ final class ModifyFeatureStrategy extends AbstractThingModifyCommandStrategy<Mod
 
     private Result<ThingEvent<?>> getModifyResult(final Context<ThingId> context, final long nextRevision,
             final ModifyFeature command, @Nullable final Thing thing, @Nullable final Metadata metadata,
-            final CompletionStage<Void> validatedStage) {
+            final CompletionStage<ModifyFeature> validatedStage) {
 
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final CompletionStage<ThingEvent<?>> eventStage =
-                validatedStage.thenApply(aVoid ->
+                validatedStage.thenApply(modifyFeature ->
                         FeatureModified.of(command.getEntityId(), command.getFeature(), nextRevision,
                                 getEventTimestamp(),
                                 dittoHeaders, metadata));
         final CompletionStage<WithDittoHeaders> responseStage =
-                validatedStage.thenApply(aVoid ->
-                        appendETagHeaderIfProvided(command,
+                validatedStage.thenApply(modifyFeature ->
+                        appendETagHeaderIfProvided(modifyFeature,
                                 ModifyFeatureResponse.modified(context.getState(), command.getFeatureId(),
                                         dittoHeaders),
                                 thing));

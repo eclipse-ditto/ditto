@@ -64,14 +64,29 @@ final class InternalValidation {
                 propertiesContainer.getKeys().stream().map(JsonKey::toString)
                         .collect(Collectors.toCollection(LinkedHashSet::new));
         if (handleDittoCategory) {
+            final Set<String> categories = determineDittoCategories(thingModel);
+            categories.forEach(category ->
+                    propertiesContainer.getValue(category)
+                            .map(JsonValue::asObject)
+                            .ifPresent(categoryObj ->
+                                    allAvailablePropertiesKeys.addAll(
+                                            categoryObj.getKeys().stream()
+                                                    .map(JsonKey::toString)
+                                                    .map(key -> category + "/" + key)
+                                                    .collect(Collectors.toCollection(LinkedHashSet::new))
+                                    )
+                            )
+            );
             tdProperties.forEach((propertyName, property) -> {
                 final Optional<String> dittoCategory = determineDittoCategory(thingModel, property);
                 final String categorizedPropertyName = dittoCategory
                         .map(c -> c + "/").orElse("")
                         .concat(propertyName);
                 if (propertiesContainer.contains(JsonPointer.of(categorizedPropertyName))) {
-                    allAvailablePropertiesKeys.remove(propertyName);
+                    allAvailablePropertiesKeys.remove(categorizedPropertyName);
                     dittoCategory.ifPresent(allAvailablePropertiesKeys::remove);
+                } else if (dittoCategory.filter(propertiesContainer::contains).isPresent()) {
+                    allAvailablePropertiesKeys.remove(dittoCategory.get());
                 }
             });
         } else {
@@ -345,6 +360,23 @@ final class InternalValidation {
         return success();
     }
 
+    static Set<String> determineDittoCategories(final ThingModel thingModel) {
+        return determineDittoCategories(thingModel, thingModel.getProperties().orElse(Properties.of(Map.of())));
+    }
+
+    static Set<String> determineDittoCategories(final ThingModel thingModel, final Properties properties) {
+        final Optional<String> dittoExtensionPrefix = thingModel.getAtContext()
+                .determinePrefixFor(SingleUriAtContext.DITTO_WOT_EXTENSION);
+        return dittoExtensionPrefix.stream().flatMap(prefix ->
+                properties.values().stream().flatMap(jsonFields ->
+                        jsonFields.getValue(prefix + ":" + DittoWotExtension.DITTO_WOT_EXTENSION_CATEGORY)
+                                .filter(JsonValue::isString)
+                                .map(JsonValue::asString)
+                                .stream()
+                )
+        ).collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
     static Optional<String> determineDittoCategory(final ThingModel thingModel, final Property property) {
         final Optional<String> dittoExtensionPrefix = thingModel.getAtContext()
                 .determinePrefixFor(SingleUriAtContext.DITTO_WOT_EXTENSION);
@@ -445,31 +477,38 @@ final class InternalValidation {
             final Set<String> dittoCategories,
             final ValidationContext context
     ) {
-        final JsonValue valueToValidate;
-        if (propertyPath.getLevelCount() > 1) {
-            valueToValidate = JsonObject.newBuilder()
-                    .set(propertyPath.getSubPointer(1).orElseThrow(), propertyValue)
-                    .build();
-        } else {
-            valueToValidate = propertyValue;
-        }
-
         return findPropertyBasedOnPath(thingModel, tdProperties, propertyPath, handleDittoCategory, dittoCategories)
                 .map(propertyWithCategory -> {
+                    final JsonValue valueToValidate;
+                    if (propertyPath.getLevelCount() > 1) {
+                        final int level;
+                        if (handleDittoCategory && propertyWithCategory.category() != null) {
+                            level = 2;
+                        } else {
+                            level = 1;
+                        }
+                        if (propertyPath.getLevelCount() > level) {
+                            valueToValidate = JsonObject.newBuilder()
+                                    .set(propertyPath.getSubPointer(level).orElseThrow(), propertyValue)
+                                    .build();
+                        } else {
+                            valueToValidate = propertyValue;
+                        }
+                    } else {
+                        valueToValidate = propertyValue;
+                    }
+
                     if (handleDittoCategory) {
                         final Optional<String> dittoCategory = Optional.ofNullable(propertyWithCategory.category());
                         final JsonPointer thePropertyPath = dittoCategory
                                 .flatMap(cat -> propertyPath.getSubPointer(1))
                                 .orElse(propertyPath);
-                        final JsonValue theValueToValidate = dittoCategory
-                                .flatMap(cat -> valueToValidate.asObject().getValue(thePropertyPath))
-                                .orElse(valueToValidate);
                         return validateSingleDataSchema(
                                 propertyWithCategory.property(),
                                 propertyDescription,
                                 thePropertyPath,
-                                validateRequiredObjectFields,
-                                theValueToValidate,
+                                validateRequiredObjectFields && thePropertyPath.getLevelCount() < 2, // TODO TJ still valid?
+                                valueToValidate,
                                 resourcePath,
                                 context
                         );

@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.wot.validation;
 
+import static org.eclipse.ditto.wot.validation.InternalValidation.determineDittoCategories;
 import static org.eclipse.ditto.wot.validation.InternalValidation.determineDittoCategory;
 import static org.eclipse.ditto.wot.validation.InternalValidation.enforceActionPayload;
 import static org.eclipse.ditto.wot.validation.InternalValidation.enforceEventPayload;
@@ -45,10 +46,8 @@ import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.wot.model.DittoWotExtension;
 import org.eclipse.ditto.wot.model.Properties;
 import org.eclipse.ditto.wot.model.Property;
-import org.eclipse.ditto.wot.model.SingleUriAtContext;
 import org.eclipse.ditto.wot.model.ThingModel;
 
 final class InternalFeatureValidation {
@@ -362,23 +361,6 @@ final class InternalFeatureValidation {
         }
     }
 
-    private static Set<String> determineDittoCategories(final ThingModel thingModel) {
-        return determineDittoCategories(thingModel, thingModel.getProperties().orElse(Properties.of(Map.of())));
-    }
-
-    private static Set<String> determineDittoCategories(final ThingModel thingModel, final Properties properties) {
-        final Optional<String> dittoExtensionPrefix = thingModel.getAtContext()
-                .determinePrefixFor(SingleUriAtContext.DITTO_WOT_EXTENSION);
-        return dittoExtensionPrefix.stream().flatMap(prefix ->
-                properties.values().stream().flatMap(jsonFields ->
-                        jsonFields.getValue(prefix + ":" + DittoWotExtension.DITTO_WOT_EXTENSION_CATEGORY)
-                                .filter(JsonValue::isString)
-                                .map(JsonValue::asString)
-                                .stream()
-                )
-        ).collect(Collectors.toSet());
-    }
-
     static CompletableFuture<Void> enforcePresenceOfRequiredPropertiesUponFeatureLevelDeletion(
             final ThingModel featureThingModel,
             final String featureId,
@@ -522,7 +504,7 @@ final class InternalFeatureValidation {
                     .newBuilder("Required JSON fields were missing from the " + propertyCategoryDescription);
             nonProvidedRequiredProperties.forEach((rpKey, requiredProperty) ->
                     exceptionBuilder.addValidationDetail(
-                            propertyPath.addLeaf(JsonKey.of(rpKey)),
+                            resourcePath.addLeaf(JsonKey.of(rpKey)),
                             List.of(propertyDescription + " category <" + category +
                                     ">'s <" + rpKey + "> is non optional and must be provided")
                     )
