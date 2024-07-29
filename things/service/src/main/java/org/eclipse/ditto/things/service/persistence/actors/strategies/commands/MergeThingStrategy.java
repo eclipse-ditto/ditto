@@ -80,7 +80,9 @@ final class MergeThingStrategy extends AbstractThingModifyCommandStrategy<MergeT
             @Nullable final Thing previewThing
     ) {
         return wotThingModelValidator.validateThing(
-                Optional.ofNullable(previousThing).flatMap(Thing::getDefinition).orElse(null),
+                Optional.ofNullable(previewThing).flatMap(Thing::getDefinition)
+                        .or(() -> Optional.ofNullable(previousThing).flatMap(Thing::getDefinition))
+                        .orElse(null),
                 Optional.ofNullable(previewThing).orElseThrow(),
                 command.getResourcePath(),
                 command.getDittoHeaders()

@@ -69,7 +69,7 @@ final class InternalFeatureValidation {
         extraFeatureIds.removeAll(definedFeatureIds);
         if (!extraFeatureIds.isEmpty()) {
             final var exceptionBuilder = WotThingModelPayloadValidationException
-                    .newBuilder("Attempting to update the Thing with feature(s) are were not " +
+                    .newBuilder("Attempting to update the Thing with feature(s) which were not " +
                             "defined in the model: " + extraFeatureIds);
             return CompletableFuture.failedFuture(exceptionBuilder
                     .dittoHeaders(context.dittoHeaders())
