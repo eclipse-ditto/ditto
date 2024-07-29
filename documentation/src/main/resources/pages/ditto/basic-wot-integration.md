@@ -408,6 +408,242 @@ Function:
 * if any error happens during the skeleton creation (e.g. a Thing Model can't be downloaded or is invalid),
   the Thing is created without the skeleton model, just containing the specified `"definition"`
 
+### Thing Model based validation of changes to properties, action and event payloads
+
+Since Ditto `3.6.0` it is possible to configure Ditto in a way so that all modification to the persisted things are validated
+according to a linked to WoT Thing Model (TM).  
+That way, Ditto can ensure that Ditto managed things **always** comply with a previously defined (WoT Thing) model.
+
+This takes the WoT integration on a new level, as WoT TMs are not only used to 
+[create a Thing skeleton when creating a thing](#thing-skeleton-generation-upon-thing-creation), 
+ensuring the payload and structure of a thing once on creation.  
+But over the lifetime of a digital twin it is always enforced that the payload follows the model 
+(e.g. in regard to data types, ranges, patterns, etc.).
+
+The implementation supports validation or enforcing the following Ditto concepts:
+* On Thing level:
+  * Modification of a Thing's [definition](basic-thing.html#definition) causes validation of the existing thing against the new TM
+  * Deletion of a Thing's [definition](basic-thing.html#definition) is forbidden (to not be able to bypass validation)
+  * Thing [attributes](basic-thing.html#attributes): 
+    * based on the linked TM of a Thing's [definition](basic-thing.html#definition),  the Thing `attributes` have to 
+      follow the contract defined by the TM `properties`
+    * by default, non-modeled `attributes` are forbidden to be created/updated
+    * `attributes` which are not marked as optional (via `"tm:optional"`) are ensured not to be deleted
+  * Thing [messages](basic-messages.html#sending-messages): 
+    * based on the linked TM of a Thing's [definition](basic-thing.html#definition), the Thing `messages` 
+      * sent to its `inbox` have to follow the contract defined by the TM `actions`
+        * both, the defined `input` payload and the `output` payload is validated
+        * by default, non-modeled `inbox` `messages` are forbidden to be sent
+      * sent from its `outbox` have to follow the contract defined by the TM `events`
+        * the defined `data` payload is validated
+        * by default, non-modeled `outbox` `messages` are forbidden to be sent
+  * When modifying (or merging) the complete Thing or all of the features at once:
+    * it is ensured that no defined features get effectively "removed"
+    * it is ensured that only defined and known features are accepted
+* On Feature level:
+  * Modification of a Feature's [definition](basic-feature.html#feature-definition) causes validation of the existing feature against the new TM
+  * Deletion of a Feature's [definition](basic-feature.html#feature-definition) is forbidden (to not be able to bypass validation)
+  * Feature [properties](basic-feature.html#feature-properties): 
+    * based on the linked TM of a Feature's [definition](basic-feature.html#feature-definition), the Feature `properties` 
+      have to follow the contract defined by the TM `properties`
+  * Feature [messages](basic-messages.html#sending-messages):
+    * based on the linked TM of a Feature's [definition](basic-feature.html#feature-definition), the Feature `messages`
+      * sent to its `inbox` have to follow the contract defined by the TM `actions`
+          * both, the defined `input` payload and the `output` payload is validated
+          * by default, non-modeled `inbox` `messages` are forbidden to be sent
+      * sent from its `outbox` have to follow the contract defined by the TM `events`
+          * the defined `data` payload is validated
+          * by default, non-modeled `outbox` `messages` are forbidden to be sent
+
+### Thing Model based validation error
+
+When Ditto detects an API call which was not valid according to the model, an HTTP status code `400` (Bad Request) will
+be returned to the caller, containing a description of the encountered validation violation.
+
+The basic structure of the WoT validation errors is defined by [the error model](basic-errors.html).  
+The `error` field will always be `"wot:payload.validation.error"` - and the `message` will also always be the same.  
+The `description` however will contain a specific text and the `"validationDetails"` field contains a map of 
+erroneous Json pointer paths. 
+
+The list of collected errors might however not be complete (e.g. for the whole thing), as Ditto will for a 
+complete [Thing](basic-thing.html) update first its `attributes` and then its `featuers` (one after another) 
+and will fail fast (instead of validating the complete thing) if validation errors are detected.
+
+An example payload when e.g. sending the wrong datatype for a Thing "attribute" could look like:
+```json
+{
+  "status": 400,
+  "error": "wot:payload.validation.error",
+  "message": "The provided payload did not conform to the specified WoT (Web of Things) model.",
+  "description": "The Thing's attribute </serial> contained validation errors, check the validation details.",
+  "validationDetails": {
+    "/attributes/serial": [
+      ": {type=boolean found, string expected}"
+    ]
+  }
+}
+```
+
+An example where e.g. a `"required"` field of a `"type": "object"` WoT property was missing would be, for example:
+```json
+{
+  "status": 400,
+  "error": "wot:payload.validation.error",
+  "message": "The provided payload did not conform to the specified WoT (Web of Things) model.",
+  "description": "The Feature <connectivity>'s property </status> contained validation errors, check the validation details.",
+  "validationDetails": {
+    "/features/connectivity/properties/status": [
+      ": {required=[required property 'updatedAt' not found, required property 'message' not found]}"
+    ]
+  }
+}
+```
+
+If all feature properties should be updated at once, but no payload was provided, this would list the non-optional 
+WoT properties in the error response:
+```json
+{
+  "status": 400,
+  "error": "wot:payload.validation.error",
+  "message": "The provided payload did not conform to the specified WoT (Web of Things) model.",
+  "description": "Required JSON fields were missing from the Feature <sensor>'s properties",
+  "validationDetails": {
+    "/features/sensor/properties/value": [
+      "Feature <sensor>'s property <value> is non optional and must be provided"
+    ],
+    "/features/sensor/properties/updatedAt": [
+      "Feature <sensor>'s property <updatedAt> is non optional and must be provided"
+    ]
+  }
+}
+```
+
+#### Model evolution with the help of Thing Model based validation
+
+This new validation will also make it possible to evolute things conforming to a (WoT) model to e.g. a new minor version
+with added functionality and also provide means for "migrating" things to breaking (major) model versions.
+
+When updating the Thing's [definition](basic-thing.html#definition) to another version, the Ditto WoT validation will
+check if the payload of the Thing is valid according to the new definition.  
+If it is not valid (e.g. because a new feature was added to the Thing's model which is not yet in the Thing's payload),
+validation will fail with an error:
+
+Example assuming to update a Thing's `definition` from version `1.0.0` to version `1.1.0`
+(assuming where a new submodel `coffeeMaker` was added):
+```
+PUT /api/2/things/org.eclipse.ditto:my-thing-1/definition
+
+payload:
+"https://some.domain/some-model-1.1.0.tm.jsonld"
+```
+
+The response would e.g. be:
+```json
+{
+  "status": 400,
+  "error": "wot:payload.validation.error",
+  "message": "The provided payload did not conform to the specified WoT (Web of Things) model.",
+  "description": "Attempting to update the Thing with missing in the model defined features: [coffeeMaker]"
+}
+```
+
+This could be solved by doing a `PATCH` update instead, updating both the Thing's `definition` together with the
+missing payload (assuming the `coffee-1.0.0` model contains just a required property `counter`):
+```
+PATCH /api/2/things/org.eclipse.ditto:my-thing-1
+
+headers:
+Content-Type: application/merge-patch+json
+
+payload:
+{
+  "definition": "https://some.domain/some-model-1.1.0.tm.jsonld",
+  "features": {
+    "coffeeMaker": {
+      "definition": [
+        "https://some.domain/submodels/coffee-1.0.0.tm.jsonld"
+      ],
+      "properties": {
+        "counter": 0
+      }
+    }
+  }
+}
+```
+
+#### Configuration of Thing Model based validation
+
+Starting with Ditto `3.6.0`, the WoT based validation against Thing Models is enabled by default.  
+It however can be completely disabled by configuring the environment variable `THINGS_WOT_TM_MODEL_VALIDATION_ENABLED` to `false`.
+
+Every single validation aspect is configurable separately in Ditto (by default all aspects are enabled).  
+Please have a look at e.g. the Helm chart configuration, level `things.config.wot.tmValidation`, in order to find all 
+available configuration options.  
+Or check the [things.conf](https://github.com/eclipse-ditto/ditto/blob/master/things/service/src/main/resources/things.conf)
+(key `ditto.things.wot.tm-model-validation`) to also find out the options and with which environment variables they 
+can be overridden.
+
+The configuration can also be applied dynamically based on:
+* the presence of certain Ditto headers (e.g. a `ditto-originator` - the connection or user which "caused" an API call)
+* the name/URL of the Thing's WoT Thing Model (TM)
+* the name/URL of the Feature's WoT Thing Model (TM)
+
+And example for the dynamic configuration, which would override the static configuration for 
+* a specific user doing the API call
+* AND doing the API call to a Thing with a specific model 
+
+would be the following HOCON configuration:
+```hocon
+things {
+  wot {
+    tm-model-validation {
+      enabled = true
+
+      dynamic-configuration = [
+        {
+          validation-context {
+            // all 3 "patterns" conditions have to match (AND)
+            ditto-headers-patterns = [      // if any (OR) of the contained headers block match
+              {
+                // inside the object, all patterns have to match (AND)
+                ditto-originator = "^pre:ditto$"
+              }
+            ]
+            thing-definition-patterns = [   // if any (OR) of the contained patterns match
+              "^https://eclipse-ditto.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld$"
+            ]
+            feature-definition-patterns = [ // if any (OR) of the contained patterns match
+            ]
+          }
+          // if the validation-context "matches" a processed API call, apply the following overrides:
+          config-overrides {
+            // enabled = false // we could deactivate the complete WoT Thing Model validation with this config
+            thing {
+              // disable some aspects of Thing validation
+              enforce {
+                attributes = false
+              }
+              forbid {
+                thing-description-deletion = false
+              }
+            }
+            feature {
+              // disable some aspects of Feature validation
+              enforce {
+                properties = false
+              }
+              forbid {
+                feature-description-deletion = false
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
 
 ## Ditto WoT Extension Ontology
 
