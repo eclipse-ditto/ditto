@@ -507,7 +507,7 @@ final class InternalValidation {
                                 propertyWithCategory.property(),
                                 propertyDescription,
                                 thePropertyPath,
-                                validateRequiredObjectFields && thePropertyPath.getLevelCount() < 2,
+                                validateRequiredObjectFields,
                                 valueToValidate,
                                 resourcePath,
                                 context
