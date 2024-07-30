@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.persistence.operations;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -40,11 +37,6 @@ public final class DefaultPersistenceOperationsConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         persistenceOperationsTestConfig = ConfigFactory.load("persistence-operations-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultPersistenceOperationsConfig.class, areImmutable());
     }
 
     @Test

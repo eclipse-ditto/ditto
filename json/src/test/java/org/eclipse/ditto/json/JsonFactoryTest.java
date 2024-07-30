@@ -16,8 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.io.Reader;
 import java.io.StringReader;
@@ -43,11 +41,6 @@ public final class JsonFactoryTest {
     private static final int KNOWN_INT = 42;
     private static final String KNOWN_STRING = "Hallo";
     private static final long KNOWN_LONG = 422308154711L;
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(JsonFactory.class, areImmutable());
-    }
 
     @Test(expected = NullPointerException.class)
     public void tryToGetNewKeyFromNullString() {

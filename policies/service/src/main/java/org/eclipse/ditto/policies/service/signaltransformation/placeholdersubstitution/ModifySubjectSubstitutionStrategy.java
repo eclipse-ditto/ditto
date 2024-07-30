@@ -14,6 +14,8 @@ package org.eclipse.ditto.policies.service.signaltransformation.placeholdersubst
 
 import static java.util.Objects.requireNonNull;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.base.service.signaltransformer.placeholdersubstitution.AbstractTypedSubstitutionStrategy;
 import org.eclipse.ditto.base.service.signaltransformer.placeholdersubstitution.HeaderBasedPlaceholderSubstitutionAlgorithm;
 import org.eclipse.ditto.policies.model.Subject;
@@ -22,6 +24,7 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
 /**
  * Handles substitution for {@link org.eclipse.ditto.policies.model.SubjectId} inside a {@link ModifySubject} command.
  */
+@Immutable
 final class ModifySubjectSubstitutionStrategy extends AbstractTypedSubstitutionStrategy<ModifySubject> {
 
     ModifySubjectSubstitutionStrategy() {

@@ -14,8 +14,8 @@ package org.eclipse.ditto.internal.utils.cluster;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
+
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -32,6 +32,7 @@ import org.junit.Test;
 /**
  * Unit test for {@link ManifestProviderTest}.
  */
+@Immutable
 public final class ManifestProviderTest {
 
     private static final ThingId THING_ID = ThingId.of("org.eclipse.ditto.test","myThing");
@@ -48,13 +49,6 @@ public final class ManifestProviderTest {
         underTest = ManifestProvider.getInstance();
     }
 
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ManifestProvider.class, areImmutable());
-    }
-
-
     @Test
     public void tryToGetManifestForNull() {
         assertThatExceptionOfType(NullPointerException.class)
@@ -62,7 +56,6 @@ public final class ManifestProviderTest {
                 .withFailMessage("The %s must not be null!", "object")
                 .withNoCause();
     }
-
 
     @Test
     public void getManifestFromCommandNotSupportedException() {

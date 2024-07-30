@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.thingsearch.service.common.config;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadConcern;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadPreference;
@@ -42,13 +38,6 @@ public final class DefaultSearchPersistenceConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         config = ConfigFactory.load("updater-persistence-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultSearchPersistenceConfig.class,
-                areImmutable(),
-                provided(ReadPreference.class).isAlsoImmutable());
     }
 
     @Test

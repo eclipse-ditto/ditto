@@ -15,6 +15,8 @@ package org.eclipse.ditto.thingsearch.service.common.config;
 import java.util.List;
 import java.util.Objects;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 
 import com.typesafe.config.Config;
@@ -23,6 +25,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the NamespaceSearchIndex config.
  * It is instantiated for each namespace search index entry containing the namespace definition and the list of search indexes.
  */
+@Immutable
 public final class DefaultNamespaceSearchIndexConfig implements NamespaceSearchIndexConfig {
 
     private final String namespacePattern;

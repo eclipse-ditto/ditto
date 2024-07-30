@@ -15,19 +15,21 @@ package org.eclipse.ditto.thingsearch.model.signals.commands.exceptions;
 import java.net.URI;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.thingsearch.model.ThingSearchException;
 
 /**
  * Thrown if an option for a search is invalid.
  */
+@Immutable
 @JsonParsableException(errorCode = InvalidOptionException.ERROR_CODE)
 public class InvalidOptionException extends DittoRuntimeException implements ThingSearchException {
 

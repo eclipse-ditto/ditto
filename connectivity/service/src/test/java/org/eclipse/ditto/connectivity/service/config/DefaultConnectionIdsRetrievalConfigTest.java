@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -38,12 +35,6 @@ public final class DefaultConnectionIdsRetrievalConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         connectionIdsConf = ConfigFactory.load("connections-ids-retrieval-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultConnectionIdsRetrievalConfig.class,
-                areImmutable());
     }
 
     @Test

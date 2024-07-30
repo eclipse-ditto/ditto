@@ -13,16 +13,12 @@
 package org.eclipse.ditto.policies.model.signals.commands.query;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
 import org.junit.Test;
@@ -42,13 +38,6 @@ public final class RetrievePolicyImportsResponseTest {
             .build();
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(RetrievePolicyImportsResponse.class, areImmutable(),
-                provided(JsonObject.class, PolicyId.class).isAlsoImmutable());
-    }
 
 
     @Test

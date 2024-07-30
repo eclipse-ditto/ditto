@@ -13,15 +13,11 @@
 package org.eclipse.ditto.gateway.service.util.config.streaming;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.assertj.core.data.Percentage;
-import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -44,12 +40,6 @@ public final class DefaultWebsocketConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         webSocketTestConfig = ConfigFactory.load("websocket-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultWebsocketConfig.class, areImmutable(),
-                provided(ThrottlingConfig.class).isAlsoImmutable());
     }
 
     @Test

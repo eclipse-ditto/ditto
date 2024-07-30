@@ -17,12 +17,8 @@ import static org.eclipse.ditto.internal.utils.persistence.mongo.KeyNameReviser.
 import static org.eclipse.ditto.internal.utils.persistence.mongo.KeyNameReviser.DOLLAR_UNICODE_CHAR;
 import static org.eclipse.ditto.internal.utils.persistence.mongo.KeyNameReviser.DOT_CHAR;
 import static org.eclipse.ditto.internal.utils.persistence.mongo.KeyNameReviser.DOT_UNICODE_CHAR;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.text.MessageFormat;
-import java.util.function.Function;
 
 import org.junit.Test;
 
@@ -30,11 +26,6 @@ import org.junit.Test;
  * Unit test for {@link KeyNameReviser}.
  */
 public final class KeyNameReviserTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(KeyNameReviser.class, areImmutable(), provided(Function.class).isAlsoImmutable());
-    }
 
     @Test
     public void instanceReturnedForEscapingProblematicPlainCharsWorksAsExpected() {

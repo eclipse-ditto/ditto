@@ -14,8 +14,6 @@
 package org.eclipse.ditto.connectivity.model.signals.commands.exceptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.signals.commands.TestConstants;
@@ -40,13 +38,6 @@ public final class ConnectionNotAccessibleExceptionTest {
                 ConnectionNotAccessibleException.fromJson(JsonFactory.readFrom(jsonString).asObject(), DittoHeaders.empty());
 
         assertThat(decoded.toJsonString()).isEqualTo(exception.toJsonString());
-    }
-
-    @Test
-    public void testImmutability() {
-        assertInstancesOf(
-                ConnectionNotAccessibleException.class,
-                areImmutable());
     }
 
 }

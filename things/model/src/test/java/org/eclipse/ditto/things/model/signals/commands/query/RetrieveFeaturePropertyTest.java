@@ -13,19 +13,14 @@
 package org.eclipse.ditto.things.model.signals.commands.query;
 
 import static org.eclipse.ditto.things.model.signals.commands.assertions.ThingCommandAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.junit.Test;
@@ -49,15 +44,6 @@ public final class RetrieveFeaturePropertyTest {
             .set(RetrieveFeatureProperty.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(RetrieveFeatureProperty.JSON_PROPERTY_JSON_POINTER, PROPERTY_JSON_POINTER.toString())
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(RetrieveFeatureProperty.class,
-                areImmutable(),
-                provided(JsonPointer.class, JsonFieldSelector.class, ThingId.class).areAlsoImmutable());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

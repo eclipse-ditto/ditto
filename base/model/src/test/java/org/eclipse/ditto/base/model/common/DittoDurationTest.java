@@ -15,9 +15,6 @@ package org.eclipse.ditto.base.model.common;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -26,16 +23,9 @@ import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.junit.Test;
 
 /**
- * Tests {@link org.eclipse.ditto.base.model.common.DittoDuration}.
+ * Tests {@link DittoDuration}.
  */
 public final class DittoDurationTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DittoDuration.class,
-                areImmutable(),
-                provided("org.eclipse.ditto.base.model.common.DittoDuration$DittoTimeUnit").isAlsoImmutable());
-    }
 
     @Test
     public void tryToGetInstanceFromNullDuration() {

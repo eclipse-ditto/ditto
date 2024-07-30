@@ -16,8 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.OffsetDateTime;
 
@@ -46,11 +44,6 @@ public final class TimestampValueValidatorTest {
     @Before
     public void setUp() {
         underTest = TimestampValueValidator.getInstance();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(TimestampValueValidator.class, areImmutable());
     }
 
     @Test

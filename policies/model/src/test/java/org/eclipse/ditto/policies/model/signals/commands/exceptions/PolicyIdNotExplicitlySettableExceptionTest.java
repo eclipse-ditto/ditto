@@ -13,8 +13,6 @@
 package org.eclipse.ditto.policies.model.signals.commands.exceptions;
 
 import static org.eclipse.ditto.base.model.assertions.DittoBaseAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Objects;
 
@@ -27,7 +25,7 @@ import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyIdNotExplicitlySettableException}.
+ * Unit test for {@link PolicyIdNotExplicitlySettableException}.
  */
 public class PolicyIdNotExplicitlySettableExceptionTest {
 
@@ -42,13 +40,6 @@ public class PolicyIdNotExplicitlySettableExceptionTest {
                     TestConstants.Policy.POLICY_ID_NOT_EXPLICITLY_SETTABLE_EXCEPTION.getHref()
                             .map(Objects::toString).orElse(null))
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PolicyIdNotExplicitlySettableException.class, areImmutable());
-    }
-
 
     @Test
     public void checkThingErrorCodeWorks() {

@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.metrics.config;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig.MetricsConfigValue;
 import org.junit.BeforeClass;
@@ -39,11 +36,6 @@ public final class DefaultMetricsConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         metricsTestConf = ConfigFactory.load("metrics-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultMetricsConfig.class, areImmutable());
     }
 
     @Test

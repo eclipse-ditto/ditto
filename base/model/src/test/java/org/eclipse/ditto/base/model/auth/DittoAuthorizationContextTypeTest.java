@@ -13,8 +13,6 @@
 package org.eclipse.ditto.base.model.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -26,14 +24,9 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit tests for {@link org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType}.
+ * Unit tests for {@link DittoAuthorizationContextType}.
  */
 public final class DittoAuthorizationContextTypeTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DittoAuthorizationContextType.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

@@ -13,8 +13,6 @@
 package org.eclipse.ditto.base.model.signals.acks;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -39,11 +37,6 @@ public final class AcknowledgementCorrelationIdMissingExceptionTest {
 
     @Rule
     public final TestName testName = new TestName();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(AcknowledgementCorrelationIdMissingException.class, areImmutable());
-    }
 
     @Test
     public void toJsonReturnsExpected() {

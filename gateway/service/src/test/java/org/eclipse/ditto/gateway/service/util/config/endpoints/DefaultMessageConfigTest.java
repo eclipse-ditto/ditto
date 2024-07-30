@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.gateway.service.util.config.endpoints;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -40,11 +37,6 @@ public final class DefaultMessageConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         messageTestConfig = ConfigFactory.load("message-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultMessageConfig.class, areImmutable());
     }
 
     @Test

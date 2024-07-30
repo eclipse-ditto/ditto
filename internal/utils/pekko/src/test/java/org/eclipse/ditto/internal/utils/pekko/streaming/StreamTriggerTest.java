@@ -13,8 +13,6 @@
 package org.eclipse.ditto.internal.utils.pekko.streaming;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -32,12 +30,6 @@ public class StreamTriggerTest {
     private static final Instant NOW = Instant.now();
     private static final Duration MIN_START_OFFSET = Duration.ofMinutes(15);
     private static final Duration STREAM_INTERVAL = Duration.ofMinutes(5);
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(StreamTrigger.class, areImmutable());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

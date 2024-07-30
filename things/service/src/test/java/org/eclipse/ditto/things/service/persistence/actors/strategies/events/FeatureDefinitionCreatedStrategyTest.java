@@ -13,8 +13,6 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.events;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.Thing;
@@ -25,11 +23,6 @@ import org.junit.Test;
  * Unit test for {@link FeatureDefinitionCreatedStrategy}.
  */
 public final class FeatureDefinitionCreatedStrategyTest extends AbstractStrategyTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(FeatureDefinitionCreatedStrategy.class, areImmutable());
-    }
 
     @Test
     public void appliesEventCorrectly() {

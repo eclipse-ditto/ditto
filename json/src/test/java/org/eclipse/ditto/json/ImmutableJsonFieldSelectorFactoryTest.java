@@ -14,8 +14,6 @@ package org.eclipse.ditto.json;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.json.JsonFactory.newPointer;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -34,13 +32,6 @@ public final class ImmutableJsonFieldSelectorFactoryTest {
 
     private static final JsonParseOptions JSON_PARSE_OPTIONS_WITH_URL_DECODING =
             JsonFactory.newParseOptionsBuilder().withUrlDecoding().build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableJsonFieldSelectorFactory.class, areImmutable());
-    }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullString() {

@@ -13,8 +13,6 @@
 package org.eclipse.ditto.base.model.signals.acks;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.text.MessageFormat;
 import java.time.Duration;
@@ -43,11 +41,6 @@ public final class AcknowledgementRequestTimeoutExceptionTest {
                     AcknowledgementRequestTimeoutException.DEFAULT_DESCRIPTION)
             .set(DittoRuntimeException.JsonFields.STATUS, HttpStatus.REQUEST_TIMEOUT.getCode())
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(AcknowledgementRequestTimeoutException.class, areImmutable());
-    }
 
     @Test
     public void toJsonReturnsExpected() {

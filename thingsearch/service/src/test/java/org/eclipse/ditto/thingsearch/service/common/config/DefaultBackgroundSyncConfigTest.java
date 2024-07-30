@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.thingsearch.service.common.config;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -41,11 +37,6 @@ public final class DefaultBackgroundSyncConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         backgroundSyncTestConfig = ConfigFactory.load("background-sync-config-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultBackgroundSyncConfig.class, areImmutable(), provided(Config.class).isAlsoImmutable());
     }
 
     @Test

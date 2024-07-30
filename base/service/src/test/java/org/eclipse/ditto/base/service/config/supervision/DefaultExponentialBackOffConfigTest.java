@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.base.service.config.supervision;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -40,12 +37,6 @@ public final class DefaultExponentialBackOffConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         exponentialBackOffTestConf = ConfigFactory.load("exponentialBackOff-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultExponentialBackOffConfig.class,
-                areImmutable());
     }
 
     @Test

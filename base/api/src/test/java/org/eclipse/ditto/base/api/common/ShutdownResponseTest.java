@@ -12,11 +12,6 @@
  */
 package org.eclipse.ditto.base.api.common;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
-import org.eclipse.ditto.json.JsonValue;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -25,11 +20,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Tests {@link ShutdownResponse}.
  */
 public final class ShutdownResponseTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ShutdownResponse.class, areImmutable(), provided(JsonValue.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

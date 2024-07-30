@@ -13,28 +13,16 @@
 package org.eclipse.ditto.json;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
-import java.util.function.Function;
 
 import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.json.JavaStringToEscapedJsonString}.
+ * Unit test for {@link JavaStringToEscapedJsonString}.
  */
 public final class JavaStringToEscapedJsonStringTest {
     
     private JavaStringToEscapedJsonString underTest;
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(JavaStringToEscapedJsonString.class,
-                areImmutable(),
-                provided(Function.class).isAlsoImmutable());
-    }
 
     @Before
     public void setUp() {

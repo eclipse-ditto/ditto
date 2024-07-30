@@ -14,9 +14,6 @@ package org.eclipse.ditto.base.model.signals.acks;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.UUID;
 
@@ -59,17 +56,6 @@ public final class AcknowledgementTest {
                 .correlationId(testName.getMethodName())
                 .responseRequired(false)
                 .build();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(Acknowledgement.class, areImmutable(),
-                provided(AcknowledgementLabel.class,
-                        EntityId.class,
-                        EntityType.class,
-                        DittoHeaders.class,
-                        JsonValue.class).areAlsoImmutable(),
-                provided("T").isAlsoImmutable());
     }
 
     @Test

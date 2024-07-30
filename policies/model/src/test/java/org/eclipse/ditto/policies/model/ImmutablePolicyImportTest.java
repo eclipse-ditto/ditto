@@ -13,9 +13,6 @@
 package org.eclipse.ditto.policies.model;
 
 import static org.eclipse.ditto.policies.model.assertions.DittoPolicyAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
 
@@ -31,13 +28,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutablePolicyImportTest {
 
     private static final PolicyId IMPORTED_POLICY_ID = PolicyId.of("com.example", "importablePolicy");
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutablePolicyImport.class,
-                areImmutable(),
-                provided(PolicyId.class, EffectedImports.class).areAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

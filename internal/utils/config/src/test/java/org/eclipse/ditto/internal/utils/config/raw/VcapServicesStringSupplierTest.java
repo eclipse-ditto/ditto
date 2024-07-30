@@ -16,9 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.internal.utils.config.raw.VcapServicesStringSupplier.VCAP_LOCATION_ENV_VARIABLE_NAME;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -27,7 +24,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
-import org.junit.*;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
 /**
@@ -51,13 +51,6 @@ public final class VcapServicesStringSupplierTest {
     @Before
     public void setVcapConfigFileEnvironmentVariable() {
         environmentVariables.set(VCAP_LOCATION_ENV_VARIABLE_NAME, vcapServicesFilePath.toString());
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(VcapServicesStringSupplier.class,
-                areImmutable(),
-                provided(Path.class).isAlsoImmutable());
     }
 
     @Test

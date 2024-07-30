@@ -14,8 +14,6 @@ package org.eclipse.ditto.json;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -50,11 +48,6 @@ public final class ImmutableJsonLongTest {
         @Before
         public void setUp() {
             underTest = ImmutableJsonLong.of(longValue);
-        }
-
-        @Test
-        public void assertImmutability() {
-            assertInstancesOf(ImmutableJsonLong.class, areImmutable());
         }
 
         @Test

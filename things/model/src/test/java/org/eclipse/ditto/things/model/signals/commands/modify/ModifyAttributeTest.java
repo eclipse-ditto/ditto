@@ -15,9 +15,6 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.ditto.things.model.signals.commands.assertions.ThingCommandAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -53,13 +50,6 @@ public final class ModifyAttributeTest {
             .set(ModifyAttribute.JSON_ATTRIBUTE, KNOWN_JSON_POINTER.toString())
             .set(ModifyAttribute.JSON_ATTRIBUTE_VALUE, KNOWN_ATTRIBUTE)
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ModifyAttribute.class,
-                areImmutable(),
-                provided(JsonPointer.class, JsonValue.class, ThingId.class).areAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

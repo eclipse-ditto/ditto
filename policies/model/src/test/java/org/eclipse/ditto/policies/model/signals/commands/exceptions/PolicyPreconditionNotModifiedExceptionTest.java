@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.policies.model.signals.commands.exceptions;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.util.Objects;
 
 import org.eclipse.ditto.base.model.assertions.DittoBaseAssertions;
@@ -27,7 +24,7 @@ import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyPreconditionNotModifiedException}.
+ * Unit test for {@link PolicyPreconditionNotModifiedException}.
  */
 public class PolicyPreconditionNotModifiedExceptionTest {
 
@@ -42,13 +39,6 @@ public class PolicyPreconditionNotModifiedExceptionTest {
                     TestConstants.Policy.POLICY_PRECONDITION_NOT_MODIFIED_EXCEPTION.getHref()
                             .map(Objects::toString).orElse(null))
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PolicyPreconditionNotModifiedException.class, areImmutable());
-    }
-
 
     @Test
     public void checkErrorCodeWorks() {

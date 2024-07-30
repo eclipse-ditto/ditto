@@ -15,9 +15,6 @@ package org.eclipse.ditto.internal.utils.persistence.mongo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.internal.utils.persistence.mongo.JsonValueToDbEntityMapper.forJsonObject;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.function.Function;
 
@@ -31,11 +28,6 @@ import org.mockito.Mockito;
  * Unit test for {@link JsonValueToDbEntityMapper}.
  */
 public final class JsonValueToDbEntityMapperTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(JsonValueToDbEntityMapper.class, areImmutable(), provided(Function.class).isAlsoImmutable());
-    }
 
     @Test
     public void tryToGetMapperForJsonObjectWithNullKeyNameReviser() {

@@ -16,9 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.lang.ref.SoftReference;
 import java.lang.reflect.Field;
@@ -79,13 +76,6 @@ public final class ImmutableJsonObjectTest {
 
     private static Map<String, JsonField> toMap(final CharSequence keyName, final int rawValue) {
         return toMap(keyName, JsonValue.of(rawValue));
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableJsonObject.class,
-                areImmutable(),
-                provided(ImmutableJsonObject.SoftReferencedFieldMap.class).isAlsoImmutable());
     }
 
     @Test

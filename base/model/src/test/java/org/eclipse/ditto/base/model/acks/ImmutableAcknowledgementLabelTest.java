@@ -13,8 +13,6 @@
 package org.eclipse.ditto.base.model.acks;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.junit.Test;
@@ -22,7 +20,7 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit tests for {@link org.eclipse.ditto.base.model.acks.ImmutableAcknowledgementLabel}.
+ * Unit tests for {@link ImmutableAcknowledgementLabel}.
  */
 public final class ImmutableAcknowledgementLabelTest {
 
@@ -33,11 +31,6 @@ public final class ImmutableAcknowledgementLabelTest {
         EqualsVerifier.forClass(ImmutableAcknowledgementLabel.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableAcknowledgementLabel.class, areImmutable());
     }
 
     @Test

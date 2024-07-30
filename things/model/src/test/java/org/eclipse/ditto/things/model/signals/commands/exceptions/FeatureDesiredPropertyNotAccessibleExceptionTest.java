@@ -13,8 +13,6 @@
 package org.eclipse.ditto.things.model.signals.commands.exceptions;
 
 import static org.eclipse.ditto.things.model.signals.commands.assertions.ThingCommandAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.net.URI;
 
@@ -42,12 +40,6 @@ public class FeatureDesiredPropertyNotAccessibleExceptionTest {
                     TestConstants.Feature.FEATURE_DESIRED_PROPERTY_NOT_ACCESSIBLE_EXCEPTION.getHref()
                             .map(URI::toString).orElse(null))
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(FeatureDesiredPropertyNotAccessibleException.class, areImmutable());
-    }
 
 
     @Test

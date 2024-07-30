@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -37,9 +38,10 @@ import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy} command for a
+ * This strategy handles the {@link CreatePolicy} command for a
  * new Policy.
  */
+@Immutable
 final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePolicy, PolicyEvent<?>> {
 
     CreatePolicyStrategy(final PolicyConfig policyConfig) {

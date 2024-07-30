@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -93,11 +90,6 @@ public final class HiveMqttClientFactoryTest {
 
         final var sshTunnelState = SshTunnelState.disabled();
         Mockito.when(sshTunnelStateSupplier.get()).thenReturn(sshTunnelState);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(HiveMqttClientFactory.class, areImmutable());
     }
 
     @Test

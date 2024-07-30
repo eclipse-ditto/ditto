@@ -13,8 +13,6 @@
 package org.eclipse.ditto.policies.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -36,13 +34,6 @@ public final class ImmutablePolicyRevisionTest {
     public void setUp() {
         underTest = ImmutablePolicyRevision.of(DEFAULT_VALUE);
     }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutablePolicyRevision.class,
-                areImmutable());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

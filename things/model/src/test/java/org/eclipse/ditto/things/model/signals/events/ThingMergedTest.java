@@ -13,9 +13,6 @@
 package org.eclipse.ditto.things.model.signals.events;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.lang.ref.SoftReference;
 
@@ -24,8 +21,6 @@ import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -44,12 +39,6 @@ public final class ThingMergedTest {
             .set(ThingMerged.JsonFields.JSON_PATH, TestConstants.Thing.ABSOLUTE_LOCATION_ATTRIBUTE_POINTER.toString())
             .set(ThingMerged.JsonFields.JSON_VALUE, TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE)
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ThingMerged.class, areImmutable(),
-                provided(JsonPointer.class, JsonValue.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

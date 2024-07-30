@@ -14,8 +14,6 @@ package org.eclipse.ditto.internal.utils.config.raw;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -25,7 +23,10 @@ import java.nio.file.Paths;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.junit.*;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
 import com.typesafe.config.Config;
@@ -60,11 +61,6 @@ public final class VcapServicesStringParserTest {
     @Before
     public void initUnderTest() {
         underTest = VcapServicesStringParser.getInstance();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(VcapServicesStringParser.class, areImmutable());
     }
 
     @Test

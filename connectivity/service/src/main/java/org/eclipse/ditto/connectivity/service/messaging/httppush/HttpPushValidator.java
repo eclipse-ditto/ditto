@@ -20,6 +20,12 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import javax.annotation.concurrent.Immutable;
+
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.http.javadsl.model.HttpMethod;
+import org.apache.pekko.http.javadsl.model.HttpMethods;
+import org.apache.pekko.http.javadsl.model.Uri;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
@@ -32,14 +38,10 @@ import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
 import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProtocolValidator;
 
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.http.javadsl.model.HttpMethod;
-import org.apache.pekko.http.javadsl.model.HttpMethods;
-import org.apache.pekko.http.javadsl.model.Uri;
-
 /**
  * Validation of http-push connections.
  */
+@Immutable
 public final class HttpPushValidator extends AbstractProtocolValidator {
 
     private static final String HTTPS = "https";

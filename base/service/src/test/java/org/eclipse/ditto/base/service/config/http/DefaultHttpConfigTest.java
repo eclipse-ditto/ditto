@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.base.service.config.http;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.service.config.http.HttpConfig.HttpConfigValue;
 import org.junit.BeforeClass;
@@ -39,11 +36,6 @@ public final class DefaultHttpConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         httpTestConfig = ConfigFactory.load("http-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultHttpConfig.class, areImmutable());
     }
 
     @Test

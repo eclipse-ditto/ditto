@@ -14,8 +14,6 @@ package org.eclipse.ditto.connectivity.model.signals.events;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.events.Event;
@@ -47,11 +45,6 @@ public final class ConnectionOpenedTest {
         EqualsVerifier.forClass(ConnectionOpened.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ConnectionOpened.class, areImmutable());
     }
 
     @Test

@@ -13,9 +13,6 @@
 package org.eclipse.ditto.internal.utils.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.lang.reflect.Constructor;
 
@@ -35,13 +32,6 @@ public final class LocalHostAddressSupplierTest {
     @Before
     public void setUp() {
         environmentVariables.clear(HostNameSupplier.ENV_HOSTNAME);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(LocalHostAddressSupplier.class,
-                areImmutable(),
-                assumingFields("localHostAddress").areModifiedAsPartOfAnUnobservableCachingStrategy());
     }
 
     @Test

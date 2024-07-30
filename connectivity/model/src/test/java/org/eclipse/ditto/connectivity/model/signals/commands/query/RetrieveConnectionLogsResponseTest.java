@@ -14,9 +14,6 @@ package org.eclipse.ditto.connectivity.model.signals.commands.query;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -25,7 +22,6 @@ import java.util.Collection;
 import java.util.Collections;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.LogCategory;
 import org.eclipse.ditto.connectivity.model.LogEntry;
@@ -174,13 +170,6 @@ public final class RetrieveConnectionLogsResponseTest {
         EqualsVerifier.forClass(RetrieveConnectionLogsResponse.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(RetrieveConnectionLogsResponse.class,
-                areImmutable(),
-                provided(LogEntry.class, ConnectionId.class).areAlsoImmutable());
     }
 
 }

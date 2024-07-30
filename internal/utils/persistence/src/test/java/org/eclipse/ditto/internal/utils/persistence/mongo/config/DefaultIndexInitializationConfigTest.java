@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.persistence.mongo.config;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -38,12 +35,6 @@ public final class DefaultIndexInitializationConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         indexInitializationTestConf = ConfigFactory.load("index-initialization-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultIndexInitializationConfig.class,
-                areImmutable());
     }
 
     @Test

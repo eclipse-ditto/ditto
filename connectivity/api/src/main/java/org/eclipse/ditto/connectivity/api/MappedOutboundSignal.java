@@ -17,6 +17,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.model.Target;
@@ -28,6 +30,7 @@ import org.eclipse.ditto.protocol.Adaptable;
  * Represent an outbound signal that was mapped to an external message. It wraps the original signal, the mapped
  * external message and the targets that are allowed to receive this external message.
  */
+@Immutable
 final class MappedOutboundSignal implements OutboundSignal.Mapped {
 
     private final OutboundSignal delegate;

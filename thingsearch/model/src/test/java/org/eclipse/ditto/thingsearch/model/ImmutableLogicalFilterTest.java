@@ -15,9 +15,6 @@ package org.eclipse.ditto.thingsearch.model;
 import static org.eclipse.ditto.thingsearch.model.assertions.DittoSearchAssertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,13 +36,6 @@ public final class ImmutableLogicalFilterTest {
         final SearchFilter result = mock(SearchFilter.class);
         when(result.toString()).thenReturn(filterString);
         return result;
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableLogicalFilter.class,
-                areImmutable(),
-                provided(SearchFilter.class).areAlsoImmutable());
     }
 
     @Test

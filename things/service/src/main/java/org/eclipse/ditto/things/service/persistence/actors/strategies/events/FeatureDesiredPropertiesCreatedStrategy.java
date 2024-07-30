@@ -18,12 +18,12 @@ import org.eclipse.ditto.things.model.ThingBuilder;
 import org.eclipse.ditto.things.model.signals.events.FeatureDesiredPropertiesCreated;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.things.model.signals.events.FeatureDesiredPropertiesCreated} event.
+ * This strategy handles the {@link FeatureDesiredPropertiesCreated} event.
  */
 @Immutable
 final class FeatureDesiredPropertiesCreatedStrategy extends AbstractThingEventStrategy<FeatureDesiredPropertiesCreated> {
 
-    protected FeatureDesiredPropertiesCreatedStrategy() {
+    FeatureDesiredPropertiesCreatedStrategy() {
         super();
     }
 

@@ -14,8 +14,6 @@ package org.eclipse.ditto.edge.service.acknowledgements.messages;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -55,11 +53,6 @@ public final class MessageCommandAckRequestSetterTest {
                     .build())
             .rawPayload(ByteBuffer.wrap(KNOWN_RAW_PAYLOAD_BYTES))
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(MessageCommandAckRequestSetter.class, areImmutable());
-    }
 
     @Test
     public void tryToApplyNullCommand() {

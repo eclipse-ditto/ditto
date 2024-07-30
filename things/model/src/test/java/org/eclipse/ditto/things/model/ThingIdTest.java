@@ -15,9 +15,6 @@ package org.eclipse.ditto.things.model;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.junit.Assert.assertEquals;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
@@ -34,13 +31,6 @@ public final class ThingIdTest {
 
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
-
-    @Test
-    public void testImmutability() {
-        assertInstancesOf(ThingId.class,
-                areImmutable(),
-                provided(NamespacedEntityId.class).isAlsoImmutable());
-    }
 
     @Test
     public void testEqualsAndHashcode() {

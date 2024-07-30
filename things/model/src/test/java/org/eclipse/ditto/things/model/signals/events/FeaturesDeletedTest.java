@@ -13,8 +13,6 @@
 package org.eclipse.ditto.things.model.signals.events;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.events.Event;
@@ -37,12 +35,6 @@ public final class FeaturesDeletedTest {
             .set(EventsourcedEvent.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(FeaturesDeleted.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

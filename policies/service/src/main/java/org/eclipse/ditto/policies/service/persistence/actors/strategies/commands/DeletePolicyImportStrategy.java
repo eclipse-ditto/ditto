@@ -17,6 +17,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -35,6 +36,7 @@ import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 /**
  * This strategy handles the {@link DeletePolicyImport} command.
  */
+@Immutable
 final class DeletePolicyImportStrategy extends AbstractPolicyCommandStrategy<DeletePolicyImport, PolicyEvent<?>> {
 
     DeletePolicyImportStrategy(final PolicyConfig policyConfig) {

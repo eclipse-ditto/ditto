@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.json;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
@@ -22,11 +19,6 @@ public class JsonObjectMergerTest {
 
     private static JsonObject merge(final JsonObject object1, final JsonObject object2) {
         return JsonObjectMerger.mergeJsonObjects(object1, object2);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(JsonObjectMerger.class, areImmutable());
     }
 
     @Test

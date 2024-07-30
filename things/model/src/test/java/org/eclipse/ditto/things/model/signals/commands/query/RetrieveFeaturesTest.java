@@ -13,9 +13,6 @@
 package org.eclipse.ditto.things.model.signals.commands.query;
 
 import static org.eclipse.ditto.things.model.signals.commands.assertions.ThingCommandAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -24,7 +21,6 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.junit.Test;
@@ -55,14 +51,6 @@ public final class RetrieveFeaturesTest {
     private static JsonFieldSelector getJsonFieldSelector() {
         return JsonFactory.newFieldSelector(SELECTED_FIELDS, JSON_PARSE_OPTIONS);
     }
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(RetrieveFeatures.class, areImmutable(),
-                provided(JsonFieldSelector.class, ThingId.class).isAlsoImmutable());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

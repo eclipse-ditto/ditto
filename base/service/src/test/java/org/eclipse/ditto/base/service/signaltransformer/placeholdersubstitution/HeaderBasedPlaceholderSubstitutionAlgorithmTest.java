@@ -14,9 +14,6 @@ package org.eclipse.ditto.base.service.signaltransformer.placeholdersubstitution
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -60,13 +57,6 @@ public class HeaderBasedPlaceholderSubstitutionAlgorithmTest {
         replacementDefinitions.put(LEGACY_REPLACER_KEY, (dittoHeaders -> REPLACED_1));
 
         underTest = HeaderBasedPlaceholderSubstitutionAlgorithm.newInstance(replacementDefinitions);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(HeaderBasedPlaceholderSubstitutionAlgorithm.class, areImmutable(),
-                assumingFields("replacementDefinitions", "knownPlaceHolders")
-                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test

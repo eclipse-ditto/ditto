@@ -17,14 +17,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
 
 /**
- * Tests {@link org.eclipse.ditto.protocol.placeholders.ImmutableTopicPathPlaceholder}.
+ * Tests {@link ImmutableTopicPathPlaceholder}.
  */
 public final class ImmutableTopicPathPlaceholderTest {
 
@@ -50,17 +48,6 @@ public final class ImmutableTopicPathPlaceholderTest {
 
     private static final ImmutableTopicPathPlaceholder UNDER_TEST = ImmutableTopicPathPlaceholder.INSTANCE;
 
-    /**
-     * Assert immutability.
-     */
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(ImmutableTopicPathPlaceholder.class, MutabilityMatchers.areImmutable());
-    }
-
-    /**
-     * Test hash code and equals.
-     */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableTopicPathPlaceholder.class)

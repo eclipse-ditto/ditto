@@ -13,9 +13,6 @@
 package org.eclipse.ditto.things.model.signals.events;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -24,7 +21,6 @@ import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.junit.Test;
 
@@ -45,15 +41,6 @@ public final class FeatureDesiredPropertiesModifiedTest {
             .set(FeatureDesiredPropertiesModified.JSON_DESIRED_PROPERTIES,
                     TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.toJson(FieldType.regularOrSpecial()))
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(FeatureDesiredPropertiesModified.class,
-                areImmutable(),
-                provided(FeatureProperties.class).isAlsoImmutable());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

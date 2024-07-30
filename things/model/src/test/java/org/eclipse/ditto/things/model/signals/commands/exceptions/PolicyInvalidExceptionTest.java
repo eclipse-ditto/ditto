@@ -13,8 +13,6 @@
 package org.eclipse.ditto.things.model.signals.commands.exceptions;
 
 import static org.eclipse.ditto.things.model.signals.commands.assertions.ThingCommandAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.net.URI;
 
@@ -46,12 +44,6 @@ public class PolicyInvalidExceptionTest {
                             .map(URI::toString).orElse(null),
                     JsonField.isValueNonNull())
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PolicyInvalidException.class, areImmutable());
-    }
 
     @Test
     public void toJsonReturnsExpected() {

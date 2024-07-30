@@ -13,9 +13,6 @@
 package org.eclipse.ditto.gateway.service.endpoints.routes.whoami;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.api.common.CommonCommandResponse;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -97,11 +94,6 @@ public final class WhoamiResponseTest {
         EqualsVerifier.forClass(WhoamiResponse.class)
                 .withRedefinedSuperclass()
                 .verify();
-    }
-
-    @Test
-    public void testImmutability() {
-        assertInstancesOf(WhoamiResponse.class, areImmutable(), provided(JsonObject.class).isAlsoImmutable());
     }
 
 }

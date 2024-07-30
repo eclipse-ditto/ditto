@@ -14,14 +14,15 @@ package org.eclipse.ditto.gateway.service.endpoints.routes;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.pekko.http.javadsl.model.ContentTypes;
+import org.apache.pekko.http.javadsl.model.HttpHeader;
+import org.apache.pekko.http.javadsl.model.HttpResponse;
+import org.apache.pekko.util.ByteString;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
@@ -31,11 +32,6 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-
-import org.apache.pekko.http.javadsl.model.ContentTypes;
-import org.apache.pekko.http.javadsl.model.HttpHeader;
-import org.apache.pekko.http.javadsl.model.HttpResponse;
-import org.apache.pekko.util.ByteString;
 
 /**
  * Unit test for {@link DittoRuntimeExceptionToHttpResponse}.
@@ -50,13 +46,6 @@ public final class DittoRuntimeExceptionToHttpResponseTest {
     @BeforeClass
     public static void setUpClass() {
         headerTranslator = HeaderTranslator.of(DittoHeaderDefinition.values(), MessageHeaderDefinition.values());
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DittoRuntimeExceptionToHttpResponse.class,
-                areImmutable(),
-                provided(HeaderTranslator.class).isAlsoImmutable());
     }
 
     @Test

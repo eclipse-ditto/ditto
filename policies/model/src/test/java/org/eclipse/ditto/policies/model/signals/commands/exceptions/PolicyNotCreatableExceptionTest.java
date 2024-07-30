@@ -13,8 +13,6 @@
 package org.eclipse.ditto.policies.model.signals.commands.exceptions;
 
 import static org.eclipse.ditto.base.model.assertions.DittoBaseAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Objects;
 
@@ -42,12 +40,6 @@ public class PolicyNotCreatableExceptionTest {
                     TestConstants.Policy.POLICY_NOT_CREATABLE_EXCEPTION.getHref()
                             .map(Objects::toString).orElse(null))
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PolicyNotCreatableException.class, areImmutable());
-    }
 
 
     @Test

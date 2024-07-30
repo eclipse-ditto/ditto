@@ -13,9 +13,6 @@
 package org.eclipse.ditto.base.model.entity.id;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
@@ -36,11 +33,6 @@ public final class EntityIdsTest {
 
     @Mock
     private BaseEntityIdFactory<NamespacedEntityId> namespacedEntityIdFactory;
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(EntityIds.class, areImmutable(), provided(BaseEntityIdFactory.class).isAlsoImmutable());
-    }
 
     @Test
     public void getInstanceReturnsSameInstance() {

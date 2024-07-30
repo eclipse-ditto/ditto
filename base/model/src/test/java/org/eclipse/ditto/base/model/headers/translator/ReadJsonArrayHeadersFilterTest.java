@@ -13,9 +13,6 @@
 package org.eclipse.ditto.base.model.headers.translator;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.List;
 import java.util.Map;
@@ -44,13 +41,6 @@ public final class ReadJsonArrayHeadersFilterTest {
     @Before
     public void setUp() {
         headerDefinitions = Maps.newHashMap(HEADER_DEFINITION.getKey(), HEADER_DEFINITION);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ReadJsonArrayHeadersFilter.class,
-                areImmutable(),
-                assumingFields("headerDefinitions").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test

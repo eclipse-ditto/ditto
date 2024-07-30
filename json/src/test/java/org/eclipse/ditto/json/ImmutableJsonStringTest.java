@@ -14,9 +14,6 @@ package org.eclipse.ditto.json;
 
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Test;
 
@@ -30,13 +27,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableJsonStringTest {
 
     private static final String KNOWN_STRING_VALUE = "foo";
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableJsonString.class,
-                areImmutable(),
-                assumingFields("stringRepresentation").areModifiedAsPartOfAnUnobservableCachingStrategy());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

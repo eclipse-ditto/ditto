@@ -13,9 +13,6 @@
 package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.HashSet;
 import java.util.List;
@@ -52,13 +49,6 @@ public final class JwtSubjectIssuersConfigTest {
         JWT_SUBJECT_ISSUER_CONFIGS.add(JWT_SUBJECT_ISSUER_CONFIG_GOOGLE_DE);
         JWT_SUBJECT_ISSUER_CONFIGS.add(JWT_SUBJECT_ISSUER_CONFIG_GOOGLE_COMBINED);
         JWT_SUBJECT_ISSUERS_CONFIG = JwtSubjectIssuersConfig.fromJwtSubjectIssuerConfigs(JWT_SUBJECT_ISSUER_CONFIGS);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(JwtSubjectIssuersConfig.class, areImmutable(),
-                assumingFields("subjectIssuerConfigMap")
-                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test

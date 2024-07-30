@@ -13,11 +13,10 @@
 package org.eclipse.ditto.policies.service.persistence.actors.strategies.commands;
 
 import static org.eclipse.ditto.policies.service.persistence.TestConstants.Policy.LABEL;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
@@ -35,10 +34,8 @@ import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
-import org.apache.pekko.actor.ActorSystem;
-
 /**
- * Unit test for {@link org.eclipse.ditto.policies.service.persistence.actors.strategies.commands.DeactivateTokenIntegrationStrategy}.
+ * Unit test for {@link DeactivateTokenIntegrationStrategy}.
  */
 public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicyCommandStrategyTest {
 
@@ -49,11 +46,6 @@ public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicy
         underTest = new DeactivateTokenIntegrationStrategy(
                 DefaultPolicyConfig.of(ConfigFactory.load("policy-test")),
                 ActorSystem.create("test"));
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DeactivateTokenIntegrationStrategy.class, areImmutable());
     }
 
     @Test

@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.policies.model;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.util.Collection;
 import java.util.HashSet;
 
@@ -38,11 +35,6 @@ public final class ImmutablePermissionsTest {
     @Before
     public void setUp() {
         underTest = ImmutablePermissions.none();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutablePermissions.class, areImmutable());
     }
 
     @Ignore("EqualsVerifier does not like extending AbstractCollection")

@@ -15,6 +15,8 @@ package org.eclipse.ditto.thingsearch.service.common.config;
 import java.time.Duration;
 import java.util.Objects;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 
 import com.typesafe.config.Config;
@@ -22,6 +24,7 @@ import com.typesafe.config.Config;
 /**
  * Package-private implementation of the configuration of the background sync actor.
  */
+@Immutable
 public final class DefaultBackgroundSyncConfig implements BackgroundSyncConfig {
 
     private static final String CONFIG_PATH = "background-sync";

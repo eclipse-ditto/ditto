@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.persistence.mongo.config;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.util.List;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -41,11 +38,6 @@ public final class DefaultEventConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         snapshotTestConf = ConfigFactory.load("event-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultEventConfig.class, areImmutable());
     }
 
     @Test

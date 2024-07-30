@@ -15,8 +15,6 @@ package org.eclipse.ditto.base.model.headers;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.entry;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -61,7 +59,7 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.base.model.headers.ImmutableDittoHeaders}.
+ * Unit test for {@link ImmutableDittoHeaders}.
  */
 public final class ImmutableDittoHeadersTest {
 
@@ -143,11 +141,6 @@ public final class ImmutableDittoHeadersTest {
     static {
         KNOWN_METADATA_HEADERS = MetadataHeaders.newInstance();
         KNOWN_METADATA_HEADERS.add(MetadataHeader.of(KNOWN_METADATA_HEADER_KEY, KNOWN_METADATA_VALUE));
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableDittoHeaders.class, areImmutable());
     }
 
     @Test

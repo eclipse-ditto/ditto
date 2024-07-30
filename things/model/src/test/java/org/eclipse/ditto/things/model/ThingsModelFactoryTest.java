@@ -14,8 +14,6 @@ package org.eclipse.ditto.things.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.entity.id.restriction.LengthRestrictionTestBase;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
@@ -28,12 +26,6 @@ import org.junit.Test;
  * Unit test for {@link ThingsModelFactory}.
  */
 public final class ThingsModelFactoryTest extends LengthRestrictionTestBase {
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ThingsModelFactory.class, areImmutable());
-    }
 
 
     @Test

@@ -13,8 +13,6 @@
 package org.eclipse.ditto.internal.utils.ddata;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
 
@@ -22,7 +20,6 @@ import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.AllowedReason;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -42,12 +39,6 @@ public final class DefaultPekkoReplicatorConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         testConfig = ConfigFactory.load("pekko-replicator-ddata-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultPekkoReplicatorConfig.class, areImmutable(),
-                AllowedReason.provided(Config.class).areAlsoImmutable());
     }
 
     @Test

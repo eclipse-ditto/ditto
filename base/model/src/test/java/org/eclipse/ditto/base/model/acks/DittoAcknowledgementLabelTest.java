@@ -13,9 +13,6 @@
 package org.eclipse.ditto.base.model.acks;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -27,16 +24,9 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel}.
+ * Unit test for {@link DittoAcknowledgementLabel}.
  */
 public final class DittoAcknowledgementLabelTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DittoAcknowledgementLabel.class,
-                areImmutable(),
-                provided(AcknowledgementLabel.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

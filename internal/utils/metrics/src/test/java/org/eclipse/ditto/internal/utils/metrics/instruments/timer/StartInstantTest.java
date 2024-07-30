@@ -13,8 +13,6 @@
 package org.eclipse.ditto.internal.utils.metrics.instruments.timer;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.assertj.core.data.Offset;
@@ -26,11 +24,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link StartInstant}.
  */
 public final class StartInstantTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(StartInstant.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

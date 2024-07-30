@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.protocol.adapter;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonPointer;
@@ -25,7 +22,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.protocol.adapter.UnknownTopicPathException}.
+ * Unit test for {@link UnknownTopicPathException}.
  */
 public final class UnknownTopicPathExceptionTest {
 
@@ -43,11 +40,6 @@ public final class UnknownTopicPathExceptionTest {
         Assertions.assertThat(exception)
                 .hasMessageContaining(topicPath.getPath())
                 .hasMessageContaining(messagePath.toString());
-    }
-
-    @Test
-    public void testImmutability() {
-        assertInstancesOf(UnknownTopicPathException.class, areImmutable());
     }
 
 }

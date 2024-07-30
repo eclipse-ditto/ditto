@@ -16,6 +16,8 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldMarker;
@@ -26,6 +28,7 @@ import org.eclipse.ditto.json.JsonKey;
  * simultaneously a {@code Predicate} and can be used as argument for
  * {@link org.eclipse.ditto.base.model.json.Jsonifiable.WithPredicate#toJson(java.util.function.Predicate)} for example.
  */
+@Immutable
 public enum JsonSchemaVersion implements JsonFieldMarker, Predicate<JsonField> {
 
     /**

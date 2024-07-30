@@ -13,8 +13,6 @@
 package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.consuming;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.ReconnectDelay;
@@ -27,11 +25,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link ReconnectConsumerClient}.
  */
 public final class ReconnectConsumerClientTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ReconnectConsumerClient.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.persistence.mongo.config;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -38,11 +35,6 @@ public final class DefaultCircuitBreakerConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         circuitBreakerTestConfig = ConfigFactory.load("circuit-breaker-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultCircuitBreakerConfig.class, areImmutable());
     }
 
     @Test

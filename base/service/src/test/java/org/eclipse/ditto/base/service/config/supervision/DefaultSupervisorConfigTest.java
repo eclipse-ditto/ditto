@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.base.service.config.supervision;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -24,13 +20,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link DefaultSupervisorConfig}.
  */
 public final class DefaultSupervisorConfigTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultSupervisorConfig.class,
-                areImmutable(),
-                provided(ExponentialBackOffConfig.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

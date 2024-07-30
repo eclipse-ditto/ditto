@@ -13,14 +13,9 @@
 package org.eclipse.ditto.thingsearch.model.signals.commands.subscription;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areEffectivelyImmutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.TestConstants;
@@ -52,14 +47,6 @@ public final class CreateSubscriptionTest {
     private static final String JSON_MINIMAL = JsonFactory.newObjectBuilder()
             .set(ThingSearchCommand.JsonFields.TYPE, CreateSubscription.TYPE)
             .build().toString();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(CreateSubscription.class,
-                areEffectivelyImmutable(),
-                provided(JsonFieldSelector.class).isAlsoImmutable(),
-                assumingFields("options").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

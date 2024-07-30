@@ -14,8 +14,6 @@ package org.eclipse.ditto.edge.service.acknowledgements.things;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
 
@@ -31,11 +29,6 @@ import org.junit.Test;
  * Unit test for {@link ThingLiveCommandAckRequestSetter}.
  */
 public final class ThingLiveCommandAckRequestSetterTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ThingLiveCommandAckRequestSetter.class, areImmutable());
-    }
 
     @Test
     public void tryToApplyNullCommand() {

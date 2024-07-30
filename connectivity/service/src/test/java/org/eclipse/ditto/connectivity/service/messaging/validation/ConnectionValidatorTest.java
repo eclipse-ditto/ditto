@@ -19,10 +19,6 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Authorization;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Certificates;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,7 +31,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.event.LoggingAdapter;
 import org.apache.pekko.http.javadsl.model.Uri;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
@@ -57,8 +52,6 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.SourceBuilder;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
-import org.eclipse.ditto.connectivity.service.config.ConnectionConfigProvider;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.mapping.NormalizedMessageMapper;
@@ -68,7 +61,6 @@ import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushValidat
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -105,19 +97,6 @@ public class ConnectionValidatorTest {
 
     @Rule
     public final ExpectedException exception = ExpectedException.none();
-
-    @Test
-    public void testImmutability() {
-        assertInstancesOf(ConnectionValidator.class,
-                areImmutable(),
-                // mutability-detector cannot detect that maps built from stream collectors are safely copied.
-                assumingFields("specMap").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
-                provided(QueryFilterCriteriaFactory.class,
-                        LoggingAdapter.class,
-                        DefaultHostValidator.class,
-                        ConnectionConfigProvider.class,
-                        ConnectivityConfig.class).areAlsoImmutable());
-    }
 
     @Test
     public void acceptValidConnection() {

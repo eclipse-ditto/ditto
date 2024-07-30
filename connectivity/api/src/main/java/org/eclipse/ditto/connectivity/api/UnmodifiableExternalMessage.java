@@ -21,6 +21,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -36,6 +37,7 @@ import org.eclipse.ditto.protocol.TopicPath;
  * Implementation of {@link ExternalMessage} that SHOULD NOT be modified
  * because objects of this class are sent as messages between actors.
  */
+@Immutable
 final class UnmodifiableExternalMessage implements ExternalMessage {
 
     private final Map<String, String> headers;

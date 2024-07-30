@@ -14,9 +14,6 @@ package org.eclipse.ditto.policies.model.signals.commands.modify;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.base.model.assertions.DittoBaseAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonFactory;
@@ -39,15 +36,6 @@ public final class DeletePolicyImportTest {
             .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(DeletePolicyImport.JSON_IMPORTED_POLICY_ID, TestConstants.Policy.IMPORTED_POLICY_ID.toString())
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DeletePolicyImport.class,
-                areImmutable(),
-                provided(PolicyId.class).isAlsoImmutable());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

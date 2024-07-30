@@ -13,10 +13,6 @@
 package org.eclipse.ditto.policies.model.signals.events;
 
 import static org.eclipse.ditto.base.model.assertions.DittoBaseAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -31,7 +27,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Subject;
-import org.eclipse.ditto.policies.model.SubjectId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -60,14 +55,6 @@ public final class SubjectsModifiedPartiallyTest {
             .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(SubjectsModifiedPartially.JSON_MODIFIED_SUBJECTS, MODIFIED_SUBJECTS_JSON)
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SubjectsModifiedPartially.class, areImmutable(),
-                provided(Subject.class, SubjectId.class, Label.class).isAlsoImmutable(),
-                assumingFields("modifiedSubjects")
-                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

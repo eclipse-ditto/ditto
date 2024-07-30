@@ -12,22 +12,11 @@
  */
 package org.eclipse.ditto.connectivity.api;
 
-import org.eclipse.ditto.protocol.Adaptable;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.AllowedReason;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 public class MappedOutboundSignalTest {
-
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(MappedOutboundSignal.class, MutabilityMatchers.areImmutable(),
-                AllowedReason.provided(Adaptable.class, ExternalMessage.class, OutboundSignal.class)
-                        .areAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

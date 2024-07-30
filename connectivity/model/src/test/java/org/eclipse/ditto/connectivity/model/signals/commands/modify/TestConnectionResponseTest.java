@@ -14,16 +14,10 @@ package org.eclipse.ditto.connectivity.model.signals.commands.modify;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.model.MappingContext;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.TestConstants;
 import org.eclipse.ditto.json.JsonFactory;
@@ -51,13 +45,6 @@ public final class TestConnectionResponseTest {
         EqualsVerifier.forClass(TestConnectionResponse.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(TestConnectionResponse.class,
-                areImmutable(),
-                provided(Connection.class, MappingContext.class, ConnectionId.class).isAlsoImmutable());
     }
 
     @Test

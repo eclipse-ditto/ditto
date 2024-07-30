@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.internal.models.signal.type;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.List;
@@ -36,11 +33,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class SemanticSignalTypeTest {
 
     public static final class GeneralFunctionalityTest {
-
-        @Test
-        public void assertImmutability() {
-            assertInstancesOf(SemanticSignalType.class, areImmutable());
-        }
 
         @Test
         public void testHashCodeAndEquals() {

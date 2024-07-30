@@ -14,8 +14,6 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -32,7 +30,6 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeaturePrope
 import org.eclipse.ditto.things.model.signals.events.FeaturePropertyCreated;
 import org.eclipse.ditto.things.model.signals.events.FeaturePropertyModified;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
-
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -58,11 +55,6 @@ public final class ModifyFeaturePropertyStrategyTest extends AbstractCommandStra
     @Before
     public void setUp() {
         underTest = new ModifyFeaturePropertyStrategy();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ModifyFeaturePropertyStrategy.class, areImmutable());
     }
 
     @Test

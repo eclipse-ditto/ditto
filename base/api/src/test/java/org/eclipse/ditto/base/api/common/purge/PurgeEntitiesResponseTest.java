@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.base.api.common.purge;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.util.UUID;
 
 import org.eclipse.ditto.base.api.common.CommonCommandResponse;
@@ -47,13 +43,6 @@ public final class PurgeEntitiesResponseTest {
     private static final DittoHeaders HEADERS = DittoHeaders.newBuilder()
             .correlationId(String.valueOf(UUID.randomUUID()))
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PurgeEntitiesResponse.class,
-                areImmutable(),
-                provided(EntityType.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

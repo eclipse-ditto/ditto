@@ -15,10 +15,6 @@ package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.sub
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -55,14 +51,6 @@ public final class GenericMqttSubscribeTest {
                 GENERIC_MQTT_SUBSCRIPTION_FOO,
                 GENERIC_MQTT_SUBSCRIPTION_BAR,
                 GENERIC_MQTT_SUBSCRIPTION_BAZ);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(GenericMqttSubscribe.class,
-                areImmutable(),
-                provided(GenericMqttSubscription.class).isAlsoImmutable(),
-                assumingFields("genericMqttSubscriptions").areNotModifiedAndDoNotEscape());
     }
 
     @Test

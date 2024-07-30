@@ -13,20 +13,22 @@
 package org.eclipse.ditto.messages.model.signals.commands;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
+import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
 
 /**
  * Command to send a ClaimMessage <em>TO</em> a Thing.
  *
  * @param <T> the type of the message's payload.
  */
+@Immutable
 @JsonParsableCommand(typePrefix = MessageCommand.TYPE_PREFIX, name = SendClaimMessage.NAME)
 public final class SendClaimMessage<T> extends AbstractMessageCommand<T, SendClaimMessage<T>> {
 

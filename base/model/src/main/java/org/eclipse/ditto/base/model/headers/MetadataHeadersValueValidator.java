@@ -14,16 +14,16 @@ package org.eclipse.ditto.base.model.headers;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonRuntimeException;
-import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
-import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaders;
 
 /**
- * This validator parses a CharSequence to a {@link org.eclipse.ditto.base.model.headers.metadata.MetadataHeaders}.
- * If parsing fails, a {@link org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException} with detailed description is thrown.
+ * This validator parses a CharSequence to a {@link MetadataHeaders}.
+ * If parsing fails, a {@link DittoHeaderInvalidException} with detailed description is thrown.
  *
  * @since 1.2.0
  */

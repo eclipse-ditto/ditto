@@ -13,8 +13,6 @@
 package org.eclipse.ditto.internal.utils.persistence.mongo.indices;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -32,11 +30,6 @@ public class IndexFactoryTest {
     private static final boolean BACKGROUND = true;
     private static final String FIELD_1_NAME = "field1";
     private static final String FIELD_2_NAME = "field2";
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(IndexFactory.class, areImmutable());
-    }
 
     @Test
     public void newInstanceWithDefaultKeys() {

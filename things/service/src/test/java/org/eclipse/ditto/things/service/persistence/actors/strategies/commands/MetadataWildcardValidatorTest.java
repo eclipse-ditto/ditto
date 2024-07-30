@@ -14,8 +14,6 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.text.MessageFormat;
 import java.util.List;
@@ -37,11 +35,6 @@ public class MetadataWildcardValidatorTest {
     private static final JsonPointer FEATURES_POINTER = JsonPointer.of("/features");
     private static final JsonPointer FEATURE_ID_POINTER = JsonPointer.of("/features/featureId");
     private static final JsonPointer ATTRIBUTES_POINTER = JsonPointer.of("/attributes");
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(MetadataWildcardValidator.class, areImmutable());
-    }
 
     @Test
     public void validateValidMetadataWildcardOnThingLevel() {

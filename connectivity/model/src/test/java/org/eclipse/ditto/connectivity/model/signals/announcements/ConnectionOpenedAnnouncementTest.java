@@ -10,13 +10,10 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.connectivity.model.signals.announcements;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
@@ -107,11 +104,6 @@ public final class ConnectionOpenedAnnouncementTest {
         EqualsVerifier.forClass(ConnectionOpenedAnnouncement.class)
                 .withRedefinedSuperclass()
                 .verify();
-    }
-
-    @Test
-    public void testImmutability() {
-        assertInstancesOf(ConnectionOpenedAnnouncement.class, areImmutable());
     }
 
 }

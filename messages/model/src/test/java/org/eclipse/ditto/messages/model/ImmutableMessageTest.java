@@ -12,15 +12,6 @@
  */
 package org.eclipse.ditto.messages.model;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
-import java.nio.ByteBuffer;
-
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.json.JsonObject;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -29,15 +20,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link ImmutableMessage}.
  */
 public final class ImmutableMessageTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableMessage.class,
-                areImmutable(),
-                assumingFields("payload", "rawPayload").areNotModifiedAndDoNotEscape(),
-                provided(MessageHeaders.class, ByteBuffer.class, AuthorizationContext.class,
-                        JsonObject.class).areAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

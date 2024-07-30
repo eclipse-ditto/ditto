@@ -15,6 +15,8 @@ package org.eclipse.ditto.base.api.common;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
@@ -29,6 +31,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
  * Response to {@code ModifyConfig} containing the retrieved config.
  */
 @JsonParsableCommandResponse(type = ModifyConfigResponse.TYPE)
+@Immutable
 public final class ModifyConfigResponse extends CommonCommandResponse<ModifyConfigResponse> {
 
     /**

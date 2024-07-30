@@ -14,10 +14,6 @@ package org.eclipse.ditto.connectivity.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -215,15 +211,6 @@ public final class ImmutableConnectionTest {
         EqualsVerifier.forClass(ImmutableConnection.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableConnection.class, areImmutable(),
-                provided(AuthorizationContext.class, Source.class, Target.class,
-                        MappingContext.class, Credentials.class, ConnectionId.class,
-                        PayloadMappingDefinition.class, SshTunnel.class).isAlsoImmutable(),
-                assumingFields("mappings").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test

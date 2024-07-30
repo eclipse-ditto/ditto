@@ -14,9 +14,6 @@ package org.eclipse.ditto.internal.utils.metrics.instruments.tag;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.List;
 
@@ -37,15 +34,6 @@ public final class TagSetTest {
 
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(
-                TagSet.class,
-                areImmutable(),
-                assumingFields("tagMap").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements()
-        );
-    }
 
     @Test
     public void testHashCodeAndEquals() {

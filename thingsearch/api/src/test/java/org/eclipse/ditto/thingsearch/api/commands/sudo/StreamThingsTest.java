@@ -13,9 +13,6 @@
 package org.eclipse.ditto.thingsearch.api.commands.sudo;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonArray;
@@ -27,11 +24,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Tests {@link StreamThings}.
  */
 public final class StreamThingsTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(StreamThings.class, areImmutable(), provided(JsonArray.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

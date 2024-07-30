@@ -14,9 +14,6 @@ package org.eclipse.ditto.things.model.signals.events;
 
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -25,7 +22,6 @@ import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.things.model.FeatureDefinition;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.junit.Test;
 
@@ -46,13 +42,6 @@ public final class FeatureDefinitionModifiedTest {
             .set(FeatureDefinitionModified.JSON_DEFINITION,
                     TestConstants.Feature.FLUX_CAPACITOR_DEFINITION.toJson())
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(FeatureDefinitionModified.class,
-                areImmutable(),
-                provided(FeatureDefinition.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

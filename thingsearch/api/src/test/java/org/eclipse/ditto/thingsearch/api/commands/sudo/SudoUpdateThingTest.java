@@ -19,9 +19,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.AllowedReason;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -29,12 +26,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Tests {@link SudoUpdateThing}.
  */
 public final class SudoUpdateThingTest {
-
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(SudoUpdateThing.class, MutabilityMatchers.areImmutable(),
-                AllowedReason.provided(ThingId.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

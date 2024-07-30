@@ -13,18 +13,13 @@
 package org.eclipse.ditto.things.model.signals.commands.modify;
 
 import static org.eclipse.ditto.things.model.signals.commands.assertions.ThingCommandAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
@@ -42,14 +37,6 @@ public final class DeleteAttributeTest {
             .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(DeleteAttribute.JSON_ATTRIBUTE, TestConstants.Pointer.VALID_JSON_POINTER.toString())
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DeleteAttribute.class, areImmutable(),
-                provided(JsonPointer.class, ThingId.class).isAlsoImmutable());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

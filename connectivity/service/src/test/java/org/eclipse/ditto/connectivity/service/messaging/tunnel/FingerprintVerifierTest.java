@@ -16,8 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Certificates.SERVER_PUBKEY_FINGERPRINT_MD5;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Certificates.SERVER_PUBKEY_FINGERPRINT_SHA256;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Certificates.SERVER_PUBLIC_KEY;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.net.SocketAddress;
 import java.util.Collections;
@@ -44,11 +42,6 @@ public class FingerprintVerifierTest {
     public void setUp() throws Exception {
         mockSession = Mockito.mock(ClientSession.class);
         mockAddress = Mockito.mock(SocketAddress.class);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(FingerprintVerifier.class, areImmutable());
     }
 
     @Test

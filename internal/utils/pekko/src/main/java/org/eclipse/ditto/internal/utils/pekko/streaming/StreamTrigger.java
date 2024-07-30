@@ -16,9 +16,12 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 
+import javax.annotation.concurrent.Immutable;
+
 /**
  * Contains timestamps required for triggering a stream.
  */
+@Immutable
 public final class StreamTrigger {
 
     private final Instant plannedStreamStart;
