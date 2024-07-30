@@ -587,14 +587,20 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
             firstStage = success();
         }
         return firstStage.thenCompose(unused ->
-                doValidateThingAttributes(thingModel, thing.getAttributes().orElse(null), resourcePath, context,
+                doValidateThingAttributes(thingModel,
+                        thing.getAttributes().orElse(null),
+                        resourcePath.append(Thing.JsonFields.ATTRIBUTES.getPointer()),
+                        context,
                         validationConfig
                 )
         ).thenCompose(aVoid ->
                 thingModelResolver.resolveThingModelSubmodels(thingModel, context.dittoHeaders())
                         .thenCompose(subModels ->
-                                doValidateFeatures(subModels, thing.getFeatures().orElse(null), resourcePath,
-                                        context, validationConfig
+                                doValidateFeatures(subModels,
+                                        thing.getFeatures().orElse(null),
+                                        resourcePath,
+                                        context,
+                                        validationConfig
                                 )
                         )
         );
