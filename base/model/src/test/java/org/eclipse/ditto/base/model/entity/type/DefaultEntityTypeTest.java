@@ -15,8 +15,6 @@ package org.eclipse.ditto.base.model.entity.type;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.junit.Test;
@@ -24,16 +22,11 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.base.model.entity.type.DefaultEntityType}.
+ * Unit test for {@link DefaultEntityType}.
  */
 public final class DefaultEntityTypeTest {
 
     private static final String KNOWN_VALUE = "shub-niggurath";
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultEntityType.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

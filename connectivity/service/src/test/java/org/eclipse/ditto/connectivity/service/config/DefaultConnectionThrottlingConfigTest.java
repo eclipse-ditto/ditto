@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -42,13 +38,6 @@ public class DefaultConnectionThrottlingConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         connectionThrottlingTestConf = ConfigFactory.load("connection-throttling-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultConnectionThrottlingConfig.class,
-                areImmutable(),
-                provided(ThrottlingConfig.class).isAlsoImmutable());
     }
 
     @Test

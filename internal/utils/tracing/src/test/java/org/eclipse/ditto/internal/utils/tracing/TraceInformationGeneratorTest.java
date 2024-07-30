@@ -13,12 +13,8 @@
 package org.eclipse.ditto.internal.utils.tracing;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.net.URI;
-import java.util.regex.Pattern;
 
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
@@ -39,14 +35,6 @@ public final class TraceInformationGeneratorTest {
     @Before
     public void before() {
         underTest = TraceInformationGenerator.getInstance();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(TraceInformationGenerator.class,
-                areImmutable(),
-                // according to JavaDoc, Pattern is immutable!
-                provided(Pattern.class).isAlsoImmutable());
     }
 
     @Ignore("TraceInformationGenerator is a Singleton and thus always equal to itself")

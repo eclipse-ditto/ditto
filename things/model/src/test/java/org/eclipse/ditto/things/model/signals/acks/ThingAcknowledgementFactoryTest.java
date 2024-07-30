@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.things.model.signals.acks;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
@@ -49,11 +46,6 @@ public final class ThingAcknowledgementFactoryTest {
                 .correlationId(testName.getMethodName())
                 .responseRequired(false)
                 .build();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ThingAcknowledgementFactory.class, areImmutable());
     }
 
     @Test

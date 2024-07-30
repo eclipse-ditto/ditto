@@ -15,8 +15,6 @@ package org.eclipse.ditto.internal.utils.tracing.span;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.junit.Test;
@@ -29,11 +27,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class SpanOperationNameTest {
 
     private static final String KNOWN_NAME = "my_operation";
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SpanOperationName.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

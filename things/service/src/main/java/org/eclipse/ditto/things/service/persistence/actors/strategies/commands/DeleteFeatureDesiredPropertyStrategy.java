@@ -35,7 +35,7 @@ import org.eclipse.ditto.things.model.signals.events.FeatureDesiredPropertyDelet
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeatureDesiredProperty} command.
+ * This strategy handles the {@link DeleteFeatureDesiredProperty} command.
  */
 @Immutable
 final class DeleteFeatureDesiredPropertyStrategy extends

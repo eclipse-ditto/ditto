@@ -12,11 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.mapping.javascript;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
-import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -25,13 +20,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link ImmutableJavaScriptMessageMapperConfiguration}.
  */
 public final class ImmutableJavaScriptMessageMapperConfigurationTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableJavaScriptMessageMapperConfiguration.class,
-                areImmutable(),
-                provided(MessageMapperConfiguration.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

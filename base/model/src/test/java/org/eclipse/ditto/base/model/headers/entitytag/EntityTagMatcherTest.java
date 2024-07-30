@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.base.model.headers.entitytag;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.Rule;
 import org.junit.Test;
@@ -22,7 +19,7 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Tests {@link org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatcher}
+ * Tests {@link EntityTagMatcher}
  */
 public final class EntityTagMatcherTest {
 
@@ -40,11 +37,6 @@ public final class EntityTagMatcherTest {
         EqualsVerifier.forClass(EntityTagMatcher.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(EntityTagMatcher.class, areImmutable());
     }
 
     @Test

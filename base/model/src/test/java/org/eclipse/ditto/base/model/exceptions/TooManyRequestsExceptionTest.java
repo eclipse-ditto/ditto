@@ -13,8 +13,6 @@
 package org.eclipse.ditto.base.model.exceptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
 
@@ -38,11 +36,6 @@ public class TooManyRequestsExceptionTest {
             "  \"message\": \"You made too many requests.\",\n" +
             "  \"description\": \"Try again soon.\"\n" +
             "}");
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(TooManyRequestsException.class, areImmutable());
-    }
 
     @Test
     public void toJsonReturnsExpected() {

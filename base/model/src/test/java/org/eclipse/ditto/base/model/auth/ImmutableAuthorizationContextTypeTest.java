@@ -13,8 +13,6 @@
 package org.eclipse.ditto.base.model.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.junit.Test;
@@ -22,7 +20,7 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit tests for {@link org.eclipse.ditto.base.model.auth.ImmutableAuthorizationContextType}.
+ * Unit tests for {@link ImmutableAuthorizationContextType}.
  */
 public final class ImmutableAuthorizationContextTypeTest {
 
@@ -32,11 +30,6 @@ public final class ImmutableAuthorizationContextTypeTest {
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableAuthorizationContextType.class)
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableAuthorizationContextType.class, areImmutable());
     }
 
     @Test

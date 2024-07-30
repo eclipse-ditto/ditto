@@ -15,8 +15,6 @@ package org.eclipse.ditto.things.model.signals.commands.exceptions;
 import static org.eclipse.ditto.things.model.signals.commands.TestConstants.Thing.POLICY_ID;
 import static org.eclipse.ditto.things.model.signals.commands.TestConstants.Thing.THING_ID;
 import static org.eclipse.ditto.things.model.signals.commands.assertions.ThingCommandAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.text.MessageFormat;
 
@@ -47,11 +45,6 @@ public final class ThingNotCreatableExceptionTest {
         dittoHeaders = DittoHeaders.newBuilder()
                 .correlationId(testNameCorrelationId.getCorrelationId())
                 .build();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ThingNotCreatableException.class, areImmutable());
     }
 
     @Test

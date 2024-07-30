@@ -18,11 +18,12 @@ import org.eclipse.ditto.things.model.ThingBuilder;
 import org.eclipse.ditto.things.model.signals.events.AttributesCreated;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.things.model.signals.events.AttributesCreated} event.
+ * This strategy handles the {@link AttributesCreated} event.
  */
 @Immutable
 final class AttributesCreatedStrategy extends AbstractThingEventStrategy<AttributesCreated> {
-    protected AttributesCreatedStrategy() {
+
+    AttributesCreatedStrategy() {
         super();
     }
 

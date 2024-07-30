@@ -13,8 +13,6 @@
 package org.eclipse.ditto.policies.service.persistence.actors.strategies.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -39,11 +37,6 @@ public final class DeletePolicyImportStrategyTest extends AbstractPolicyCommandS
     @Before
     public void setUp() {
         underTest = new DeletePolicyImportStrategy(DefaultPolicyConfig.of(ConfigFactory.load("policy-test")));
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DeletePolicyImportStrategy.class, areImmutable());
     }
 
     @Test

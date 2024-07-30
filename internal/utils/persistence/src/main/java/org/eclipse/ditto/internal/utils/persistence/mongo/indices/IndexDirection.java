@@ -12,11 +12,14 @@
  */
 package org.eclipse.ditto.internal.utils.persistence.mongo.indices;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.bson.BsonInt32;
 
 /**
  * Defines the direction of a {@link DefaultIndexKey}.
  */
+@Immutable
 public enum IndexDirection {
     ASCENDING(1), DESCENDING(-1);
 

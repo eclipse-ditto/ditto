@@ -13,14 +13,9 @@
 package org.eclipse.ditto.policies.api.commands.sudo;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.policies.api.TestConstants;
-import org.eclipse.ditto.policies.model.PolicyId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -29,12 +24,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Tests {@link SudoRetrievePolicyRevision}.
  */
 public final class SudoRetrievePolicyRevisionTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SudoRetrievePolicyRevision.class, areImmutable(),
-                provided(JsonFieldSelector.class, PolicyId.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

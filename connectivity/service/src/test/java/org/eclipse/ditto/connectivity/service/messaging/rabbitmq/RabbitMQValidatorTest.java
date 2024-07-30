@@ -14,13 +14,13 @@ package org.eclipse.ditto.connectivity.service.messaging.rabbitmq;
 
 import static java.util.Collections.singletonList;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -37,9 +37,6 @@ import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link RabbitMQValidator}.
@@ -62,11 +59,6 @@ public final class RabbitMQValidatorTest {
             TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
                     false);
         }
-    }
-
-    @Test
-    public void testImmutability() {
-        assertInstancesOf(RabbitMQValidator.class, areImmutable());
     }
 
     @Test

@@ -15,8 +15,6 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.things.model.TestConstants.Feature.FEATURES;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -48,11 +46,6 @@ public final class RetrieveFeaturesStrategyTest extends AbstractCommandStrategyT
     public void setUp() {
         final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
         underTest = new RetrieveFeaturesStrategy(system);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(RetrieveFeaturesStrategy.class, areImmutable());
     }
 
     @Test

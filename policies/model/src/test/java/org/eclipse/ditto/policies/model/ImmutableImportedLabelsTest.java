@@ -13,9 +13,6 @@
 package org.eclipse.ditto.policies.model;
 
 import static org.eclipse.ditto.policies.model.assertions.DittoPolicyAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonValue;
@@ -27,13 +24,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link ImmutableImportedLabels}.
  */
 public final class ImmutableImportedLabelsTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableImportedLabels.class,
-                areImmutable(),
-                provided(Label.class).areAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

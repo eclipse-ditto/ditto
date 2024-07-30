@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.cacheloaders.config;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -28,7 +25,7 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig}.
+ * Unit test for {@link DefaultAskWithRetryConfig}.
  */
 public final class DefaultAskWithRetryConfigTest {
 
@@ -42,11 +39,6 @@ public final class DefaultAskWithRetryConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         askWithRetryTestConfig = ConfigFactory.load("ask-with-retry-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultAskWithRetryConfig.class, areImmutable());
     }
 
     @Test

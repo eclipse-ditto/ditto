@@ -13,10 +13,6 @@
 package org.eclipse.ditto.things.model.signals.commands.query;
 
 import static org.eclipse.ditto.things.model.signals.commands.assertions.ThingCommandAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
 
@@ -42,14 +38,6 @@ public final class RetrieveThingsResponseTest {
             .set(RetrieveThingsResponse.JSON_THINGS_PLAIN_JSON, "[" + TestConstants.Thing.THING.toJsonString() + "]")
             .set(RetrieveThingsResponse.JSON_NAMESPACE, "example.com")
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(RetrieveThingsResponse.class,
-                areImmutable(),
-                provided(JsonArray.class).isAlsoImmutable(),
-                assumingFields("things").areModifiedAsPartOfAnUnobservableCachingStrategy());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

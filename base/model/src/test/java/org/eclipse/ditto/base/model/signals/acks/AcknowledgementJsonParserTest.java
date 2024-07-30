@@ -15,8 +15,6 @@ package org.eclipse.ditto.base.model.signals.acks;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelInvalidException;
@@ -56,11 +54,6 @@ public final class AcknowledgementJsonParserTest {
     public void setUp() {
         dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
         underTest = new AcknowledgementJsonParser();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(AcknowledgementJsonParser.class, areImmutable());
     }
 
     @Test

@@ -13,9 +13,6 @@
 package org.eclipse.ditto.thingsearch.service.common.config;
 
 import static org.eclipse.ditto.thingsearch.service.common.config.StreamConfig.StreamConfigValue;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
 
@@ -43,13 +40,6 @@ public final class DefaultStreamConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         config = ConfigFactory.load("stream-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultStreamConfig.class,
-                areImmutable(),
-                provided(PersistenceStreamConfig.class).isAlsoImmutable());
     }
 
     @Test

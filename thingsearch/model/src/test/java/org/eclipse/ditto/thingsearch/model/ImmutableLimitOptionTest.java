@@ -13,11 +13,8 @@
 package org.eclipse.ditto.thingsearch.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -35,11 +32,6 @@ public final class ImmutableLimitOptionTest {
     @Before
     public void setUp() {
         underTest = ImmutableLimitOption.of(KNOWN_OFFSET, KNOWN_COUNT);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableLimitOption.class, areImmutable());
     }
 
     @Test

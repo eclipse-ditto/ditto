@@ -23,7 +23,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
@@ -49,11 +51,10 @@ import org.eclipse.ditto.policies.model.signals.events.SubjectModified;
 import org.eclipse.ditto.policies.model.signals.events.SubjectsModifiedPartially;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
-import org.apache.pekko.actor.ActorSystem;
-
 /**
  * This strategy handles the {@link ActivateTokenIntegration} command.
  */
+@Immutable
 final class ActivateTokenIntegrationStrategy
         extends AbstractPolicyActionCommandStrategy<ActivateTokenIntegration> {
 

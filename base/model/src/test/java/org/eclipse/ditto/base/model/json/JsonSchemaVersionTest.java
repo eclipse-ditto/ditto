@@ -13,26 +13,15 @@
 package org.eclipse.ditto.base.model.json;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Optional;
-import java.util.function.Predicate;
 
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.base.model.json.JsonSchemaVersion}.
+ * Unit test for {@link JsonSchemaVersion}.
  */
 public final class JsonSchemaVersionTest {
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(JsonSchemaVersion.class, areImmutable(), provided(Predicate.class).isAlsoImmutable());
-    }
-
 
     @Test
     public void getSchemaVersionForUnknownVersionIntReturnsEmptyOptional() {

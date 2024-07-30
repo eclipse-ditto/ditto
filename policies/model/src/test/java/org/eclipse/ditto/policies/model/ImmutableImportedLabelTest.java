@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.policies.model;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.eclipse.ditto.base.model.entity.id.restriction.LengthRestrictionTestBase;
 import org.junit.Test;
 
@@ -24,11 +21,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link ImmutableImportedLabel}.
  */
 public final class ImmutableImportedLabelTest extends LengthRestrictionTestBase {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableImportedLabel.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

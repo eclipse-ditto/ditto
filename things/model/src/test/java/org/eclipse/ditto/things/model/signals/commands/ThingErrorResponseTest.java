@@ -14,16 +14,12 @@ package org.eclipse.ditto.things.model.signals.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -40,15 +36,6 @@ public final class ThingErrorResponseTest {
             .set(ThingCommandResponse.JsonFields.PAYLOAD,
                     TestConstants.Thing.THING_NOT_ACCESSIBLE_EXCEPTION.toJson(FieldType.regularOrSpecial()))
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ThingErrorResponse.class,
-                areImmutable(),
-                provided(DittoRuntimeException.class, ThingId.class).isAlsoImmutable());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

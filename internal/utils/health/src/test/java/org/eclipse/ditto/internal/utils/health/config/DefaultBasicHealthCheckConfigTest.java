@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.health.config;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -40,11 +37,6 @@ public final class DefaultBasicHealthCheckConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         healthCheckConfig = ConfigFactory.load("health-check-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultBasicHealthCheckConfig.class, areImmutable());
     }
 
     @Test

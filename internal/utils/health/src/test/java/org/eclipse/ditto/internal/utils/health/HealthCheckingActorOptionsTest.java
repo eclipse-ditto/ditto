@@ -13,14 +13,10 @@
 package org.eclipse.ditto.internal.utils.health;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
-import java.util.function.Supplier;
 
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -28,12 +24,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link HealthCheckingActorOptions}.
  */
 public final class HealthCheckingActorOptionsTest {
-
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(HealthCheckingActorOptions.class, areImmutable(),
-                provided(Runnable.class, Supplier.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

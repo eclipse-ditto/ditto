@@ -13,8 +13,6 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -53,11 +51,6 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
     public void setUp() {
         final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
         underTest = new ModifyAttributeStrategy(system);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ModifyAttributeStrategy.class, areImmutable());
     }
 
     @Test

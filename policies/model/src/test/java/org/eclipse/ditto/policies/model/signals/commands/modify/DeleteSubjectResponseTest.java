@@ -13,17 +13,11 @@
 package org.eclipse.ditto.policies.model.signals.commands.modify;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.policies.model.Label;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
 import org.junit.Test;
@@ -31,7 +25,7 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectResponse}.
+ * Unit test for {@link DeleteSubjectResponse}.
  */
 public final class DeleteSubjectResponseTest {
 
@@ -42,13 +36,6 @@ public final class DeleteSubjectResponseTest {
             .set(DeleteSubjectResponse.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .set(DeleteSubjectResponse.JSON_SUBJECT_ID, TestConstants.Policy.SUBJECT_ID.toString())
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DeleteSubjectResponse.class,
-                areImmutable(),
-                provided(Label.class, SubjectId.class, PolicyId.class).areAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

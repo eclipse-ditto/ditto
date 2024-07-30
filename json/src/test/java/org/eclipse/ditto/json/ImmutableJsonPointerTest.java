@@ -14,10 +14,6 @@ package org.eclipse.ditto.json;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,13 +32,6 @@ import nl.jqno.equalsverifier.Warning;
 public final class ImmutableJsonPointerTest {
 
     private static final JsonKey KNOWN_KEY_NAME = JsonFactory.newKey("foo");
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableJsonPointer.class,
-                areImmutable(),
-                provided(JsonKey.class).isAlsoImmutable(), assumingFields("jsonFields").areNotModifiedAndDoNotEscape());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

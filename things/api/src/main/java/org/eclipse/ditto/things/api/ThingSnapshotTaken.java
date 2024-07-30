@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
@@ -41,6 +42,7 @@ import org.eclipse.ditto.things.model.ThingIdInvalidException;
 /**
  * Event published when a thing snapshot is taken.
  */
+@Immutable
 @JsonParsableEvent(name = ThingSnapshotTaken.NAME, typePrefix = ThingSnapshotTaken.TYPE_PREFIX)
 public final class ThingSnapshotTaken extends SnapshotTaken<ThingSnapshotTaken> {
 

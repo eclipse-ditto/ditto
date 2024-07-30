@@ -31,9 +31,6 @@
         <scala-parser-combinators.version>1.1.2</scala-parser-combinators.version>
         <scala-java8-compat.version>1.0.2</scala-java8-compat.version>
 
-        <javac.source>17</javac.source>
-        <javac.target>17</javac.target>
-
         <!-- ### Compile dependencies versions -->
         <minimal-json.version>0.9.5</minimal-json.version>
         <jackson-bom.version>2.17.1</jackson-bom.version>
@@ -104,8 +101,8 @@
         <junit.version>4.13.2</junit.version>
         <junit-jupiter.version>5.10.0</junit-jupiter.version>
         <assertj.version>3.24.2</assertj.version>
-        <mutability-detector.version>0.10.6</mutability-detector.version>
-        <equals-verifier.version>3.10.1</equals-verifier.version>
+        <equals-verifier.version>3.16.1</equals-verifier.version>
+        <byte-buddy.version>1.14.18</byte-buddy.version>
         <mockito.version>4.7.0</mockito.version>
         <jsonassert.version>1.5.1</jsonassert.version>
         <awaitility.version>4.2.0</awaitility.version>
@@ -906,17 +903,17 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>org.mutabilitydetector</groupId>
-                <artifactId>MutabilityDetector</artifactId>
-                <version>${mutability-detector.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
                 <groupId>nl.jqno.equalsverifier</groupId>
                 <artifactId>equalsverifier</artifactId>
                 <version>${equals-verifier.version}</version>
                 <scope>test</scope>
             </dependency>
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy</artifactId>
+                <version>${byte-buddy.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>

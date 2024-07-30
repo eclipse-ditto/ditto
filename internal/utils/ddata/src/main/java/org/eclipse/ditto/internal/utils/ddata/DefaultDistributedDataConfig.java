@@ -15,15 +15,17 @@ package org.eclipse.ditto.internal.utils.ddata;
 import java.time.Duration;
 import java.util.Objects;
 
+import javax.annotation.concurrent.Immutable;
+
+import org.apache.pekko.cluster.ddata.Replicator;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 
 import com.typesafe.config.Config;
 
-import org.apache.pekko.cluster.ddata.Replicator;
-
 /**
  * This class is the default implementation of the distributed data config.
  */
+@Immutable
 public final class DefaultDistributedDataConfig implements DistributedDataConfig {
 
     private static final String CONFIG_PATH = "ddata";

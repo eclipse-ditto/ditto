@@ -13,9 +13,6 @@
 package org.eclipse.ditto.json;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.stream.IntStream;
 
@@ -40,13 +37,6 @@ public final class JsonCharEscaperTest {
     @Before
     public void setUp() {
         underTest = JsonCharEscaper.getInstance();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(JsonCharEscaper.class,
-                areImmutable(),
-                assumingFields("replacements").areNotModifiedAndDoNotEscape());
     }
 
     @Test

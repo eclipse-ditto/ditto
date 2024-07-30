@@ -14,8 +14,6 @@ package org.eclipse.ditto.policies.service.persistence.actors.strategies.command
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.policies.service.persistence.TestConstants.Policy.LABEL;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.text.MessageFormat;
 import java.time.Duration;
@@ -27,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
@@ -53,14 +52,11 @@ import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 import org.eclipse.ditto.policies.service.persistence.TestConstants;
 import org.junit.Before;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.AllowedReason;
 
 import com.typesafe.config.ConfigFactory;
 
-import org.apache.pekko.actor.ActorSystem;
-
 /**
- * Tests {@link org.eclipse.ditto.policies.service.persistence.actors.strategies.commands.TopLevelPolicyActionCommandStrategy}.
+ * Tests {@link TopLevelPolicyActionCommandStrategy}.
  */
 public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolicyCommandStrategyTest {
 
@@ -73,13 +69,6 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
         final PolicyConfig policyConfig = DefaultPolicyConfig.of(ConfigFactory.load("policy-test"));
         final ActorSystem system = ActorSystem.create("test");
         underTest = new TopLevelPolicyActionCommandStrategy(policyConfig, system);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(TopLevelPolicyActionCommandStrategy.class, areImmutable(),
-                AllowedReason.assumingFields("policyActionCommandStrategyMap")
-                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test

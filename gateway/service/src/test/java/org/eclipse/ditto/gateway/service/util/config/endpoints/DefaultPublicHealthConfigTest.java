@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.gateway.service.util.config.endpoints;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -40,11 +37,6 @@ public final class DefaultPublicHealthConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         publicHealthTestConfig = ConfigFactory.load("public-health-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultPublicHealthConfig.class, areImmutable());
     }
 
     @Test

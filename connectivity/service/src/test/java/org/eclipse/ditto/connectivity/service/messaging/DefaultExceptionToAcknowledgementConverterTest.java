@@ -14,8 +14,6 @@ package org.eclipse.ditto.connectivity.service.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.text.MessageFormat;
 
@@ -52,11 +50,6 @@ public final class DefaultExceptionToAcknowledgementConverterTest {
     public void setUp() {
         dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
         underTest = DefaultExceptionToAcknowledgementConverter.getInstance();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultExceptionToAcknowledgementConverter.class, areImmutable());
     }
 
     @Test

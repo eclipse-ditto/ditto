@@ -14,9 +14,6 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.ditto.things.model.signals.commands.assertions.ThingCommandAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -44,13 +41,6 @@ public final class ModifyFeatureTest {
             .set(ModifyFeature.JSON_FEATURE,
                     TestConstants.Feature.FLUX_CAPACITOR.toJson(FieldType.regularOrSpecial()))
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ModifyFeature.class, areImmutable(),
-                provided(Feature.class, ThingId.class).isAlsoImmutable());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

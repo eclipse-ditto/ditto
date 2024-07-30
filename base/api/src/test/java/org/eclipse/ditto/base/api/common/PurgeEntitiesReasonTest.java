@@ -15,9 +15,6 @@ package org.eclipse.ditto.base.api.common;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -65,11 +62,6 @@ public final class PurgeEntitiesReasonTest {
     @Before
     public void setUp() {
         underTest = PurgeEntitiesReason.of(knownEntityIds);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PurgeNamespaceReason.class, areImmutable(), provided(ShutdownReason.class).isAlsoImmutable());
     }
 
     @Test

@@ -15,10 +15,6 @@ package org.eclipse.ditto.connectivity.service.messaging.monitoring.logs;
 
 import static nl.jqno.equalsverifier.EqualsVerifier.forClass;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -424,13 +420,6 @@ public final class ConnectionLoggerRegistryTest {
                 ConnectivityStatus.CLOSED, "amqp://uri:5672")
                 .sources(Collections.singletonList(source))
                 .build();
-    }
-
-    @Test
-    public void testImmutabilityOfCollectionLogs() {
-        assertInstancesOf(ConnectionLoggerRegistry.ConnectionLogs.class, areImmutable(),
-                assumingFields("logs").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
-                provided(LogEntry.class).isAlsoImmutable());
     }
 
     @Test

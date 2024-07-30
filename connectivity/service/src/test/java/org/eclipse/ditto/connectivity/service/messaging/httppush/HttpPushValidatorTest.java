@@ -16,14 +16,13 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushSpecificConfig.OMIT_REQUEST_BODY;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
@@ -42,9 +41,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit test for {@link HttpPushValidator}.
@@ -77,11 +73,6 @@ public final class HttpPushValidatorTest {
     @Before
     public void setUp() {
         underTest = HttpPushValidator.newInstance(HttpPushConfig.of(ConfigFactory.empty()));
-    }
-
-    @Test
-    public void testImmutability() {
-        assertInstancesOf(HttpPushValidator.class, areImmutable(), provided(HttpPushConfig.class).isAlsoImmutable());
     }
 
     @Test

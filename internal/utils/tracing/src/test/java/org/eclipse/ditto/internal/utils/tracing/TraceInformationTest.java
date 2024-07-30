@@ -14,9 +14,6 @@ package org.eclipse.ditto.internal.utils.tracing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.net.URI;
 
@@ -30,11 +27,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link TraceInformation}.
  */
 public final class TraceInformationTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(TraceInformation.class, areImmutable(), provided(TagSet.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

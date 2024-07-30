@@ -14,9 +14,6 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.ditto.things.model.signals.commands.assertions.ThingCommandAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -48,14 +45,6 @@ public final class ModifyFeatureDesiredPropertiesTest {
             .set(ModifyFeatureDesiredProperties.JSON_DESIRED_PROPERTIES,
                     TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTIES)
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ModifyFeatureDesiredProperties.class,
-                areImmutable(),
-                provided(FeatureProperties.class, ThingId.class).isAlsoImmutable());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

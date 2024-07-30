@@ -15,9 +15,6 @@ package org.eclipse.ditto.internal.utils.pekko.logging;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.assertj.core.api.Assertions.entry;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areEffectivelyImmutable;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -28,7 +25,6 @@ import org.assertj.core.data.MapEntry;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -72,14 +68,6 @@ public final class ImmutableDittoLoggerTest {
     @After
     public void tearDown() {
         ObservableMdcAdapter.deregisterObserver(testName.getMethodName());
-    }
-
-    @Ignore("MutabilityChecker cannot cope with the implementation")
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableDittoLogger.class,
-                areEffectivelyImmutable(),
-                provided(Logger.class).isAlsoImmutable());
     }
 
     @Test

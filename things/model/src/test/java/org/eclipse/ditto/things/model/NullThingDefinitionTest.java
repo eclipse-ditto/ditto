@@ -13,9 +13,6 @@
 package org.eclipse.ditto.things.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonValue;
@@ -27,13 +24,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Tests {@link NullThingDefinition}.
  */
 public class NullThingDefinitionTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(NullThingDefinition.class,
-                areImmutable(),
-                provided(DefinitionIdentifier.class).areAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

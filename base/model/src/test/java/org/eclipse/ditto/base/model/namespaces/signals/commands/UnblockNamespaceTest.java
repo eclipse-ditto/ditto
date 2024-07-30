@@ -13,8 +13,6 @@
 package org.eclipse.ditto.base.model.namespaces.signals.commands;
 
 import static org.eclipse.ditto.base.model.signals.commands.assertions.CommandAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.UUID;
 
@@ -54,11 +52,6 @@ public final class UnblockNamespaceTest {
     @Before
     public void setUp() {
         underTest = UnblockNamespace.of(NAMESPACE, dittoHeaders);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(UnblockNamespace.class, areImmutable());
     }
 
     @Test

@@ -10,13 +10,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.connectivity.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -60,12 +56,6 @@ public final class ImmutableSshTunnelTest {
         EqualsVerifier.forClass(ImmutableSshTunnel.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableSshTunnel.class, areImmutable(),
-                provided(Credentials.class).isAlsoImmutable());
     }
 
     @Test

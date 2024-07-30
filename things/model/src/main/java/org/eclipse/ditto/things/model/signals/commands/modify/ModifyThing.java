@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.Placeholders;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -48,6 +49,7 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.PoliciesConfli
  * This command modifies an existing Thing. It contains the full {@link org.eclipse.ditto.things.model.Thing} including the Thing ID which should be
  * used for modification.
  */
+@Immutable
 @JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = ModifyThing.NAME)
 public final class ModifyThing extends AbstractCommand<ModifyThing> implements ThingModifyCommand<ModifyThing> {
 

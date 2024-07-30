@@ -16,9 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Test;
 
@@ -33,12 +30,6 @@ public final class ImmutableFeatureDefinitionIdentifierTest {
     private static final String NAME = "example";
     private static final String VERSION = "0.1.0";
     private static final String VALID_IDENTIFIER_STRING = NAMESPACE + ":" + NAME + ":" + VERSION;
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableFeatureDefinitionIdentifier.class, areImmutable(),
-                provided(DefinitionIdentifier.class).areAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

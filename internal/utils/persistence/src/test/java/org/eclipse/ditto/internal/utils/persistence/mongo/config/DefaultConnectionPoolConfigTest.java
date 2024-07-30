@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.persistence.mongo.config;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -40,11 +37,6 @@ public final class DefaultConnectionPoolConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         connectionPoolTestConfig = ConfigFactory.load("pool-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultConnectionPoolConfig.class, areImmutable());
     }
 
     @Test

@@ -14,8 +14,6 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
@@ -61,11 +59,6 @@ public final class ModifyFeaturePropertyStrategyTest extends AbstractCommandStra
     public void setUp() {
         final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
         underTest = new ModifyFeaturePropertyStrategy(system);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ModifyFeaturePropertyStrategy.class, areImmutable());
     }
 
     @Test

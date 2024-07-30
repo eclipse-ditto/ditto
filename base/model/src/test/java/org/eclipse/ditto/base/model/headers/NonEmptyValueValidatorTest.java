@@ -15,15 +15,13 @@ package org.eclipse.ditto.base.model.headers;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.base.model.headers.NonEmptyValueValidator}.
+ * Unit test for {@link NonEmptyValueValidator}.
  */
 public final class NonEmptyValueValidatorTest {
 
@@ -32,11 +30,6 @@ public final class NonEmptyValueValidatorTest {
     @Before
     public void setUp() {
         underTest = NonEmptyValueValidator.getInstance();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(NonEmptyValueValidator.class, areImmutable());
     }
 
     @Test

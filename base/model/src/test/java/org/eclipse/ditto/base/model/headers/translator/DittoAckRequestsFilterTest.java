@@ -13,8 +13,6 @@
 package org.eclipse.ditto.base.model.headers.translator;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.List;
 
@@ -32,11 +30,6 @@ import org.junit.Test;
  * Unit test for {@link DittoAckRequestsFilter}.
  */
 public final class DittoAckRequestsFilterTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DittoAckRequestsFilter.class, areImmutable());
-    }
 
     @Test
     public void filterValueWithoutMatchingHeaderDefinition() {

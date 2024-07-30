@@ -13,10 +13,6 @@
 package org.eclipse.ditto.policies.service.signaltransformation.placeholdersubstitution;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.io.File;
 import java.io.IOException;
@@ -47,7 +43,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Tests {@link org.eclipse.ditto.edge.service.dispatching.signaltransformer.placeholdersubstitution.policies.PolicySubstitutionStrategyRegistry}.
+ * Tests {@link PolicySubstitutionStrategyRegistry}.
  */
 public class PolicySubstitutionStrategyRegistryTest {
 
@@ -58,13 +54,6 @@ public class PolicySubstitutionStrategyRegistryTest {
     @Before
     public void init() {
         underTest = PolicySubstitutionStrategyRegistry.newInstance();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PolicySubstitutionStrategyRegistry.class, areImmutable(),
-                provided(SubstitutionStrategy.class).isAlsoImmutable(),
-                assumingFields("strategies").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test

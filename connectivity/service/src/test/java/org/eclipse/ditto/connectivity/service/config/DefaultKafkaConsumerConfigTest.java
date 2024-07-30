@@ -12,13 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.junit.Test;
-
-import com.typesafe.config.Config;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -29,12 +23,6 @@ public class DefaultKafkaConsumerConfigTest {
         EqualsVerifier.forClass(DefaultKafkaConsumerConfig.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultKafkaConsumerConfig.class, areImmutable(), provided(Config.class,
-                ConnectionThrottlingConfig.class).areAlsoImmutable());
     }
 
 }

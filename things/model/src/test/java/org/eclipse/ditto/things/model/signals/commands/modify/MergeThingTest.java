@@ -14,9 +14,6 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.ditto.things.model.signals.commands.assertions.ThingCommandAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.text.MessageFormat;
 import java.util.Optional;
@@ -64,13 +61,6 @@ public final class MergeThingTest {
 
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(MergeThing.class,
-                areImmutable(),
-                provided(JsonPointer.class, JsonValue.class, ThingId.class, JsonObject.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

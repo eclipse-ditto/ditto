@@ -13,8 +13,6 @@
 package org.eclipse.ditto.json;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.lang.ref.SoftReference;
 
@@ -28,11 +26,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link ImmutableJsonNull}.
  */
 public class ImmutableJsonNullTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableJsonNull.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

@@ -14,14 +14,14 @@ package org.eclipse.ditto.internal.utils.config.raw;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.internal.utils.config.raw.AliasesAppender.CONFIG_ALIASES_ENV_VARIABLE_NAME;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.junit.*;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
 import com.typesafe.config.Config;
@@ -49,13 +49,6 @@ public final class AliasesAppenderTest {
     @Before
     public void initEnvironmentVariables() {
         environmentVariables.set(CONFIG_ALIASES_ENV_VARIABLE_NAME, knownAliases.toString());
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(AliasesAppender.class,
-                areImmutable(),
-                assumingFields("systemConfigAliases").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test

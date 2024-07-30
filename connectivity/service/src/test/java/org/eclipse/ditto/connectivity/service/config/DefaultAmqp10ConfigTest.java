@@ -12,11 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 import java.util.Map;
 
@@ -32,7 +27,7 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.connectivity.service.config.DefaultAmqp10Config}.
+ * Unit test for {@link DefaultAmqp10Config}.
  */
 public final class DefaultAmqp10ConfigTest {
 
@@ -44,14 +39,6 @@ public final class DefaultAmqp10ConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         amqp10TestConf = ConfigFactory.load("amqp10-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultAmqp10Config.class,
-                areImmutable(),
-                provided(BackOffConfig.class, ThrottlingConfig.class, Amqp10ConsumerConfig.class).isAlsoImmutable(),
-                assumingFields("hmacAlgorithms").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test

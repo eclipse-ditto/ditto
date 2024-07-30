@@ -14,9 +14,6 @@ package org.eclipse.ditto.internal.utils.config.raw;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -52,13 +49,6 @@ public final class SecretFromPathReaderTest {
 
         final URL emptySecretFileUrl = testClass.getResource(EMPTY_SECRET_FILE_PATH);
         knownEmptySecretPath = Paths.get(emptySecretFileUrl.toURI());
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SecretFromPathReader.class,
-                areImmutable(),
-                provided(Path.class).isAlsoImmutable());
     }
 
     @Test

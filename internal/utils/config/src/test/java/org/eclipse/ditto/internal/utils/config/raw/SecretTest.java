@@ -14,8 +14,6 @@ package org.eclipse.ditto.internal.utils.config.raw;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Test;
 
@@ -28,11 +26,6 @@ public final class SecretTest {
 
     private static final String KNOWN_NAME = "foo";
     private static final String KNOWN_VALUE = "bar";
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(Secret.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

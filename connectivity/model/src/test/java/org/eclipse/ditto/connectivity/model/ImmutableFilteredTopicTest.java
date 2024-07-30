@@ -13,10 +13,6 @@
 package org.eclipse.ditto.connectivity.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.text.MessageFormat;
 import java.util.Collections;
@@ -45,14 +41,6 @@ public final class ImmutableFilteredTopicTest {
         EqualsVerifier.forClass(ImmutableFilteredTopic.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableFilteredTopic.class,
-                areImmutable(),
-                provided(Topic.class, ThingFieldSelector.class).areAlsoImmutable(),
-                assumingFields("namespaces").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test

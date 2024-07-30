@@ -14,8 +14,6 @@ package org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Test;
 
@@ -37,11 +35,6 @@ public class MongoEventSourceSettingsTest {
 
     private static final String JOURNAL_PLUGIN_ID = "my-journal-plugin-id";
     private static final String SNAPSHOT_PLUGIN_ID = "my-snapshot-plugin-id";
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(MongoEventSourceSettings.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

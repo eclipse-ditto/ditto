@@ -13,9 +13,6 @@
 package org.eclipse.ditto.policies.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,13 +30,6 @@ public final class ImmutableResourcesTest {
 
     private static final JsonPointer KNOWN_RESOURCE_PATH_0 = JsonPointer.empty();
     private static final JsonPointer KNOWN_RESOURCE_PATH_1 = JsonPointer.of("/foo/bar");
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableResources.class,
-                areImmutable(),
-                assumingFields("resources").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

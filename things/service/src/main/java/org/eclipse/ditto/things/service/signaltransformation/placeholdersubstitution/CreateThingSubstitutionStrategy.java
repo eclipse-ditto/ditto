@@ -16,6 +16,8 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.signaltransformer.placeholdersubstitution.AbstractTypedSubstitutionStrategy;
 import org.eclipse.ditto.base.service.signaltransformer.placeholdersubstitution.HeaderBasedPlaceholderSubstitutionAlgorithm;
@@ -26,11 +28,11 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * Handles substitution for Policy {@link org.eclipse.ditto.policies.model.SubjectId}s
  * inside a {@link CreateThing} command.
  */
+@Immutable
 final class CreateThingSubstitutionStrategy extends AbstractTypedSubstitutionStrategy<CreateThing> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CreateThingSubstitutionStrategy.class);

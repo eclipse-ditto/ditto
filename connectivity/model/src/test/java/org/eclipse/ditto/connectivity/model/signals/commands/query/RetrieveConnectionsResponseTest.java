@@ -10,14 +10,10 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.connectivity.model.signals.commands.query;
 
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
 import java.util.List;
@@ -57,13 +53,6 @@ public final class RetrieveConnectionsResponseTest {
             .set(ConnectivityCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
             .set(RetrieveConnectionsResponse.JSON_CONNECTIONS, JsonArray.of(CONNECTION.toJson()))
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(RetrieveConnectionsResponse.class,
-                areImmutable(),
-                provided(JsonArray.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

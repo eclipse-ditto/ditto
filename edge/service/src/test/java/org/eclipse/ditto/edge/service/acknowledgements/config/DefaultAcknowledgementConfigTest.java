@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.edge.service.acknowledgements.config;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -41,12 +38,6 @@ public final class DefaultAcknowledgementConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         acknowledgementConf = ConfigFactory.load("acknowledgement-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultAcknowledgementConfig.class,
-                areImmutable());
     }
 
     @Test

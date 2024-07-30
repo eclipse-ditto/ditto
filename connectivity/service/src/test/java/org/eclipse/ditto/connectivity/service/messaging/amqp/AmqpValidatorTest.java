@@ -14,8 +14,6 @@ package org.eclipse.ditto.connectivity.service.messaging.amqp;
 
 import static org.eclipse.ditto.connectivity.model.ConnectivityModelFactory.newTargetBuilder;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -38,11 +36,6 @@ import org.junit.Test;
 public final class AmqpValidatorTest {
 
     private static final AmqpValidator UNDER_TEST = AmqpValidator.newInstance();
-
-    @Test
-    public void testImmutability() {
-        assertInstancesOf(AmqpValidator.class, areImmutable());
-    }
 
     @Test
     public void testValidationOfEnforcement() {

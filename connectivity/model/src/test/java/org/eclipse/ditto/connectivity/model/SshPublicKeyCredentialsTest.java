@@ -13,8 +13,6 @@
 package org.eclipse.ditto.connectivity.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Test;
 
@@ -28,11 +26,6 @@ public final class SshPublicKeyCredentialsTest {
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(SshPublicKeyCredentials.class).verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SshPublicKeyCredentials.class, areImmutable());
     }
 
     @Test
