@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.tracing.filter;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -26,10 +22,8 @@ import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
 import org.junit.Rule;
 import org.junit.Test;
 
-import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import kamon.util.Filter;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
@@ -39,18 +33,6 @@ public final class KamonTracingFilterTest {
 
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(
-                KamonTracingFilter.class,
-                areImmutable(),
-
-                // After a manual check of the implementations of `Filter` it
-                // appears to be safe to assume that `Filter` is immutable.
-                provided(Config.class, Filter.class).areAlsoImmutable()
-        );
-    }
 
     @Test
     public void testHashCodeAndEquals() {

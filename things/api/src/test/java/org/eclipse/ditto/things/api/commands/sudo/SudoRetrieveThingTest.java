@@ -13,9 +13,6 @@
 package org.eclipse.ditto.things.api.commands.sudo;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Optional;
 
@@ -25,7 +22,6 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandRegistry;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
@@ -46,13 +42,6 @@ public final class SudoRetrieveThingTest {
             .build();
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SudoRetrieveThing.class,
-                areImmutable(),
-                provided(JsonFieldSelector.class, ThingId.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

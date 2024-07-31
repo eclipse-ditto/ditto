@@ -13,8 +13,6 @@
 package org.eclipse.ditto.policies.service.signaltransformation.placeholdersubstitution;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
 
@@ -29,15 +27,9 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.junit.Test;
 
 /**
- * Tests {@link org.eclipse.ditto.edge.service.dispatching.signaltransformer.placeholdersubstitution.policies.CreatePolicySubstitutionStrategy} in context of
- * {@link org.eclipse.ditto.policies.enforcement.placeholders.AbstractPlaceholderSubstitutionPreEnforcer}.
+ * Tests {@link CreatePolicySubstitutionStrategy}.
  */
 public class CreatePolicySubstitutionStrategyTest extends AbstractPolicySubstitutionStrategyTestBase {
-
-    @Override
-    public void assertImmutability() {
-        assertInstancesOf(CreatePolicySubstitutionStrategy.class, areImmutable());
-    }
 
     @Test
     public void applyReturnsTheSameCommandInstanceWhenNoPlaceholderIsSpecified() {

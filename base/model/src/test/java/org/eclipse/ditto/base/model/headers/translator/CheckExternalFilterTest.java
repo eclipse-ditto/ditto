@@ -14,14 +14,9 @@ package org.eclipse.ditto.base.model.headers.translator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.function.Predicate;
 
 import org.assertj.core.util.Maps;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -33,14 +28,6 @@ import org.mockito.Mockito;
  * Unit test for {@link CheckExternalFilter}.
  */
 public final class CheckExternalFilterTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(CheckExternalFilter.class,
-                areImmutable(),
-                provided(Predicate.class).isAlsoImmutable(),
-                assumingFields("headerDefinitions").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
-    }
 
     @Test
     public void tryToGetShouldReadFromExternalInstanceWithNullHeaderDefinitions() {

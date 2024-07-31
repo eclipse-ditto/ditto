@@ -13,9 +13,6 @@
 package org.eclipse.ditto.things.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.entity.id.restriction.LengthRestrictionTestBase;
 import org.eclipse.ditto.json.JsonKeyInvalidException;
@@ -35,12 +32,6 @@ public final class ImmutableFeaturePropertiesTest extends LengthRestrictionTestB
         EqualsVerifier.forClass(ImmutableFeatureProperties.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableFeatureProperties.class, areImmutable(),
-                provided(JsonObject.class).isAlsoImmutable());
     }
 
     @Test

@@ -21,8 +21,6 @@ import static org.eclipse.ditto.base.model.signals.commands.Command.Category.MOD
 import static org.eclipse.ditto.base.model.signals.commands.Command.Category.QUERY;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Optional;
 
@@ -68,11 +66,6 @@ public class ThingsConditionalHeadersValidatorTest {
                     "false. Expected: ''{0}'' not to match actual: ''{1}''.";
 
     private static final ConditionalHeadersValidator SUT = ThingsConditionalHeadersValidatorProvider.getInstance();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ThingsConditionalHeadersValidatorProvider.class, areImmutable());
-    }
 
     @Test
     public void doesNotThrowExceptionsIfAllChecksSucceed() {

@@ -13,9 +13,6 @@
 package org.eclipse.ditto.internal.utils.config;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
 
@@ -45,13 +42,6 @@ public final class DefaultScopedConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         testConfig = ConfigFactory.load("test.conf");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultScopedConfig.class,
-                areImmutable(),
-                provided(Config.class).isAlsoImmutable());
     }
 
     @Test

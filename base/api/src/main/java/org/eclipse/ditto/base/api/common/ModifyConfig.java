@@ -15,19 +15,22 @@ package org.eclipse.ditto.base.api.common;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonParsableCommand;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.JsonParsableCommand;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * Command to modify an actor's config.
  */
 @JsonParsableCommand(typePrefix = CommonCommand.TYPE_PREFIX, name = ModifyConfig.NAME)
+@Immutable
 public final class ModifyConfig extends CommonCommand<ModifyConfig> {
 
     /**

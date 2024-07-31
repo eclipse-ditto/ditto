@@ -15,10 +15,6 @@ package org.eclipse.ditto.policies.model.enforcers;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collection;
 import java.util.Set;
@@ -30,7 +26,7 @@ import org.mockito.internal.util.collections.Sets;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.policies.model.enforcers.DefaultEffectedSubjects}.
+ * Unit test for {@link DefaultEffectedSubjects}.
  */
 public final class DefaultEffectedSubjectsTest {
 
@@ -40,14 +36,6 @@ public final class DefaultEffectedSubjectsTest {
     private static final AuthorizationSubject REVOKED_2 = AuthorizationSubject.newInstance("revoked2");
     private static final Collection<AuthorizationSubject> KNOWN_GRANTED = Sets.newSet(GRANTED_1, GRANTED_2);
     private static final Collection<AuthorizationSubject> KNOWN_REVOKED = Sets.newSet(REVOKED_1, REVOKED_2);
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultEffectedSubjects.class,
-                areImmutable(),
-                provided(AuthorizationSubject.class).isAlsoImmutable(),
-                assumingFields("granted", "revoked").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

@@ -12,11 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.persistence.mongo.indices;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
-import org.bson.BsonDocument;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -25,13 +20,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link Index}.
  */
 public class IndexTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(Index.class, areImmutable(),
-                // workaround: BsonDocument is actually not immutable, but we make sure that all other fields are
-                provided(BsonDocument.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

@@ -13,8 +13,6 @@
 package org.eclipse.ditto.gateway.service.streaming;
 
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.SoftAssertions;
 import org.eclipse.ditto.gateway.service.streaming.signals.StopStreaming;
@@ -24,14 +22,9 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.gateway.service.streaming.signals.StopStreaming}.
+ * Unit test for {@link StopStreaming}.
  */
 public final class StopStreamingTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(StopStreaming.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

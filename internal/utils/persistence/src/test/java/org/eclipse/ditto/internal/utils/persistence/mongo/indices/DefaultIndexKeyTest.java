@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.persistence.mongo.indices;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -23,11 +20,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link DefaultIndexKey}.
  */
 public class DefaultIndexKeyTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultIndexKey.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

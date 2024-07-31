@@ -13,9 +13,6 @@
 package org.eclipse.ditto.base.model.signals.commands.streaming;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
 
@@ -67,13 +64,6 @@ public final class SubscribeForPersistedEventsTest {
             .set(SubscribeForPersistedEvents.JsonFields.JSON_TO_HISTORICAL_REVISION, KNOWN_TO_REV)
             .set(SubscribeForPersistedEvents.JsonFields.FILTER, KNOWN_FILTER)
             .build().toString();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SubscribeForPersistedEvents.class,
-                areImmutable(),
-                provided(Instant.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

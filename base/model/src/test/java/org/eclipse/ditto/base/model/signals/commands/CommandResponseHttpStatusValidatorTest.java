@@ -13,8 +13,6 @@
 package org.eclipse.ditto.base.model.signals.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -28,11 +26,6 @@ import org.junit.Test;
  * Unit test for {@link CommandResponseHttpStatusValidator}.
  */
 public final class CommandResponseHttpStatusValidatorTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(CommandResponseHttpStatusValidator.class, areImmutable());
-    }
 
     @Test
     public void validateHttpStatusWithNullHttpStatusThrowsNullPointerException() {

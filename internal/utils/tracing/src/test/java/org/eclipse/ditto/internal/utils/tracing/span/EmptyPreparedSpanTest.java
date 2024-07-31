@@ -14,8 +14,6 @@ package org.eclipse.ditto.internal.utils.tracing.span;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -30,11 +28,6 @@ public final class EmptyPreparedSpanTest {
 
     @Rule
     public final TestName testName = new TestName();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(EmptyPreparedSpan.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

@@ -10,12 +10,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.connectivity.service.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
 
@@ -30,7 +27,7 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.connectivity.service.config.DefaultBackOffConfig}.
+ * Unit test for {@link DefaultBackOffConfig}.
  */
 public final class DefaultBackOffConfigTest {
 
@@ -65,12 +62,6 @@ public final class DefaultBackOffConfigTest {
         EqualsVerifier.forClass(DefaultBackOffConfig.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void testImmutability() {
-        assertInstancesOf(DefaultBackOffConfig.class,
-                areImmutable());
     }
 
 }

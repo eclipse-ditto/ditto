@@ -13,9 +13,6 @@
 package org.eclipse.ditto.base.api.persistence.cleanup;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
@@ -39,11 +36,6 @@ public class CleanupPersistenceTest {
             .set(CleanupCommand.JsonFields.ENTITY_ID, ID.toString())
             .build();
     private static final DittoHeaders HEADERS = DittoHeaders.newBuilder().correlationId("123").build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(CleanupPersistence.class, areImmutable(), provided(EntityId.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

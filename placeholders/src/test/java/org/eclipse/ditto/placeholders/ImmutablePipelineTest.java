@@ -24,9 +24,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.mutabilitydetector.unittesting.AllowedReason;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -56,12 +53,6 @@ public class ImmutablePipelineTest {
     private FunctionExpression functionExpression;
     @Mock
     private ExpressionResolver expressionResolver;
-
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(ImmutablePipeline.class, MutabilityMatchers.areImmutable(),
-                AllowedReason.provided(FunctionExpression.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

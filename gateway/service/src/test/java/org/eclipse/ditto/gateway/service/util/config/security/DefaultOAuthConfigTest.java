@@ -12,11 +12,6 @@
  */
 package org.eclipse.ditto.gateway.service.util.config.security;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -46,16 +41,6 @@ public final class DefaultOAuthConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         oauthConfig = ConfigFactory.load("oauth-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultOAuthConfig.class, areImmutable(),
-                provided(SubjectIssuer.class).isAlsoImmutable(),
-                assumingFields("openIdConnectIssuers").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
-                assumingFields(
-                        "openIdConnectIssuersExtension").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements()
-        );
     }
 
     @Test

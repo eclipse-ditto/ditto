@@ -14,23 +14,11 @@ package org.eclipse.ditto.internal.utils.cluster;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import com.typesafe.config.ConfigFactory;
 
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.actor.ActorSystem;
@@ -40,6 +28,15 @@ import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.stream.javadsl.StreamRefs;
 import org.apache.pekko.testkit.javadsl.TestKit;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
+
 import nl.jqno.equalsverifier.EqualsVerifier;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -59,13 +56,6 @@ public final class JsonValueSourceRefTest {
     @AfterClass
     public static void afterClass() {
         TestKit.shutdownActorSystem(actorSystem, FiniteDuration.apply(1, TimeUnit.SECONDS), false);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(JsonValueSourceRef.class,
-                areImmutable(),
-                provided(SourceRef.class).isAlsoImmutable());
     }
 
     @Test

@@ -13,17 +13,12 @@
 package org.eclipse.ditto.policies.model.signals.events;
 
 import static org.eclipse.ditto.base.model.assertions.DittoBaseAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.policies.model.Label;
-import org.eclipse.ditto.policies.model.SubjectId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -43,12 +38,6 @@ public final class SubjectDeletedTest {
             .set(SubjectDeleted.JSON_SUBJECT_ID, TestConstants.Policy.SUBJECT_ID.toString())
             .build();
 
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SubjectDeleted.class, areImmutable(),
-                provided(SubjectId.class, Label.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

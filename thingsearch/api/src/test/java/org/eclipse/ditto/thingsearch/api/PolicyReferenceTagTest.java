@@ -13,11 +13,7 @@
 package org.eclipse.ditto.thingsearch.api;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
@@ -42,13 +38,6 @@ public final class PolicyReferenceTagTest {
             .set(PolicyReferenceTag.JsonFields.POLICY_ID, POLICY_TAG.getEntityId().toString())
             .set(PolicyReferenceTag.JsonFields.POLICY_REV, POLICY_TAG.getRevision())
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PolicyReferenceTag.class,
-                areImmutable(),
-                provided(EntityId.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

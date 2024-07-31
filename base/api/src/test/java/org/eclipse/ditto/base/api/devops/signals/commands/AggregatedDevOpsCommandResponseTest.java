@@ -14,9 +14,6 @@
 package org.eclipse.ditto.base.api.devops.signals.commands;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -42,12 +39,6 @@ public final class AggregatedDevOpsCommandResponseTest {
         EqualsVerifier.forClass(AggregatedDevOpsCommandResponse.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(AggregatedDevOpsCommandResponse.class, areImmutable(),
-                provided(JsonObject.class).isAlsoImmutable());
     }
 
     @Test

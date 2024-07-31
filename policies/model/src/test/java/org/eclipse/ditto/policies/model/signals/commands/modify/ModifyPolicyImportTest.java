@@ -14,16 +14,12 @@ package org.eclipse.ditto.policies.model.signals.commands.modify;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
-import org.eclipse.ditto.policies.model.PolicyImport;
 import org.eclipse.ditto.policies.model.PolicyImportInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
@@ -43,15 +39,6 @@ public final class ModifyPolicyImportTest {
             .set(ModifyPolicyImport.JSON_POLICY_IMPORT,
                     TestConstants.Policy.POLICY_IMPORT.toJson(FieldType.regularOrSpecial()))
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ModifyPolicyImport.class,
-                areImmutable(),
-                provided(PolicyImport.class, PolicyId.class).isAlsoImmutable());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

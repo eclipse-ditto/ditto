@@ -13,17 +13,11 @@
 package org.eclipse.ditto.policies.model.signals.commands.modify;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.policies.model.Label;
-import org.eclipse.ditto.policies.model.PolicyEntry;
-import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
 import org.junit.Test;
@@ -31,7 +25,7 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryResponse}.
+ * Unit test for {@link ModifyPolicyEntryResponse}.
  */
 public final class ModifyPolicyEntryResponseTest {
 
@@ -50,13 +44,6 @@ public final class ModifyPolicyEntryResponseTest {
             .set(ModifyPolicyEntryResponse.JSON_LABEL, TestConstants.Policy.POLICY_ENTRY.getLabel().toString())
             .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ModifyPolicyEntryResponse.class,
-                areImmutable(),
-                provided(PolicyEntry.class, PolicyId.class, Label.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

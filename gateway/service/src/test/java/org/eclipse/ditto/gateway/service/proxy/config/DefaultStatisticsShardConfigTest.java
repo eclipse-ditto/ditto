@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.gateway.service.proxy.config;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.Rule;
 import org.junit.Test;
@@ -30,11 +27,6 @@ public final class DefaultStatisticsShardConfigTest {
 
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultStatisticsShardConfig.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

@@ -14,8 +14,6 @@ package org.eclipse.ditto.base.model.signals.events.assertions;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -37,10 +35,6 @@ public class GlobalEventRegistryTest {
         underTest = GlobalEventRegistry.getInstance();
         headers = DittoHeaders.empty();
         testType = TestEvent.TYPE;
-    }
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(GlobalEventRegistry.class, areImmutable());
     }
 
     @Test

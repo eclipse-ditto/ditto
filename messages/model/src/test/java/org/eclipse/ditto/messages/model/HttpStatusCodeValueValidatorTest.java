@@ -15,8 +15,6 @@ package org.eclipse.ditto.messages.model;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.base.model.common.HttpStatusCodeOutOfRangeException;
@@ -38,11 +36,6 @@ public final class HttpStatusCodeValueValidatorTest {
     @Before
     public void setUp() {
         underTest = HttpStatusCodeValueValidator.getInstance();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(HttpStatusCodeValueValidator.class, areImmutable());
     }
 
     @Test

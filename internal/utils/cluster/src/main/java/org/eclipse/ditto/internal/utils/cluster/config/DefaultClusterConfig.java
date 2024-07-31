@@ -18,6 +18,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 
 import com.typesafe.config.Config;
@@ -25,6 +27,7 @@ import com.typesafe.config.Config;
 /**
  * This class is the default implementation of {@link ClusterConfig}.
  */
+@Immutable
 public final class DefaultClusterConfig implements ClusterConfig {
 
     private static final String CONFIG_PATH = "cluster";

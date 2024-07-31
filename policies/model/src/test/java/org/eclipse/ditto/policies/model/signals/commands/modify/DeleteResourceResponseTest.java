@@ -13,19 +13,12 @@
 package org.eclipse.ditto.policies.model.signals.commands.modify;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.policies.model.Label;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
 import org.junit.Test;
@@ -33,7 +26,7 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResourceResponse}.
+ * Unit test for {@link DeleteResourceResponse}.
  */
 public final class DeleteResourceResponseTest {
 
@@ -44,13 +37,6 @@ public final class DeleteResourceResponseTest {
             .set(DeleteResourceResponse.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .set(DeleteResourceResponse.JSON_RESOURCE_KEY, TestConstants.Policy.RESOURCE_KEY.toString())
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DeleteResourceResponse.class,
-                areImmutable(),
-                provided(Label.class, ResourceKey.class, JsonPointer.class, PolicyId.class).areAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

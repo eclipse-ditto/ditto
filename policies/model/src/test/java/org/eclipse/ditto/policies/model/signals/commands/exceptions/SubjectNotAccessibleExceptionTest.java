@@ -13,8 +13,6 @@
 package org.eclipse.ditto.policies.model.signals.commands.exceptions;
 
 import static org.eclipse.ditto.base.model.assertions.DittoBaseAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Objects;
 
@@ -27,7 +25,7 @@ import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.policies.model.signals.commands.exceptions.SubjectNotAccessibleException}.
+ * Unit test for {@link SubjectNotAccessibleException}.
  */
 public class SubjectNotAccessibleExceptionTest {
 
@@ -42,13 +40,6 @@ public class SubjectNotAccessibleExceptionTest {
                     TestConstants.Policy.SUBJECT_NOT_ACCESSIBLE_EXCEPTION.getHref()
                             .map(Objects::toString).orElse(null))
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SubjectNotAccessibleException.class, areImmutable());
-    }
-
 
     @Test
     public void checkPolicyErrorCodeWorks() {

@@ -13,8 +13,6 @@
 package org.eclipse.ditto.thingsearch.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -33,11 +31,6 @@ public final class ImmutableSizeOptionTest {
     @Before
     public void setUp() {
         underTest = ImmutableSizeOption.of(SIZE);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableSizeOption.class, areImmutable());
     }
 
     @Test

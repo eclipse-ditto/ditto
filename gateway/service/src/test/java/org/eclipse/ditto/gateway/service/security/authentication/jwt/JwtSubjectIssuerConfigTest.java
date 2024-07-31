@@ -12,11 +12,6 @@
  */
 package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
-import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -25,12 +20,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link JwtSubjectIssuerConfig}.
  */
 public final class JwtSubjectIssuerConfigTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(JwtSubjectIssuerConfig.class, areImmutable(),
-                provided(SubjectIssuer.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

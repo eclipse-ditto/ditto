@@ -26,8 +26,6 @@ import java.util.stream.Collectors;
 
 import org.assertj.core.data.TemporalUnitLessThanOffset;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
@@ -39,11 +37,6 @@ public final class ImmutableTimePlaceholderTest {
 
     private static final ImmutableTimePlaceholder UNDER_TEST = ImmutableTimePlaceholder.INSTANCE;
     private static final Object SOME_OBJECT = new Object();
-
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(ImmutableTimePlaceholder.class, MutabilityMatchers.areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

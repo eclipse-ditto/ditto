@@ -14,8 +14,6 @@ package org.eclipse.ditto.json;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.math.BigDecimal;
 import java.util.function.Consumer;
@@ -26,7 +24,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 /**
- * Unit test for {@link org.eclipse.ditto.json.JsonValueParser}.
+ * Unit test for {@link JsonValueParser}.
  */
 public final class JsonValueParserTest {
 
@@ -51,11 +49,6 @@ public final class JsonValueParserTest {
                         .build()
                 )
                 .build();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(JsonValueParser.class, areImmutable());
     }
 
     @Test

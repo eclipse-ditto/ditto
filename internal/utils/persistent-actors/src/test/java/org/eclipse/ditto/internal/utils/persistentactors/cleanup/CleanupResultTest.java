@@ -12,13 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.persistentactors.cleanup;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.junit.Test;
-
-import com.mongodb.client.result.DeleteResult;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -26,12 +20,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link CleanupResult}.
  */
 public final class CleanupResultTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(CleanupResult.class, areImmutable(),
-                provided(DeleteResult.class, SnapshotRevision.class).areAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

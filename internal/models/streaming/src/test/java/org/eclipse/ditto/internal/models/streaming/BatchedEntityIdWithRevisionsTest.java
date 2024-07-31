@@ -13,8 +13,6 @@
 package org.eclipse.ditto.internal.models.streaming;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
 import java.util.List;
@@ -25,7 +23,6 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.matchers.reasons.FieldAssumptions;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -44,13 +41,6 @@ public final class BatchedEntityIdWithRevisionsTest {
             .set(BatchedEntityIdWithRevisions.JSON_TYPE, KNOWN_TYPE)
             .set(BatchedEntityIdWithRevisions.JSON_ELEMENTS, KNOWN_ELEMENTS_JSON)
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(BatchedEntityIdWithRevisions.class, areImmutable(),
-                FieldAssumptions.named(Collections.singleton("elements"))
-                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

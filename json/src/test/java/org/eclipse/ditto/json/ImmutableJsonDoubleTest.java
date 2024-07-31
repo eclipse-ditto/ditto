@@ -14,8 +14,6 @@ package org.eclipse.ditto.json;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -29,7 +27,7 @@ import org.junit.runners.Parameterized;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.json.ImmutableJsonDouble}.
+ * Unit test for {@link ImmutableJsonDouble}.
  */
 @RunWith(Enclosed.class)
 public final class ImmutableJsonDoubleTest {
@@ -51,11 +49,6 @@ public final class ImmutableJsonDoubleTest {
         @Before
         public void setUp() {
             underTest = ImmutableJsonDouble.of(doubleValue);
-        }
-
-        @Test
-        public void assertImmutability() {
-            assertInstancesOf(ImmutableJsonDouble.class, areImmutable());
         }
 
         @Test

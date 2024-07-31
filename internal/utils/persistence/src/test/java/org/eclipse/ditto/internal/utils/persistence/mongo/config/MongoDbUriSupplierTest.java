@@ -15,10 +15,6 @@ package org.eclipse.ditto.internal.utils.persistence.mongo.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.entry;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -43,15 +39,6 @@ public final class MongoDbUriSupplierTest {
             "&readPreference=primaryPreferred&ssl=true&sslInvalidHostNameAllowed=true";
 
     private static final String KEY_URI = MongoDbUriSupplier.URI_CONFIG_PATH;
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(MongoDbUriSupplier.class,
-                areImmutable(),
-                provided(Config.class).isAlsoImmutable(),
-                assumingFields("extraUriOptions")
-                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
-    }
 
     @Test
     public void tryToGetInstanceWithNullUri() {

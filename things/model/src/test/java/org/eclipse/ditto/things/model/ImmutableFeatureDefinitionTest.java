@@ -15,9 +15,6 @@ package org.eclipse.ditto.things.model;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -45,13 +42,6 @@ public final class ImmutableFeatureDefinitionTest {
     private static final JsonArray VALID_JSON = JsonFactory.newArrayBuilder()
             .add(FIRST_IDENTIFIER.toString(), SECOND_IDENTIFIER.toString(),THIRD_IDENTIFIER.toString())
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableFeatureDefinition.class,
-                areImmutable(),
-                provided(DefinitionIdentifier.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

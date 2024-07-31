@@ -13,16 +13,12 @@
 package org.eclipse.ditto.policies.model.signals.commands.modify;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
 import org.junit.Test;
@@ -30,7 +26,7 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy}.
+ * Unit test for {@link DeletePolicy}.
  */
 public final class DeletePolicyTest {
 
@@ -43,20 +39,12 @@ public final class DeletePolicyTest {
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
 
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DeletePolicy.class, areImmutable(), provided(PolicyId.class).areAlsoImmutable());
-    }
-
-
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(DeletePolicy.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {

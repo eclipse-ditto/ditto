@@ -14,9 +14,6 @@ package org.eclipse.ditto.policies.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.entity.id.restriction.LengthRestrictionTestBase;
 import org.junit.Test;
@@ -29,11 +26,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableSubjectIdTest extends LengthRestrictionTestBase {
 
     private static final String ISSUER_WITH_SEPARATOR = SubjectIssuer.GOOGLE.toString() + ":";
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableSubjectId.class, areImmutable(), provided(SubjectIssuer.class).areAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

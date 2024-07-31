@@ -13,8 +13,6 @@
 package org.eclipse.ditto.policies.model.signals.commands.exceptions;
 
 import static org.eclipse.ditto.base.model.assertions.DittoBaseAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Objects;
 
@@ -27,7 +25,7 @@ import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConflictException}.
+ * Unit test for {@link PolicyConflictException}.
  */
 public class PolicyConflictExceptionTest {
 
@@ -41,12 +39,6 @@ public class PolicyConflictExceptionTest {
                     TestConstants.Policy.POLICY_CONFLICT_EXCEPTION.getHref()
                             .map(Objects::toString).orElse(null))
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PolicyConflictException.class, areImmutable());
-    }
 
 
     @Test

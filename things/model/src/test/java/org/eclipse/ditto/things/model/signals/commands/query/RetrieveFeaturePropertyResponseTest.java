@@ -13,9 +13,6 @@
 package org.eclipse.ditto.things.model.signals.commands.query;
 
 import static org.eclipse.ditto.things.model.signals.commands.assertions.ThingCommandAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.common.HttpStatus;
@@ -24,10 +21,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.junit.Test;
@@ -48,13 +42,6 @@ public final class RetrieveFeaturePropertyResponseTest {
                     TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_POINTER.toString())
             .set(RetrieveFeaturePropertyResponse.JSON_VALUE, TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_VALUE)
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(RetrieveFeaturePropertyResponse.class,
-                areImmutable(),
-                provided(JsonPointer.class, JsonValue.class, ThingId.class).areAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

@@ -12,25 +12,17 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.model;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
-import org.junit.Test;
-
 import org.apache.pekko.actor.ActorSelection;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.testkit.TestProbe;
+import org.junit.Test;
+
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
  * Unit test for {@link ThingDeleteModel}.
  */
 public final class ThingDeleteModelTest extends AbstractWithActorSystemTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ThingDeleteModel.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

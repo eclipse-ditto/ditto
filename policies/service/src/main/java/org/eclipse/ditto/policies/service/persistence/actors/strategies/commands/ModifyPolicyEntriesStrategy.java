@@ -19,6 +19,7 @@ import java.util.Set;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -43,8 +44,9 @@ import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntries} command.
+ * This strategy handles the {@link ModifyPolicyEntries} command.
  */
+@Immutable
 final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<ModifyPolicyEntries, PolicyEvent<?>> {
 
     ModifyPolicyEntriesStrategy(final PolicyConfig policyConfig) {

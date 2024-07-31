@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.things.model;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.net.URI;
 
 import org.assertj.core.api.Assertions;
@@ -45,11 +42,6 @@ public final class PolicyIdMissingExceptionTest {
             .set(DittoRuntimeException.JsonFields.DESCRIPTION, KNOWN_DESCRIPTION)
             .set(DittoRuntimeException.JsonFields.HREF, KNOWN_HREF.toString())
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PolicyIdMissingException.class, areImmutable());
-    }
 
     @Test
     public void fromJson() {

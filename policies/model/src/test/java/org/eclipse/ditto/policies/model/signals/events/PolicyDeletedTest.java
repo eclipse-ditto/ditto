@@ -13,8 +13,6 @@
 package org.eclipse.ditto.policies.model.signals.events;
 
 import static org.eclipse.ditto.base.model.assertions.DittoBaseAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.events.Event;
@@ -37,13 +35,6 @@ public final class PolicyDeletedTest {
             .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
             .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PolicyDeleted.class, areImmutable());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

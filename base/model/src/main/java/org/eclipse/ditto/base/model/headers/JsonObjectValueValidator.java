@@ -14,13 +14,13 @@ package org.eclipse.ditto.base.model.headers;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 
 /**
- * This validator parses a CharSequence to a {@link org.eclipse.ditto.json.JsonObject}.
- * If validation fails, a {@link org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException} is thrown.
+ * This validator parses a CharSequence to a {@link JsonObject}.
+ * If validation fails, a {@link DittoHeaderInvalidException} is thrown.
  */
 @Immutable
 final class JsonObjectValueValidator extends AbstractHeaderValueValidator {

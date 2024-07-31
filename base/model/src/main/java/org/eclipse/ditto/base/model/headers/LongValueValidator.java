@@ -17,8 +17,8 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 
 /**
- * This validator parses a CharSequence to an long value.
- * If parsing fails, a {@link org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException} is thrown.
+ * This validator parses a CharSequence to a long value.
+ * If parsing fails, a {@link DittoHeaderInvalidException} is thrown.
  */
 @Immutable
 final class LongValueValidator extends AbstractHeaderValueValidator {

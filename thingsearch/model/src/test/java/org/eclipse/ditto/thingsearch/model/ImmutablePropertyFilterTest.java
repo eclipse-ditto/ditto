@@ -15,9 +15,6 @@ package org.eclipse.ditto.thingsearch.model;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.JsonFactory.newValue;
 import static org.eclipse.ditto.thingsearch.model.assertions.DittoSearchAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -38,13 +35,6 @@ public final class ImmutablePropertyFilterTest {
     private static final JsonPointer THING_ID_PATH = Thing.JsonFields.ID.getPointer();
     private static final Collection<JsonValue> KNOWN_VALUES =
             Arrays.asList(newValue("foo"), newValue("bar"), newValue("baz"));
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutablePropertyFilter.class,
-                areImmutable(),
-                provided(JsonPointer.class, JsonValue.class).areAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

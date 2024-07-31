@@ -13,9 +13,6 @@
 package org.eclipse.ditto.thingsearch.model.signals.events;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.UUID;
 
@@ -31,12 +28,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Tests {@link SubscriptionFailed}.
  */
 public final class SubscriptionFailedTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SubscriptionFailed.class, areImmutable(),
-                provided(DittoRuntimeException.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

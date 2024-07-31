@@ -16,9 +16,6 @@ import static org.apache.kafka.clients.consumer.ConsumerRecord.NULL_SIZE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.nio.ByteBuffer;
 import java.time.Instant;
@@ -28,18 +25,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
-import org.eclipse.ditto.base.model.common.ByteBufferUtils;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
-import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentMatchers;
-
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.japi.Pair;
@@ -54,6 +39,17 @@ import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.stream.testkit.TestSubscriber;
 import org.apache.pekko.stream.testkit.javadsl.TestSink;
 import org.apache.pekko.testkit.javadsl.TestKit;
+import org.eclipse.ditto.base.model.common.ByteBufferUtils;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentMatchers;
 
 public final class AtLeastOnceConsumerStreamTest {
 
@@ -85,14 +81,6 @@ public final class AtLeastOnceConsumerStreamTest {
     @After
     public void tearDown() {
         actorSystem.terminate();
-    }
-
-    @Test
-    public void isImmutable() {
-        assertInstancesOf(AtLeastOnceConsumerStream.class,
-                areImmutable(),
-                provided(ConnectionMonitor.class, Sink.class, Materializer.class,
-                        Consumer.DrainingControl.class, KafkaConsumerMetrics.class).areAlsoImmutable());
     }
 
     @Test

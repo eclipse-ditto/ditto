@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.internal.utils.test;
 
+import static java.lang.reflect.Modifier.isAbstract;
+import static java.lang.reflect.Modifier.isInterface;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
@@ -24,15 +26,12 @@ import java.util.stream.StreamSupport;
 import javax.annotation.concurrent.Immutable;
 
 import org.atteo.classindex.ClassIndex;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.json.JsonObject;
 import org.junit.Before;
 import org.junit.Test;
-import org.mutabilitydetector.internal.javassist.Modifier;
 
 @Immutable
 public abstract class GlobalCommandResponseRegistryTestCases {
@@ -100,7 +99,7 @@ public abstract class GlobalCommandResponseRegistryTestCases {
         StreamSupport.stream(ClassIndex.getSubclasses(CommandResponse.class).spliterator(), true)
                 .filter(c -> {
                     final int m = c.getModifiers();
-                    return !(Modifier.isAbstract(m) || Modifier.isInterface(m));
+                    return !(isAbstract(m) || isInterface(m));
                 })
                 .filter(c -> !knownNotAnnotatedClassnames.contains(c.getName()))
                 .forEach(c -> assertThat(c.isAnnotationPresent(JsonParsableCommandResponse.class))

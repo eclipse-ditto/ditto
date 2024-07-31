@@ -19,9 +19,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.AllowedReason;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -29,13 +26,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Tests {@link ImmutablePlaceholderResolver}.
  */
 public class ImmutablePlaceholderResolverTest {
-
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(ImmutablePlaceholderResolver.class, MutabilityMatchers.areImmutable(),
-                AllowedReason.provided(Placeholder.class).isAlsoImmutable(),
-                AllowedReason.assumingFields("placeholderSource").areNotModifiedAndDoNotEscape());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

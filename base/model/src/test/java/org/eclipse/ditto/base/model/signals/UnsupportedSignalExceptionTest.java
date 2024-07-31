@@ -13,8 +13,6 @@
 package org.eclipse.ditto.base.model.signals;
 
 import static org.eclipse.ditto.base.model.assertions.DittoBaseAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.net.URI;
 import java.text.MessageFormat;
@@ -45,11 +43,6 @@ public final class UnsupportedSignalExceptionTest {
     @Before
     public void before() {
         dittoHeaders = DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(UnsupportedSignalException.class, areImmutable());
     }
 
     @Test

@@ -16,8 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
@@ -32,17 +30,6 @@ public class ImmutablePolicyPlaceholderTest {
     private static final PolicyId POLICY_ID = PolicyId.of(NAMESPACE, NAME);
     private static final PolicyPlaceholder UNDER_TEST = ImmutablePolicyPlaceholder.INSTANCE;
 
-    /**
-     * Assert immutability.
-     */
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(ImmutablePolicyPlaceholder.class, MutabilityMatchers.areImmutable());
-    }
-
-    /**
-     * Test hash code and equals.
-     */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutablePolicyPlaceholder.class)

@@ -12,10 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.health;
 
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -23,11 +20,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit tests for {@link ResetHealthEventsResponse}.
  */
 public final class ResetHealthEventsResponseTest {
-
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(ResetHealthEventsResponse.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

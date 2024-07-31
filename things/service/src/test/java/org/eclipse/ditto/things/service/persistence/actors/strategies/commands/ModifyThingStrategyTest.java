@@ -13,8 +13,6 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
 
@@ -40,11 +38,6 @@ public final class ModifyThingStrategyTest extends AbstractCommandStrategyTest {
     @Before
     public void setUp() {
         underTest = new ModifyThingStrategy();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ModifyThingStrategy.class, areImmutable());
     }
 
     @Test

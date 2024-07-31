@@ -14,8 +14,6 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.junit.Test;
@@ -93,11 +91,6 @@ public class KafkaPublishTargetTest {
     public void invalidPartitionThrowsError() {
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(() -> KafkaPublishTarget.fromTargetAddress("events#notAnInteger"));
-    }
-
-    @Test
-    public void testImmutability() {
-        assertInstancesOf(KafkaPublishTarget.class, areImmutable());
     }
 
     @Test

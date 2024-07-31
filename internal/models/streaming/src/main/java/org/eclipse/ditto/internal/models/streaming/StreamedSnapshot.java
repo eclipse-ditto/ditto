@@ -14,6 +14,8 @@ package org.eclipse.ditto.internal.models.streaming;
 
 import java.util.Objects;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.EntityIdJsonDeserializer;
 import org.eclipse.ditto.base.model.entity.type.EntityTypeJsonDeserializer;
@@ -25,6 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 /**
  * Serializable message for streamed snapshots.
  */
+@Immutable
 public final class StreamedSnapshot implements StreamingMessage, Jsonifiable<JsonObject> {
 
     private final EntityId entityId;

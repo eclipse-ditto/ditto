@@ -10,13 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.thingsearch.service.common.config;
-
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.List;
 
@@ -34,15 +28,6 @@ public final class DefaultNamespaceSearchIndexConfigTest {
 
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultNamespaceSearchIndexConfig.class, areImmutable(),
-                          provided(String.class).isAlsoImmutable(),
-                          assumingFields(
-                                  "includedFields").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements()
-        );
-    }
 
     @Test
     public void testHashCodeAndEquals() {

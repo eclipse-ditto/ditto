@@ -13,8 +13,6 @@
 package org.eclipse.ditto.base.model.entity.type;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -29,11 +27,6 @@ import org.junit.Test;
 public final class EntityTypeJsonDeserializerTest {
 
     private static final JsonFieldDefinition<String> FIELD_DEFINITION = JsonFieldDefinition.ofString("entityType");
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(EntityTypeJsonDeserializer.class, areImmutable());
-    }
 
     @Test
     public void deserializeEntityTypeFromValidArgumentsReturnsExpected() {

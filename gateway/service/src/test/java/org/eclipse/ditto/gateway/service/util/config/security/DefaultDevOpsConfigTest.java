@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.gateway.service.util.config.security;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.util.List;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -39,14 +35,6 @@ public final class DefaultDevOpsConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         devopsTestConf = ConfigFactory.load("devops-test");
-    }
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultDevOpsConfig.class,
-                areImmutable(),
-                provided(DefaultOAuthConfig.class).areAlsoImmutable());
     }
 
     @Test

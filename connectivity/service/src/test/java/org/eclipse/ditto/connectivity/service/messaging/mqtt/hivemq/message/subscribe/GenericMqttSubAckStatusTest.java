@@ -14,8 +14,6 @@ package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.sub
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -35,11 +33,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class GenericMqttSubAckStatusTest {
 
     public static final class  GeneralFunctionalityTest {
-
-        @Test
-        public void assertImmutability() {
-            assertInstancesOf(GenericMqttSubAckStatus.class, areImmutable());
-        }
 
         @Test
         public void testHashCodeAndEquals() {

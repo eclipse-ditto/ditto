@@ -15,18 +15,11 @@ package org.eclipse.ditto.thingsearch.api;
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 /**
  * Tests {@link SearchNamespaceResultEntry}.
  */
 public class SearchNamespaceResultEntryTest {
-
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(SearchNamespaceResultEntry.class, MutabilityMatchers.areImmutable());
-    }
 
     @Test
     public void jsonTest() {

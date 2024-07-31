@@ -26,8 +26,8 @@
     <name>Eclipse Ditto :: Utils :: Result</name>
 
     <properties>
-        <javac.source>17</javac.source>
-        <javac.target>17</javac.target>
+        <javac.source>21</javac.source>
+        <javac.target>21</javac.target>
     </properties>
 
     <dependencies>
@@ -75,7 +75,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
-                    <source>17</source>
+                    <source>21</source>
                 </configuration>
             </plugin>
         </plugins>

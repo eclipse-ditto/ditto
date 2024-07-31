@@ -15,14 +15,13 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
@@ -37,9 +36,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.testkit.javadsl.TestKit;
 
 /**
  * Unit test for {@link KafkaValidator}.
@@ -72,11 +68,6 @@ public final class KafkaValidatorTest {
     @Before
     public void setUp() {
         underTest = KafkaValidator.getInstance();
-    }
-
-    @Test
-    public void testImmutability() {
-        assertInstancesOf(KafkaValidator.class, areImmutable(), provided(KafkaSpecificConfig.class).isAlsoImmutable());
     }
 
     @Test

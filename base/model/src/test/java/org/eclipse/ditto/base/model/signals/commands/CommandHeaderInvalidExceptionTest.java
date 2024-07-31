@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.base.model.signals.commands;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.text.MessageFormat;
 
 import org.eclipse.ditto.base.model.assertions.DittoBaseAssertions;
@@ -46,11 +43,6 @@ public final class CommandHeaderInvalidExceptionTest {
             CommandHeaderInvalidException.newBuilder(KNOWN_INVALID_HEADER_KEY)
                     .description(KNOWN_DESCRIPTION)
                     .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(CommandHeaderInvalidException.class, areImmutable());
-    }
 
     @Test
     public void checkAttributeErrorCodeWorks() {

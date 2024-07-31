@@ -16,8 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
@@ -27,7 +25,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.base.model.headers.TimeoutValueValidator}.
+ * Unit test for {@link TimeoutValueValidator}.
  */
 public final class TimeoutValueValidatorTest {
 
@@ -44,11 +42,6 @@ public final class TimeoutValueValidatorTest {
     @Before
     public void setUp() {
         underTest = TimeoutValueValidator.getInstance();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(TimeoutValueValidator.class, areImmutable());
     }
 
     @Test

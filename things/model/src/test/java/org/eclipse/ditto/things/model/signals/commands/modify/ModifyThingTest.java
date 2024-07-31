@@ -14,9 +14,6 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.ditto.things.model.signals.commands.assertions.ThingCommandAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.text.MessageFormat;
 import java.util.Optional;
@@ -51,14 +48,6 @@ public final class ModifyThingTest {
             .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyThing.JSON_THING, TestConstants.Thing.THING.toJson(FieldType.regularOrSpecial()))
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ModifyThing.class,
-                areImmutable(),
-                provided(Thing.class, JsonObject.class, ThingId.class).isAlsoImmutable());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

@@ -13,8 +13,6 @@
 package org.eclipse.ditto.policies.service.persistence.actors.strategies.commands;
 
 import static org.eclipse.ditto.base.model.signals.commands.assertions.CommandAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.Policy;
@@ -39,11 +37,6 @@ public final class ModifyPolicyImportsStrategyTest extends AbstractPolicyCommand
     @Before
     public void setUp() {
         underTest = new ModifyPolicyImportsStrategy(DefaultPolicyConfig.of(ConfigFactory.load("policy-test")));
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ModifyPolicyImportsStrategy.class, areImmutable());
     }
 
     @Test

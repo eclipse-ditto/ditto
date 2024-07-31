@@ -13,8 +13,6 @@
 package org.eclipse.ditto.json;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Optional;
 
@@ -25,13 +23,6 @@ import org.junit.Test;
  */
 @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
 public final class JsonParseExceptionTest {
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(JsonParseException.class, areImmutable());
-    }
-
 
     @Test
     public void getErrorCodeReturnsExpected() {

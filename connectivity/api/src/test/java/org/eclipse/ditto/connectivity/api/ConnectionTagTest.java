@@ -13,8 +13,6 @@
 package org.eclipse.ditto.connectivity.api;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -40,11 +38,6 @@ public final class ConnectionTagTest {
             .set(ConnectionTag.JsonFields.ENTITY_ID, CONNECTION_ID.toString())
             .set(ConnectionTag.JsonFields.REVISION, REVISION)
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ConnectionTag.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

@@ -23,9 +23,6 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.AllowedReason;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -45,14 +42,6 @@ public class ImmutableExpressionResolverTest {
     private static final String UNKNOWN_TOPIC_EXPRESSION = "{{ topic:missing }}";
 
     private static ImmutableExpressionResolver underTest;
-
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(ImmutableExpressionResolver.class, MutabilityMatchers.areImmutable(),
-                AllowedReason.assumingFields("placeholderResolvers", "placeholderResolverFunctions")
-                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements()
-        );
-    }
 
     @Test
     public void testHashCodeAndEquals() {

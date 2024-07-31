@@ -17,23 +17,23 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeatureDesiredProperty;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeatureDesiredPropertyResponse;
 import org.eclipse.ditto.things.model.signals.events.FeatureDesiredPropertyDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeatureDesiredProperty} command.
+ * This strategy handles the {@link DeleteFeatureDesiredProperty} command.
  */
 @Immutable
 final class DeleteFeatureDesiredPropertyStrategy extends AbstractThingCommandStrategy<DeleteFeatureDesiredProperty> {

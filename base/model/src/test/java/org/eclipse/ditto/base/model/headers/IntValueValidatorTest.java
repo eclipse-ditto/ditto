@@ -14,15 +14,13 @@ package org.eclipse.ditto.base.model.headers;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.base.model.headers.IntValueValidator}.
+ * Unit test for {@link IntValueValidator}.
  */
 public final class IntValueValidatorTest {
 
@@ -31,11 +29,6 @@ public final class IntValueValidatorTest {
     @Before
     public void setUp() {
         underTest = IntValueValidator.getInstance();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(IntValueValidator.class, areImmutable());
     }
 
     @Test

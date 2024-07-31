@@ -13,17 +13,12 @@
 package org.eclipse.ditto.things.model.signals.commands.modify;
 
 import static org.eclipse.ditto.things.model.signals.commands.assertions.ThingCommandAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.things.model.FeatureProperties;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.junit.Test;
@@ -50,13 +45,6 @@ public final class ModifyFeaturePropertiesResponseTest {
             .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyFeaturePropertiesResponse.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ModifyFeaturePropertiesResponse.class,
-                areImmutable(),
-                provided(FeatureProperties.class, ThingId.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

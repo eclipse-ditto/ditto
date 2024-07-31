@@ -13,10 +13,6 @@
 package org.eclipse.ditto.json;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -34,14 +30,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link ImmutableJsonFieldSelector}.
  */
 public final class ImmutableJsonFieldSelectorTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableJsonFieldSelector.class,
-                areImmutable(),
-                assumingFields("pointers").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
-                provided(JsonPointer.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

@@ -15,8 +15,6 @@ package org.eclipse.ditto.base.model.headers;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.json.JsonArray;
@@ -24,7 +22,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.base.model.headers.JsonArrayValueValidator}.
+ * Unit test for {@link JsonArrayValueValidator}.
  */
 public final class JsonArrayValueValidatorTest {
 
@@ -36,11 +34,6 @@ public final class JsonArrayValueValidatorTest {
                 .add("foo", "bar", "baz")
                 .build();
         validJsonArrayString = validJsonArray.toString();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(JsonArrayValueValidator.class, areImmutable());
     }
 
     @Test

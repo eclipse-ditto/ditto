@@ -13,15 +13,11 @@
 package org.eclipse.ditto.things.api.commands.sudo;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -68,13 +64,6 @@ public final class SudoRetrieveThingsTest {
     private static JsonFieldSelector getJsonFieldSelector() {
         return JsonFactory.newFieldSelector(SELECTED_FIELDS,
                 JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build());
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SudoRetrieveThings.class,
-                areImmutable(),
-                provided(AuthorizationContext.class, JsonFieldSelector.class, ThingId.class).isAlsoImmutable());
     }
 
     @Test

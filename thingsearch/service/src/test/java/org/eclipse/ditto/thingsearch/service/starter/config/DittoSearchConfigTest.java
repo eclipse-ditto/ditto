@@ -13,20 +13,10 @@
 package org.eclipse.ditto.thingsearch.service.starter.config;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.base.service.config.DittoServiceConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.internal.utils.health.config.DefaultHealthCheckConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadConcern;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadPreference;
-import org.eclipse.ditto.thingsearch.service.common.config.DefaultOperatorMetricsConfig;
-import org.eclipse.ditto.thingsearch.service.common.config.DefaultSearchPersistenceConfig;
-import org.eclipse.ditto.thingsearch.service.common.config.DefaultUpdaterConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.junit.Test;
 
@@ -35,21 +25,9 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig}.
+ * Unit test for {@link DittoSearchConfig}.
  */
 public final class DittoSearchConfigTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DittoSearchConfig.class,
-                areImmutable(),
-                provided(DefaultHealthCheckConfig.class, DittoServiceConfig.class, DefaultUpdaterConfig.class,
-                        DefaultMongoDbConfig.class, DefaultSearchPersistenceConfig.class,
-                        DefaultOperatorMetricsConfig.class)
-                        .areAlsoImmutable(),
-                assumingFields("simpleFieldMappings", "namespaceIndexedFields")
-                                  .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

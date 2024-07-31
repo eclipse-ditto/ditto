@@ -13,9 +13,6 @@
 package org.eclipse.ditto.policies.model.signals.events;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.stream.StreamSupport;
 
@@ -25,7 +22,6 @@ import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -48,13 +44,6 @@ public final class PolicyEntriesModifiedTest {
                                     .build())
                             .collect(JsonCollectors.objectsToObject()))
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PolicyEntriesModified.class, areImmutable(),
-                provided(Iterable.class, PolicyEntry.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

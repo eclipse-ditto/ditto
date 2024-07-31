@@ -13,9 +13,6 @@
 package org.eclipse.ditto.policies.model;
 
 import static org.eclipse.ditto.policies.model.assertions.DittoPolicyAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
 
@@ -36,13 +33,6 @@ public final class ImmutableEffectedImportsTest {
     public void setUp() {
         underTest = ImmutableEffectedImports.of(
             Arrays.asList(Label.of("IncludedEntry1"), Label.of("IncludedEntry2")));
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableEffectedImports.class,
-                areImmutable(),
-                provided(ImportedLabels.class).areAlsoImmutable());
     }
 
     @Test

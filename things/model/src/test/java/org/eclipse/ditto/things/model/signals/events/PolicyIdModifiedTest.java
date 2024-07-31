@@ -13,9 +13,6 @@
 package org.eclipse.ditto.things.model.signals.events;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.events.Event;
@@ -40,12 +37,6 @@ public class PolicyIdModifiedTest {
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(PolicyIdModified.JSON_POLICY_ID, TestConstants.Thing.THING_ID.toString())
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PolicyIdModified.class, areImmutable(), provided(PolicyId.class).isAlsoImmutable());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

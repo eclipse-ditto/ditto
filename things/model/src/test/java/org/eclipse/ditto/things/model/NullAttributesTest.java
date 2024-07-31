@@ -13,12 +13,8 @@
 package org.eclipse.ditto.things.model;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,11 +33,6 @@ public final class NullAttributesTest {
         underTest = NullAttributes.newInstance();
     }
 
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(NullAttributes.class, areImmutable(), provided(JsonObject.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

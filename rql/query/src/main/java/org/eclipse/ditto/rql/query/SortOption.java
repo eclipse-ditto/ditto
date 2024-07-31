@@ -16,12 +16,14 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 
-import org.eclipse.ditto.rql.query.expression.SortFieldExpression;
+import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.rql.query.expression.SortFieldExpression;
 
 /**
  * SortOption is defined by a {@link SortFieldExpression} and a {@link SortDirection}.
  */
+@Immutable
 public final class SortOption {
 
     private final SortFieldExpression sortExpression;

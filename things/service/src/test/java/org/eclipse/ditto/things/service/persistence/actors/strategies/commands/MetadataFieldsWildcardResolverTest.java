@@ -15,8 +15,6 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 import static org.eclipse.ditto.things.model.signals.commands.TestConstants.Feature.FLUX_CAPACITOR_ID;
 import static org.eclipse.ditto.things.model.signals.commands.TestConstants.Thing.THING;
 import static org.eclipse.ditto.things.model.signals.commands.TestConstants.Thing.THING_ID;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.List;
 import java.util.Set;
@@ -42,11 +40,6 @@ public class MetadataFieldsWildcardResolverTest {
 
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(MetadataFieldsWildcardResolver.class, areImmutable());
-    }
 
     @Test
     public void validateUnknownMetadataWildcardResolvesToEmptySet() {

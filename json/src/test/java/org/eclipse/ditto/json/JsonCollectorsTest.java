@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.json;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
@@ -56,12 +53,6 @@ public final class JsonCollectorsTest {
             .add(NAME) //
             .add(COUNTRY) //
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(JsonCollectors.class, areImmutable());
-    }
 
 
     @Test

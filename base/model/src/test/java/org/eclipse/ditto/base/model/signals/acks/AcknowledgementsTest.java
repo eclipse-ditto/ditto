@@ -15,9 +15,6 @@ package org.eclipse.ditto.base.model.signals.acks;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -107,17 +104,6 @@ public final class AcknowledgementsTest {
                 .usingGetClass()
                 .withPrefabValues(EntityId.class, red, black)
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(Acknowledgements.class,
-                areImmutable(),
-                provided(Acknowledgement.class,
-                        AcknowledgementLabel.class,
-                        DittoHeaders.class,
-                        EntityId.class,
-                        HttpStatus.class).isAlsoImmutable());
     }
 
     @Test

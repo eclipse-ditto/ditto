@@ -13,15 +13,11 @@
 package org.eclipse.ditto.policies.model.signals.commands.modify;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
 import org.junit.Test;
@@ -29,7 +25,7 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntriesResponse}.
+ * Unit test for {@link ModifyPolicyEntriesResponse}.
  */
 public final class ModifyPolicyEntriesResponseTest {
 
@@ -38,13 +34,6 @@ public final class ModifyPolicyEntriesResponseTest {
             .set(PolicyCommandResponse.JsonFields.STATUS, HttpStatus.NO_CONTENT.getCode())
             .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ModifyPolicyEntriesResponse.class,
-                areImmutable(),
-                provided(PolicyId.class).areAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

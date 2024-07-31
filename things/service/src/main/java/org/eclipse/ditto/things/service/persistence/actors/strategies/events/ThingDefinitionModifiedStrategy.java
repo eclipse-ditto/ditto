@@ -18,12 +18,12 @@ import org.eclipse.ditto.things.model.ThingBuilder;
 import org.eclipse.ditto.things.model.signals.events.ThingDefinitionModified;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.things.model.signals.events.ThingDefinitionModified} event.
+ * This strategy handles the {@link ThingDefinitionModified} event.
  */
 @Immutable
 final class ThingDefinitionModifiedStrategy extends AbstractThingEventStrategy<ThingDefinitionModified> {
 
-    protected ThingDefinitionModifiedStrategy() {
+    ThingDefinitionModifiedStrategy() {
         super();
     }
 

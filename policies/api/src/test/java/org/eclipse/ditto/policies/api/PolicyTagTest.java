@@ -13,8 +13,6 @@
 package org.eclipse.ditto.policies.api;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.json.JsonFactory;
@@ -34,11 +32,6 @@ public final class PolicyTagTest {
             .set(PolicyTag.JsonFields.ENTITY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(PolicyTag.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PolicyTag.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

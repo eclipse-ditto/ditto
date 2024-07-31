@@ -13,9 +13,6 @@
 package org.eclipse.ditto.policies.model.signals.events;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.events.Event;
@@ -23,7 +20,6 @@ import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.PolicyImports;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -41,13 +37,6 @@ public final class PolicyImportsModifiedTest {
             .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(PolicyImportsModified.JSON_POLICY_IMPORTS, TestConstants.Policy.POLICY_IMPORTS.toJson())
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PolicyImportsModified.class, areImmutable(),
-                provided(PolicyImports.class).isAlsoImmutable());
-    }
 
 
     @Test

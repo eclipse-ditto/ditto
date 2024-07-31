@@ -14,14 +14,17 @@ package org.eclipse.ditto.connectivity.api;
 
 import java.util.Objects;
 
-import org.eclipse.ditto.protocol.TopicPath;
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.protocol.TopicPath;
 
 /**
  * Represent an inbound {@link Signal} that was mapped from an {@link ExternalMessage}.
  * It wraps the original {@link ExternalMessage}, the mapped {@link Signal} and the {@link TopicPath} of the mapped
  * signal.
  */
+@Immutable
 public final class MappedInboundExternalMessage implements InboundExternalMessage {
 
     private final ExternalMessage externalMessage;

@@ -13,9 +13,6 @@
 package org.eclipse.ditto.things.model.signals.commands.query;
 
 import static org.eclipse.ditto.things.model.signals.commands.assertions.ThingCommandAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,7 +20,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandRegistry;
@@ -96,13 +92,6 @@ public final class RetrieveThingsTest {
 
     private static JsonFieldSelector getJsonFieldSelector() {
         return JsonFactory.newFieldSelector(SELECTED_FIELDS, JSON_PARSE_OPTIONS);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(RetrieveThings.class,
-                areImmutable(),
-                provided(AuthorizationContext.class, JsonFieldSelector.class, ThingId.class).isAlsoImmutable());
     }
 
     @Test

@@ -10,13 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.connectivity.model;
-
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Test;
 
@@ -34,10 +28,4 @@ public class ImmutablePayloadMappingDefinitionTest {
                 .verify();
     }
 
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutablePayloadMappingDefinition.class, areImmutable(),
-                provided(MappingContext.class).areAlsoImmutable(),
-                assumingFields("definitions").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
-    }
 }

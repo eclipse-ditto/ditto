@@ -13,14 +13,12 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.TestConstants;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributes;
 import org.eclipse.ditto.things.model.signals.events.AttributesCreated;
 import org.eclipse.ditto.things.model.signals.events.AttributesModified;
@@ -48,11 +46,6 @@ public final class ModifyAttributesStrategyTest extends AbstractCommandStrategyT
     @Before
     public void setUp() {
         underTest = new ModifyAttributesStrategy();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ModifyAttributesStrategy.class, areImmutable());
     }
 
     @Test

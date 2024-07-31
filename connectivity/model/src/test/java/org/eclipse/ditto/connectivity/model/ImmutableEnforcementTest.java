@@ -13,9 +13,6 @@
 
 package org.eclipse.ditto.connectivity.model;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -30,11 +27,6 @@ public class ImmutableEnforcementTest {
         EqualsVerifier.forClass(ImmutableEnforcement.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableEnforcement.class, areImmutable());
     }
 
 }

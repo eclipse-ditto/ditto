@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.gateway.service.util.config.streaming;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -41,12 +37,6 @@ public final class DefaultStreamingConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         streamingTestConfig = ConfigFactory.load("streaming-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultStreamingConfig.class, areImmutable(),
-                provided(Config.class, WebsocketConfig.class, SseConfig.class).areAlsoImmutable());
     }
 
     @Test

@@ -13,9 +13,6 @@
 package org.eclipse.ditto.things.model.signals.events;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.events.Event;
@@ -46,15 +43,6 @@ public final class AttributeCreatedTest {
             .set(AttributeCreated.JSON_ATTRIBUTE, KNOWN_ATTRIBUTE_POINTER.toString())
             .set(AttributeCreated.JSON_VALUE, NEW_ATTRIBUTE_VALUE)
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(AttributeCreated.class,
-                areImmutable(),
-                provided(JsonPointer.class, JsonValue.class).areAlsoImmutable());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

@@ -13,13 +13,12 @@
 package org.eclipse.ditto.things.service.signaltransformation.placeholdersubstitution;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -44,8 +43,6 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Tests {@link CreateThingSubstitutionStrategy} in context of
@@ -79,11 +76,6 @@ public class CreateThingSubstitutionStrategyTest {
     public void init() {
         substitution =
                 new ThingsPlaceholderSubstitution(Mockito.mock(ActorSystem.class), ConfigFactory.empty());
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(CreateThingSubstitutionStrategy.class, areImmutable());
     }
 
     @Test

@@ -13,8 +13,6 @@
 package org.eclipse.ditto.connectivity.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
 
@@ -46,11 +44,6 @@ public class ImmutableResourceStatusTest {
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableResourceStatus.class).verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableResourceStatus.class, areImmutable());
     }
 
     @Test

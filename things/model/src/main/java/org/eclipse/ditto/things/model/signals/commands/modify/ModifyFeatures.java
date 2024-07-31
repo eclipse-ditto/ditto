@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -42,6 +43,7 @@ import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator
 /**
  * This command modifies all existing Features of a Thing.
  */
+@Immutable
 @JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = ModifyFeatures.NAME)
 public final class ModifyFeatures extends AbstractCommand<ModifyFeatures>
         implements ThingModifyCommand<ModifyFeatures> {

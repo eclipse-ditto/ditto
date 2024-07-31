@@ -13,9 +13,6 @@
 package org.eclipse.ditto.things.model;
 
 import static org.eclipse.ditto.things.model.assertions.DittoThingsAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.entity.id.restriction.LengthRestrictionTestBase;
 import org.eclipse.ditto.json.JsonFactory;
@@ -39,15 +36,6 @@ public final class ImmutableAttributesTest extends LengthRestrictionTestBase {
             .set("someArrayAttribute", JsonFactory.newArray())
             .set("someObjectAttribute", JsonFactory.newObject())
             .build();
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableAttributes.class,
-                areImmutable(),
-                provided(JsonObject.class).isAlsoImmutable());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

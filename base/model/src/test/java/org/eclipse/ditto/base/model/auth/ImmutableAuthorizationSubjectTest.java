@@ -13,26 +13,17 @@
 package org.eclipse.ditto.base.model.auth;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.base.model.auth.ImmutableAuthorizationSubject}.
+ * Unit test for {@link ImmutableAuthorizationSubject}.
  */
 public final class ImmutableAuthorizationSubjectTest {
 
     private static final String KNOWN_ID = "antman";
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableAuthorizationSubject.class, areImmutable());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

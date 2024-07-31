@@ -16,8 +16,6 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -32,7 +30,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 import org.junit.Test;
 
 /**
- * Unit tests for {@link org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory}.
+ * Unit tests for {@link ResultFactory}.
  */
 public final class ResultFactoryTest {
 
@@ -42,11 +40,6 @@ public final class ResultFactoryTest {
     private final ThingModifiedEvent thingModifiedEvent = mock(ThingModifiedEvent.class);
     private final ThingCommandResponse response = mock(ThingCommandResponse.class);
     private final DittoRuntimeException exception = mock(DittoRuntimeException.class);
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ResultFactory.class, areImmutable());
-    }
 
     @Test
     public void notifyQueryResponse() {

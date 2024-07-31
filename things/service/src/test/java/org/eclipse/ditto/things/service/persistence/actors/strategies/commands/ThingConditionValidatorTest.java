@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Instant;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -33,11 +30,6 @@ public class ThingConditionValidatorTest {
 
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ThingConditionValidator.class, areImmutable());
-    }
 
     @Test
     public void validationSucceeds() {

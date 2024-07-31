@@ -14,8 +14,6 @@ package org.eclipse.ditto.base.model.entity.id;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.lang.reflect.Method;
 import java.util.Optional;
@@ -27,11 +25,6 @@ import org.junit.Test;
  * Unit test for {@link EntityIdStaticFactoryMethodResolver}.
  */
 public final class EntityIdStaticFactoryMethodResolverTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(EntityIdStaticFactoryMethodResolver.class, areImmutable());
-    }
 
     @Test
     public void getStaticFactoryMethodForNullClassFails() {

@@ -14,10 +14,6 @@ package org.eclipse.ditto.connectivity.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -42,7 +38,7 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.connectivity.model.HonoConnection}.
+ * Unit test for {@link HonoConnection}.
  */
 public final class HonoConnectionTest {
     private static final ConnectionType TYPE = ConnectionType.HONO;
@@ -214,15 +210,6 @@ public final class HonoConnectionTest {
         EqualsVerifier.forClass(HonoConnection.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableConnection.class, areImmutable(),
-                provided(AuthorizationContext.class, Source.class, Target.class,
-                        MappingContext.class, Credentials.class, ConnectionId.class,
-                        PayloadMappingDefinition.class, SshTunnel.class).isAlsoImmutable(),
-                assumingFields("mappings").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test

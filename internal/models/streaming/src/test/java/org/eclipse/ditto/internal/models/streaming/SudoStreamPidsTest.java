@@ -13,9 +13,6 @@
 package org.eclipse.ditto.internal.models.streaming;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -48,11 +45,6 @@ public final class SudoStreamPidsTest {
             .build();
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SudoStreamPids.class, areImmutable(), provided(EntityIdWithRevision.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

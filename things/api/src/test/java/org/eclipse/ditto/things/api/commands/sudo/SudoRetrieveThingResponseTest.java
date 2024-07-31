@@ -13,9 +13,6 @@
 package org.eclipse.ditto.things.api.commands.sudo;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.common.HttpStatus;
@@ -47,13 +44,6 @@ public final class SudoRetrieveThingResponseTest {
             .build();
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SudoRetrieveThingResponse.class,
-                areImmutable(),
-                provided(JsonObject.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

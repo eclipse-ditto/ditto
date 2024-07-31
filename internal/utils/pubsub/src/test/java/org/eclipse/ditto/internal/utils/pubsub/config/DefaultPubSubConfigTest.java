@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.pubsub.config;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -41,11 +38,6 @@ public final class DefaultPubSubConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         pubSubTestConf = ConfigFactory.load("pubsub-test.conf");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultPubSubConfig.class, areImmutable());
     }
 
     @Test

@@ -14,8 +14,6 @@ package org.eclipse.ditto.base.model.signals.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -36,11 +34,6 @@ public final class GlobalCommandRegistryTest {
     public void setup() {
         underTest = GlobalCommandRegistry.getInstance();
         headers = DittoHeaders.empty();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(GlobalCommandRegistry.class, areImmutable());
     }
 
     @Test

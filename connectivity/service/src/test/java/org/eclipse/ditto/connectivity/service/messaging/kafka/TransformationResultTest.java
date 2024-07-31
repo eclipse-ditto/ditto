@@ -15,14 +15,10 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
 import java.util.Map;
 
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.junit.Test;
@@ -34,12 +30,6 @@ public final class TransformationResultTest {
     private static final Map<String, String> EXPIRED_HEADERS = Map.of("creation-time", "0", "ttl", "1000");
     private static final Map<String, String> NOT_EXPIRED_HEADERS =
             Map.of("creation-time", String.valueOf(Instant.now().toEpochMilli()), "ttl", "100000");
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(TransformationResult.class, areImmutable(),
-                provided(DittoRuntimeException.class, ExternalMessage.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

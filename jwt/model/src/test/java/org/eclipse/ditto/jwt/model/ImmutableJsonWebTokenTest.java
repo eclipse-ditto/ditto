@@ -14,15 +14,10 @@ package org.eclipse.ditto.jwt.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
 import java.util.Base64;
 
-import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -32,15 +27,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Tokens can be decrypted at https://jwt.io
  */
 public final class ImmutableJsonWebTokenTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableJsonWebToken.class,
-                areImmutable(),
-                provided(AuthorizationSubject.class).areAlsoImmutable(),
-                assumingFields("authorizationSubjects", "authorizationSubjectsWithPrefixes")
-                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

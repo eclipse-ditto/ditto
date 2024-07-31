@@ -12,11 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.model.signals.commands;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -31,12 +26,6 @@ public final class ConnectivityErrorResponseTest {
         EqualsVerifier.forClass(ConnectivityErrorResponse.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ConnectivityErrorResponse.class, areImmutable(),
-                provided(DittoRuntimeException.class).isAlsoImmutable());
     }
 
 }

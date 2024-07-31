@@ -17,8 +17,6 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
@@ -33,17 +31,6 @@ public class ImmutableThingPlaceholderTest {
     private static final ThingId THING_ID = ThingId.of(NAMESPACE, NAME);
     private static final ThingPlaceholder UNDER_TEST = ImmutableThingPlaceholder.INSTANCE;
 
-    /**
-     * Assert immutability.
-     */
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(ImmutableThingPlaceholder.class, MutabilityMatchers.areImmutable());
-    }
-
-    /**
-     * Test hash code and equals.
-     */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableThingPlaceholder.class)

@@ -15,6 +15,7 @@ package org.eclipse.ditto.base.model.acks;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 /**
  * Defines built-in {@link org.eclipse.ditto.base.model.acks.AcknowledgementLabel}s which are emitted by Ditto itself.
@@ -25,6 +26,7 @@ import javax.annotation.Nullable;
  * This is intentionally not an enum as the enum constants would have difficulties to comply to the
  * hashCode/equals contract when comparing with an ImmutableAcknowledgementLabel of the same value.
  */
+@Immutable
 public final class DittoAcknowledgementLabel implements AcknowledgementLabel {
 
     /**

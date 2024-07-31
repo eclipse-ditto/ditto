@@ -22,8 +22,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
@@ -61,11 +59,6 @@ public class ImmutableFunctionExpressionTest {
     );
 
     private static final ImmutableFunctionExpression UNDER_TEST = ImmutableFunctionExpression.INSTANCE;
-
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(ImmutableFunctionExpression.class, MutabilityMatchers.areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

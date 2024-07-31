@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.gateway.service.util.config.health;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -38,11 +35,6 @@ public final class DefaultClusterRolesConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         clusterRolesTestConfig = ConfigFactory.load("cluster-roles-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultClusterRolesConfig.class, areImmutable());
     }
 
     @Test

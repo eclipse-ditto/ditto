@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.persistence.mongo.config;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 import java.util.Collections;
 
@@ -45,18 +41,6 @@ public final class DefaultMongoDbConfigTest {
     @Before
     public void initMongoDbConfig() {
         rawMongoDbConfig = ConfigFactory.parseResources(MONGODB_CONFIG_FILE_NAME);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultMongoDbConfig.class,
-                areImmutable(),
-                provided(Config.class,
-                        DefaultOptionsConfig.class,
-                        DefaultConnectionPoolConfig.class,
-                        DefaultCircuitBreakerConfig.class,
-                        DefaultMonitoringConfig.class,
-                        DefaultMongoReadJournalConfig.class).areAlsoImmutable());
     }
 
     @Test

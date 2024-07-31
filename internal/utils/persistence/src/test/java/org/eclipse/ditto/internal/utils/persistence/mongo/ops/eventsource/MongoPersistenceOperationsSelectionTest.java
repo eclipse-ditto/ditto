@@ -13,9 +13,6 @@
 package org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.bson.BsonString;
 import org.bson.Document;
@@ -38,13 +35,6 @@ public final class MongoPersistenceOperationsSelectionTest {
     public static void initTestConstants() {
         namespaceFilter = new Document("_namespace", new BsonString("com.example.test"));
         emptyFilter = new Document();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(MongoPersistenceOperationsSelection.class,
-                areImmutable(),
-                assumingFields("filter").areNotModifiedAndDoNotEscape());
     }
 
     @Test

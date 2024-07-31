@@ -13,8 +13,6 @@
 package org.eclipse.ditto.connectivity.service.placeholders;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Test;
 
@@ -24,11 +22,6 @@ import org.junit.Test;
 public class ImmutableSourceAddressPlaceholderTest {
 
     private static final String SOME_MQTT_TOPIC = "some/mqtt/topic";
-
-    @Test
-    public void testImmutability() {
-        assertInstancesOf(ImmutableSourceAddressPlaceholder.class, areImmutable());
-    }
 
     @Test
     public void testReplaceTopic() {

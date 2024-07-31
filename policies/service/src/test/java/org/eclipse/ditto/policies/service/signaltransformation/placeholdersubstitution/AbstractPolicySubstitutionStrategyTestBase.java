@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -25,12 +26,9 @@ import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Resource;
 import org.junit.Before;
-import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigFactory;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Abstract base class for test of concrete implementations of
@@ -63,9 +61,6 @@ abstract class AbstractPolicySubstitutionStrategyTestBase {
         substitution =
                 new PoliciesPlaceholderSubstitution(Mockito.mock(ActorSystem.class), ConfigFactory.empty());
     }
-
-    @Test
-    public abstract void assertImmutability();
 
     protected final Signal<?> applyBlocking(final Signal<?> input) {
         final CompletionStage<Signal<?>> responseFuture = substitution.apply(input);

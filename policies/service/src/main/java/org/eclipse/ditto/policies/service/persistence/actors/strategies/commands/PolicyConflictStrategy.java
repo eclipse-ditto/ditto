@@ -15,22 +15,24 @@ package org.eclipse.ditto.policies.service.persistence.actors.strategies.command
 import java.util.Optional;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
-import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConflictException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
+import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy} command for an
  * already existing Policy.
  */
+@Immutable
 final class PolicyConflictStrategy extends AbstractPolicyCommandStrategy<CreatePolicy, PolicyEvent<?>> {
 
     PolicyConflictStrategy(final PolicyConfig policyConfig) {

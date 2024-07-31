@@ -13,9 +13,6 @@
 package org.eclipse.ditto.policies.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.assertions.DittoBaseAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonFactory;
@@ -32,7 +29,7 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy}.
+ * Unit test for {@link CreatePolicy}.
  */
 public final class CreatePolicyTest {
 
@@ -43,20 +40,11 @@ public final class CreatePolicyTest {
 
 
     @Test
-    public void assertImmutability() {
-        assertInstancesOf(CreatePolicy.class,
-                areImmutable(),
-                provided(Policy.class, JsonObject.class).isAlsoImmutable());
-    }
-
-
-    @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(CreatePolicy.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicy() {

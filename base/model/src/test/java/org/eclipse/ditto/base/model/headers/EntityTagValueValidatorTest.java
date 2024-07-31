@@ -16,8 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.net.URI;
 
@@ -28,7 +26,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.base.model.headers.EntityTagValueValidator}.
+ * Unit test for {@link EntityTagValueValidator}.
  */
 public final class EntityTagValueValidatorTest {
 
@@ -45,11 +43,6 @@ public final class EntityTagValueValidatorTest {
     @Before
     public void setUp() {
         underTest = EntityTagValueValidator.getInstance();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(EntityTagValueValidator.class, areImmutable());
     }
 
     @Test

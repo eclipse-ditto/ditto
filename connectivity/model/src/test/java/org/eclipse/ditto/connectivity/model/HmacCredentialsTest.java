@@ -13,9 +13,6 @@
 package org.eclipse.ditto.connectivity.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.Test;
@@ -30,11 +27,6 @@ public final class HmacCredentialsTest {
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(HmacCredentials.class).verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(HmacCredentials.class, areImmutable(), provided(JsonObject.class).isAlsoImmutable());
     }
 
     @Test

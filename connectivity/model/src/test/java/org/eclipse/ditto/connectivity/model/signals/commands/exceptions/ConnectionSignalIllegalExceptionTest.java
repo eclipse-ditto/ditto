@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.model.signals.commands.exceptions;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
 import org.assertj.core.api.Assertions;
@@ -28,11 +25,6 @@ import org.junit.Test;
  * Tests {@link ConnectionSignalIllegalException}.
  */
 public final class ConnectionSignalIllegalExceptionTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ConnectionSignalIllegalException.class, areImmutable());
-    }
 
     @Test
     public void serializeConnectingMessage() {

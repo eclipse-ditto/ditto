@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.cluster.config;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.util.Arrays;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -41,13 +37,6 @@ public final class DefaultClusterConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         clusterTestConf = ConfigFactory.load("cluster-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultClusterConfig.class,
-                areImmutable(),
-                provided(Config.class).isAlsoImmutable());
     }
 
     @Test

@@ -13,8 +13,6 @@
 package org.eclipse.ditto.base.api.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -54,11 +52,6 @@ public final class ShutdownReasonFactoryTest {
                 .set(ShutdownReason.JsonFields.TYPE, ShutdownReasonType.Known.PURGE_ENTITIES.toString())
                 .set(ShutdownReason.JsonFields.DETAILS, JsonArray.of(ENTITY_IDS_TO_PURGE))
                 .build();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ShutdownReasonFactory.class, areImmutable());
     }
 
     @Test

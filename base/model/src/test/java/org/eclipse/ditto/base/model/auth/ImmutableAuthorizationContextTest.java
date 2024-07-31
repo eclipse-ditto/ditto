@@ -14,10 +14,6 @@ package org.eclipse.ditto.base.model.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,16 +51,6 @@ public final class ImmutableAuthorizationContextTest {
                         .add(SUB_1_1.getId(), SUB_1_2.getId())
                         .build())
                 .build();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableAuthorizationContext.class,
-                areImmutable(),
-                provided(AuthorizationContextType.class).isAlsoImmutable(),
-                assumingFields("authorizationSubjects",
-                        "authorizationSubjectIds").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
-                assumingFields("authorizationSubjectIds").areModifiedAsPartOfAnUnobservableCachingStrategy());
     }
 
     @Test

@@ -18,12 +18,12 @@ import org.eclipse.ditto.things.model.ThingBuilder;
 import org.eclipse.ditto.things.model.signals.events.FeatureDefinitionCreated;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.things.model.signals.events.FeatureDefinitionCreated} event.
+ * This strategy handles the {@link FeatureDefinitionCreated} event.
  */
 @Immutable
 final class FeatureDefinitionCreatedStrategy extends AbstractThingEventStrategy<FeatureDefinitionCreated> {
 
-    protected FeatureDefinitionCreatedStrategy() {
+    FeatureDefinitionCreatedStrategy() {
         super();
     }
 

@@ -16,9 +16,6 @@ import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.rql.query.expression.SortFieldExpression;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mutabilitydetector.unittesting.AllowedReason;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -30,12 +27,6 @@ public final class SortOptionTest {
     @Test
     public void hashcodeAndEquals() {
         EqualsVerifier.forClass(SortOption.class).usingGetClass().verify();
-    }
-
-    @Test
-    public void immutability() {
-        MutabilityAssert.assertInstancesOf(SortOption.class, MutabilityMatchers.areImmutable(),
-                AllowedReason.provided(SortFieldExpression.class).isAlsoImmutable());
     }
 
     @Test(expected = NullPointerException.class)

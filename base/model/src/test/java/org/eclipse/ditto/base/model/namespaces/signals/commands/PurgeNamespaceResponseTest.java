@@ -13,8 +13,6 @@
 package org.eclipse.ditto.base.model.namespaces.signals.commands;
 
 import static org.eclipse.ditto.base.model.signals.commands.assertions.CommandAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
@@ -43,11 +41,6 @@ public final class PurgeNamespaceResponseTest {
     @Before
     public void before() {
         dittoHeaders = DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PurgeNamespaceResponse.class, areImmutable());
     }
 
     @Test

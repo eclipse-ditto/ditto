@@ -14,9 +14,6 @@ package org.eclipse.ditto.base.model.entity.id;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.junit.Test;
@@ -24,16 +21,11 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.base.model.entity.id.FallbackEntityId}.
+ * Unit test for {@link FallbackEntityId}.
  */
 public final class FallbackEntityIdTest {
 
     private static final EntityType UNKNOWN_TYPE = EntityType.of("unknown");
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(FallbackEntityId.class, areImmutable(), provided(EntityType.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

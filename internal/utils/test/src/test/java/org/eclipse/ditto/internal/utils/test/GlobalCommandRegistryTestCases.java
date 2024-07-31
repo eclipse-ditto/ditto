@@ -14,6 +14,7 @@ package org.eclipse.ditto.internal.utils.test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -24,14 +25,13 @@ import java.util.stream.StreamSupport;
 import javax.annotation.concurrent.Immutable;
 
 import org.atteo.classindex.ClassIndex;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
 import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.json.JsonObject;
 import org.junit.Before;
 import org.junit.Test;
-import org.mutabilitydetector.internal.javassist.Modifier;
 
 @Immutable
 public abstract class GlobalCommandRegistryTestCases {

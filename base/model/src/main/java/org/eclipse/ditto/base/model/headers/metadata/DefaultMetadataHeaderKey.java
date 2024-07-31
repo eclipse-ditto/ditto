@@ -25,7 +25,7 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
 
 /**
- * Default implementation of {@link org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey}.
+ * Default implementation of {@link MetadataHeaderKey}.
  *
  * @since 1.2.0
  */
