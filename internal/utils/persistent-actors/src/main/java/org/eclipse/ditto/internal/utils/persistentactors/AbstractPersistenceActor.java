@@ -702,8 +702,9 @@ public abstract class AbstractPersistenceActor<
 
         final var startedSpan = DittoTracing.newPreparedSpan(
                         command.getDittoHeaders(),
-                        SpanOperationName.of("apply_command_strategy")
+                        SpanOperationName.of("apply_command_strategy " + command.getType())
                 )
+                .correlationId(command.getDittoHeaders().getCorrelationId().orElse(null))
                 .start();
 
         final var tracedCommand =
@@ -718,7 +719,7 @@ public abstract class AbstractPersistenceActor<
             final DittoRuntimeException dittoRuntimeException =
                     DittoRuntimeException.asDittoRuntimeException(e, throwable ->
                             DittoInternalErrorException.newBuilder()
-                                    .dittoHeaders(command.getDittoHeaders())
+                                    .dittoHeaders(tracedCommand.getDittoHeaders())
                                     .build());
             startedSpan.tagAsFailed(e);
             result = ResultFactory.newErrorResult(dittoRuntimeException, tracedCommand);
@@ -726,7 +727,7 @@ public abstract class AbstractPersistenceActor<
         } finally {
             startedSpan.finish();
         }
-        reportSudoCommandDone(command);
+        reportSudoCommandDone(tracedCommand);
     }
 
     @Override

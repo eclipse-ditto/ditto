@@ -125,4 +125,11 @@ final class StartedKamonSpan implements StartedSpan {
         return TracingSpans.newPreparedKamonSpan(propagateContext(Map.of()), operationName, httpContextPropagation);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[" +
+                "span=" + span +
+                ", httpContextPropagation=" + httpContextPropagation +
+                "]";
+    }
 }

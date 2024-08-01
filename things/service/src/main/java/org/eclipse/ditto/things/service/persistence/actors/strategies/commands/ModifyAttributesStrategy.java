@@ -13,20 +13,21 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonObject;
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
-import org.eclipse.ditto.things.model.Attributes;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributes;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributesResponse;
@@ -38,13 +39,15 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  * This strategy handles the {@link ModifyAttributes} command.
  */
 @Immutable
-final class ModifyAttributesStrategy extends AbstractThingCommandStrategy<ModifyAttributes> {
+final class ModifyAttributesStrategy extends AbstractThingModifyCommandStrategy<ModifyAttributes> {
 
     /**
      * Constructs a new {@code ModifyAttributesStrategy} object.
+     *
+     * @param actorSystem the actor system to use for loading the WoT extension.
      */
-    ModifyAttributesStrategy() {
-        super(ModifyAttributes.class);
+    ModifyAttributesStrategy(final ActorSystem actorSystem) {
+        super(ModifyAttributes.class, actorSystem);
     }
 
     @Override
@@ -79,32 +82,58 @@ final class ModifyAttributesStrategy extends AbstractThingCommandStrategy<Modify
                 .orElseGet(() -> getCreateResult(context, nextRevision, command, thing, metadata));
     }
 
+    @Override
+    protected CompletionStage<ModifyAttributes> performWotValidation(final ModifyAttributes command,
+            @Nullable final Thing previousThing,
+            @Nullable final Thing previewThing
+    ) {
+        return wotThingModelValidator.validateThingAttributes(
+                Optional.ofNullable(previousThing).flatMap(Thing::getDefinition).orElse(null),
+                command.getAttributes(),
+                command.getResourcePath(),
+                command.getDittoHeaders()
+        ).thenApply(aVoid -> command);
+    }
+
     private Result<ThingEvent<?>> getModifyResult(final Context<ThingId> context, final long nextRevision,
             final ModifyAttributes command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
         final ThingId thingId = context.getState();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final ThingEvent<?> event =
-                AttributesModified.of(thingId, command.getAttributes(), nextRevision, getEventTimestamp(),
-                        dittoHeaders, metadata);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyAttributesResponse.modified(thingId, dittoHeaders), thing);
+        final CompletionStage<ModifyAttributes> validatedStage = buildValidatedStage(command, thing);
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage
+                .thenApply(ModifyAttributes::getAttributes)
+                .thenApply(attributes ->
+                        AttributesModified.of(thingId, attributes, nextRevision, getEventTimestamp(), dittoHeaders,
+                                metadata)
+                );
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(modifyAttributes ->
+                appendETagHeaderIfProvided(modifyAttributes, ModifyAttributesResponse.modified(thingId, dittoHeaders),
+                        thing)
+        );
 
-        return ResultFactory.newMutationResult(command, event, response);
+        return ResultFactory.newMutationResult(command, eventStage, responseStage);
     }
 
     private Result<ThingEvent<?>> getCreateResult(final Context<ThingId> context, final long nextRevision,
             final ModifyAttributes command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
         final ThingId thingId = context.getState();
-        final Attributes attributes = command.getAttributes();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final ThingEvent<?> event =
-                AttributesCreated.of(thingId, attributes, nextRevision, getEventTimestamp(), dittoHeaders, metadata);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyAttributesResponse.created(thingId, attributes, dittoHeaders), thing);
+        final CompletionStage<ModifyAttributes> validatedStage = buildValidatedStage(command, thing);
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage
+                .thenApply(ModifyAttributes::getAttributes)
+                .thenApply(attributes ->
+                        AttributesCreated.of(thingId, attributes, nextRevision, getEventTimestamp(), dittoHeaders,
+                                metadata)
+                );
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage.thenApply(modifyAttributes ->
+                appendETagHeaderIfProvided(modifyAttributes,
+                        ModifyAttributesResponse.created(thingId, modifyAttributes.getAttributes(), dittoHeaders),
+                        thing)
+        );
 
-        return ResultFactory.newMutationResult(command, event, response);
+        return ResultFactory.newMutationResult(command, eventStage, responseStage);
     }
 
     @Override

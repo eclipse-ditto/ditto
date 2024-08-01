@@ -15,6 +15,8 @@ package org.eclipse.ditto.things.service.enforcement;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
+import org.apache.pekko.actor.ActorRef;
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.policies.enforcement.AbstractEnforcementReloaded;
@@ -23,9 +25,6 @@ import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
-
-import org.apache.pekko.actor.ActorRef;
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Authorizes {@link Signal}s and filters {@link CommandResponse}s related to things by applying different included

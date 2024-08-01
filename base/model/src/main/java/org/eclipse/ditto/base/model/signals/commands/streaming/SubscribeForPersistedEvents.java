@@ -385,11 +385,6 @@ public final class SubscribeForPersistedEvents extends AbstractStreamingSubscrip
     }
 
     @Override
-    public String getTypePrefix() {
-        return TYPE_PREFIX;
-    }
-
-    @Override
     public SubscribeForPersistedEvents setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new SubscribeForPersistedEvents(entityId, resourcePath, fromHistoricalRevision, toHistoricalRevision,
                 fromHistoricalTimestamp, toHistoricalTimestamp, prefix, filter, dittoHeaders);

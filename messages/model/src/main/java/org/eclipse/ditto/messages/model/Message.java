@@ -17,9 +17,10 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingId;
 
 /**
@@ -111,6 +112,16 @@ public interface Message<T> {
      * @return the content type.
      */
     Optional<String> getContentType();
+
+    /**
+     * Returns the content-type of the payload as provided by the message sender as interpreted {@link ContentType}.
+     *
+     * @return the interpreted content type.
+     * @since 3.6.0
+     */
+    default Optional<ContentType> getInterpretedContentType() {
+        return getContentType().map(ContentType::of);
+    }
 
     /**
      * Returns the timeout of the message.

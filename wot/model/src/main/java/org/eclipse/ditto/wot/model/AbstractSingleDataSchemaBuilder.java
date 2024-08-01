@@ -16,6 +16,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -181,6 +182,12 @@ abstract class AbstractSingleDataSchemaBuilder<B extends SingleDataSchema.Builde
         } else {
             remove(SingleDataSchema.DataSchemaJsonFields.TYPE);
         }
+        return myself;
+    }
+
+    @Override
+    public B enhanceObjectBuilder(final Consumer<JsonObjectBuilder> builderConsumer) {
+        builderConsumer.accept(wrappedObjectBuilder);
         return myself;
     }
 

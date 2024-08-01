@@ -16,6 +16,7 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.ThingId;
@@ -24,6 +25,8 @@ import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThingRespons
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Unit test for {@link DeleteThingStrategy}.
@@ -34,7 +37,8 @@ public final class DeleteThingStrategyTest extends AbstractCommandStrategyTest {
 
     @Before
     public void setUp() {
-        underTest = new DeleteThingStrategy();
+        final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
+        underTest = new DeleteThingStrategy(system);
     }
 
     @Test

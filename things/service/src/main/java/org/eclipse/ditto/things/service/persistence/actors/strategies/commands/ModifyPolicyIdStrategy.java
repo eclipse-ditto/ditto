@@ -13,10 +13,13 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -35,13 +38,15 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  * This strategy handles the {@link ModifyPolicyId} command.
  */
 @Immutable
-final class ModifyPolicyIdStrategy extends AbstractThingCommandStrategy<ModifyPolicyId> {
+final class ModifyPolicyIdStrategy extends AbstractThingModifyCommandStrategy<ModifyPolicyId> {
 
     /**
      * Constructs a new {@code ModifyPolicyIdStrategy} object.
+     *
+     * @param actorSystem the actor system to use for loading the WoT extension.
      */
-    ModifyPolicyIdStrategy() {
-        super(ModifyPolicyId.class);
+    ModifyPolicyIdStrategy(final ActorSystem actorSystem) {
+        super(ModifyPolicyId.class, actorSystem);
     }
 
     @Override
@@ -52,6 +57,14 @@ final class ModifyPolicyIdStrategy extends AbstractThingCommandStrategy<ModifyPo
             @Nullable final Metadata metadata) {
 
         return getModifyResult(context, nextRevision, command, thing, metadata);
+    }
+
+    @Override
+    protected CompletionStage<ModifyPolicyId> performWotValidation(final ModifyPolicyId command,
+            @Nullable final Thing previousThing,
+            @Nullable final Thing previewThing
+    ) {
+        return CompletableFuture.completedFuture(command);
     }
 
     private Optional<PolicyId> extractPolicyId(final @Nullable Thing thing) {

@@ -15,6 +15,7 @@ package org.eclipse.ditto.internal.utils.test.docker;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -49,7 +50,8 @@ public abstract class ContainerFactory implements Closeable {
     protected ContainerFactory(final String imageIdentifier, final int... ports) {
         this.imageIdentifier = imageIdentifier;
         this.ports = ports;
-        final String dockerHost = OsDetector.isWindows() ? WINDOWS_DOCKER_HOST : UNIX_DOCKER_HOST;
+        final String dockerHost = Objects.requireNonNullElseGet(System.getenv("DOCKER_HOST"),
+                () -> OsDetector.isWindows() ? WINDOWS_DOCKER_HOST : UNIX_DOCKER_HOST);
         LOGGER.info("Connecting to docker daemon on <{}>.", dockerHost);
         final DefaultDockerClientConfig config =
                 DefaultDockerClientConfig.createDefaultConfigBuilder().withDockerHost(dockerHost).build();

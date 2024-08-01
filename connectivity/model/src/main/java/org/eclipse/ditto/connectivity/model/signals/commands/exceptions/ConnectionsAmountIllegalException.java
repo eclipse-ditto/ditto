@@ -41,7 +41,7 @@ public final class ConnectionsAmountIllegalException extends DittoRuntimeExcepti
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "connections.amount.illegal";
 
     private static final String MESSAGE_TEMPLATE =
-            "The amount of requested exceptions exceeds the limit of ''{0}''.";
+            "The amount of requested connections exceeds the limit of ''{0}''.";
 
     private static final String DEFAULT_DESCRIPTION = "Please request less connection ids.";
 

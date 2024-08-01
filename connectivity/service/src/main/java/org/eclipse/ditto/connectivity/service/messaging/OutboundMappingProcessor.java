@@ -21,6 +21,8 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.apache.pekko.actor.ActorSelection;
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -46,9 +48,6 @@ import org.eclipse.ditto.internal.utils.pekko.logging.ThreadSafeDittoLoggingAdap
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
-
-import org.apache.pekko.actor.ActorSelection;
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Processes outgoing {@link Signal}s to {@link ExternalMessage}s.
@@ -229,7 +228,7 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                         .debug("Applying mapper <{}> to message <{}>", mapper.getId(), adaptable);
 
                 final List<ExternalMessage> messages =
-                        timer.outboundPayload(mapper.getId(), () -> checkForNull(mapper.map(adaptable)));
+                        timer.outboundPayload(mapper.getId(), outboundSignal, () -> checkForNull(mapper.map(adaptable)));
 
                 logger.withCorrelationId(adaptable)
                         .debug("Mapping <{}> produced <{}> messages.", mapper.getId(), messages.size());

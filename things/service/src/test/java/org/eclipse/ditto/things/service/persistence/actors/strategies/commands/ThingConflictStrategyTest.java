@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.concurrent.CompletionStage;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -42,6 +43,8 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.typesafe.config.ConfigFactory;
+
 /**
  * Unit test for {@link ThingConflictStrategy}.
  */
@@ -58,7 +61,8 @@ public final class ThingConflictStrategyTest {
 
     @Test
     public void createConflictResultWithoutPrecondition() {
-        final ThingConflictStrategy underTest = new ThingConflictStrategy();
+        final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
+        final ThingConflictStrategy underTest = new ThingConflictStrategy(system);
         final ThingId thingId = ThingId.of("thing:id");
         final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).setRevision(25L).build();
         final CommandStrategy.Context<ThingId> context = DefaultContext.getInstance(thingId,
@@ -70,7 +74,8 @@ public final class ThingConflictStrategyTest {
 
     @Test
     public void createPreconditionFailedResultWithPrecondition() {
-        final ThingConflictStrategy underTest = new ThingConflictStrategy();
+        final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
+        final ThingConflictStrategy underTest = new ThingConflictStrategy(system);
         final ThingId thingId = ThingId.of("thing:id");
         final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).setRevision(25L).build();
         final CommandStrategy.Context<ThingId> context = DefaultContext.getInstance(thingId,

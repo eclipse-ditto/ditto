@@ -69,6 +69,26 @@ things:
           - "org.eclipse.ditto.room"
           authSubjects:
           - "connection:some"
+    wot:
+      tmValidation:
+        dynamicConfig:
+          - validationContext:
+              dittoHeadersPatterns:
+                - ditto-originator: "connection:one"
+              thingDefinitionPatterns:
+                - "^foo.*bar$"
+              featureDefinitionPatterns: [ ]
+            configOverrides:
+              enabled: true
+              thing:
+                enforce:
+                  thing-description-modification: false
+                  attributes: true
+                forbid:
+                  thing-description-deletion: false
+              feature:
+                enforce:
+                  feature-description-modification: false
 
 ## ----------------------------------------------------------------------------
 ## things-search configuration
