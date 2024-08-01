@@ -319,6 +319,7 @@ export function confirm(message, action, callback) {
 export function createAceEditor(domId, sessionMode, readOnly = false, wrap = false) {
   const result = ace.edit(domId);
   result.setOption('wrap', wrap);
+  result.setOption('useWorker', false);
   result.session.setMode(sessionMode);
   if (readOnly) {
     result.setReadOnly(true);
