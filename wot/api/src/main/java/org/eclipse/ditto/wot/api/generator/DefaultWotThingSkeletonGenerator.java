@@ -68,7 +68,6 @@ import org.eclipse.ditto.wot.model.ObjectSchema;
 import org.eclipse.ditto.wot.model.Properties;
 import org.eclipse.ditto.wot.model.Property;
 import org.eclipse.ditto.wot.model.SingleDataSchema;
-import org.eclipse.ditto.wot.model.StringSchema;
 import org.eclipse.ditto.wot.model.ThingDefinitionInvalidException;
 import org.eclipse.ditto.wot.model.ThingModel;
 import org.eclipse.ditto.wot.model.TmOptional;
@@ -493,9 +492,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                             numberSchema.getExclusiveMaximum().orElse(null));
                     return Optional.of(JsonValue.of(neutralDouble));
                 case STRING:
-                    final StringSchema stringSchema = (StringSchema) dataSchema;
-                    final String neutralString = provideNeutralStringElement(stringSchema.getMinLength().orElse(null));
-                    return Optional.of(JsonValue.of(neutralString));
+                    return Optional.of(JsonValue.of(provideNeutralStringElement()));
                 case OBJECT:
                     return Optional.of(JsonObject.empty());
                 case ARRAY:
@@ -550,10 +547,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
         return result;
     }
 
-    private static String provideNeutralStringElement(@Nullable final Integer minLength) {
-        if (null != minLength && minLength > 0) {
-            return "_".repeat(minLength);
-        }
+    private static String provideNeutralStringElement() {
         return "";
     }
 
