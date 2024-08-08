@@ -45,6 +45,9 @@ spec:
           restartPolicy: Never
           containers:
             - name: {{ .Chart.Name }}-pod-deletion-cost-cronjob
+              securityContext:
+                runAsUser: 1000
+                runAsGroup: 1000
               image: {{ printf "%s:%s" .Values.global.podDeletionCostPatching.image.repository ( default .Values.global.podDeletionCostPatching.image.tag "latest" ) }}
               imagePullPolicy: {{ .Values.global.podDeletionCostPatching.image.pullPolicy }}
               command:
