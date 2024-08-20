@@ -27,6 +27,10 @@ serviceAccount:
   # This is required if isUseAwsIamRole is set to true.
   # Example: arn:aws:iam::<account-id>:role/<role-name>
   roleArn: ""
+  # awsSessionName is the name of the session when assuming the AWS role.
+  # This can be used to identify the session in logs or IAM policies.
+  # Default is "dittoSession".
+  awsSessionName: "dittoSession"
 
 rbac:
   # enabled controls whether RBAC resources will be created
