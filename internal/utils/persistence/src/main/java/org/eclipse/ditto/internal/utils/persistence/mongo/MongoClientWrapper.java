@@ -267,6 +267,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
         private boolean sslEnabled;
         private boolean isUseAwsIamRole;
         private String awsRoleArn;
+        private String awsSessionName;
         @Nullable private EventLoopGroup eventLoopGroup;
 
         private MongoClientWrapperBuilder() {
@@ -317,6 +318,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
             builder.enableSsl(optionsConfig.isSslEnabled());
             builder.useAwsIamRole(optionsConfig.isUseAwsIamRole());
             builder.awsRoleArn(optionsConfig.awsRoleArn());
+            builder.awsSessionName(optionsConfig.awsSessionName());
             builder.setReadPreference(optionsConfig.readPreference().getMongoReadPreference());
             builder.setReadConcern(optionsConfig.readConcern().getMongoReadConcern());
             builder.setWriteConcern(optionsConfig.writeConcern());
@@ -332,6 +334,11 @@ public final class MongoClientWrapper implements DittoMongoClient {
 
         public MongoClientWrapperBuilder awsRoleArn(final String awsRoleArn) {
             this.awsRoleArn = awsRoleArn;
+            return this;
+        }
+
+        private MongoClientWrapperBuilder awsSessionName(final String awsSessionName) {
+            this.awsSessionName = awsSessionName;
             return this;
         }
 
@@ -505,7 +512,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
 
             final AwsSessionCredentials tempCredentials = (AwsSessionCredentials) StsAssumeRoleCredentialsProvider.builder()
                     .stsClient(stsClient)
-                    .refreshRequest(req -> req.roleArn(awsRoleArn).roleSessionName("sessionName"))
+                    .refreshRequest(req -> req.roleArn(awsRoleArn).roleSessionName(awsSessionName))
                     .build()
                     .resolveCredentials();
 

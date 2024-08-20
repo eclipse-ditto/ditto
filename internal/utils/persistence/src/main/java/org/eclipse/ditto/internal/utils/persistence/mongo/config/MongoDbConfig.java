@@ -179,6 +179,14 @@ public interface MongoDbConfig {
          */
         String awsRoleArn();
 
+
+        /**
+         * Retrieves the AWS session name to be used when assuming the IAM role.
+         *
+         * @return the aws session name as a String.
+         */
+        String awsSessionName();
+
         /**
          * Gets the extra options to add to the configured MongoDB {@code uri}.
          *
@@ -226,6 +234,11 @@ public interface MongoDbConfig {
              * Specifies the ARN of the AWS IAM Role to be assumed for MongoDB authentication.
              */
             AWS_ROLE_ARN("awsRoleArn", ""),
+
+            /**
+             * Specifies the AWS session name to be used when assuming the IAM role.
+             */
+            AWS_SESSION_NAME("awsSessionName", "dittoSession"),
 
             /**
              * The extra options to add to the configured MongoDB {@code uri}.

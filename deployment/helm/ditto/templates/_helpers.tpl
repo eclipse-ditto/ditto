@@ -81,3 +81,14 @@ Get IAM Role ARN from Values if USE_IAM_ROLE is true
   ""
 {{- end -}}
 {{- end -}}
+
+{{/*
+Get AWS session name from Values if USE_IAM_ROLE is true
+*/}}
+{{- define "ditto.awsSessionName" -}}
+{{- if .Values.serviceAccount.isUseAwsIamRole -}}
+  {{ .Values.serviceAccount.awsSessionName }}
+{{- else -}}
+  "defaultSessionName"
+{{- end -}}
+{{- end -}}
