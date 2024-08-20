@@ -173,6 +173,13 @@ public interface MongoDbConfig {
         boolean isUseAwsIamRole();
 
         /**
+         * Retrieves the AWS IAM Role ARN to be assumed for authentication.
+         *
+         * @return the aws role ARN as a String.
+         */
+        String awsRoleArn();
+
+        /**
          * Gets the extra options to add to the configured MongoDB {@code uri}.
          *
          * @return the extra options.
@@ -214,6 +221,11 @@ public interface MongoDbConfig {
              * Determines whether IAM role should be used for authentication.
              */
             USE_AWS_IAM_ROLE("useAwsIamRole", false),
+
+            /**
+             * Specifies the ARN of the AWS IAM Role to be assumed for MongoDB authentication.
+             */
+            AWS_ROLE_ARN("awsRoleArn", ""),
 
             /**
              * The extra options to add to the configured MongoDB {@code uri}.

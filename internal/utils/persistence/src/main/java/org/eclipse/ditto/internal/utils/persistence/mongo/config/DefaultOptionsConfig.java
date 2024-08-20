@@ -40,6 +40,7 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
     static final String CONFIG_PATH = "options";
 
     private final boolean useAwsIamRole;
+    private final String awsArnRole;
     private final boolean sslEnabled;
     private final ReadPreference readPreference;
     private final ReadConcern readConcern;
@@ -49,6 +50,7 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
 
     private DefaultOptionsConfig(final ScopedConfig config) {
         useAwsIamRole = config.getBoolean(OptionsConfigValue.USE_AWS_IAM_ROLE.getConfigPath());
+        awsArnRole = config.getString(OptionsConfigValue.AWS_ROLE_ARN.getConfigPath());
         sslEnabled = config.getBoolean(OptionsConfigValue.SSL_ENABLED.getConfigPath());
         final var readPreferenceString = config.getString(OptionsConfigValue.READ_PREFERENCE.getConfigPath());
         readPreference = ReadPreference.ofReadPreference(readPreferenceString)
@@ -126,11 +128,17 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
     }
 
     @Override
+    public String awsRoleArn() {
+        return awsArnRole;
+    }
+
+    @Override
     public Map<String, Object> extraUriOptions() {
         return extraUriOptions;
     }
 
     @Override
+
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -139,7 +147,10 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
             return false;
         }
         final DefaultOptionsConfig that = (DefaultOptionsConfig) o;
-        return useAwsIamRole == that.useAwsIamRole && sslEnabled == that.sslEnabled && retryWrites == that.retryWrites &&
+        return useAwsIamRole == that.useAwsIamRole
+                && Objects.equals(awsArnRole, that.awsArnRole)
+                && sslEnabled == that.sslEnabled
+                && retryWrites == that.retryWrites &&
                 readPreference == that.readPreference &&
                 readConcern == that.readConcern &&
                 Objects.equals(writeConcern, that.writeConcern) &&
@@ -148,13 +159,14 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(useAwsIamRole, sslEnabled, readPreference, readConcern, writeConcern, retryWrites, extraUriOptions);
+        return Objects.hash(useAwsIamRole, awsArnRole, sslEnabled, readPreference, readConcern, writeConcern, retryWrites, extraUriOptions);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "useAwsIamRole=" + useAwsIamRole +
+                ", awsArnRole=" + awsArnRole +
                 ", sslEnabled=" + sslEnabled +
                 ", readPreference=" + readPreference +
                 ", readConcern=" + readConcern +

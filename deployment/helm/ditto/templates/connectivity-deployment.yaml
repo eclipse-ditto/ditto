@@ -285,12 +285,12 @@ spec:
               {{- toYaml .Values.connectivity.extraEnv | nindent 12 }}
             {{- end }}
             {{- if .Values.serviceAccount.isUseAwsIamRole }}
-            - name: AWS_ROLE_ARN
+            - name: MONGO_DB_AWS_ROLE_ARN
               value: "{{ .Values.serviceAccount.roleArn }}"
             - name: AWS_WEB_IDENTITY_TOKEN_FILE
               value: "/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
             {{- end }}
-            - name: USE_AWS_IAM_ROLE
+            - name: MONGO_DB_USE_AWS_IAM_ROLE
               value: "{{ printf "%t" .Values.serviceAccount.isUseAwsIamRole }}"
           ports:
             - name: remoting
