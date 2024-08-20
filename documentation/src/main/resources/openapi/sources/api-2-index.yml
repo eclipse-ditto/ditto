@@ -460,6 +460,10 @@ components:
       $ref: "./schemas/piggyback/basePiggybackCommandRequestSchema.yml"
     PiggybackManagingBackgroundCleanup:
       $ref: "./schemas/piggyback/piggybackManagingBackgroundCleanup.yml"
+    SearchFilterProperty:
+      $ref: "./schemas/properties/searchFilterProperty.yml"
+    NamespaceProperty:
+      $ref: "./schemas/properties/namespacesProperty.yml"
 
   securitySchemes:
     NginxBasic:
