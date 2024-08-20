@@ -134,6 +134,7 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
         return awsArnRole;
     }
 
+    @Override
     public String awsSessionName() { return awsSessionName; }
 
     @Override
@@ -142,7 +143,6 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
     }
 
     @Override
-
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -164,7 +164,7 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(useAwsIamRole, awsArnRole, sslEnabled, readPreference, readConcern, writeConcern, retryWrites, extraUriOptions);
+        return Objects.hash(useAwsIamRole, awsArnRole, awsSessionName, sslEnabled, readPreference, readConcern, writeConcern, retryWrites, extraUriOptions);
     }
 
     @Override
