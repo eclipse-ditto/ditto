@@ -189,6 +189,10 @@ global:
   # podDeletionCostPatching hold configuration for whether to patch "oldest" members of the Ditto cluster with higher
   #  k8s pod-deletion-cost annotations so that they are downed last when e.g. doing an upgrade
   podDeletionCostPatching:
+    # user defines the user to run the pod-deletion-cost annotation patching job as
+    user: 1000
+    # group defines the group to run the pod-deletion-cost annotation patching job as
+    group: 1000
     # enabled whether the pod-deletion-cost annotation patching should be enabled
     enabled: true
     # annotations defines k8s annotations to add to corresponding jobs
