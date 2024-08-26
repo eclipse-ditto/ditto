@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -25,6 +26,7 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 
 /**
@@ -68,8 +70,7 @@ public interface SingleDataSchema extends DataSchema, Jsonifiable<JsonObject> {
                             throw new IllegalArgumentException("Unsupported dataSchema-type: " + type);
                     }
                 })
-                .orElseThrow(() -> new IllegalArgumentException("Could not create SingleDataSchema - " +
-                        "json field <" + DataSchemaJsonFields.TYPE.getPointer() + "> was missing or unknown"));
+                .orElseGet(() -> new ImmutableDataSchemaWithoutType(jsonObject));
     }
 
     static BooleanSchema.Builder newBooleanSchemaBuilder() {
@@ -157,6 +158,8 @@ public interface SingleDataSchema extends DataSchema, Jsonifiable<JsonObject> {
         B setConst(@Nullable JsonValue constValue);
 
         B setDefault(@Nullable JsonValue defaultValue);
+
+        B enhanceObjectBuilder(Consumer<JsonObjectBuilder> builderConsumer);
 
         S build();
     }

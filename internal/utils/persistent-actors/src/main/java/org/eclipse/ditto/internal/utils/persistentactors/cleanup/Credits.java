@@ -15,14 +15,12 @@ package org.eclipse.ditto.internal.utils.persistentactors.cleanup;
 import java.time.Duration;
 import java.util.concurrent.atomic.LongAccumulator;
 
-import org.eclipse.ditto.internal.utils.pekko.controlflow.Transistor;
-import org.eclipse.ditto.internal.utils.metrics.mongo.MongoMetricsBuilder;
-
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.event.LoggingAdapter;
 import org.apache.pekko.stream.SourceShape;
 import org.apache.pekko.stream.javadsl.GraphDSL;
 import org.apache.pekko.stream.javadsl.Source;
+import org.eclipse.ditto.internal.utils.pekko.controlflow.Transistor;
 
 final class Credits {
 
@@ -36,7 +34,11 @@ final class Credits {
     }
 
     static Credits of(final CleanupConfig config) {
-        return new Credits(config, MongoMetricsBuilder.maxTimerNanos());
+        return new Credits(config, createMaxTimerNanos());
+    }
+
+    private static LongAccumulator createMaxTimerNanos() {
+        return new LongAccumulator(Math::max, 0L);
     }
 
     /**

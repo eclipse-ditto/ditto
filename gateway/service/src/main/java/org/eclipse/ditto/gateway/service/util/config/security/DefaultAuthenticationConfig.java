@@ -17,11 +17,11 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.service.config.http.DefaultHttpProxyConfig;
-import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.config.WithConfigPath;
+import org.eclipse.ditto.internal.utils.http.config.DefaultHttpProxyConfig;
+import org.eclipse.ditto.internal.utils.http.config.HttpProxyConfig;
 
 import com.typesafe.config.Config;
 

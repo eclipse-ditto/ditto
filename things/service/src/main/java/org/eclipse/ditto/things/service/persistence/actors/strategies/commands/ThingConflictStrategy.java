@@ -18,6 +18,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
@@ -36,9 +37,11 @@ final class ThingConflictStrategy extends AbstractThingCommandStrategy<CreateThi
 
     /**
      * Constructs a new {@code ThingConflictStrategy} object.
+     *
+     * @param actorSystem the actor system to use for loading the WoT extension.
      */
-    ThingConflictStrategy() {
-        super(CreateThing.class);
+    ThingConflictStrategy(final ActorSystem actorSystem) {
+        super(CreateThing.class, actorSystem);
     }
 
     @Override

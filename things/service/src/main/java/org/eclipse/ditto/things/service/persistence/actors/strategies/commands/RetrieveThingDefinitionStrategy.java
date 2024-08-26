@@ -17,13 +17,14 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingDefinitionNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingDefinition;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingDefinitionResponse;
@@ -38,8 +39,8 @@ final class RetrieveThingDefinitionStrategy extends AbstractThingCommandStrategy
     /**
      * Constructs a new {@code RetrieveThingDefinitionStrategy} object.
      */
-    RetrieveThingDefinitionStrategy() {
-        super(RetrieveThingDefinition.class);
+    RetrieveThingDefinitionStrategy(final ActorSystem actorSystem) {
+        super(RetrieveThingDefinition.class, actorSystem);
     }
 
 

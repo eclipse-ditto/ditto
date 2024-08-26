@@ -16,6 +16,7 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
@@ -24,10 +25,11 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeature;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeatureResponse;
 import org.eclipse.ditto.things.model.signals.events.FeatureDeleted;
-
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Unit test for {@link DeleteFeatureStrategy}.
@@ -45,7 +47,8 @@ public final class DeleteFeatureStrategyTest extends AbstractCommandStrategyTest
 
     @Before
     public void setUp() {
-        underTest = new DeleteFeatureStrategy();
+        final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
+        underTest = new DeleteFeatureStrategy(system);
     }
 
     @Test
@@ -59,7 +62,7 @@ public final class DeleteFeatureStrategyTest extends AbstractCommandStrategyTest
         final DeleteFeature command = DeleteFeature.of(context.getState(), featureId, DittoHeaders.newBuilder()
                 .build());
 
-        final FeatureDeleted event = assertModificationResult(underTest, THING_V2, command, FeatureDeleted.class,
+        assertStagedModificationResult(underTest, THING_V2, command, FeatureDeleted.class,
                 DeleteFeatureResponse.of(context.getState(), command.getFeatureId(), command.getDittoHeaders()));
     }
 

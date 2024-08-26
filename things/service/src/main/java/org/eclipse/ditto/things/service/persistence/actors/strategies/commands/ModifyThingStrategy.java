@@ -16,10 +16,12 @@ import static org.eclipse.ditto.internal.utils.persistentactors.results.ResultFa
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -42,13 +44,15 @@ import org.eclipse.ditto.things.model.signals.events.ThingModified;
  * This strategy handles the {@link ModifyThing} command for an already existing Thing.
  */
 @Immutable
-final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing> {
+final class ModifyThingStrategy extends AbstractThingModifyCommandStrategy<ModifyThing> {
 
     /**
      * Constructs a new {@code ModifyThingStrategy} object.
+     *
+     * @param actorSystem the actor system to use for loading the WoT extension.
      */
-    ModifyThingStrategy() {
-        super(ModifyThing.class);
+    ModifyThingStrategy(final ActorSystem actorSystem) {
+        super(ModifyThing.class, actorSystem);
     }
 
     @Override
@@ -69,6 +73,18 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
         final Instant eventTs = getEventTimestamp();
 
         return handleModifyExistingWithV2Command(context, nonNullThing, eventTs, nextRevision, command, metadata);
+    }
+
+    @Override
+    protected CompletionStage<ModifyThing> performWotValidation(
+            final ModifyThing command,
+            @Nullable final Thing previousThing,
+            @Nullable final Thing previewThing
+    ) {
+        return wotThingModelValidator.validateThing(
+                Optional.ofNullable(previousThing).flatMap(Thing::getDefinition).orElse(null),
+                command.getThing(), command.getResourcePath(), command.getDittoHeaders()
+        ).thenApply(aVoid -> command);
     }
 
     private Result<ThingEvent<?>> handleModifyExistingWithV2Command(final Context<ThingId> context, final Thing thing,
@@ -94,13 +110,27 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final Thing modifiedThing = applyThingModifications(command.getThing(), thing, eventTs, nextRevision);
+        // validate based on potentially referenced Thing WoT TM/TD
+        final CompletionStage<ModifyThing> validatedStage = buildValidatedStage(
+                ModifyThing.of(command.getEntityId(),
+                        modifiedThing,
+                        command.getInitialPolicy().orElse(null),
+                        command.getDittoHeaders()
+                ), thing);
 
-        final ThingEvent<?> event =
-                ThingModified.of(modifiedThing, nextRevision, eventTs, dittoHeaders, metadata);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyThingResponse.modified(context.getState(), dittoHeaders), modifiedThing);
+        final CompletionStage<ThingEvent<?>> eventStage = validatedStage
+                .thenApply(ModifyThing::getThing)
+                .thenApply(theThing ->
+                        ThingModified.of(theThing, nextRevision, eventTs, dittoHeaders, metadata)
+                );
+        final CompletionStage<WithDittoHeaders> responseStage = validatedStage
+                .thenApply(modifyThing ->
+                        appendETagHeaderIfProvided(modifyThing,
+                                ModifyThingResponse.modified(context.getState(), dittoHeaders),
+                                modifyThing.getThing())
+                );
 
-        return ResultFactory.newMutationResult(command, event, response);
+        return ResultFactory.newMutationResult(command, eventStage, responseStage);
     }
 
     /**

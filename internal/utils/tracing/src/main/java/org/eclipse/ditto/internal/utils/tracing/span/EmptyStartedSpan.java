@@ -123,4 +123,10 @@ final class EmptyStartedSpan implements StartedSpan {
         return Objects.hash(operationName);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[" +
+                "operationName=" + operationName +
+                "]";
+    }
 }
