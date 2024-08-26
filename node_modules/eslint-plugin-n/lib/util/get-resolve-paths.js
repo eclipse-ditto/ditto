@@ -4,19 +4,19 @@
  */
 "use strict"
 
-const DEFAULT_VALUE = Object.freeze([])
+/** @type {string[]} */
+const DEFAULT_VALUE = []
 
 /**
  * Gets `resolvePaths` property from a given option object.
  *
- * @param {object|undefined} option - An option object to get.
- * @returns {string[]|null} The `allowModules` value, or `null`.
+ * @param {{ resolvePaths: unknown[] } | undefined} option - An option object to get.
+ * @returns {string[] | undefined} The `allowModules` value, or `null`.
  */
 function get(option) {
-    if (option && option.resolvePaths && Array.isArray(option.resolvePaths)) {
+    if (Array.isArray(option?.resolvePaths)) {
         return option.resolvePaths.map(String)
     }
-    return null
 }
 
 /**
@@ -26,15 +26,14 @@ function get(option) {
  * 2. This checks `settings.n` | `settings.node` property, then returns it if exists.
  * 3. This returns `[]`.
  *
- * @param {RuleContext} context - The rule context.
+ * @param {import('eslint').Rule.RuleContext} context - The rule context.
  * @returns {string[]} A list of extensions.
  */
 module.exports = function getResolvePaths(context, optionIndex = 0) {
     return (
-        get(context.options && context.options[optionIndex]) ||
-        get(
-            context.settings && (context.settings.n || context.settings.node)
-        ) ||
+        get(context.options?.[optionIndex]) ??
+        get(context.settings?.n) ??
+        get(context.settings?.node) ??
         DEFAULT_VALUE
     )
 }

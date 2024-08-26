@@ -1,6 +1,7 @@
 /**
  * @fileoverview Require or disallow newline at the end of files
  * @author Nodeca Team <https://github.com/nodeca>
+ * @deprecated in ESLint v8.53.0
  */
 "use strict";
 
@@ -11,6 +12,8 @@
 /** @type {import('../shared/types').Rule} */
 module.exports = {
     meta: {
+        deprecated: true,
+        replacedBy: [],
         type: "layout",
 
         docs: {
@@ -42,7 +45,7 @@ module.exports = {
             Program: function checkBadEOF(node) {
                 const sourceCode = context.sourceCode,
                     src = sourceCode.getText(),
-                    lastLine = sourceCode.lines[sourceCode.lines.length - 1],
+                    lastLine = sourceCode.lines.at(-1),
                     location = {
                         column: lastLine.length,
                         line: sourceCode.lines.length
@@ -86,7 +89,7 @@ module.exports = {
                     });
                 } else if (mode === "never" && endsWithNewline) {
 
-                    const secondLastLine = sourceCode.lines[sourceCode.lines.length - 2];
+                    const secondLastLine = sourceCode.lines.at(-2);
 
                     // File is newline-terminated, but shouldn't be
                     context.report({

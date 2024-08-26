@@ -2,6 +2,7 @@
  * @fileoverview Disallows multiple blank lines.
  * implementation adapted from the no-trailing-spaces rule.
  * @author Greg Cochard
+ * @deprecated in ESLint v8.53.0
  */
 "use strict";
 
@@ -12,6 +13,8 @@
 /** @type {import('../shared/types').Rule} */
 module.exports = {
     meta: {
+        deprecated: true,
+        replacedBy: [],
         type: "layout",
 
         docs: {
@@ -67,7 +70,7 @@ module.exports = {
         const sourceCode = context.sourceCode;
 
         // Swallow the final newline, as some editors add it automatically and we don't want it to cause an issue
-        const allLines = sourceCode.lines[sourceCode.lines.length - 1] === "" ? sourceCode.lines.slice(0, -1) : sourceCode.lines;
+        const allLines = sourceCode.lines.at(-1) === "" ? sourceCode.lines.slice(0, -1) : sourceCode.lines;
         const templateLiteralLines = new Set();
 
         //--------------------------------------------------------------------------

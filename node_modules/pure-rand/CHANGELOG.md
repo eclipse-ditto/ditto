@@ -1,5 +1,20 @@
 # CHANGELOG 6.X
 
+## 6.1.0
+
+### Features
+
+- [c60c828](https://github.com/dubzzz/pure-rand/commit/c60c828) ✨ Clone from state on `xorshift128plus` (#697)
+- [6a16bfe](https://github.com/dubzzz/pure-rand/commit/6a16bfe) ✨ Clone from state on `mersenne` (#698)
+- [fb78e2d](https://github.com/dubzzz/pure-rand/commit/fb78e2d) ✨ Clone from state on `xoroshiro128plus` (#699)
+- [a7dd56c](https://github.com/dubzzz/pure-rand/commit/a7dd56c) ✨ Clone from state on congruential32 (#696)
+- [1f6c3a5](https://github.com/dubzzz/pure-rand/commit/1f6c3a5) 🏷️ Expose internal state of generators (#694)
+
+### Fixes
+
+- [30d439a](https://github.com/dubzzz/pure-rand/commit/30d439a) 💚 Fix broken lock file (#695)
+- [9f935ae](https://github.com/dubzzz/pure-rand/commit/9f935ae) 👷 Speed-up CI with better cache (#677)
+
 ## 6.0.4
 
 ### Fixes

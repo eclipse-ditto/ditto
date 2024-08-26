@@ -2,7 +2,7 @@
 
 [![Build Status](https://github.com/immutable-js/immutable-js/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/immutable-js/immutable-js/actions/workflows/ci.yml?query=branch%3Amain) [Chat on slack](https://immutable-js.slack.com)
 
-[Read the docs](https://immutable-js.com) and eat your vegetables.
+[Read the docs](https://immutable-js.com/docs/) and eat your vegetables.
 
 Docs are automatically generated from [README.md][] and [immutable.d.ts][].
 Please contribute! Also, don't miss the [wiki][] which contains articles on
@@ -58,13 +58,17 @@ Want to hear more? Watch the presentation about Immutable.js:
 Install `immutable` using npm.
 
 ```shell
+# using npm
 npm install immutable
-```
 
-Or install using yarn.
-
-```shell
+# using Yarn
 yarn add immutable
+
+# using pnpm
+pnpm add immutable
+
+# using Bun
+bun add immutable
 ```
 
 Then require it into any module.

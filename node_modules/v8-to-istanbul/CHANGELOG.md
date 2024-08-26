@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [9.3.0](https://github.com/istanbuljs/v8-to-istanbul/compare/v9.2.0...v9.3.0) (2024-06-22)
+
+
+### Features
+
+* respect node:coverage comments ([#252](https://github.com/istanbuljs/v8-to-istanbul/issues/252)) ([92d593e](https://github.com/istanbuljs/v8-to-istanbul/commit/92d593e6ad7ad38bfacb3c9d237667df5c452fcb))
+
 ## [9.2.0](https://github.com/istanbuljs/v8-to-istanbul/compare/v9.1.3...v9.2.0) (2023-11-22)
 
 

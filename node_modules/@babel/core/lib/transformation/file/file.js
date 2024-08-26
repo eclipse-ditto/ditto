@@ -32,13 +32,6 @@ function _t() {
   };
   return data;
 }
-function _helperModuleTransforms() {
-  const data = require("@babel/helper-module-transforms");
-  _helperModuleTransforms = function () {
-    return data;
-  };
-  return data;
-}
 function _semver() {
   const data = require("semver");
   _semver = function () {
@@ -46,6 +39,9 @@ function _semver() {
   };
   return data;
 }
+var babel7 = _interopRequireWildcard(require("./babel-7-helpers.cjs"), true);
+function _getRequireWildcardCache(e) { if ("function" != typeof WeakMap) return null; var r = new WeakMap(), t = new WeakMap(); return (_getRequireWildcardCache = function (e) { return e ? t : r; })(e); }
+function _interopRequireWildcard(e, r) { if (!r && e && e.__esModule) return e; if (null === e || "object" != typeof e && "function" != typeof e) return { default: e }; var t = _getRequireWildcardCache(r); if (t && t.has(e)) return t.get(e); var n = { __proto__: null }, a = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var u in e) if ("default" !== u && {}.hasOwnProperty.call(e, u)) { var i = a ? Object.getOwnPropertyDescriptor(e, u) : null; i && (i.get || i.set) ? Object.defineProperty(n, u, i) : n[u] = e[u]; } return n.default = e, t && t.set(e, n), n; }
 const {
   cloneNode,
   interpreterDirective
@@ -108,8 +104,10 @@ class File {
     }
   }
   set(key, val) {
-    if (key === "helpersNamespace") {
-      throw new Error("Babel 7.0.0-beta.56 has dropped support for the 'helpersNamespace' utility." + "If you are using @babel/plugin-external-helpers you will need to use a newer " + "version than the one you currently have installed. " + "If you have your own implementation, you'll want to explore using 'helperGenerator' " + "alongside 'file.availableHelper()'.");
+    {
+      if (key === "helpersNamespace") {
+        throw new Error("Babel 7.0.0-beta.56 has dropped support for the 'helpersNamespace' utility." + "If you are using @babel/plugin-external-helpers you will need to use a newer " + "version than the one you currently have installed. " + "If you have your own implementation, you'll want to explore using 'helperGenerator' " + "alongside 'file.availableHelper()'.");
+      }
     }
     this._map.set(key, val);
   }
@@ -118,12 +116,6 @@ class File {
   }
   has(key) {
     return this._map.has(key);
-  }
-  getModuleName() {
-    return (0, _helperModuleTransforms().getModuleName)(this.opts, this.opts);
-  }
-  addImport() {
-    throw new Error("This API has been removed. If you're looking for this " + "functionality in Babel 7, you should import the " + "'@babel/helper-module-imports' module and use the functions exposed " + " from that module, such as 'addNamed' or 'addDefault'.");
   }
   availableHelper(name, versionRange) {
     let minVersion;
@@ -135,7 +127,9 @@ class File {
     }
     if (typeof versionRange !== "string") return true;
     if (_semver().valid(versionRange)) versionRange = `^${versionRange}`;
-    return !_semver().intersects(`<${minVersion}`, versionRange) && !_semver().intersects(`>=8.0.0`, versionRange);
+    {
+      return !_semver().intersects(`<${minVersion}`, versionRange) && !_semver().intersects(`>=8.0.0`, versionRange);
+    }
   }
   addHelper(name) {
     const declar = this.declarations[name];
@@ -145,7 +139,7 @@ class File {
       const res = generator(name);
       if (res) return res;
     }
-    helpers().ensure(name, File);
+    helpers().minVersion(name);
     const uid = this.declarations[name] = this.scope.generateUidIdentifier(name);
     const dependencies = {};
     for (const dep of helpers().getDependencies(name)) {
@@ -154,7 +148,7 @@ class File {
     const {
       nodes,
       globals
-    } = helpers().get(name, dep => dependencies[dep], uid, Object.keys(this.scope.getAllBindings()));
+    } = helpers().get(name, dep => dependencies[dep], uid.name, Object.keys(this.scope.getAllBindings()));
     globals.forEach(name => {
       if (this.path.scope.hasBinding(name, true)) {
         this.path.scope.rename(name);
@@ -163,18 +157,14 @@ class File {
     nodes.forEach(node => {
       node._compact = true;
     });
-    this.path.unshiftContainer("body", nodes);
-    this.path.get("body").forEach(path => {
-      if (nodes.indexOf(path.node) === -1) return;
+    const added = this.path.unshiftContainer("body", nodes);
+    for (const path of added) {
       if (path.isVariableDeclaration()) this.scope.registerDeclaration(path);
-    });
+    }
     return uid;
   }
-  addTemplateObject() {
-    throw new Error("This function has been moved into the template literal transform itself.");
-  }
   buildCodeFrameError(node, msg, _Error = SyntaxError) {
-    let loc = node && (node.loc || node._loc);
+    let loc = node == null ? void 0 : node.loc;
     if (!loc && node) {
       const state = {
         loc: null
@@ -206,6 +196,19 @@ class File {
   }
 }
 exports.default = File;
+{
+  File.prototype.addImport = function addImport() {
+    throw new Error("This API has been removed. If you're looking for this " + "functionality in Babel 7, you should import the " + "'@babel/helper-module-imports' module and use the functions exposed " + " from that module, such as 'addNamed' or 'addDefault'.");
+  };
+  File.prototype.addTemplateObject = function addTemplateObject() {
+    throw new Error("This function has been moved into the template literal transform itself.");
+  };
+  {
+    File.prototype.getModuleName = function getModuleName() {
+      return babel7.getModuleName()(this.opts, this.opts);
+    };
+  }
+}
 0 && 0;
 
 //# sourceMappingURL=file.js.map

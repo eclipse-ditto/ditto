@@ -60,8 +60,8 @@ Dart Sass also supports an older JavaScript API that's fully compatible with
 and will be removed in Dart Sass 2.0.0, so it should be avoided in new projects.
 
 [Node Sass]: https://github.com/sass/node-sass
-[`render()`]: https://sass-lang.com/documentation/js-api/modules#render
-[`renderSync()`]: https://sass-lang.com/documentation/js-api/modules#renderSync
+[`render()`]: https://sass-lang.com/documentation/js-api/functions/render
+[`renderSync()`]: https://sass-lang.com/documentation/js-api/functions/renderSync
 
 Sass's support for the legacy JavaScript API has the following limitations:
 

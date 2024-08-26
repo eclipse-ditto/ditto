@@ -1,6 +1,7 @@
 /**
  * @fileoverview Disallows or enforces spaces inside of object literals.
  * @author Jamund Ferguson
+ * @deprecated in ESLint v8.53.0
  */
 "use strict";
 
@@ -13,6 +14,8 @@ const astUtils = require("./utils/ast-utils");
 /** @type {import('../shared/types').Rule} */
 module.exports = {
     meta: {
+        deprecated: true,
+        replacedBy: [],
         type: "layout",
 
         docs: {
@@ -214,7 +217,7 @@ module.exports = {
          * @returns {Token} '}' token.
          */
         function getClosingBraceOfObject(node) {
-            const lastProperty = node.properties[node.properties.length - 1];
+            const lastProperty = node.properties.at(-1);
 
             return sourceCode.getTokenAfter(lastProperty, astUtils.isClosingBraceToken);
         }
@@ -248,7 +251,7 @@ module.exports = {
             }
 
             let firstSpecifier = node.specifiers[0];
-            const lastSpecifier = node.specifiers[node.specifiers.length - 1];
+            const lastSpecifier = node.specifiers.at(-1);
 
             if (lastSpecifier.type !== "ImportSpecifier") {
                 return;
@@ -276,7 +279,7 @@ module.exports = {
             }
 
             const firstSpecifier = node.specifiers[0],
-                lastSpecifier = node.specifiers[node.specifiers.length - 1],
+                lastSpecifier = node.specifiers.at(-1),
                 first = sourceCode.getTokenBefore(firstSpecifier),
                 last = sourceCode.getTokenAfter(lastSpecifier, astUtils.isNotCommaToken),
                 second = sourceCode.getTokenAfter(first, { includeComments: true }),

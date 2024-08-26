@@ -1,6 +1,7 @@
 /**
  * @fileoverview Rule to specify spacing of object literal keys and values
  * @author Brandon Mills
+ * @deprecated in ESLint v8.53.0
  */
 "use strict";
 
@@ -27,7 +28,7 @@ function containsLineTerminator(str) {
  * @returns {any} Last element of arr.
  */
 function last(arr) {
-    return arr[arr.length - 1];
+    return arr.at(-1);
 }
 
 /**
@@ -133,6 +134,8 @@ function initOptions(toOptions, fromOptions) {
 /** @type {import('../shared/types').Rule} */
 module.exports = {
     meta: {
+        deprecated: true,
+        replacedBy: [],
         type: "layout",
 
         docs: {
@@ -486,7 +489,7 @@ module.exports = {
                     }
                 }
 
-                let messageId = "";
+                let messageId;
 
                 if (isExtra) {
                     messageId = side === "key" ? "extraKey" : "extraValue";

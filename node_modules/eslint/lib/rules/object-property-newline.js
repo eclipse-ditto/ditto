@@ -1,6 +1,7 @@
 /**
  * @fileoverview Rule to enforce placing object properties on separate lines.
  * @author Vitor Balocco
+ * @deprecated in ESLint v8.53.0
  */
 
 "use strict";
@@ -12,6 +13,8 @@
 /** @type {import('../shared/types').Rule} */
 module.exports = {
     meta: {
+        deprecated: true,
+        replacedBy: [],
         type: "layout",
 
         docs: {
@@ -60,7 +63,7 @@ module.exports = {
                 if (allowSameLine) {
                     if (node.properties.length > 1) {
                         const firstTokenOfFirstProperty = sourceCode.getFirstToken(node.properties[0]);
-                        const lastTokenOfLastProperty = sourceCode.getLastToken(node.properties[node.properties.length - 1]);
+                        const lastTokenOfLastProperty = sourceCode.getLastToken(node.properties.at(-1));
 
                         if (firstTokenOfFirstProperty.loc.end.line === lastTokenOfLastProperty.loc.start.line) {
 

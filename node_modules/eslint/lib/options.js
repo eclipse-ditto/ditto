@@ -30,6 +30,7 @@ const optionator = require("optionator");
  * @property {boolean} errorOnUnmatchedPattern Prevent errors when pattern is unmatched
  * @property {boolean} eslintrc Disable use of configuration from .eslintrc.*
  * @property {string[]} [ext] Specify JavaScript file extensions
+ * @property {string[]} [flag] Feature flags
  * @property {boolean} fix Automatically fix problems
  * @property {boolean} fixDryRun Automatically fix problems without saving the changes to the file system
  * @property {("directive" | "problem" | "suggestion" | "layout")[]} [fixType] Specify the types of fixes to apply (directive, problem, suggestion, layout)
@@ -38,7 +39,7 @@ const optionator = require("optionator");
  * @property {boolean} [help] Show help
  * @property {boolean} ignore Disable use of ignore files and patterns
  * @property {string} [ignorePath] Specify path of ignore file
- * @property {string[]} [ignorePattern] Pattern of files to ignore (in addition to those in .eslintignore)
+ * @property {string[]} [ignorePattern] Patterns of files to ignore. In eslintrc mode, these are in addition to `.eslintignore`
  * @property {boolean} init Run config initialization wizard
  * @property {boolean} inlineConfig Prevent comments from changing config or rules
  * @property {number} maxWarnings Number of warnings to trigger nonzero exit code
@@ -47,7 +48,8 @@ const optionator = require("optionator");
  * @property {Object} [parserOptions] Specify parser options
  * @property {string[]} [plugin] Specify plugins
  * @property {string} [printConfig] Print the configuration for the given file
- * @property {boolean | undefined} reportUnusedDisableDirectives Adds reported errors for unused eslint-disable directives
+ * @property {boolean | undefined} reportUnusedDisableDirectives Adds reported errors for unused eslint-disable and eslint-enable directives
+ * @property {string | undefined} reportUnusedDisableDirectivesSeverity A severity string indicating if and how unused disable and enable directives should be tracked and reported.
  * @property {string} [resolvePluginsRelativeTo] A folder where plugins should be resolved from, CWD by default
  * @property {Object} [rule] Specify rules
  * @property {string[]} [rulesdir] Load additional rules from this directory. Deprecated: Use rules from plugins
@@ -55,7 +57,11 @@ const optionator = require("optionator");
  * @property {string} [stdinFilename] Specify filename to process STDIN as
  * @property {boolean} quiet Report errors only
  * @property {boolean} [version] Output the version number
+ * @property {boolean} warnIgnored Show warnings when the file list includes ignored files
+ * @property {boolean} [passOnNoPatterns=false] When set to true, missing patterns cause
+ *      the linting operation to short circuit and not report any failures.
  * @property {string[]} _ Positional filenames or patterns
+ * @property {boolean} [stats] Report additional statistics
  */
 
 //------------------------------------------------------------------------------
@@ -99,6 +105,16 @@ module.exports = function(usingFlatConfig) {
         };
     }
 
+    let inspectConfigFlag;
+
+    if (usingFlatConfig) {
+        inspectConfigFlag = {
+            option: "inspect-config",
+            type: "Boolean",
+            description: "Open the config inspector with the current configuration"
+        };
+    }
+
     let extFlag;
 
     if (!usingFlatConfig) {
@@ -139,6 +155,38 @@ module.exports = function(usingFlatConfig) {
         };
     }
 
+    let statsFlag;
+
+    if (usingFlatConfig) {
+        statsFlag = {
+            option: "stats",
+            type: "Boolean",
+            default: "false",
+            description: "Add statistics to the lint report"
+        };
+    }
+
+    let warnIgnoredFlag;
+
+    if (usingFlatConfig) {
+        warnIgnoredFlag = {
+            option: "warn-ignored",
+            type: "Boolean",
+            default: "true",
+            description: "Suppress warnings when the file list includes ignored files"
+        };
+    }
+
+    let flagFlag;
+
+    if (usingFlatConfig) {
+        flagFlag = {
+            option: "flag",
+            type: "[String]",
+            description: "Enable a feature flag"
+        };
+    }
+
     return optionator({
         prepend: "eslint [options] file.js [file.js] [dir]",
         defaults: {
@@ -155,9 +203,10 @@ module.exports = function(usingFlatConfig) {
                 alias: "c",
                 type: "path::String",
                 description: usingFlatConfig
-                    ? "Use this configuration instead of eslint.config.js"
+                    ? "Use this configuration instead of eslint.config.js, eslint.config.mjs, or eslint.config.cjs"
                     : "Use this configuration, overriding .eslintrc.* config options if present"
             },
+            inspectConfigFlag,
             envFlag,
             extFlag,
             {
@@ -223,7 +272,7 @@ module.exports = function(usingFlatConfig) {
             {
                 option: "ignore-pattern",
                 type: "[String]",
-                description: "Pattern of files to ignore (in addition to those in .eslintignore)",
+                description: `Patterns of files to ignore${usingFlatConfig ? "" : " (in addition to those in .eslintignore)"}`,
                 concatRepeatedArrays: [true, {
                     oneValuePerFlag: true
                 }]
@@ -292,7 +341,14 @@ module.exports = function(usingFlatConfig) {
                 option: "report-unused-disable-directives",
                 type: "Boolean",
                 default: void 0,
-                description: "Adds reported errors for unused eslint-disable directives"
+                description: "Adds reported errors for unused eslint-disable and eslint-enable directives"
+            },
+            {
+                option: "report-unused-disable-directives-severity",
+                type: "String",
+                default: void 0,
+                description: "Chooses severity level for reporting unused eslint-disable and eslint-enable directives",
+                enum: ["off", "warn", "error", "0", "1", "2"]
             },
             {
                 heading: "Caching"
@@ -349,6 +405,13 @@ module.exports = function(usingFlatConfig) {
                 default: "false",
                 description: "Exit with exit code 2 in case of fatal error"
             },
+            warnIgnoredFlag,
+            {
+                option: "pass-on-no-patterns",
+                type: "Boolean",
+                default: false,
+                description: "Exit with exit code 0 in case no file patterns are passed"
+            },
             {
                 option: "debug",
                 type: "Boolean",
@@ -371,7 +434,9 @@ module.exports = function(usingFlatConfig) {
                 option: "print-config",
                 type: "path::String",
                 description: "Print the configuration for the given file"
-            }
+            },
+            statsFlag,
+            flagFlag
         ].filter(value => !!value)
     });
 };

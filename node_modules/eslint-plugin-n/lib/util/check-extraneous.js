@@ -5,16 +5,16 @@
 "use strict"
 
 const getAllowModules = require("./get-allow-modules")
-const getPackageJson = require("./get-package-json")
+const { getPackageJson } = require("./get-package-json")
 
 /**
  * Checks whether or not each requirement target is published via package.json.
  *
  * It reads package.json and checks the target exists in `dependencies`.
  *
- * @param {RuleContext} context - A context to report.
+ * @param {import('eslint').Rule.RuleContext} context - A context to report.
  * @param {string} filePath - The current file path.
- * @param {ImportTarget[]} targets - A list of target information to check.
+ * @param {import('./import-target.js')[]} targets - A list of target information to check.
  * @returns {void}
  */
 exports.checkExtraneous = function checkExtraneous(context, filePath, targets) {
@@ -43,9 +43,11 @@ exports.checkExtraneous = function checkExtraneous(context, filePath, targets) {
         if (extraneous) {
             context.report({
                 node: target.node,
-                loc: target.node.loc,
+                loc: /** @type {import('eslint').AST.SourceLocation} */ (
+                    target.node.loc
+                ),
                 messageId: "extraneous",
-                data: target,
+                data: /** @type {Record<string, *>} */ (target),
             })
         }
     }

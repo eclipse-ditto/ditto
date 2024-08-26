@@ -52,17 +52,17 @@ module.exports = class CovSource {
    * @return {{count?: number, start?: boolean, stop?: boolean}|undefined}
    */
   _parseIgnore (lineStr) {
-    const testIgnoreNextLines = lineStr.match(/^\W*\/\* [c|v]8 ignore next (?<count>[0-9]+)/)
+    const testIgnoreNextLines = lineStr.match(/^\W*\/\* (?:[cv]8|node:coverage) ignore next (?<count>[0-9]+)/)
     if (testIgnoreNextLines) {
       return { count: Number(testIgnoreNextLines.groups.count) }
     }
 
     // Check if comment is on its own line.
-    if (lineStr.match(/^\W*\/\* [c|v]8 ignore next/)) {
+    if (lineStr.match(/^\W*\/\* (?:[cv]8|node:coverage) ignore next/)) {
       return { count: 1 }
     }
 
-    if (lineStr.match(/\/\* [c|v]8 ignore next/)) {
+    if (lineStr.match(/\/\* ([cv]8|node:coverage) ignore next/)) {
       // Won't ignore successive lines, but the current line will be ignored.
       return { count: 0 }
     }
@@ -71,6 +71,12 @@ module.exports = class CovSource {
     if (testIgnoreStartStop) {
       if (testIgnoreStartStop.groups.mode === 'start') return { start: true }
       if (testIgnoreStartStop.groups.mode === 'stop') return { stop: true }
+    }
+
+    const testNodeIgnoreStartStop = lineStr.match(/\/\* node:coverage (?<mode>enable|disable)/)
+    if (testNodeIgnoreStartStop) {
+      if (testNodeIgnoreStartStop.groups.mode === 'disable') return { start: true }
+      if (testNodeIgnoreStartStop.groups.mode === 'enable') return { stop: true }
     }
   }
 
@@ -235,12 +241,14 @@ function originalPositionTryBoth (sourceMap, line, column) {
 // Not required since Node 12, see: https://github.com/nodejs/node/pull/27375
 const isPreNode12 = /^v1[0-1]\./u.test(process.version)
 function getShebangLength (source) {
+  /* c8 ignore start - platform-specific */
   if (isPreNode12 && source.indexOf('#!') === 0) {
     const match = source.match(/(?<shebang>#!.*)/)
     if (match) {
       return match.groups.shebang.length
     }
   } else {
+  /* c8 ignore stop - platform-specific */
     return 0
   }
 }

@@ -1,0 +1,23 @@
+{
+  "name": "sass-embedded-linux-x64",
+  "version": "1.77.8",
+  "description": "The linux-x64 binary for sass-embedded",
+  "repository": "sass/embedded-host-node",
+  "author": "Google Inc.",
+  "license": "MIT",
+  "files": [
+    "dart-sass/**/*"
+  ],
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "bin": {
+    "sass": "./dart-sass/sass"
+  },
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ]
+}

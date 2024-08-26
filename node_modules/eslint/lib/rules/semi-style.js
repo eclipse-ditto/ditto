@@ -1,6 +1,7 @@
 /**
  * @fileoverview Rule to enforce location of semicolons.
  * @author Toru Nagashima
+ * @deprecated in ESLint v8.53.0
  */
 
 "use strict";
@@ -64,12 +65,14 @@ function isLastChild(node) {
     }
     const nodeList = getChildren(node.parent);
 
-    return nodeList !== null && nodeList[nodeList.length - 1] === node; // before `}` or etc.
+    return nodeList !== null && nodeList.at(-1) === node; // before `}` or etc.
 }
 
 /** @type {import('../shared/types').Rule} */
 module.exports = {
     meta: {
+        deprecated: true,
+        replacedBy: [],
         type: "layout",
 
         docs: {

@@ -1,6 +1,7 @@
 /**
  * @fileoverview Rule to enforce linebreaks after open and before close array brackets
  * @author Jan Peer Stöcklmair <https://github.com/JPeer264>
+ * @deprecated in ESLint v8.53.0
  */
 
 "use strict";
@@ -14,6 +15,8 @@ const astUtils = require("./utils/ast-utils");
 /** @type {import('../shared/types').Rule} */
 module.exports = {
     meta: {
+        deprecated: true,
+        replacedBy: [],
         type: "layout",
 
         docs: {
@@ -71,7 +74,7 @@ module.exports = {
         function normalizeOptionValue(option) {
             let consistent = false;
             let multiline = false;
-            let minItems = 0;
+            let minItems;
 
             if (option) {
                 if (option === "consistent") {

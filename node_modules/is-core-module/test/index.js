@@ -83,10 +83,15 @@ test('core modules', function (t) {
 				'v8/tools/tickprocessor',
 				'v8/tools/profile'
 			];
+
 			// see https://github.com/nodejs/node/issues/42785
 			if (semver.satisfies(process.version, '>= 18')) {
 				libs = libs.concat('node:test');
 			}
+			if (semver.satisfies(process.version, '^20.12 || >= 21.7')) {
+				libs = libs.concat('node:sea');
+			}
+
 			for (var i = 0; i < libs.length; ++i) {
 				var mod = libs[i];
 				if (excludeList.indexOf(mod) === -1) {

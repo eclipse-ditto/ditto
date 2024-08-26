@@ -12,6 +12,7 @@ export default class SourceMap {
     sources: (string | null)[];
     sourcesContent?: (string | null)[];
     version: 3;
+    ignoreList: number[] | undefined;
     constructor(map: GenMapping, options: Options);
     toString(): string;
 }

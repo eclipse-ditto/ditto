@@ -1,6 +1,6 @@
 export type Platform = 'browser' | 'node' | 'neutral'
 export type Format = 'iife' | 'cjs' | 'esm'
-export type Loader = 'base64' | 'binary' | 'copy' | 'css' | 'dataurl' | 'default' | 'empty' | 'file' | 'js' | 'json' | 'jsx' | 'text' | 'ts' | 'tsx'
+export type Loader = 'base64' | 'binary' | 'copy' | 'css' | 'dataurl' | 'default' | 'empty' | 'file' | 'js' | 'json' | 'jsx' | 'local-css' | 'text' | 'ts' | 'tsx'
 export type LogLevel = 'verbose' | 'debug' | 'info' | 'warning' | 'error' | 'silent'
 export type Charset = 'ascii' | 'utf8'
 export type Drop = 'console' | 'debugger'
@@ -36,6 +36,8 @@ interface CommonOptions {
   mangleCache?: Record<string, string | false>
   /** Documentation: https://esbuild.github.io/api/#drop */
   drop?: Drop[]
+  /** Documentation: https://esbuild.github.io/api/#drop-labels */
+  dropLabels?: string[]
   /** Documentation: https://esbuild.github.io/api/#minify */
   minify?: boolean
   /** Documentation: https://esbuild.github.io/api/#minify */
@@ -44,6 +46,8 @@ interface CommonOptions {
   minifyIdentifiers?: boolean
   /** Documentation: https://esbuild.github.io/api/#minify */
   minifySyntax?: boolean
+  /** Documentation: https://esbuild.github.io/api/#line-limit */
+  lineLimit?: number
   /** Documentation: https://esbuild.github.io/api/#charset */
   charset?: Charset
   /** Documentation: https://esbuild.github.io/api/#tree-shaking */
@@ -79,6 +83,28 @@ interface CommonOptions {
   logLimit?: number
   /** Documentation: https://esbuild.github.io/api/#log-override */
   logOverride?: Record<string, LogLevel>
+
+  /** Documentation: https://esbuild.github.io/api/#tsconfig-raw */
+  tsconfigRaw?: string | TsconfigRaw
+}
+
+export interface TsconfigRaw {
+  compilerOptions?: {
+    alwaysStrict?: boolean
+    baseUrl?: string
+    experimentalDecorators?: boolean
+    importsNotUsedAsValues?: 'remove' | 'preserve' | 'error'
+    jsx?: 'preserve' | 'react-native' | 'react' | 'react-jsx' | 'react-jsxdev'
+    jsxFactory?: string
+    jsxFragmentFactory?: string
+    jsxImportSource?: string
+    paths?: Record<string, string[]>
+    preserveValueImports?: boolean
+    strict?: boolean
+    target?: string
+    useDefineForClassFields?: boolean
+    verbatimModuleSyntax?: boolean
+  }
 }
 
 export interface BuildOptions extends CommonOptions {
@@ -99,7 +125,7 @@ export interface BuildOptions extends CommonOptions {
   /** Documentation: https://esbuild.github.io/api/#external */
   external?: string[]
   /** Documentation: https://esbuild.github.io/api/#packages */
-  packages?: 'external'
+  packages?: 'bundle' | 'external'
   /** Documentation: https://esbuild.github.io/api/#alias */
   alias?: Record<string, string>
   /** Documentation: https://esbuild.github.io/api/#loader */
@@ -185,21 +211,21 @@ export interface Location {
 
 export interface OutputFile {
   path: string
-  /** "text" as bytes */
   contents: Uint8Array
+  hash: string
   /** "contents" as text (changes automatically with "contents") */
   readonly text: string
 }
 
-export interface BuildResult<SpecificOptions extends BuildOptions = BuildOptions> {
+export interface BuildResult<ProvidedOptions extends BuildOptions = BuildOptions> {
   errors: Message[]
   warnings: Message[]
   /** Only when "write: false" */
-  outputFiles: OutputFile[] | (SpecificOptions['write'] extends false ? never : undefined)
+  outputFiles: OutputFile[] | (ProvidedOptions['write'] extends false ? never : undefined)
   /** Only when "metafile: true" */
-  metafile: Metafile | (SpecificOptions['metafile'] extends true ? never : undefined)
+  metafile: Metafile | (ProvidedOptions['metafile'] extends true ? never : undefined)
   /** Only when "mangleCache" is present */
-  mangleCache: Record<string, string | false> | (SpecificOptions['mangleCache'] extends Object ? never : undefined)
+  mangleCache: Record<string, string | false> | (ProvidedOptions['mangleCache'] extends Object ? never : undefined)
 }
 
 export interface BuildFailure extends Error {
@@ -214,6 +240,7 @@ export interface ServeOptions {
   servedir?: string
   keyfile?: string
   certfile?: string
+  fallback?: string
   onRequest?: (args: ServeOnRequestArgs) => void
 }
 
@@ -233,34 +260,24 @@ export interface ServeResult {
 }
 
 export interface TransformOptions extends CommonOptions {
-  tsconfigRaw?: string | {
-    compilerOptions?: {
-      alwaysStrict?: boolean,
-      importsNotUsedAsValues?: 'remove' | 'preserve' | 'error',
-      jsx?: 'react' | 'react-jsx' | 'react-jsxdev' | 'preserve',
-      jsxFactory?: string,
-      jsxFragmentFactory?: string,
-      jsxImportSource?: string,
-      preserveValueImports?: boolean,
-      target?: string,
-      useDefineForClassFields?: boolean,
-    },
-  }
-
+  /** Documentation: https://esbuild.github.io/api/#sourcefile */
   sourcefile?: string
+  /** Documentation: https://esbuild.github.io/api/#loader */
   loader?: Loader
+  /** Documentation: https://esbuild.github.io/api/#banner */
   banner?: string
+  /** Documentation: https://esbuild.github.io/api/#footer */
   footer?: string
 }
 
-export interface TransformResult<SpecificOptions extends TransformOptions = TransformOptions> {
+export interface TransformResult<ProvidedOptions extends TransformOptions = TransformOptions> {
   code: string
   map: string
   warnings: Message[]
   /** Only when "mangleCache" is present */
-  mangleCache: Record<string, string | false> | (SpecificOptions['mangleCache'] extends Object ? never : undefined)
+  mangleCache: Record<string, string | false> | (ProvidedOptions['mangleCache'] extends Object ? never : undefined)
   /** Only when "legalComments" is "external" */
-  legalComments: string | (SpecificOptions['legalComments'] extends 'external' ? never : undefined)
+  legalComments: string | (ProvidedOptions['legalComments'] extends 'external' ? never : undefined)
 }
 
 export interface TransformFailure extends Error {
@@ -323,6 +340,7 @@ export interface ResolveOptions {
   resolveDir?: string
   kind?: ImportKind
   pluginData?: any
+  with?: Record<string, string>
 }
 
 /** Documentation: https://esbuild.github.io/plugins/#resolve-results */
@@ -362,6 +380,7 @@ export interface OnResolveArgs {
   resolveDir: string
   kind: ImportKind
   pluginData: any
+  with: Record<string, string>
 }
 
 export type ImportKind =
@@ -375,6 +394,7 @@ export type ImportKind =
 
   // CSS
   | 'import-rule'
+  | 'composes-from'
   | 'url-token'
 
 /** Documentation: https://esbuild.github.io/plugins/#on-resolve-results */
@@ -407,6 +427,7 @@ export interface OnLoadArgs {
   namespace: string
   suffix: string
   pluginData: any
+  with: Record<string, string>
 }
 
 /** Documentation: https://esbuild.github.io/plugins/#on-load-results */
@@ -449,8 +470,10 @@ export interface Metafile {
         kind: ImportKind
         external?: boolean
         original?: string
+        with?: Record<string, string>
       }[]
       format?: 'cjs' | 'esm'
+      with?: Record<string, string>
     }
   }
   outputs: {
@@ -487,9 +510,9 @@ export interface AnalyzeMetafileOptions {
 export interface WatchOptions {
 }
 
-export interface BuildContext<SpecificOptions extends BuildOptions = BuildOptions> {
+export interface BuildContext<ProvidedOptions extends BuildOptions = BuildOptions> {
   /** Documentation: https://esbuild.github.io/api/#rebuild */
-  rebuild(): Promise<BuildResult<SpecificOptions>>
+  rebuild(): Promise<BuildResult<ProvidedOptions>>
 
   /** Documentation: https://esbuild.github.io/api/#watch */
   watch(options?: WatchOptions): Promise<void>
@@ -501,6 +524,11 @@ export interface BuildContext<SpecificOptions extends BuildOptions = BuildOption
   dispose(): Promise<void>
 }
 
+// This is a TypeScript type-level function which replaces any keys in "In"
+// that aren't in "Out" with "never". We use this to reject properties with
+// typos in object literals. See: https://stackoverflow.com/questions/49580725
+type SameShape<Out, In extends Out> = In & { [Key in Exclude<keyof In, keyof Out>]: never }
+
 /**
  * This function invokes the "esbuild" command-line tool for you. It returns a
  * promise that either resolves with a "BuildResult" object or rejects with a
@@ -511,8 +539,7 @@ export interface BuildContext<SpecificOptions extends BuildOptions = BuildOption
  *
  * Documentation: https://esbuild.github.io/api/#build
  */
-export declare function build<SpecificOptions extends BuildOptions>(options: SpecificOptions): Promise<BuildResult<SpecificOptions>>
-export declare function build(options: BuildOptions): Promise<BuildResult>
+export declare function build<T extends BuildOptions>(options: SameShape<BuildOptions, T>): Promise<BuildResult<T>>
 
 /**
  * This is the advanced long-running form of "build" that supports additional
@@ -523,8 +550,7 @@ export declare function build(options: BuildOptions): Promise<BuildResult>
  *
  * Documentation: https://esbuild.github.io/api/#build
  */
-export declare function context<T extends BuildOptions>(options: T): Promise<BuildContext<T>>
-export declare function context(options: BuildOptions): Promise<BuildContext>
+export declare function context<T extends BuildOptions>(options: SameShape<BuildOptions, T>): Promise<BuildContext<T>>
 
 /**
  * This function transforms a single JavaScript file. It can be used to minify
@@ -537,8 +563,7 @@ export declare function context(options: BuildOptions): Promise<BuildContext>
  *
  * Documentation: https://esbuild.github.io/api/#transform
  */
-export declare function transform<SpecificOptions extends TransformOptions>(input: string | Uint8Array, options?: SpecificOptions): Promise<TransformResult<SpecificOptions>>
-export declare function transform(input: string | Uint8Array, options?: TransformOptions): Promise<TransformResult>
+export declare function transform<T extends TransformOptions>(input: string | Uint8Array, options?: SameShape<TransformOptions, T>): Promise<TransformResult<T>>
 
 /**
  * Converts log messages to formatted message strings suitable for printing in
@@ -570,8 +595,7 @@ export declare function analyzeMetafile(metafile: Metafile | string, options?: A
  *
  * Documentation: https://esbuild.github.io/api/#build
  */
-export declare function buildSync<SpecificOptions extends BuildOptions>(options: SpecificOptions): BuildResult<SpecificOptions>
-export declare function buildSync(options: BuildOptions): BuildResult
+export declare function buildSync<T extends BuildOptions>(options: SameShape<BuildOptions, T>): BuildResult<T>
 
 /**
  * A synchronous version of "transform".
@@ -581,8 +605,7 @@ export declare function buildSync(options: BuildOptions): BuildResult
  *
  * Documentation: https://esbuild.github.io/api/#transform
  */
-export declare function transformSync<SpecificOptions extends TransformOptions>(input: string, options?: SpecificOptions): TransformResult<SpecificOptions>
-export declare function transformSync(input: string | Uint8Array, options?: TransformOptions): TransformResult
+export declare function transformSync<T extends TransformOptions>(input: string | Uint8Array, options?: SameShape<TransformOptions, T>): TransformResult<T>
 
 /**
  * A synchronous version of "formatMessages".
@@ -640,3 +663,43 @@ export interface InitializeOptions {
 }
 
 export let version: string
+
+// Call this function to terminate esbuild's child process. The child process
+// is not terminated and re-created after each API call because it's more
+// efficient to keep it around when there are multiple API calls.
+//
+// In node this happens automatically before the parent node process exits. So
+// you only need to call this if you know you will not make any more esbuild
+// API calls and you want to clean up resources.
+//
+// Unlike node, Deno lacks the necessary APIs to clean up child processes
+// automatically. You must manually call stop() in Deno when you're done
+// using esbuild or Deno will continue running forever.
+//
+// Another reason you might want to call this is if you are using esbuild from
+// within a Deno test. Deno fails tests that create a child process without
+// killing it before the test ends, so you have to call this function (and
+// await the returned promise) in every Deno test that uses esbuild.
+export declare function stop(): Promise<void>
+
+// Note: These declarations exist to avoid type errors when you omit "dom" from
+// "lib" in your "tsconfig.json" file. TypeScript confusingly declares the
+// global "WebAssembly" type in "lib.dom.d.ts" even though it has nothing to do
+// with the browser DOM and is present in many non-browser JavaScript runtimes
+// (e.g. node and deno). Declaring it here allows esbuild's API to be used in
+// these scenarios.
+//
+// There's an open issue about getting this problem corrected (although these
+// declarations will need to remain even if this is fixed for backward
+// compatibility with older TypeScript versions):
+//
+//   https://github.com/microsoft/TypeScript-DOM-lib-generator/issues/826
+//
+declare global {
+  namespace WebAssembly {
+    interface Module {
+    }
+  }
+  interface URL {
+  }
+}

@@ -6,7 +6,7 @@
 CLI tool to update `caniuse-lite` with browsers DB
 from [Browserslist](https://github.com/browserslist/browserslist/) config.
 
-Some queries like `last 2 version` or `>1%` depends on actual data
+Some queries like `last 2 versions` or `>1%` depend on actual data
 from `caniuse-lite`.
 
 ```sh

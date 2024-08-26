@@ -6,6 +6,7 @@ export declare type LoaderContext = {
     readonly depth: number;
     source: string;
     content: string | null | undefined;
+    ignore: boolean | undefined;
 };
 export declare type SourceMapLoader = (file: string, ctx: LoaderContext) => SourceMapInput | null | undefined | void;
 export declare type Options = {

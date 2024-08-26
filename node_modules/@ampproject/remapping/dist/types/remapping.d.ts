@@ -1,6 +1,7 @@
 import SourceMap from './source-map';
 import type { SourceMapInput, SourceMapLoader, Options } from './types';
 export type { SourceMapSegment, EncodedSourceMap, EncodedSourceMap as RawSourceMap, DecodedSourceMap, SourceMapInput, SourceMapLoader, LoaderContext, Options, } from './types';
+export type { SourceMap };
 /**
  * Traces through all the mappings in the root sourcemap, through the sources
  * (and their sourcemaps), all the way back to the original source location.

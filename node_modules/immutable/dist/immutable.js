@@ -141,11 +141,13 @@
   }
 
   var Collection = function Collection(value) {
+    // eslint-disable-next-line no-constructor-return
     return isCollection(value) ? value : Seq(value);
   };
 
   var KeyedCollection = /*@__PURE__*/(function (Collection) {
     function KeyedCollection(value) {
+      // eslint-disable-next-line no-constructor-return
       return isKeyed(value) ? value : KeyedSeq(value);
     }
 
@@ -158,6 +160,7 @@
 
   var IndexedCollection = /*@__PURE__*/(function (Collection) {
     function IndexedCollection(value) {
+      // eslint-disable-next-line no-constructor-return
       return isIndexed(value) ? value : IndexedSeq(value);
     }
 
@@ -170,6 +173,7 @@
 
   var SetCollection = /*@__PURE__*/(function (Collection) {
     function SetCollection(value) {
+      // eslint-disable-next-line no-constructor-return
       return isCollection(value) && !isAssociative(value) ? value : SetSeq(value);
     }
 
@@ -310,6 +314,7 @@
 
   var Seq = /*@__PURE__*/(function (Collection) {
     function Seq(value) {
+      // eslint-disable-next-line no-constructor-return
       return value === undefined || value === null
         ? emptySequence()
         : isImmutable(value)
@@ -378,6 +383,7 @@
 
   var KeyedSeq = /*@__PURE__*/(function (Seq) {
     function KeyedSeq(value) {
+      // eslint-disable-next-line no-constructor-return
       return value === undefined || value === null
         ? emptySequence().toKeyedSeq()
         : isCollection(value)
@@ -402,6 +408,7 @@
 
   var IndexedSeq = /*@__PURE__*/(function (Seq) {
     function IndexedSeq(value) {
+      // eslint-disable-next-line no-constructor-return
       return value === undefined || value === null
         ? emptySequence()
         : isCollection(value)
@@ -434,6 +441,7 @@
 
   var SetSeq = /*@__PURE__*/(function (Seq) {
     function SetSeq(value) {
+      // eslint-disable-next-line no-constructor-return
       return (
         isCollection(value) && !isAssociative(value) ? value : IndexedSeq(value)
       ).toSetSeq();
@@ -1435,15 +1443,15 @@
       return collection;
     }
 
-    var resolvedBegin = resolveBegin(begin, originalSize);
-    var resolvedEnd = resolveEnd(end, originalSize);
-
-    // begin or end will be NaN if they were provided as negative numbers and
+    // begin or end can not be resolved if they were provided as negative numbers and
     // this collection's size is unknown. In that case, cache first so there is
     // a known size and these do not resolve to NaN.
-    if (resolvedBegin !== resolvedBegin || resolvedEnd !== resolvedEnd) {
+    if (typeof originalSize === 'undefined' && (begin < 0 || end < 0)) {
       return sliceFactory(collection.toSeq().cacheResult(), begin, end, useKeys);
     }
+
+    var resolvedBegin = resolveBegin(begin, originalSize);
+    var resolvedEnd = resolveEnd(end, originalSize);
 
     // Note: resolvedEnd is undefined when the original sequence's length is
     // unknown and this slice did not supply an end and should contain all
@@ -2382,6 +2390,7 @@
 
   var Map = /*@__PURE__*/(function (KeyedCollection) {
     function Map(value) {
+      // eslint-disable-next-line no-constructor-return
       return value === undefined || value === null
         ? emptyMap()
         : isMap(value) && !isOrdered(value)
@@ -3174,20 +3183,25 @@
     function List(value) {
       var empty = emptyList();
       if (value === undefined || value === null) {
+        // eslint-disable-next-line no-constructor-return
         return empty;
       }
       if (isList(value)) {
+        // eslint-disable-next-line no-constructor-return
         return value;
       }
       var iter = IndexedCollection(value);
       var size = iter.size;
       if (size === 0) {
+        // eslint-disable-next-line no-constructor-return
         return empty;
       }
       assertNotInfinite(size);
       if (size > 0 && size < SIZE) {
+        // eslint-disable-next-line no-constructor-return
         return makeList(0, size, SHIFT, null, new VNode(iter.toArray()));
       }
+      // eslint-disable-next-line no-constructor-return
       return empty.withMutations(function (list) {
         list.setSize(size);
         iter.forEach(function (v, i) { return list.set(i, v); });
@@ -3823,6 +3837,7 @@
 
   var OrderedMap = /*@__PURE__*/(function (Map) {
     function OrderedMap(value) {
+      // eslint-disable-next-line no-constructor-return
       return value === undefined || value === null
         ? emptyOrderedMap()
         : isOrderedMap(value)
@@ -3991,6 +4006,7 @@
 
   var Stack = /*@__PURE__*/(function (IndexedCollection) {
     function Stack(value) {
+      // eslint-disable-next-line no-constructor-return
       return value === undefined || value === null
         ? emptyStack()
         : isStack(value)
@@ -4325,6 +4341,7 @@
 
   var Set = /*@__PURE__*/(function (SetCollection) {
     function Set(value) {
+      // eslint-disable-next-line no-constructor-return
       return value === undefined || value === null
         ? emptySet()
         : isSet(value) && !isOrdered(value)
@@ -4572,6 +4589,7 @@
   var Range = /*@__PURE__*/(function (IndexedSeq) {
     function Range(start, end, step) {
       if (!(this instanceof Range)) {
+        // eslint-disable-next-line no-constructor-return
         return new Range(start, end, step);
       }
       invariant(step !== 0, 'Cannot step a Range by 0');
@@ -4589,6 +4607,7 @@
       this.size = Math.max(0, Math.ceil((end - start) / step - 1) + 1);
       if (this.size === 0) {
         if (EMPTY_RANGE) {
+          // eslint-disable-next-line no-constructor-return
           return EMPTY_RANGE;
         }
         EMPTY_RANGE = this;
@@ -4931,7 +4950,15 @@
     },
 
     some: function some(predicate, context) {
-      return !this.every(not(predicate), context);
+      assertNotInfinite(this.size);
+      var returnValue = false;
+      this.__iterate(function (v, k, c) {
+        if (predicate.call(context, v, k, c)) {
+          returnValue = true;
+          return false;
+        }
+      });
+      return returnValue;
     },
 
     sort: function sort(comparator) {
@@ -5454,6 +5481,7 @@
 
   var OrderedSet = /*@__PURE__*/(function (Set) {
     function OrderedSet(value) {
+      // eslint-disable-next-line no-constructor-return
       return value === undefined || value === null
         ? emptyOrderedSet()
         : isOrderedSet(value)
@@ -5597,6 +5625,7 @@
       RecordType.displayName = name;
     }
 
+    // eslint-disable-next-line no-constructor-return
     return RecordType;
   };
 
@@ -5764,12 +5793,14 @@
   var Repeat = /*@__PURE__*/(function (IndexedSeq) {
     function Repeat(value, times) {
       if (!(this instanceof Repeat)) {
+        // eslint-disable-next-line no-constructor-return
         return new Repeat(value, times);
       }
       this._value = value;
       this.size = times === undefined ? Infinity : Math.max(0, times);
       if (this.size === 0) {
         if (EMPTY_REPEAT) {
+          // eslint-disable-next-line no-constructor-return
           return EMPTY_REPEAT;
         }
         EMPTY_REPEAT = this;
@@ -5848,7 +5879,7 @@
     Repeat.prototype.equals = function equals (other) {
       return other instanceof Repeat
         ? is(this._value, other._value)
-        : deepEqual(other);
+        : deepEqual(this, other);
     };
 
     return Repeat;
@@ -5897,7 +5928,7 @@
     return isIndexed(v) ? v.toList() : isKeyed(v) ? v.toMap() : v.toSet();
   }
 
-  var version = "4.3.0";
+  var version = "4.3.7";
 
   var Immutable = {
     version: version,

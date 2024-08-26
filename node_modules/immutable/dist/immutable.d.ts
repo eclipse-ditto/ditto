@@ -91,6 +91,16 @@
  */
 
 declare namespace Immutable {
+  /** @ignore */
+  type OnlyObject<T> = Extract<T, object>;
+
+  /** @ignore */
+  type ContainObject<T> = OnlyObject<T> extends object
+    ? OnlyObject<T> extends never
+      ? false
+      : true
+    : false;
+
   /**
    * @ignore
    *
@@ -100,7 +110,7 @@ declare namespace Immutable {
   export type DeepCopy<T> = T extends Record<infer R>
     ? // convert Record to DeepCopy plain JS object
       {
-        [key in keyof R]: R[key] extends object ? unknown : R[key];
+        [key in keyof R]: ContainObject<R[key]> extends true ? unknown : R[key];
       }
     : T extends Collection.Keyed<infer KeyedKey, infer V>
     ? // convert KeyedCollection to DeepCopy plain JS object
@@ -111,14 +121,14 @@ declare namespace Immutable {
       }
     : // convert IndexedCollection or Immutable.Set to DeepCopy plain JS array
     T extends Collection<infer _, infer V>
-    ? Array<V extends object ? unknown : V>
+    ? Array<DeepCopy<V>>
     : T extends string | number // Iterable scalar types : should be kept as is
     ? T
     : T extends Iterable<infer V> // Iterable are converted to plain JS array
-    ? Array<V extends object ? unknown : V>
+    ? Array<DeepCopy<V>>
     : T extends object // plain JS object are converted deeply
     ? {
-        [ObjectKey in keyof T]: T[ObjectKey] extends object
+        [ObjectKey in keyof T]: ContainObject<T[ObjectKey]> extends true
           ? unknown
           : T[ObjectKey];
       }
@@ -1703,6 +1713,8 @@ declare namespace Immutable {
      * `Set.fromKeys()` creates a new immutable Set containing the keys from
      * this Collection or JavaScript Object.
      */
+    function fromKeys<T>(iter: Collection.Keyed<T, unknown>): Set<T>;
+    // tslint:disable-next-line unified-signatures
     function fromKeys<T>(iter: Collection<T, unknown>): Set<T>;
     function fromKeys(obj: { [key: string]: unknown }): Set<string>;
 
@@ -1913,7 +1925,9 @@ declare namespace Immutable {
     /**
      * True if the provided value is an OrderedSet.
      */
-    function isOrderedSet(maybeOrderedSet: unknown): boolean;
+    function isOrderedSet(
+      maybeOrderedSet: unknown
+    ): maybeOrderedSet is OrderedSet<unknown>;
 
     /**
      * Creates a new OrderedSet containing `values`.
@@ -1924,6 +1938,8 @@ declare namespace Immutable {
      * `OrderedSet.fromKeys()` creates a new immutable OrderedSet containing
      * the keys from this Collection or JavaScript Object.
      */
+    function fromKeys<T>(iter: Collection.Keyed<T, unknown>): OrderedSet<T>;
+    // tslint:disable-next-line unified-signatures
     function fromKeys<T>(iter: Collection<T, unknown>): OrderedSet<T>;
     function fromKeys(obj: { [key: string]: unknown }): OrderedSet<string>;
   }
