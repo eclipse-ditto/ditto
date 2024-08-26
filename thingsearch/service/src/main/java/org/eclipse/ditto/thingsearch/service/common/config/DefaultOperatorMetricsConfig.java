@@ -50,14 +50,14 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
     private final boolean enabled;
     private final Duration scrapeInterval;
     private final Map<String, CustomMetricConfig> customMetricConfigurations;
-    private final Map<String, CustomSearchMetricConfig> customSearchMetricConfigurations;
+    private final Map<String, CustomSearchMetricConfig> customSearchMetricConfigs;
 
     private DefaultOperatorMetricsConfig(final ConfigWithFallback updaterScopedConfig) {
         enabled = updaterScopedConfig.getBoolean(OperatorMetricsConfigValue.ENABLED.getConfigPath());
         scrapeInterval = updaterScopedConfig.getNonNegativeDurationOrThrow(OperatorMetricsConfigValue.SCRAPE_INTERVAL);
         customMetricConfigurations = loadCustomMetricConfigurations(updaterScopedConfig,
                 OperatorMetricsConfigValue.CUSTOM_METRICS);
-        customSearchMetricConfigurations = loadCustomSearchMetricConfigurations(updaterScopedConfig,
+        customSearchMetricConfigs = loadCustomSearchMetricConfigurations(updaterScopedConfig,
                 OperatorMetricsConfigValue.CUSTOM_SEARCH_METRICS);
     }
 
@@ -132,8 +132,8 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
     }
 
     @Override
-    public Map<String, CustomSearchMetricConfig> getCustomSearchMetricConfigurations() {
-        return customSearchMetricConfigurations;
+    public Map<String, CustomSearchMetricConfig> getCustomSearchMetricConfigs() {
+        return customSearchMetricConfigs;
     }
 
     private static class CustomMetricConfigCollector

@@ -52,7 +52,7 @@ public interface OperatorMetricsConfig {
      *
      * @return the registered custom search metrics.
      */
-    Map<String, CustomSearchMetricConfig> getCustomSearchMetricConfigurations();
+    Map<String, CustomSearchMetricConfig> getCustomSearchMetricConfigs();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for

@@ -44,7 +44,7 @@ public class CreateBsonVisitor implements CriteriaVisitor<Bson> {
     @Nullable
     private final List<String> authorizationSubjectIds;
 
-    private CreateBsonVisitor(@Nullable final List<String> authorizationSubjectIds) {
+    CreateBsonVisitor(@Nullable final List<String> authorizationSubjectIds) {
         this.authorizationSubjectIds = authorizationSubjectIds;
     }
 

@@ -134,7 +134,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                     OperatorMetricsProviderActor.props(searchConfig.getOperatorMetricsConfig(), searchActor)
             );
             startClusterSingletonActor(OperatorSearchMetricsProviderActor.ACTOR_NAME,
-                    OperatorSearchMetricsProviderActor.props(searchConfig.getOperatorMetricsConfig(), searchActor, pubSubMediator)
+                    OperatorSearchMetricsProviderActor.props(searchConfig)
             );
         }
 

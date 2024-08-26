@@ -12,14 +12,17 @@
  */
 package org.eclipse.ditto.thingsearch.service.starter.actors;
 
+import static org.eclipse.ditto.thingsearch.service.starter.actors.ThingsAggregationConstants.CLUSTER_ROLE;
+
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -30,11 +33,8 @@ import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.Props;
 import org.apache.pekko.actor.Status;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
-import org.apache.pekko.pattern.Patterns;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.edge.service.dispatching.ThingsAggregatorProxyActor;
-import org.eclipse.ditto.edge.service.placeholders.ThingJsonPlaceholder;
+import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.KamonGauge;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.KamonTagSetConverter;
@@ -42,21 +42,20 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.tag.Tag;
 import org.eclipse.ditto.internal.utils.metrics.instruments.tag.TagSet;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pekko.logging.DittoLoggerFactory;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonParseOptions;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingsResponse;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
-import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
+import org.eclipse.ditto.placeholders.ExpressionResolver;
+import org.eclipse.ditto.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.placeholders.PlaceholderResolver;
+import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetrics;
+import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetricsResponse;
 import org.eclipse.ditto.thingsearch.service.common.config.CustomSearchMetricConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.OperatorMetricsConfig;
+import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
+import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsAggregationPersistence;
+import org.eclipse.ditto.thingsearch.service.placeholders.GroupByPlaceholderResolver;
+import org.eclipse.ditto.thingsearch.service.placeholders.InlinePlaceholderResolver;
 
 import kamon.Kamon;
-import scala.Tuple2;
 
 /**
  * Actor which is started as singleton for "search" role and is responsible for querying for extended operator defined
@@ -71,53 +70,49 @@ public final class OperatorSearchMetricsProviderActor extends AbstractActorWithT
 
     private static final int MIN_INITIAL_DELAY_SECONDS = 30;
     private static final int MAX_INITIAL_DELAY_SECONDS = 90;
-    private static final int DEFAULT_SEARCH_TIMEOUT_SECONDS = 60;
+    private static final String METRIC_NAME = "metric-name";
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-    private final ThingJsonPlaceholder thingJsonPlaceholder = ThingJsonPlaceholder.getInstance();
-    private final Map<TagSet, Double> aggregatedByTagsValues = new HashMap<>();
-
-    private final ActorRef searchActor;
-    private final Map<String, Tuple2<Gauge, Long>> metricsGauges;
+    private final ActorRef thingsAggregatorActorSingletonProxy;
+    private final Map<String, CustomSearchMetricConfig> customSearchMetricConfigMap;
+    private final Map<GageIdentifier, TimestampedGauge> metricsGauges;
     private final Gauge customSearchMetricsGauge;
-    private final ActorRef thingsAggregatorProxyActor;
+    private final Map<FilterIdentifier, PlaceholderResolver<Map<String, String>>> inlinePlaceholderResolvers;
 
     @SuppressWarnings("unused")
-    private OperatorSearchMetricsProviderActor(final OperatorMetricsConfig operatorMetricsConfig,
-            final ActorRef searchActor, final ActorRef pubSubMediator) {
-        customSearchMetricsGauge = KamonGauge.newGauge("custom-search-metrics");
-        this.searchActor = searchActor;
-        thingsAggregatorProxyActor = getContext().actorOf(ThingsAggregatorProxyActor.props(pubSubMediator),
-                ThingsAggregatorProxyActor.ACTOR_NAME);
-        metricsGauges = new HashMap<>();
-        operatorMetricsConfig.getCustomSearchMetricConfigurations().forEach((metricName, config) -> {
-            if (config.isEnabled()) {
-                initializeCustomMetricTimer(operatorMetricsConfig, metricName, config);
-            } else {
-                log.info("Initializing custom search metric Gauge for metric <{}> is DISABLED", metricName);
-            }
+    private OperatorSearchMetricsProviderActor(final SearchConfig searchConfig) {
+        this.thingsAggregatorActorSingletonProxy = initializeAggregationThingsMetricsActor(searchConfig);
+        this.customSearchMetricConfigMap = searchConfig.getOperatorMetricsConfig().getCustomSearchMetricConfigs();
+        this.metricsGauges = new HashMap<>();
+        this.inlinePlaceholderResolvers = new HashMap<>();
+        this.customSearchMetricsGauge = KamonGauge.newGauge("custom-search-metrics-count-of-instruments");
+        this.customSearchMetricConfigMap.forEach((metricName, customSearchMetricConfig) -> {
+            initializeCustomMetricTimer(metricName, customSearchMetricConfig,  getMaxConfiguredScrapeInterval(searchConfig.getOperatorMetricsConfig()));
+
+            // Initialize the inline resolvers here as they use a static source from config
+            customSearchMetricConfig.getFilterConfigs()
+                    .forEach(fc -> inlinePlaceholderResolvers.put(new FilterIdentifier(metricName, fc.getFilterName()),
+                            new InlinePlaceholderResolver(fc.getInlinePlaceholderValues())));
         });
-        initializeCustomMetricsCleanupTimer(operatorMetricsConfig);
+        initializeCustomMetricsCleanupTimer(searchConfig.getOperatorMetricsConfig());
     }
 
     /**
      * Create Props for this actor.
      *
-     * @param operatorMetricsConfig the config to use
-     * @param searchActor the SearchActor Actor reference
+     * @param searchConfig the searchConfig to use
      * @return the Props object.
      */
-    public static Props props(final OperatorMetricsConfig operatorMetricsConfig, final ActorRef searchActor,
-            final ActorRef pubSubMediator) {
-        return Props.create(OperatorSearchMetricsProviderActor.class, operatorMetricsConfig, searchActor,
-                pubSubMediator);
+    public static Props props(final SearchConfig searchConfig) {
+        return Props.create(OperatorSearchMetricsProviderActor.class, searchConfig);
     }
 
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(GatherMetrics.class, this::handleGatheringMetrics)
-                .match(CleanupUnusedMetrics.class, this::handleCleanupUnusedMetrics)
+                .match(GatherMetricsCommand.class, this::handleGatheringMetrics)
+                .match(AggregateThingsMetricsResponse.class, this::handleAggregateThingsResponse)
+                .match(CleanupUnusedMetricsCommand.class, this::handleCleanupUnusedMetrics)
                 .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
@@ -126,265 +121,114 @@ public final class OperatorSearchMetricsProviderActor extends AbstractActorWithT
                 .build();
     }
 
-    private void initializeCustomMetricTimer(final OperatorMetricsConfig operatorMetricsConfig, final String metricName,
-            final CustomSearchMetricConfig config) {
-        // start each custom metric provider with a random initialDelay
-        final Duration initialDelay = Duration.ofSeconds(
-                ThreadLocalRandom.current().nextInt(MIN_INITIAL_DELAY_SECONDS, MAX_INITIAL_DELAY_SECONDS)
-        );
-        final Duration scrapeInterval = config.getScrapeInterval()
-                .orElse(operatorMetricsConfig.getScrapeInterval());
-        log.info("Initializing custom metric timer for metric <{}> with initialDelay <{}> and scrapeInterval <{}>",
-                metricName,
-                initialDelay, scrapeInterval);
-        getTimers().startTimerAtFixedRate(
-                metricName, createGatherCustomMetric(metricName, config), initialDelay, scrapeInterval);
+    private ActorRef initializeAggregationThingsMetricsActor(final SearchConfig searchConfig) {
+        final DittoMongoClient mongoDbClient = MongoClientExtension.get(getContext().system()).getSearchClient();
+        final var props = AggregationThingsMetricsActor.props(MongoThingsAggregationPersistence.of(mongoDbClient, searchConfig, log));
+        final ActorRef aggregationThingsMetricsActorProxy = ClusterUtil
+                .startSingletonProxy(getContext(), CLUSTER_ROLE,
+                        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, AggregationThingsMetricsActor.ACTOR_NAME,
+                                props));
+        log.info("Started child actor <{}> with path <{}>.", AggregationThingsMetricsActor.ACTOR_NAME,
+                aggregationThingsMetricsActorProxy);
+        return aggregationThingsMetricsActorProxy;
     }
 
-    private void initializeCustomMetricsCleanupTimer(final OperatorMetricsConfig operatorMetricsConfig) {
-        final Duration interval = getMaxConfiguredScrapeInterval(operatorMetricsConfig).multipliedBy(3);
-        log.info("Initializing custom metric cleanup timer Interval <{}>", interval);
-        getTimers().startTimerAtFixedRate("cleanup-unused-metrics", new CleanupUnusedMetrics(operatorMetricsConfig),
-                interval);
-    }
-
-    private void handleCleanupUnusedMetrics(CleanupUnusedMetrics cleanupUnusedMetrics) {
-        // remove metrics who were not used for longer than three times the max configured scrape interval
-        final long currentTime = System.currentTimeMillis();
-        metricsGauges.entrySet().stream()
-                .filter(entry -> {
-                    final long time = entry.getValue()._2();
-                    return currentTime - time > getMaxConfiguredScrapeInterval(cleanupUnusedMetrics.config())
-                            .multipliedBy(3).toMillis();
-                })
-                .forEach(entry -> {
-                    final String realName = realName(entry.getKey());
-                    if (Kamon.gauge(realName)
-                            .withTags(KamonTagSetConverter.getKamonTagSet(entry.getValue()._1().getTagSet()))
-                            .remove()) {
-                        log.debug("Removed custom search metric instrument: {} {}", realName,
-                                entry.getValue()._1().getTagSet());
-                        customSearchMetricsGauge.decrement();
-                    } else {
-                        log.info("Could not remove unused custom search metric instrument: {}", entry.getKey());
-                    }
-                });
-    }
-
-    private void handleGatheringMetrics(final GatherMetrics gatherMetrics) {
-        final String metricName = gatherMetrics.metricName();
-        final CustomSearchMetricConfig config = gatherMetrics.config();
+    private void handleGatheringMetrics(final GatherMetricsCommand gatherMetricsCommand) {
+        final String metricName = gatherMetricsCommand.metricName();
+        final CustomSearchMetricConfig config = gatherMetricsCommand.config();
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .correlationId("gather-search-metrics_" + metricName + "_" + UUID.randomUUID())
-                .putHeader("ditto-sudo", "true")
                 .build();
 
-        final long startTs = System.nanoTime();
-        config.getFilterConfigs().forEach(filterConfig -> {
-            QueryThings searchThings = QueryThings.of(filterConfig.getFilter(), null, null,
-                    new HashSet<>(config.getNamespaces()), dittoHeaders);
-            askSearchActor(searchThings, metricName, startTs, filterConfig, config, dittoHeaders);
+        final Map<String, String> namedFilters = config.getFilterConfigs().stream()
+                .collect(Collectors.toMap(CustomSearchMetricConfig.FilterConfig::getFilterName,
+                        CustomSearchMetricConfig.FilterConfig::getFilter));
+        AggregateThingsMetrics
+                aggregateThingsMetrics = AggregateThingsMetrics.of(metricName, config.getGroupBy(), namedFilters,
+                Set.of(config.getNamespaces().toArray(new String[0])), dittoHeaders);
+        thingsAggregatorActorSingletonProxy.tell(aggregateThingsMetrics, getSelf());
+    }
+
+
+    private void handleAggregateThingsResponse(AggregateThingsMetricsResponse response) {
+        log.withCorrelationId(response).info("Received aggregate things response: {} thread: {}", //TODO debug
+                response, Thread.currentThread().getName());
+        final String metricName = response.getMetricName();
+        // record by filter name and tags
+        response.getResult().forEach((filterName, value) -> {
+            resolveTags(filterName, customSearchMetricConfigMap.get(metricName), response);
+            final CustomSearchMetricConfig customSearchMetricConfig = customSearchMetricConfigMap.get(metricName);
+            final TagSet tagSet = resolveTags(filterName, customSearchMetricConfig, response)
+                    .putTag(Tag.of("filter", filterName));
+            recordMetric(metricName, tagSet, value);
+            customSearchMetricsGauge.tag(Tag.of(METRIC_NAME, metricName)).set(Long.valueOf(metricsGauges.size()));;
         });
     }
 
-    private static GatherMetrics createGatherCustomMetric(final String metricName,
-            final CustomSearchMetricConfig config) {
-        return new GatherMetrics(metricName, config);
+    private void recordMetric(final String metricName, final TagSet tagSet, final Long value) {
+        metricsGauges.compute(new GageIdentifier(metricName, tagSet), (gageIdentifier, timestampedGauge) -> {
+            if (timestampedGauge == null) {
+                final Gauge gauge = KamonGauge.newGauge(metricName)
+                        .tags(tagSet);
+                        gauge.set(value);
+                return new TimestampedGauge(gauge);
+            } else {
+                return timestampedGauge.set(value);
+            }
+        });
     }
 
-    private void askSearchActor(final QueryThings searchThings, final String metricName, final long startTs,
-            final CustomSearchMetricConfig.FilterConfig filterConfig, final CustomSearchMetricConfig config,
-            final DittoHeaders dittoHeaders) {
-        log.withCorrelationId(dittoHeaders).debug("Asking for things for custom metric <{}>..", metricName);
-        Patterns.ask(searchActor, searchThings, Duration.ofSeconds(DEFAULT_SEARCH_TIMEOUT_SECONDS))
-                .whenComplete((response, throwable) -> {
-                    if (response instanceof QueryThingsResponse queryThingsResponse) {
-                        log.withCorrelationId(queryThingsResponse)
-                                .debug("Received QueryThingsResponse for custom search metric <{}>: {} - " +
-                                                "duration: <{}ms>",
-                                        metricName, queryThingsResponse.getSearchResult().getItems().getSize(),
-                                        Duration.ofNanos(System.nanoTime() - startTs).toMillis()
-                                );
-                        aggregateResponse(queryThingsResponse, filterConfig, metricName, config, dittoHeaders);
-                        if (queryThingsResponse.getSearchResult().hasNextPage() &&
-                                queryThingsResponse.getSearchResult().getCursor().isPresent()) {
+    private TagSet resolveTags(final String filterName, final CustomSearchMetricConfig customSearchMetricConfig,
+            final AggregateThingsMetricsResponse response) {
+        return TagSet.ofTagCollection(customSearchMetricConfig.getTags().entrySet().stream().map(tagEntry-> {
+            if (!isPlaceHolder(tagEntry.getValue())) {
+                return Tag.of(tagEntry.getKey(), tagEntry.getValue());
+            } else {
 
-                            QueryThings nextPageSearch = QueryThings.of(searchThings.getFilter().orElse(null),
-                                    List.of("cursor(" + queryThingsResponse.getSearchResult().getCursor().get() + ")"),
-                                    null,
-                                    new HashSet<>(config.getNamespaces()), dittoHeaders);
-                            log.withCorrelationId(queryThingsResponse)
-                                    .debug("Asking for next page {} for custom search metric <{}>..",
-                                            queryThingsResponse.getSearchResult().getNextPageOffset().orElse(-1L),
-                                            metricName);
-                            askSearchActor(nextPageSearch, metricName, startTs, filterConfig, config, dittoHeaders);
-                        }
-                        recordMetric(metricName);
-
-                    } else if (response instanceof DittoRuntimeException dre) {
-                        log.withCorrelationId(dittoHeaders).warning(
-                                "Received DittoRuntimeException when gathering things for " +
-                                        "custom search metric <{}> with queryThings {}: {}", metricName, searchThings,
-                                dre.getMessage(), dre
-                        );
-                    } else {
-                        log.withCorrelationId(dittoHeaders).warning(
-                                "Received unexpected result or throwable when gathering things for " +
-                                        "custom search metric <{}> with queryThings {}: {}", metricName, searchThings,
-                                response, throwable
-                        );
-                    }
-                });
+                final ExpressionResolver expressionResolver =
+                        PlaceholderFactory.newExpressionResolver(List.of(
+                                new GroupByPlaceholderResolver(customSearchMetricConfig.getGroupBy().keySet(), response.getGroupedBy())
+                                , inlinePlaceholderResolvers.get(new FilterIdentifier(customSearchMetricConfig.getMetricName(), filterName))));
+                return expressionResolver.resolve(tagEntry.getValue())
+                        .findFirst()
+                        .map(resolvedValue -> Tag.of(tagEntry.getKey(), resolvedValue))
+                        .orElse(Tag.of(tagEntry.getKey(), tagEntry.getValue()));
+            }
+        }).collect(Collectors.toSet()));
     }
 
-    private void aggregateResponse(QueryThingsResponse queryThingsResponse,
-            CustomSearchMetricConfig.FilterConfig filterConfig, String metricName,
-            CustomSearchMetricConfig config, DittoHeaders dittoHeaders) {
-        if (isOnlyThingIdField(filterConfig.getFields())) {
-            final List<Thing> things = queryThingsResponse.getSearchResult()
-                    .getItems()
-                    .stream()
-                    .map(jsonValue -> ThingsModelFactory.newThing(
-                            jsonValue.asObject()))
-                    .toList();
-            aggregateByTags(things, filterConfig, metricName, config, dittoHeaders);
-        } else {
-            final List<ThingId> thingIds = queryThingsResponse.getSearchResult()
-                    .getItems()
-                    .stream()
-                    .map(jsonValue -> ThingsModelFactory.newThing(jsonValue.asObject()).getEntityId())
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .toList();
-            log.withCorrelationId(dittoHeaders)
-                    .debug("Retrieved Things for custom search metric {}: {}", metricName, thingIds);
-            final SudoRetrieveThings sudoRetrieveThings = SudoRetrieveThings.of(thingIds,
-                    JsonFactory.newFieldSelector(ensureThingId(filterConfig.getFields()), JsonParseOptions.newBuilder()
-                            .withoutUrlDecoding().build()), dittoHeaders);
-            Patterns.ask(thingsAggregatorProxyActor, sudoRetrieveThings,
-                            Duration.ofSeconds(DEFAULT_SEARCH_TIMEOUT_SECONDS))
-                    .handle((response, throwable) -> {
-                        if (response instanceof SudoRetrieveThingsResponse retrieveThingsResponse) {
-                            // aggregate response by tags and record after all pages are received
-                            aggregateByTags(retrieveThingsResponse.getThings(), filterConfig, metricName, config,
-                                    dittoHeaders);
-                        } else {
-                            log.withCorrelationId(dittoHeaders).warning(
-                                    "Received unexpected result or throwable when gathering things for " +
-                                            "custom search metric <{}> with queryThings {}: {}", metricName,
-                                    queryThingsResponse,
-                                    response, throwable
-                            );
-                        }
-                        return null;
-                    });
-        }
-    }
-
-    private List<String> ensureThingId(final List<String> fields) {
-        return fields.contains("thingId") ? fields : Stream.concat(fields.stream(), Stream.of("thingId"))
-                .collect(Collectors.toList());
-    }
-
-    private void aggregateByTags(final List<Thing> things,
-            final CustomSearchMetricConfig.FilterConfig filterConfig, final String metricName,
-            final CustomSearchMetricConfig config, final DittoHeaders dittoHeaders) {
-        final List<TagSet> tagSets = things.stream()
-                .map(thing -> TagSet.ofTagCollection(config.getTags().entrySet().stream()
-                        .map(e -> Tag.of(e.getKey(),
-                                resolvePlaceHolder(thing.toJson().asObject(), e.getValue(), filterConfig, dittoHeaders,
-                                        metricName)))
-                        .sorted(Comparator.comparing(Tag::getValue))
-                        .toList())).toList();
-        tagSets.forEach(tagSet -> aggregatedByTagsValues.merge(tagSet, 1.0, Double::sum));
-    }
-
-    private void recordMetric(final String metricName) {
-        aggregatedByTagsValues.forEach(
-                (tags, value) -> metricsGauges.computeIfAbsent(uniqueName(metricName, tags), name -> {
-                            log.info("Initializing custom search metric Gauge for metric <{}> with tags <{}>",
-                                    metricName, tags);
-                            customSearchMetricsGauge.increment();
-                            return Tuple2.apply(KamonGauge.newGauge(metricName)
-                                    .tags(tags), System.currentTimeMillis());
-                        })
-                        ._1().set(value));
-
-        aggregatedByTagsValues.forEach(
-                (tags, value) -> metricsGauges.compute(uniqueName(metricName, tags), (key, tupleValue) -> {
-                            if (tupleValue == null) {
-                                log.info("Initializing custom search metric Gauge for metric <{}> with tags <{}>",
-                                        metricName, tags);
-                                customSearchMetricsGauge.increment();
-                                return Tuple2.apply(KamonGauge.newGauge(metricName)
-                                        .tags(tags), System.currentTimeMillis());
-
-                            } else {
-                                // update the timestamp
-                                log.debug("Updating custom search metric Gauge for metric <{}> with tags <{}>",
-                                        metricName, tags);
-                                return Tuple2.apply(tupleValue._1(), System.currentTimeMillis());
-                            }
-                        })
-                        ._1().set(value));
-
-        aggregatedByTagsValues.clear();
-    }
-
-    private String resolvePlaceHolder(final JsonObject thingJson, final String value,
-            final CustomSearchMetricConfig.FilterConfig filterConfig, final DittoHeaders dittoHeaders,
-            final String metricName) {
-        if (!isPlaceHolder(value)) {
-            return value;
-        }
-        String placeholder = value.substring(2, value.length() - 2).trim();
-        final List<String> resolvedValues =
-                new ArrayList<>(
-                        thingJsonPlaceholder.resolveValues(ThingsModelFactory.newThing(thingJson), placeholder));
-
-        if (resolvedValues.isEmpty()) {
-            filterConfig.getInlinePlaceholderValues().forEach((k, v) -> {
-                if (placeholder.equals(k)) {
-                    resolvedValues.add(v);
+    private void handleCleanupUnusedMetrics(final CleanupUnusedMetricsCommand cleanupCommand) {
+        // remove metrics who were not used for longer than three times the max configured scrape interval
+        final long currentTime = System.currentTimeMillis();
+        final Iterator<Map.Entry<GageIdentifier, TimestampedGauge>> iterator = metricsGauges.entrySet().iterator();
+        while (iterator.hasNext()) {
+            final Map.Entry<GageIdentifier, TimestampedGauge> next = iterator.next();
+            final long lastUpdated = next.getValue().getLastUpdated();
+            final long unusedPeriod = getMaxConfiguredScrapeInterval(cleanupCommand.config()).multipliedBy(2).toMillis();
+            final long expire = lastUpdated + unusedPeriod;
+            log.debug("cleanup metrics:  expired: {}, time left: {} lastUpdated: {}  expire: {} currentTime: {}",
+                    currentTime > expire, expire - currentTime, lastUpdated, expire, currentTime);
+            if (currentTime > expire) {
+                final String metricName = next.getKey().metricName();
+                // setting to zero as there is a bug in Kamon where the gauge is not removed and is still reported
+                // https://github.com/kamon-io/Kamon/issues/566
+                next.getValue().set(0L);
+                if ( Kamon.gauge(metricName).remove(KamonTagSetConverter.getKamonTagSet(next.getValue().getTagSet()))) {
+                    log.debug("Removed custom search metric instrument: {} {}", metricName,
+                            next.getValue().getTagSet());
+                    iterator.remove();
+                    customSearchMetricsGauge.tag(Tag.of(METRIC_NAME, metricName)).set(
+                            Long.valueOf(metricsGauges.size()));
+                } else {
+                    log.warning("Could not remove unused custom search metric instrument: {}", next.getKey());
                 }
-            });
+            }
         }
-        if (resolvedValues.isEmpty()) {
-            log.withCorrelationId(dittoHeaders)
-                    .warning("Custom search metric {}. Could not resolve placeholder <{}> in thing <{}>. " +
-                                    "Check that you have your fields configured correctly.", metricName,
-                            placeholder, thingJson);
-            return value;
-        }
-
-
-        return resolvedValues.stream().findFirst()
-                .orElse(value);
-    }
-
-    private String uniqueName(final String metricName, final TagSet tags) {
-        final ArrayList<Tag> list = new ArrayList<>();
-        tags.iterator().forEachRemaining(list::add);
-        return list.stream().sorted(Comparator.comparing(Tag::getKey)).map(t -> t.getKey() + "=" + t.getValue())
-                .collect(Collectors.joining("_", metricName + "#", ""));
-    }
-
-    private String realName(final String uniqueName) {
-        return uniqueName.substring(0, uniqueName.indexOf("#"));
-    }
-
-    private boolean isPlaceHolder(final String value) {
-        return value.startsWith("{{") && value.endsWith("}}");
-    }
-
-    private boolean isOnlyThingIdField(final List<String> filterConfig) {
-        return filterConfig.isEmpty() ||
-                (filterConfig.size() == 1 && filterConfig.get(0).equals(Thing.JsonFields.ID.getPointer().toString()));
     }
 
     private Duration getMaxConfiguredScrapeInterval(final OperatorMetricsConfig operatorMetricsConfig) {
         return Stream.concat(Stream.of(operatorMetricsConfig.getScrapeInterval()),
-                        operatorMetricsConfig.getCustomSearchMetricConfigurations().values().stream()
+                        operatorMetricsConfig.getCustomSearchMetricConfigs().values().stream()
                                 .map(CustomSearchMetricConfig::getScrapeInterval)
                                 .filter(Optional::isPresent)
                                 .map(Optional::get))
@@ -392,7 +236,83 @@ public final class OperatorSearchMetricsProviderActor extends AbstractActorWithT
                 .orElse(operatorMetricsConfig.getScrapeInterval());
     }
 
-    private record GatherMetrics(String metricName, CustomSearchMetricConfig config) {}
+    private void initializeCustomMetricTimer(final String metricName, final CustomSearchMetricConfig config, final Duration scrapeInterval ) {
+        if (!config.isEnabled()) {
+            log.info("Custom search metric Gauge for metric <{}> is DISABLED. Skipping init.", metricName);
+            return;
+        }
+        // start each custom metric provider with a random initialDelay
+        final Duration initialDelay = Duration.ofSeconds(
+                ThreadLocalRandom.current().nextInt(MIN_INITIAL_DELAY_SECONDS, MAX_INITIAL_DELAY_SECONDS)
+        );
+        log.info("Initializing custom metric timer for metric <{}> with initialDelay <{}> and scrapeInterval <{}>",
+                metricName,
+                initialDelay, scrapeInterval);
+        getTimers().startTimerAtFixedRate(metricName, new GatherMetricsCommand(metricName, config), initialDelay,
+                scrapeInterval);
+    }
 
-    private record CleanupUnusedMetrics(OperatorMetricsConfig config) {}
+    private void initializeCustomMetricsCleanupTimer(final OperatorMetricsConfig operatorMetricsConfig) {
+        final Duration interval = getMaxConfiguredScrapeInterval(operatorMetricsConfig);
+        log.info("Initializing custom metric cleanup timer Interval <{}>", interval);
+        getTimers().startTimerAtFixedRate("cleanup-unused-metrics", new CleanupUnusedMetricsCommand(operatorMetricsConfig),
+                interval);
+    }
+
+    private boolean isPlaceHolder(final String value) {
+        return value.startsWith("{{") && value.endsWith("}}");
+    }
+
+    private static class TimestampedGauge {
+
+        private final Gauge gauge;
+        private final Long timestamp;
+
+        private TimestampedGauge(Gauge gauge) {
+            this.gauge = gauge;
+            this.timestamp = System.currentTimeMillis();
+        }
+
+        public TimestampedGauge set(final Long value) {
+            gauge.set(value);
+            return new TimestampedGauge(gauge);
+        }
+
+        private TagSet getTagSet() {
+            return gauge.getTagSet();
+        }
+
+        private long getLastUpdated() {
+            return timestamp;
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            final TimestampedGauge that = (TimestampedGauge) o;
+            return Objects.equals(gauge, that.gauge) && Objects.equals(timestamp, that.timestamp);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(gauge, timestamp);
+        }
+
+        @Override
+        public String toString() {
+            return "GageWithTimestamp{" +
+                    "gauge=" + gauge +
+                    ", timestamp=" + timestamp +
+                    '}';
+        }
+    }
+
+    private record GatherMetricsCommand(String metricName, CustomSearchMetricConfig config) {}
+
+    private record CleanupUnusedMetricsCommand(OperatorMetricsConfig config) {}
+
+    private record FilterIdentifier(String metricName, String filterName) {}
+
+    private record GageIdentifier(String metricName, TagSet tags) {}
 }

@@ -15,7 +15,6 @@ package org.eclipse.ditto.thingsearch.service.common.config;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,7 +30,7 @@ public interface CustomSearchMetricConfig {
      *
      * @return the name of the custom metric.
      */
-    String getCustomMetricName();
+    String getMetricName();
 
     /**
      * Returns whether this specific search operator metric gathering is turned on.
@@ -55,6 +54,14 @@ public interface CustomSearchMetricConfig {
      * @return a list of namespaces.
      */
     List<String> getNamespaces();
+
+    /**
+     * Returns the fields we want our metric aggregation to be grouped by.
+     * Field name and thing json pointer
+     *
+     * @return the fields we want our metric aggregation to be grouped by.
+     */
+    Map<String, String> getGroupBy();
 
     /**
      * Return optional tags to report to the custom Gauge metric.
@@ -89,10 +96,18 @@ public interface CustomSearchMetricConfig {
         NAMESPACES("namespaces", List.of()),
 
         /**
+         * The fields we want our metric aggregation to be grouped by.
+         */
+        GROUP_BY("group-by", Map.of()),
+
+        /**
          * The optional tags to report to the custom Gauge metric.
          */
         TAGS("tags", Map.of()),
 
+        /**
+         * The filter configurations for this custom metric.
+         */
         FILTERS("filters", List.of());
 
         private final String path;
@@ -114,19 +129,36 @@ public interface CustomSearchMetricConfig {
         }
     }
 
+    /**
+     * Provides the configuration settings for a single filter configuration.
+     */
     interface FilterConfig {
 
         String getFilterName();
 
+        /**
+         * Returns the filter to be used.
+         * @return the filter.
+         */
         String getFilter();
 
-        List<String> getFields();
-
+        /**
+         * Returns the inline placeholder values to be used for resolving.
+         * @return the inline placeholder values.
+         */
         Map<String, String> getInlinePlaceholderValues();
 
+        /**
+         * The known configuration values for a filter configuration.
+         */
         enum FilterConfigValues implements KnownConfigValue {
+            /**
+             * The filter to be used.
+             */
             FILTER("filter", ""),
-            FIELDS("fields", Collections.emptyList()),
+            /**
+             * The inline placeholder values to be used for resolving.
+             */
             INLINE_PLACEHOLDER_VALUES("inline-placeholder-values", Map.of());
 
             private final String path;

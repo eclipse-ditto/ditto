@@ -27,7 +27,6 @@ import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutEx
 import org.eclipse.ditto.base.model.signals.commands.exceptions.PathUnknownException;
 import org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionConflictException;
-import org.eclipse.ditto.edge.service.EdgeServiceTimeoutException;
 import org.eclipse.ditto.internal.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.messages.model.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.placeholders.PlaceholderFunctionSignatureInvalidException;
@@ -71,8 +70,7 @@ public final class ThingSearchServiceGlobalErrorRegistryTest extends GlobalError
                 ConnectionConflictException.class,
                 UnknownTopicPathException.class,
                 UnknownSignalException.class,
-                IllegalAdaptableException.class,
-                EdgeServiceTimeoutException.class);
+                IllegalAdaptableException.class);
     }
 
 }
