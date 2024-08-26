@@ -586,12 +586,20 @@ In Prometheus format this would look like:
 all_produced_and_not_installed_devices{company="acme-corp"} 42.0
 ```
 ### Operator defined custom search based metrics
-Starting with Ditto 3.6.0, the "custom metrics" functionality is extended to support search based metrics.  
+Starting with Ditto 3.6.0, the "custom metrics" functionality is extended to support search-based metrics.  
 This is configured via the [search](architecture-services-things-search.html) service configuration and builds on the
 [search things](basic-search.html#search-queries) functionality.
 
+> :warning: **Abstain of defining grouping by fields that have a high cardinality, as this will lead to a high number of metrics and
+may overload the Prometheus server!**
+
 Now you can augment the statistic about "Things" managed in Ditto
-fulfilling a certain condition with tags with either predefined values or values retrieved from the things. 
+fulfilling a certain condition with tags with either predefined values,
+values retrieved from the things or values which are defined based on the matching filter. 
+This is fulfill by using hardcoded values or placeholders in the tags configuration.
+The supported placeholder types are inline and group-by placeholders.
+[Function expressions](basic-placeholders.html#function-expressions) are also supported
+to manipulate the values of the placeholders before they are used in the tags.
 
 This would be an example search service configuration snippet for e.g. providing a metric named
 `online_devices` defining a query on the values of a `ConnectionStatus` feature:
@@ -607,34 +615,35 @@ ditto {
       custom-search-metrics {
         online_status {
           enabled = true
-          scrape-interval = 20m # override scrape interval, run every 20 minute
+          scrape-interval = 1m # override scrape interval, run every 20 minute
           namespaces = [
             "org.eclipse.ditto"
           ]
+          group-by:{
+            "location" = "attributes/Info/location"
+            "isGateway" = "attributes/Info/gateway"
+          }
           tags: {
-            "online" = "{{online_placeholder}}"
-            "location" = "{{attributes/Info/location}}"
+            "online" = "{{ inline:online_placeholder }}"
+            "health" = "{{ inline:health }}"
+            "hardcoded-tag" = "hardcoded_value"
+            "location" = "{{ group-by:location | fn:default('missing location') }}"
+            "altitude" = "{{ group-by:isGateway }}"
           }
           filters = {
-            online-filter = {
+            online_filter = {
               filter = "gt(features/ConnectionStatus/properties/status/readyUntil/,time:now)"
               inline-placeholder-values = {
-                // inline-placeholder-values are used to define hardcoded values to be used in the tags values if the placeholders are not json paths to an actual field in the thing
-                // this is used to define different tags values based on the filter that matched the thing
                 "online_placeholder" = true
+                "health" = "good"
               }
-              // in order to do placeholder resolving from thing fields, the fields should be defined in the fields array
-              // by default only the thingId is available for placeholder resolving
-              fields = ["attributes/Info/location"]
-              // The metric-value is used to define the value of the metric for the thing that matched the filter.
-              // It does not support placeholders and should be a numeric value
             }
-            offline-filter = {
+            offline_filter = {
               filter = "lt(features/ConnectionStatus/properties/status/readyUntil/,time:now)"
               inline-placeholder-values = {
                 "online_placeholder" = false
+                "health" = "bad"
               }
-              fields = ["attributes/Info/location"]
             }
           }
         }
