@@ -24,16 +24,16 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.bson.BsonDocument;
-import org.eclipse.ditto.things.model.ThingId;
-
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.persistence.inmemory.query.javadsl.InMemoryReadJournal;
 import org.apache.pekko.persistence.query.EventEnvelope;
 import org.apache.pekko.persistence.query.PersistenceQuery;
 import org.apache.pekko.stream.javadsl.Sink;
 import org.apache.pekko.stream.javadsl.Source;
+import org.bson.BsonDocument;
+import org.eclipse.ditto.things.model.ThingId;
+
+import io.github.alstanchev.pekko.persistence.inmemory.query.javadsl.InMemoryReadJournal;
 
 /**
  * Helper class which provides functionality for testing with Pekko persistence journal for the things services.
