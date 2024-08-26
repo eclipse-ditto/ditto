@@ -154,10 +154,6 @@
             <scope>test</scope>
             <type>test-jar</type>
         </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-edge-service</artifactId>
-        </dependency>
     </dependencies>
 
     <build>

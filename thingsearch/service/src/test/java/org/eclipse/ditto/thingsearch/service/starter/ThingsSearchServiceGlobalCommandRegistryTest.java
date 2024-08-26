@@ -19,7 +19,6 @@ import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
 import org.eclipse.ditto.base.model.signals.commands.streaming.SubscribeForPersistedEvents;
 import org.eclipse.ditto.base.service.cluster.ModifySplitBrainResolver;
-import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionTags;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.ModifyConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamPids;
@@ -63,8 +62,7 @@ public final class ThingsSearchServiceGlobalCommandRegistryTest extends GlobalCo
                 ModifyConnection.class,
                 ModifySplitBrainResolver.class,
                 RetrieveConnection.class,
-                SubscribeForPersistedEvents.class,
-                SudoRetrieveConnectionTags.class
+                SubscribeForPersistedEvents.class
         );
     }
 

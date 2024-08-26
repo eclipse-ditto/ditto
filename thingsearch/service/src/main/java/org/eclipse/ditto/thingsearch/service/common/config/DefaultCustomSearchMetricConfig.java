@@ -183,37 +183,31 @@ public final class DefaultCustomSearchMetricConfig implements CustomSearchMetric
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
         final DefaultCustomSearchMetricConfig that = (DefaultCustomSearchMetricConfig) o;
-        return enabled == that.enabled &&
-                Objects.equals(metricName, that.metricName) &&
+        return enabled == that.enabled && Objects.equals(metricName, that.metricName) &&
                 Objects.equals(scrapeInterval, that.scrapeInterval) &&
-                Objects.equals(namespaces, that.namespaces) &&
-                Objects.equals(tags, that.tags) &&
-                Objects.equals(filterConfigs, that.filterConfigs);
+                Objects.equals(namespaces, that.namespaces) && Objects.equals(groupBy, that.groupBy) &&
+                Objects.equals(tags, that.tags) && Objects.equals(filterConfigs, that.filterConfigs);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(metricName, enabled, scrapeInterval, namespaces, tags, filterConfigs);
+        return Objects.hash(metricName, enabled, scrapeInterval, namespaces, groupBy, tags, filterConfigs);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" +
-                "customMetricName=" + metricName +
+        return "DefaultCustomSearchMetricConfig{" +
+                "metricName='" + metricName + '\'' +
                 ", enabled=" + enabled +
                 ", scrapeInterval=" + scrapeInterval +
                 ", namespaces=" + namespaces +
                 ", groupBy=" + groupBy +
                 ", tags=" + tags +
-                ", filterConfig=" + filterConfigs +
-                "]";
+                ", filterConfigs=" + filterConfigs +
+                '}';
     }
 
     @Immutable

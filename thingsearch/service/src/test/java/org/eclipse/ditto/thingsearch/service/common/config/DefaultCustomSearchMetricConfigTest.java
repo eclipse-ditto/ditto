@@ -90,10 +90,10 @@ public class DefaultCustomSearchMetricConfigTest {
                 .hasSize(2);
         softly.assertThat(underTest.getFilterConfigs().get(0).getFilterName())
                 .as("filter name")
-                .isEqualTo("online-filter");
+                .isEqualTo("online_filter");
         softly.assertThat(underTest.getFilterConfigs().get(1).getFilterName())
                 .as("filter name")
-                .isEqualTo("offline-filter");
+                .isEqualTo("offline_filter");
         softly.assertThat(underTest.getTags())
                 .as("tags")
                 .containsExactlyInAnyOrderEntriesOf(
