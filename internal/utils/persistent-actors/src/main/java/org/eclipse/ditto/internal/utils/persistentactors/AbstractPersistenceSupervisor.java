@@ -842,6 +842,10 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 log.withCorrelationId(dre)
                         .info("Received DittoRuntimeException during enforcement or " +
                                 "forwarding to target actor, telling sender: {}", dre);
+                if (dre instanceof DittoInternalErrorException) {
+                    log.withCorrelationId(dre)
+                            .error(dre, "Received DittoInternalErrorException during enforcement");
+                }
             }
             sender.tell(dre, getSelf());
         } else if (response instanceof Status.Success success) {
@@ -899,18 +903,23 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         if (null != enforcerChild) {
             final var startedSpan = DittoTracing.newPreparedSpan(
                             signal.getDittoHeaders(),
-                            SpanOperationName.of(signal.getType())
+                            SpanOperationName.of("process " + signal.getType())
                     )
                     .correlationId(signal.getDittoHeaders().getCorrelationId().orElse(null))
                     .start();
-            final var tracedSignal =
-                    signal.setDittoHeaders(DittoHeaders.of(startedSpan.propagateContext(signal.getDittoHeaders())));
+            final var tracedSignal = signal.setDittoHeaders(
+                    DittoHeaders.of(startedSpan.propagateContext(
+                            signal.getDittoHeaders().toBuilder()
+                                    .removeHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey())
+                                    .build()
+                    ))
+            );
             final StartedTimer rootTimer = createTimer(tracedSignal);
             final StartedTimer enforcementTimer = rootTimer.startNewSegment(ENFORCEMENT_TIMER_SEGMENT_ENFORCEMENT);
             return askEnforcerChild(tracedSignal)
                     .thenCompose(this::modifyEnforcerActorEnforcedSignalResponse)
                     .whenComplete((result, error) -> {
-                        startedSpan.mark("enforced");
+                        startedSpan.mark("enforced_policy");
                         stopTimer(enforcementTimer).accept(result, error);
                     })
                     .thenCompose(enforcedCommand -> {
@@ -933,7 +942,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                                 rootTimer.startNewSegment(ENFORCEMENT_TIMER_SEGMENT_RESPONSE_FILTER);
                         return filterTargetActorResponseViaEnforcer(targetActorResponse)
                                 .whenComplete((result, error) -> {
-                                    startedSpan.mark("response_filtered");
+                                    startedSpan.mark("filtered_response");
                                     responseFilterTimer.tag(ENFORCEMENT_TIMER_TAG_OUTCOME,
                                             error != null ? ENFORCEMENT_TIMER_TAG_OUTCOME_FAIL :
                                                     ENFORCEMENT_TIMER_TAG_OUTCOME_SUCCESS).stop();

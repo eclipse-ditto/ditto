@@ -21,6 +21,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.entity.metadata.MetadataBuilder;
 import org.eclipse.ditto.base.model.entity.metadata.MetadataModelFactory;
@@ -45,6 +46,10 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.wot.api.generator.WotThingDescriptionGenerator;
+import org.eclipse.ditto.wot.api.generator.WotThingSkeletonGenerator;
+import org.eclipse.ditto.wot.api.validator.WotThingModelValidator;
+import org.eclipse.ditto.wot.integration.DittoWotIntegration;
 
 /**
  * Abstract base class for {@link org.eclipse.ditto.things.model.signals.commands.ThingCommand} strategies.
@@ -59,8 +64,16 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
     private static final ConditionalHeadersValidator VALIDATOR =
             ThingsConditionalHeadersValidatorProvider.getInstance();
 
-    protected AbstractThingCommandStrategy(final Class<C> theMatchingClass) {
+    protected final WotThingDescriptionGenerator wotThingDescriptionGenerator;
+    protected final WotThingSkeletonGenerator wotThingSkeletonGenerator;
+    protected final WotThingModelValidator wotThingModelValidator;
+
+    protected AbstractThingCommandStrategy(final Class<C> theMatchingClass, final ActorSystem actorSystem) {
         super(theMatchingClass);
+        final DittoWotIntegration wotIntegration = DittoWotIntegration.get(actorSystem);
+        wotThingDescriptionGenerator = wotIntegration.getWotThingDescriptionGenerator();
+        wotThingSkeletonGenerator = wotIntegration.getWotThingSkeletonGenerator();
+        wotThingModelValidator = wotIntegration.getWotThingModelValidator();
     }
 
     @Override

@@ -13,19 +13,21 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeatureDesiredProperties;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeatureDesiredPropertiesResponse;
 import org.eclipse.ditto.things.model.signals.events.FeatureDesiredPropertiesDeleted;
@@ -36,13 +38,13 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  */
 @Immutable
 final class DeleteFeatureDesiredPropertiesStrategy
-        extends AbstractThingCommandStrategy<DeleteFeatureDesiredProperties> {
+        extends AbstractThingModifyCommandStrategy<DeleteFeatureDesiredProperties> {
 
     /**
      * Constructs a new {@code DeleteFeatureDesiredPropertiesStrategy} object.
      */
-    DeleteFeatureDesiredPropertiesStrategy() {
-        super(DeleteFeatureDesiredProperties.class);
+    DeleteFeatureDesiredPropertiesStrategy(final ActorSystem actorSystem) {
+        super(DeleteFeatureDesiredProperties.class, actorSystem);
     }
 
     @Override
@@ -58,6 +60,27 @@ final class DeleteFeatureDesiredPropertiesStrategy
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
                                 command.getDittoHeaders()), command));
+    }
+
+    @Override
+    protected CompletionStage<DeleteFeatureDesiredProperties> performWotValidation(
+            final DeleteFeatureDesiredProperties command,
+            @Nullable final Thing previousThing,
+            @Nullable final Thing previewThing
+    ) {
+        return wotThingModelValidator.validateFeatureScopedDeletion(
+                Optional.ofNullable(previousThing)
+                        .flatMap(Thing::getDefinition)
+                        .orElse(null),
+                Optional.ofNullable(previousThing)
+                        .flatMap(Thing::getFeatures)
+                        .flatMap(f -> f.getFeature(command.getFeatureId()))
+                        .flatMap(Feature::getDefinition)
+                        .orElse(null),
+                command.getFeatureId(),
+                command.getResourcePath(),
+                command.getDittoHeaders()
+        ).thenApply(aVoid -> command);
     }
 
     private Optional<Feature> extractFeature(final DeleteFeatureDesiredProperties command,
@@ -80,12 +103,22 @@ final class DeleteFeatureDesiredPropertiesStrategy
 
         return feature.getDesiredProperties()
                 .map(desiredProperties -> {
-                    final ThingEvent<?> event =
-                            FeatureDesiredPropertiesDeleted.of(thingId, featureId, nextRevision, getEventTimestamp(),
-                                    dittoHeaders, metadata);
-                    final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                            DeleteFeatureDesiredPropertiesResponse.of(thingId, featureId, dittoHeaders), thing);
-                    return ResultFactory.<ThingEvent<?>>newMutationResult(command, event, response);
+                    final CompletionStage<DeleteFeatureDesiredProperties> validatedStage =
+                            buildValidatedStage(command, thing);
+                    final CompletionStage<ThingEvent<?>> eventStage =
+                            validatedStage.thenApply(deleteFeatureDesiredProperties ->
+                                    FeatureDesiredPropertiesDeleted.of(thingId, featureId, nextRevision,
+                                            getEventTimestamp(),
+                                            dittoHeaders, metadata)
+                            );
+                    final CompletionStage<WithDittoHeaders> responseStage = validatedStage
+                            .thenApply(deleteFeatureDesiredProperties ->
+                                    appendETagHeaderIfProvided(deleteFeatureDesiredProperties,
+                                            DeleteFeatureDesiredPropertiesResponse.of(thingId, featureId, dittoHeaders),
+                                            thing)
+                            );
+
+                    return ResultFactory.newMutationResult(command, eventStage, responseStage);
                 })
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureDesiredPropertiesNotFound(thingId, featureId, dittoHeaders), command));

@@ -22,6 +22,8 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.japi.Pair;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -43,17 +45,12 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureRespo
 import org.eclipse.ditto.things.model.signals.events.FeatureCreated;
 import org.eclipse.ditto.things.model.signals.events.FeatureModified;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
-import org.eclipse.ditto.wot.integration.provider.WotThingDescriptionProvider;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature} command.
  */
 @Immutable
-final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFeature> {
-
-    private final WotThingDescriptionProvider wotThingDescriptionProvider;
+final class ModifyFeatureStrategy extends AbstractThingModifyCommandStrategy<ModifyFeature> {
 
     /**
      * Constructs a new {@code ModifyFeatureStrategy} object.
@@ -61,8 +58,7 @@ final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFea
      * @param actorSystem the actor system to use for loading the WoT extension.
      */
     ModifyFeatureStrategy(final ActorSystem actorSystem) {
-        super(ModifyFeature.class);
-        wotThingDescriptionProvider = WotThingDescriptionProvider.get(actorSystem);
+        super(ModifyFeature.class, actorSystem);
     }
 
     @Override
@@ -93,8 +89,30 @@ final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFea
                 command::getDittoHeaders);
 
         return extractFeature(command, nonNullThing)
-                .map(feature -> getModifyResult(context, nextRevision, command, thing, metadata))
+                .map(feature -> {
+                    final CompletionStage<ModifyFeature> validatedStage = buildValidatedStage(command, thing);
+                    return getModifyResult(context, nextRevision, command, thing, metadata, validatedStage);
+                })
                 .orElseGet(() -> getCreateResult(context, nextRevision, command, thing, metadata));
+    }
+
+    @Override
+    protected CompletionStage<ModifyFeature> performWotValidation(
+            final ModifyFeature command,
+            @Nullable final Thing previousThing,
+            @Nullable final Thing previewThing
+    ) {
+        return wotThingModelValidator.validateFeature(
+                Optional.ofNullable(previousThing).flatMap(Thing::getDefinition).orElse(null),
+                Optional.ofNullable(previousThing)
+                        .flatMap(Thing::getFeatures)
+                        .flatMap(features -> features.getFeature(command.getFeatureId()))
+                        .flatMap(Feature::getDefinition)
+                        .orElse(null),
+                command.getFeature(),
+                command.getResourcePath(),
+                command.getDittoHeaders()
+        ).thenApply(aVoid -> command);
     }
 
     private Optional<Feature> extractFeature(final ModifyFeature command, @Nullable final Thing thing) {
@@ -103,18 +121,24 @@ final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFea
     }
 
     private Result<ThingEvent<?>> getModifyResult(final Context<ThingId> context, final long nextRevision,
-            final ModifyFeature command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
+            final ModifyFeature command, @Nullable final Thing thing, @Nullable final Metadata metadata,
+            final CompletionStage<ModifyFeature> validatedStage) {
 
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final ThingEvent<?> event =
-                FeatureModified.of(command.getEntityId(), command.getFeature(), nextRevision, getEventTimestamp(),
-                        dittoHeaders, metadata);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                ModifyFeatureResponse.modified(context.getState(), command.getFeatureId(), dittoHeaders),
-                thing);
+        final CompletionStage<ThingEvent<?>> eventStage =
+                validatedStage.thenApply(modifyFeature ->
+                        FeatureModified.of(command.getEntityId(), command.getFeature(), nextRevision,
+                                getEventTimestamp(),
+                                dittoHeaders, metadata));
+        final CompletionStage<WithDittoHeaders> responseStage =
+                validatedStage.thenApply(modifyFeature ->
+                        appendETagHeaderIfProvided(modifyFeature,
+                                ModifyFeatureResponse.modified(context.getState(), command.getFeatureId(),
+                                        dittoHeaders),
+                                thing));
 
-        return ResultFactory.newMutationResult(command, event, response);
+        return ResultFactory.newMutationResult(command, eventStage, responseStage);
     }
 
     private Result<ThingEvent<?>> getCreateResult(final Context<ThingId> context, final long nextRevision,
@@ -123,7 +147,7 @@ final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFea
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final Feature finalNewFeature = command.getFeature();
-        final CompletionStage<Feature> featureStage = wotThingDescriptionProvider.provideFeatureSkeletonForCreation(
+        final CompletionStage<Feature> featureStage = wotThingSkeletonGenerator.provideFeatureSkeletonForCreation(
                         finalNewFeature.getId(),
                         finalNewFeature.getDefinition().orElse(null),
                         dittoHeaders
@@ -155,14 +179,24 @@ final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFea
                         .orElse(finalNewFeature)
                 );
 
+        final CompletionStage<Pair<ModifyFeature, Feature>> validatedStage =
+                featureStage.thenCompose(createdFeatureWithImplicits ->
+                        buildValidatedStage(
+                                ModifyFeature.of(command.getEntityId(), createdFeatureWithImplicits,
+                                        command.getDittoHeaders()),
+                                thing
+                        ).thenApply(modifyFeature -> new Pair<>(modifyFeature, createdFeatureWithImplicits))
+                );
         final CompletionStage<ThingEvent<?>> eventStage =
-                featureStage.thenApply(feature -> FeatureCreated.of(command.getEntityId(), feature, nextRevision,
-                        getEventTimestamp(), dittoHeaders,
-                        metadata));
+                validatedStage.thenApply(pair ->
+                        FeatureCreated.of(command.getEntityId(), pair.second(), nextRevision,
+                                getEventTimestamp(), dittoHeaders,
+                                metadata)
+                );
 
-        final CompletionStage<WithDittoHeaders> response = featureStage.thenApply(modFeature ->
-                appendETagHeaderIfProvided(command,
-                        ModifyFeatureResponse.created(context.getState(), modFeature, dittoHeaders), thing)
+        final CompletionStage<WithDittoHeaders> response = validatedStage.thenApply(pair ->
+                appendETagHeaderIfProvided(pair.first(),
+                        ModifyFeatureResponse.created(context.getState(), pair.second(), dittoHeaders), thing)
         );
 
         return ResultFactory.newMutationResult(command, eventStage, response);

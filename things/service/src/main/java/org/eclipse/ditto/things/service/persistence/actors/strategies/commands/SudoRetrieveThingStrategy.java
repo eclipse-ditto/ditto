@@ -18,6 +18,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -43,9 +44,11 @@ final class SudoRetrieveThingStrategy extends AbstractThingCommandStrategy<SudoR
 
     /**
      * Constructs a new {@code SudoRetrieveThingStrategy} object.
+     *
+     * @param actorSystem the actor system to use for loading the WoT extension.
      */
-    SudoRetrieveThingStrategy() {
-        super(SudoRetrieveThing.class);
+    SudoRetrieveThingStrategy(final ActorSystem actorSystem) {
+        super(SudoRetrieveThing.class, actorSystem);
     }
 
     @Override

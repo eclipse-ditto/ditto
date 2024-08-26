@@ -91,6 +91,7 @@
                 <configuration>
                     <instructions>
                         <Import-Package>
+                            org.atteo.classindex,
                             !org.eclipse.ditto.utils.jsr305.annotations,
                             org.eclipse.ditto.*
                         </Import-Package>

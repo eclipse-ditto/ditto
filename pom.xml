@@ -42,10 +42,6 @@
         <url>https://github.com/eclipse-ditto/ditto/issues</url>
     </issueManagement>
 
-    <prerequisites>
-        <maven>3.5.0</maven>
-    </prerequisites>
-
     <scm>
         <connection>${release.scm.connection}</connection>
         <developerConnection>${release.scm.developerConnection}</developerConnection>

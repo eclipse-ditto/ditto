@@ -35,6 +35,7 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePoint
 import org.eclipse.ditto.thingsearch.api.QueryTimeExceededException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException;
 import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
+import org.eclipse.ditto.wot.validation.WotThingModelPayloadValidationException;
 
 public final class ThingsServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
@@ -60,7 +61,8 @@ public final class ThingsServiceGlobalErrorRegistryTest extends GlobalErrorRegis
                 PathUnknownException.class,
                 WotThingModelInvalidException.class,
                 InvalidOptionException.class,
-                QueryTimeExceededException.class
+                QueryTimeExceededException.class,
+                WotThingModelPayloadValidationException.class
         );
 
     }

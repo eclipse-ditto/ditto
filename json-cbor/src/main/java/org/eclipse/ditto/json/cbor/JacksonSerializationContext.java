@@ -24,7 +24,7 @@ import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 /**
  * Implementation of {@link SerializationContext} backed by Jackson's {@link JsonGenerator}.
  */
-final class JacksonSerializationContext implements SerializationContext {
+public final class JacksonSerializationContext implements SerializationContext {
 
     private final JsonGenerator jacksonGenerator;
     private final ControllableOutputStream outputStream;

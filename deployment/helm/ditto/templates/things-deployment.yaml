@@ -162,6 +162,36 @@ spec:
                 {{- end }}
                 {{- end }}
                 '-Dditto.things.wot.to-thing-description.json-template={{ .Values.things.config.wot.tdJsonTemplate | replace "\n" "" | replace "\\\"" "\"" }}'
+                {{- range $dynConfIdx, $dynamicWotTmValidationConfig := .Values.things.config.wot.tmValidation.dynamicConfig }}
+                {{- if or (gt (len $dynamicWotTmValidationConfig.validationContext.dittoHeadersPatterns) 0) (gt (len $dynamicWotTmValidationConfig.validationContext.thingDefinitionPatterns) 0) (gt (len $dynamicWotTmValidationConfig.validationContext.featureDefinitionPatterns) 0)  }}
+                  {{- range $dhpIdx, $dittoHeadersPatterns := $dynamicWotTmValidationConfig.validationContext.dittoHeadersPatterns }}
+                  {{- range $dhpKey, $dhpVal := $dittoHeadersPatterns }}
+                "{{ printf "%s%d%s%d%s%s=%v" "-Dditto.things.wot.tm-model-validation.dynamic-configuration." $dynConfIdx ".validation-context.ditto-headers-patterns." $dhpIdx "." $dhpKey $dhpVal }}"
+                  {{- end }}
+                  {{- end }}
+                  {{- range $tdpIdx, $thingDefinitionPattern := $dynamicWotTmValidationConfig.validationContext.thingDefinitionPatterns }}
+                "{{ printf "%s%d%s%d=%v" "-Dditto.things.wot.tm-model-validation.dynamic-configuration." $dynConfIdx ".validation-context.thing-definition-patterns." $tdpIdx $thingDefinitionPattern }}"
+                  {{- end }}
+                  {{- range $fdpIdx, $featureDefinitionPattern := $dynamicWotTmValidationConfig.validationContext.featureDefinitionPatterns }}
+                "{{ printf "%s%d%s%d=%v" "-Dditto.things.wot.tm-model-validation.dynamic-configuration." $dynConfIdx ".validation-context.feature-definition-patterns." $fdpIdx $featureDefinitionPattern }}"
+                  {{- end }}
+                  {{- range $configOverridesKey, $configOverridesValue := $dynamicWotTmValidationConfig.configOverrides }}
+                    {{- if or (eq (kindOf $configOverridesValue) "map") (eq (kindOf $configOverridesValue) "slice") }}
+                    {{- range $nested1ConfigOverridesKey, $nested1ConfigOverridesValue := $configOverridesValue }}
+                      {{- if or (eq (kindOf $nested1ConfigOverridesValue) "map") (eq (kindOf $nested1ConfigOverridesValue) "slice") }}
+                      {{- range $nested2ConfigOverridesKey, $nested2ConfigOverridesValue := $nested1ConfigOverridesValue }}
+                "{{ printf "%s%d%s%s%s%s%s%s=%v" "-Dditto.things.wot.tm-model-validation.dynamic-configuration." $dynConfIdx ".config-overrides." $configOverridesKey "." $nested1ConfigOverridesKey "." $nested2ConfigOverridesKey $nested2ConfigOverridesValue }}"
+                      {{- end }}
+                      {{- else }}
+                "{{ printf "%s%d%s%s%s%s=%v" "-Dditto.things.wot.tm-model-validation.dynamic-configuration." $dynConfIdx ".config-overrides." $configOverridesKey "." $nested1ConfigOverridesKey $nested1ConfigOverridesValue }}"
+                      {{- end }}
+                    {{- end }}
+                    {{- else }}
+                "{{ printf "%s%d%s%s=%v" "-Dditto.things.wot.tm-model-validation.dynamic-configuration." $dynConfIdx ".config-overrides." $configOverridesKey $configOverridesValue }}"
+                    {{- end }}
+                  {{- end }}
+                {{- end }}
+                {{- end }}
                 {{ join " " .Values.things.systemProps }}
             - name: MONGO_DB_SSL_ENABLED
               value: "{{ printf "%t" .Values.dbconfig.things.ssl }}"
@@ -272,16 +302,64 @@ spec:
               value: "{{ .Values.things.config.policiesEnforcer.cache.expireAfterAccess }}"
             - name: THINGS_WOT_TO_THING_DESCRIPTION_BASE_PREFIX
               value: "{{ .Values.things.config.wot.tdBasePrefix }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_ENABLED
+              value: "{{ .Values.things.config.wot.tmValidation.enabled }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_THING_ENFORCE_TD_MODIFICATION
+              value: "{{ index .Values.things.config.wot.tmValidation.thing.enforce "thing-description-modification" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_THING_ENFORCE_ATTRIBUTES
+              value: "{{ .Values.things.config.wot.tmValidation.thing.enforce.attributes }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_THING_ENFORCE_INBOX_MESSAGES_INPUT
+              value: "{{ index .Values.things.config.wot.tmValidation.thing.enforce "inbox-messages-input" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_THING_ENFORCE_INBOX_MESSAGES_OUTPUT
+              value: "{{ index .Values.things.config.wot.tmValidation.thing.enforce "inbox-messages-output" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_THING_ENFORCE_OUTBOX_MESSAGES
+              value: "{{ index .Values.things.config.wot.tmValidation.thing.enforce "outbox-messages" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_THING_FORBID_TD_DELETION
+              value: "{{ index .Values.things.config.wot.tmValidation.thing.forbid "thing-description-deletion" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_THING_FORBID_NON_MODELED_ATTRIBUTES
+              value: "{{ index .Values.things.config.wot.tmValidation.thing.forbid "non-modeled-attributes" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_THING_FORBID_NON_MODELED_INBOX_MESSAGES
+              value: "{{ index .Values.things.config.wot.tmValidation.thing.forbid "non-modeled-inbox-messages" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_THING_FORBID_NON_MODELED_OUTBOX_MESSAGES
+              value: "{{ index .Values.things.config.wot.tmValidation.thing.forbid "non-modeled-outbox-messages" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_FEATURE_ENFORCE_FD_MODIFICATION
+              value: "{{ index .Values.things.config.wot.tmValidation.feature.enforce "feature-description-modification" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_FEATURE_ENFORCE_PRESENCE_OF_MODELED_FEATURES
+              value: "{{ index .Values.things.config.wot.tmValidation.feature.enforce "presence-of-modeled-features" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_FEATURE_ENFORCE_PROPERTIES
+              value: "{{ .Values.things.config.wot.tmValidation.feature.enforce.properties }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_FEATURE_ENFORCE_DESIRED_PROPERTIES
+              value: "{{ index .Values.things.config.wot.tmValidation.feature.enforce "desired-properties" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_FEATURE_ENFORCE_INBOX_MESSAGES_INPUT
+              value: "{{ index .Values.things.config.wot.tmValidation.feature.enforce "inbox-messages-input" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_FEATURE_ENFORCE_INBOX_MESSAGES_OUTPUT
+              value: "{{ index .Values.things.config.wot.tmValidation.feature.enforce "inbox-messages-output" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_FEATURE_ENFORCE_OUTBOX_MESSAGES
+              value: "{{ index .Values.things.config.wot.tmValidation.feature.enforce "outbox-messages" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_FEATURE_FORBID_FD_DELETION
+              value: "{{ index .Values.things.config.wot.tmValidation.feature.forbid "feature-description-deletion" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_FEATURE_FORBID_NON_MODELED_INBOX_MESSAGES
+              value: "{{ index .Values.things.config.wot.tmValidation.feature.forbid "non-modeled-inbox-messages" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_FEATURE_FORBID_NON_MODELED_FEATURES
+              value: "{{ index .Values.things.config.wot.tmValidation.feature.forbid "non-modeled-features" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_FEATURE_FORBID_NON_MODELED_PROPERTIES
+              value: "{{ index .Values.things.config.wot.tmValidation.feature.forbid "non-modeled-properties" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_FEATURE_FORBID_NON_MODELED_DESIRED_PROPERTIES
+              value: "{{ index .Values.things.config.wot.tmValidation.feature.forbid "non-modeled-desired-properties" }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_FEATURE_FORBID_NON_MODELED_OUTBOX_MESSAGES
+              value: "{{ index .Values.things.config.wot.tmValidation.feature.forbid "non-modeled-outbox-messages" }}"
             {{- if .Values.things.extraEnv }}
               {{- toYaml .Values.things.extraEnv | nindent 12 }}
             {{- end }}
             {{- if .Values.serviceAccount.isUseAwsIamRole }}
-            - name: AWS_ROLE_ARN
+            - name: MONGO_DB_AWS_ROLE_ARN
               value: "{{ .Values.serviceAccount.roleArn }}"
             - name: AWS_WEB_IDENTITY_TOKEN_FILE
               value: "/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
+            - name: MONGO_DB_AWS_SESSION_NAME
+              value: "{{ .Values.serviceAccount.awsSessionName }}"
             {{- end }}
-            - name: USE_AWS_IAM_ROLE
+            - name: MONGO_DB_USE_AWS_IAM_ROLE
               value: "{{ printf "%t" .Values.serviceAccount.isUseAwsIamRole }}"
           ports:
             - name: remoting

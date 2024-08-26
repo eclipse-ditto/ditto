@@ -10,13 +10,13 @@ $(function () {
     $(document).ready(function() {
         $("#mysidebar li.subfolders > a").click(function (e) {
             e.preventDefault();
-            var theUl = $(this).parent().select("ul");
-            if (!theUl.hasClass("open")) {
-                theUl.addClass("open");
-                theUl.removeClass("closed");
+            var theLi = $(this).parent();
+            if (!theLi.hasClass("open")) {
+                theLi.addClass("open");
+                theLi.removeClass("closed");
             } else {
-                theUl.addClass("closed");
-                theUl.removeClass("open");
+                theLi.addClass("closed");
+                theLi.removeClass("open");
             }
         });
         $("#collapseAll").click(function(e) {

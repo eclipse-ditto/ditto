@@ -16,6 +16,7 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.ThingId;
@@ -26,6 +27,8 @@ import org.eclipse.ditto.things.model.signals.events.ThingDefinitionDeleted;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
+
 /**
  * Unit test for {@link DeleteThingDefinitionStrategy}.
  */
@@ -35,7 +38,8 @@ public final class DeleteThingDefinitionStrategyTest extends AbstractCommandStra
 
     @Before
     public void setUp() {
-        underTest = new DeleteThingDefinitionStrategy();
+        final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
+        underTest = new DeleteThingDefinitionStrategy(system);
     }
 
     @Test
@@ -48,7 +52,7 @@ public final class DeleteThingDefinitionStrategyTest extends AbstractCommandStra
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final DeleteThingDefinition command = DeleteThingDefinition.of(context.getState(), DittoHeaders.empty());
 
-        assertModificationResult(underTest, THING_V2, command,
+        assertStagedModificationResult(underTest, THING_V2, command,
                 ThingDefinitionDeleted.class,
                 DeleteThingDefinitionResponse.of(context.getState(), command.getDittoHeaders()));
     }

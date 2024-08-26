@@ -44,6 +44,9 @@ public abstract class SpanTagKey<T> {
     public static final SpanTagKey<CharSequence> CONNECTION_TYPE =
             new CharSequenceImplementation(KEY_PREFIX + "connection.type");
 
+    public static final SpanTagKey<CharSequence> CONNECTION_TARGET =
+            new CharSequenceImplementation(KEY_PREFIX + "connection.target");
+
     public static final SpanTagKey<HttpStatus> HTTP_STATUS = new HttpStatusImplementation(KEY_PREFIX + "statusCode");
 
     public static final SpanTagKey<CharSequence> REQUEST_METHOD_NAME =

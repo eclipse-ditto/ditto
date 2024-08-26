@@ -54,9 +54,11 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.services.sts.StsClient;
+import software.amazon.awssdk.services.sts.auth.StsAssumeRoleCredentialsProvider;
 
 /**
  * Default implementation of DittoMongoClient.
@@ -264,6 +266,8 @@ public final class MongoClientWrapper implements DittoMongoClient {
         private String defaultDatabaseName;
         private boolean sslEnabled;
         private boolean isUseAwsIamRole;
+        private String awsRoleArn;
+        private String awsSessionName;
         @Nullable private EventLoopGroup eventLoopGroup;
 
         private MongoClientWrapperBuilder() {
@@ -313,6 +317,8 @@ public final class MongoClientWrapper implements DittoMongoClient {
             final MongoDbConfig.OptionsConfig optionsConfig = mongoDbConfig.getOptionsConfig();
             builder.enableSsl(optionsConfig.isSslEnabled());
             builder.useAwsIamRole(optionsConfig.isUseAwsIamRole());
+            builder.awsRoleArn(optionsConfig.awsRoleArn());
+            builder.awsSessionName(optionsConfig.awsSessionName());
             builder.setReadPreference(optionsConfig.readPreference().getMongoReadPreference());
             builder.setReadConcern(optionsConfig.readConcern().getMongoReadConcern());
             builder.setWriteConcern(optionsConfig.writeConcern());
@@ -321,8 +327,18 @@ public final class MongoClientWrapper implements DittoMongoClient {
             return builder;
         }
 
-        public MongoClientWrapperBuilder useAwsIamRole(boolean useAwsIamRole) {
+        public MongoClientWrapperBuilder useAwsIamRole(final boolean useAwsIamRole) {
             this.isUseAwsIamRole = useAwsIamRole;
+            return this;
+        }
+
+        public MongoClientWrapperBuilder awsRoleArn(final String awsRoleArn) {
+            this.awsRoleArn = awsRoleArn;
+            return this;
+        }
+
+        private MongoClientWrapperBuilder awsSessionName(final String awsSessionName) {
+            this.awsSessionName = awsSessionName;
             return this;
         }
 
@@ -492,12 +508,21 @@ public final class MongoClientWrapper implements DittoMongoClient {
         }
 
         private void applyAwsIamRoleSettings() {
-            final AwsCredentialsProvider credentialsProvider = getAwsCredentialsProvider();
-            final AwsCredentials credentials = credentialsProvider.resolveCredentials();
-            final MongoCredential credential = MongoCredential.createAwsCredential(
-                    credentials.accessKeyId(),
-                    credentials.secretAccessKey().toCharArray()
-            );
+            final StsClient stsClient = StsClient.builder().build();
+
+            final AwsSessionCredentials tempCredentials = (AwsSessionCredentials) StsAssumeRoleCredentialsProvider.builder()
+                    .stsClient(stsClient)
+                    .refreshRequest(req -> req.roleArn(awsRoleArn).roleSessionName(awsSessionName))
+                    .build()
+                    .resolveCredentials();
+
+            final String accessKeyId = tempCredentials.accessKeyId();
+            final char[] secretAccessKey = tempCredentials.secretAccessKey().toCharArray();
+            String sessionToken = tempCredentials.sessionToken();
+
+            final MongoCredential credential = MongoCredential.createAwsCredential(accessKeyId, secretAccessKey)
+                    .withMechanismProperty("AWS_SESSION_TOKEN", sessionToken);
+
             mongoClientSettingsBuilder.credential(credential);
         }
 

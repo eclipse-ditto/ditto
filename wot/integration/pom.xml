@@ -36,7 +36,15 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-wot-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-wot-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-wot-validation</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -51,12 +59,6 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-http</artifactId>
         </dependency>
-
     </dependencies>
-
-    <build>
-        <plugins>
-        </plugins>
-    </build>
 
 </project>

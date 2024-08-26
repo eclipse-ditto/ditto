@@ -30,30 +30,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.eclipse.ditto.base.service.config.DittoServiceConfig;
-import org.eclipse.ditto.base.service.config.http.DefaultHttpProxyConfig;
-import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;
-import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.model.ConnectionType;
-import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
-import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
-import org.eclipse.ditto.connectivity.service.config.DefaultConnectionConfig;
-import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
-import org.eclipse.ditto.connectivity.service.config.OAuth2Config;
-import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
-import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
-import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-
 import org.apache.pekko.NotUsed;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.http.impl.engine.client.ProxyConnectionFailedException;
@@ -74,6 +50,30 @@ import org.apache.pekko.stream.javadsl.SinkQueueWithCancel;
 import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.stream.javadsl.SourceQueueWithComplete;
 import org.apache.pekko.testkit.javadsl.TestKit;
+import org.eclipse.ditto.base.service.config.DittoServiceConfig;
+import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectionType;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.service.config.DefaultConnectionConfig;
+import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
+import org.eclipse.ditto.connectivity.service.config.OAuth2Config;
+import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
+import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.http.config.DefaultHttpProxyConfig;
+import org.eclipse.ditto.internal.utils.http.config.HttpProxyConfig;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+
 import scala.util.Failure;
 import scala.util.Try;
 
