@@ -14,8 +14,6 @@ package org.eclipse.ditto.internal.utils.cluster;
 
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.junit.Before;
@@ -35,11 +33,6 @@ public final class ShardNumberCalculatorTest {
     @Before
     public void setUp() {
         underTest = ShardNumberCalculator.newInstance(NUMBER_OF_SHARDS);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ShardNumberCalculator.class, areImmutable());
     }
 
     @Test

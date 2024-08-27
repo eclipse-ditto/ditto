@@ -12,13 +12,10 @@
  */
 package org.eclipse.ditto.things.model.signals.commands.modify;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.lang.ref.SoftReference;
 import java.text.MessageFormat;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -35,11 +32,10 @@ import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PoliciesConflictingException;
-
-import nl.jqno.equalsverifier.EqualsVerifier;
-import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.Rule;
 import org.junit.Test;
+
+import nl.jqno.equalsverifier.EqualsVerifier;
 
 
 /**
@@ -54,13 +50,6 @@ public final class CreateThingTest {
             .set(ThingCommand.JsonFields.TYPE, CreateThing.TYPE)
             .set(CreateThing.JSON_THING, TestConstants.Thing.THING.toJson(FieldType.regularOrSpecial()))
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(CreateThing.class,
-                areImmutable(),
-                provided(Thing.class, JsonObject.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

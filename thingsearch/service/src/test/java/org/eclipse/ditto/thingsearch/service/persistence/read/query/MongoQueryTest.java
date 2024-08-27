@@ -16,9 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.DOT;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_THING;
 import static org.mockito.Mockito.mock;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -28,6 +25,8 @@ import java.util.Map;
 
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.BsonUtil;
 import org.eclipse.ditto.rql.query.SortDirection;
 import org.eclipse.ditto.rql.query.SortOption;
@@ -36,8 +35,6 @@ import org.eclipse.ditto.rql.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.rql.query.expression.SimpleFieldExpression;
 import org.eclipse.ditto.rql.query.expression.SortFieldExpression;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
-import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -93,12 +90,6 @@ public final class MongoQueryTest {
     @Test
     public void hashcodeAndEquals() {
         EqualsVerifier.forClass(MongoQuery.class).verify();
-    }
-
-    @Test
-    public void immutability() {
-        assertInstancesOf(MongoQuery.class, areImmutable(),
-                provided(Criteria.class, SortOption.class).isAlsoImmutable());
     }
 
     @Test

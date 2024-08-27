@@ -14,9 +14,6 @@ package org.eclipse.ditto.policies.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
@@ -25,11 +22,6 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 public class PolicyIdTest {
-
-    @Test
-    public void testImmutability() {
-        assertInstancesOf(PolicyId.class, areImmutable(), provided(NamespacedEntityId.class).isAlsoImmutable());
-    }
 
     @Test
     public void testEqualsAndHashcode() {

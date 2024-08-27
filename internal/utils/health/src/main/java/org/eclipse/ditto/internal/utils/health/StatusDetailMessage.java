@@ -17,17 +17,19 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * A StatusDetailMessage contains a {@link Level} (INFO, WARN or ERROR) associated with a {@code message}.
  */
+@Immutable
 public final class StatusDetailMessage implements Jsonifiable<JsonObject> {
 
     /**

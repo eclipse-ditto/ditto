@@ -34,8 +34,6 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -82,11 +80,6 @@ public final class SendFeatureMessageTest {
             .set(SendFeatureMessage.JSON_FEATURE_ID, FEATURE_ID)
             .set(MessageCommand.JsonFields.JSON_MESSAGE, KNOWN_MESSAGE_AS_JSON)
             .build();
-
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(SendFeatureMessage.class, MutabilityMatchers.areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

@@ -16,21 +16,23 @@ import java.net.URI;
 import java.text.MessageFormat;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.ThingException;
 import org.eclipse.ditto.things.model.ThingId;
 
 /**
  * Indicates that the feature property cannot be modified.
  */
+@Immutable
 @JsonParsableException(errorCode = FeaturePropertyNotModifiableException.ERROR_CODE)
 public class FeaturePropertyNotModifiableException extends DittoRuntimeException implements ThingException {
 

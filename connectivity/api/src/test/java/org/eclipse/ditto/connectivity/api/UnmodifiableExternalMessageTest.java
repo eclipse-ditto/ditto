@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.api;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -29,12 +25,10 @@ import org.eclipse.ditto.connectivity.model.EnforcementFilter;
 import org.eclipse.ditto.connectivity.model.HeaderMapping;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.Source;
-import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -51,30 +45,6 @@ public final class UnmodifiableExternalMessageTest {
 
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
-
-    @Test
-    public void assertImmutability() {
-        // The field "bytePayload" is mutable.
-        // Assume the user never modifies it.
-        MutabilityAssert.assertInstancesOf(
-                UnmodifiableExternalMessage.class,
-                areImmutable(),
-                provided(
-                                Adaptable.class,
-                                AuthorizationContext.class,
-                                ByteBuffer.class,
-                                DittoHeaders.class,
-                                EnforcementFilter.class,
-                                HeaderMapping.class,
-                                PayloadMapping.class,
-                                Source.class,
-                                TopicPath.class
-                        )
-                        .areAlsoImmutable(),
-                assumingFields("bytePayload").areNotModifiedAndDoNotEscape(),
-                assumingFields("headers").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements()
-        );
-    }
 
     @Test
     public void testHashCodeAndEquals() {

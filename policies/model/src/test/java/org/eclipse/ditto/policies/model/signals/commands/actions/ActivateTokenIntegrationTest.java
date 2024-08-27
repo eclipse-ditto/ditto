@@ -13,9 +13,6 @@
 package org.eclipse.ditto.policies.model.signals.commands.actions;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -26,9 +23,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
-import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.SubjectAnnouncement;
 import org.eclipse.ditto.policies.model.SubjectExpiry;
 import org.eclipse.ditto.policies.model.SubjectExpiryInvalidException;
@@ -71,14 +66,6 @@ public final class ActivateTokenIntegrationTest {
 
     private static final SubjectAnnouncement KNOWN_SUBJECT_ANNOUNCEMENT =
             SubjectAnnouncement.of(DittoDuration.parseDuration("1m"), true);
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ActivateTokenIntegration.class,
-                areImmutable(),
-                provided(Label.class, SubjectId.class, PolicyId.class, SubjectExpiry.class, SubjectAnnouncement.class)
-                        .areAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

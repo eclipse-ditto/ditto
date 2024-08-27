@@ -18,12 +18,12 @@ import org.eclipse.ditto.things.model.ThingBuilder;
 import org.eclipse.ditto.things.model.signals.events.PolicyIdModified;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.things.model.signals.events.PolicyIdModified} event.
+ * This strategy handles the {@link PolicyIdModified} event.
  */
 @Immutable
 final class PolicyIdModifiedStrategy extends AbstractThingEventStrategy<PolicyIdModified> {
 
-    protected PolicyIdModifiedStrategy() {
+    PolicyIdModifiedStrategy() {
         super();
     }
 

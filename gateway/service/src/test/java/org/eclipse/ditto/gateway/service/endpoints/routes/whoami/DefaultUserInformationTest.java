@@ -15,8 +15,6 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.whoami;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
 
@@ -133,9 +131,4 @@ public final class DefaultUserInformationTest {
                 .verify();
     }
 
-    @Test
-    public void testImmutability() {
-        assertInstancesOf(DefaultUserInformation.class,
-                areImmutable());
-    }
 }

@@ -15,11 +15,13 @@ package org.eclipse.ditto.json;
 import java.net.URI;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * Thrown if JSON could not be parsed because it was in an invalid format.
  */
+@Immutable
 public final class JsonParseException extends JsonRuntimeException {
 
     /**

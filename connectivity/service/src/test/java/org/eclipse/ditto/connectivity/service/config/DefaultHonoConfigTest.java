@@ -15,9 +15,6 @@ package org.eclipse.ditto.connectivity.service.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -27,6 +24,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.testkit.javadsl.TestKit;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.config.WithConfigPath;
@@ -39,8 +38,6 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.testkit.javadsl.TestKit;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -59,13 +56,6 @@ public final class DefaultHonoConfigTest {
         if (null != actorSystem) {
             TestKit.shutdownActorSystem(actorSystem, FiniteDuration.apply(5, TimeUnit.SECONDS), false);
         }
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultHonoConfig.class,
-                areImmutable(),
-                assumingFields("bootstrapServerUris").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test

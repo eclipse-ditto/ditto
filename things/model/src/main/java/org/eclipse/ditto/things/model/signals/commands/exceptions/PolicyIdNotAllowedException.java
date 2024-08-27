@@ -16,20 +16,22 @@ import java.net.URI;
 import java.text.MessageFormat;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingException;
 import org.eclipse.ditto.things.model.ThingId;
 
 /**
  * Thrown if a Thing cannot be modified because it contained a Policy ID and a Policy or a Policy with ID.
  */
+@Immutable
 @JsonParsableException(errorCode = PolicyIdNotAllowedException.ERROR_CODE)
 public final class PolicyIdNotAllowedException extends DittoRuntimeException implements ThingException {
 

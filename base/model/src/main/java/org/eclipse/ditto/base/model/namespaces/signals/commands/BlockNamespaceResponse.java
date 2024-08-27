@@ -15,6 +15,7 @@ package org.eclipse.ditto.base.model.namespaces.signals.commands;
 import java.util.Collections;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -26,6 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 /**
  * Response to {@link BlockNamespace}.
  */
+@Immutable
 @JsonParsableCommandResponse(type = BlockNamespaceResponse.TYPE)
 public final class BlockNamespaceResponse extends AbstractNamespaceCommandResponse<BlockNamespaceResponse> {
 

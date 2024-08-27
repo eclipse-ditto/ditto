@@ -12,21 +12,11 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
-import org.eclipse.ditto.connectivity.model.MetricType;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.AllowedReason;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 public class CounterKeyTest {
-
-    @Test
-    public void testImmutability() {
-        assertInstancesOf(CounterKey.class, areImmutable(), AllowedReason.provided(MetricType.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

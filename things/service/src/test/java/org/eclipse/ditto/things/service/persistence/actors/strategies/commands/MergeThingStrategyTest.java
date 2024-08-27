@@ -15,8 +15,6 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.UUID;
 
@@ -50,11 +48,6 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
     public void setUp() {
         final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
         underTest = new MergeThingStrategy(system);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(MergeThingStrategy.class, areImmutable());
     }
 
     @Test

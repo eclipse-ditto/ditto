@@ -19,11 +19,14 @@ import java.net.URL;
 import java.util.Objects;
 import java.util.Optional;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.json.JsonValue;
 
 /**
  * An immutable implementation of {@link ThingDefinition}.
  */
+@Immutable
 final class ImmutableThingDefinition implements ThingDefinition {
 
     private final DefinitionIdentifier delegate;

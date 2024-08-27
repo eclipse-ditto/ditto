@@ -14,8 +14,6 @@ package org.eclipse.ditto.internal.utils.headers.conditional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers.fromCommaSeparatedString;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Optional;
 
@@ -29,11 +27,6 @@ import org.junit.Test;
  * Tests {@link IfNoneMatchPreconditionHeader}.
  */
 public class IfNoneMatchPreconditionHeaderTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(IfNoneMatchPreconditionHeader.class, areImmutable());
-    }
 
     @Test
     public void getKey() {

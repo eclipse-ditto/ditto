@@ -20,9 +20,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.AllowedReason;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -30,14 +27,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Tests {@link ThingsOutOfSync}.
  */
 public final class ThingsOutOfSyncTest {
-
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(ThingsOutOfSync.class, MutabilityMatchers.areImmutable(),
-                AllowedReason.provided(DittoHeaders.class).isAlsoImmutable(),
-                AllowedReason.assumingFields("thingIds")
-                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

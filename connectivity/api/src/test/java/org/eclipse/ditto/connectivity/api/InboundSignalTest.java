@@ -13,27 +13,23 @@
 package org.eclipse.ditto.connectivity.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 
 import java.time.Instant;
-
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
-
-import com.typesafe.config.ConfigFactory;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.serialization.Serialization;
 import org.apache.pekko.serialization.SerializationExtension;
 import org.apache.pekko.serialization.Serializer;
 import org.apache.pekko.serialization.Serializers;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
+import org.junit.ClassRule;
+import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
+
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
@@ -44,12 +40,6 @@ public final class InboundSignalTest {
     @ClassRule
     public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
             DittoTracingInitResource.disableDittoTracing();
-
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(InboundSignal.class, MutabilityMatchers.areImmutable(),
-                provided(Signal.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

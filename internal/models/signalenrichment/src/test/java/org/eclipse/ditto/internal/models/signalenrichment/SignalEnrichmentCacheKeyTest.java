@@ -13,9 +13,6 @@
 package org.eclipse.ditto.internal.models.signalenrichment;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Objects;
 
@@ -37,13 +34,6 @@ public final class SignalEnrichmentCacheKeyTest {
     private static final SignalEnrichmentCacheKey CACHE_KEY = SignalEnrichmentCacheKey.of(ENTITY_ID, null);
     private static final String EXPECTED_SERIALIZED_ENTITY_ID =
             String.join(SignalEnrichmentCacheKey.DELIMITER, THING_TYPE, ENTITY_ID);
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SignalEnrichmentCacheKey.class,
-                areImmutable(),
-                provided(EntityId.class, SignalEnrichmentContext.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

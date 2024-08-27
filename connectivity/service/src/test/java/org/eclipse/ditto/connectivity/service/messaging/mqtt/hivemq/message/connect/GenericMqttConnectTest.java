@@ -13,8 +13,6 @@
 package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.connect;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
 
@@ -36,11 +34,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link GenericMqttConnect}.
  */
 public final class GenericMqttConnectTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(GenericMqttConnect.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

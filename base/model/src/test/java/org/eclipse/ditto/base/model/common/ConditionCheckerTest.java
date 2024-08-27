@@ -12,22 +12,12 @@
  */
 package org.eclipse.ditto.base.model.common;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.base.model.common.ConditionChecker}.
+ * Unit test for {@link ConditionChecker}.
  */
 public final class ConditionCheckerTest {
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ConditionChecker.class, areImmutable());
-    }
-
 
     @Test(expected = IllegalArgumentException.class)
     public void checkArgumentWithPredicate() {

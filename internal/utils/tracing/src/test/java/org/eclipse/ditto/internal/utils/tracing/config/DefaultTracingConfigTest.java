@@ -14,9 +14,6 @@ package org.eclipse.ditto.internal.utils.tracing.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.List;
 import java.util.Map;
@@ -25,7 +22,6 @@ import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.tracing.filter.AcceptAllTracingFilter;
 import org.eclipse.ditto.internal.utils.tracing.filter.KamonTracingFilter;
-import org.eclipse.ditto.internal.utils.tracing.filter.TracingFilter;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
@@ -36,11 +32,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link DefaultTracingConfig}.
  */
 public final class DefaultTracingConfigTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultTracingConfig.class, areImmutable(), provided(TracingFilter.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

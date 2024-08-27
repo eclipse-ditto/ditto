@@ -12,18 +12,11 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
-import org.eclipse.ditto.base.service.config.supervision.DefaultSupervisorConfig;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.cleanup.CleanupConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -46,23 +39,6 @@ public final class DefaultConnectionConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         connectionTestConf = ConfigFactory.load("connection-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultConnectionConfig.class,
-                areImmutable(),
-                assumingFields("allowedHostnames", "blockedHostnames", "blockedSubnets")
-                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
-                provided(DefaultSupervisorConfig.class,
-                        SnapshotConfig.class,
-                        CleanupConfig.class,
-                        MqttConfig.class,
-                        KafkaConfig.class,
-                        Amqp10Config.class,
-                        HttpPushConfig.class
-                ).areAlsoImmutable()
-        );
     }
 
     @Test

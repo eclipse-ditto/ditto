@@ -15,12 +15,15 @@ package org.eclipse.ditto.base.model.entity.id;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
-import org.mutabilitydetector.internal.com.google.common.collect.Streams;
 
 /**
  * Unit test for {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns}.
@@ -154,12 +157,12 @@ public final class RegexPatternsTest {
     @Test
     public void idRegex() {
 
-        Assertions.assertThat(Streams.zip(
+        Assertions.assertThat(zip(
                 GOOD_NAMESPACES.stream(), GOOD_FEATURE_IDS.stream(),
                 (ns, id) -> ns + ":" + id))
                 .allSatisfy(this::assertIdMatches);
 
-        Assertions.assertThat(Streams.zip(
+        Assertions.assertThat(zip(
                         BAD_NAMESPACES.stream(), BAD_FEATURE_IDS.stream(),
                         (ns, id) -> ns + ":" + id))
                 .allSatisfy(this::assertIdNotMatches);
@@ -185,5 +188,30 @@ public final class RegexPatternsTest {
 
     private boolean matches(final Pattern pattern, final String toMatch) {
         return pattern.matcher(toMatch).matches();
+    }
+
+    private static <A, B, C> Stream<C> zip(final Stream<A> streamA, final Stream<B> streamB,
+            final BiFunction<A, B, C> zipper
+    ) {
+        final Iterator<A> iteratorA = streamA.iterator();
+        final Iterator<B> iteratorB = streamB.iterator();
+        final Iterator<C> iteratorC = new Iterator<C>() {
+            @Override
+            public boolean hasNext() {
+                return iteratorA.hasNext() && iteratorB.hasNext();
+            }
+
+            @Override
+            public C next() {
+                return zipper.apply(iteratorA.next(), iteratorB.next());
+            }
+        };
+        final boolean parallel = streamA.isParallel() || streamB.isParallel();
+        return iteratorToFiniteStream(iteratorC, parallel);
+    }
+
+    public static <T> Stream<T> iteratorToFiniteStream(final Iterator<T> iterator, final boolean parallel) {
+        final Iterable<T> iterable = () -> iterator;
+        return StreamSupport.stream(iterable.spliterator(), parallel);
     }
 }

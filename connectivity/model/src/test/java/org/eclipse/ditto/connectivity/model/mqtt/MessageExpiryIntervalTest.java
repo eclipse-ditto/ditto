@@ -14,8 +14,6 @@ package org.eclipse.ditto.connectivity.model.mqtt;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Test;
 
@@ -25,11 +23,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link MessageExpiryInterval}.
  */
 public final class MessageExpiryIntervalTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(MessageExpiryInterval.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

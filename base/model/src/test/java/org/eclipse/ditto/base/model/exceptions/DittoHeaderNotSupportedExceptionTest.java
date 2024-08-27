@@ -13,8 +13,6 @@
 package org.eclipse.ditto.base.model.exceptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.common.HttpStatus;
@@ -30,11 +28,6 @@ public class DittoHeaderNotSupportedExceptionTest {
 
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DittoHeaderNotSupportedException.class, areImmutable());
-    }
 
     @Test
     public void buildFromInvalidHeaderKey() {

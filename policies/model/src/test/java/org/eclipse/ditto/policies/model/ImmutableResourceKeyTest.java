@@ -13,9 +13,6 @@
 package org.eclipse.ditto.policies.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.junit.Before;
@@ -34,13 +31,6 @@ public final class ImmutableResourceKeyTest {
     public void setUp() {
         underTest = ImmutableResourceKey.newInstance(TestConstants.Policy.RESOURCE_TYPE,
                 TestConstants.Policy.RESOURCE_PATH);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableResourceKey.class,
-                areImmutable(),
-                provided(JsonPointer.class).areAlsoImmutable());
     }
 
     @Test

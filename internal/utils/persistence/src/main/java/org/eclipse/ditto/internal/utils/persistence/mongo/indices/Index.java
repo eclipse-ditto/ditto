@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.bson.BsonDocument;
 import org.bson.Document;
@@ -31,6 +32,7 @@ import com.mongodb.client.model.IndexOptions;
  * Defines a MongoDB Index. We do not like to use {@link IndexModel} directly, because it does not provide a proper
  * equals/hashCode implementation.
  */
+@Immutable
 public final class Index {
 
     private final BsonDocument keys;

@@ -18,7 +18,7 @@ import org.eclipse.ditto.things.model.ThingBuilder;
 import org.eclipse.ditto.things.model.signals.events.AttributesDeleted;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.things.model.signals.events.AttributesDeleted} event.
+ * This strategy handles the {@link AttributesDeleted} event.
  */
 @Immutable
 final class AttributesDeletedStrategy extends AbstractThingEventStrategy<AttributesDeleted> {

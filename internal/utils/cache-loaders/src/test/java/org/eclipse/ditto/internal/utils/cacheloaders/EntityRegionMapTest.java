@@ -13,20 +13,16 @@
 package org.eclipse.ditto.internal.utils.cacheloaders;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.UUID;
-
-import org.eclipse.ditto.base.model.entity.type.EntityType;
-import org.junit.AfterClass;
-import org.junit.Test;
 
 import org.apache.pekko.actor.ActorRef;
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.testkit.TestProbe;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.junit.AfterClass;
+import org.junit.Test;
+
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
@@ -40,14 +36,6 @@ public final class EntityRegionMapTest {
     public static void tearDown() {
         actorSystem.terminate();
     }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(EntityRegionMap.class, areImmutable(),
-                provided(ActorRef.class).isAlsoImmutable(),
-                assumingFields("rawMap").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
-    }
-
 
     @Test
     public void testHashCodeAndEquals() {

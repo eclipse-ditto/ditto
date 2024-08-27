@@ -13,8 +13,6 @@
 package org.eclipse.ditto.internal.utils.config.raw;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -58,11 +56,6 @@ public final class VcapServicesStringToConfigTest {
                 .set("vcap.usage", "vcap.usage-server.ditto-usage-staging")
                 .build();
         ENVIRONMENT_VARIABLES.set(AliasesAppender.CONFIG_ALIASES_ENV_VARIABLE_NAME, knownAliases.toString());
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(VcapServicesStringToConfig.class, areImmutable());
     }
 
     @Test

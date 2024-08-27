@@ -18,12 +18,12 @@ import org.eclipse.ditto.things.model.ThingBuilder;
 import org.eclipse.ditto.things.model.signals.events.FeaturePropertyModified;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.things.model.signals.events.FeaturePropertyModified} event.
+ * This strategy handles the {@link FeaturePropertyModified} event.
  */
 @Immutable
 final class FeaturePropertyModifiedStrategy extends AbstractThingEventStrategy<FeaturePropertyModified> {
 
-    protected FeaturePropertyModifiedStrategy() {
+    FeaturePropertyModifiedStrategy() {
         super();
     }
 

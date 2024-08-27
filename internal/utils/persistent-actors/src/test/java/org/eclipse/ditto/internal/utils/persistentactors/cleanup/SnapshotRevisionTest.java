@@ -12,22 +12,14 @@
  */
 package org.eclipse.ditto.internal.utils.persistentactors.cleanup;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.internal.utils.persistentactors.cleanup.SnapshotRevision}.
+ * Unit test for {@link SnapshotRevision}.
  */
 public final class SnapshotRevisionTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SnapshotRevision.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

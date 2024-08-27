@@ -10,12 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.connectivity.service.config;
-
-
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.List;
 
@@ -40,12 +35,6 @@ public class DefaultFieldsEncryptionConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         config = ConfigFactory.load("connection-fields-encryption-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultFieldsEncryptionConfig.class,
-                areImmutable());
     }
 
     @Test

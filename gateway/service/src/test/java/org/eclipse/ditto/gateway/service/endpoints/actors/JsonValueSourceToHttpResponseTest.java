@@ -14,20 +14,10 @@ package org.eclipse.ditto.gateway.service.endpoints.actors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
-
-import org.assertj.core.api.JUnitSoftAssertions;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
 
 import org.apache.pekko.actor.ActorSystem;
 import org.apache.pekko.http.javadsl.model.StatusCodes;
@@ -36,6 +26,13 @@ import org.apache.pekko.stream.SystemMaterializer;
 import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.stream.javadsl.StreamConverters;
 import org.apache.pekko.util.ByteString;
+import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
 
 /**
  * Unit test for {@link JsonValueSourceToHttpResponse}.
@@ -50,11 +47,6 @@ public final class JsonValueSourceToHttpResponseTest {
     @BeforeClass
     public static void setUpClass() {
         actorSystem = ActorSystem.create(JsonValueSourceToHttpResponseTest.class.getSimpleName());
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(JsonValueSourceToHttpResponse.class, areImmutable());
     }
 
     @Test

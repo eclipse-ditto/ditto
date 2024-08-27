@@ -15,32 +15,12 @@ package org.eclipse.ditto.gateway.service.endpoints.directives;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.base.model.headers.DittoHeaderDefinition.W3C_TRACEPARENT;
 import static org.eclipse.ditto.base.model.headers.DittoHeaderDefinition.W3C_TRACESTATE;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-
-import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.internal.utils.pekko.ActorSystemResource;
-import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
-import org.eclipse.ditto.internal.utils.tracing.TraceInformationGenerator;
-import org.eclipse.ditto.internal.utils.tracing.span.KamonTracingInitResource;
-import org.eclipse.ditto.internal.utils.tracing.span.PreparedSpan;
-import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
-import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.mockito.Mockito;
 
 import org.apache.pekko.http.javadsl.model.HttpHeader;
 import org.apache.pekko.http.javadsl.model.HttpMethods;
@@ -50,6 +30,20 @@ import org.apache.pekko.http.javadsl.model.Uri;
 import org.apache.pekko.http.javadsl.server.AllDirectives;
 import org.apache.pekko.http.javadsl.server.Route;
 import org.apache.pekko.http.javadsl.testkit.JUnitRouteTest;
+import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.internal.utils.pekko.ActorSystemResource;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
+import org.eclipse.ditto.internal.utils.tracing.span.KamonTracingInitResource;
+import org.eclipse.ditto.internal.utils.tracing.span.PreparedSpan;
+import org.eclipse.ditto.internal.utils.tracing.span.SpanOperationName;
+import org.eclipse.ditto.internal.utils.tracing.span.StartedSpan;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
+import org.mockito.Mockito;
 
 /**
  * Unit test for {@link RequestTracingDirective}.
@@ -78,17 +72,6 @@ public final class RequestTracingDirectiveTest extends JUnitRouteTest {
 
     @Rule
     public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(
-                RequestTracingDirective.class,
-                areImmutable(),
-                provided(TraceInformationGenerator.class).isAlsoImmutable(),
-                assumingFields("disabledSpanOperationNames")
-                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements()
-        );
-    }
 
     @Test
     public void traceRequestWithNullInnerRouteSupplierThrowsNullPointerException() {

@@ -15,8 +15,6 @@ package org.eclipse.ditto.internal.utils.config.raw;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.internal.utils.config.raw.VcapServicesStringSupplier.VCAP_LOCATION_ENV_VARIABLE_NAME;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -52,11 +50,6 @@ public final class ServiceSpecificEnvironmentConfigSupplierTest {
     public static void initTestFixture() throws URISyntaxException {
         final URL vcapConfigFileUrl = VcapServicesStringSupplierTest.class.getResource(KNOWN_CONFIG_FILE_NAME);
         vcapServicesFilePath = Paths.get(vcapConfigFileUrl.toURI());
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ServiceSpecificEnvironmentConfigSupplier.class, areImmutable());
     }
 
     @Test

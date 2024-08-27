@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.things.model.signals.acks;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.util.List;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
@@ -56,11 +53,6 @@ public final class ThingAcknowledgementsFactoryTest {
                 Acknowledgement.of(AcknowledgementLabel.of("bar"), thingId, HttpStatus.NOT_FOUND, dittoHeaders,
                         JsonValue.of("bar does not exist!"));
         acknowledgementList = Lists.list(knownAcknowledgement, knownAcknowledgement2);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ThingAcknowledgementsFactory.class, areImmutable());
     }
 
     @Test

@@ -17,9 +17,6 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.connectivity.model.ConnectivityModelFactory.newClientStatus;
 import static org.eclipse.ditto.connectivity.model.ConnectivityModelFactory.newSourceStatus;
 import static org.eclipse.ditto.connectivity.model.ConnectivityModelFactory.newTargetStatus;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -34,7 +31,6 @@ import java.util.stream.Stream;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.RecoveryStatus;
@@ -159,12 +155,6 @@ public final class RetrieveConnectionStatusResponseTest {
         EqualsVerifier.forClass(RetrieveConnectionStatusResponse.class)
                 .usingGetClass()
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(RetrieveConnectionStatusResponse.class, areImmutable(),
-                provided(JsonObject.class, ConnectionId.class).isAlsoImmutable());
     }
 
     @Test

@@ -13,9 +13,6 @@
 package org.eclipse.ditto.things.api;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -61,11 +58,6 @@ public final class ThingSnapshotTakenTest {
         timestamp = localDateTime.toInstant(ZoneOffset.UTC);
 
         thingJson = TestConstants.Thing.THING.toJson();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ThingSnapshotTaken.class, areImmutable(), provided(PolicyId.class).isAlsoImmutable());
     }
 
     @Test

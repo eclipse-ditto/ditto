@@ -13,8 +13,6 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.events;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
 
@@ -41,11 +39,6 @@ public final class ThingMergedStrategyTest extends AbstractStrategyTest {
             .set(TestConstants.Thing.ABSOLUTE_LOCATION_ATTRIBUTE_POINTER.append(JsonPointer.of(METADATA_KEY)),
                     METADATA_VALUE)
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ThingMergedStrategy.class, areImmutable());
-    }
 
     @Test
     public void appliesEventCorrectly() {

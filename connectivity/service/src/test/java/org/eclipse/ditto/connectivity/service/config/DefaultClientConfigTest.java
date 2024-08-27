@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -41,13 +37,6 @@ public final class DefaultClientConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         clientTestConf = ConfigFactory.load("client-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultClientConfig.class,
-                areImmutable(),
-                provided(ClientConfig.class).isAlsoImmutable());
     }
 
     @Test

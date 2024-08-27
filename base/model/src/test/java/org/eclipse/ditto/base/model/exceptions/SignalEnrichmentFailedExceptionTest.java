@@ -13,8 +13,6 @@
 package org.eclipse.ditto.base.model.exceptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.junit.Test;
@@ -23,12 +21,6 @@ import org.junit.Test;
  * Unit test for {@link SignalEnrichmentFailedException}.
  */
 public class SignalEnrichmentFailedExceptionTest {
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SignalEnrichmentFailedException.class, areImmutable());
-    }
 
     @Test
     public void buildDefault() {

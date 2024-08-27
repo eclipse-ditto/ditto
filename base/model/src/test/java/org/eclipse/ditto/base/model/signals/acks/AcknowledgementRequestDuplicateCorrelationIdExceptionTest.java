@@ -13,8 +13,6 @@
 package org.eclipse.ditto.base.model.signals.acks;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.text.MessageFormat;
 import java.util.UUID;
@@ -41,11 +39,6 @@ public final class AcknowledgementRequestDuplicateCorrelationIdExceptionTest {
                     AcknowledgementRequestDuplicateCorrelationIdException.DEFAULT_DESCRIPTION)
             .set(DittoRuntimeException.JsonFields.STATUS, HttpStatus.CONFLICT.getCode())
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(AcknowledgementRequestDuplicateCorrelationIdException.class, areImmutable());
-    }
 
     @Test
     public void toJsonReturnsExpected() {

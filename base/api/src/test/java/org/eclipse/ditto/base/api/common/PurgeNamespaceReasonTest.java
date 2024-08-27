@@ -15,9 +15,6 @@ package org.eclipse.ditto.base.api.common;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonFactory;
@@ -54,11 +51,6 @@ public final class PurgeNamespaceReasonTest {
     @Before
     public void setUp() {
         underTest = PurgeNamespaceReason.of(knownNamespace);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PurgeNamespaceReason.class, areImmutable(), provided(ShutdownReason.class).isAlsoImmutable());
     }
 
     @Test

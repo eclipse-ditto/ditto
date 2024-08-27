@@ -26,16 +26,12 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.POLICY_ID;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.REVISION;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_ID;
 import static org.eclipse.ditto.things.model.assertions.DittoThingsAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.lang.ref.SoftReference;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
@@ -72,24 +68,6 @@ public final class ImmutableThingTest {
                 .usingGetClass()
                 .withPrefabValues(SoftReference.class, red, black)
                 .verify();
-    }
-
-    @Test
-    public void assertImmutability() {
-        final Class[] knownImmutableTypes = new Class[]{
-                Attributes.class,
-                ThingDefinition.class,
-                Features.class,
-                Metadata.class,
-                JsonObject.class,
-                ThingRevision.class,
-                ThingId.class,
-                PolicyId.class
-        };
-
-        assertInstancesOf(ImmutableThing.class,
-                areImmutable(),
-                provided(knownImmutableTypes).areAlsoImmutable());
     }
 
     @Test

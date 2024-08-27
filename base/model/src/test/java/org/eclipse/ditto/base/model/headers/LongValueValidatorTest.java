@@ -15,8 +15,6 @@ package org.eclipse.ditto.base.model.headers;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
@@ -28,7 +26,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 /**
- * Unit test for {@link org.eclipse.ditto.base.model.headers.LongValueValidator}.
+ * Unit test for {@link LongValueValidator}.
  */
 @RunWith(MockitoJUnitRunner.class)
 public final class LongValueValidatorTest {
@@ -43,11 +41,6 @@ public final class LongValueValidatorTest {
         Mockito.when(longHeaderDefinition.getJavaType()).thenReturn(Long.class);
         Mockito.when(longHeaderDefinition.getKey()).thenReturn("long-value");
         underTest = LongValueValidator.getInstance();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(LongValueValidator.class, areImmutable());
     }
 
     @Test

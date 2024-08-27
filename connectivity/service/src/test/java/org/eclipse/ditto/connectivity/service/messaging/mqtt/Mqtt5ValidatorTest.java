@@ -17,8 +17,6 @@ import static org.eclipse.ditto.connectivity.model.ConnectivityModelFactory.newE
 import static org.eclipse.ditto.connectivity.model.ConnectivityModelFactory.newSourceAddressEnforcement;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.mockito.Mockito.when;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
 import java.util.Map;
@@ -52,11 +50,6 @@ public final class Mqtt5ValidatorTest extends AbstractMqttValidatorTest {
         when(mqttConfig.shouldReconnectForRedelivery()).thenReturn(false);
         when(mqttConfig.shouldUseSeparatePublisherClient()).thenReturn(false);
         when(mqttConfig.getReconnectForRedeliveryDelay()).thenReturn(Duration.ofSeconds(2));
-    }
-
-    @Test
-    public void testImmutability() {
-        assertInstancesOf(Mqtt5Validator.class, areImmutable());
     }
 
     @Test

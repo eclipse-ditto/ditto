@@ -41,8 +41,6 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
@@ -75,11 +73,6 @@ public final class ImmutableFeaturePlaceholderTest {
         signalWithFeatureId = mock(Signal.class, Mockito.withSettings().extraInterfaces(WithFeatureId.class));
         signalWithOutFeatureId = mock(Signal.class);
         when(((WithFeatureId) signalWithFeatureId).getFeatureId()).thenReturn(FEATURE_ID);
-    }
-
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(ImmutableFeaturePlaceholder.class, MutabilityMatchers.areImmutable());
     }
 
     @Test

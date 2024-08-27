@@ -17,9 +17,12 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.Arrays;
 import java.util.Optional;
 
+import javax.annotation.concurrent.Immutable;
+
 /**
  * An enumeration of connection types of a {@link Connection}.
  */
+@Immutable
 public enum ConnectionType implements CharSequence {
 
     /**

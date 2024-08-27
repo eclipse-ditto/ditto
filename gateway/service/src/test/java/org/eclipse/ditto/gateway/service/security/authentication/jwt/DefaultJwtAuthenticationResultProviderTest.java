@@ -13,9 +13,6 @@
 package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.UUID;
 
@@ -40,13 +37,6 @@ public final class DefaultJwtAuthenticationResultProviderTest {
 
     private final static ActorSystem ACTOR_SYSTEM =
             ActorSystem.create(UUID.randomUUID().toString(), ConfigFactory.load("test"));
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultJwtAuthenticationResultProvider.class,
-                areImmutable(),
-                provided(JwtAuthorizationSubjectsProvider.class).isAlsoImmutable());
-    }
 
     @Test
     public void getAuthorizationContext() {

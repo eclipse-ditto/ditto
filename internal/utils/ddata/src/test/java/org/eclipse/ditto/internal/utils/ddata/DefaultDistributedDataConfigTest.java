@@ -12,21 +12,17 @@
  */
 package org.eclipse.ditto.internal.utils.ddata;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
+import org.apache.pekko.cluster.ddata.Replicator;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.AllowedReason;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import org.apache.pekko.cluster.ddata.Replicator;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
@@ -42,13 +38,6 @@ public final class DefaultDistributedDataConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         testConfig = ConfigFactory.load("ditto-ddata-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultDistributedDataConfig.class, areImmutable(),
-                AllowedReason.provided(DefaultPekkoReplicatorConfig.class,
-                        Replicator.WriteConsistency.class).areAlsoImmutable());
     }
 
     @Test

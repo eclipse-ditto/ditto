@@ -13,8 +13,6 @@
 package org.eclipse.ditto.policies.service.persistence.actors.resolvers;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
@@ -22,7 +20,7 @@ import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.junit.Test;
 
 /**
- * Tests {@link org.eclipse.ditto.policies.service.persistence.actors.resolvers.ImmutablePolicyEntryPlaceholder}.
+ * Tests {@link ImmutablePolicyEntryPlaceholder}.
  */
 public class ImmutablePolicyEntryPlaceholderTest {
 
@@ -40,11 +38,6 @@ public class ImmutablePolicyEntryPlaceholderTest {
             "    }\n" +
             "  }\n" +
             "}");
-
-    @Test
-    public void testImmutability() {
-        assertInstancesOf(ImmutablePolicyEntryPlaceholder.class, areImmutable());
-    }
 
     @Test
     public void testReplaceTopic() {

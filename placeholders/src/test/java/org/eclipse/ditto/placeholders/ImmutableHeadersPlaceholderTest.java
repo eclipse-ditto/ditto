@@ -20,8 +20,6 @@ import java.util.Map;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
@@ -42,17 +40,6 @@ public class ImmutableHeadersPlaceholderTest {
         HEADERS.put("correlation_id", "4205833931151659498");
     }
 
-    /**
-     * Assert immutability.
-     */
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(ImmutableHeadersPlaceholder.class, MutabilityMatchers.areImmutable());
-    }
-
-    /**
-     * Test hash code and equals.
-     */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableHeadersPlaceholder.class)

@@ -29,7 +29,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 
 /**
- * Default implementation of {@link org.eclipse.ditto.base.model.headers.metadata.MetadataHeader}.
+ * Default implementation of {@link MetadataHeader}.
  *
  * @since 1.2.0
  */

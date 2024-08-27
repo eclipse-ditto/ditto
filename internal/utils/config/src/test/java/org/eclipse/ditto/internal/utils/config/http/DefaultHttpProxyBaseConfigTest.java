@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.config.http;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -36,11 +33,6 @@ public class DefaultHttpProxyBaseConfigTest extends TestCase {
     @BeforeClass
     public static void initTestFixture() {
         httpProxyConfig = ConfigFactory.load("http-proxy-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultHttpProxyBaseConfig.class, areImmutable());
     }
 
     @Test

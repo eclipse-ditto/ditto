@@ -78,8 +78,8 @@ If you plan to develop extensions in Ditto or to contribute some code, the follo
 ### Build and start Ditto locally
 
 In order to build Ditto, you'll need:
-* JDK >= 17 
-* Apache Maven >= 3.8.x installed.
+* JDK >= 21 
+* Apache Maven >= 3.9.x installed.
 * a running Docker daemon
 
 In order to first build Ditto and then start the built Docker images.

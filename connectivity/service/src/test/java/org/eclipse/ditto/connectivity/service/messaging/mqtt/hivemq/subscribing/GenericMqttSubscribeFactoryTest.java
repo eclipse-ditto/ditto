@@ -15,15 +15,11 @@ package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.connectivity.model.Source;
@@ -41,13 +37,6 @@ import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 public final class GenericMqttSubscribeFactoryTest {
 
     private static final String CONNECTION_NAME = GenericMqttSubscribeFactory.class.getSimpleName();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(GenericMqttSubscribeFactory.class,
-                areImmutable(),
-                provided(Function.class).isAlsoImmutable());
-    }
 
     @Test
     public void getSourceSubscribeMessageForNullConnectionSourceThrowsException() {

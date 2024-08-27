@@ -18,8 +18,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -38,11 +36,6 @@ public final class SudoCountThingsTest {
     private static final String JSON_MINIMAL_V2 = JsonFactory.newObjectBuilder()
             .set(ThingSearchCommand.JsonFields.TYPE, SudoCountThings.TYPE)
             .build().toString();
-
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(SudoCountThings.class, MutabilityMatchers.areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

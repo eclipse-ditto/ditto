@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.policies.model;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.util.Arrays;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -28,13 +24,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link ImmutableEffectedPermissions}.
  */
 public final class ImmutableEffectedPermissionsTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableEffectedPermissions.class,
-                areImmutable(),
-                provided(Permissions.class).areAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

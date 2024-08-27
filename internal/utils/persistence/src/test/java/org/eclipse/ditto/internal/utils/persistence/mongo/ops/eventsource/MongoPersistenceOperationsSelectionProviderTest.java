@@ -14,8 +14,6 @@ package org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collection;
 
@@ -41,11 +39,6 @@ public final class MongoPersistenceOperationsSelectionProviderTest {
 
     private static final String ENTITY_NS = "my.ns";
     private static final String ENTITY_NAME = "name";
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(MongoPersistenceOperationsSelectionProvider.class, areImmutable());
-    }
 
     @Test
     public void selectNamespaceWhenNamespacesDisabledFails() {

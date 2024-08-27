@@ -17,7 +17,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -41,7 +41,7 @@ import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 /**
  * This strategy handles the {@link ModifyPolicyImport} command.
  */
-@NotThreadSafe
+@Immutable
 final class ModifyPolicyImportStrategy extends AbstractPolicyCommandStrategy<ModifyPolicyImport, PolicyEvent<?>> {
 
     ModifyPolicyImportStrategy(final PolicyConfig policyConfig) {

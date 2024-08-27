@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.persistence.mongo.config;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -41,12 +38,6 @@ public final class DefaultActivityCheckConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         activityCheckTestConf = ConfigFactory.load("activity-check-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultActivityCheckConfig.class,
-                areImmutable());
     }
 
     @Test

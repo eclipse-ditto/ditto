@@ -14,8 +14,6 @@ package org.eclipse.ditto.json;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -23,7 +21,7 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.json.ImmutableJsonBooleanTest}.
+ * Unit test for {@link ImmutableJsonBoolean}.
  */
 public final class ImmutableJsonBooleanTest {
 
@@ -32,11 +30,6 @@ public final class ImmutableJsonBooleanTest {
     @Before
     public void setUp() {
         underTest = ImmutableJsonBoolean.of(true);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableJsonBoolean.class, areImmutable());
     }
 
     @Test

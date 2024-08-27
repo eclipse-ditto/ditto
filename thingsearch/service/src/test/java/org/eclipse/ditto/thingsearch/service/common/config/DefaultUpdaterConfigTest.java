@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.thingsearch.service.common.config;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig.UpdaterConfigValue;
 import org.junit.BeforeClass;
@@ -40,13 +36,6 @@ public final class DefaultUpdaterConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         updaterTestConfig = ConfigFactory.load("updater-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultUpdaterConfig.class, areImmutable(),
-                provided(BackgroundSyncConfig.class, DefaultStreamConfig.class, DefaultSearchPersistenceConfig.class)
-                        .isAlsoImmutable());
     }
 
     @Test

@@ -15,9 +15,6 @@ package org.eclipse.ditto.json;
 import static org.eclipse.ditto.json.JsonFactory.newValue;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.lang.ref.SoftReference;
 import java.lang.reflect.Field;
@@ -49,13 +46,6 @@ public final class ImmutableJsonArrayTest {
         KNOWN_INT_VALUE_LIST.add(newValue(KNOWN_INT_0));
         KNOWN_INT_VALUE_LIST.add(newValue(KNOWN_INT_1));
         KNOWN_INT_VALUE_LIST.add(newValue(KNOWN_INT_2));
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableJsonArray.class,
-                areImmutable(),
-                provided(ImmutableJsonArray.SoftReferencedValueList.class).isAlsoImmutable());
     }
 
     @Test

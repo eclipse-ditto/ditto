@@ -19,8 +19,6 @@ import org.eclipse.ditto.messages.model.MessageDirection;
 import org.eclipse.ditto.messages.model.MessageHeaders;
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -49,11 +47,6 @@ public final class SendMessageAcceptedResponseTest {
     @Test(expected = NullPointerException.class)
     public void tryCreateWithNullDittoHeaders() {
         SendMessageAcceptedResponse.newInstance(THING_ID, MESSAGE_HEADERS, null);
-    }
-
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(SendMessageAcceptedResponse.class, MutabilityMatchers.areImmutable());
     }
 
     @Test

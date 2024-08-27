@@ -15,12 +15,10 @@ package org.eclipse.ditto.base.service;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.base.service.MainMethodExceptionHandler.LOG_MESSAGE_PATTERN;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.text.MessageFormat;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -28,8 +26,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.slf4j.Logger;
-
-import org.apache.pekko.actor.ActorSystem;
 
 /**
  * Unit test for {@link MainMethodExceptionHandler}.
@@ -48,11 +44,6 @@ public final class MainMethodExceptionHandlerTest {
     public void setUp() {
         Mockito.when(logger.getName()).thenReturn(CLASS_NAME);
         underTest = MainMethodExceptionHandler.getInstance(logger);
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(MainMethodExceptionHandler.class, areImmutable(), provided(Logger.class).isAlsoImmutable());
     }
 
     @SuppressWarnings("ConstantConditions")

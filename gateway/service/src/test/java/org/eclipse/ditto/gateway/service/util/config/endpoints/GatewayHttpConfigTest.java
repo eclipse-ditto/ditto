@@ -13,10 +13,6 @@
 package org.eclipse.ditto.gateway.service.util.config.endpoints;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,9 +20,9 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.pekko.http.javadsl.model.MediaTypes;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.assertj.core.util.Lists;
 import org.assertj.core.util.Maps;
@@ -41,7 +37,6 @@ import org.junit.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import org.apache.pekko.http.javadsl.model.MediaTypes;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
@@ -58,16 +53,6 @@ public final class GatewayHttpConfigTest {
 
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(GatewayHttpConfig.class,
-                areImmutable(),
-                provided(Pattern.class).isAlsoImmutable(),
-                assumingFields("queryParamsAsHeaders", "additionalAcceptedMediaTypes", "schemaVersions",
-                        "protocolHeaders").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
-                assumingFields("redirectToHttpsBlocklistPattern").areNotModifiedAndDoNotEscape());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

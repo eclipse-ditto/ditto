@@ -13,14 +13,12 @@
 package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.apache.pekko.actor.ActorRef;
 import org.eclipse.ditto.internal.utils.pekko.ActorSystemResource;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import org.apache.pekko.actor.ActorRef;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
@@ -30,11 +28,6 @@ public final class MqttClientConnectedTest {
 
     @ClassRule
     public static final ActorSystemResource ACTOR_SYSTEM_RESOURCE = ActorSystemResource.newInstance();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(MqttClientConnected.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

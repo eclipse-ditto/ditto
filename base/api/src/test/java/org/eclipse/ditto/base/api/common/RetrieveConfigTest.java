@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.base.api.common;
 
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -23,11 +20,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Tests {@link RetrieveConfig}.
  */
 public final class RetrieveConfigTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(RetrieveConfig.class, areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

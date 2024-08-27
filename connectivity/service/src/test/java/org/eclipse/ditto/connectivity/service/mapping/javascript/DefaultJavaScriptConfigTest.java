@@ -12,11 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.mapping.javascript;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
-import java.nio.file.Path;
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -32,7 +27,7 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.connectivity.service.config.javascript.DefaultJavaScriptConfig}.
+ * Unit test for {@link DefaultJavaScriptConfig}.
  */
 public final class DefaultJavaScriptConfigTest {
 
@@ -44,13 +39,6 @@ public final class DefaultJavaScriptConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         javascriptTestConf = ConfigFactory.load("javascript-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultJavaScriptConfig.class,
-                areImmutable(),
-                provided(JavaScriptConfig.class, Path.class).isAlsoImmutable());
     }
 
     @Test

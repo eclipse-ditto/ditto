@@ -14,23 +14,13 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
-import org.junit.Test;
 
 import org.apache.pekko.kafka.ConsumerMessage;
+import org.junit.Test;
+
 import nl.jqno.equalsverifier.EqualsVerifier;
 
-
 public final class CommittableTransformationResultTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(CommittableTransformationResult.class, areImmutable(),
-                provided(TransformationResult.class, ConsumerMessage.CommittableOffset.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

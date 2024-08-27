@@ -13,10 +13,6 @@
 package org.eclipse.ditto.policies.model.signals.commands.actions;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -35,7 +31,7 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.policies.model.signals.commands.actions.TopLevelPolicyActionCommand}.
+ * Unit test for {@link TopLevelPolicyActionCommand}.
  */
 public final class TopLevelPolicyActionCommandTest {
 
@@ -51,14 +47,6 @@ public final class TopLevelPolicyActionCommandTest {
             .set(TopLevelPolicyActionCommand.JSON_ACTION, POLICY_ACTION_COMMAND.toJson())
             .set(TopLevelPolicyActionCommand.JSON_LABELS, JsonArray.of(TestConstants.Policy.LABEL))
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(TopLevelPolicyActionCommand.class,
-                areImmutable(),
-                provided(PolicyActionCommand.class).areAlsoImmutable(),
-                assumingFields("authorizedLabels").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

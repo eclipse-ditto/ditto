@@ -15,8 +15,6 @@ package org.eclipse.ditto.base.model.headers;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -35,11 +33,6 @@ import org.junit.runners.Parameterized;
 public final class DittoChannelValueValidatorTest {
 
     public static final class GeneralFunctionalityTest {
-
-        @Test
-        public void assertImmutability() {
-            assertInstancesOf(DittoDurationValueValidator.class, areImmutable());
-        }
 
         @Test
         public void getInstanceReturnsSomething() {

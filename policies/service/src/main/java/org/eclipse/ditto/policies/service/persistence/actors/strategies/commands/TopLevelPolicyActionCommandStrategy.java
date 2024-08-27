@@ -23,7 +23,9 @@ import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
+import org.apache.pekko.actor.ActorSystem;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -46,11 +48,10 @@ import org.eclipse.ditto.policies.model.signals.events.PolicyActionEvent;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
-import org.apache.pekko.actor.ActorSystem;
-
 /**
  * This strategy handles the {@link org.eclipse.ditto.policies.model.signals.commands.actions.TopLevelPolicyActionCommand} command.
  */
+@Immutable
 final class TopLevelPolicyActionCommandStrategy
         extends AbstractPolicyCommandStrategy<TopLevelPolicyActionCommand, PolicyEvent<?>> {
 

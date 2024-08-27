@@ -13,9 +13,6 @@
 package org.eclipse.ditto.base.model.signals.events.streaming;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.UUID;
 
@@ -23,7 +20,6 @@ import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonValue;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -32,11 +28,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Tests {@link StreamingSubscriptionHasNext}.
  */
 public final class StreamingSubscriptionHasNextTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(StreamingSubscriptionHasNext.class, areImmutable(), provided(JsonValue.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

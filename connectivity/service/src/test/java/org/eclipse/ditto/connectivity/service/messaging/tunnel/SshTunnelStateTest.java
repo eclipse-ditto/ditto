@@ -14,9 +14,6 @@ package org.eclipse.ditto.connectivity.service.messaging.tunnel;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.net.URI;
 
@@ -27,7 +24,7 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Tests {@code SshTunnelState}.
+ * Tests {@link SshTunnelState}.
  */
 public class SshTunnelStateTest {
 
@@ -37,11 +34,6 @@ public class SshTunnelStateTest {
     private static final URI TUNNEL_URI = getTunnelUri(LOCAL_TUNNEL_PORT);
 
     private static final IllegalStateException TUNNEL_FAILED = new IllegalStateException("tunnel failed");
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(SshTunnelState.class, areImmutable(), provided(Throwable.class).isAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

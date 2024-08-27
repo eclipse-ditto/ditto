@@ -16,13 +16,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -33,7 +29,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.json.JsonValueFieldDefinition}.
+ * Unit test for {@link JsonValueFieldDefinition}.
  */
 @RunWith(MockitoJUnitRunner.class)
 public final class JsonValueFieldDefinitionTest {
@@ -54,13 +50,6 @@ public final class JsonValueFieldDefinitionTest {
     @Before
     public void setUp() {
         knownFieldMarkers = new JsonFieldMarker[0];
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(JsonValueFieldDefinition.class,
-                areImmutable(),
-                provided(JsonPointer.class, Function.class, JsonFieldMarker.class).areAlsoImmutable());
     }
 
     @Test

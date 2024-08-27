@@ -12,11 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.time.Duration;
 import java.util.Map;
 
@@ -41,15 +36,6 @@ public final class DefaultHttpPushConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         config = ConfigFactory.load("http-push-test");
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(DefaultHttpPushConfig.class,
-                areImmutable(),
-                provided(HttpProxyConfig.class, OAuth2Config.class).areAlsoImmutable(),
-                assumingFields("hmacAlgorithms", "omitRequestBodyMethods")
-                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test

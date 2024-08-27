@@ -13,9 +13,6 @@
 package org.eclipse.ditto.policies.model.signals.commands.actions;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
 
@@ -23,9 +20,6 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.policies.model.Label;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
 import org.junit.Test;
@@ -33,7 +27,7 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegrationResponse}.
+ * Unit test for {@link ActivateTokenIntegrationResponse}.
  */
 public final class ActivateTokenIntegrationResponseTest {
 
@@ -46,13 +40,6 @@ public final class ActivateTokenIntegrationResponseTest {
                     .add(TestConstants.Policy.SUBJECT_ID.toString())
                     .build())
             .build();
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ActivateTokenIntegrationResponse.class,
-                areImmutable(),
-                provided(Label.class, SubjectId.class, PolicyId.class).areAlsoImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

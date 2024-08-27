@@ -17,6 +17,7 @@ import java.net.URISyntaxException;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.SshTunnel;
@@ -24,6 +25,7 @@ import org.eclipse.ditto.connectivity.model.SshTunnel;
 /**
  * Holds the current state of the SSH tunnel (enabled, established, failed, ...)
  */
+@Immutable
 public final class SshTunnelState {
 
     private static final String LOCALHOST = "localhost";
