@@ -19,14 +19,16 @@ serviceAccount:
   # name is the name of the service account to use
   #  If not set and create is true, a name is generated using the fullname template
   name:
-  # isUseAwsIamRole specifies whether to use an AWS IAM Role for Service Accounts (IRSA).
+  # useAwsIamRole specifies whether to use an AWS IAM Role for Service Accounts (IRSA).
   # Set to true to use IRSA, which allows the pod to assume an IAM role.
-  # When set to true, ensure that roleArn is specified.
-  isUseAwsIamRole: false
-  # roleArn is the Amazon Resource Name (ARN) of the IAM role to be assumed by the service account.
-  # This is required if isUseAwsIamRole is set to true.
+  # When set to true, ensure that awsRoleArn is specified.
+  useAwsIamRole: false
+  # awsRegion
+  awsRegion: ""
+  # awsRoleArn is the Amazon Resource Name (ARN) of the IAM role to be assumed by the service account.
+  # This is required if useAwsIamRole is set to true.
   # Example: arn:aws:iam::<account-id>:role/<role-name>
-  roleArn: ""
+  awsRoleArn: ""
   # awsSessionName is the name of the session when assuming the AWS role.
   # This can be used to identify the session in logs or IAM policies.
   # Default is "dittoSession".
