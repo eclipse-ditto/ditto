@@ -70,6 +70,10 @@ spec:
             limits:
               # cpu: # don't limit
               memory: {{ .Values.dittoui.resources.memoryMi }}Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 101
+            runAsGroup: 101
           volumeMounts:
             - name: dittoui-nginx-conf
               mountPath: /etc/nginx/nginx.conf
