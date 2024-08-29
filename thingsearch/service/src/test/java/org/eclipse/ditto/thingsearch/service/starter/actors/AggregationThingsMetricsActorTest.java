@@ -32,6 +32,7 @@ import org.apache.pekko.testkit.javadsl.TestKit;
 import org.bson.Document;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
 import org.eclipse.ditto.internal.utils.tracing.config.DefaultTracingConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -40,11 +41,15 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThing
 import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsAggregationPersistence;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class AggregationThingsMetricsActorTest {
+    @ClassRule
+    public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
+            DittoTracingInitResource.disableDittoTracing();
 
-    static ActorSystem system  = ActorSystem.create();
+    private static ActorSystem system  = ActorSystem.create();
 
     @BeforeClass
     public static void setup() {
