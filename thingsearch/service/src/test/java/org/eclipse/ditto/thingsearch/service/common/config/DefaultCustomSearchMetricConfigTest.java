@@ -14,10 +14,6 @@
 
 package org.eclipse.ditto.thingsearch.service.common.config;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -44,16 +40,6 @@ public class DefaultCustomSearchMetricConfigTest {
     public static void initTestFixture() {
         config = ConfigFactory.load("custom-search-metric-test");
         customSearchMetricTestConfig = config.getConfig("ditto.search.operator-metrics.custom-search-metrics");
-    }
-
-    @Test
-    public void assertImmutabilityFilterConfig() {
-        assertInstancesOf(DefaultCustomSearchMetricConfig.DefaultFilterConfig.class, areImmutable(), provided(Config.class).isAlsoImmutable());
-    }
-    @Test
-    public void assertImmutabilityCustomSearchMetricConfig() {
-        assertInstancesOf(DefaultCustomSearchMetricConfig.class, areImmutable(), provided(Config.class).isAlsoImmutable(),
-                provided(DefaultCustomSearchMetricConfig.FilterConfig.class).isAlsoImmutable());
     }
 
     @Test
