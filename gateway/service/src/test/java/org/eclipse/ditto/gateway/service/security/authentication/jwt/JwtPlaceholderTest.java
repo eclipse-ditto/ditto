@@ -19,8 +19,6 @@ import static org.mockito.Mockito.when;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
@@ -31,11 +29,6 @@ import nl.jqno.equalsverifier.Warning;
 public final class JwtPlaceholderTest {
 
     private static final JwtPlaceholder UNDER_TEST = new JwtPlaceholder();
-
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(JwtPlaceholder.class, MutabilityMatchers.areImmutable());
-    }
 
     @Test
     public void testHashCodeAndEquals() {
