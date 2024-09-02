@@ -45,16 +45,12 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class AggregationThingsMetricsActorTest {
+
     @ClassRule
     public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
             DittoTracingInitResource.disableDittoTracing();
 
     private static ActorSystem system  = ActorSystem.create();
-
-    @BeforeClass
-    public static void setup() {
-        DittoTracing.init(DefaultTracingConfig.of(system.settings().config()));
-    }
 
     @AfterClass
     public static void teardown() {
