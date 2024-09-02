@@ -15,10 +15,10 @@ package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Stream;
 
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.placeholders.Placeholder;
@@ -63,15 +63,23 @@ public final class JwtPlaceholder implements Placeholder<JsonWebToken> {
     public List<String> resolveValues(final JsonWebToken jwt, final String placeholder) {
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(jwt, "jwt");
-        final Optional<JsonValue> value = jwt.getBody().getValue(placeholder);
-        return value.filter(JsonValue::isArray)
-                .map(JsonValue::asArray)
-                .map(array -> array.stream()
-                        .map(JsonValue::formatAsString)
-                        .toList())
-                .or(() -> value.map(JsonValue::formatAsString)
-                        .map(Collections::singletonList))
-                .orElseGet(Collections::emptyList);
+        return resolveValues(jwt.getBody(), JsonPointer.of(placeholder))
+                .distinct()
+                .toList();
+    }
+
+    private static Stream<String> resolveValues(final JsonValue jsonValue, final JsonPointer jsonPointer) {
+        return jsonPointer.getRoot()
+                .<Stream<String>>map(root -> jsonValue.isArray()
+                        ? jsonValue.asArray().stream().flatMap(item -> resolveValues(item, jsonPointer))
+                        : (jsonValue.isObject()
+                                ? jsonValue.asObject().getValue(root)
+                                        .map(v -> resolveValues(v, jsonPointer.nextLevel()))
+                                        .orElseGet(Stream::empty)
+                                : Stream.empty()))
+                .orElseGet(() -> jsonValue.isArray()
+                    ? jsonValue.asArray().stream().map(JsonValue::formatAsString)
+                    : Stream.of(jsonValue.formatAsString()));
     }
 
 }
