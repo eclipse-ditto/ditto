@@ -57,7 +57,7 @@
         <metrics4-scala.version>4.2.9</metrics4-scala.version>
 
         <!-- Keep these version consistent with pekko-persistence-mongodb.version's build.sbt -->
-        <mongo-java-driver.version>5.1.1</mongo-java-driver.version>
+        <mongo-java-driver.version>5.1.4</mongo-java-driver.version>
 
         <jjwt.version>0.11.5</jjwt.version>
         <asm.version>9.2</asm.version>
