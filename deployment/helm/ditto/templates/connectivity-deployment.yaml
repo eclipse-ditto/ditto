@@ -63,7 +63,7 @@ spec:
           image: busybox
           securityContext:
             runAsUser: 0
-          command: [ "sh", "-c", "chown -R 1000:1000 /var/log/ditto && echo 'changed ownership of /var/log/ditto to 1000:1000'" ]
+          command: [ "sh", "-c", "chown -R 1005:1005 /var/log/ditto && echo 'changed ownership of /var/log/ditto to 1005:1005'" ]
           volumeMounts:
             - name: ditto-log-files-directory
               mountPath: /var/log/ditto
@@ -221,6 +221,10 @@ spec:
               value: "{{ .Values.connectivity.config.cleanup.timerThreshold }}"
             - name: CLEANUP_CREDITS_PER_BATCH
               value: "{{ .Values.connectivity.config.cleanup.creditsPerBatch }}"
+            - name: CLEANUP_READS_PER_QUERY
+              value: "{{ .Values.connectivity.config.cleanup.readsPerQuery }}"
+            - name: CLEANUP_WRITES_PER_CREDIT
+              value: "{{ .Values.connectivity.config.cleanup.writesPerCredit }}"
             - name: CLEANUP_DELETE_FINAL_DELETED_SNAPSHOT
               value: "{{ .Values.connectivity.config.cleanup.deleteFinalDeletedSnapshot }}"
             - name: MONGODB_READ_JOURNAL_SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_ID
@@ -339,6 +343,8 @@ spec:
             {{- if .Values.connectivity.extraVolumeMounts }}
               {{- toYaml .Values.connectivity.extraVolumeMounts | nindent 12 }}
             {{- end }}
+            - name: ditto-heap-dumps
+              mountPath: /opt/ditto/dumps
           resources:
             requests:
               cpu: {{ mulf .Values.connectivity.resources.cpu 1000 }}m
@@ -388,4 +394,6 @@ spec:
         {{- if .Values.connectivity.extraVolumes }}
           {{- toYaml .Values.connectivity.extraVolumes | nindent 8 }}
         {{- end}}
+        - name: ditto-heap-dumps
+          emptyDir: {}
 {{- end }}

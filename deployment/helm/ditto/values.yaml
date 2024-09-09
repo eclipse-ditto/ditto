@@ -104,6 +104,8 @@ global:
   # jvmOptions defines the JVM options applied to all Ditto services running in the JVM, it is put in JAVA_TOOL_OPTIONS
   jvmOptions: >
     -XX:+ExitOnOutOfMemoryError
+    -XX:+HeapDumpOnOutOfMemoryError
+    -XX:HeapDumpPath=/opt/ditto/dumps/oom.bin
     -XX:+UseContainerSupport
     -XX:+UseStringDeduplication
     -Xss512k
@@ -652,7 +654,7 @@ policies:
     cleanup:
       # enabled configures whether background cleanup is enabled or not
       #  if enabled, stale "snapshot" and "journal" entries will be cleaned up from the MongoDB by a background process:
-      enabled: false
+      enabled: true
       # quietPeriod defines how long to stay in a state where the background cleanup is not yet started
       quietPeriod: 5m
       # history contains configuration regarding the event history
@@ -671,7 +673,18 @@ policies:
       # timerThreshold configures the maximum database latency to give out credit for cleanup actions
       timerThreshold: 100ms
       # creditsPerBatch configures how many "cleanup credits" should be generated per "interval" as long as the
+      #  write operations to the MongoDB are less than the configured `timerThreshold`.
+      #  Limits the rate of cleanup actions to this many per credit decision interval.
+      #  One credit means that the "journal" and "snapshot" entries of one entity are cleaned up each `interval`.
       creditsPerBatch: 5
+      # readsPerQuery configures the number of snapshots to scan per MongoDB query.
+      #  Configuring this to high values will reduce the need to query MongoDB too often - it should however be aligned
+      #  with the amount of `creditsPerBatch` issued per `interval` - in order to avoid long running queries.
+      readsPerQuery: 100
+      # readsPerQuery configures the number of documents to delete for each credit.
+      #  If for example one entity would have 1000 journal entries to cleanup, a `writes-per-credit` of 100 would lead
+      #  to 10 delete operations performed against MongoDB.
+      writesPerCredit: 100
       # deleteFinalDeletedSnapshot configures whether for a deleted entity, the final snapshot (containing the
       #  "deleted" information) should be deleted or not.
       #  If the final snapshot is not deleted, re-creating the entity will cause that the recreated entity starts with
@@ -741,6 +754,18 @@ policies:
       revokes: []
       # - namespaces: []
       #   authSubjects: []
+    # policiesEnforcer contains configuration for Ditto "Policy Enforcers", e.g. regarding caching
+    policiesEnforcer:
+      # cache holds the configuration of policy enforcer caching
+      cache:
+        # enabled whether caching of policy enforcers should be enabled
+        enabled: true
+        # maxSize the maximum size of policy enforcers to keep in the cache
+        maxSize: 1000
+        # expireAfterWrite the maximum duration of inconsistency after losing a cache invalidation
+        expireAfterWrite: 4h
+        # expireAfterAccess prolonged on each cache access by that duration
+        expireAfterAccess: 2h
 
 ## ----------------------------------------------------------------------------
 ## things configuration
@@ -912,7 +937,18 @@ things:
       # timerThreshold configures the maximum database latency to give out credit for cleanup actions
       timerThreshold: 100ms
       # creditsPerBatch configures how many "cleanup credits" should be generated per "interval" as long as the
+      #  write operations to the MongoDB are less than the configured `timerThreshold`.
+      #  Limits the rate of cleanup actions to this many per credit decision interval.
+      #  One credit means that the "journal" and "snapshot" entries of one entity are cleaned up each `interval`.
       creditsPerBatch: 5
+      # readsPerQuery configures the number of snapshots to scan per MongoDB query.
+      #  Configuring this to high values will reduce the need to query MongoDB too often - it should however be aligned
+      #  with the amount of `creditsPerBatch` issued per `interval` - in order to avoid long running queries.
+      readsPerQuery: 100
+      # readsPerQuery configures the number of documents to delete for each credit.
+      #  If for example one entity would have 1000 journal entries to cleanup, a `writes-per-credit` of 100 would lead
+      #  to 10 delete operations performed against MongoDB.
+      writesPerCredit: 100
       # deleteFinalDeletedSnapshot configures whether for a deleted entity, the final snapshot (containing the
       #  "deleted" information) should be deleted or not.
       #  If the final snapshot is not deleted, re-creating the entity will cause that the recreated entity starts with
@@ -983,11 +1019,11 @@ things:
         # enabled whether caching of policy enforcers should be enabled
         enabled: true
         # maxSize the maximum size of policy enforcers to keep in the cache
-        maxSize: 50000
+        maxSize: 2000
         # expireAfterWrite the maximum duration of inconsistency after losing a cache invalidation
-        expireAfterWrite: 8h
+        expireAfterWrite: 4h
         # expireAfterAccess prolonged on each cache access by that duration
-        expireAfterAccess: 4h
+        expireAfterAccess: 2h
     # wot contains Web of Things (WoT) specific configuration
     wot:
       # tdBasePrefix is the base to use where the Ditto endpoint is located in order to be injected into TDs:
@@ -1258,7 +1294,7 @@ thingsSearch:
         # thingCache configures the cache configuration for caching of things in things-search
         thingCache:
           # maxSize defines how many things to cache
-          maxSize: 30000
+          maxSize: 3000
           # expireAfterWrite defines how long at most to keep things in the cache after loading them into the cache
           expireAfterWrite: 12h
           # expireAfterWrite defines how long at most to keep things in the cache after last accessing them from the cache
@@ -1470,14 +1506,14 @@ connectivity:
         # maxSize the maximum size of policy enforcers to keep in the cache
         maxSize: 1000
         # expireAfterWrite the maximum duration of inconsistency after losing a cache invalidation
-        expireAfterWrite: 8h
+        expireAfterWrite: 4h
         # expireAfterAccess prolonged on each cache access by that duration
-        expireAfterAccess: 4h
+        expireAfterAccess: 2h
     # cleanup contains the configuration for the background cleanup of stale snapshots and events
     cleanup:
       # enabled configures whether background cleanup is enabled or not
       #  if enabled, stale "snapshot" and "journal" entries will be cleaned up from the MongoDB by a background process:
-      enabled: false
+      enabled: true
       # quietPeriod defines how long to stay in a state where the background cleanup is not yet started
       quietPeriod: 5m
       # history contains configuration regarding the event history
@@ -1496,7 +1532,18 @@ connectivity:
       # timerThreshold configures the maximum database latency to give out credit for cleanup actions
       timerThreshold: 100ms
       # creditsPerBatch configures how many "cleanup credits" should be generated per "interval" as long as the
-      creditsPerBatch: 5
+      #  write operations to the MongoDB are less than the configured `timerThreshold`.
+      #  Limits the rate of cleanup actions to this many per credit decision interval.
+      #  One credit means that the "journal" and "snapshot" entries of one entity are cleaned up each `interval`.
+      creditsPerBatch: 1
+      # readsPerQuery configures the number of snapshots to scan per MongoDB query.
+      #  Configuring this to high values will reduce the need to query MongoDB too often - it should however be aligned
+      #  with the amount of `creditsPerBatch` issued per `interval` - in order to avoid long running queries.
+      readsPerQuery: 100
+      # readsPerQuery configures the number of documents to delete for each credit.
+      #  If for example one entity would have 1000 journal entries to cleanup, a `writes-per-credit` of 100 would lead
+      #  to 10 delete operations performed against MongoDB.
+      writesPerCredit: 100
       # deleteFinalDeletedSnapshot configures whether for a deleted entity, the final snapshot (containing the
       #  "deleted" information) should be deleted or not.
       #  If the final snapshot is not deleted, re-creating the entity will cause that the recreated entity starts with

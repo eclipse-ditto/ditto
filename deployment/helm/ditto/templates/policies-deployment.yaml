@@ -63,7 +63,7 @@ spec:
           image: busybox
           securityContext:
             runAsUser: 0
-          command: [ "sh", "-c", "chown -R 1000:1000 /var/log/ditto && echo 'changed ownership of /var/log/ditto to 1000:1000'" ]
+          command: [ "sh", "-c", "chown -R 1005:1005 /var/log/ditto && echo 'changed ownership of /var/log/ditto to 1005:1005'" ]
           volumeMounts:
             - name: ditto-log-files-directory
               mountPath: /var/log/ditto
@@ -239,6 +239,10 @@ spec:
               value: "{{ .Values.policies.config.cleanup.timerThreshold }}"
             - name: CLEANUP_CREDITS_PER_BATCH
               value: "{{ .Values.policies.config.cleanup.creditsPerBatch }}"
+            - name: CLEANUP_READS_PER_QUERY
+              value: "{{ .Values.policies.config.cleanup.readsPerQuery }}"
+            - name: CLEANUP_WRITES_PER_CREDIT
+              value: "{{ .Values.policies.config.cleanup.writesPerCredit }}"
             - name: CLEANUP_DELETE_FINAL_DELETED_SNAPSHOT
               value: "{{ .Values.policies.config.cleanup.deleteFinalDeletedSnapshot }}"
             - name: MONGODB_READ_JOURNAL_SHOULD_CREATE_ADDITIONAL_SNAPSHOT_AGGREGATION_INDEX_PID_ID
@@ -265,6 +269,14 @@ spec:
               value: "{{ .Values.policies.config.persistence.snapshots.interval }}"
             - name: POLICY_SNAPSHOT_THRESHOLD
               value: "{{ .Values.policies.config.persistence.snapshots.threshold }}"
+            - name: DITTO_POLICIES_ENFORCER_CACHE_ENABLED
+              value: "{{ .Values.policies.config.policiesEnforcer.cache.enabled }}"
+            - name: DITTO_POLICIES_ENFORCER_CACHE_MAX_SIZE
+              value: "{{ .Values.policies.config.policiesEnforcer.cache.maxSize }}"
+            - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_WRITE
+              value: "{{ .Values.policies.config.policiesEnforcer.cache.expireAfterWrite }}"
+            - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_ACCESS
+              value: "{{ .Values.policies.config.policiesEnforcer.cache.expireAfterAccess }}"
             {{- if .Values.policies.extraEnv }}
               {{- toYaml .Values.policies.extraEnv | nindent 12 }}
             {{- end }}
@@ -326,6 +338,8 @@ spec:
             {{- if .Values.policies.extraVolumeMounts }}
               {{- toYaml .Values.policies.extraVolumeMounts | nindent 12 }}
             {{- end }}
+            - name: ditto-heap-dumps
+              mountPath: /opt/ditto/dumps
           resources:
             requests:
               cpu: {{ mulf .Values.policies.resources.cpu 1000 }}m
@@ -375,4 +389,6 @@ spec:
         {{- if .Values.policies.extraVolumes }}
           {{- toYaml .Values.policies.extraVolumes | nindent 8 }}
         {{- end}}
+        - name: ditto-heap-dumps
+          emptyDir: {}
 {{- end }}
