@@ -64,7 +64,7 @@ spec:
           image: busybox
           securityContext:
             runAsUser: 0
-          command: [ "sh", "-c", "chown -R 1000:1000 /var/log/ditto && echo 'changed ownership of /var/log/ditto to 1000:1000'" ]
+          command: [ "sh", "-c", "chown -R 1005:1005 /var/log/ditto && echo 'changed ownership of /var/log/ditto to 1005:1005'" ]
           volumeMounts:
             - name: ditto-log-files-directory
               mountPath: /var/log/ditto
@@ -279,6 +279,8 @@ spec:
             {{- if .Values.gateway.extraVolumeMounts }}
               {{- toYaml .Values.gateway.extraVolumeMounts | nindent 12 }}
             {{- end }}
+            - name: ditto-heap-dumps
+              mountPath: /opt/ditto/dumps
           resources:
             requests:
               cpu: {{ mulf .Values.gateway.resources.cpu 1000 }}m
@@ -328,4 +330,6 @@ spec:
         {{- if .Values.gateway.extraVolumes }}
           {{- toYaml .Values.gateway.extraVolumes | nindent 8 }}
         {{- end}}
+        - name: ditto-heap-dumps
+          emptyDir: {}
 {{- end }}
