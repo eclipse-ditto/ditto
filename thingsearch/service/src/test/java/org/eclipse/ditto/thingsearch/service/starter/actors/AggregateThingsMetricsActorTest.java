@@ -31,26 +31,23 @@ import org.apache.pekko.stream.javadsl.Source;
 import org.apache.pekko.testkit.javadsl.TestKit;
 import org.bson.Document;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracingInitResource;
-import org.eclipse.ditto.internal.utils.tracing.config.DefaultTracingConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetrics;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetricsResponse;
 import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsAggregationPersistence;
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-public class AggregationThingsMetricsActorTest {
+public class AggregateThingsMetricsActorTest {
 
     @ClassRule
     public static final DittoTracingInitResource DITTO_TRACING_INIT_RESOURCE =
             DittoTracingInitResource.disableDittoTracing();
 
-    private static ActorSystem system  = ActorSystem.create();
+    private static ActorSystem system = ActorSystem.create();
 
     @AfterClass
     public static void teardown() {
@@ -65,30 +62,32 @@ public class AggregationThingsMetricsActorTest {
             // Create a mock persistence object
             ThingsAggregationPersistence mockPersistence = mock(ThingsAggregationPersistence.class);
             doReturn(Source.from(List.of(
-                            new Document("_id", new Document(Map.of("_revision", 1L, "location", "Berlin")))
-                                    .append("online", 6)
-                                    .append("offline", 0),
-                            new Document("_id", new Document(Map.of("_revision", 1L, "location", "Immenstaad")))
-                                    .append("online", 5)
-                                    .append("offline", 0),
-                            new Document("_id", new Document(Map.of("_revision", 1L, "location", "Sofia")))
-                                    .append("online", 5)
-                                    .append("offline", 3)))
-                    ).when(mockPersistence)
+                    new Document("_id", new Document(Map.of("_revision", 1L, "location", "Berlin")))
+                            .append("online", 6)
+                            .append("offline", 0),
+                    new Document("_id", new Document(Map.of("_revision", 1L, "location", "Immenstaad")))
+                            .append("online", 5)
+                            .append("offline", 0),
+                    new Document("_id", new Document(Map.of("_revision", 1L, "location", "Sofia")))
+                            .append("online", 5)
+                            .append("offline", 3)))
+            ).when(mockPersistence)
                     .aggregateThings(any());
 
             // Create the actor
-            Props props = AggregationThingsMetricsActor.props(mockPersistence);
+            Props props = AggregateThingsMetricsActor.props(mockPersistence);
             final var actorRef = system.actorOf(props);
 
             // Prepare the test message
-            Map<String, String> groupingBy = Map.of("_revision", "$_revision", "location", "$t.attributes.Info.location");
-            Map<String, String> namedFilters =  Map.of(
+            Map<String, String> groupingBy =
+                    Map.of("_revision", "$_revision", "location", "$t.attributes.Info.location");
+            Map<String, String> namedFilters = Map.of(
                     "online", "gt(features/ConnectionStatus/properties/status/readyUntil/,time:now)",
-                    "offline","lt(features/ConnectionStatus/properties/status/readyUntil/,time:now)");
+                    "offline", "lt(features/ConnectionStatus/properties/status/readyUntil/,time:now)");
             Set<String> namespaces = Collections.singleton("namespace");
             DittoHeaders headers = DittoHeaders.newBuilder().build();
-            AggregateThingsMetrics metrics = AggregateThingsMetrics.of("metricName", groupingBy, namedFilters, namespaces, headers);
+            AggregateThingsMetrics metrics =
+                    AggregateThingsMetrics.of("metricName", groupingBy, namedFilters, namespaces, headers);
 
             // Send the message to the actor
             actorRef.tell(metrics, getRef());
@@ -101,7 +100,7 @@ public class AggregationThingsMetricsActorTest {
                     .set("online", 6)
                     .set("offline", 0)
                     .build();
-            AggregateThingsMetricsResponse
+            final AggregateThingsMetricsResponse
                     expectedResponse = AggregateThingsMetricsResponse.of(mongoAggregationResult, metrics);
             expectMsg(expectedResponse);
 
@@ -116,7 +115,7 @@ public class AggregationThingsMetricsActorTest {
             // Create a mock persistence object
 
             // Create the actor
-            Props props = AggregationThingsMetricsActor.props(mock(ThingsAggregationPersistence.class));
+            Props props = AggregateThingsMetricsActor.props(mock(ThingsAggregationPersistence.class));
             final var actorRef = system.actorOf(props);
 
             // Send an unknown message to the actor

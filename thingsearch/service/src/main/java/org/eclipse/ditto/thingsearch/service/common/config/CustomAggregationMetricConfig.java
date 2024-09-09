@@ -22,7 +22,7 @@ import java.util.Optional;
 /**
  * Provides the configuration settings for a single custom search metric.
  */
-public interface CustomSearchMetricConfig {
+public interface CustomAggregationMetricConfig {
 
 
     /**

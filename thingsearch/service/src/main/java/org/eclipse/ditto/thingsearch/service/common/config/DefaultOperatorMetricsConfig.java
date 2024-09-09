@@ -50,15 +50,15 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
     private final boolean enabled;
     private final Duration scrapeInterval;
     private final Map<String, CustomMetricConfig> customMetricConfigurations;
-    private final Map<String, CustomSearchMetricConfig> customSearchMetricConfigs;
+    private final Map<String, CustomAggregationMetricConfig> customAggregationMetricConfigs;
 
     private DefaultOperatorMetricsConfig(final ConfigWithFallback updaterScopedConfig) {
         enabled = updaterScopedConfig.getBoolean(OperatorMetricsConfigValue.ENABLED.getConfigPath());
         scrapeInterval = updaterScopedConfig.getNonNegativeDurationOrThrow(OperatorMetricsConfigValue.SCRAPE_INTERVAL);
         customMetricConfigurations = loadCustomMetricConfigurations(updaterScopedConfig,
                 OperatorMetricsConfigValue.CUSTOM_METRICS);
-        customSearchMetricConfigs = loadCustomSearchMetricConfigurations(updaterScopedConfig,
-                OperatorMetricsConfigValue.CUSTOM_SEARCH_METRICS);
+        customAggregationMetricConfigs = loadCustomAggregatedMetricConfigurations(updaterScopedConfig,
+                OperatorMetricsConfigValue.CUSTOM_AGGREGATION_METRIC);
     }
 
     /**
@@ -81,12 +81,12 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
         return customMetricsConfig.entrySet().stream().collect(CustomMetricConfigCollector.toMap());
     }
 
-    private Map<String, CustomSearchMetricConfig> loadCustomSearchMetricConfigurations(
+    private Map<String, CustomAggregationMetricConfig> loadCustomAggregatedMetricConfigurations(
             final ConfigWithFallback config, final KnownConfigValue configValue) {
 
-        final ConfigObject customSearchMetricsConfig = config.getObject(configValue.getConfigPath());
+        final ConfigObject customAggregatedMetricsConfig = config.getObject(configValue.getConfigPath());
 
-        return customSearchMetricsConfig.entrySet().stream().collect(CustomSearchMetricConfigCollector.toMap());
+        return customAggregatedMetricsConfig.entrySet().stream().collect(CustomAggregatedMetricConfigCollector.toMap());
     }
 
     @Override
@@ -132,8 +132,8 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
     }
 
     @Override
-    public Map<String, CustomSearchMetricConfig> getCustomSearchMetricConfigs() {
-        return customSearchMetricConfigs;
+    public Map<String, CustomAggregationMetricConfig> getCustomAggregationMetricConfigs() {
+        return customAggregationMetricConfigs;
     }
 
     private static class CustomMetricConfigCollector
@@ -172,32 +172,32 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
         }
     }
 
-    private static class CustomSearchMetricConfigCollector implements
-            Collector<Map.Entry<String, ConfigValue>, Map<String, CustomSearchMetricConfig>, Map<String, CustomSearchMetricConfig>> {
+    private static class CustomAggregatedMetricConfigCollector implements
+            Collector<Map.Entry<String, ConfigValue>, Map<String, CustomAggregationMetricConfig>, Map<String, CustomAggregationMetricConfig>> {
 
-        private static DefaultOperatorMetricsConfig.CustomSearchMetricConfigCollector toMap() {
-            return new DefaultOperatorMetricsConfig.CustomSearchMetricConfigCollector();
+        private static CustomAggregatedMetricConfigCollector toMap() {
+            return new CustomAggregatedMetricConfigCollector();
         }
 
         @Override
-        public Supplier<Map<String, CustomSearchMetricConfig>> supplier() {
+        public Supplier<Map<String, CustomAggregationMetricConfig>> supplier() {
             return LinkedHashMap::new;
         }
 
         @Override
-        public BiConsumer<Map<String, CustomSearchMetricConfig>, Map.Entry<String, ConfigValue>> accumulator() {
+        public BiConsumer<Map<String, CustomAggregationMetricConfig>, Map.Entry<String, ConfigValue>> accumulator() {
             return (map, entry) -> map.put(entry.getKey(),
-                    DefaultCustomSearchMetricConfig.of(entry.getKey(), ConfigFactory.empty().withFallback(entry.getValue())));
+                    DefaultCustomAggregationMetricConfig.of(entry.getKey(), ConfigFactory.empty().withFallback(entry.getValue())));
         }
 
         @Override
-        public BinaryOperator<Map<String, CustomSearchMetricConfig>> combiner() {
+        public BinaryOperator<Map<String, CustomAggregationMetricConfig>> combiner() {
             return (left, right) -> Stream.concat(left.entrySet().stream(), right.entrySet().stream())
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         }
 
         @Override
-        public Function<Map<String, CustomSearchMetricConfig>, Map<String, CustomSearchMetricConfig>> finisher() {
+        public Function<Map<String, CustomAggregationMetricConfig>, Map<String, CustomAggregationMetricConfig>> finisher() {
             return map -> Collections.unmodifiableMap(new LinkedHashMap<>(map));
         }
 

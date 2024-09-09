@@ -35,7 +35,7 @@ import org.eclipse.ditto.rql.query.criteria.Predicate;
 import org.eclipse.ditto.rql.query.criteria.visitors.PredicateVisitor;
 
 /**
- * Creates Bson of a predicate.
+ * Creates Aggregation Bson of a predicate.
  */
 public class CreateBsonAggregationPredicateVisitor implements PredicateVisitor<Function<String, Bson>> {
 
@@ -64,12 +64,12 @@ public class CreateBsonAggregationPredicateVisitor implements PredicateVisitor<F
     }
 
     /**
-     * Creates a new instance of {@code CreateBsonPredicateVisitor} with additional custom placeholder resolvers.
+     * Creates a new instance of {@code CreateBsonAggregationPredicateVisitor} with additional custom placeholder resolvers.
      *
      * @param additionalPlaceholderResolvers the additional {@code PlaceholderResolver} to use for resolving
      * placeholders in RQL predicates.
      * @return the created instance.
-     * @since 2.3.0
+     * @since 3.6.0
      */
     public static CreateBsonAggregationPredicateVisitor createInstance(
             final PlaceholderResolver<?>... additionalPlaceholderResolvers) {
@@ -77,12 +77,12 @@ public class CreateBsonAggregationPredicateVisitor implements PredicateVisitor<F
     }
 
     /**
-     * Creates a new instance of {@code CreateBsonPredicateVisitor} with additional custom placeholder resolvers.
+     * Creates a new instance of {@code CreateBsonAggregationPredicateVisitor} with additional custom placeholder resolvers.
      *
      * @param additionalPlaceholderResolvers the additional {@code PlaceholderResolver} to use for resolving
      * placeholders in RQL predicates.
      * @return the created instance.
-     * @since 2.3.0
+     * @since 3.6.0
      */
     public static CreateBsonAggregationPredicateVisitor createInstance(
             final Collection<PlaceholderResolver<?>> additionalPlaceholderResolvers) {

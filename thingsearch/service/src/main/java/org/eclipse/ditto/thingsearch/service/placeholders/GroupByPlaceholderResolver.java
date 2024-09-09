@@ -21,7 +21,11 @@ import java.util.Set;
 
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
 
-public class GroupByPlaceholderResolver implements PlaceholderResolver<Map<String, String>> {
+/**
+ * Placeholder resolver for group-by.
+ * Resolves the group-by placeholders from the given source.
+ */
+public final class GroupByPlaceholderResolver implements PlaceholderResolver<Map<String, String>> {
 
     public static final String PREFIX = "group-by";
     private final List<String> supportedNames;

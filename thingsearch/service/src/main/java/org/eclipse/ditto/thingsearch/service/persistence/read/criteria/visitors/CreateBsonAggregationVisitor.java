@@ -26,7 +26,7 @@ import org.eclipse.ditto.rql.query.expression.FilterFieldExpression;
 import org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors.GetFilterBsonVisitor;
 
 /**
- * Creates the Bson object used for querying.
+ * Creates the Aggregation Bson object used for the aggregation.
  */
 public class CreateBsonAggregationVisitor extends CreateBsonVisitor {
 
@@ -54,7 +54,7 @@ public class CreateBsonAggregationVisitor extends CreateBsonVisitor {
                         PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object())
                 )
         );
-        return GetFilterBsonVisitor.apply(fieldExpression, predicateCreator, null);
+        return GetFilterBsonVisitor.apply(fieldExpression, predicateCreator, authorizationSubjectIds);
     }
 
 

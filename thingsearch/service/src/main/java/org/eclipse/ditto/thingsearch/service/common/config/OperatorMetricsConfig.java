@@ -48,11 +48,11 @@ public interface OperatorMetricsConfig {
     Map<String, CustomMetricConfig> getCustomMetricConfigurations();
 
     /**
-     * Returns all registered custom search metrics with the key being the metric name to use.
+     * Returns all registered custom aggregation metrics with the key being the metric name to use.
      *
-     * @return the registered custom search metrics.
+     * @return the registered custom aggregation metrics.
      */
-    Map<String, CustomSearchMetricConfig> getCustomSearchMetricConfigs();
+    Map<String, CustomAggregationMetricConfig> getCustomAggregationMetricConfigs();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
@@ -76,9 +76,9 @@ public interface OperatorMetricsConfig {
         CUSTOM_METRICS("custom-metrics", Collections.emptyMap()),
 
         /**
-         * All registered custom search metrics with the key being the metric name to use.
+         * All registered custom aggregation metrics with the key being the metric name to use.
          */
-        CUSTOM_SEARCH_METRICS("custom-search-metrics", Collections.emptyMap());
+        CUSTOM_AGGREGATION_METRIC("custom-aggregation-metrics", Collections.emptyMap());
 
         private final String path;
         private final Object defaultValue;

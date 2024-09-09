@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.thingsearch.service.starter.actors;
 
-import static org.eclipse.ditto.thingsearch.service.starter.actors.ThingsAggregationConstants.CLUSTER_ROLE;
+import static org.eclipse.ditto.thingsearch.service.starter.actors.AggregateThingsMetricsActor.CLUSTER_ROLE;
 
 import java.time.Duration;
 import java.util.Comparator;
@@ -48,7 +48,7 @@ import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetrics;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetricsResponse;
-import org.eclipse.ditto.thingsearch.service.common.config.CustomSearchMetricConfig;
+import org.eclipse.ditto.thingsearch.service.common.config.CustomAggregationMetricConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.OperatorMetricsConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsAggregationPersistence;
@@ -74,7 +74,7 @@ public final class OperatorSearchMetricsProviderActor extends AbstractActorWithT
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final ActorRef thingsAggregatorActorSingletonProxy;
-    private final Map<String, CustomSearchMetricConfig> customSearchMetricConfigMap;
+    private final Map<String, CustomAggregationMetricConfig> customSearchMetricConfigMap;
     private final Map<GageIdentifier, TimestampedGauge> metricsGauges;
     private final Gauge customSearchMetricsGauge;
     private final Map<FilterIdentifier, PlaceholderResolver<Map<String, String>>> inlinePlaceholderResolvers;
@@ -82,12 +82,13 @@ public final class OperatorSearchMetricsProviderActor extends AbstractActorWithT
     @SuppressWarnings("unused")
     private OperatorSearchMetricsProviderActor(final SearchConfig searchConfig) {
         this.thingsAggregatorActorSingletonProxy = initializeAggregationThingsMetricsActor(searchConfig);
-        this.customSearchMetricConfigMap = searchConfig.getOperatorMetricsConfig().getCustomSearchMetricConfigs();
+        this.customSearchMetricConfigMap = searchConfig.getOperatorMetricsConfig().getCustomAggregationMetricConfigs();
         this.metricsGauges = new HashMap<>();
         this.inlinePlaceholderResolvers = new HashMap<>();
         this.customSearchMetricsGauge = KamonGauge.newGauge("custom-search-metrics-count-of-instruments");
         this.customSearchMetricConfigMap.forEach((metricName, customSearchMetricConfig) -> {
-            initializeCustomMetricTimer(metricName, customSearchMetricConfig,  getMaxConfiguredScrapeInterval(searchConfig.getOperatorMetricsConfig()));
+            initializeCustomMetricTimer(metricName, customSearchMetricConfig,
+                    getMaxConfiguredScrapeInterval(searchConfig.getOperatorMetricsConfig()));
 
             // Initialize the inline resolvers here as they use a static source from config
             customSearchMetricConfig.getFilterConfigs()
@@ -123,45 +124,48 @@ public final class OperatorSearchMetricsProviderActor extends AbstractActorWithT
 
     private ActorRef initializeAggregationThingsMetricsActor(final SearchConfig searchConfig) {
         final DittoMongoClient mongoDbClient = MongoClientExtension.get(getContext().system()).getSearchClient();
-        final var props = AggregationThingsMetricsActor.props(MongoThingsAggregationPersistence.of(mongoDbClient, searchConfig, log));
+        final var props = AggregateThingsMetricsActor.props(
+                MongoThingsAggregationPersistence.of(mongoDbClient, searchConfig, log));
         final ActorRef aggregationThingsMetricsActorProxy = ClusterUtil
                 .startSingletonProxy(getContext(), CLUSTER_ROLE,
-                        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, AggregationThingsMetricsActor.ACTOR_NAME,
+                        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, AggregateThingsMetricsActor.ACTOR_NAME,
                                 props));
-        log.info("Started child actor <{}> with path <{}>.", AggregationThingsMetricsActor.ACTOR_NAME,
+        log.info("Started child actor <{}> with path <{}>.", AggregateThingsMetricsActor.ACTOR_NAME,
                 aggregationThingsMetricsActorProxy);
         return aggregationThingsMetricsActorProxy;
     }
 
     private void handleGatheringMetrics(final GatherMetricsCommand gatherMetricsCommand) {
         final String metricName = gatherMetricsCommand.metricName();
-        final CustomSearchMetricConfig config = gatherMetricsCommand.config();
+        final CustomAggregationMetricConfig config = gatherMetricsCommand.config();
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .correlationId("gather-search-metrics_" + metricName + "_" + UUID.randomUUID())
                 .build();
 
         final Map<String, String> namedFilters = config.getFilterConfigs().stream()
-                .collect(Collectors.toMap(CustomSearchMetricConfig.FilterConfig::getFilterName,
-                        CustomSearchMetricConfig.FilterConfig::getFilter));
-        AggregateThingsMetrics
+                .collect(Collectors.toMap(CustomAggregationMetricConfig.FilterConfig::getFilterName,
+                        CustomAggregationMetricConfig.FilterConfig::getFilter));
+        final AggregateThingsMetrics
                 aggregateThingsMetrics = AggregateThingsMetrics.of(metricName, config.getGroupBy(), namedFilters,
                 Set.of(config.getNamespaces().toArray(new String[0])), dittoHeaders);
         thingsAggregatorActorSingletonProxy.tell(aggregateThingsMetrics, getSelf());
     }
 
 
-    private void handleAggregateThingsResponse(AggregateThingsMetricsResponse response) {
-        log.withCorrelationId(response).info("Received aggregate things response: {} thread: {}", //TODO debug
+    private void handleAggregateThingsResponse(final AggregateThingsMetricsResponse response) {
+        log.withCorrelationId(response).debug("Received aggregate things response: {} thread: {}",
                 response, Thread.currentThread().getName());
         final String metricName = response.getMetricName();
         // record by filter name and tags
         response.getResult().forEach((filterName, value) -> {
             resolveTags(filterName, customSearchMetricConfigMap.get(metricName), response);
-            final CustomSearchMetricConfig customSearchMetricConfig = customSearchMetricConfigMap.get(metricName);
-            final TagSet tagSet = resolveTags(filterName, customSearchMetricConfig, response)
+            final CustomAggregationMetricConfig customAggregationMetricConfig =
+                    customSearchMetricConfigMap.get(metricName);
+            final TagSet tagSet = resolveTags(filterName, customAggregationMetricConfig, response)
                     .putTag(Tag.of("filter", filterName));
             recordMetric(metricName, tagSet, value);
-            customSearchMetricsGauge.tag(Tag.of(METRIC_NAME, metricName)).set(Long.valueOf(metricsGauges.size()));;
+            customSearchMetricsGauge.tag(Tag.of(METRIC_NAME, metricName)).set(Long.valueOf(metricsGauges.size()));
+            ;
         });
     }
 
@@ -170,7 +174,7 @@ public final class OperatorSearchMetricsProviderActor extends AbstractActorWithT
             if (timestampedGauge == null) {
                 final Gauge gauge = KamonGauge.newGauge(metricName)
                         .tags(tagSet);
-                        gauge.set(value);
+                gauge.set(value);
                 return new TimestampedGauge(gauge);
             } else {
                 return timestampedGauge.set(value);
@@ -178,17 +182,21 @@ public final class OperatorSearchMetricsProviderActor extends AbstractActorWithT
         });
     }
 
-    private TagSet resolveTags(final String filterName, final CustomSearchMetricConfig customSearchMetricConfig,
+    private TagSet resolveTags(final String filterName,
+            final CustomAggregationMetricConfig customAggregationMetricConfig,
             final AggregateThingsMetricsResponse response) {
-        return TagSet.ofTagCollection(customSearchMetricConfig.getTags().entrySet().stream().map(tagEntry-> {
+        return TagSet.ofTagCollection(customAggregationMetricConfig.getTags().entrySet().stream().map(tagEntry -> {
             if (!isPlaceHolder(tagEntry.getValue())) {
                 return Tag.of(tagEntry.getKey(), tagEntry.getValue());
             } else {
 
                 final ExpressionResolver expressionResolver =
                         PlaceholderFactory.newExpressionResolver(List.of(
-                                new GroupByPlaceholderResolver(customSearchMetricConfig.getGroupBy().keySet(), response.getGroupedBy())
-                                , inlinePlaceholderResolvers.get(new FilterIdentifier(customSearchMetricConfig.getMetricName(), filterName))));
+                                new GroupByPlaceholderResolver(customAggregationMetricConfig.getGroupBy().keySet(),
+                                        response.getGroupedBy())
+                                , inlinePlaceholderResolvers.get(
+                                        new FilterIdentifier(customAggregationMetricConfig.getMetricName(),
+                                                filterName))));
                 return expressionResolver.resolve(tagEntry.getValue())
                         .findFirst()
                         .map(resolvedValue -> Tag.of(tagEntry.getKey(), resolvedValue))
@@ -204,7 +212,8 @@ public final class OperatorSearchMetricsProviderActor extends AbstractActorWithT
         while (iterator.hasNext()) {
             final Map.Entry<GageIdentifier, TimestampedGauge> next = iterator.next();
             final long lastUpdated = next.getValue().getLastUpdated();
-            final long unusedPeriod = getMaxConfiguredScrapeInterval(cleanupCommand.config()).multipliedBy(2).toMillis();
+            final long unusedPeriod =
+                    getMaxConfiguredScrapeInterval(cleanupCommand.config()).multipliedBy(2).toMillis();
             final long expire = lastUpdated + unusedPeriod;
             log.debug("cleanup metrics:  expired: {}, time left: {} lastUpdated: {}  expire: {} currentTime: {}",
                     currentTime > expire, expire - currentTime, lastUpdated, expire, currentTime);
@@ -213,7 +222,7 @@ public final class OperatorSearchMetricsProviderActor extends AbstractActorWithT
                 // setting to zero as there is a bug in Kamon where the gauge is not removed and is still reported
                 // https://github.com/kamon-io/Kamon/issues/566
                 next.getValue().set(0L);
-                if ( Kamon.gauge(metricName).remove(KamonTagSetConverter.getKamonTagSet(next.getValue().getTagSet()))) {
+                if (Kamon.gauge(metricName).remove(KamonTagSetConverter.getKamonTagSet(next.getValue().getTagSet()))) {
                     log.debug("Removed custom search metric instrument: {} {}", metricName,
                             next.getValue().getTagSet());
                     iterator.remove();
@@ -228,15 +237,16 @@ public final class OperatorSearchMetricsProviderActor extends AbstractActorWithT
 
     private Duration getMaxConfiguredScrapeInterval(final OperatorMetricsConfig operatorMetricsConfig) {
         return Stream.concat(Stream.of(operatorMetricsConfig.getScrapeInterval()),
-                        operatorMetricsConfig.getCustomSearchMetricConfigs().values().stream()
-                                .map(CustomSearchMetricConfig::getScrapeInterval)
+                        operatorMetricsConfig.getCustomAggregationMetricConfigs().values().stream()
+                                .map(CustomAggregationMetricConfig::getScrapeInterval)
                                 .filter(Optional::isPresent)
                                 .map(Optional::get))
                 .max(Comparator.naturalOrder())
                 .orElse(operatorMetricsConfig.getScrapeInterval());
     }
 
-    private void initializeCustomMetricTimer(final String metricName, final CustomSearchMetricConfig config, final Duration scrapeInterval ) {
+    private void initializeCustomMetricTimer(final String metricName, final CustomAggregationMetricConfig config,
+            final Duration scrapeInterval) {
         if (!config.isEnabled()) {
             log.info("Custom search metric Gauge for metric <{}> is DISABLED. Skipping init.", metricName);
             return;
@@ -255,7 +265,8 @@ public final class OperatorSearchMetricsProviderActor extends AbstractActorWithT
     private void initializeCustomMetricsCleanupTimer(final OperatorMetricsConfig operatorMetricsConfig) {
         final Duration interval = getMaxConfiguredScrapeInterval(operatorMetricsConfig);
         log.info("Initializing custom metric cleanup timer Interval <{}>", interval);
-        getTimers().startTimerAtFixedRate("cleanup-unused-metrics", new CleanupUnusedMetricsCommand(operatorMetricsConfig),
+        getTimers().startTimerAtFixedRate("cleanup-unused-metrics",
+                new CleanupUnusedMetricsCommand(operatorMetricsConfig),
                 interval);
     }
 
@@ -263,7 +274,7 @@ public final class OperatorSearchMetricsProviderActor extends AbstractActorWithT
         return value.startsWith("{{") && value.endsWith("}}");
     }
 
-    private static class TimestampedGauge {
+    private final static class TimestampedGauge {
 
         private final Gauge gauge;
         private final Long timestamp;
@@ -301,14 +312,14 @@ public final class OperatorSearchMetricsProviderActor extends AbstractActorWithT
 
         @Override
         public String toString() {
-            return "GageWithTimestamp{" +
+            return "TimestampedGauge{" +
                     "gauge=" + gauge +
                     ", timestamp=" + timestamp +
                     '}';
         }
     }
 
-    private record GatherMetricsCommand(String metricName, CustomSearchMetricConfig config) {}
+    private record GatherMetricsCommand(String metricName, CustomAggregationMetricConfig config) {}
 
     private record CleanupUnusedMetricsCommand(OperatorMetricsConfig config) {}
 

@@ -20,7 +20,11 @@ import java.util.Optional;
 
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
 
-public class InlinePlaceholderResolver implements PlaceholderResolver<Map<String, String>> {
+/**
+ * Placeholder resolver for inline.
+ * Resolves the inline placeholders from the given source.
+ */
+public final class InlinePlaceholderResolver implements PlaceholderResolver<Map<String, String>> {
 
     public static final String PREFIX = "inline";
     private final Map<String, String> source;

@@ -46,7 +46,10 @@ import com.mongodb.client.model.BsonField;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
-public class MongoThingsAggregationPersistence implements ThingsAggregationPersistence {
+/**
+ * Persistence implementation for aggregating things.
+ */
+public final class MongoThingsAggregationPersistence implements ThingsAggregationPersistence {
 
 
     private final MongoCollection<Document> collection;
@@ -59,6 +62,8 @@ public class MongoThingsAggregationPersistence implements ThingsAggregationPersi
      * Initializes the things search persistence with a passed in {@code persistence}.
      *
      * @param mongoClient the mongoDB persistence wrapper.
+     * @param mongoHintsByNamespace the mongo hints by namespace.
+     * @param simpleFieldMappings the simple field mappings.
      * @param persistenceConfig the search persistence configuration.
      * @param log the logger.
      */
@@ -78,7 +83,6 @@ public class MongoThingsAggregationPersistence implements ThingsAggregationPersi
         this.log = log;
         maxQueryTime = mongoClient.getDittoSettings().getMaxQueryTime();
         hints = mongoHintsByNamespace.map(MongoHints::byNamespace).orElse(MongoHints.empty());
-        log.info("Aggregation readConcern=<{}> readPreference=<{}>", readConcern, readPreference);
     }
 
     public static ThingsAggregationPersistence of(final DittoMongoClient mongoClient,
@@ -110,7 +114,7 @@ public class MongoThingsAggregationPersistence implements ThingsAggregationPersi
                 .collect(Collectors.toList());
         final Bson group = group(new Document(groupingBy), accumulatorFields);
         aggregatePipeline.add(group);
-        log.info("aggregatePipeline: {}", // TODO debug
+        log.debug("aggregation Pipeline: {}",
                 aggregatePipeline.stream().map(bson -> bson.toBsonDocument().toJson()).collect(
                         Collectors.toList()));
         // Execute the aggregation pipeline
@@ -118,6 +122,6 @@ public class MongoThingsAggregationPersistence implements ThingsAggregationPersi
                 .hint(hints.getHint(aggregateCommand.getNamespaces())
                         .orElse(null))
                 .allowDiskUse(true)
-                .maxTime(maxQueryTime.toMillis(), TimeUnit.MILLISECONDS));
+                .maxTime(maxQueryTime.toMillis(), TimeUnit.MILLISECONDS)).log("aggregateThings");
     }
 }

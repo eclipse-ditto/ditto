@@ -18,77 +18,200 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonArrayBuilder;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 
-public class AggregateThingsMetricsResponse implements WithDittoHeaders {
+/**
+ * A response to an {@link AggregateThingsMetrics} command.
+ * Contains the original aggregation as returned by the database as well as fields initialized by that aggregation
+ * (grouped by and result)
+ * The result contains the returned values for each filter defined in a metric.
+ * The groupedBy contains the values that the result was grouped by.
+ */
+@JsonParsableCommandResponse(type = AggregateThingsMetricsResponse.RESOURCE_TYPE)
+public final class AggregateThingsMetricsResponse extends AbstractCommandResponse<AggregateThingsMetricsResponse> {
 
-    private final Map<String, String> groupedBy;
+    public static final String NAME = "things-metrics";
+    public static final String RESOURCE_TYPE = "aggregation." + TYPE_QUALIFIER;
+    private static final String TYPE_PREFIX = RESOURCE_TYPE + ":";
+    private static final String TYPE = TYPE_PREFIX + NAME;
 
-    private final Map<String, Long> result;
+    static final JsonFieldDefinition<String> METRIC_NAME =
+            JsonFactory.newStringFieldDefinition("metric-name", FieldType.REGULAR,
+                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> DITTO_HEADERS =
+            JsonFactory.newJsonObjectFieldDefinition("ditto-headers", FieldType.REGULAR,
+                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonArray> FILTERS_NAMES =
+            JsonFactory.newJsonArrayFieldDefinition("filters-names", FieldType.REGULAR,
+                    JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonObject> AGGREGATION =
+            JsonFactory.newJsonObjectFieldDefinition("aggregation", FieldType.REGULAR,
+                    JsonSchemaVersion.V_2);
 
-    private final DittoHeaders dittoHeaders;
-    private final JsonObject aggregation;
     private final String metricName;
-    private AggregateThingsMetricsResponse(final JsonObject aggregation, final DittoHeaders dittoHeaders,
-            final String metricName, final Set<String> filterNames) {
-        this.aggregation = aggregation;
-        this.dittoHeaders = dittoHeaders;
+    private final DittoHeaders dittoHeaders;
+    private final Set<String> filterNames;
+    private final JsonObject aggregation;
+
+    private AggregateThingsMetricsResponse(final String metricName, final DittoHeaders dittoHeaders,
+            final Set<String> filterNames, final JsonObject aggregation) {
+        super(TYPE, HttpStatus.OK, dittoHeaders);
         this.metricName = metricName;
-        groupedBy = aggregation.getValue("_id")
-                .map(json -> {
-                    if (json.isObject()) {
-                        return json.asObject().stream()
-                                .collect(Collectors.toMap(o -> o.getKey().toString(),
-                                        o1 -> o1.getValue().formatAsString()));
-                    } else {
-                        return new HashMap<String, String>();
-                    }
-                        }
-                )
-                .orElse(new HashMap<>());
-        result = filterNames.stream().filter(aggregation::contains).collect(Collectors.toMap(key ->
-                key, key -> aggregation.getValue(JsonPointer.of(key))
-                .orElseThrow(getJsonMissingFieldExceptionSupplier(key))
-                .asLong()));
-        // value should always be a number as it will be used for the gauge value in the metrics
+        this.dittoHeaders = DittoHeaders.of(dittoHeaders);
+        this.filterNames = filterNames;
+        this.aggregation = aggregation;
     }
 
+    /**
+     * Creates a new {@link AggregateThingsMetricsResponse} instance.
+     *
+     * @param aggregation the aggregation result.
+     * @param aggregateThingsMetrics the command that was executed.
+     * @return the AggregateThingsMetricsResponse instance.
+     */
     public static AggregateThingsMetricsResponse of(final JsonObject aggregation,
             final AggregateThingsMetrics aggregateThingsMetrics) {
-        return of(aggregation, aggregateThingsMetrics.getDittoHeaders(), aggregateThingsMetrics.getMetricName(), aggregateThingsMetrics.getNamedFilters().keySet());
+        return of(aggregation, aggregateThingsMetrics.getDittoHeaders(), aggregateThingsMetrics.getMetricName(),
+                aggregateThingsMetrics.getNamedFilters().keySet());
     }
 
+    /**
+     * Creates a new {@link AggregateThingsMetricsResponse} instance.
+     *
+     * @param aggregation the aggregation result.
+     * @param dittoHeaders the headers to use for the response.
+     * @param metricName the name of the metric.
+     * @param filterNames the names of the filters.
+     * @return the AggregateThingsMetricsResponse instance.
+     */
     public static AggregateThingsMetricsResponse of(final JsonObject aggregation, final DittoHeaders dittoHeaders,
             final String metricName, final Set<String> filterNames) {
-        return new AggregateThingsMetricsResponse(aggregation, dittoHeaders, metricName, filterNames);
+        return new AggregateThingsMetricsResponse(metricName, dittoHeaders, filterNames, aggregation);
+    }
+
+    /**
+     * Creates a new {@code AggregateThingsMetricsResponse} from a JSON string.
+     *
+     * @param jsonString the JSON string of which the command is to be created.
+     * @param dittoHeaders the headers of the command.
+     * @return the command.
+     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws IllegalArgumentException if {@code jsonString} is empty.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
+     * format.
+     */
+    public static AggregateThingsMetricsResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
+        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+    }
+
+    /**
+     * Creates a new {@code AggregateThingsMetricsResponse} from a JSON object.
+     *
+     * @param jsonObject the JSON object of which the command is to be created.
+     * @param dittoHeaders the headers of the command.
+     * @return the command.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
+     */
+    public static AggregateThingsMetricsResponse fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
+
+        final JsonObject aggregation = jsonObject.getValue(AGGREGATION)
+                .orElseThrow(getJsonMissingFieldExceptionSupplier(AGGREGATION.getPointer().toString()));
+        final String metricName = jsonObject.getValue(METRIC_NAME)
+                .orElseThrow(getJsonMissingFieldExceptionSupplier(METRIC_NAME.getPointer().toString()));
+        final JsonArray filterNames = jsonObject.getValue(FILTERS_NAMES)
+                .orElseThrow(getJsonMissingFieldExceptionSupplier(FILTERS_NAMES.getPointer().toString()));
+        Set<String> filters =
+                filterNames.stream().map(JsonValue::formatAsString).collect(Collectors.toSet());
+        return AggregateThingsMetricsResponse.of(aggregation, dittoHeaders, metricName, filters);
     }
 
     @Override
-    public DittoHeaders getDittoHeaders() {
-        return dittoHeaders;
+    public AggregateThingsMetricsResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return AggregateThingsMetricsResponse.of(aggregation, dittoHeaders, metricName, filterNames);
     }
 
+    @Override
+    public JsonPointer getResourcePath() {
+        return JsonPointer.empty();
+    }
+
+    @Override
+    public String getResourceType() {
+        return RESOURCE_TYPE;
+    }
+
+
+    @Override
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+            final Predicate<JsonField> thePredicate) {
+
+        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
+        jsonObjectBuilder.set(METRIC_NAME, metricName, predicate);
+        jsonObjectBuilder.set(DITTO_HEADERS, dittoHeaders.toJson(), predicate);
+        final JsonArrayBuilder filterNamesBuilder = JsonFactory.newArrayBuilder();
+        filterNames.forEach(filterNamesBuilder::add);
+        jsonObjectBuilder.set(FILTERS_NAMES, filterNamesBuilder.build(), predicate);
+        jsonObjectBuilder.set(AGGREGATION, aggregation, predicate);
+    }
+
+    /**
+     * Returns the grouping by values by witch the result was grouped.
+     *
+     * @return the groupedBy of the response.
+     */
     public Map<String, String> getGroupedBy() {
-        return groupedBy;
+        return aggregation.getValue("_id")
+                .map(json -> {
+                            if (json.isObject()) {
+                                return json.asObject().stream()
+                                        .collect(Collectors.toMap(o -> o.getKey().toString(),
+                                                o1 -> o1.getValue().formatAsString()));
+                            } else {
+                                return new HashMap<String, String>();
+                            }
+                        }
+                )
+                .orElse(new HashMap<>());
     }
 
+    /**
+     * Returns the values for each filter defined in the metric
+     *
+     * @return the result of the aggregation.
+     */
     public Map<String, Long> getResult() {
-        return result;
+        return extractFiltersResults(aggregation, filterNames);
     }
 
+    /**
+     * Returns the metric name.
+     *
+     * @return the metric name.
+     */
     public String getMetricName() {
         return metricName;
-    }
-
-    private Supplier<RuntimeException> getJsonMissingFieldExceptionSupplier(String field) {
-        return () -> JsonMissingFieldException.newBuilder().fieldName(field).build();
     }
 
     @Override
@@ -96,26 +219,36 @@ public class AggregateThingsMetricsResponse implements WithDittoHeaders {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final AggregateThingsMetricsResponse response = (AggregateThingsMetricsResponse) o;
-        return Objects.equals(groupedBy, response.groupedBy) &&
-                Objects.equals(result, response.result) &&
+        return Objects.equals(metricName, response.metricName) &&
                 Objects.equals(dittoHeaders, response.dittoHeaders) &&
-                Objects.equals(aggregation, response.aggregation) &&
-                Objects.equals(metricName, response.metricName);
+                Objects.equals(filterNames, response.filterNames) &&
+                Objects.equals(aggregation, response.aggregation);
+
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(groupedBy, result, dittoHeaders, aggregation, metricName);
+        return Objects.hash(super.hashCode(), metricName, dittoHeaders, filterNames, aggregation);
     }
 
     @Override
     public String toString() {
         return "AggregateThingsMetricsResponse{" +
-                "groupedBy=" + groupedBy +
-                ", result=" + result +
+                "metricName='" + metricName + '\'' +
                 ", dittoHeaders=" + dittoHeaders +
+                ", filterNames=" + filterNames +
                 ", aggregation=" + aggregation +
-                ", metricName='" + metricName + '\'' +
                 '}';
+    }
+
+    private Map<String, Long> extractFiltersResults(final JsonObject aggregation, final Set<String> filterNames) {
+        return filterNames.stream().filter(aggregation::contains).collect(Collectors.toMap(key ->
+                key, key -> aggregation.getValue(JsonPointer.of(key))
+                .orElseThrow(getJsonMissingFieldExceptionSupplier(key))
+                .asLong()));
+    }
+
+    private static Supplier<RuntimeException> getJsonMissingFieldExceptionSupplier(final String field) {
+        return () -> JsonMissingFieldException.newBuilder().fieldName(field).build();
     }
 }

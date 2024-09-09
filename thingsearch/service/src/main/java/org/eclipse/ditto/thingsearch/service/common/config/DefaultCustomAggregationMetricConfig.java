@@ -35,7 +35,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 @Immutable
-public final class DefaultCustomSearchMetricConfig implements CustomSearchMetricConfig {
+public final class DefaultCustomAggregationMetricConfig implements CustomAggregationMetricConfig {
 
     private final String metricName;
     private final boolean enabled;
@@ -45,7 +45,7 @@ public final class DefaultCustomSearchMetricConfig implements CustomSearchMetric
     private final Map<String, String> tags;
     private final List<FilterConfig> filterConfigs;
 
-    private DefaultCustomSearchMetricConfig(final String key, final ConfigWithFallback configWithFallback) {
+    private DefaultCustomAggregationMetricConfig(final String key, final ConfigWithFallback configWithFallback) {
         this.metricName = key;
         enabled = configWithFallback.getBoolean(CustomSearchMetricConfigValue.ENABLED.getConfigPath());
         scrapeInterval = configWithFallback.getDuration(CustomSearchMetricConfigValue.SCRAPE_INTERVAL.getConfigPath());
@@ -72,8 +72,8 @@ public final class DefaultCustomSearchMetricConfig implements CustomSearchMetric
         validateConfig();
     }
 
-    public static DefaultCustomSearchMetricConfig of(final String key, final Config config) {
-        return new DefaultCustomSearchMetricConfig(key,
+    public static DefaultCustomAggregationMetricConfig of(final String key, final Config config) {
+        return new DefaultCustomAggregationMetricConfig(key,
                 ConfigWithFallback.newInstance(config, CustomSearchMetricConfigValue.values()));
     }
 
@@ -185,7 +185,7 @@ public final class DefaultCustomSearchMetricConfig implements CustomSearchMetric
     public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        final DefaultCustomSearchMetricConfig that = (DefaultCustomSearchMetricConfig) o;
+        final DefaultCustomAggregationMetricConfig that = (DefaultCustomAggregationMetricConfig) o;
         return enabled == that.enabled && Objects.equals(metricName, that.metricName) &&
                 Objects.equals(scrapeInterval, that.scrapeInterval) &&
                 Objects.equals(namespaces, that.namespaces) && Objects.equals(groupBy, that.groupBy) &&

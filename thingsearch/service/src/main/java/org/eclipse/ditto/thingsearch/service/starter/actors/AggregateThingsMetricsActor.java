@@ -24,6 +24,7 @@ import org.apache.pekko.japi.pf.PFBuilder;
 import org.apache.pekko.japi.pf.ReceiveBuilder;
 import org.apache.pekko.pattern.Patterns;
 import org.apache.pekko.stream.Graph;
+import org.apache.pekko.stream.Materializer;
 import org.apache.pekko.stream.SourceShape;
 import org.apache.pekko.stream.SystemMaterializer;
 import org.apache.pekko.stream.javadsl.Flow;
@@ -48,25 +49,30 @@ import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsAggregationP
 /**
  * Actor handling custom metrics aggregations {@link org.eclipse.ditto.thingsearch.model.signals.commands.query.AggregateThingsMetrics}.
  */
-public class AggregationThingsMetricsActor
-        extends AbstractActor {
+public final class AggregateThingsMetricsActor extends AbstractActor {
 
     /**
      * The name of this actor in the system.
      */
-    static final String ACTOR_NAME = ThingsAggregationConstants.AGGREGATE_ACTOR_NAME;
+    public static final String ACTOR_NAME = "aggregateThingsMetrics";
+    /**
+     * Name of the pekko cluster role.
+     */
+    public static final String CLUSTER_ROLE = "search";
     private static final String TRACING_THINGS_AGGREGATION = "aggregate_things_metrics";
 
     private final ThreadSafeDittoLoggingAdapter log;
     private final ThingsAggregationPersistence thingsAggregationPersistence;
+    private final Materializer materializer;
 
-    private AggregationThingsMetricsActor(final ThingsAggregationPersistence aggregationPersistence) {
+    private AggregateThingsMetricsActor(final ThingsAggregationPersistence aggregationPersistence) {
         log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
-        this.thingsAggregationPersistence = aggregationPersistence;
+        thingsAggregationPersistence = aggregationPersistence;
+        materializer = SystemMaterializer.get(getContext().getSystem()).materializer();
     }
 
     public static Props props(final ThingsAggregationPersistence aggregationPersistence) {
-        return Props.create(AggregationThingsMetricsActor.class,aggregationPersistence);
+        return Props.create(AggregateThingsMetricsActor.class, aggregationPersistence);
     }
 
     @Override
@@ -79,11 +85,12 @@ public class AggregationThingsMetricsActor
                 .build();
     }
 
-    private void aggregate(AggregateThingsMetrics aggregateThingsMetrics) {
+    private void aggregate(final AggregateThingsMetrics aggregateThingsMetrics) {
         log.debug("Received aggregate command for {}", aggregateThingsMetrics);
         final StartedTimer aggregationTimer = startNewTimer(aggregateThingsMetrics);
         final Source<Document, NotUsed> source =
-                DittoJsonException.wrapJsonRuntimeException(aggregateThingsMetrics, aggregateThingsMetrics.getDittoHeaders(),
+                DittoJsonException.wrapJsonRuntimeException(aggregateThingsMetrics,
+                        aggregateThingsMetrics.getDittoHeaders(),
                         (command, headers) -> thingsAggregationPersistence.aggregateThings(command));
         final Source<AggregateThingsMetricsResponse, NotUsed> aggregationResult =
                 processAggregationPersistenceResult(source, aggregateThingsMetrics.getDittoHeaders())
@@ -93,23 +100,22 @@ public class AggregationThingsMetricsActor
         final Source<Object, ?> replySourceWithErrorHandling =
                 aggregationResult.via(stopTimerAndHandleError(aggregationTimer, aggregateThingsMetrics));
 
-                replySourceWithErrorHandling.runWith(Sink.foreach(elem -> {
-                    Patterns.pipe(CompletableFuture.completedFuture(elem), getContext().dispatcher()).to(sender);
-
-                }), SystemMaterializer.get(getContext().getSystem()).materializer());
+        replySourceWithErrorHandling.runWith(Sink.foreach(
+                        elem -> Patterns.pipe(CompletableFuture.completedFuture(elem), getContext().dispatcher()).to(sender)),
+                materializer);
     }
 
-private <T> Source<T, NotUsed> processAggregationPersistenceResult(final Source<T, NotUsed> source,
-        final DittoHeaders dittoHeaders) {
+    private <T> Source<T, NotUsed> processAggregationPersistenceResult(final Source<T, NotUsed> source,
+            final DittoHeaders dittoHeaders) {
 
-    final Flow<T, T, NotUsed> logAndFinishPersistenceSegmentFlow =
-            Flow.fromFunction(result -> {
-                log.withCorrelationId(dittoHeaders)
-                        .debug("aggregation element: {}", result);
-                return result;
-            });
-return source.via(logAndFinishPersistenceSegmentFlow);
-}
+        final Flow<T, T, NotUsed> logAndFinishPersistenceSegmentFlow =
+                Flow.fromFunction(result -> {
+                    log.withCorrelationId(dittoHeaders)
+                            .debug("aggregation element: {}", result);
+                    return result;
+                });
+        return source.via(logAndFinishPersistenceSegmentFlow);
+    }
 
     private static StartedTimer startNewTimer(final WithDittoHeaders withDittoHeaders) {
         final StartedTimer startedTimer = DittoMetrics.timer(TRACING_THINGS_AGGREGATION)
@@ -126,6 +132,7 @@ return source.via(logAndFinishPersistenceSegmentFlow);
             // it is okay if the timer was stopped.
         }
     }
+
     private <T> Flow<T, Object, NotUsed> stopTimerAndHandleError(final StartedTimer searchTimer,
             final WithDittoHeaders command) {
         return Flow.<T, Object>fromFunction(
@@ -141,6 +148,7 @@ return source.via(logAndFinishPersistenceSegmentFlow);
                         .build()
                 );
     }
+
     private DittoRuntimeException asDittoRuntimeException(final Throwable error, final WithDittoHeaders trigger) {
         return DittoRuntimeException.asDittoRuntimeException(error, t -> {
             log.error(error, "AggregateThingsMetricsActor failed to execute <{}>", trigger);

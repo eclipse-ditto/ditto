@@ -28,7 +28,7 @@ import com.typesafe.config.ConfigFactory;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
-public class DefaultCustomSearchMetricConfigTest {
+public class DefaultCustomAggregationMetricConfigTest {
 
     private static Config config;
     private static Config customSearchMetricTestConfig;
@@ -44,35 +44,35 @@ public class DefaultCustomSearchMetricConfigTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(DefaultCustomSearchMetricConfig.class)
+        EqualsVerifier.forClass(DefaultCustomAggregationMetricConfig.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void gettersReturnConfiguredValues() {
-        final DefaultCustomSearchMetricConfig underTest =
-                DefaultCustomSearchMetricConfig.of("online_status",
+        final DefaultCustomAggregationMetricConfig underTest =
+                DefaultCustomAggregationMetricConfig.of("online_status",
                         customSearchMetricTestConfig.getConfig("online_status"));
 
         softly.assertThat(underTest.isEnabled())
-                .as(CustomSearchMetricConfig.CustomSearchMetricConfigValue.ENABLED.getConfigPath())
+                .as(CustomAggregationMetricConfig.CustomSearchMetricConfigValue.ENABLED.getConfigPath())
                 .isEqualTo(true);
         softly.assertThat(underTest.getScrapeInterval())
-                .as(CustomSearchMetricConfig.CustomSearchMetricConfigValue.SCRAPE_INTERVAL.getConfigPath())
+                .as(CustomAggregationMetricConfig.CustomSearchMetricConfigValue.SCRAPE_INTERVAL.getConfigPath())
                 .isEqualTo(Optional.ofNullable(customSearchMetricTestConfig.getDuration(
                         "online_status.scrape-interval")));
         softly.assertThat(underTest.getNamespaces())
-                .as(CustomSearchMetricConfig.CustomSearchMetricConfigValue.NAMESPACES.getConfigPath())
+                .as(CustomAggregationMetricConfig.CustomSearchMetricConfigValue.NAMESPACES.getConfigPath())
                 .containsExactlyInAnyOrder("org.eclipse.ditto.test.1", "org.eclipse.ditto.test.2");
         softly.assertThat(underTest.getTags())
-                .as(CustomSearchMetricConfig.CustomSearchMetricConfigValue.TAGS.getConfigPath())
+                .as(CustomAggregationMetricConfig.CustomSearchMetricConfigValue.TAGS.getConfigPath())
                 .containsExactlyInAnyOrderEntriesOf(
                         customSearchMetricTestConfig.getObject("online_status.tags")
                                 .unwrapped().entrySet().stream().collect(
                                         Collectors.toMap(Map.Entry::getKey, o -> o.getValue().toString())));
         softly.assertThat(underTest.getFilterConfigs())
-                .as(CustomSearchMetricConfig.CustomSearchMetricConfigValue.FILTERS.getConfigPath())
+                .as(CustomAggregationMetricConfig.CustomSearchMetricConfigValue.FILTERS.getConfigPath())
                 .hasSize(2);
         softly.assertThat(underTest.getFilterConfigs().get(0).getFilterName())
                 .as("filter name")
