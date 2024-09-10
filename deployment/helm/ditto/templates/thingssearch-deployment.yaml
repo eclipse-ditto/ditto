@@ -254,12 +254,6 @@ spec:
               value: "{{ .Values.thingsSearch.config.updater.backgroundSync.throttle.throughput }}"
             - name: BACKGROUND_SYCN_THROTTLE_PERIOD
               value: "{{ .Values.thingsSearch.config.updater.backgroundSync.throttle.period }}"
-            - name: DITTO_POLICIES_ENFORCER_CACHE_MAX_SIZE
-              value: "{{ .Values.thingsSearch.config.updater.stream.policiesEnforcer.cache.maxSize }}"
-            - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_WRITE
-              value: "{{ .Values.thingsSearch.config.updater.stream.policiesEnforcer.cache.expireAfterWrite }}"
-            - name: DITTO_POLICIES_ENFORCER_CACHE_EXPIRE_AFTER_ACCESS
-              value: "{{ .Values.thingsSearch.config.updater.stream.policiesEnforcer.cache.expireAfterAccess }}"
             {{- if .Values.thingsSearch.extraEnv }}
               {{- toYaml .Values.thingsSearch.extraEnv | nindent 12 }}
             {{- end }}
