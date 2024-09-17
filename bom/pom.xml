@@ -156,7 +156,7 @@
             <!-- Pekko -->
             <dependency>
                 <groupId>org.apache.pekko</groupId>
-                <artifactId>pekko-serialization-jackson_2.13</artifactId>
+                <artifactId>pekko-serialization-jackson_${scala.version}</artifactId>
                 <version>${pekko-bom.version}</version>
             </dependency>
             <dependency>
@@ -219,7 +219,7 @@
             </dependency>
             <dependency>
                 <groupId>org.mongodb.scala</groupId>
-                <artifactId>mongo-scala-driver_2.13</artifactId>
+                <artifactId>mongo-scala-driver_${scala.version}</artifactId>
                 <version>${mongo-java-driver.version}</version>
             </dependency>
 

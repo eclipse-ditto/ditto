@@ -76,9 +76,27 @@
         </dependency>
         <dependency>
             <groupId>org.mongodb.scala</groupId>
-            <artifactId>mongo-scala-driver_2.13</artifactId>
+            <artifactId>mongo-scala-driver_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pekko</groupId>
+            <artifactId>pekko-persistence-query_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <!-- This dependency is required to build the MongoDriverConfigurableScalaDriverPersistenceExtension. Otherwise
+             java.lang.ClassNotFoundException: com.codahale.metrics.MetricRegistry is thrown -->
+            <groupId>nl.grons</groupId>
+            <artifactId>metrics4-scala_${scala.version}</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>sts</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>auth</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
@@ -88,7 +106,7 @@
         <!--  Can be removed after dropping support for scala 2.12 and use classes under scala.jdk instead -->
         <dependency>
             <groupId>org.scala-lang.modules</groupId>
-            <artifactId>scala-java8-compat_2.13</artifactId>
+            <artifactId>scala-java8-compat_${scala.version}</artifactId>
         </dependency>
 
 
@@ -158,22 +176,52 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.apache.pekko</groupId>
-            <artifactId>pekko-persistence-query_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>sts</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>auth</artifactId>
-        </dependency>
     </dependencies>
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <configuration>
+                    <scalaVersion>${scala.full.version}</scalaVersion>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>compile</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <phase>compile</phase>
+                    </execution>
+                    <execution>
+                        <id>test-compile</id>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                        <phase>test-compile</phase>
+                    </execution>
+                    <execution>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
