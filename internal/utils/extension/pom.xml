@@ -28,7 +28,7 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.pekko</groupId>
-            <artifactId>pekko-actor_2.13</artifactId>
+            <artifactId>pekko-actor_${scala.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

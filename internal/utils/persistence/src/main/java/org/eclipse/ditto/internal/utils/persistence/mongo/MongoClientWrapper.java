@@ -20,7 +20,6 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -28,16 +27,13 @@ import javax.net.ssl.SSLContext;
 
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.internal.utils.persistence.mongo.auth.AwsAuthenticationHelper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.mongodb.AwsCredential;
 import com.mongodb.ClientSessionOptions;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
-import com.mongodb.MongoCredential;
 import com.mongodb.ReadConcern;
 import com.mongodb.ReadPreference;
 import com.mongodb.ServerAddress;
@@ -58,21 +54,12 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.sts.StsClient;
-import software.amazon.awssdk.services.sts.StsClientBuilder;
-import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
-import software.amazon.awssdk.services.sts.model.AssumeRoleResponse;
-import software.amazon.awssdk.services.sts.model.Credentials;
 
 /**
  * Default implementation of DittoMongoClient.
  */
 @NotThreadSafe
 public final class MongoClientWrapper implements DittoMongoClient {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(MongoClientWrapper.class);
 
     private final MongoClient mongoClient;
     private final MongoClientSettings clientSettings;
@@ -483,9 +470,10 @@ public final class MongoClientWrapper implements DittoMongoClient {
             buildAndApplySslSettings();
 
             if (isUseAwsIamRole) {
-                applyAwsIamRoleSettings();
+                mongoClientSettingsBuilder.credential(
+                        AwsAuthenticationHelper.provideAwsIamBasedMongoCredential(awsRegion, awsRoleArn, awsSessionName)
+                );
             }
-
             return new MongoClientWrapper(mongoClientSettingsBuilder.build(), defaultDatabaseName,
                     dittoMongoClientSettingsBuilder.build(), eventLoopGroup);
         }
@@ -520,39 +508,6 @@ public final class MongoClientWrapper implements DittoMongoClient {
             final SSLContext result = SSLContext.getInstance("TLSv1.2");
             result.init(null, null, null);
             return result;
-        }
-
-        private void applyAwsIamRoleSettings() {
-
-            final StsClientBuilder stsClientBuilder = StsClient.builder()
-                    .credentialsProvider(DefaultCredentialsProvider.create());
-            if (!awsRegion.isEmpty()) {
-                stsClientBuilder.region(Region.of(awsRegion));
-            }
-
-            final Supplier<AwsCredential> awsFreshCredentialSupplier;
-            try (final StsClient stsClient = stsClientBuilder.build()) {
-                awsFreshCredentialSupplier = () -> {
-                    LOGGER.info("Supplying AWS IAM credentials, assuming role <{}> in session name <{}>",
-                            awsRoleArn, awsSessionName);
-
-                    // assume role using the AWS SDK
-                    final AssumeRoleRequest roleRequest = AssumeRoleRequest.builder()
-                            .roleArn(awsRoleArn)
-                            .roleSessionName(awsSessionName)
-                            .build();
-                    final AssumeRoleResponse roleResponse = stsClient.assumeRole(roleRequest);
-                    final Credentials awsCredentials = roleResponse.credentials();
-
-                    return new AwsCredential(awsCredentials.accessKeyId(), awsCredentials.secretAccessKey(),
-                            awsCredentials.sessionToken());
-                };
-
-                final MongoCredential credential = MongoCredential.createAwsCredential(null, null)
-                        .withMechanismProperty(MongoCredential.AWS_CREDENTIAL_PROVIDER_KEY, awsFreshCredentialSupplier);
-
-                mongoClientSettingsBuilder.credential(credential);
-            }
         }
     }
 }
