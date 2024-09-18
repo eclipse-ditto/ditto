@@ -61,25 +61,24 @@ public final class AwsAuthenticationHelper {
         }
 
         final Supplier<AwsCredential> awsFreshCredentialSupplier;
-        try (final StsClient stsClient = stsClientBuilder.build()) {
-            awsFreshCredentialSupplier = () -> {
-                LOGGER.info("Supplying AWS IAM credentials, assuming role <{}> in session name <{}>",
-                        awsRoleArn, awsSessionName);
+        final StsClient stsClient = stsClientBuilder.build();
+        awsFreshCredentialSupplier = () -> {
+            LOGGER.info("Supplying AWS IAM credentials, assuming role <{}> in session name <{}>",
+                    awsRoleArn, awsSessionName);
 
-                // assume role using the AWS SDK
-                final AssumeRoleRequest roleRequest = AssumeRoleRequest.builder()
-                        .roleArn(awsRoleArn)
-                        .roleSessionName(awsSessionName)
-                        .build();
-                final AssumeRoleResponse roleResponse = stsClient.assumeRole(roleRequest);
-                final Credentials awsCredentials = roleResponse.credentials();
+            // assume role using the AWS SDK
+            final AssumeRoleRequest roleRequest = AssumeRoleRequest.builder()
+                    .roleArn(awsRoleArn)
+                    .roleSessionName(awsSessionName)
+                    .build();
+            final AssumeRoleResponse roleResponse = stsClient.assumeRole(roleRequest);
+            final Credentials awsCredentials = roleResponse.credentials();
 
-                return new AwsCredential(awsCredentials.accessKeyId(), awsCredentials.secretAccessKey(),
-                        awsCredentials.sessionToken());
-            };
+            return new AwsCredential(awsCredentials.accessKeyId(), awsCredentials.secretAccessKey(),
+                    awsCredentials.sessionToken());
+        };
 
-            return MongoCredential.createAwsCredential(null, null)
-                    .withMechanismProperty(MongoCredential.AWS_CREDENTIAL_PROVIDER_KEY, awsFreshCredentialSupplier);
-        }
+        return MongoCredential.createAwsCredential(null, null)
+                .withMechanismProperty(MongoCredential.AWS_CREDENTIAL_PROVIDER_KEY, awsFreshCredentialSupplier);
     }
 }
