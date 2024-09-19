@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2024 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -9,6 +9,7 @@
  * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
+ *
  */
 package org.eclipse.ditto.thingsearch.service.updater.actors;
 
@@ -38,7 +39,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchU
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdaterStream;
 import org.eclipse.ditto.thingsearch.service.starter.actors.MongoClientExtension;
 import org.eclipse.ditto.thingsearch.service.starter.actors.OperatorMetricsProviderActor;
-import org.eclipse.ditto.thingsearch.service.starter.actors.OperatorSearchMetricsProviderActor;
+import org.eclipse.ditto.thingsearch.service.starter.actors.OperatorAggregateMetricsProviderActor;
 
 /**
  * Our "Parent" Actor which takes care of supervision of all other Actors in our system.
@@ -133,8 +134,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
             startClusterSingletonActor(OperatorMetricsProviderActor.ACTOR_NAME,
                     OperatorMetricsProviderActor.props(searchConfig.getOperatorMetricsConfig(), searchActor)
             );
-            startClusterSingletonActor(OperatorSearchMetricsProviderActor.ACTOR_NAME,
-                    OperatorSearchMetricsProviderActor.props(searchConfig)
+            startClusterSingletonActor(OperatorAggregateMetricsProviderActor.ACTOR_NAME,
+                    OperatorAggregateMetricsProviderActor.props(searchConfig)
             );
         }
 

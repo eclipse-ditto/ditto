@@ -612,10 +612,10 @@ ditto {
       custom-metrics {
         ...
       }
-      custom-aggregate-metrics {
+      custom-aggregation-metrics {
         online_status {
           enabled = true
-          scrape-interval = 1m # override scrape interval, run every 20 minute
+          scrape-interval = 20m # override scrape interval, run every 20 minutes
           namespaces = [
             "org.eclipse.ditto"
           ]
@@ -628,6 +628,7 @@ ditto {
             "health" = "{{ inline:health }}"
             "hardcoded-tag" = "hardcoded_value"
             "location" = "{{ group-by:location | fn:default('missing location') }}"
+            "isGateway" = "{{ group-by:isGateway }}"
           }
           filters {
             online_filter {
@@ -654,19 +655,19 @@ ditto {
 
 To add custom metrics via System properties, the following example shows how the above metric can be configured:
 ```
--Dditto.search.operator-metrics.custom-search-metrics.online_status.enabled=true
--Dditto.search.operator-metrics.custom-search-metrics.online_status.scrape-interval=20m
--Dditto.search.operator-metrics.custom-search-metrics.online_status.namespaces.0=org.eclipse.ditto
--Dditto.search.operator-metrics.custom-search-metrics.online_status.tags.online="{{online_placeholder}}"
--Dditto.search.operator-metrics.custom-search-metrics.online_status.tags.location="{{attributes/Info/location}}"
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.enabled=true
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.scrape-interval=20m
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.namespaces.0=org.eclipse.ditto
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.tags.online="{{online_placeholder}}"
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.tags.location="{{attributes/Info/location}}"
 
--Dditto.search.operator-metrics.custom-search-metrics.online_status.filters.online-filter.filter=gt(features/ConnectionStatus/properties/status/readyUntil/,time:now)
--Dditto.search.operator-metrics.custom-search-metrics.online_status.filters.online-filter.inline-placeholder-values.online_placeholder=true
--Dditto.search.operator-metrics.custom-search-metrics.online_status.filters.online-filter.fields.0=attributes/Info/location
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.online-filter.filter=gt(features/ConnectionStatus/properties/status/readyUntil/,time:now)
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.online-filter.inline-placeholder-values.online_placeholder=true
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.online-filter.fields.0=attributes/Info/location
 
--Dditto.search.operator-metrics.custom-search-metrics.online_status.filters.offline-filter.filter=lt(features/ConnectionStatus/properties/status/readyUntil/,time:now)
--Dditto.search.operator-metrics.custom-search-metrics.online_status.filters.offline-filter.inline-placeholder-values.online_placeholder=false
--Dditto.search.operator-metrics.custom-search-metrics.online_status.filters.offline-filter.fields.0=attributes/Info/location
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.offline-filter.filter=lt(features/ConnectionStatus/properties/status/readyUntil/,time:now)
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.offline-filter.inline-placeholder-values.online_placeholder=false
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.offline-filter.fields.0=attributes/Info/location
 
 ```
 
@@ -679,6 +680,7 @@ In Prometheus format, this would look like:
 ```
 online_status{location="Berlin",online="false"} 6.0
 online_status{location="Immenstaad",online="true"} 8.0
+```
 
 ## Tracing
 

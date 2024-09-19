@@ -14,6 +14,7 @@
 
 package org.eclipse.ditto.thingsearch.service.starter.actors;
 
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.pekko.NotUsed;
@@ -79,9 +80,7 @@ public final class AggregateThingsMetricsActor extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(AggregateThingsMetrics.class, this::aggregate)
-                .matchAny(any -> {
-                    log.warning("Got unknown message '{}'", any);
-                })
+                .matchAny(any -> log.warning("Got unknown message '{}'", any))
                 .build();
     }
 
@@ -111,10 +110,26 @@ public final class AggregateThingsMetricsActor extends AbstractActor {
         final Flow<T, T, NotUsed> logAndFinishPersistenceSegmentFlow =
                 Flow.fromFunction(result -> {
                     log.withCorrelationId(dittoHeaders)
-                            .debug("aggregation element: {}", result);
+                            .info("aggregation element: {}", result);
                     return result;
                 });
         return source.via(logAndFinishPersistenceSegmentFlow);
+    }
+
+    private <T> Flow<T, Object, NotUsed> stopTimerAndHandleError(final StartedTimer searchTimer,
+            final AggregateThingsMetrics command) {
+        return Flow.<T, Object>fromFunction(element -> element)
+                .recoverWithRetries(1, new PFBuilder<Throwable, Graph<SourceShape<Object>, NotUsed>>()
+                        .matchAny(error -> Source.single(asDittoRuntimeException(error, command)))
+                        .build()
+                ).watchTermination((notUsed, done) ->{
+                    final long now = System.nanoTime();
+                    stopTimer(searchTimer);
+                    final long duration =
+                            Duration.ofNanos(now- searchTimer.getStartInstant().toNanos()).toMillis();
+                    log.withCorrelationId(command).info("Db aggregation for metric <{}> - took: <{}ms>", command.getMetricName(), duration);
+                    return NotUsed.getInstance();
+                });
     }
 
     private static StartedTimer startNewTimer(final WithDittoHeaders withDittoHeaders) {
@@ -127,26 +142,12 @@ public final class AggregateThingsMetricsActor extends AbstractActor {
 
     private static void stopTimer(final StartedTimer timer) {
         try {
-            timer.stop();
+            if (timer.isRunning()) {
+                timer.stop();
+            }
         } catch (final IllegalStateException e) {
             // it is okay if the timer was stopped.
         }
-    }
-
-    private <T> Flow<T, Object, NotUsed> stopTimerAndHandleError(final StartedTimer searchTimer,
-            final WithDittoHeaders command) {
-        return Flow.<T, Object>fromFunction(
-                        element -> {
-                            stopTimer(searchTimer);
-                            return element;
-                        })
-                .recoverWithRetries(1, new PFBuilder<Throwable, Graph<SourceShape<Object>, NotUsed>>()
-                        .matchAny(error -> {
-                            stopTimer(searchTimer);
-                            return Source.single(asDittoRuntimeException(error, command));
-                        })
-                        .build()
-                );
     }
 
     private DittoRuntimeException asDittoRuntimeException(final Throwable error, final WithDittoHeaders trigger) {

@@ -39,7 +39,7 @@ public class DefaultCustomAggregationMetricConfigTest {
     @BeforeClass
     public static void initTestFixture() {
         config = ConfigFactory.load("custom-search-metric-test");
-        customSearchMetricTestConfig = config.getConfig("ditto.search.operator-metrics.custom-search-metrics");
+        customSearchMetricTestConfig = config.getConfig("ditto.search.operator-metrics.custom-aggregation-metrics");
     }
 
     @Test

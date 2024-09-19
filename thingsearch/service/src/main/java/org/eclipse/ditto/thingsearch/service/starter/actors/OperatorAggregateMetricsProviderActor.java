@@ -61,7 +61,7 @@ import kamon.Kamon;
  * Actor which is started as singleton for "search" role and is responsible for querying for extended operator defined
  * "custom metrics" (configured via Ditto search service configuration) to expose as {@link Gauge} via Prometheus.
  */
-public final class OperatorSearchMetricsProviderActor extends AbstractActorWithTimers {
+public final class OperatorAggregateMetricsProviderActor extends AbstractActorWithTimers {
 
     /**
      * This Actor's actor name.
@@ -80,12 +80,12 @@ public final class OperatorSearchMetricsProviderActor extends AbstractActorWithT
     private final Map<FilterIdentifier, PlaceholderResolver<Map<String, String>>> inlinePlaceholderResolvers;
 
     @SuppressWarnings("unused")
-    private OperatorSearchMetricsProviderActor(final SearchConfig searchConfig) {
+    private OperatorAggregateMetricsProviderActor(final SearchConfig searchConfig) {
         this.thingsAggregatorActorSingletonProxy = initializeAggregationThingsMetricsActor(searchConfig);
         this.customSearchMetricConfigMap = searchConfig.getOperatorMetricsConfig().getCustomAggregationMetricConfigs();
         this.metricsGauges = new HashMap<>();
         this.inlinePlaceholderResolvers = new HashMap<>();
-        this.customSearchMetricsGauge = KamonGauge.newGauge("custom-search-metrics-count-of-instruments");
+        this.customSearchMetricsGauge = KamonGauge.newGauge("custom-aggregation-metrics-count-of-instruments");
         this.customSearchMetricConfigMap.forEach((metricName, customSearchMetricConfig) -> {
             initializeCustomMetricTimer(metricName, customSearchMetricConfig,
                     getMaxConfiguredScrapeInterval(searchConfig.getOperatorMetricsConfig()));
@@ -105,7 +105,7 @@ public final class OperatorSearchMetricsProviderActor extends AbstractActorWithT
      * @return the Props object.
      */
     public static Props props(final SearchConfig searchConfig) {
-        return Props.create(OperatorSearchMetricsProviderActor.class, searchConfig);
+        return Props.create(OperatorAggregateMetricsProviderActor.class, searchConfig);
     }
 
     @Override
@@ -161,11 +161,9 @@ public final class OperatorSearchMetricsProviderActor extends AbstractActorWithT
             resolveTags(filterName, customSearchMetricConfigMap.get(metricName), response);
             final CustomAggregationMetricConfig customAggregationMetricConfig =
                     customSearchMetricConfigMap.get(metricName);
-            final TagSet tagSet = resolveTags(filterName, customAggregationMetricConfig, response)
-                    .putTag(Tag.of("filter", filterName));
+            final TagSet tagSet = resolveTags(filterName, customAggregationMetricConfig, response);
             recordMetric(metricName, tagSet, value);
             customSearchMetricsGauge.tag(Tag.of(METRIC_NAME, metricName)).set(Long.valueOf(metricsGauges.size()));
-            ;
         });
     }
 
