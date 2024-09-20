@@ -43,6 +43,7 @@ final class DefaultTmValidationConfig implements TmValidationConfig {
     private final List<InternalDynamicTmValidationConfiguration> dynamicTmValidationConfigurations;
 
     private final boolean enabled;
+    private final boolean logWarningInsteadOfFailingApiCalls;
     private final ThingValidationConfig thingValidationConfig;
     private final FeatureValidationConfig featureValidationConfig;
 
@@ -59,6 +60,7 @@ final class DefaultTmValidationConfig implements TmValidationConfig {
                 .reduce(ConfigFactory.empty(), (a, b) -> b.withFallback(a))
                 .withFallback(scopedConfig.resolve());
         enabled = effectiveConfig.getBoolean(ConfigValue.ENABLED.getConfigPath());
+        logWarningInsteadOfFailingApiCalls = effectiveConfig.getBoolean(ConfigValue.LOG_WARNING_INSTEAD_OF_FAILING_API_CALLS.getConfigPath());
 
         thingValidationConfig = DefaultThingValidationConfig.of(effectiveConfig);
         featureValidationConfig = DefaultFeatureValidationConfig.of(effectiveConfig);
@@ -85,6 +87,11 @@ final class DefaultTmValidationConfig implements TmValidationConfig {
     @Override
     public boolean isEnabled() {
         return enabled;
+    }
+
+    @Override
+    public boolean logWarningInsteadOfFailingApiCalls() {
+        return logWarningInsteadOfFailingApiCalls;
     }
 
     @Override
@@ -117,6 +124,7 @@ final class DefaultTmValidationConfig implements TmValidationConfig {
         final DefaultTmValidationConfig that = (DefaultTmValidationConfig) o;
         return Objects.equals(dynamicTmValidationConfigurations, that.dynamicTmValidationConfigurations) &&
                 enabled == that.enabled &&
+                logWarningInsteadOfFailingApiCalls == that.logWarningInsteadOfFailingApiCalls &&
                 Objects.equals(thingValidationConfig, that.thingValidationConfig) &&
                 Objects.equals(featureValidationConfig, that.featureValidationConfig) &&
                 Objects.equals(scopedConfig, that.scopedConfig);
@@ -124,8 +132,8 @@ final class DefaultTmValidationConfig implements TmValidationConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(dynamicTmValidationConfigurations, enabled, thingValidationConfig, featureValidationConfig,
-                scopedConfig);
+        return Objects.hash(dynamicTmValidationConfigurations, enabled, logWarningInsteadOfFailingApiCalls,
+                thingValidationConfig, featureValidationConfig, scopedConfig);
     }
 
     @Override
@@ -133,6 +141,7 @@ final class DefaultTmValidationConfig implements TmValidationConfig {
         return getClass().getSimpleName() + " [" +
                 "dynamicTmValidationConfiguration=" + dynamicTmValidationConfigurations +
                 ", enabled=" + enabled +
+                ", logWarningInsteadOfFailingApiCalls=" + logWarningInsteadOfFailingApiCalls +
                 ", thingValidationConfig=" + thingValidationConfig +
                 ", featureValidationConfig=" + featureValidationConfig +
                 ", scopedConfig=" + scopedConfig +

@@ -1045,6 +1045,8 @@ things:
       tmValidation:
         # enabled whether the ThingModel validation of Things/Features should be enabled
         enabled: true
+        # log-warning-instead-of-failing-api-calls whether to instead of to reject/fail API calls (when enabled=true), log a WARNING log instead
+        log-warning-instead-of-failing-api-calls: false
         # thing provides configuration settings for WoT based validation of Things
         thing:
           # enforce holds all configuration relating to enforcing the model
@@ -1116,6 +1118,7 @@ things:
           #   configOverrides:
           #     # exactly the same config keys and structure applies as in the static config
           #     enabled: true
+          #     log-warning-instead-of-failing-api-calls: true
           #     thing:
           #       enforce:
           #         thing-description-modification: false
