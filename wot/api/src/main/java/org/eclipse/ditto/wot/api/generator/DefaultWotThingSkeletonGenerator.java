@@ -16,6 +16,9 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -492,7 +495,8 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                             numberSchema.getExclusiveMaximum().orElse(null));
                     return Optional.of(JsonValue.of(neutralDouble));
                 case STRING:
-                    return Optional.of(JsonValue.of(provideNeutralStringElement()));
+                    final String format = dataSchema.getFormat().orElse(null);
+                    return Optional.of(JsonValue.of(provideNeutralStringElement(format)));
                 case OBJECT:
                     return Optional.of(JsonObject.empty());
                 case ARRAY:
@@ -547,8 +551,13 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
         return result;
     }
 
-    private static String provideNeutralStringElement() {
-        return "";
+    private static String provideNeutralStringElement(@Nullable final String format) {
+        return switch (format) {
+            case "date-time" -> DateTimeFormatter.ISO_INSTANT.format(Instant.EPOCH);
+            case "date" -> DateTimeFormatter.ISO_LOCAL_DATE.withZone( ZoneId.of("UTC")).format(Instant.EPOCH);
+            case "time" -> DateTimeFormatter.ISO_OFFSET_TIME.withZone( ZoneId.of("UTC")).format(Instant.EPOCH);
+            case null, default -> "";
+        };
     }
 
     private CompletionStage<FeatureDefinition> resolveFeatureDefinition(final ThingModel thingModel,
