@@ -33,6 +33,11 @@ public interface TmValidationConfig {
     boolean isEnabled();
 
     /**
+     * @return whether to instead of to reject/fail API calls (when enabled=true), log a WARNING log instead
+     */
+    boolean logWarningInsteadOfFailingApiCalls();
+
+    /**
      * @return the config for validating things.
      */
     ThingValidationConfig getThingValidationConfig();
@@ -60,7 +65,12 @@ public interface TmValidationConfig {
         /**
          * Whether the TM based validation should be enabled or not.
          */
-        ENABLED("enabled", true);
+        ENABLED("enabled", true),
+
+        /**
+         * Whether to instead of to reject/fail API calls (when {@code enabled=true}), log a WARNING log instead.
+         */
+        LOG_WARNING_INSTEAD_OF_FAILING_API_CALLS("log-warning-instead-of-failing-api-calls", false);
 
 
         private final String path;

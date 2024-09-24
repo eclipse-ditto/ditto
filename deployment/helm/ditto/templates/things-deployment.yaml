@@ -308,6 +308,8 @@ spec:
               value: "{{ .Values.things.config.wot.tdBasePrefix }}"
             - name: THINGS_WOT_TM_MODEL_VALIDATION_ENABLED
               value: "{{ .Values.things.config.wot.tmValidation.enabled }}"
+            - name: THINGS_WOT_TM_MODEL_VALIDATION_LOG_WARNING_INSTEAD_OF_FAILING_API_CALLS
+              value: "{{ .Values.things.config.wot.tmValidation.enabled }}"
             - name: THINGS_WOT_TM_MODEL_VALIDATION_THING_ENFORCE_TD_MODIFICATION
               value: "{{ index .Values.things.config.wot.tmValidation.thing.enforce "thing-description-modification" }}"
             - name: THINGS_WOT_TM_MODEL_VALIDATION_THING_ENFORCE_ATTRIBUTES
