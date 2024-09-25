@@ -64,7 +64,7 @@ export async function ready() {
     messageFeature();
   };
 
-  dom.buttonMessageFavorite.onclick = () => {
+  dom.buttonMessageFavorite.onclick = async () => {
     const templateName = dom.inputMessageTemplate.value;
     const featureId = theFeatureId;
     const payload = acePayload.getValue();
@@ -84,7 +84,7 @@ export async function ready() {
       };
       acePayload.session.getUndoManager().markClean();
     }
-    Environments.environmentsJsonChanged('messageTemplates');
+    await Environments.environmentsJsonChanged(false, 'messageTemplates');
   };
 
   dom.ulMessageTemplates.addEventListener('click', (event) => {

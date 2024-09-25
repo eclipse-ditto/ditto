@@ -14,6 +14,7 @@
 
 import { EventSourcePolyfill } from 'event-source-polyfill';
 import * as Environments from './environments/environments.js';
+import { AuthMethod } from './environments/environments.js';
 import * as Utils from './utils.js';
 
 
@@ -278,31 +279,40 @@ let authHeaderValue;
  * Activates authorization header for api calls
  * @param {boolean} forDevOps if true, the credentials for the dev ops api will be used.
  */
-export function setAuthHeader(forDevOps) {
+export function setAuthHeader(forDevOps: boolean) {
+  let environment = Environments.current();
   if (forDevOps) {
-    if (Environments.current().devopsAuth === 'basic') {
+    let devopsAuthMethod = environment.authSettings?.devops?.method;
+    if (devopsAuthMethod === AuthMethod.basic) {
       authHeaderKey = 'Authorization';
-      authHeaderValue = 'Basic ' + window.btoa(Environments.current().usernamePasswordDevOps);
-    } else if (Environments.current().devopsAuth === 'bearer') {
+      authHeaderValue = 'Basic ' + window.btoa(environment.authSettings.devops.basic.usernamePassword);
+    } else if (devopsAuthMethod === AuthMethod.bearer) {
       authHeaderKey = 'Authorization';
-      authHeaderValue ='Bearer ' + Environments.current().bearerDevOps;
+      authHeaderValue = 'Bearer ' + environment.authSettings.devops.bearer.bearerToken;
+    } else if (devopsAuthMethod === AuthMethod.oidc) {
+      authHeaderKey = 'Authorization';
+      authHeaderValue = 'Bearer ' + environment.authSettings.devops.oidc.bearerToken;
     } else {
-      authHeaderKey = 'Basic';
-      authHeaderValue = '';
+      authHeaderKey = 'Authorization';
+      authHeaderValue = 'Basic';
     }
   } else {
-    if (Environments.current().mainAuth === 'basic') {
+    let mainAuthMethod = environment.authSettings?.main?.method;
+    if (mainAuthMethod === AuthMethod.basic) {
       authHeaderKey = 'Authorization';
-      authHeaderValue = 'Basic ' + window.btoa(Environments.current().usernamePassword);
-    } else if (Environments.current().mainAuth === 'pre') {
+      authHeaderValue = 'Basic ' + window.btoa(environment.authSettings.main.basic.usernamePassword);
+    } else if (mainAuthMethod === AuthMethod.pre) {
       authHeaderKey = 'x-ditto-pre-authenticated';
-      authHeaderValue = Environments.current().dittoPreAuthenticatedUsername;
-    } else if (Environments.current().mainAuth === 'bearer') {
+      authHeaderValue = environment.authSettings.main.pre.dittoPreAuthenticatedUsername;
+    } else if (mainAuthMethod === AuthMethod.bearer) {
       authHeaderKey = 'Authorization';
-      authHeaderValue ='Bearer ' + Environments.current().bearer;
+      authHeaderValue = 'Bearer ' + environment.authSettings.main.bearer.bearerToken;
+    } else if (mainAuthMethod === AuthMethod.oidc) {
+      authHeaderKey = 'Authorization';
+      authHeaderValue = 'Bearer ' + environment.authSettings.main.oidc.bearerToken;
     } else {
-      authHeaderKey = 'Basic';
-      authHeaderValue = '';
+      authHeaderKey = 'Authorization';
+      authHeaderValue = 'Basic';
     }
   }
 }
@@ -325,8 +335,8 @@ function showDittoError(dittoErr, response) {
 
 /**
  * Calls the Ditto api
- * @param {String} method 'POST', 'GET', 'DELETE', etc.
- * @param {String} path of the Ditto call (e.g. '/things')
+ * @param {string} method 'POST', 'GET', 'DELETE', etc.
+ * @param {string} path of the Ditto call (e.g. '/things')
  * @param {Object} body payload for the api call
  * @param {Object} additionalHeaders object with additional header fields
  * @param {boolean} returnHeaders request full response instead of json content
@@ -334,8 +344,8 @@ function showDittoError(dittoErr, response) {
  * @param {boolean} returnErrorJson default: false. Set true to return the response of a failed HTTP call as JSON
  * @return {Object} result as json object
  */
-export async function callDittoREST(method,
-                                    path,
+export async function callDittoREST(method: string,
+                                    path: string,
                                     body = null,
                                     additionalHeaders = null,
                                     returnHeaders = false,
@@ -409,7 +419,6 @@ export function getEventSource(thingIds, urlParams) {
  * @return {*} promise to the result
  */
 export async function callConnectionsAPI(operation, successCallback, connectionId = '', connectionJson = null, command = null) {
-  Utils.assert((env() !== 'things' || Environments.current().solutionId), 'No solutionId configured in environment');
   const params = config[env()][operation];
   let response;
   let body;
@@ -425,8 +434,8 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
   }
 
   try {
-    response = await fetch(Environments.current().api_uri + params.path.replace('{{solutionId}}',
-        Environments.current().solutionId).replace('{{connectionId}}', connectionId), {
+    response = await fetch(Environments.current().api_uri + params.path
+      .replace('{{connectionId}}', connectionId), {
       method: params.method,
       headers: {
         'Content-Type': operation === 'connectionCommand' ? 'text/plain' : 'application/json',
@@ -479,9 +488,7 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
 }
 
 export function env() {
-  if (Environments.current().api_uri.startsWith('https://things')) {
-    return 'things';
-  } else if (Environments.current().ditto_version === '2') {
+  if (Environments.current().ditto_version === 2) {
     return 'ditto_2';
   } else {
     return 'ditto_3';

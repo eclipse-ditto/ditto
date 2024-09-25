@@ -11,10 +11,10 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-import * as Utils from '../utils.js';
+import * as ace from 'ace-builds/src-noconflict/ace';
 import * as API from '../api.js';
 import * as Environments from '../environments/environments.js'
-import * as ace from 'ace-builds/src-noconflict/ace';
+import * as Utils from '../utils.js';
 import { CrudOperation, CrudToolbar } from '../utils/crudToolbar.js';
 import * as Policies from './policies.js';
 import policyTemplates from './policyTemplates.json';
@@ -87,7 +87,7 @@ function onUpdatePolicyClick() {
   );
 }
 
-function onDeletePolicyClick() {
+async function onDeletePolicyClick() {
   Utils.confirm(`Are you sure you want to delete policy<br>'${dom.crudPolicyJson.idValue}'?`, 'Delete', () => {
     modifyPolicy(dom.crudPolicyJson.idValue, null, () => {
       deleteFromRecentPolicies(dom.crudPolicyJson.idValue);
@@ -95,12 +95,12 @@ function onDeletePolicyClick() {
     });
   });
   
-  function deleteFromRecentPolicies(policyId: string) {
+  async function deleteFromRecentPolicies(policyId: string) {
     const index = Environments.current().recentPolicyIds.indexOf(policyId);
     if (index >= 0) {
       Environments.current().recentPolicyIds.splice(index, 1);
     }
-    Environments.environmentsJsonChanged('recentPolicyIds');
+    await Environments.environmentsJsonChanged(false, 'recentPolicyIds');
   }
 }
 
@@ -109,7 +109,7 @@ function modifyPolicy(policyId, value, onSuccess) {
       `/policies/${policyId}`,
       value
   ).then(onSuccess);
-};
+}
 
 function onPolicyChanged(policy: Policies.Policy) {
   dom.crudPolicyJson.idValue = policy && policy.policyId;

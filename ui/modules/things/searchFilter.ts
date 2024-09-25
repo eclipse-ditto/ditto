@@ -91,15 +91,15 @@ export async function ready() {
  * Callback to initialize searchFilters if the environment changed
  */
 function onEnvironmentChanged() {
-  if (!Environments.current()['filterList']) {
+  if (!Environments.current().filterList) {
     Environments.current().filterList = [];
   }
-  if (!Environments.current()['pinnedThings']) {
+  if (!Environments.current().pinnedThings) {
     Environments.current().pinnedThings = [];
   }
 }
 
-function fillSearchFilterEdit(fillString) {
+function fillSearchFilterEdit(fillString: string) {
   dom.searchFilterEdit.value = fillString;
 
   checkIfFavorite();
@@ -176,10 +176,10 @@ async function createFilterList(query) {
 
 /**
  * Adds or removes the given filter from the list of search filters
- * @param {String} filter filter
+ * @param {string} filter filter
  * @return {boolean} true if the filter was toggled
  */
-function toggleFilterFavorite(filter) {
+async function toggleFilterFavorite(filter: string) {
   if (!filter || filter === '') {
     return false;
   }
@@ -189,7 +189,7 @@ function toggleFilterFavorite(filter) {
   } else {
     Environments.current().filterList.push(filter);
   }
-  Environments.environmentsJsonChanged('filterList');
+  await Environments.environmentsJsonChanged(false, 'filterList');
   return true;
 }
 

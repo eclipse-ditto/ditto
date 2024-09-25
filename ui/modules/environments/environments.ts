@@ -11,6 +11,7 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
+import { UserManagerSettings } from 'oidc-client-ts';
 import * as Utils from '../utils.js';
 /* eslint-disable arrow-parens */
 /* eslint-disable prefer-const */
@@ -19,14 +20,89 @@ import * as Authorization from './authorization.js';
 import environmentsHTML from './environments.html';
 import defaultTemplates from './environmentTemplates.json';
 
-
+const OIDC_CALLBACK_STATE = 'state';
 const URL_PRIMARY_ENVIRONMENT_NAME = 'primaryEnvironmentName';
+export const URL_OIDC_PROVIDER = 'oidcProvider';
 const URL_ENVIRONMENTS = 'environmentsURL';
 const STORAGE_KEY = 'ditto-ui-env';
 
-let urlSearchParams;
-let environments;
-let selectedEnvName;
+export enum AuthMethod {
+  oidc='oidc',
+  basic='basic',
+  bearer='bearer',
+  pre='pre'
+}
+
+export type OidcAuthSettings = {
+  enabled: boolean,
+  defaultProvider: string | null,
+  autoSso: boolean,
+  provider?: string,
+  bearerToken?: string
+}
+
+type BasicAuthSettings = {
+  enabled: boolean,
+  defaultUsernamePassword: string | null,
+  usernamePassword?: string
+}
+
+type BearerAuthSettings = {
+  enabled: boolean,
+  bearerToken?: string
+}
+
+type PreAuthSettings = {
+  enabled: boolean,
+  defaultDittoPreAuthenticatedUsername: string | null,
+  dittoPreAuthenticatedUsername?: string
+}
+
+type CommonAuthSettings = {
+  method: AuthMethod,
+  oidc: OidcAuthSettings,
+  basic: BasicAuthSettings,
+  bearer: BearerAuthSettings
+}
+
+type MainAuthSettings = CommonAuthSettings & {
+  pre: PreAuthSettings
+}
+
+type OidcProviderConfiguration = UserManagerSettings & {
+  displayName: string
+}
+
+type AuthSettings = {
+  main: MainAuthSettings,
+  devops: CommonAuthSettings,
+  oidc: Record<string, OidcProviderConfiguration>
+}
+
+type FieldListItem = {
+  active: boolean,
+  path: string,
+  label: string
+}
+
+type Environment = {
+  api_uri: string,
+  ditto_version: number,
+  disablePolicies?: boolean,
+  disableConnections?: boolean,
+  disableOperations?: boolean,
+  authSettings?: AuthSettings,
+  searchNamespaces?: string | null,
+  messageTemplates?: any,
+  fieldList?: FieldListItem[],
+  filterList?: string[],
+  pinnedThings?: string[],
+  recentPolicyIds?: string[],
+}
+
+let urlSearchParams: URLSearchParams;
+let environments: Record<string, Environment>;
+let selectedEnvName: string;
 
 let settingsEditor;
 
@@ -48,33 +124,13 @@ let observers = [];
 
 document.getElementById('environmentsHTML').innerHTML = environmentsHTML;
 
-function Environment(env) {
+function Environment(env: Environment): void {
   Object.assign(this, env);
-  Object.defineProperties(this, {
-    bearer: {
-      enumerable: false,
-      writable: true,
-    },
-    bearerDevOps: {
-      enumerable: false,
-      writable: true,
-    },
-    usernamePassword: {
-      value: this.defaultUsernamePassword,
-      enumerable: false,
-      writable: true,
-    },
-    usernamePasswordDevOps: {
-      value: this.defaultUsernamePasswordDevOps,
-      enumerable: false,
-      writable: true,
-    },
-    dittoPreAuthenticatedUsername: {
-      value: this.defaultDittoPreAuthenticatedUsername,
-      enumerable: false,
-      writable: true,
-    },
-  });
+  this.authSettings.main.oidc.provider = env.authSettings?.main?.oidc?.defaultProvider
+  this.authSettings.main.basic.usernamePassword = env.authSettings?.main?.basic?.defaultUsernamePassword
+  this.authSettings.main.pre.dittoPreAuthenticatedUsername = env.authSettings?.main?.pre?.defaultDittoPreAuthenticatedUsername
+  this.authSettings.devops.oidc.provider = env.authSettings?.devops?.oidc?.defaultProvider
+  this.authSettings.devops.basic.usernamePassword = env.authSettings?.devops?.basic?.defaultUsernamePassword
 }
 
 export function current() {
@@ -85,9 +141,9 @@ export function addChangeListener(observer) {
   observers.push(observer);
 }
 
-function notifyAll(modifiedField = null) {
+async function notifyAll(initialPageLoad: boolean, modifiedField = null) {
   // Notify Authorization first to set right auth header
-  Authorization.onEnvironmentChanged();
+  await Authorization.onEnvironmentChanged(initialPageLoad);
   // Notify others
   observers.forEach(observer => observer.call(null, modifiedField));
 }
@@ -121,26 +177,25 @@ export async function ready() {
     settingsEditor.renderer.updateFull();
   });
 
-
-  environmentsJsonChanged();
+  await environmentsJsonChanged(true);
 }
 
-function onEnvironmentSelectorChange() {
+async function onEnvironmentSelectorChange() {
   urlSearchParams.set(URL_PRIMARY_ENVIRONMENT_NAME, dom.environmentSelector.value);
   window.history.replaceState({}, '', `${window.location.pathname}?${urlSearchParams}`);
-  notifyAll();
+  await notifyAll(false);
 }
 
-function onDeleteEnvironmentClick() {
+async function onDeleteEnvironmentClick() {
   Utils.assert(selectedEnvName, 'No environment selected', dom.tableValidationEnvironments);
   Utils.assert(Object.keys(environments).length >= 2, 'At least one environment is required',
       dom.tableValidationEnvironments);
   delete environments[selectedEnvName];
   selectedEnvName = null;
-  environmentsJsonChanged();
+  await environmentsJsonChanged(false);
 }
 
-function onCreateEnvironmentClick(event) {
+async function onCreateEnvironmentClick(event) {
   Utils.assert(event.target.idValue,
       'Environment name must not be empty',
       event.target.validationElement);
@@ -160,7 +215,7 @@ function onCreateEnvironmentClick(event) {
 
   selectedEnvName = event.target.idValue;
   event.target.toggleEdit();
-  environmentsJsonChanged();
+  await environmentsJsonChanged(false);
 }
 
 function onEnvironmentsTableClick(event) {
@@ -174,14 +229,14 @@ function onEnvironmentsTableClick(event) {
   }
 }
 
-function onUpdateEnvironmentClick(event) {
+async function onUpdateEnvironmentClick(event) {
   if (selectedEnvName !== event.target.idValue) {
     changeEnvironmentName();
   }
   if (event.target === dom.crudEnvironmentFields) {
     environments[selectedEnvName].api_uri = dom.inputApiUri.value;
-    environments[selectedEnvName].searchNamespaces = dom.inputSearchNamespaces.value;
     environments[selectedEnvName].ditto_version = dom.selectDittoVersion.value;
+    environments[selectedEnvName].searchNamespaces = dom.inputSearchNamespaces.value;
     environments[selectedEnvName].disablePolicies = !dom.inputTabPolicies.checked;
     environments[selectedEnvName].disableConnections = !dom.inputTabConnections.checked;
     environments[selectedEnvName].disableOperations = !dom.inputTabOperations.checked;
@@ -189,7 +244,7 @@ function onUpdateEnvironmentClick(event) {
     environments[selectedEnvName] = JSON.parse(settingsEditor.getValue());
   }
   event.target.toggleEdit();
-  environmentsJsonChanged();
+  await environmentsJsonChanged(false);
 
   function changeEnvironmentName() {
     environments[event.target.idValue] = environments[selectedEnvName];
@@ -198,19 +253,33 @@ function onUpdateEnvironmentClick(event) {
   }
 }
 
-export function environmentsJsonChanged(modifiedField = null) {
+export async function environmentsJsonChanged(initialPageLoad: boolean, modifiedField = null) {
   environments && localStorage.setItem(STORAGE_KEY, JSON.stringify(environments));
 
   updateEnvSelector();
   updateEnvEditors();
   updateEnvTable();
 
-  notifyAll(modifiedField);
+  await notifyAll(initialPageLoad, modifiedField);
 
   function updateEnvSelector() {
     let activeEnvironment = dom.environmentSelector.value;
     if (!activeEnvironment) {
       activeEnvironment = urlSearchParams.get(URL_PRIMARY_ENVIRONMENT_NAME);
+    }
+    let oidcState = urlSearchParams.get(OIDC_CALLBACK_STATE);
+    if (!activeEnvironment && oidcState !== null) {
+      let stateAndUrlState = oidcState.split(";");
+      if (stateAndUrlState.length > 1) {
+        const urlState = stateAndUrlState[1];
+        const preservedQueryParams = new URLSearchParams(urlState)
+        const primaryEnvironmentName = preservedQueryParams.get(URL_PRIMARY_ENVIRONMENT_NAME);
+        const oidcProvider = preservedQueryParams.get(URL_OIDC_PROVIDER);
+        activeEnvironment = primaryEnvironmentName;
+        if (oidcProvider) {
+          environments[activeEnvironment].authSettings.main.oidc.provider = oidcProvider
+        }
+      }
     }
     if (!activeEnvironment || !environments[activeEnvironment]) {
       activeEnvironment = Object.keys(environments)[0];
@@ -306,7 +375,7 @@ async function loadEnvironmentTemplates() {
         throw new SyntaxError('Environments json invalid');
       }
     });
-  };
+  }
 
   function merge(remote, local) {
     let merged = {};

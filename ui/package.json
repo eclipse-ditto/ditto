@@ -27,11 +27,12 @@
   "dependencies": {
     "@popperjs/core": "^2.11.8",
     "@tarekraafat/autocomplete.js": "^10.2.7",
-    "dompurify": "^3.1.6",
     "ace-builds": "^1.35.4",
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.11.3",
+    "dompurify": "^3.1.6",
     "event-source-polyfill": "^1.0.31",
-    "jsonpath-plus": "^7.2.0"
+    "jsonpath-plus": "^7.2.0",
+    "oidc-client-ts": "^3.0.1"
   }
 }

@@ -20,15 +20,15 @@ import * as ConnectionsMonitor from './modules/connections/connectionsMonitor.js
 
 import * as Authorization from './modules/environments/authorization.js';
 import * as Environments from './modules/environments/environments.js';
-import * as Operations from './modules/operations/servicesLogging.js';
 import * as Piggyback from './modules/operations/piggyback.js';
+import * as Operations from './modules/operations/servicesLogging.js';
 import * as Templates from './modules/operations/templates.js';
 import * as Policies from './modules/policies/policies.js';
-import * as PoliciesJSON from './modules/policies/policiesJSON.js';
 import * as PoliciesEntries from './modules/policies/policiesEntries.js';
 import * as PoliciesImports from './modules/policies/policiesImports.js';
-import * as PoliciesSubjects from './modules/policies/policiesSubjects';
+import * as PoliciesJSON from './modules/policies/policiesJSON.js';
 import * as PoliciesResources from './modules/policies/policiesResources';
+import * as PoliciesSubjects from './modules/policies/policiesSubjects';
 import * as Attributes from './modules/things/attributes.js';
 import * as FeatureMessages from './modules/things/featureMessages.js';
 import * as Features from './modules/things/features.js';
@@ -51,10 +51,10 @@ let mainNavbar;
 document.addEventListener('DOMContentLoaded', async function() {
   Utils.ready();
   await Things.ready();
-  ThingsSearch.ready();
-  ThingsCRUD.ready();
+  await ThingsSearch.ready();
+  await ThingsCRUD.ready();
   await ThingMessages.ready();
-  ThingsSSE.ready();
+  await ThingsSSE.ready();
   MessagesIncoming.ready();
   Attributes.ready();
   await Fields.ready();
@@ -70,25 +70,25 @@ document.addEventListener('DOMContentLoaded', async function() {
   Connections.ready();
   ConnectionsCRUD.ready();
   await ConnectionsMonitor.ready();
-  Operations.ready();
+  await Operations.ready();
   Authorization.ready();
   await Environments.ready();
-  Piggyback.ready();
-  Templates.ready();
+  await Piggyback.ready();
+  await Templates.ready();
 
   const thingDescription = WoTDescription({
     itemsId: 'tabItemsThing',
     contentId: 'tabContentThing',
   }, false);
   Things.addChangeListener(thingDescription.onReferenceChanged);
-  thingDescription.ready();
+  await thingDescription.ready();
 
   const featureDescription = WoTDescription({
     itemsId: 'tabItemsFeatures',
     contentId: 'tabContentFeatures',
   }, true);
   Features.addChangeListener(featureDescription.onReferenceChanged);
-  featureDescription.ready();
+  await featureDescription.ready();
 
   // make dropdowns not cutting off
   new Dropdown(document.querySelector('.dropdown-toggle'), {
