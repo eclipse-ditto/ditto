@@ -6,7 +6,7 @@
   "properties": {
     "thingId": {
       "type": "string",
-      "description": "Unique identifier representing the thing, has to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).\n\nExamples for a valid thing ID:\n * `org.eclipse.ditto:xdk_53`\n * `foo:xdk_53`\n * `org.eclipse.vorto_42:xdk_thing`"
+      "description": "Unique identifier representing the thing, has to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.dev/ditto/basic-namespaces-and-names.html#namespaced-id)).\n\nExamples for a valid thing ID:\n * `org.eclipse.ditto:xdk_53`\n * `foo:xdk_53`\n * `org.eclipse.foo_42:xdk_thing`"
     },
     "policyId": {
       "type": "string",
