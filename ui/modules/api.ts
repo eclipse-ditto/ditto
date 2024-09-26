@@ -16,6 +16,7 @@ import { EventSourcePolyfill } from 'event-source-polyfill';
 import * as Environments from './environments/environments.js';
 import { AuthMethod } from './environments/environments.js';
 import * as Utils from './utils.js';
+import { showError } from './utils.js';
 
 
 const config = {
@@ -280,18 +281,31 @@ let authHeaderValue;
  * @param {boolean} forDevOps if true, the credentials for the dev ops api will be used.
  */
 export function setAuthHeader(forDevOps: boolean) {
+  authHeaderValue = undefined;
   let environment = Environments.current();
   if (forDevOps) {
     let devopsAuthMethod = environment.authSettings?.devops?.method;
     if (devopsAuthMethod === AuthMethod.basic) {
-      authHeaderKey = 'Authorization';
-      authHeaderValue = 'Basic ' + window.btoa(environment.authSettings.devops.basic.usernamePassword);
+      if (environment.authSettings.devops.basic.usernamePassword) {
+        authHeaderKey = 'Authorization';
+        authHeaderValue = 'Basic ' + window.btoa(environment.authSettings.devops.basic.usernamePassword);
+      } else {
+        showError('DevOps Username/password missing')
+      }
     } else if (devopsAuthMethod === AuthMethod.bearer) {
-      authHeaderKey = 'Authorization';
-      authHeaderValue = 'Bearer ' + environment.authSettings.devops.bearer.bearerToken;
+      if (environment.authSettings.devops.bearer.bearerToken) {
+        authHeaderKey = 'Authorization';
+        authHeaderValue = 'Bearer ' + environment.authSettings.devops.bearer.bearerToken;
+      } else {
+        showError('DevOps Bearer token missing')
+      }
     } else if (devopsAuthMethod === AuthMethod.oidc) {
-      authHeaderKey = 'Authorization';
-      authHeaderValue = 'Bearer ' + environment.authSettings.devops.oidc.bearerToken;
+      if (environment.authSettings.devops.oidc.bearerToken) {
+        authHeaderKey = 'Authorization';
+        authHeaderValue = 'Bearer ' + environment.authSettings.devops.oidc.bearerToken;
+      } else {
+        showError('DevOps SSO (Bearer) token missing')
+      }
     } else {
       authHeaderKey = 'Authorization';
       authHeaderValue = 'Basic';
@@ -299,17 +313,33 @@ export function setAuthHeader(forDevOps: boolean) {
   } else {
     let mainAuthMethod = environment.authSettings?.main?.method;
     if (mainAuthMethod === AuthMethod.basic) {
-      authHeaderKey = 'Authorization';
-      authHeaderValue = 'Basic ' + window.btoa(environment.authSettings.main.basic.usernamePassword);
+      if (environment.authSettings.main.basic.usernamePassword) {
+        authHeaderKey = 'Authorization';
+        authHeaderValue = 'Basic ' + window.btoa(environment.authSettings.main.basic.usernamePassword);
+      } else {
+        showError('Username/password missing')
+      }
     } else if (mainAuthMethod === AuthMethod.pre) {
-      authHeaderKey = 'x-ditto-pre-authenticated';
-      authHeaderValue = environment.authSettings.main.pre.dittoPreAuthenticatedUsername;
+      if (environment.authSettings.main.pre.dittoPreAuthenticatedUsername) {
+        authHeaderKey = 'x-ditto-pre-authenticated';
+        authHeaderValue = environment.authSettings.main.pre.dittoPreAuthenticatedUsername;
+      } else {
+        showError('Pre-Authenticated username missing')
+      }
     } else if (mainAuthMethod === AuthMethod.bearer) {
-      authHeaderKey = 'Authorization';
-      authHeaderValue = 'Bearer ' + environment.authSettings.main.bearer.bearerToken;
+      if (environment.authSettings.main.bearer.bearerToken) {
+        authHeaderKey = 'Authorization';
+        authHeaderValue = 'Bearer ' + environment.authSettings.main.bearer.bearerToken;
+      } else {
+        showError('Bearer token missing')
+      }
     } else if (mainAuthMethod === AuthMethod.oidc) {
-      authHeaderKey = 'Authorization';
-      authHeaderValue = 'Bearer ' + environment.authSettings.main.oidc.bearerToken;
+      if (environment.authSettings.main.oidc.bearerToken) {
+        authHeaderKey = 'Authorization';
+        authHeaderValue = 'Bearer ' + environment.authSettings.main.oidc.bearerToken;
+      } else {
+        showError('SSO (Bearer) token missing')
+      }
     } else {
       authHeaderKey = 'Authorization';
       authHeaderValue = 'Basic';
@@ -351,62 +381,70 @@ export async function callDittoREST(method: string,
                                     returnHeaders = false,
                                     devOps = false,
                                     returnErrorJson = false): Promise<any> {
-  let response;
-  const contentType = method === 'PATCH' ? 'application/merge-patch+json' : 'application/json';
-  try {
-    response = await fetch(Environments.current().api_uri + (devOps ? '' : '/api/2') + path, {
-      method: method,
-      headers: {
-        'Content-Type': contentType,
-        [authHeaderKey]: authHeaderValue,
-        ...additionalHeaders,
-      },
-      ...(method !== 'GET' && method !== 'DELETE' && body !== undefined) && {body: JSON.stringify(body)},
-    });
-  } catch (err) {
-    Utils.showError(err);
-    throw err;
-  }
-  if (!response.ok) {
-    if (returnErrorJson) {
+  if (authHeaderValue) {
+    let response;
+    const contentType = method === 'PATCH' ? 'application/merge-patch+json' : 'application/json';
+    try {
+      response = await fetch(Environments.current().api_uri + (devOps ? '' : '/api/2') + path, {
+        method: method,
+        headers: {
+          'Content-Type': contentType,
+          [authHeaderKey]: authHeaderValue,
+          ...additionalHeaders,
+        },
+        ...(method !== 'GET' && method !== 'DELETE' && body !== undefined) && {body: JSON.stringify(body)},
+      });
+    } catch (err) {
+      Utils.showError(err);
+      throw err;
+    }
+    if (!response.ok) {
+      if (returnErrorJson) {
+        if (returnHeaders) {
+          return response;
+        } else {
+          return response.json().then((dittoErr) => {
+            showDittoError(dittoErr, response);
+            return dittoErr;
+          });
+        }
+      } else {
+        response.json()
+          .then((dittoErr) => {
+            showDittoError(dittoErr, response);
+          })
+          .catch((err) => {
+            Utils.showError('No error details from Ditto', response.statusText, response.status);
+          });
+        throw new Error('An error occurred: ' + response.status);
+      }
+    }
+    if (response.status !== 204) {
       if (returnHeaders) {
         return response;
       } else {
-        return response.json().then((dittoErr) => {
-          showDittoError(dittoErr, response);
-          return dittoErr;
-        });
+        return response.json();
       }
     } else {
-      response.json()
-        .then((dittoErr) => {
-          showDittoError(dittoErr, response);
-        })
-        .catch((err) => {
-          Utils.showError('No error details from Ditto', response.statusText, response.status);
-        });
-      throw new Error('An error occurred: ' + response.status);
-    }
-  }
-  if (response.status !== 204) {
-    if (returnHeaders) {
-      return response;
-    } else {
-      return response.json();
+      return null;
     }
   } else {
-    return null;
+    throw new Error("Authentication missing");
   }
 }
 
 export function getEventSource(thingIds, urlParams) {
-  return new EventSourcePolyfill(
+  if (authHeaderValue) {
+    return new EventSourcePolyfill(
       `${Environments.current().api_uri}/api/2/things?ids=${thingIds}${urlParams ? '&' + urlParams : ''}`, {
         headers: {
           [authHeaderKey]: authHeaderValue,
         },
       },
-  );
+    );
+  } else {
+    throw new Error("Authentication missing");
+  }
 }
 
 /**
@@ -433,19 +471,23 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
     body = command;
   }
 
-  try {
-    response = await fetch(Environments.current().api_uri + params.path
-      .replace('{{connectionId}}', connectionId), {
-      method: params.method,
-      headers: {
-        'Content-Type': operation === 'connectionCommand' ? 'text/plain' : 'application/json',
-        [authHeaderKey]: authHeaderValue,
-      },
-      ...(body) && {body: body},
-    });
-  } catch (err) {
-    Utils.showError(err);
-    throw err;
+  if (authHeaderValue) {
+    try {
+      response = await fetch(Environments.current().api_uri + params.path
+        .replace('{{connectionId}}', connectionId), {
+        method: params.method,
+        headers: {
+          'Content-Type': operation === 'connectionCommand' ? 'text/plain' : 'application/json',
+          [authHeaderKey]: authHeaderValue,
+        },
+        ...(body) && {body: body},
+      });
+    } catch (err) {
+      Utils.showError(err);
+      throw err;
+    }
+  } else {
+    throw new Error("Authentication missing");
   }
 
   if (!response.ok) {

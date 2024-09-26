@@ -237,6 +237,30 @@ export function sanitizeHTML(unsafeString: string) {
 }
 
 /**
+ * Show an info toast
+ * @param {string} message Message for toast
+ * @param {string} header Header for toast
+ */
+export function showInfoToast(message: string, header: string = 'Info') {
+  const domToast = document.createElement('div');
+  domToast.classList.add('toast');
+  domToast.innerHTML = `<div class="toast-header toast-header-info">
+  <i class="bi me-2 bi-info-circle-fill"></i>
+  <strong class="me-auto">${sanitizeHTML(header)}</strong>
+  <small>${status}</small>
+  <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+  </div>
+  <div class="toast-body">${sanitizeHTML(message)}</div>`;
+
+  dom.toastContainer.appendChild(domToast);
+  domToast.addEventListener("hidden.bs.toast", () => {
+    domToast.remove();
+  });
+  const bsToast = new Toast(domToast);
+  bsToast.show();
+}
+
+/**
  * Show an error toast
  * @param {string} message Message for toast
  * @param {string} header Header for toast
@@ -245,7 +269,7 @@ export function sanitizeHTML(unsafeString: string) {
 export function showError(message: string, header: string = 'Error', status: string = '') {
   const domToast = document.createElement('div');
   domToast.classList.add('toast');
-  domToast.innerHTML = `<div class="toast-header alert-danger">
+  domToast.innerHTML = `<div class="toast-header toast-header-warn alert-danger">
   <i class="bi me-2 bi-exclamation-triangle-fill"></i>
   <strong class="me-auto">${sanitizeHTML(header)}</strong>
   <small>${status}</small>

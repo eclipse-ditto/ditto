@@ -21,7 +21,7 @@ import environmentsHTML from './environments.html';
 import defaultTemplates from './environmentTemplates.json';
 
 const OIDC_CALLBACK_STATE = 'state';
-const URL_PRIMARY_ENVIRONMENT_NAME = 'primaryEnvironmentName';
+export const URL_PRIMARY_ENVIRONMENT_NAME = 'primaryEnvironmentName';
 export const URL_OIDC_PROVIDER = 'oidcProvider';
 const URL_ENVIRONMENTS = 'environmentsURL';
 const STORAGE_KEY = 'ditto-ui-env';
@@ -133,8 +133,12 @@ function Environment(env: Environment): void {
   this.authSettings.devops.basic.usernamePassword = env.authSettings?.devops?.basic?.defaultUsernamePassword
 }
 
+export function currentEnvironmentSelector() {
+  return dom.environmentSelector.value;
+}
+
 export function current() {
-  return environments[dom.environmentSelector.value];
+  return environments[currentEnvironmentSelector()];
 }
 
 export function addChangeListener(observer) {
@@ -181,7 +185,7 @@ export async function ready() {
 }
 
 async function onEnvironmentSelectorChange() {
-  urlSearchParams.set(URL_PRIMARY_ENVIRONMENT_NAME, dom.environmentSelector.value);
+  urlSearchParams.set(URL_PRIMARY_ENVIRONMENT_NAME, currentEnvironmentSelector());
   window.history.replaceState({}, '', `${window.location.pathname}?${urlSearchParams}`);
   await notifyAll(false);
 }
