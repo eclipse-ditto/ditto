@@ -34,48 +34,70 @@ export enum AuthMethod {
 }
 
 export type OidcAuthSettings = {
+  /** Whether the SSO (via OIDC) section should be enabled in the Authorize popup */
   enabled: boolean,
+  /** The default OIDC provider to pre-configure - must match a key in "AuthSettings.oidc" */
   defaultProvider: string | null,
+  /** Whether to automatically start SSO when the Authorize popup model loads */
   autoSso: boolean,
+  /** The actually chosen OIDC provider (which can be changed by the user in the frontend) - must match a key in "AuthSettings.oidc" */
   provider?: string,
+  /** The cached bearer token obtained via SSO */
   bearerToken?: string
 }
 
 type BasicAuthSettings = {
+  /** Whether the Basic Auth section should be enabled in the Authorize popup */
   enabled: boolean,
+  /** The default username and password to pre-configure */
   defaultUsernamePassword: string | null,
+  /** The cached username and password */
   usernamePassword?: string
 }
 
 type BearerAuthSettings = {
+  /** Whether the Bearer Auth section should be enabled in the Authorize popup */
   enabled: boolean,
+  /** The cached bearer token */
   bearerToken?: string
 }
 
 type PreAuthSettings = {
+  /** Whether the Pre-Authenticated section should be enabled in the Authorize popup */
   enabled: boolean,
+  /** The pre-authenticated username to pre-configure */
   defaultDittoPreAuthenticatedUsername: string | null,
+  /** The cached pre-authenticated username */
   dittoPreAuthenticatedUsername?: string
 }
 
 type CommonAuthSettings = {
+  /** The authentication method to apply */
   method: AuthMethod,
+  /** Authentication settings for SSO (OIDC) based authentication */
   oidc: OidcAuthSettings,
-  basic: BasicAuthSettings,
+  /** Authentication settings for Bearer authentication (manually providing a Bearer token to the UI) */
   bearer: BearerAuthSettings
+  /** Authentication settings for Basic authentication */
+  basic: BasicAuthSettings,
 }
 
 type MainAuthSettings = CommonAuthSettings & {
+  /** Authentication settings for Pre-Authenticated authentication */
   pre: PreAuthSettings
 }
 
-type OidcProviderConfiguration = UserManagerSettings & {
+type OidcProviderConfiguration = UserManagerSettings /* from 'oidc-client-ts' */ & {
+  /** The name used in the drop-down list of available OIDC providers */
   displayName: string
 }
 
 type AuthSettings = {
+  /** Contains the settings for the 'main' user authentication, accessing things+policies */
   main: MainAuthSettings,
+  /** Contains the settings for the 'devops' user authentication, accessing connections+operations */
   devops: CommonAuthSettings,
+  /** The shared OpenID Connect (OIDC) provider configuration with the provider as key and the configuration as value */
   oidc: Record<string, OidcProviderConfiguration>
 }
 
@@ -86,17 +108,29 @@ type FieldListItem = {
 }
 
 type Environment = {
+  /** The Ditto API URI to use, without the `/api/2` part */
   api_uri: string,
+  /** The Ditto main version, either `2` or `3` */
   ditto_version: number,
+  /** Whether to hide the "Policies" tab */
   disablePolicies?: boolean,
+  /** Whether to hide the "Connections" tab */
   disableConnections?: boolean,
+  /** Whether to hide the "Operations" tab */
   disableOperations?: boolean,
+  /** The authorization settings for the UI */
   authSettings?: AuthSettings,
-  searchNamespaces?: string | null,
+  /** A comma separated list of namespaces to perform Thing searches in */
+  searchNamespaces?: string,
+  /** Holds templates for well known (feature) messages */
   messageTemplates?: any,
+  /** Contains a list of fields to be shown as additional columns in the Things search result table */
   fieldList?: FieldListItem[],
+  /** Contains well known filters which should be suggested when typing in the Things search field */
   filterList?: string[],
+  /** Holds a list of "pinned" things */
   pinnedThings?: string[],
+  /** Holds a list of recently opened Policies in the "Policy" tab */
   recentPolicyIds?: string[],
 }
 
