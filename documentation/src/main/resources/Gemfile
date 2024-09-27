@@ -29,4 +29,4 @@ gem "wdm", "~> 0.1.0" if Gem.win_platform?
 
 # Webrick is not included in ruby since 3.0.0 https://www.ruby-lang.org/en/news/2020/12/25/ruby-3-0-0-released/
 # This should be fixed with jekyll 4.3 https://github.com/jekyll/jekyll/pull/8524
-gem "webrick", "~> 1.7.0"
+gem "webrick", "~> 1.8.2"
