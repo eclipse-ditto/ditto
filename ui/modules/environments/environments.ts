@@ -87,9 +87,11 @@ type MainAuthSettings = CommonAuthSettings & {
   pre: PreAuthSettings
 }
 
-type OidcProviderConfiguration = UserManagerSettings /* from 'oidc-client-ts' */ & {
+export type OidcProviderConfiguration = UserManagerSettings /* from 'oidc-client-ts' */ & {
   /** The name used in the drop-down list of available OIDC providers */
-  displayName: string
+  displayName: string,
+  /** Configures the field to use as 'Bearer' token from the response of the OIDC provider's /token endpoint, e.g. either "access_token" or "id_token" */
+  extractBearerTokenFrom: string
 }
 
 type AuthSettings = {
@@ -134,7 +136,6 @@ type Environment = {
   recentPolicyIds?: string[],
 }
 
-let urlSearchParams: URLSearchParams;
 let environments: Record<string, Environment>;
 let selectedEnvName: string;
 
@@ -191,7 +192,6 @@ export async function ready() {
 
   Utils.addValidatorToTable(dom.tbodyEnvironments, dom.tableValidationEnvironments);
 
-  urlSearchParams = new URLSearchParams(window.location.search);
   environments = await loadEnvironmentTemplates();
 
   settingsEditor = Utils.createAceEditor('settingsEditor', 'ace/mode/json', true);
@@ -219,8 +219,9 @@ export async function ready() {
 }
 
 async function onEnvironmentSelectorChange() {
+  let urlSearchParams = new URLSearchParams(window.location.search);
   urlSearchParams.set(URL_PRIMARY_ENVIRONMENT_NAME, currentEnvironmentSelector());
-  window.history.replaceState({}, '', `${window.location.pathname}?${urlSearchParams}`);
+  window.history.replaceState(null, null, `${window.location.pathname}?${urlSearchParams}`);
   await notifyAll(false);
 }
 
@@ -291,10 +292,15 @@ async function onUpdateEnvironmentClick(event) {
   }
 }
 
-export async function environmentsJsonChanged(initialPageLoad: boolean, modifiedField = null) {
+export function saveEnvironmentsToLocalStorage() {
   environments && localStorage.setItem(STORAGE_KEY, JSON.stringify(environments));
+}
 
+export async function environmentsJsonChanged(initialPageLoad: boolean, modifiedField = null) {
   updateEnvSelector();
+
+  saveEnvironmentsToLocalStorage();
+
   updateEnvEditors();
   updateEnvTable();
 
@@ -302,6 +308,7 @@ export async function environmentsJsonChanged(initialPageLoad: boolean, modified
 
   function updateEnvSelector() {
     let activeEnvironment = dom.environmentSelector.value;
+    let urlSearchParams = new URLSearchParams(window.location.search);
     if (!activeEnvironment) {
       activeEnvironment = urlSearchParams.get(URL_PRIMARY_ENVIRONMENT_NAME);
     }
@@ -365,6 +372,7 @@ async function loadEnvironmentTemplates() {
   let fromURL;
   let fromLocalStorage;
 
+  let urlSearchParams = new URLSearchParams(window.location.search);
   let environmentsURL = urlSearchParams.get(URL_ENVIRONMENTS);
   if (environmentsURL) {
     try {

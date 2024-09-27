@@ -19,7 +19,13 @@ import authorizationHTML from './authorization.html';
 /* eslint-disable prefer-const */
 /* eslint-disable require-jsdoc */
 import * as Environments from './environments.js';
-import { AuthMethod, OidcAuthSettings, URL_OIDC_PROVIDER, URL_PRIMARY_ENVIRONMENT_NAME } from './environments.js';
+import {
+  AuthMethod,
+  OidcAuthSettings,
+  OidcProviderConfiguration,
+  URL_OIDC_PROVIDER,
+  URL_PRIMARY_ENVIRONMENT_NAME
+} from './environments.js';
 
 let dom = {
   mainBearerSection: null,
@@ -40,6 +46,15 @@ let dom = {
   devOpsOidcProvider: null,
   collapseConnections: null,
 };
+
+type OidcState = {
+  mainAuth: boolean,
+  devopsAuth: boolean
+}
+
+function OidcState(state: OidcState): void {
+  Object.assign(this, state);
+}
 
 let _forDevops = false;
 
@@ -108,8 +123,10 @@ export function ready() {
     e.preventDefault();
     let environment = Environments.current();
     environment.authSettings.main.oidc.provider = dom.oidcProvider.value;
-    let alreadyLoggedIn = await performSingleSignOn(environment.authSettings.main.oidc)
+    Environments.saveEnvironmentsToLocalStorage();
+    let alreadyLoggedIn = await performSingleSignOn(true)
     if (alreadyLoggedIn) {
+      environment.authSettings.main.method = AuthMethod.oidc
       showInfoToast('You are already logged in')
     }
     await Environments.environmentsJsonChanged(false);
@@ -119,15 +136,16 @@ export function ready() {
     let environment = Environments.current();
     environment.authSettings.main.oidc.provider = dom.oidcProvider.value;
     await performSingleSignOut(environment.authSettings.main.oidc)
-    await Environments.environmentsJsonChanged(false);
   };
 
   document.getElementById('devops-oidc-login').onclick = async (e) => {
     e.preventDefault();
     let environment = Environments.current();
     environment.authSettings.devops.oidc.provider = dom.devOpsOidcProvider.value;
-    let alreadyLoggedIn = await performSingleSignOn(environment.authSettings.devops.oidc)
+    Environments.saveEnvironmentsToLocalStorage();
+    let alreadyLoggedIn = await performSingleSignOn(false)
     if (alreadyLoggedIn) {
+      environment.authSettings.devops.method = AuthMethod.oidc
       showInfoToast('You are already logged in')
     }
     await Environments.environmentsJsonChanged(false);
@@ -137,7 +155,6 @@ export function ready() {
     let environment = Environments.current();
     environment.authSettings.devops.oidc.provider = dom.devOpsOidcProvider.value;
     await performSingleSignOut(environment.authSettings.devops.oidc)
-    await Environments.environmentsJsonChanged(false);
   };
 }
 
@@ -150,15 +167,27 @@ function isSsoCallbackRequest(urlSearchParams?: URLSearchParams): boolean {
   return requestContainedCode && requestContainedState;
 }
 
-async function handleSingleSignOnCallback(oidc: OidcAuthSettings) {
+async function handleSingleSignOnCallback(urlSearchParams: URLSearchParams) {
   let environment = Environments.current();
-  const settings: UserManagerSettings = environment.authSettings.oidc.providers[oidc.provider];
+  let sameProviderForMainAndDevops =
+    environment.authSettings?.main?.oidc.provider == environment.authSettings?.devops?.oidc.provider;
+  const oidcProviderId = urlSearchParams.get(URL_OIDC_PROVIDER) || environment.authSettings?.main?.oidc.provider;
+  let oidcProvider: OidcProviderConfiguration = environment.authSettings.oidc.providers[oidcProviderId];
+  const settings: UserManagerSettings = oidcProvider;
   if (settings !== undefined && settings !== null) {
     const userManager = new UserManager(settings);
     try {
       let user = await userManager.signinCallback(window.location.href)
       if (user) {
-        oidc.bearerToken = user.access_token
+        let oidcState = user.state as OidcState
+        if (oidcState.mainAuth) {
+          environment.authSettings.main.method = AuthMethod.oidc
+          environment.authSettings.main.oidc.bearerToken = user[oidcProvider.extractBearerTokenFrom]
+        }
+        if (oidcState.devopsAuth) {
+          environment.authSettings.devops.method = AuthMethod.oidc
+          environment.authSettings.devops.oidc.bearerToken = user[oidcProvider.extractBearerTokenFrom]
+        }
         window.history.replaceState(null, null, `${settings.redirect_uri}?${user.url_state}`)
         await Environments.environmentsJsonChanged(false)
       }
@@ -168,26 +197,44 @@ async function handleSingleSignOnCallback(oidc: OidcAuthSettings) {
   }
 }
 
-async function performSingleSignOn(oidc: OidcAuthSettings): Promise<boolean> {
+async function performSingleSignOn(forMainAuth: boolean): Promise<boolean> {
   let environment = Environments.current();
-  const settings: UserManagerSettings = environment.authSettings.oidc.providers[oidc.provider];
+  let oidc: OidcAuthSettings;
+  if (forMainAuth) {
+    oidc = environment.authSettings?.main?.oidc;
+  } else {
+    oidc = environment.authSettings?.devops?.oidc;
+  }
+  let sameProviderForMainAndDevops =
+    environment.authSettings?.main?.oidc.provider == environment.authSettings?.devops?.oidc.provider;
+  let oidcProvider = environment.authSettings.oidc.providers[oidc.provider];
+  const settings: UserManagerSettings = oidcProvider;
   if (settings !== undefined && settings !== null) {
     const urlSearchParams: URLSearchParams = new URLSearchParams(window.location.search);
     const userManager = new UserManager(settings);
     if (isSsoCallbackRequest(urlSearchParams)) {
-      await handleSingleSignOnCallback(oidc)
+      await handleSingleSignOnCallback(urlSearchParams)
       return false
     } else {
       let user = await userManager.getUser();
-      if (user?.access_token !== undefined || user?.expired === true) {
+      if (user?.[oidcProvider.extractBearerTokenFrom] !== undefined || user?.expired === true) {
         // a user is still logged in via a valid token stored in the browser's session storage
-        oidc.bearerToken = user?.access_token
+        if (sameProviderForMainAndDevops) {
+          environment.authSettings.main.oidc.bearerToken = user[oidcProvider.extractBearerTokenFrom]
+          environment.authSettings.devops.oidc.bearerToken = user[oidcProvider.extractBearerTokenFrom]
+        } else {
+          oidc.bearerToken = user[oidcProvider.extractBearerTokenFrom]
+        }
         return true
       } else {
         urlSearchParams.set(URL_PRIMARY_ENVIRONMENT_NAME, Environments.currentEnvironmentSelector())
         urlSearchParams.set(URL_OIDC_PROVIDER, oidc.provider)
         try {
           await userManager.signinRedirect({
+            state: new OidcState({
+              mainAuth: forMainAuth || sameProviderForMainAndDevops,
+              devopsAuth: !forMainAuth || sameProviderForMainAndDevops
+            }),
             url_state: urlSearchParams.toString()
           });
         } catch (e) {
@@ -222,7 +269,7 @@ async function performSingleSignOut(oidc: OidcAuthSettings) {
       showError(e)
     } finally {
       oidc.bearerToken = undefined
-      await Environments.environmentsJsonChanged(false)
+      Environments.saveEnvironmentsToLocalStorage();
     }
   }
 }
@@ -231,7 +278,7 @@ function dynamicallyShowOrHideSection(sectionEnabled: boolean, section: HTMLElem
   if (!sectionEnabled && section) {
     section.style.display = 'none'
   } else if (sectionEnabled) {
-    section.style.display = 'inherit'
+    section.style.display = null
   }
 }
 
@@ -281,14 +328,21 @@ export async function onEnvironmentChanged(initialPageLoad: boolean) {
     environment.authSettings.devops.bearer.enabled;
   dynamicallyShowOrHideSection(anyDevOpsAuthEnabled, dom.devOpsBasicSection.parentElement);
 
+  let urlSearchParams = new URLSearchParams(window.location.search);
   if (initialPageLoad &&
     environment.authSettings?.main?.method === AuthMethod.oidc &&
     environment.authSettings?.main?.oidc?.autoSso === true
   ) {
-    await performSingleSignOn(environment.authSettings?.main?.oidc);
+    await performSingleSignOn(true);
     await Environments.environmentsJsonChanged(false);
-  } else if (isSsoCallbackRequest()) {
-    await handleSingleSignOnCallback(environment.authSettings?.main?.oidc);
+  } else if (initialPageLoad &&
+    environment.authSettings?.devops?.method === AuthMethod.oidc &&
+    environment.authSettings?.devops?.oidc?.autoSso === true
+  ) {
+    await performSingleSignOn(false);
+    await Environments.environmentsJsonChanged(false);
+  } else if (isSsoCallbackRequest(urlSearchParams)) {
+    await handleSingleSignOnCallback(urlSearchParams);
   }
 
   API.setAuthHeader(_forDevops);

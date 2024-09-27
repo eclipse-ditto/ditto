@@ -79,7 +79,9 @@ type MainAuthSettings = CommonAuthSettings & {
 
 type OidcProviderConfiguration = UserManagerSettings /* from 'oidc-client-ts' */ & {
     /** The name used in the drop-down list of available OIDC providers */
-    displayName: string
+    displayName: string,
+    /** Configures the field to use as 'Bearer' token from the response of the OIDC provider's /token endpoint, e.g. either "access_token" or "id_token" */
+    extractBearerTokenFrom: string
 }
 
 export enum AuthMethod {
@@ -300,7 +302,8 @@ An example environment JSON file could look like:
       "oidc": {
         "providers": {
           "fake": {
-            "displayName": "Fake IDP to test",
+            "displayName": "Fake IDP to test", 
+            "extractBearerTokenFrom": "access_token",
             "authority": "http://localhost:9900/fake",
             "client_id": "some-client-id",
             "redirect_uri": "http://localhost:8000",

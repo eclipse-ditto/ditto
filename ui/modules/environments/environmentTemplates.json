@@ -110,7 +110,7 @@
         "method": "basic",
         "oidc": {
           "enabled": false,
-          "defaultProvider": "fake"
+          "defaultProvider": null
         },
         "basic": {
           "enabled": false,
@@ -169,6 +169,7 @@
         "providers": {
           "fake": {
             "displayName": "Fake IDP to test",
+            "extractBearerTokenFrom": "access_token",
             "authority": "http://localhost:9900/fake",
             "client_id": "some-client-id",
             "redirect_uri": "http://localhost:8000",
