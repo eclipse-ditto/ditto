@@ -205,13 +205,33 @@ async function performSingleSignOut(oidc: OidcAuthSettings) {
   if (settings !== undefined && settings !== null) {
     const userManager = new UserManager(settings);
     try {
-      await userManager.signoutRedirect()
+      const urlSearchParams: URLSearchParams = new URLSearchParams(window.location.search);
+      urlSearchParams.set(URL_PRIMARY_ENVIRONMENT_NAME, Environments.currentEnvironmentSelector());
+      let postLogoutRedirectUri: string;
+      if (settings.post_logout_redirect_uri) {
+        // if explicitly configured, use the post_logout_redirect_uri
+        postLogoutRedirectUri = settings.post_logout_redirect_uri;
+      } else {
+        // otherwise, build it dynamically, injecting the current urlSearchParams as query:
+        `${settings.redirect_uri}?${urlSearchParams.toString()}`
+      }
+      await userManager.signoutRedirect({
+        post_logout_redirect_uri: postLogoutRedirectUri
+      })
     } catch (e) {
       showError(e)
     } finally {
       oidc.bearerToken = undefined
       await Environments.environmentsJsonChanged(false)
     }
+  }
+}
+
+function dynamicallyShowOrHideSection(sectionEnabled: boolean, section: HTMLElement) {
+  if (!sectionEnabled && section) {
+    section.style.display = 'none'
+  } else if (sectionEnabled) {
+    section.style.display = 'inherit'
   }
 }
 
@@ -241,28 +261,25 @@ export async function onEnvironmentChanged(initialPageLoad: boolean) {
     dom.devOpsOidcProvider.value = environment.authSettings.devops.oidc.provider;
   }
 
-  if (!environment.authSettings.main.oidc.enabled && dom.mainOidcSection?.parentElement) {
-    dom.mainOidcSection.parentElement.removeChild(dom.mainOidcSection)
-  }
-  if (!environment.authSettings.main.basic.enabled && dom.mainBasicSection?.parentElement) {
-    dom.mainBasicSection.parentElement.removeChild(dom.mainBasicSection)
-  }
-  if (!environment.authSettings.main.bearer.enabled && dom.mainBearerSection?.parentElement) {
-    dom.mainBearerSection.parentElement.removeChild(dom.mainBearerSection)
-  }
-  if (!environment.authSettings.main.pre.enabled && dom.mainPreAuthenticatedSection?.parentElement) {
-    dom.mainPreAuthenticatedSection.parentElement.removeChild(dom.mainPreAuthenticatedSection)
-  }
+  dynamicallyShowOrHideSection(environment.authSettings.main.oidc.enabled, dom.mainOidcSection);
+  dynamicallyShowOrHideSection(environment.authSettings.main.basic.enabled, dom.mainBasicSection);
+  dynamicallyShowOrHideSection(environment.authSettings.main.bearer.enabled, dom.mainBearerSection);
+  dynamicallyShowOrHideSection(environment.authSettings.main.pre.enabled, dom.mainPreAuthenticatedSection);
+  const anyMainAuthEnabled =
+    environment.authSettings.main.oidc.enabled ||
+    environment.authSettings.main.basic.enabled ||
+    environment.authSettings.main.bearer.enabled ||
+    environment.authSettings.main.pre.enabled;
+  dynamicallyShowOrHideSection(anyMainAuthEnabled, dom.mainBasicSection.parentElement);
 
-  if (!environment.authSettings.devops.oidc.enabled && dom.devOpsOidcSection?.parentElement) {
-    dom.devOpsOidcSection.parentElement.removeChild(dom.devOpsOidcSection)
-  }
-  if (!environment.authSettings.devops.basic.enabled && dom.devOpsBasicSection?.parentElement) {
-    dom.devOpsBasicSection.parentElement.removeChild(dom.devOpsBasicSection)
-  }
-  if (!environment.authSettings.devops.bearer.enabled && dom.devOpsBearerSection?.parentElement) {
-    dom.devOpsBearerSection.parentElement.removeChild(dom.devOpsBearerSection)
-  }
+  dynamicallyShowOrHideSection(environment.authSettings.devops.oidc.enabled, dom.devOpsOidcSection);
+  dynamicallyShowOrHideSection(environment.authSettings.devops.basic.enabled, dom.devOpsBasicSection);
+  dynamicallyShowOrHideSection(environment.authSettings.devops.bearer.enabled, dom.devOpsBearerSection);
+  const anyDevOpsAuthEnabled =
+    environment.authSettings.devops.oidc.enabled ||
+    environment.authSettings.devops.basic.enabled ||
+    environment.authSettings.devops.bearer.enabled;
+  dynamicallyShowOrHideSection(anyDevOpsAuthEnabled, dom.devOpsBasicSection.parentElement);
 
   if (initialPageLoad &&
     environment.authSettings?.main?.method === AuthMethod.oidc &&
