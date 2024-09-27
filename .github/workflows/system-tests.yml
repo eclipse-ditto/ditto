@@ -1,0 +1,407 @@
+# Copyright (c) 2024 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+name: System Tests
+
+# To run locally using https://github.com/nektos/act
+# Define the following environment variable in your shell:
+# $WORKSPACE: The path to a workspace directory of your choice
+# $DITTO_ROOT: The path to the root directory of the Ditto repository
+# Create an input file with the following content:
+#  ditto_branch="feature/branch-to-tst"
+#  ditto_repo="eclipse/ditto"
+#  ditto_testing_branch="main"
+#  ditto_testing_repo="eclipse-ditto/ditto-testing"
+
+# Run the following command:
+#  act workflow_dispatch -C /Users/sta1sf3/temp/workflow-workspace --bind --container-options "-v $WORKSPACE/.m2:/home/runner/.m2"
+#  --env HOST_M2_REPO="$WORKSPACE/.m2"  --input-file $WORKSPACE/input-file
+#  -s GITHUB_TOKEN="$(gh auth token)" -P ditto-runner=ghcr.io/catthehacker/ubuntu:full-20.04 --container-architecture linux/amd64
+#  -W $DITTO_ROOT/ditto/.github/workflows/system-tests.yml
+
+on:
+  workflow_dispatch:
+    inputs:
+      ditto_branch:
+        description: 'Branch to use for ditto repo (default: master)'
+        required: false
+        default: 'master'
+      ditto_testing_branch:
+        description: 'Branch to use for ditto-testing repo (default: main)'
+        required: false
+        default: 'main'
+      extra_maven_args:
+        description: 'Extra arguments to pass to Maven'
+        required: false
+        default: ''
+
+jobs:
+  system-tests:
+    runs-on: ditto-runner
+    env:
+      DITTO_BRANCH: ${{ github.event.inputs.ditto_branch || 'master'}}
+      DITTO_REPO: ${{ github.event.inputs.ditto_repo || 'eclipse-ditto/ditto'}}
+      DITTO_TESTING_BRANCH: ${{ github.event.inputs.ditto_testing_branch || 'main'}}
+      DITTO_TESTING_REPO: ${{ github.event.inputs.ditto_testing_repo || 'eclipse-ditto/ditto-testing'}}
+      COMPOSE_PROJECT_NAME: '${{ github.job }}-${{ github.run_number }}'
+      DOCKER_NETWORK: 'test'
+      TEST_JAVA_OPTIONS: '-XX:+UseContainerSupport -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Dpekko.cluster.failure-detector.acceptable-heartbeat-pause=20s'
+      MAVEN_OPTS: '-Xmx1400M  --add-opens java.base/java.lang=ALL-UNNAMED'
+      EXTRA_MAVEN_ARGS:  ${{ github.event.inputs.extra-maven-args || '' }}
+      HTTP_PUSH_MOCK_SERVER_PORT: '8080'
+      EXTRA_DOCKER_ARGS: '--memory="8g" --cpus="8.0"'
+      FORK_COUNT: '6'
+
+    steps:
+      - name: Debug GitHub Context
+        run: |
+            echo "DITTO_BRANCH: ${{ env.DITTO_BRANCH }}"
+            echo "DITTO_TESTING_BRANCH: ${{ env.DITTO_TESTING_BRANCH }}"
+            echo "COMPOSE_PROJECT_NAME: ${{ env.COMPOSE_PROJECT_NAME }}"
+            echo "DOCKER_NETWORK: ${{ env.DOCKER_NETWORK }}"
+            echo "TEST_JAVA_OPTIONS: ${{ env.TEST_JAVA_OPTIONS }}"
+            echo "MAVEN_OPTS: ${{ env.MAVEN_OPTS }}"
+            echo "HOST_M2_REPO: ${{ env.HOST_M2_REPO }}"
+            echo "WORKSPACE: ${{ env.WORKSPACE }}"
+            echo "M2_REPO: ${{ env.M2_REPO }}"
+            echo "EXTRA_MAVEN_ARGS: ${{ env.EXTRA_MAVEN_ARGS }}"
+            echo "HTTP_PUSH_MOCK_SERVER_PORT: ${{ env.HTTP_PUSH_MOCK_SERVER_PORT }}"
+            echo "EXTRA_DOCKER_ARGS: ${{ env.EXTRA_DOCKER_ARGS }}"
+            echo "FORK_COUNT: ${{ env.FORK_COUNT }}"
+            echo "GITHUB_JOB: ${{ github.job }}"
+            echo "GITHUB_RUN_NUMBER: ${{ github.run_number }}"
+            echo "GITHUB_EVENT_NAME: ${{ github.event_name }}"
+            echo "GITHUB_EVENT_PATH: ${{ github.event_path }}"
+            echo "GITHUB_WORKSPACE: ${{ github.workspace }}"
+            echo "GITHUB_SHA: ${{ github.sha }}"
+            echo "GITHUB_REF: ${{ github.ref }}"
+            echo "GITHUB_ACTOR: ${{ github.actor }}"
+            echo "GITHUB_REPOSITORY: ${{ github.repository }}"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          cache: 'maven'
+          java-version: 21
+
+      - name: Cache local Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Set env vars dynamically
+        run: |
+          echo "JAVA_TOOL_OPTIONS=-Duser.home=$HOME" >> $GITHUB_ENV
+          echo "M2_REPO=$HOME/.m2" >> $GITHUB_ENV
+          if [[ $GITHUB_ACTOR != "nektos/act" ]]; then
+            echo "HOST_M2_REPO=$M2_REPO" >> $GITHUB_ENV
+          fi
+
+      - name: Set DITTO_VERSION
+        id: set_version
+        run: |
+          if [[ "$DITTO_BRANCH" == "master" || "$DITTO_BRANCH" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "DITTO_VERSION=nightly" >> $GITHUB_ENV
+          else
+            SANITIZED_BRANCH_NAME=${DITTO_BRANCH//[\/]/-}
+            DITTO_VERSION="0-${SANITIZED_BRANCH_NAME}-SNAPSHOT"
+            echo "DITTO_VERSION=$DITTO_VERSION" >> $GITHUB_ENV
+            echo "SERVICE_VERSION=$DITTO_VERSION" >> $GITHUB_ENV
+          fi
+          echo "DITTO_VERSION=$DITTO_VERSION"
+          echo "::set-output name=ditto_version::$DITTO_VERSION" 
+
+      - name: Checkout Ditto code
+        uses: actions/checkout@v3
+        with:
+          repository: ${{env.DITTO_REPO }}
+          ref: ${{ env.DITTO_BRANCH }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: ditto
+
+      - name: Compile Ditto
+        working-directory: ./ditto
+        run: |
+          mvn clean install -DskipTests -DskipITs --batch-mode --errors \
+              -Drevision=$DITTO_VERSION \
+              -DforkCount=$FORK_COUNT \
+              -Dbuild.environment=Github
+
+      - name: Checkout ditto-clients repo
+        uses: actions/checkout@v3
+        with:
+          repository: 'eclipse-ditto/ditto-clients'
+          ref: 'master'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: ditto-clients
+
+      - name: Compile Ditto Clients
+        working-directory: ./ditto-clients/java
+        run: |
+          mvn clean install -DskipTests --errors  -Drevision=$DITTO_VERSION 
+
+      - name: Checkout ditto-testing repo
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.inputs.ditto_testing_repo || 'eclipse-ditto/ditto-testing' }}
+          ref: ${{ github.event.inputs.ditto_testing_branch || 'main' }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: ditto-testing
+
+      - name: Compile Ditto testing
+        working-directory: ./ditto-testing
+        run: |
+          mvn clean install --batch-mode --errors -DskipTests -DskipITs -Drevision=$DITTO_VERSION -DforkCount=$FORK_COUNT ${EXTRA_MAVEN_ARGS}
+
+      - name: Preparation
+        working-directory: ./ditto-testing
+        run: |
+            echo "environments for docker-compose"
+            echo "COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME"
+            echo "DOCKER_REGISTRY=$DOCKER_REGISTRY"
+            echo "DITTO_VERSION=$DITTO_VERSION"
+            echo "DOCKER_NETWORK=$DOCKER_NETWORK"
+            echo "Delete compose override to avoid port binding"
+            rm docker/docker-compose.override.yml || true
+            sudo chown root:root -R docker/sshd/config/custom-cont-init.d || true
+            export USER=$(whoami)
+            sudo chown $USER:$USER /var/run/docker.sock
+
+      - name: Build docker images
+        if: ${{ steps.set_version.outputs.ditto_version != 'nightly' }}
+        working-directory: ./ditto
+        run: |
+              echo "Building docker images"
+              ./build-images.sh
+
+      - name: Modify start.sh and stop.sh and compose files
+        working-directory: ./ditto-testing/docker
+        run: |
+          sed -i 's/docker-compose/docker compose/g' start.sh
+          sed -i 's/docker-compose/docker compose/g' stop.sh
+          if [[ $DITTO_VERSION != 'nightly' ]]; then
+             sed -i '/printf "\\nPulling newest versions of images ...\\n\\n"/,/assert_success $?/d' start.sh
+          fi
+
+      # Run module: system
+      - name: Start docker environment for module system
+        working-directory: ./ditto-testing/docker
+        run: |
+         TAG=system ./start.sh
+
+      - name: Run system tests in Docker
+        working-directory: ./ditto-testing
+        run: |
+          docker run --rm \
+            --network test \
+            -v "${{ github.workspace }}":/workspace \
+            -v $HOST_M2_REPO:/root/.m2 \
+            -w /workspace/ditto-testing \
+            -e DITTO_VERSION=$DITTO_VERSION \
+            -e FORK_COUNT=$FORK_COUNT \
+            maven:3.9.5-eclipse-temurin-21 \
+            mvn verify -am -amd --batch-mode --errors \
+                --projects=:system \
+                -Dtest.environment=docker-compose \
+                -Drevision=$DITTO_VERSION \
+                -DforkCount=$FORK_COUNT -DreuseForks=false
+
+      - name: Upload test results for module system
+        if:  env.GITHUB_ACTOR != 'nektos/act'
+        uses: actions/upload-artifact@v3
+        with:
+          name: system-test-results
+          path: 'ditto-testing/system/target/failsafe-reports/**/*.xml'
+
+      - name: Upload system services logs
+        if:  env.GITHUB_ACTOR != 'nektos/act'
+        uses: actions/upload-artifact@v3
+        with:
+          name: system-services-logs
+          path: 'ditto-testing/docker/logs/**/*.log'
+
+      - name: Stop docker environment for module system
+        if: always()
+        working-directory: ./ditto-testing/docker
+        run: |
+          ./stop.sh
+
+      # Run module: sync-completely-enabled
+      - name: Start sync-completely-enabled docker environment
+        working-directory: ./ditto-testing/docker
+        env:
+          EVENT_PROCESSING_ACTIVE: 'true'
+          BACKGROUND_SYNC_ENABLED: 'true'
+          BACKGROUND_SYNC_QUIET_PERIOD: '1s'
+          BACKGROUND_SYNC_TOLERANCE_WINDOW: '1ms'
+          THINGS_SEARCH_UPDATER_STREAM_WRITE_INTERVAL: '1s'
+          THINGS_SEARCH_UPDATER_STREAM_POLICY_CACHE_RETRY_DELAY: '1s'
+          THINGS_SEARCH_UPDATER_STREAM_THING_CACHE_RETRY_DELAY: '1s'
+        run: |
+          TAG=sync-completely-enabled ./start.sh
+
+      - name: Run sync-completely-enabled tests
+        working-directory: ./ditto-testing
+        run: |
+          docker run --rm \
+          --network test \
+          -v "${{ github.workspace }}":/workspace \
+          -v $HOST_M2_REPO:/root/.m2 \
+          -w /workspace/ditto-testing \
+          -e DITTO_VERSION=$DITTO_VERSION \
+          -e FORK_COUNT=$FORK_COUNT \
+          maven:3.9.5-eclipse-temurin-21 \
+          mvn verify -am -amd --batch-mode --errors --update-snapshots \
+              --projects=:sync-completely-enabled \
+              -Dtest.environment=docker-compose \
+              -Drevision=$DITTO_VERSION
+        env:
+          EVENT_PROCESSING_ACTIVE: 'true'
+          BACKGROUND_SYNC_ENABLED: 'true'
+          BACKGROUND_SYNC_QUIET_PERIOD: '1s'
+          BACKGROUND_SYNC_TOLERANCE_WINDOW: '1ms'
+          THINGS_SEARCH_UPDATER_STREAM_WRITE_INTERVAL: '1s'
+          THINGS_SEARCH_UPDATER_STREAM_POLICY_CACHE_RETRY_DELAY: '1s'
+          THINGS_SEARCH_UPDATER_STREAM_THING_CACHE_RETRY_DELAY: '1s'
+
+      - name: Upload test results for sync-completely-enabled
+        if:  env.GITHUB_ACTOR != 'nektos/act'
+        uses: actions/upload-artifact@v3
+        with:
+          name: sync-completely-enabled-test-results
+          path: 'ditto-testing/system-sync/sync-completely-enabled/target/failsafe-reports/**/*.xml'
+
+      - name: Upload sync-completely-enabled services logs
+        if:  env.GITHUB_ACTOR != 'nektos/act'
+        uses: actions/upload-artifact@v3
+        with:
+          name: system-services-logs
+          path: 'ditto-testing/docker/logs/**/*.log'
+
+      - name: Stop sync-completely-enabled docker environment
+        if: always()
+        working-directory: ./ditto-testing/docker
+        run: |
+          ./stop.sh
+
+      # Run module: sync-event-processing-enabled
+      - name: Start sync-event-processing-enabled docker environment
+        working-directory: ./ditto-testing/docker
+        env:
+          EVENT_PROCESSING_ACTIVE: 'true'
+          BACKGROUND_SYNC_ENABLED: 'false'
+          THINGS_SEARCH_UPDATER_STREAM_WRITE_INTERVAL: '1s'
+          THINGS_SEARCH_UPDATER_STREAM_POLICY_CACHE_RETRY_DELAY: '1s'
+          THINGS_SEARCH_UPDATER_STREAM_THING_CACHE_RETRY_DELAY: '1s'
+        run: |
+          TAG=sync-event-processing-enabled ./start.sh
+
+      - name: Run sync-event-processing-enabled tests
+        run: |
+          docker run --rm \
+          --network test \
+          -v "${{ github.workspace }}":/workspace \
+          -v $HOST_M2_REPO:/root/.m2 \
+          -w /workspace/ditto-testing \
+          -e DITTO_VERSION=$DITTO_VERSION \
+          -e FORK_COUNT=$FORK_COUNT \
+          maven:3.9.5-eclipse-temurin-21 \
+          mvn verify -am -amd --batch-mode --errors --update-snapshots \
+              --projects=:sync-event-processing-enabled \
+              -Dtest.environment=docker-compose \
+              -Drevision=$DITTO_VERSION
+        env:
+          EVENT_PROCESSING_ACTIVE: 'true'
+          BACKGROUND_SYNC_ENABLED: 'false'
+          THINGS_SEARCH_UPDATER_STREAM_WRITE_INTERVAL: '1s'
+          THINGS_SEARCH_UPDATER_STREAM_POLICY_CACHE_RETRY_DELAY: '1s'
+          THINGS_SEARCH_UPDATER_STREAM_THING_CACHE_RETRY_DELAY: '1s'
+
+      - name: Upload module sync-event-processing-enabled test results
+        if:  env.GITHUB_ACTOR != 'nektos/act'
+        uses: actions/upload-artifact@v3
+        with:
+          name: sync-event-processing-enabled-test-results
+          path: 'ditto-testing/system-sync/sync-event-processing-enabled/target/failsafe-reports/**/*.xml'
+
+      - name: Upload sync-event-processing-enabled services logs
+        if:  env.GITHUB_ACTOR != 'nektos/act'
+        uses: actions/upload-artifact@v3
+        with:
+          name: system-services-logs
+          path: 'ditto-testing/docker/logs/**/*.log'
+
+      - name: Stop docker environment for module sync-event-processing-enabled
+        if: always()
+        working-directory: ./ditto-testing/docker
+        run: |
+          ./stop.sh
+
+      # Run module: sync-tags-streaming-enabled
+      - name: Start sync-tags-streaming-enabled docker environment
+        working-directory: ./ditto-testing/docker
+        env:
+          EVENT_PROCESSING_ACTIVE: 'false'
+          BACKGROUND_SYNC_ENABLED: 'true'
+          BACKGROUND_SYNC_QUIET_PERIOD: '1s'
+          BACKGROUND_SYNC_TOLERANCE_WINDOW: '1ms'
+          THINGS_SEARCH_UPDATER_STREAM_WRITE_INTERVAL: '1s'
+          THINGS_SEARCH_UPDATER_STREAM_POLICY_CACHE_RETRY_DELAY: '1s'
+          THINGS_SEARCH_UPDATER_STREAM_THING_CACHE_RETRY_DELAY: '1s'
+        run: |
+          TAG=sync-tags-streaming-enabled ./start.sh
+
+      - name: Run sync-tags-streaming-enabled tests
+        working-directory: ./ditto-testing
+        run: |
+          docker run --rm \
+          --network test \
+          -v "${{ github.workspace }}":/workspace \
+          -v $HOST_M2_REPO:/root/.m2 \
+          -w /workspace/ditto-testing \
+          -e DITTO_VERSION=$DITTO_VERSION \
+          -e FORK_COUNT=$FORK_COUNT \
+          maven:3.9.5-eclipse-temurin-21 \
+          mvn verify -am -amd --batch-mode --errors --update-snapshots \
+              --projects=:sync-tags-streaming-enabled \
+              -Dtest.environment=docker-compose \
+              -Drevision=$DITTO_VERSION
+        env:
+          EVENT_PROCESSING_ACTIVE: 'false'
+          BACKGROUND_SYNC_ENABLED: 'true'
+          BACKGROUND_SYNC_QUIET_PERIOD: '1s'
+          BACKGROUND_SYNC_TOLERANCE_WINDOW: '1ms'
+          THINGS_SEARCH_UPDATER_STREAM_WRITE_INTERVAL: '1s'
+          THINGS_SEARCH_UPDATER_STREAM_POLICY_CACHE_RETRY_DELAY: '1s'
+          THINGS_SEARCH_UPDATER_STREAM_THING_CACHE_RETRY_DELAY: '1s'
+
+      - name: Upload sync-tags-streaming-enabled test results
+        if:  env.GITHUB_ACTOR != 'nektos/act'
+        uses: actions/upload-artifact@v3
+        with:
+          name: sync-tags-streaming-enabled-test-results
+          path: 'ditto-testing/system-sync/sync-tags-streaming-enabled/target/failsafe-reports/**/*.xml'
+
+      - name: Upload sync-tags-streaming-enabled services logs
+        if:  env.GITHUB_ACTOR != 'nektos/act'
+        uses: actions/upload-artifact@v3
+        with:
+          name: system-services-logs
+          path: 'ditto-testing/docker/logs/**/*.log'
+
+      - name: Stop sync-tags-streaming-enabled docker environment
+        if: always()
+        working-directory: ./ditto-testing/docker
+        run: |
+          ./stop.sh
