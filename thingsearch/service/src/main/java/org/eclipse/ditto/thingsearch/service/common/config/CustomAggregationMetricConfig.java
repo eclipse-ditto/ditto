@@ -1,0 +1,183 @@
+/*
+ * Copyright (c) 2024 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+package org.eclipse.ditto.thingsearch.service.common.config;
+
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * Provides the configuration settings for a single custom search metric.
+ */
+public interface CustomAggregationMetricConfig {
+
+
+    /**
+     * Returns the name of the custom metric.
+     *
+     * @return the name of the custom metric.
+     */
+    String getMetricName();
+
+    /**
+     * Returns whether this specific search operator metric gathering is turned on.
+     *
+     * @return true or false.
+     */
+    boolean isEnabled();
+
+    /**
+     * Returns the optional scrape interval override for this specific custom metric, how often the metrics should be
+     * gathered.
+     *
+     * @return the optional scrape interval override.
+     */
+    Optional<Duration> getScrapeInterval();
+
+    /**
+     * Returns the namespaces the custom metric should be executed in or an empty list for gathering metrics in all
+     * namespaces.
+     *
+     * @return a list of namespaces.
+     */
+    List<String> getNamespaces();
+
+    /**
+     * Returns the fields we want our metric aggregation to be grouped by.
+     * Field name and thing json pointer
+     *
+     * @return the fields we want our metric aggregation to be grouped by.
+     */
+    Map<String, String> getGroupBy();
+
+    /**
+     * Return optional tags to report to the custom Gauge metric.
+     *
+     * @return optional tags to report.
+     */
+    Map<String, String> getTags();
+
+    /**
+     * Returns the filter configurations for this custom metric.
+     *
+     * @return the filter configurations.
+     */
+    List<FilterConfig> getFilterConfigs();
+
+    enum CustomSearchMetricConfigValue implements KnownConfigValue {
+        /**
+         * Whether the metrics should be gathered.
+         */
+        ENABLED("enabled", true),
+
+        /**
+         * The optional custom scrape interval, how often the metrics should be gathered.
+         * If this is {@code Duration.ZERO}, then there no overwriting for the "global" scrape-interval to be applied.
+         */
+        SCRAPE_INTERVAL("scrape-interval", Duration.ZERO),
+
+        /**
+         * The namespaces the custom metric should be executed in or an empty list for gathering metrics in all
+         * namespaces.
+         */
+        NAMESPACES("namespaces", List.of()),
+
+        /**
+         * The fields we want our metric aggregation to be grouped by.
+         */
+        GROUP_BY("group-by", Map.of()),
+
+        /**
+         * The optional tags to report to the custom Gauge metric.
+         */
+        TAGS("tags", Map.of()),
+
+        /**
+         * The filter configurations for this custom metric.
+         */
+        FILTERS("filters", List.of());
+
+        private final String path;
+        private final Object defaultValue;
+
+        CustomSearchMetricConfigValue(final String thePath, final Object theDefaultValue) {
+            path = thePath;
+            defaultValue = theDefaultValue;
+        }
+
+        @Override
+        public Object getDefaultValue() {
+            return defaultValue;
+        }
+
+        @Override
+        public String getConfigPath() {
+            return path;
+        }
+    }
+
+    /**
+     * Provides the configuration settings for a single filter configuration.
+     */
+    interface FilterConfig {
+
+        String getFilterName();
+
+        /**
+         * Returns the filter to be used.
+         * @return the filter.
+         */
+        String getFilter();
+
+        /**
+         * Returns the inline placeholder values to be used for resolving.
+         * @return the inline placeholder values.
+         */
+        Map<String, String> getInlinePlaceholderValues();
+
+        /**
+         * The known configuration values for a filter configuration.
+         */
+        enum FilterConfigValues implements KnownConfigValue {
+            /**
+             * The filter to be used.
+             */
+            FILTER("filter", ""),
+            /**
+             * The inline placeholder values to be used for resolving.
+             */
+            INLINE_PLACEHOLDER_VALUES("inline-placeholder-values", Map.of());
+
+            private final String path;
+            private final Object defaultValue;
+
+            FilterConfigValues(final String thePath, final Object theDefaultValue) {
+                path = thePath;
+                defaultValue = theDefaultValue;
+            }
+
+            @Override
+            public Object getDefaultValue() {
+                return defaultValue;
+            }
+
+            @Override
+            public String getConfigPath() {
+                return path;
+            }
+        }
+    }
+}

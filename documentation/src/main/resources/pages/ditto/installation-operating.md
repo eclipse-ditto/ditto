@@ -581,9 +581,105 @@ In order to add custom metrics via System properties, the following example show
 Ditto will perform a [count things operation](basic-search.html#search-count-queries) each `5m` (5 minutes), providing
 a gauge named `all_produced_and_not_installed_devices` with the count of the query, adding the tag `company="acme-corp"`.
 
-In Prometheus format this would look like:
+In Prometheus format, this would look like:
 ```
 all_produced_and_not_installed_devices{company="acme-corp"} 42.0
+```
+
+### Operator defined custom aggregation based metrics
+Starting with Ditto 3.6.0, the "custom metrics" functionality is extended to support custom aggregation metrics.  
+This is configured via the [search](architecture-services-things-search.html) service configuration.
+
+> :warning: **Abstain of defining grouping by fields that have a high cardinality, as this will lead to a high number of metrics and
+may overload the Prometheus server!**
+
+Now you can augment the statistic about "Things" managed in Ditto
+fulfilling a certain condition with tags with either predefined values,
+values retrieved from the things or values which are defined based on the matching filter. 
+This is fulfilled by using hardcoded values or placeholders in the tags configuration.
+The supported placeholder types are `inline` and `group-by` placeholders.
+[Function expressions](basic-placeholders.html#function-expressions) are also supported
+to manipulate the values of the placeholders before they are used in the tags.
+
+This would be an example search service configuration snippet for e.g. providing a metric named
+`online_devices` defining a query on the values of a `ConnectionStatus` feature:
+```hocon
+ditto {
+  search {
+    operator-metrics {
+      enabled = true
+      scrape-interval = 30m
+      custom-metrics {
+        ...
+      }
+      custom-aggregation-metrics {
+        online_status {
+          enabled = true
+          scrape-interval = 20m # override scrape interval, run every 20 minutes
+          namespaces = [
+            "org.eclipse.ditto"
+          ]
+          group-by {
+            "location" = "attributes/Info/location"
+            "isGateway" = "attributes/Info/gateway"
+          }
+          tags {
+            "online" = "{{ inline:online_placeholder }}"
+            "health" = "{{ inline:health }}"
+            "hardcoded-tag" = "hardcoded_value"
+            "location" = "{{ group-by:location | fn:default('missing location') }}"
+            "isGateway" = "{{ group-by:isGateway }}"
+          }
+          filters {
+            online_filter {
+              filter = "gt(features/ConnectionStatus/properties/status/readyUntil,time:now)"
+              inline-placeholder-values  {
+                "online_placeholder" = true
+                "health" = "good"
+              }
+            }
+            offline_filter {
+              filter = "lt(features/ConnectionStatus/properties/status/readyUntil,time:now)"
+              inline-placeholder-values = {
+                "online_placeholder" = false
+                "health" = "bad"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+To add custom metrics via System properties, the following example shows how the above metric can be configured:
+```
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.enabled=true
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.scrape-interval=20m
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.namespaces.0=org.eclipse.ditto
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.tags.online="{{online_placeholder}}"
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.tags.location="{{attributes/Info/location}}"
+
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.online-filter.filter=gt(features/ConnectionStatus/properties/status/readyUntil/,time:now)
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.online-filter.inline-placeholder-values.online_placeholder=true
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.online-filter.fields.0=attributes/Info/location
+
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.offline-filter.filter=lt(features/ConnectionStatus/properties/status/readyUntil/,time:now)
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.offline-filter.inline-placeholder-values.online_placeholder=false
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.offline-filter.fields.0=attributes/Info/location
+
+```
+
+Ditto will perform an [aggregation operation](https://www.mongodb.com/docs/manual/aggregation/) over the search db collection every `20m` (20 minutes), providing
+a gauge named `online_devices` with the value of devices that match the filter. 
+The tags `online` and `location` will be added.
+Their values will be resolved from the placeholders `{{online_placeholder}}` and `{{attributes/Info/location}}` respectively.
+
+In Prometheus format, this would look like:
+```
+online_status{location="Berlin",online="false"} 6.0
+online_status{location="Immenstaad",online="true"} 8.0
 ```
 
 ## Tracing

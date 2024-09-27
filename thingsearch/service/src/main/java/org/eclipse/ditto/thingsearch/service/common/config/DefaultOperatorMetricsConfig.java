@@ -50,12 +50,15 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
     private final boolean enabled;
     private final Duration scrapeInterval;
     private final Map<String, CustomMetricConfig> customMetricConfigurations;
+    private final Map<String, CustomAggregationMetricConfig> customAggregationMetricConfigs;
 
     private DefaultOperatorMetricsConfig(final ConfigWithFallback updaterScopedConfig) {
         enabled = updaterScopedConfig.getBoolean(OperatorMetricsConfigValue.ENABLED.getConfigPath());
         scrapeInterval = updaterScopedConfig.getNonNegativeDurationOrThrow(OperatorMetricsConfigValue.SCRAPE_INTERVAL);
         customMetricConfigurations = loadCustomMetricConfigurations(updaterScopedConfig,
                 OperatorMetricsConfigValue.CUSTOM_METRICS);
+        customAggregationMetricConfigs = loadCustomAggregatedMetricConfigurations(updaterScopedConfig,
+                OperatorMetricsConfigValue.CUSTOM_AGGREGATION_METRIC);
     }
 
     /**
@@ -76,6 +79,14 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
         final ConfigObject customMetricsConfig = config.getObject(configValue.getConfigPath());
 
         return customMetricsConfig.entrySet().stream().collect(CustomMetricConfigCollector.toMap());
+    }
+
+    private Map<String, CustomAggregationMetricConfig> loadCustomAggregatedMetricConfigurations(
+            final ConfigWithFallback config, final KnownConfigValue configValue) {
+
+        final ConfigObject customAggregatedMetricsConfig = config.getObject(configValue.getConfigPath());
+
+        return customAggregatedMetricsConfig.entrySet().stream().collect(CustomAggregatedMetricConfigCollector.toMap());
     }
 
     @Override
@@ -120,6 +131,11 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
         return customMetricConfigurations;
     }
 
+    @Override
+    public Map<String, CustomAggregationMetricConfig> getCustomAggregationMetricConfigs() {
+        return customAggregationMetricConfigs;
+    }
+
     private static class CustomMetricConfigCollector
             implements
             Collector<Map.Entry<String, ConfigValue>, Map<String, CustomMetricConfig>, Map<String, CustomMetricConfig>> {
@@ -147,6 +163,41 @@ public final class DefaultOperatorMetricsConfig implements OperatorMetricsConfig
 
         @Override
         public Function<Map<String, CustomMetricConfig>, Map<String, CustomMetricConfig>> finisher() {
+            return map -> Collections.unmodifiableMap(new LinkedHashMap<>(map));
+        }
+
+        @Override
+        public Set<Characteristics> characteristics() {
+            return Collections.singleton(Characteristics.UNORDERED);
+        }
+    }
+
+    private static class CustomAggregatedMetricConfigCollector implements
+            Collector<Map.Entry<String, ConfigValue>, Map<String, CustomAggregationMetricConfig>, Map<String, CustomAggregationMetricConfig>> {
+
+        private static CustomAggregatedMetricConfigCollector toMap() {
+            return new CustomAggregatedMetricConfigCollector();
+        }
+
+        @Override
+        public Supplier<Map<String, CustomAggregationMetricConfig>> supplier() {
+            return LinkedHashMap::new;
+        }
+
+        @Override
+        public BiConsumer<Map<String, CustomAggregationMetricConfig>, Map.Entry<String, ConfigValue>> accumulator() {
+            return (map, entry) -> map.put(entry.getKey(),
+                    DefaultCustomAggregationMetricConfig.of(entry.getKey(), ConfigFactory.empty().withFallback(entry.getValue())));
+        }
+
+        @Override
+        public BinaryOperator<Map<String, CustomAggregationMetricConfig>> combiner() {
+            return (left, right) -> Stream.concat(left.entrySet().stream(), right.entrySet().stream())
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        }
+
+        @Override
+        public Function<Map<String, CustomAggregationMetricConfig>, Map<String, CustomAggregationMetricConfig>> finisher() {
             return map -> Collections.unmodifiableMap(new LinkedHashMap<>(map));
         }
 
