@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Mock OAuth2 Server Example Sign-in</title>
+
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+</head>
+
+<body>
+<div class="container">
+  <div class="row mt-5 justify-content-md-center">
+    <div class="col-md-5">
+      <form method="post">
+        <div></div>
+        <h4>Mock OAuth2 Server Example</h4>
+        <hr class="divisor">
+        <div class="form-group">
+          <input type="text" class="form-control" name="username" autofocus="on"
+                 placeholder="Enter any user/subject">
+        </div>
+        <div class="form-group">
+                        <textarea class="form-control" name="claims" rows="15" placeholder="Optional claims JSON value, example:
+{
+  &quot;acr&quot;: &quot;reference&quot;
+}"
+                        ></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary topBtn"><i class="fa fa-sign-in"></i>Sign-in</button>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+
+</html>
