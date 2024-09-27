@@ -80,7 +80,7 @@ public final class DefaultJwtValidator implements JwtValidator {
     }
 
     private BinaryValidationResult validateWithJwtParser(final JsonWebToken jsonWebToken, final JwtParser jwtParser) {
-        jwtParser.parseClaimsJws(jsonWebToken.getToken());
+        jwtParser.parse(jsonWebToken.getToken());
 
         return BinaryValidationResult.valid();
     }
