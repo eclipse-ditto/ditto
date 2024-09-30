@@ -480,134 +480,134 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-system-metrics_2.13/2.7.3/kamon-system-metrics_2.13-2.7.3-sources.jar
 
 
-## Netty/Buffer (4.1.111.Final)
+## Netty/Buffer (4.1.112.Final)
 
-* Maven coordinates: `io.netty:netty-buffer:4.1.111.Final`
+* Maven coordinates: `io.netty:netty-buffer:4.1.112.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-buffer/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-buffer
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-buffer/4.1.111.Final/netty-buffer-4.1.111.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-buffer/4.1.112.Final/netty-buffer-4.1.112.Final-sources.jar
 
 
-## Netty/Codec (4.1.111.Final)
+## Netty/Codec (4.1.112.Final)
 
-* Maven coordinates: `io.netty:netty-codec:4.1.111.Final`
+* Maven coordinates: `io.netty:netty-codec:4.1.112.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-codec/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-codec
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-codec/4.1.111.Final/netty-codec-4.1.111.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-codec/4.1.112.Final/netty-codec-4.1.112.Final-sources.jar
 
 
-## Netty/Codec/HTTP (4.1.111.Final)
+## Netty/Codec/HTTP (4.1.112.Final)
 
-* Maven coordinates: `io.netty:netty-codec-http:4.1.111.Final`
+* Maven coordinates: `io.netty:netty-codec-http:4.1.112.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-codec-http/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-codec-http
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-codec-http/4.1.111.Final/netty-codec-http-4.1.111.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-codec-http/4.1.112.Final/netty-codec-http-4.1.112.Final-sources.jar
 
 
-## Netty/Codec/HTTP2 (4.1.111.Final)
+## Netty/Codec/HTTP2 (4.1.112.Final)
 
-* Maven coordinates: `io.netty:netty-codec-http2:4.1.111.Final`
+* Maven coordinates: `io.netty:netty-codec-http2:4.1.112.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-codec-http2/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-codec-http2
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-codec-http2/4.1.111.Final/netty-codec-http2-4.1.111.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-codec-http2/4.1.112.Final/netty-codec-http2-4.1.112.Final-sources.jar
 
 
-## Netty/Common (4.1.111.Final)
+## Netty/Common (4.1.112.Final)
 
-* Maven coordinates: `io.netty:netty-common:4.1.111.Final`
+* Maven coordinates: `io.netty:netty-common:4.1.112.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-common/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-common
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-common/4.1.111.Final/netty-common-4.1.111.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-common/4.1.112.Final/netty-common-4.1.112.Final-sources.jar
 
 
-## Netty/Handler (4.1.111.Final)
+## Netty/Handler (4.1.112.Final)
 
-* Maven coordinates: `io.netty:netty-handler:4.1.111.Final`
+* Maven coordinates: `io.netty:netty-handler:4.1.112.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-handler/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-handler
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-handler/4.1.111.Final/netty-handler-4.1.111.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-handler/4.1.112.Final/netty-handler-4.1.112.Final-sources.jar
 
 
-## Netty/Resolver (4.1.111.Final)
+## Netty/Resolver (4.1.112.Final)
 
-* Maven coordinates: `io.netty:netty-resolver:4.1.111.Final`
+* Maven coordinates: `io.netty:netty-resolver:4.1.112.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-resolver/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-resolver
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-resolver/4.1.111.Final/netty-resolver-4.1.111.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-resolver/4.1.112.Final/netty-resolver-4.1.112.Final-sources.jar
 
 
-## Netty/Transport (4.1.111.Final)
+## Netty/Transport (4.1.112.Final)
 
-* Maven coordinates: `io.netty:netty-transport:4.1.111.Final`
+* Maven coordinates: `io.netty:netty-transport:4.1.112.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-transport/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-transport
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport/4.1.111.Final/netty-transport-4.1.111.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport/4.1.112.Final/netty-transport-4.1.112.Final-sources.jar
 
 
-## Netty/Transport/Classes/Epoll (4.1.111.Final)
+## Netty/Transport/Classes/Epoll (4.1.112.Final)
 
-* Maven coordinates: `io.netty:netty-transport-classes-epoll:4.1.111.Final`
+* Maven coordinates: `io.netty:netty-transport-classes-epoll:4.1.112.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-transport-classes-epoll/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-transport-classes-epoll
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-classes-epoll/4.1.111.Final/netty-transport-classes-epoll-4.1.111.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-classes-epoll/4.1.112.Final/netty-transport-classes-epoll-4.1.112.Final-sources.jar
 
 
-## Netty/Transport/Classes/KQueue (4.1.111.Final)
+## Netty/Transport/Classes/KQueue (4.1.112.Final)
 
-* Maven coordinates: `io.netty:netty-transport-classes-kqueue:4.1.111.Final`
+* Maven coordinates: `io.netty:netty-transport-classes-kqueue:4.1.112.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-transport-classes-kqueue/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-transport-classes-kqueue
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-classes-kqueue/4.1.111.Final/netty-transport-classes-kqueue-4.1.111.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-classes-kqueue/4.1.112.Final/netty-transport-classes-kqueue-4.1.112.Final-sources.jar
 
 
-## Netty/Transport/Native/Epoll (4.1.111.Final)
+## Netty/Transport/Native/Epoll (4.1.112.Final)
 
-* Maven coordinates: `io.netty:netty-transport-native-epoll:4.1.111.Final`
+* Maven coordinates: `io.netty:netty-transport-native-epoll:4.1.112.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-transport-native-epoll/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-transport-native-epoll
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-native-epoll/4.1.111.Final/netty-transport-native-epoll-4.1.111.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-native-epoll/4.1.112.Final/netty-transport-native-epoll-4.1.112.Final-sources.jar
 
 
-## Netty/Transport/Native/KQueue (4.1.111.Final)
+## Netty/Transport/Native/KQueue (4.1.112.Final)
 
-* Maven coordinates: `io.netty:netty-transport-native-kqueue:4.1.111.Final`
+* Maven coordinates: `io.netty:netty-transport-native-kqueue:4.1.112.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-transport-native-kqueue/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-transport-native-kqueue
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-native-kqueue/4.1.111.Final/netty-transport-native-kqueue-4.1.111.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-native-kqueue/4.1.112.Final/netty-transport-native-kqueue-4.1.112.Final-sources.jar
 
 
-## Netty/Transport/Native/Unix/Common (4.1.111.Final)
+## Netty/Transport/Native/Unix/Common (4.1.112.Final)
 
-* Maven coordinates: `io.netty:netty-transport-native-unix-common:4.1.111.Final`
+* Maven coordinates: `io.netty:netty-transport-native-unix-common:4.1.112.Final`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://netty.io/netty-transport-native-unix-common/
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-transport-native-unix-common
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-native-unix-common/4.1.111.Final/netty-transport-native-unix-common-4.1.111.Final-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-native-unix-common/4.1.112.Final/netty-transport-native-unix-common-4.1.112.Final-sources.jar
 
 
 ## OpenTelemetry Java (1.35.0)
@@ -1330,44 +1330,44 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/lz4/lz4-java/1.8.0/lz4-java-1.8.0-sources.jar
 
 
-## BSON (5.1.3)
+## BSON (5.1.4)
 
-* Maven coordinates: `org.mongodb:bson:5.1.3`
+* Maven coordinates: `org.mongodb:bson:5.1.4`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://bsonspec.org
 * Sources: 
    * declared as SCM: https://github.com/mongodb/mongo-java-driver
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/bson/5.1.3/bson-5.1.3-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/bson/5.1.4/bson-5.1.4-sources.jar
 
 
-## BSON Record Codec (5.1.3)
+## BSON Record Codec (5.1.4)
 
-* Maven coordinates: `org.mongodb:bson-record-codec:5.1.3`
+* Maven coordinates: `org.mongodb:bson-record-codec:5.1.4`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://www.mongodb.com/
 * Sources: 
    * declared as SCM: https://github.com/mongodb/mongo-java-driver
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/bson-record-codec/5.1.3/bson-record-codec-5.1.3-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/bson-record-codec/5.1.4/bson-record-codec-5.1.4-sources.jar
 
 
-## MongoDB Java Driver Core (5.1.3)
+## MongoDB Java Driver Core (5.1.4)
 
-* Maven coordinates: `org.mongodb:mongodb-driver-core:5.1.3`
+* Maven coordinates: `org.mongodb:mongodb-driver-core:5.1.4`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://www.mongodb.com/
 * Sources: 
    * declared as SCM: https://github.com/mongodb/mongo-java-driver
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/mongodb-driver-core/5.1.3/mongodb-driver-core-5.1.3-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/mongodb-driver-core/5.1.4/mongodb-driver-core-5.1.4-sources.jar
 
 
-## The MongoDB Reactive Streams Driver (5.1.3)
+## The MongoDB Reactive Streams Driver (5.1.4)
 
-* Maven coordinates: `org.mongodb:mongodb-driver-reactivestreams:5.1.3`
+* Maven coordinates: `org.mongodb:mongodb-driver-reactivestreams:5.1.4`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://www.mongodb.com/
 * Sources: 
    * declared as SCM: https://github.com/mongodb/mongo-java-driver
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/mongodb-driver-reactivestreams/5.1.3/mongodb-driver-reactivestreams-5.1.3-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/mongodb-driver-reactivestreams/5.1.4/mongodb-driver-reactivestreams-5.1.4-sources.jar
 
 
 ## Mongo Scala Bson Library (5.1.3)
@@ -1380,14 +1380,14 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/scala/mongo-scala-bson_2.13/5.1.3/mongo-scala-bson_2.13-5.1.3-sources.jar
 
 
-## Mongo Scala Driver (5.1.3)
+## Mongo Scala Driver (5.1.4)
 
-* Maven coordinates: `org.mongodb.scala:mongo-scala-driver_2.13:5.1.3`
+* Maven coordinates: `org.mongodb.scala:mongo-scala-driver_2.13:5.1.4`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://www.mongodb.com/
 * Sources: 
    * declared as SCM: https://github.com/mongodb/mongo-java-driver
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/scala/mongo-scala-driver_2.13/5.1.3/mongo-scala-driver_2.13-5.1.3-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/scala/mongo-scala-driver_2.13/5.1.4/mongo-scala-driver_2.13-5.1.4-sources.jar
 
 
 ## rhino-runtime (1.7.15)
@@ -1490,24 +1490,24 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/reactivestreams/reactive-streams/1.0.4/reactive-streams-1.0.4-sources.jar
 
 
-## Scala Library (2.13.14)
+## Scala Library (2.13.15)
 
-* Maven coordinates: `org.scala-lang:scala-library:2.13.14`
+* Maven coordinates: `org.scala-lang:scala-library:2.13.15`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://www.scala-lang.org/
 * Sources: 
    * declared as SCM: https://github.com/scala/scala
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/scala-lang/scala-library/2.13.14/scala-library-2.13.14-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/scala-lang/scala-library/2.13.15/scala-library-2.13.15-sources.jar
 
 
-## Scala Reflect (2.13.14)
+## Scala Reflect (2.13.15)
 
-* Maven coordinates: `org.scala-lang:scala-reflect:2.13.14`
+* Maven coordinates: `org.scala-lang:scala-reflect:2.13.15`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://www.scala-lang.org/
 * Sources: 
    * declared as SCM: https://github.com/scala/scala
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/scala-lang/scala-reflect/2.13.14/scala-reflect-2.13.14-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/scala-lang/scala-reflect/2.13.15/scala-reflect-2.13.15-sources.jar
 
 
 ## scala-java8-compat (1.0.2)
