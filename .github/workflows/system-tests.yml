@@ -33,10 +33,18 @@ on:
         description: 'Branch to use for ditto repo (default: master)'
         required: false
         default: 'master'
+      ditto_repo:
+        description: 'Repository to use for ditto repo (default: eclipse-ditto/ditto)'
+        required: false
+        default: 'eclipse-ditto/ditto'
       ditto_testing_branch:
         description: 'Branch to use for ditto-testing repo (default: main)'
         required: false
         default: 'main'
+      ditto_testing_repo:
+        description: 'Repository to use for ditto-testing repo (default: eclipse-ditto/ditto-testing)'
+        required: false
+        default: 'eclipse-ditto/ditto-testing'
       extra_maven_args:
         description: 'Extra arguments to pass to Maven'
         required: false
@@ -46,15 +54,15 @@ jobs:
   system-tests:
     runs-on: ditto-runner
     env:
-      DITTO_BRANCH: ${{ github.event.inputs.ditto_branch || 'master'}}
-      DITTO_REPO: ${{ github.event.inputs.ditto_repo || 'eclipse-ditto/ditto'}}
-      DITTO_TESTING_BRANCH: ${{ github.event.inputs.ditto_testing_branch || 'main'}}
-      DITTO_TESTING_REPO: ${{ github.event.inputs.ditto_testing_repo || 'eclipse-ditto/ditto-testing'}}
+      DITTO_BRANCH: ${{ github.event.inputs.ditto_branch }}
+      DITTO_REPO: ${{ github.event.inputs.ditto_repo }}
+      DITTO_TESTING_BRANCH: ${{ github.event.inputs.ditto_testing_branch }}
+      DITTO_TESTING_REPO: ${{ github.event.inputs.ditto_testing_repo }}
       COMPOSE_PROJECT_NAME: '${{ github.job }}-${{ github.run_number }}'
       DOCKER_NETWORK: 'test'
       TEST_JAVA_OPTIONS: '-XX:+UseContainerSupport -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Dpekko.cluster.failure-detector.acceptable-heartbeat-pause=20s'
       MAVEN_OPTS: '-Xmx1400M  --add-opens java.base/java.lang=ALL-UNNAMED'
-      EXTRA_MAVEN_ARGS:  ${{ github.event.inputs.extra-maven-args || '' }}
+      EXTRA_MAVEN_ARGS:  ${{ github.event.inputs.extra_maven_args }}
       HTTP_PUSH_MOCK_SERVER_PORT: '8080'
       EXTRA_DOCKER_ARGS: '--memory="8g" --cpus="8.0"'
       FORK_COUNT: '6'
@@ -63,27 +71,44 @@ jobs:
       - name: Debug GitHub Context
         run: |
             echo "DITTO_BRANCH: ${{ env.DITTO_BRANCH }}"
+            echo "DITTO_REPO: ${{ env.DITTO_REPO }}"
             echo "DITTO_TESTING_BRANCH: ${{ env.DITTO_TESTING_BRANCH }}"
+            echo "DITTO_TESTING_REPO: ${{ env.DITTO_TESTING_REPO }}"
             echo "COMPOSE_PROJECT_NAME: ${{ env.COMPOSE_PROJECT_NAME }}"
             echo "DOCKER_NETWORK: ${{ env.DOCKER_NETWORK }}"
             echo "TEST_JAVA_OPTIONS: ${{ env.TEST_JAVA_OPTIONS }}"
             echo "MAVEN_OPTS: ${{ env.MAVEN_OPTS }}"
+            echo "EXTRA_MAVEN_ARGS: ${{ env.EXTRA_MAVEN_ARGS }}"
+            echo "FORK_COUNT: ${{ env.FORK_COUNT }}"
             echo "HOST_M2_REPO: ${{ env.HOST_M2_REPO }}"
             echo "WORKSPACE: ${{ env.WORKSPACE }}"
             echo "M2_REPO: ${{ env.M2_REPO }}"
-            echo "EXTRA_MAVEN_ARGS: ${{ env.EXTRA_MAVEN_ARGS }}"
             echo "HTTP_PUSH_MOCK_SERVER_PORT: ${{ env.HTTP_PUSH_MOCK_SERVER_PORT }}"
             echo "EXTRA_DOCKER_ARGS: ${{ env.EXTRA_DOCKER_ARGS }}"
-            echo "FORK_COUNT: ${{ env.FORK_COUNT }}"
-            echo "GITHUB_JOB: ${{ github.job }}"
-            echo "GITHUB_RUN_NUMBER: ${{ github.run_number }}"
-            echo "GITHUB_EVENT_NAME: ${{ github.event_name }}"
-            echo "GITHUB_EVENT_PATH: ${{ github.event_path }}"
-            echo "GITHUB_WORKSPACE: ${{ github.workspace }}"
-            echo "GITHUB_SHA: ${{ github.sha }}"
-            echo "GITHUB_REF: ${{ github.ref }}"
-            echo "GITHUB_ACTOR: ${{ github.actor }}"
-            echo "GITHUB_REPOSITORY: ${{ github.repository }}"
+
+      - name: Checkout Ditto code
+        uses: actions/checkout@v4
+        with:
+          repository: ${{env.DITTO_REPO }}
+          ref: ${{ env.DITTO_BRANCH }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: ditto
+
+      - name: Checkout ditto-testing repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.DITTO_TESTING_REPO }}
+          ref: ${{ env.DITTO_TESTING_BRANCH }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: ditto-testing
+
+      - name: Checkout ditto-clients repo
+        uses: actions/checkout@v4
+        with:
+          repository: 'eclipse-ditto/ditto-clients'
+          ref: 'master'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: ditto-clients
 
       - name: Set up JDK 21
         uses: actions/setup-java@v3
@@ -122,14 +147,6 @@ jobs:
           echo "DITTO_VERSION=$DITTO_VERSION"
           echo "::set-output name=ditto_version::$DITTO_VERSION" 
 
-      - name: Checkout Ditto code
-        uses: actions/checkout@v3
-        with:
-          repository: ${{env.DITTO_REPO }}
-          ref: ${{ env.DITTO_BRANCH }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          path: ditto
-
       - name: Compile Ditto
         working-directory: ./ditto
         run: |
@@ -138,26 +155,10 @@ jobs:
               -DforkCount=$FORK_COUNT \
               -Dbuild.environment=Github
 
-      - name: Checkout ditto-clients repo
-        uses: actions/checkout@v3
-        with:
-          repository: 'eclipse-ditto/ditto-clients'
-          ref: 'master'
-          token: ${{ secrets.GITHUB_TOKEN }}
-          path: ditto-clients
-
       - name: Compile Ditto Clients
         working-directory: ./ditto-clients/java
         run: |
           mvn clean install -DskipTests --errors  -Drevision=$DITTO_VERSION 
-
-      - name: Checkout ditto-testing repo
-        uses: actions/checkout@v3
-        with:
-          repository: ${{ github.event.inputs.ditto_testing_repo || 'eclipse-ditto/ditto-testing' }}
-          ref: ${{ github.event.inputs.ditto_testing_branch || 'main' }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          path: ditto-testing
 
       - name: Compile Ditto testing
         working-directory: ./ditto-testing
