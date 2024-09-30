@@ -155,7 +155,7 @@ function toggleFieldSelection(fieldIndex: number) {
  * Callback on environment change. Initializes all UI components for fields
  */
 function onEnvironmentChanged() {
-  if (!Environments.current()['fieldList']) {
+  if (!Environments.current().fieldList) {
     Environments.current().fieldList = [];
   }
   updateFieldList();

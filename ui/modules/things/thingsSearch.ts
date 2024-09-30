@@ -26,7 +26,10 @@ import * as Fields from './fields.js';
 import * as Things from './things.js';
 import * as ThingsSSE from './thingsSSE.js';
 
-let lastSearch = '';
+export class ThingsSearchGlobalVars {
+  public static lastSearch = '';
+}
+
 let theSearchCursor;
 
 const dom = {
@@ -79,7 +82,7 @@ function onThingsTableClicked(event) {
  * @param rqlFilterCallback a callback to invoke when the passed `filter` was a valid RQL statement
  */
 export function searchTriggered(filter: string, rqlFilterCallback: () => void) {
-  lastSearch = filter;
+  ThingsSearchGlobalVars.lastSearch = filter;
   const regex = /^(eq\(|ne\(|gt\(|ge\(|lt\(|le\(|in\(|like\(|ilike\(|exists\(|and\(|or\(|not\().*/;
   if (filter === '' || regex.test(filter)) {
     searchThings(filter);
@@ -87,16 +90,21 @@ export function searchTriggered(filter: string, rqlFilterCallback: () => void) {
   } else {
     getThings([filter]);
   }
+  let urlSearchParams = new URLSearchParams(window.location.search);
+  if (urlSearchParams.get('filter') !== filter) {
+    urlSearchParams.set('filter', filter);
+    window.history.replaceState(null, null, `${window.location.pathname}?${urlSearchParams}`);
+  }
 }
 
 /**
  * Gets the list of pinned things
  */
 export function pinnedTriggered() {
-  lastSearch = 'pinned';
+  ThingsSearchGlobalVars.lastSearch = 'pinned';
   dom.searchFilterEdit.value = null;
   dom.favIcon.classList.replace('bi-star-fill', 'bi-star');
-  getThings(Environments.current()['pinnedThings']);
+  getThings(Environments.current().pinnedThings);
 }
 
 /**
@@ -104,10 +112,10 @@ export function pinnedTriggered() {
  * If the user used pinned things last time, the pinned things are reloaded
  */
 export function performLastSearch() {
-  if (lastSearch === 'pinned') {
+  if (ThingsSearchGlobalVars.lastSearch === 'pinned') {
     pinnedTriggered();
   } else {
-    searchTriggered(lastSearch, () => null);
+    searchTriggered(ThingsSearchGlobalVars.lastSearch, () => null);
   }
 }
 

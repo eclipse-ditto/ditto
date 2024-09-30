@@ -57,15 +57,17 @@ export async function ready() {
   autoCompleteJS = Utils.createAutoComplete('#searchFilterEdit', createFilterList, 'Search for Things...');
   autoCompleteJS.input.addEventListener('selection', (event) => {
     const selection = event.detail.selection.value;
-    fillSearchFilterEdit(selection.rql);
+    fillSearchFilterEditAndSearch(selection.rql);
   });
 
   dom.searchThings.onclick = () => {
     ThingsSearch.searchTriggered(dom.searchFilterEdit.value, () => fillHistory(dom.searchFilterEdit.value));
   };
 
-  dom.searchFavorite.onclick = () => {
-    if (toggleFilterFavorite(dom.searchFilterEdit.value)) {
+  dom.searchFavorite.onclick = async (e) => {
+    e.preventDefault();
+    let isValidQuery = await toggleFilterFavorite(dom.searchFilterEdit.value);
+    if (isValidQuery) {
       dom.favIcon.classList.toggle('bi-star');
       dom.favIcon.classList.toggle('bi-star-fill');
     }
@@ -99,8 +101,12 @@ function onEnvironmentChanged() {
   }
 }
 
-function fillSearchFilterEdit(fillString: string) {
+export function fillSearchFilterEdit(fillString: string) {
   dom.searchFilterEdit.value = fillString;
+}
+
+export function fillSearchFilterEditAndSearch(fillString: string) {
+  fillSearchFilterEdit(fillString);
 
   checkIfFavorite();
   const filterEditNeeded = Utils.checkAndMarkInInput(dom.searchFilterEdit, FILTER_PLACEHOLDER);
@@ -179,7 +185,7 @@ async function createFilterList(query) {
  * @param {string} filter filter
  * @return {boolean} true if the filter was toggled
  */
-async function toggleFilterFavorite(filter: string) {
+async function toggleFilterFavorite(filter: string): Promise<boolean> {
   if (!filter || filter === '') {
     return false;
   }

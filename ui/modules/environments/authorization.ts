@@ -13,6 +13,8 @@
 
 import { UserManager, UserManagerSettings } from 'oidc-client-ts';
 import * as API from '../api.js';
+import { fillSearchFilterEdit } from '../things/searchFilter';
+import { ThingsSearchGlobalVars } from '../things/thingsSearch';
 import * as Utils from '../utils.js';
 import { showError, showInfoToast } from '../utils.js';
 import authorizationHTML from './authorization.html';
@@ -169,8 +171,6 @@ function isSsoCallbackRequest(urlSearchParams?: URLSearchParams): boolean {
 
 async function handleSingleSignOnCallback(urlSearchParams: URLSearchParams) {
   let environment = Environments.current();
-  let sameProviderForMainAndDevops =
-    environment.authSettings?.main?.oidc.provider == environment.authSettings?.devops?.oidc.provider;
   const oidcProviderId = urlSearchParams.get(URL_OIDC_PROVIDER) || environment.authSettings?.main?.oidc.provider;
   let oidcProvider: OidcProviderConfiguration = environment.authSettings.oidc.providers[oidcProviderId];
   const settings: UserManagerSettings = oidcProvider;
@@ -188,7 +188,7 @@ async function handleSingleSignOnCallback(urlSearchParams: URLSearchParams) {
           environment.authSettings.devops.method = AuthMethod.oidc
           environment.authSettings.devops.oidc.bearerToken = user[oidcProvider.extractBearerTokenFrom]
         }
-        window.history.replaceState(null, null, `${settings.redirect_uri}?${user.url_state}`)
+        window.history.replaceState(null, null, `${settings.redirect_uri}?${atob(user.url_state)}`)
         await Environments.environmentsJsonChanged(false)
       }
     } catch (e) {
@@ -235,7 +235,7 @@ async function performSingleSignOn(forMainAuth: boolean): Promise<boolean> {
               mainAuth: forMainAuth || sameProviderForMainAndDevops,
               devopsAuth: !forMainAuth || sameProviderForMainAndDevops
             }),
-            url_state: urlSearchParams.toString()
+            url_state: btoa(urlSearchParams.toString()) // base64 encode to also support e.g. "&"
           });
         } catch (e) {
           showError(e)
@@ -260,7 +260,7 @@ async function performSingleSignOut(oidc: OidcAuthSettings) {
         postLogoutRedirectUri = settings.post_logout_redirect_uri;
       } else {
         // otherwise, build it dynamically, injecting the current urlSearchParams as query:
-        `${settings.redirect_uri}?${urlSearchParams.toString()}`
+        postLogoutRedirectUri = `${settings.redirect_uri}?${urlSearchParams.toString()}`
       }
       await userManager.signoutRedirect({
         post_logout_redirect_uri: postLogoutRedirectUri
@@ -334,16 +334,22 @@ export async function onEnvironmentChanged(initialPageLoad: boolean) {
     environment.authSettings?.main?.oidc?.autoSso === true
   ) {
     await performSingleSignOn(true);
-    await Environments.environmentsJsonChanged(false);
+    Environments.saveEnvironmentsToLocalStorage();
   } else if (initialPageLoad &&
     environment.authSettings?.devops?.method === AuthMethod.oidc &&
     environment.authSettings?.devops?.oidc?.autoSso === true
   ) {
     await performSingleSignOn(false);
-    await Environments.environmentsJsonChanged(false);
+    Environments.saveEnvironmentsToLocalStorage();
   } else if (isSsoCallbackRequest(urlSearchParams)) {
     await handleSingleSignOnCallback(urlSearchParams);
   }
 
   API.setAuthHeader(_forDevops);
+
+  let filter = urlSearchParams.get('filter');
+  if (filter) {
+    ThingsSearchGlobalVars.lastSearch = filter;
+    fillSearchFilterEdit(filter);
+  }
 }

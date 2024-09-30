@@ -146,7 +146,7 @@ function messageFeature() {
 }
 
 function onEnvironmentChanged(modifiedField) {
-  Environments.current()['messageTemplates'] = Environments.current()['messageTemplates'] || {};
+  Environments.current().messageTemplates = Environments.current().messageTemplates || {};
 
   if (!modifiedField) {
     clearAllFields();

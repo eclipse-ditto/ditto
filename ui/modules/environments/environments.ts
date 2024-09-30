@@ -316,7 +316,7 @@ export async function environmentsJsonChanged(initialPageLoad: boolean, modified
     if (!activeEnvironment && oidcState !== null) {
       let stateAndUrlState = oidcState.split(";");
       if (stateAndUrlState.length > 1) {
-        const urlState = stateAndUrlState[1];
+        const urlState = atob(stateAndUrlState[1]); // base64 decode to also support e.g. "&"
         const preservedQueryParams = new URLSearchParams(urlState)
         const primaryEnvironmentName = preservedQueryParams.get(URL_PRIMARY_ENVIRONMENT_NAME);
         const oidcProvider = preservedQueryParams.get(URL_OIDC_PROVIDER);
