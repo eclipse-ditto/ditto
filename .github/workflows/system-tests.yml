@@ -58,6 +58,7 @@ jobs:
       DITTO_REPO: ${{ github.event.inputs.ditto_repo }}
       DITTO_TESTING_BRANCH: ${{ github.event.inputs.ditto_testing_branch }}
       DITTO_TESTING_REPO: ${{ github.event.inputs.ditto_testing_repo }}
+      DITTO_VERSION: '0-SNAPSHOT'
       COMPOSE_PROJECT_NAME: '${{ github.job }}-${{ github.run_number }}'
       DOCKER_NETWORK: 'test'
       TEST_JAVA_OPTIONS: '-XX:+UseContainerSupport -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Dpekko.cluster.failure-detector.acceptable-heartbeat-pause=20s'
@@ -132,20 +133,6 @@ jobs:
           if [[ $GITHUB_ACTOR != "nektos/act" ]]; then
             echo "HOST_M2_REPO=$M2_REPO" >> $GITHUB_ENV
           fi
-
-      - name: Set DITTO_VERSION
-        id: set_version
-        run: |
-          if [[ "$DITTO_BRANCH" == "master" || "$DITTO_BRANCH" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "DITTO_VERSION=nightly" >> $GITHUB_ENV
-          else
-            SANITIZED_BRANCH_NAME=${DITTO_BRANCH//[\/]/-}
-            DITTO_VERSION="0-${SANITIZED_BRANCH_NAME}-SNAPSHOT"
-            echo "DITTO_VERSION=$DITTO_VERSION" >> $GITHUB_ENV
-            echo "SERVICE_VERSION=$DITTO_VERSION" >> $GITHUB_ENV
-          fi
-          echo "DITTO_VERSION=$DITTO_VERSION"
-          echo "::set-output name=ditto_version::$DITTO_VERSION" 
 
       - name: Compile Ditto
         working-directory: ./ditto
