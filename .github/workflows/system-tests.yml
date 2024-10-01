@@ -81,9 +81,9 @@ jobs:
             echo "MAVEN_OPTS: ${{ env.MAVEN_OPTS }}"
             echo "EXTRA_MAVEN_ARGS: ${{ env.EXTRA_MAVEN_ARGS }}"
             echo "FORK_COUNT: ${{ env.FORK_COUNT }}"
-            echo "HOST_M2_REPO: ${{ env.HOST_M2_REPO }}"
             echo "WORKSPACE: ${{ env.WORKSPACE }}"
             echo "M2_REPO: ${{ env.M2_REPO }}"
+            echo "HOST_M2_REPO: ${{ env.HOST_M2_REPO }}"
             echo "HTTP_PUSH_MOCK_SERVER_PORT: ${{ env.HTTP_PUSH_MOCK_SERVER_PORT }}"
             echo "EXTRA_DOCKER_ARGS: ${{ env.EXTRA_DOCKER_ARGS }}"
 
@@ -131,8 +131,13 @@ jobs:
           echo "JAVA_TOOL_OPTIONS=-Duser.home=$HOME" >> $GITHUB_ENV
           echo "M2_REPO=$HOME/.m2" >> $GITHUB_ENV
           if [[ $GITHUB_ACTOR != "nektos/act" ]]; then
-            echo "HOST_M2_REPO=$M2_REPO" >> $GITHUB_ENV
+            echo "HOST_M2_REPO=$HOME/.m2" >> $GITHUB_ENV
           fi
+
+      - name: Debug maven repo
+        run: |
+          echo "M2_REPO: $M2_REPO"
+          echo "HOST_M2_REPO: $HOST_M2_REPO"
 
       - name: Compile Ditto
         working-directory: ./ditto
