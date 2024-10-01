@@ -356,12 +356,11 @@ jobs:
         with:
           name: system-services-logs
           path: 'ditto-testing/docker/*.log'
-          
-      - name: Visualise Test Reports
-        uses: dorny/test-reporter@v1
+
+      
+      - name: Publish Test Report
+        if: success() || failure()
+        uses: scacap/action-surefire-report@v1
         with:
-          name: Sync Completely Enabled Surefire Tests
-          path: '**/target/failsafe-reports/*.xml'
-          reporter: java-junit
-          fail-on-error: true
-          working-directory: ./ditto-testing
+          report_paths: 'ditto-testing/**/failsafe-reports/TEST-*.xml'
+        
