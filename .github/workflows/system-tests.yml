@@ -210,20 +210,6 @@ jobs:
                 -Drevision=$DITTO_VERSION \
                 -DforkCount=$FORK_COUNT -DreuseForks=false
 
-      - name: Upload test results for module system
-        if:  env.GITHUB_ACTOR != 'nektos/act'
-        uses: actions/upload-artifact@v3
-        with:
-          name: system-test-results
-          path: 'ditto-testing/system/target/failsafe-reports/**/*.xml'
-
-      - name: Upload system services logs
-        if:  env.GITHUB_ACTOR != 'nektos/act'
-        uses: actions/upload-artifact@v3
-        with:
-          name: system-services-logs
-          path: 'ditto-testing/docker/logs/**/*.log'
-
       - name: Stop docker environment for module system
         if: always()
         working-directory: ./ditto-testing/docker
@@ -268,20 +254,6 @@ jobs:
           THINGS_SEARCH_UPDATER_STREAM_POLICY_CACHE_RETRY_DELAY: '1s'
           THINGS_SEARCH_UPDATER_STREAM_THING_CACHE_RETRY_DELAY: '1s'
 
-      - name: Upload test results for sync-completely-enabled
-        if:  env.GITHUB_ACTOR != 'nektos/act'
-        uses: actions/upload-artifact@v3
-        with:
-          name: sync-completely-enabled-test-results
-          path: 'ditto-testing/system-sync/sync-completely-enabled/target/failsafe-reports/**/*.xml'
-
-      - name: Upload sync-completely-enabled services logs
-        if:  env.GITHUB_ACTOR != 'nektos/act'
-        uses: actions/upload-artifact@v3
-        with:
-          name: system-services-logs
-          path: 'ditto-testing/docker/logs/**/*.log'
-
       - name: Stop sync-completely-enabled docker environment
         if: always()
         working-directory: ./ditto-testing/docker
@@ -320,20 +292,6 @@ jobs:
           THINGS_SEARCH_UPDATER_STREAM_WRITE_INTERVAL: '1s'
           THINGS_SEARCH_UPDATER_STREAM_POLICY_CACHE_RETRY_DELAY: '1s'
           THINGS_SEARCH_UPDATER_STREAM_THING_CACHE_RETRY_DELAY: '1s'
-
-      - name: Upload module sync-event-processing-enabled test results
-        if:  env.GITHUB_ACTOR != 'nektos/act'
-        uses: actions/upload-artifact@v3
-        with:
-          name: sync-event-processing-enabled-test-results
-          path: 'ditto-testing/system-sync/sync-event-processing-enabled/target/failsafe-reports/**/*.xml'
-
-      - name: Upload sync-event-processing-enabled services logs
-        if:  env.GITHUB_ACTOR != 'nektos/act'
-        uses: actions/upload-artifact@v3
-        with:
-          name: system-services-logs
-          path: 'ditto-testing/docker/logs/**/*.log'
 
       - name: Stop docker environment for module sync-event-processing-enabled
         if: always()
@@ -379,22 +337,30 @@ jobs:
           THINGS_SEARCH_UPDATER_STREAM_POLICY_CACHE_RETRY_DELAY: '1s'
           THINGS_SEARCH_UPDATER_STREAM_THING_CACHE_RETRY_DELAY: '1s'
 
-      - name: Upload sync-tags-streaming-enabled test results
-        if:  env.GITHUB_ACTOR != 'nektos/act'
-        uses: actions/upload-artifact@v3
-        with:
-          name: sync-tags-streaming-enabled-test-results
-          path: 'ditto-testing/system-sync/sync-tags-streaming-enabled/target/failsafe-reports/**/*.xml'
-
-      - name: Upload sync-tags-streaming-enabled services logs
-        if:  env.GITHUB_ACTOR != 'nektos/act'
-        uses: actions/upload-artifact@v3
-        with:
-          name: system-services-logs
-          path: 'ditto-testing/docker/logs/**/*.log'
-
       - name: Stop sync-tags-streaming-enabled docker environment
         if: always()
         working-directory: ./ditto-testing/docker
         run: |
           ./stop.sh
+
+      - name: Upload test results
+        if:  env.GITHUB_ACTOR != 'nektos/act'
+        uses: actions/upload-artifact@v3
+        with:
+          name: system-test-results
+          path: 'ditto-testing/**/target/failsafe-reports/**/*.xml'
+          
+      - name: Upload services logs
+        if:  env.GITHUB_ACTOR != 'nektos/act'
+        uses: actions/upload-artifact@v3
+        with:
+          name: system-services-logs
+          path: 'ditto-testing/docker/*.log'
+          
+      - name: Visualise Test Reports
+        uses: dorny/test-reporter@v1
+        with:
+          name: Sync Completely Enabled Surefire Tests
+          path: 'ditto-testing/**/target/failsafe-reports/*.xml'
+          reporter: java-junit
+          fail-on-error: true
