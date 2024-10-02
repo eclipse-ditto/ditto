@@ -347,7 +347,7 @@ jobs:
         if:  env.GITHUB_ACTOR != 'nektos/act'
         uses: actions/upload-artifact@v3
         with:
-          name: system-test-results
+          name: system-test-results-${{ env.DITTO_BRANCH }}-${{ github.run_number }}
           path: 'ditto-testing/**/target/failsafe-reports/**/*.xml'
           
       - name: Upload services logs
@@ -357,13 +357,17 @@ jobs:
           name: system-services-logs
           path: 'ditto-testing/docker/*.log'
 
-      
+      - name: List Test Result files
+        run: |
+          ls -lah ./**/target/failsafe-reports/*IT.xml
+        working-directory: ditto-testing
+
       - name: Publish Test Results
         uses: dorny/test-reporter@v1
         with:
-          name: Test Results | ${{ env.DITTO_BRANCH }}
+          name: Test Results | ${{ env.DITTO_BRANCH }} ${{ github.run_number }}
           artifact: system-test-results-${{ env.DITTO_BRANCH }}-${{ github.run_number }}
-          path: '**/failsafe-reports/TEST-*IT.xml'
+          path: ./**/target/failsafe-reports/*IT.xml
           reporter: java-junit
-          working-directory: ./ditto-testing
+          working-directory: ditto-testing
         
