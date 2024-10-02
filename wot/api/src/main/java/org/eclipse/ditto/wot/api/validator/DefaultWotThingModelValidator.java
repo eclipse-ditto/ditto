@@ -141,6 +141,11 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
                 .filter(validationConfig -> validationConfig.isEnabled() &&
                         validationConfig.getThingValidationConfig().isForbidThingDescriptionDeletion()
                 )
+                .filter(validationConfig -> Optional.ofNullable(context.featureDefinition())
+                        .map(FeatureDefinition::getFirstIdentifier)
+                        .filter(definitionIdentifier -> definitionIdentifier.getUrl().isPresent()) // only for URLs in the definition
+                        .isPresent()
+                )
                 .map(validationConfig ->
                         CompletableFuture.<Void>failedStage(
                                 WotThingModelPayloadValidationException
@@ -791,6 +796,11 @@ final class DefaultWotThingModelValidator implements WotThingModelValidator {
         return provideValidationConfigIfWotValidationEnabled(context)
                 .filter(validationConfig -> validationConfig.isEnabled() &&
                         validationConfig.getFeatureValidationConfig().isForbidFeatureDescriptionDeletion()
+                )
+                .filter(validationConfig -> Optional.ofNullable(context.featureDefinition())
+                        .map(FeatureDefinition::getFirstIdentifier)
+                        .filter(definitionIdentifier -> definitionIdentifier.getUrl().isPresent()) // only for URLs in the definition
+                        .isPresent()
                 )
                 .map(validationConfig ->
                         CompletableFuture.<Void>failedStage(

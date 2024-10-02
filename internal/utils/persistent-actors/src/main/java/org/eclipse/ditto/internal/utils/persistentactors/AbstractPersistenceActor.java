@@ -489,7 +489,9 @@ public abstract class AbstractPersistenceActor<
                         }
                     })
                     .fold(new EntityWithEvent(null, null), (ewe1, ewe2) -> {
-                        if (ewe2.event != null && ewe2.revision != null) {
+                        if (ewe1.event == null) {
+                            return ewe2; // for start element of "fold", use the first real element
+                        } else if (ewe2.event != null && ewe2.revision != null) {
                             return new EntityWithEvent(
                                     eventStrategy.handle(ewe2.event, ewe1.entity, ewe2.revision),
                                     ewe2.event
