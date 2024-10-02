@@ -29,6 +29,22 @@ the following environment variables in order to configure the connection to the 
 * `PEKKO_PERSISTENCE_MONGO_JOURNAL_WRITE_CONCERN`: Configure Pekko Persistence MongoDB journal write concern
 * `PEKKO_PERSISTENCE_MONGO_SNAPS_WRITE_CONCERN`: Configure Pekko Persistence MongoDB snapshot write concern
 
+#### Passwordless authentication at MongoDB via AWS IAM
+
+Starting with Ditto `3.6.0`, it is possible to [set up authentication with AWS IAM](https://www.mongodb.com/docs/atlas/security/aws-iam-authentication/).
+
+To enable this:
+1. configure your Kubernetes serviceaccount with the role ARN via annotation `eks.amazonaws.com/role-arn`
+2. configure Ditto's services to assume that role during MongoDB authentication
+   1. either via environment variables: 
+      * `MONGO_DB_USE_AWS_IAM_ROLE`: boolean configuring whether to use AWS IAM roles for authentication with MongoDB
+      * `MONGO_DB_AWS_REGION`: string specifying the AWS region
+      * `MONGO_DB_AWS_ROLE_ARN`: string specifying the ARN of the AWS IAM Role to be assumed for MongoDB authentication
+      * `MONGO_DB_AWS_SESSION_NAME`: string the AWS session name to be used when assuming the IAM role
+   2. or - when using the Helm chart - via `values.yaml`
+      * below `serviceAccount` key in order to annotate the k8s serviceaccount with the role ARN to assume
+      * below `dbconfig` key for each individual Ditto service
+
 #### MongoDB tuning
 
 This section contains known aspects when/how to tune Ditto working with MongoDB.
@@ -624,11 +640,11 @@ ditto {
             "isGateway" = "attributes/Info/gateway"
           }
           tags {
-            "online" = "{{ inline:online_placeholder }}"
-            "health" = "{{ inline:health }}"
+            "online" = "{%raw%}{{ inline:online_placeholder }}{%endraw%}"
+            "health" = "{%raw%}{{ inline:health }}{%endraw%}"
             "hardcoded-tag" = "hardcoded_value"
-            "location" = "{{ group-by:location | fn:default('missing location') }}"
-            "isGateway" = "{{ group-by:isGateway }}"
+            "location" = "{%raw%}{{ group-by:location | fn:default('missing location') }}{%endraw%}"
+            "isGateway" = "{%raw%}{{ group-by:isGateway }}{%endraw%}"
           }
           filters {
             online_filter {
@@ -658,8 +674,8 @@ To add custom metrics via System properties, the following example shows how the
 -Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.enabled=true
 -Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.scrape-interval=20m
 -Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.namespaces.0=org.eclipse.ditto
--Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.tags.online="{{online_placeholder}}"
--Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.tags.location="{{attributes/Info/location}}"
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.tags.online="{%raw%}{{online_placeholder}}{%endraw%}"
+-Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.tags.location="{%raw%}{{attributes/Info/location}}{%endraw%}"
 
 -Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.online-filter.filter=gt(features/ConnectionStatus/properties/status/readyUntil/,time:now)
 -Dditto.search.operator-metrics.custom-aggregation-metrics.online_status.filters.online-filter.inline-placeholder-values.online_placeholder=true
@@ -674,7 +690,7 @@ To add custom metrics via System properties, the following example shows how the
 Ditto will perform an [aggregation operation](https://www.mongodb.com/docs/manual/aggregation/) over the search db collection every `20m` (20 minutes), providing
 a gauge named `online_devices` with the value of devices that match the filter. 
 The tags `online` and `location` will be added.
-Their values will be resolved from the placeholders `{{online_placeholder}}` and `{{attributes/Info/location}}` respectively.
+Their values will be resolved from the placeholders `{%raw%}{{online_placeholder}}{%endraw%}` and `{%raw%}{{attributes/Info/location}}{%endraw%}` respectively.
 
 In Prometheus format, this would look like:
 ```
