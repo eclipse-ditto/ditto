@@ -348,7 +348,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: system-test-results
-          path: 'ditto-testing/**/target/failsafe-reports/**/*IT.xml'
+          path: 'ditto-testing/**/target/failsafe-reports/**/*.xml'
           
       - name: Upload services logs
         if:  env.GITHUB_ACTOR != 'nektos/act'
@@ -363,7 +363,7 @@ jobs:
         with:
           name: Test Results | ${{ env.DITTO_BRANCH }}
           artifact: system-test-results-${{ env.DITTO_BRANCH }}-${{ github.run_number }}
-          path: /**/failsafe-reports/TEST-*IT.xml
+          path: '**/failsafe-reports/TEST-*IT.xml'
           reporter: java-junit
           working-directory: ./ditto-testing
         
