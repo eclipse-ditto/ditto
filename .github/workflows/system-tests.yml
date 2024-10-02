@@ -363,4 +363,6 @@ jobs:
         uses: scacap/action-surefire-report@v1
         with:
           report_paths: 'ditto-testing/**/failsafe-reports/TEST-*.xml'
+          create_check: 'false'
+          fail_on_test_failures: 'true'
         
