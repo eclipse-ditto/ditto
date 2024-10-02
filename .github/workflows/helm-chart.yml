@@ -12,9 +12,9 @@ name: Lint and test Helm chart
 
 env:
   CONFIG_OPTION_CHART_TESTING: "--config .github/ct.yml"
-  VERSION_CHART_TESTING: "v3.8.0" # 3.9.0 has an issue with comparing against "master" branch
-  VERSION_HELM: "v3.12.1"
-  VERSION_PYTHON: "3.9"
+  VERSION_CHART_TESTING: "v3.11.0"
+  VERSION_HELM: "v3.13.3"
+  VERSION_PYTHON: "3.10"
 on:
   pull_request:
     paths:
@@ -32,10 +32,10 @@ jobs:
         with:
           fetch-depth: 0
       - name: Set up Helm
-        uses: azure/setup-helm@v3.5
+        uses: azure/setup-helm@v4.2.0
         with:
           version: ${{ env.VERSION_HELM }}
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.VERSION_PYTHON }}
           check-latest: true
@@ -63,16 +63,16 @@ jobs:
         # which a folder exists at
         # https://github.com/yannh/kubernetes-json-schema/
         k8s:
-          - v1.26.6
-          - v1.27.3
-          - v1.28.0
+          - v1.28.13
+          - v1.29.8
+          - v1.30.4
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Fetch history for chart testing
         run: git fetch --prune --unshallow
       - name: Set up Helm
-        uses: azure/setup-helm@v3.5
+        uses: azure/setup-helm@v4.2.0
         with:
           version: ${{ env.VERSION_HELM }}
       - name: Run kubeval
@@ -92,19 +92,19 @@ jobs:
         # available for the docker.io/kindest/node image
         # https://hub.docker.com/r/kindest/node/tags
         k8s:
-          - v1.26.6
-          - v1.27.3
-          - v1.28.0
+          - v1.28.13
+          - v1.29.8
+          - v1.30.4
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Fetch history for chart testing
         run: git fetch --prune --unshallow
       - name: Set up Helm
-        uses: azure/setup-helm@v3.5
+        uses: azure/setup-helm@v4.2.0
         with:
           version: ${{ env.VERSION_HELM }}
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.VERSION_PYTHON }}
           check-latest: true
