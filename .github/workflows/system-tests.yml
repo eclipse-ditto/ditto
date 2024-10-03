@@ -366,7 +366,6 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           name: Test Results | ${{ env.DITTO_BRANCH }} ${{ github.run_number }}
-          artifact: system-test-results-${{ env.DITTO_BRANCH }}-${{ github.run_number }}
           path: ./**/target/failsafe-reports/*IT.xml
           reporter: java-junit
           working-directory: ditto-testing
