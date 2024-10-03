@@ -198,17 +198,23 @@ jobs:
         run: |
           docker run --rm \
             --network test \
+            --network-alias system-test-container \
+             --expose $HTTP_PUSH_MOCK_SERVER_PORT \
+             --expose 5887 \
+             --expose 5888 \
             -v "${{ github.workspace }}":/workspace \
             -v $HOST_M2_REPO:/root/.m2 \
             -w /workspace/ditto-testing \
             -e DITTO_VERSION=$DITTO_VERSION \
             -e FORK_COUNT=$FORK_COUNT \
-            maven:3.9.5-eclipse-temurin-21 \
+             ${{ env.EXTRA_DOCKER_ARGS || '' }} \
+             maven:3.9.5-eclipse-temurin-21 \
             mvn verify -am -amd --batch-mode --errors \
                 --projects=:system \
                 -Dtest.environment=docker-compose \
                 -Drevision=$DITTO_VERSION \
-                -DforkCount=$FORK_COUNT -DreuseForks=false
+                -DforkCount=$FORK_COUNT -DreuseForks=false \
+                ${{ env.EXTRA_MAVEN_ARGS || '' }}
 
       - name: Stop docker environment for module system
         if: always()
@@ -240,6 +246,7 @@ jobs:
           -w /workspace/ditto-testing \
           -e DITTO_VERSION=$DITTO_VERSION \
           -e FORK_COUNT=$FORK_COUNT \
+          ${{ env.EXTRA_DOCKER_ARGS || '' }} \
           maven:3.9.5-eclipse-temurin-21 \
           mvn verify -am -amd --batch-mode --errors --update-snapshots \
               --projects=:sync-completely-enabled \
@@ -281,11 +288,13 @@ jobs:
           -w /workspace/ditto-testing \
           -e DITTO_VERSION=$DITTO_VERSION \
           -e FORK_COUNT=$FORK_COUNT \
+          ${{ env.EXTRA_DOCKER_ARGS || '' }} \
           maven:3.9.5-eclipse-temurin-21 \
           mvn verify -am -amd --batch-mode --errors --update-snapshots \
               --projects=:sync-event-processing-enabled \
               -Dtest.environment=docker-compose \
-              -Drevision=$DITTO_VERSION
+              -Drevision=$DITTO_VERSION \
+              ${{ env.EXTRA_MAVEN_ARGS || '' }}
         env:
           EVENT_PROCESSING_ACTIVE: 'true'
           BACKGROUND_SYNC_ENABLED: 'false'
@@ -323,11 +332,13 @@ jobs:
           -w /workspace/ditto-testing \
           -e DITTO_VERSION=$DITTO_VERSION \
           -e FORK_COUNT=$FORK_COUNT \
+          ${{ env.EXTRA_DOCKER_ARGS || '' }} \
           maven:3.9.5-eclipse-temurin-21 \
           mvn verify -am -amd --batch-mode --errors --update-snapshots \
               --projects=:sync-tags-streaming-enabled \
               -Dtest.environment=docker-compose \
-              -Drevision=$DITTO_VERSION
+              -Drevision=$DITTO_VERSION \
+              ${{ env.EXTRA_MAVEN_ARGS || '' }}
         env:
           EVENT_PROCESSING_ACTIVE: 'false'
           BACKGROUND_SYNC_ENABLED: 'true'
