@@ -17,6 +17,7 @@ import * as Utils from '../utils.js';
 /* eslint-disable prefer-const */
 /* eslint-disable require-jsdoc */
 import * as Authorization from './authorization.js';
+import { fillDevopsUsernamePassword, fillMainUsernamePassword } from './authorization.js';
 import environmentsHTML from './environments.html';
 import defaultTemplates from './environmentTemplates.json';
 
@@ -50,16 +51,12 @@ type BasicAuthSettings = {
   /** Whether the Basic Auth section should be enabled in the Authorize popup */
   enabled: boolean,
   /** The default username and password to pre-configure */
-  defaultUsernamePassword: string | null,
-  /** The cached username and password */
-  usernamePassword?: string
+  defaultUsernamePassword: string | null
 }
 
 type BearerAuthSettings = {
   /** Whether the Bearer Auth section should be enabled in the Authorize popup */
-  enabled: boolean,
-  /** The cached bearer token */
-  bearerToken?: string
+  enabled: boolean
 }
 
 type PreAuthSettings = {
@@ -161,11 +158,11 @@ document.getElementById('environmentsHTML').innerHTML = environmentsHTML;
 
 function Environment(env: Environment): void {
   Object.assign(this, env);
-  this.authSettings.main.oidc.provider = env.authSettings?.main?.oidc?.defaultProvider
-  this.authSettings.main.basic.usernamePassword = env.authSettings?.main?.basic?.defaultUsernamePassword
-  this.authSettings.main.pre.dittoPreAuthenticatedUsername = env.authSettings?.main?.pre?.defaultDittoPreAuthenticatedUsername
-  this.authSettings.devops.oidc.provider = env.authSettings?.devops?.oidc?.defaultProvider
-  this.authSettings.devops.basic.usernamePassword = env.authSettings?.devops?.basic?.defaultUsernamePassword
+  this.authSettings.main.oidc.provider = env.authSettings?.main?.oidc?.defaultProvider;
+  fillMainUsernamePassword(env.authSettings?.main?.basic?.defaultUsernamePassword);
+  this.authSettings.main.pre.dittoPreAuthenticatedUsername = env.authSettings?.main?.pre?.defaultDittoPreAuthenticatedUsername;
+  this.authSettings.devops.oidc.provider = env.authSettings?.devops?.oidc?.defaultProvider;
+  fillDevopsUsernamePassword(env.authSettings?.devops?.basic?.defaultUsernamePassword);
 }
 
 export function currentEnvironmentSelector() {

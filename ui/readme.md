@@ -99,25 +99,19 @@ export type OidcAuthSettings = {
     /** Whether to automatically start SSO when the Authorize popup model loads */
     autoSso: boolean,
     /** The actually chosen OIDC provider (which can be changed by the user in the frontend) - must match a key in "AuthSettings.oidc" */
-    provider?: string,
-    /** The cached bearer token obtained via SSO */
-    bearerToken?: string
+    provider?: string
 }
 
 type BasicAuthSettings = {
     /** Whether the Basic Auth section should be enabled in the Authorize popup */
     enabled: boolean,
     /** The default username and password to pre-configure */
-    defaultUsernamePassword: string | null,
-    /** The cached username and password */
-    usernamePassword?: string
+    defaultUsernamePassword: string | null
 }
 
 type BearerAuthSettings = {
     /** Whether the Bearer Auth section should be enabled in the Authorize popup */
-    enabled: boolean,
-    /** The cached bearer token */
-    bearerToken?: string
+    enabled: boolean
 }
 
 type PreAuthSettings = {
