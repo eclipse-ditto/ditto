@@ -43,7 +43,7 @@ function notifyAll(thingJson) {
 function onThingsTableChanged(thingIds, fieldsQueryParameter) {
   stopSSE(thingsTableEventSource);
   if (thingIds && thingIds.length > 0) {
-    console.log('SSE Start: THINGS TABLE');
+    // console.log('SSE Start: THINGS TABLE');
     thingsTableEventSource = API.getEventSource(thingIds, fieldsQueryParameter);
     thingsTableEventSource.onmessage = onMessageThingsTable;
   }
@@ -54,7 +54,7 @@ function onSelectedThingChanged(newThingJson, isNewThingId) {
     stopSSE(selectedThingEventSource);
   } else if (isNewThingId) {
     selectedThingEventSource && selectedThingEventSource.close();
-    console.log('SSE Start: SELECTED THING : ' + newThingJson.thingId);
+    // console.log('SSE Start: SELECTED THING : ' + newThingJson.thingId);
     selectedThingEventSource = API.getEventSource(newThingJson.thingId,
         'fields=thingId,policyId,definition,attributes,features,_revision,_created,_modified,_metadata,_context/topic,_context/path,_context/value' +
       '&extraFields=thingId,policyId,definition,attributes,features,_revision,_created,_modified,_metadata');
@@ -65,7 +65,7 @@ function onSelectedThingChanged(newThingJson, isNewThingId) {
 function stopSSE(eventSource) {
   if (eventSource) {
     eventSource.close();
-    console.log('SSE Stopped: ' + (eventSource === selectedThingEventSource ? 'SELECTED THING' : 'THINGS TABLE'));
+    // console.log('SSE Stopped: ' + (eventSource === selectedThingEventSource ? 'SELECTED THING' : 'THINGS TABLE'));
   }
 }
 
