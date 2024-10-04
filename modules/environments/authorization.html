@@ -30,6 +30,7 @@
                         <div class="input-group">
                           <label for="oidcProvider" class="input-group-text"><small>SSO provider</small></label>
                           <select class="form-select form-select-sm me-2" id="oidcProvider"></select>
+                          <input type="hidden" class="form-control form-control-sm" id="oidcBearer" name="oidcBearer" />
                           <button class="btn btn-outline-secondary btn-sm" id="main-oidc-login" data-bs-dismiss="modal">Login</button>
                           <button class="btn btn-outline-secondary btn-sm" id="main-oidc-logout" data-bs-dismiss="modal">Logout</button>
                         </div>
@@ -92,6 +93,7 @@
                         <div class="input-group">
                           <label for="devOpsOidcProvider" class="input-group-text"><small>SSO provider</small></label>
                           <select class="form-select form-select-sm me-2" id="devOpsOidcProvider"></select>
+                          <input type="hidden" class="form-control form-control-sm" id="oidcBearerDevOps" name="oidcBearerDevOps" />
                           <button class="btn btn-outline-secondary btn-sm" id="devops-oidc-login" data-bs-dismiss="modal">Login</button>
                           <button class="btn btn-outline-secondary btn-sm" id="devops-oidc-logout" data-bs-dismiss="modal">Logout</button>
                         </div>

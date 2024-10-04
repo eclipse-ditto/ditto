@@ -13,6 +13,14 @@
  */
 
 import { EventSourcePolyfill } from 'event-source-polyfill';
+import {
+  devopsBearerToken,
+  devopsOidcBearerToken,
+  devopsUsernamePassword,
+  mainBearerToken,
+  mainOidcBearerToken,
+  mainUsernamePassword
+} from './environments/authorization';
 import * as Environments from './environments/environments.js';
 import { AuthMethod } from './environments/environments.js';
 import * as Utils from './utils.js';
@@ -286,23 +294,26 @@ export function setAuthHeader(forDevOps: boolean) {
   if (forDevOps) {
     let devopsAuthMethod = environment.authSettings?.devops?.method;
     if (devopsAuthMethod === AuthMethod.basic) {
-      if (environment.authSettings.devops.basic.usernamePassword) {
+      let devopsUserPass = devopsUsernamePassword();
+      if (devopsUserPass) {
         authHeaderKey = 'Authorization';
-        authHeaderValue = 'Basic ' + window.btoa(environment.authSettings.devops.basic.usernamePassword);
+        authHeaderValue = 'Basic ' + window.btoa(devopsUserPass);
       } else {
         showError('DevOps Username/password missing')
       }
     } else if (devopsAuthMethod === AuthMethod.bearer) {
-      if (environment.authSettings.devops.bearer.bearerToken) {
+      let devopsToken = devopsBearerToken();
+      if (devopsToken) {
         authHeaderKey = 'Authorization';
-        authHeaderValue = 'Bearer ' + environment.authSettings.devops.bearer.bearerToken;
+        authHeaderValue = 'Bearer ' + devopsToken;
       } else {
         showError('DevOps Bearer token missing')
       }
     } else if (devopsAuthMethod === AuthMethod.oidc) {
-      if (environment.authSettings.devops.oidc.bearerToken) {
+      let devopsOidcToken = devopsOidcBearerToken();
+      if (devopsOidcToken) {
         authHeaderKey = 'Authorization';
-        authHeaderValue = 'Bearer ' + environment.authSettings.devops.oidc.bearerToken;
+        authHeaderValue = 'Bearer ' + devopsOidcToken;
       } else {
         showError('DevOps SSO (Bearer) token missing')
       }
@@ -313,9 +324,10 @@ export function setAuthHeader(forDevOps: boolean) {
   } else {
     let mainAuthMethod = environment.authSettings?.main?.method;
     if (mainAuthMethod === AuthMethod.basic) {
-      if (environment.authSettings.main.basic.usernamePassword) {
+      let mainUserPass = mainUsernamePassword();
+      if (mainUserPass) {
         authHeaderKey = 'Authorization';
-        authHeaderValue = 'Basic ' + window.btoa(environment.authSettings.main.basic.usernamePassword);
+        authHeaderValue = 'Basic ' + window.btoa(mainUserPass);
       } else {
         showError('Username/password missing')
       }
@@ -327,16 +339,18 @@ export function setAuthHeader(forDevOps: boolean) {
         showError('Pre-Authenticated username missing')
       }
     } else if (mainAuthMethod === AuthMethod.bearer) {
-      if (environment.authSettings.main.bearer.bearerToken) {
+      let mainToken = mainBearerToken();
+      if (mainToken) {
         authHeaderKey = 'Authorization';
-        authHeaderValue = 'Bearer ' + environment.authSettings.main.bearer.bearerToken;
+        authHeaderValue = 'Bearer ' + mainToken;
       } else {
         showError('Bearer token missing')
       }
     } else if (mainAuthMethod === AuthMethod.oidc) {
-      if (environment.authSettings.main.oidc.bearerToken) {
+      let mainOidcToken = mainOidcBearerToken();
+      if (mainOidcToken) {
         authHeaderKey = 'Authorization';
-        authHeaderValue = 'Bearer ' + environment.authSettings.main.oidc.bearerToken;
+        authHeaderValue = 'Bearer ' + mainOidcToken;
       } else {
         showError('SSO (Bearer) token missing')
       }

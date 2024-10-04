@@ -31,11 +31,13 @@ import {
 
 let dom = {
   mainBearerSection: null,
+  oidcBearer: null,
   bearer: null,
   mainBasicSection: null,
   userName: null,
   password: null,
   devOpsBearerSection: null,
+  oidcBearerDevOps: null,
   bearerDevOps: null,
   devOpsBasicSection: null,
   devOpsUserName: null,
@@ -65,6 +67,52 @@ document.getElementById('authorizationHTML').innerHTML = authorizationHTML;
 export function setForDevops(forDevops: boolean) {
   _forDevops = forDevops;
   API.setAuthHeader(_forDevops);
+}
+
+export function mainUsernamePassword(): string {
+  return dom.userName.value + ':' + dom.password.value;
+}
+
+export function mainBearerToken(): string {
+  return dom.bearer.value;
+}
+
+export function mainOidcBearerToken(): string {
+  return dom.oidcBearer.value;
+}
+
+export function devopsUsernamePassword(): string {
+  return dom.devOpsUserName.value + ':' + dom.devOpsPassword.value;
+}
+
+export function devopsBearerToken(): string {
+  return dom.bearerDevOps.value;
+}
+
+export function devopsOidcBearerToken(): string {
+  return dom.oidcBearerDevOps.value;
+}
+
+export function fillMainUsernamePassword(usernamePassword: string) {
+  if (usernamePassword && usernamePassword.length > 0) {
+    dom.userName.value = usernamePassword.split(':')[0];
+    dom.password.value = usernamePassword.split(':')[1];
+  }
+}
+
+export function fillDevopsUsernamePassword(usernamePassword: string) {
+  if (usernamePassword && usernamePassword.length > 0) {
+    dom.devOpsUserName.value = usernamePassword.split(':')[0];
+    dom.devOpsPassword.value = usernamePassword.split(':')[1];
+  }
+}
+
+function fillMainOidcBearerToken(oidcToken: string) {
+  dom.oidcBearer.value = oidcToken;
+}
+
+function fillDevopsOidcBearerToken(oidcToken: string) {
+  dom.oidcBearerDevOps.value = oidcToken;
 }
 
 export function ready() {
@@ -111,10 +159,6 @@ export function ready() {
     let environment = Environments.current();
     environment.authSettings.main.method = AuthMethod[mainAuthMethod as keyof typeof AuthMethod];
     environment.authSettings.devops.method = AuthMethod[devopsAuthMethod as keyof typeof AuthMethod];
-    environment.authSettings.main.basic.usernamePassword = dom.userName.value + ':' + dom.password.value;
-    environment.authSettings.devops.basic.usernamePassword = dom.devOpsUserName.value + ':' + dom.devOpsPassword.value;
-    environment.authSettings.main.bearer.bearerToken = dom.bearer.value;
-    environment.authSettings.devops.bearer.bearerToken = dom.bearerDevOps.value;
     environment.authSettings.main.pre.dittoPreAuthenticatedUsername = dom.dittoPreAuthenticatedUsername.value;
     environment.authSettings.main.oidc.defaultProvider = dom.oidcProvider.value;
     environment.authSettings.devops.oidc.defaultProvider = dom.devOpsOidcProvider.value;
@@ -181,12 +225,12 @@ async function handleSingleSignOnCallback(urlSearchParams: URLSearchParams) {
       if (user) {
         let oidcState = user.state as OidcState
         if (oidcState.mainAuth) {
-          environment.authSettings.main.method = AuthMethod.oidc
-          environment.authSettings.main.oidc.bearerToken = user[oidcProvider.extractBearerTokenFrom]
+          environment.authSettings.main.method = AuthMethod.oidc;
+          fillMainOidcBearerToken(user[oidcProvider.extractBearerTokenFrom]);
         }
         if (oidcState.devopsAuth) {
-          environment.authSettings.devops.method = AuthMethod.oidc
-          environment.authSettings.devops.oidc.bearerToken = user[oidcProvider.extractBearerTokenFrom]
+          environment.authSettings.devops.method = AuthMethod.oidc;
+          fillDevopsOidcBearerToken(user[oidcProvider.extractBearerTokenFrom]);
         }
         window.history.replaceState(null, null, `${settings.redirect_uri}?${atob(user.url_state)}`)
         await Environments.environmentsJsonChanged(false)
@@ -220,10 +264,10 @@ async function performSingleSignOn(forMainAuth: boolean): Promise<boolean> {
       if (user?.[oidcProvider.extractBearerTokenFrom] !== undefined || user?.expired === true) {
         // a user is still logged in via a valid token stored in the browser's session storage
         if (sameProviderForMainAndDevops) {
-          environment.authSettings.main.oidc.bearerToken = user[oidcProvider.extractBearerTokenFrom]
-          environment.authSettings.devops.oidc.bearerToken = user[oidcProvider.extractBearerTokenFrom]
+          fillMainOidcBearerToken(user[oidcProvider.extractBearerTokenFrom]);
+          fillDevopsOidcBearerToken(user[oidcProvider.extractBearerTokenFrom]);
         } else {
-          oidc.bearerToken = user[oidcProvider.extractBearerTokenFrom]
+          fillMainOidcBearerToken(user[oidcProvider.extractBearerTokenFrom]);
         }
         return true
       } else {
@@ -268,7 +312,7 @@ async function performSingleSignOut(oidc: OidcAuthSettings) {
     } catch (e) {
       showError(e)
     } finally {
-      oidc.bearerToken = undefined
+      fillMainOidcBearerToken(undefined);
       Environments.saveEnvironmentsToLocalStorage();
     }
   }
@@ -284,16 +328,6 @@ function dynamicallyShowOrHideSection(sectionEnabled: boolean, section: HTMLElem
 
 export async function onEnvironmentChanged(initialPageLoad: boolean) {
   let environment = Environments.current();
-  let usernamePassword = environment.authSettings?.main?.basic?.usernamePassword ?
-    environment.authSettings?.main?.basic?.usernamePassword : ':';
-  dom.userName.value = usernamePassword.split(':')[0];
-  dom.password.value = usernamePassword.split(':')[1];
-  usernamePassword = environment.authSettings?.devops?.basic?.usernamePassword ?
-    environment.authSettings?.devops?.basic?.usernamePassword : ':';
-  dom.devOpsUserName.value = usernamePassword.split(':')[0];
-  dom.devOpsPassword.value = usernamePassword.split(':')[1];
-  dom.bearer.value = environment.authSettings?.main?.bearer?.bearerToken ? environment.authSettings?.main?.bearer?.bearerToken : '';
-  dom.bearerDevOps.value = environment.authSettings?.devops?.bearer?.bearerToken ? environment.authSettings?.devops?.bearer?.bearerToken : '';
   dom.dittoPreAuthenticatedUsername.value = environment.authSettings?.main?.pre?.dittoPreAuthenticatedUsername ?
     environment.authSettings?.main?.pre?.dittoPreAuthenticatedUsername : '';
   if (environment.authSettings?.oidc?.providers) {
